@@ -1,0 +1,28 @@
+# API Keys and sensitive data
+api_keys.env
+.env
+*.env
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+notebooks/.ipynb_checkpoints/
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Specific files with sensitive data
+Research_Week_3_Simulation.ipynb
+notebooks/Research_Week_4_Simulation.py
+notebooks/Research_Week_4_Simulation-checkpoint.ipynb 
