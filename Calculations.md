@@ -1,7 +1,9 @@
 # MASFIN Calculations: Full Reference
 
 This document provides a detailed explanation of the financial and statistical calculations used by the **MASFIN** (Multi-Agent System for Financial Forecasting) project.  
-While the paper version (Table 2) presents a condensed overview, this page serves as the **complete reference** for calculation details and standardization
+While the paper version (Table 2) presents a condensed overview, this page serves as the **complete reference** for calculation details and standardization.  
+
+A companion Python script (`calculations.py`) is included in the repository, which implements all of the formulas listed here. This ensures full reproducibility and provides a direct reference for anyone who wants to run or adapt the calculations programmatically.  
 
 ---
 
@@ -127,6 +129,23 @@ Relative MA = (Close_t - MA_5(t)) / MA_5(t)
 
 ---
 
+## 4. Manual Calculations for Profit/Loss
+
+**New Purchases (acquired during the week)**  
+Profit is calculated relative to the **average cost basis** at purchase:
+Profit = (Close_end_of_week - Avg. Cost Basis) * Shares
+- Close_end_of_week = stock closing price at the end of the week  
+- Avg. Cost Basis = average purchase price per share during that week  
+- Shares = number of shares purchased
+
+**Existing Holdings (purchased before the week and held through)**  
+Profit is measured relative to the **opening price** of the first trading day in the week:
+Profit = (Close_end_of_week - Open_start_of_week) * Shares
+- Close_end_of_week = stock closing price at the end of the week  
+- Open_start_of_week = stock opening price on the first trading day of the week  
+- Shares = number of shares held  
+
+
 ## Why These Metrics Matter
 - **Consistency**: All metrics are computed exactly as defined here, ensuring reproducibility.  
 - **Bias Reduction**: Using standard definitions avoids introducing custom rules that could bias results.  
@@ -149,4 +168,6 @@ Relative MA = (Close_t - MA_5(t)) / MA_5(t)
 [RSI – Investopedia](https://www.investopedia.com/terms/r/rsi.asp)  
 [Standard Score (Recent Z-score) – Wikipedia](https://en.wikipedia.org/wiki/Standard_score)  
 [Volume – Investopedia](https://www.investopedia.com/terms/v/volume.asp)  
-[Moving Average – Investopedia](https://www.investopedia.com/terms/m/movingaverage.asp)  
+[Moving Average – Investopedia](https://www.investopedia.com/terms/m/movingaverage.asp)
+[Average Cost Basis Method (New Purchase)– Investopedia](https://www.investopedia.com/terms/a/averagecostbasismethod.asp)
+[Stock Quotes Explained (Existing Holdings)– Investopedia](https://www.investopedia.com/articles/investing/093014/stock-quotes-explained.asp)
