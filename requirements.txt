@@ -1,51 +1,41 @@
-# Core CrewAI and LangChain packages
-crewai==0.121.1
+# Core CrewAI / LangChain
+crewai>=0.28.0
 langchain==0.3.25
 langchain-community==0.3.24
+crewai-tools>=0.1.0
+crewai-tools[openai,anthropic,google,ollama]
 
-# CrewAI tools with various LLM integrations
-crewai-tools
-crewai-tools[openai]
-crewai-tools[anthropic]
-crewai-tools[google]
-crewai-tools[ollama]
-
-# OpenAI and reliability/back-off
+# OpenAI and reliability
 openai==1.75.0
 tenacity==9.1.2
 
 # Core data processing
-pandas>=1.5.0
-numpy>=1.21.0
-yfinance>=0.2.18
+pandas==1.5.3
+numpy==1.23.5
+yfinance==0.2.18
 
 # Finance & technical analysis
-matplotlib>=3.5.0
+matplotlib==3.5.3
 requests
-ta>=0.10.2
+ta==0.10.2
 sec_edgar_downloader
 
-# Machine-learning libraries for TFT models
-darts[torch]>=0.24.0
-pytorch-forecasting>=1.0.0
-torch>=1.12.0
-pytorch-lightning>=1.7.0
+# ML / forecasting
+darts[torch]==0.24.0
+pytorch-forecasting==1.0.0
+torch==1.12.1
+pytorch-lightning==1.7.0
 
-# Utilities & helpers
-joblib>=1.2.0
-pathlib2>=2.3.7
-logging>=0.4.9.6
+# Utilities
+joblib==1.2.0
+pathlib2==2.3.7
 python-dotenv
 
-# Optional CrewAI integration packages
-crewai>=0.28.0
-crewai-tools>=0.1.0
+# Advanced ML / visualization
+scikit-learn==1.1.3
+seaborn==0.11.2
 
-# Advanced ML / viz
-scikit-learn>=1.1.0
-seaborn>=0.11.0
-
-# Development & testing
+# Development / testing
 autopep8
-pytest>=7.0.0
-jupyter>=1.0.0
+pytest==7.2.0
+jupyter==1.0.0
