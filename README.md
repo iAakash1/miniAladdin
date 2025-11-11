@@ -1,25 +1,71 @@
-# Developing a Multi-Agent Financial Forecasting System Using CrewAI
+# MASFIN: A Multi-Agent System for Decomposed Financial Reasoning and Forecasting
 
-**Abstract**
+**Authors:**  
+Marc S. Montalvo — Rochester Institute of Technology  
+Hamed Yaghoobian — Muhlenberg College  
 
-This project proposes the development of a multi-agent system using the CrewAI framework to forecast short-term stock performance and construct optimized investment portfolios. The system, composed of specialized AI agents with distinct financial roles, will be evaluated over eight weeks by comparing its predictions and portfolio returns to actual market data. Introduction
-Forecasting stock performance remains a difficult challenge due to market volatility and information overload. CrewAI, a Python framework for coordinating agents to collaborate, provides a unique approach to measuring financial performance. _This study asks: Can a CrewAI-based system predict short-term stock movements and create portfolios that outperform the market?_
+---
 
-**Background**
+### **Overview**
+MASFIN (*Multi-Agent System for Financial Forecasting*) is a modular multi-agent framework that integrates large language models (LLMs) with structured financial metrics and unstructured news sentiment under explicit bias-mitigation protocols. The system was implemented using **CrewAI** and evaluated over an **eight-week live-market period**, generating weekly portfolios of 15–30 equities optimized for short-term returns.
 
-Traditional financial analysis relies on human expertise to interpret diverse data, such as SEC filings, technical indicators, and market sentiment. A multi-agent system can analyze financials similarly, but the question is, how effectively? CrewAI enables agents with specific goals, tasks, roles, and backstories to collaborate as financial analysts, making data-driven investment recommendations together.
+In its evaluation, MASFIN achieved a **7.33 % cumulative return**, outperforming the **S&P 500**, **NASDAQ-100**, and **Dow Jones** in six of eight weeks, with favorable risk-adjusted performance despite higher volatility.
 
-**Methodology (8 Weeks)**
+---
 
-In Week 1, the system will be developed and tested. Approximately 20 agents will be created with defined roles such as earnings analysis, sentiment tracking, and macroeconomic scanning. Sources, such as 10-K reports, news articles, stock screeners, like Finviz, and price data APIs, will support data collection. Diversification is key to the success of a portfolio and will be maintained.
-Starting Week 2, agents will evaluate each stock using metrics such as weekly return, volatility, Sharpe ratio, beta, alpha, drawdown, momentum, linear regression, correlation, and z-score. Each week, a new portfolio will be constructed based on agent recommendations, and predictions will be logged. A new separate evaluator agent will compare the previous week's forecast with actual results and provide feedback to the system. Adjustments will be made to agent behavior and inputs based on past performance.
-Weeks 2–7 will follow this iterative cycle, emphasizing performance tracking and analytical refinement. Week 8 will focus on compiling a final report that summarizes findings, evaluates agents, and analyzes which indicators had the greatest impact.
+### **System Architecture**
+MASFIN operates as a **five-stage sequential pipeline**, with 3–5 LLM-based agents per stage. Each stage passes structured outputs to the next, ensuring transparency, error control, and reproducibility.
 
-**Expected Outcomes**
+1. **Postmortem Crew** – Analyzes delisted or at-risk firms to detect failure patterns and mitigate survivorship bias.  
+2. **Screening Crew** – Filters the market to 50–100 candidate tickers using sentiment, trends, and rule-based criteria.  
+3. **Analysis Crew** – Evaluates quantitative indicators (21-day and 5-day returns, volatility, Sharpe/Sortino ratios, drawdown, beta, alpha, z-scores, volume trends, and price vs. moving average). Metrics are computed with fixed historical windows to prevent look-ahead bias.  
+4. **Timing Crew** – Assesses short-term entry timing using Sortino ratio, return z-score, regression slope, and volume patterns.  
+5. **Portfolio Crew** – Allocates weights across 15–30 equities, balancing return and risk while ensuring diversification and bias control.
 
-The final deliverable will be a functioning CrewAI system capable of producing evidence-backed investment recommendations. Its predictive accuracy will be benchmarked against real market data. The report will include a breakdown of agent performance, the credibility of data sources, and reflections on the possible practical applications. While returns may be conservative, the aim is to demonstrate that multi-agent collaboration can match or exceed traditional investment approaches.
+Each crew includes a **Summary Agent** to consolidate outputs and enable **human-in-the-loop (HITL)** validation, reducing hallucinations and reinforcing interpretability.
 
-**Conclusion**
+---
 
-This research explores the role of agents in financial forecasting. By leveraging CrewAI and credible financial data, the project seeks to build a system that not only automates but also enhances strategic investment decision-making. The results will offer insight into the viability of AI teams in applied financial research.
+### **Methodology**
+- **Data Sources:** Yahoo Finance (market data) and Finnhub API (news sentiment).  
+- **Evaluation Period:** June – August 2025.  
+- **Performance Metrics:** cumulative return, volatility, Sharpe and Sortino ratios, drawdown, beta, alpha, z-scores, and momentum.  
+- **Benchmark Comparison:** S&P 500 (SPY), NASDAQ-100 (QQQ), and Dow Jones (DIA).  
+- **Evaluation Cycle:** weekly rebalancing and performance review.
 
+---
+
+### **Results**
+| Metric | MASFIN | NASDAQ-100 | S&P 500 | Dow Jones |
+|:--|:--:|:--:|:--:|:--:|
+| **Cumulative Return** | **7.33 %** | 5.36 % | 4.92 % | 4.11 % |
+| **Weekly Win Rate** | **75 %** | — | — | — |
+| **Volatility (Weekly)** | 2.61 % | lower | lower | lower |
+
+MASFIN’s high-return profile places it in the **high-risk, high-reward** quadrant. Correlations with major indices (0.97 with S&P 500, 0.95 with NASDAQ) indicate strong directional accuracy within broader market trends.
+
+---
+
+### **Reproducibility**
+- **Language & Platform:** Python 3.13 on Windows 11  
+- **Framework:** CrewAI (v0.30.2)  
+- **Notebook Environment:** Jupyter Notebook  
+- **Dependencies:** listed in `requirements.txt`  
+- **Evaluation Notebooks:** `MASFIN_System_Template.ipynb` and supporting analysis notebooks  
+- **Data Sources:** Yahoo Finance and Finnhub APIs (June – August 2025)
+
+All scripts and notebooks are fully reproducible and publicly available.
+
+---
+
+### **Limitations and Future Work**
+While MASFIN achieves strong short-term predictive performance, it does not yet include a learning mechanism or statistical inference tools such as confidence intervals or hypothesis testing. Extending evaluation periods and comparing MASFIN to other AI-based financial systems will further contextualize its performance. Future versions aim to integrate adaptive learning modules and automated calibration of agent parameters.
+
+---
+
+### **Citation**
+If you use or reference MASFIN, please cite:
+
+> Montalvo, M. S., & Yaghoobian, H. (2025). *MASFIN: A Multi-Agent System for Decomposed Financial Reasoning and Forecasting.*  
+> Proceedings of the NeurIPS 2025 Workshop on Generative AI in Finance.  
+> [https://github.com/mmontalvo9/MASFIN](https://github.com/mmontalvo9/MASFIN)
