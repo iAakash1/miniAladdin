@@ -39,7 +39,7 @@ Each crew includes a **Summary Agent** to consolidate outputs and enable **human
 | Metric | MASFIN | NASDAQ-100 | S&P 500 | Dow Jones |
 |:--|:--:|:--:|:--:|:--:|
 | **Cumulative Return** | 7.33 % | 5.36 % | 4.92 % | 4.11 % |
-| **Standard Deviation (Volatility)** | 2.61% | 2.17% | 1.78% | 2.01% |
+| **Standard Deviation (Volatility)** | 2.61% | 2.18% | 1.78% | 2.03% |
 | **Correltion to MASFIN** | 1.0 | 0.95 | 0.97 | 0.88 |
 
 MASFIN’s high-return profile places it in the **high-risk, high-reward** quadrant. Correlations with major indices (0.97 with S&P 500, 0.95 with NASDAQ) indicate strong directional accuracy within broader market trends.
