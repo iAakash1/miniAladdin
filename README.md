@@ -2,7 +2,7 @@
 
 **Authors:**  
 Marc S. Montalvo — Rochester Institute of Technology  
-Hamed Yaghoobian — Muhlenberg College  
+Dr. Hamed Yaghoobian — Muhlenberg College  
 
 ---
 
