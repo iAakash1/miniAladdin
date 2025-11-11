@@ -28,7 +28,8 @@ Each crew includes a **Summary Agent** to consolidate outputs and enable **human
 
 ### **Methodology**
 - **Data Sources:** Yahoo Finance (market data) and Finnhub API (news sentiment).  
-- **Evaluation Period:** June – August 2025.   
+- **Evaluation Period:** June – August 2025.
+- **Performance Metrics** See Calculations.md   
 - **Benchmark Comparison:** S&P 500 (SPY), NASDAQ-100 (QQQ), and Dow Jones (DIA).  
 - **Evaluation Cycle:** weekly rebalancing and performance review.
 
