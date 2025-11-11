@@ -56,7 +56,7 @@ Each crew includes a **Summary Agent** to consolidate outputs and enable **human
   - Portfolio  
 - **Use human-in-the-loop (HITL)** review between crews by passing each summary output to the next stage  
 - **Review final outputs:** Buy, Sell, or Hold recommendations from the Portfolio Crew  
-- **Compare performance:** open `Calculations.ipynb` to calculate metrics and place into Analysis Crew for next week (week beginning and end) & can evaluate results against market indices
+- **Compare performance:** open `Calculations.ipynb` to calculate metrics and place into Analysis Crew, Timing Crew, and Portfolio Crew for next week (week beginning, end, among others) & can evaluate results against market indices
 - **Repeat weekly** with updated data to track performance over time
 
 ---
