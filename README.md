@@ -7,7 +7,7 @@ Dr. Hamed Yaghoobian — Muhlenberg College
 ---
 
 ### **Overview**
-MASFIN (*Multi-Agent System for Financial Forecasting*) is a modular multi-agent framework that integrates large language models (LLMs) with structured financial metrics and unstructured news sentiment under explicit bias-mitigation protocols. The system was implemented using **CrewAI** and evaluated over an **eight-week live-market period**, generating weekly portfolios of 15–30 equities optimized for short-term returns.
+MASFIN (*Multi-Agent System for Financial Forecasting*) is a modular multi-agent framework that leverages AI (LLM - GPT-4.1 nano) to make investment portfolio decisions with structured financial metrics and unstructured news sentiment under explicit bias-mitigation protocols. The system was implemented using **CrewAI** and evaluated over an **eight-week live-market period**, generating weekly portfolios of 15–30 equities optimized for short-term returns.
 
 In its evaluation, MASFIN achieved a **7.33 % cumulative return**, outperforming the **S&P 500**, **NASDAQ-100**, and **Dow Jones** in six of eight weeks, with favorable risk-adjusted performance despite higher volatility.
 
@@ -18,8 +18,8 @@ MASFIN operates as a **five-stage sequential pipeline**, with 3–5 LLM-based ag
 
 1. **Postmortem Crew** – Analyzes delisted or at-risk firms to detect failure patterns and mitigate survivorship bias.  
 2. **Screening Crew** – Filters the market to 50–100 candidate tickers using sentiment, trends, and rule-based criteria.  
-3. **Analysis Crew** – Evaluates quantitative indicators (21-day and 5-day returns, volatility, Sharpe/Sortino ratios, drawdown, beta, alpha, z-scores, volume trends, and price vs. moving average). Metrics are computed with fixed historical windows to prevent look-ahead bias.  
-4. **Timing Crew** – Assesses short-term entry timing using Sortino ratio, return z-score, regression slope, and volume patterns.  
+3. **Analysis Crew** – Evaluates quantitative indicators (21-day and 5-day returns, volatility, Sharpe/Sortino ratios, drawdown, beta, alpha, z-scores, volume trends, among others). 
+4. **Timing Crew** – Assesses short-term entry timing using Sortino ratio, return z-score, regression slope, among others.  
 5. **Portfolio Crew** – Allocates weights across 15–30 equities, balancing return and risk while ensuring diversification and bias control.
 
 Each crew includes a **Summary Agent** to consolidate outputs and enable **human-in-the-loop (HITL)** validation, reducing hallucinations and reinforcing interpretability.
@@ -28,8 +28,7 @@ Each crew includes a **Summary Agent** to consolidate outputs and enable **human
 
 ### **Methodology**
 - **Data Sources:** Yahoo Finance (market data) and Finnhub API (news sentiment).  
-- **Evaluation Period:** June – August 2025.  
-- **Performance Metrics:** cumulative return, volatility, Sharpe and Sortino ratios, drawdown, beta, alpha, z-scores, and momentum.  
+- **Evaluation Period:** June – August 2025.   
 - **Benchmark Comparison:** S&P 500 (SPY), NASDAQ-100 (QQQ), and Dow Jones (DIA).  
 - **Evaluation Cycle:** weekly rebalancing and performance review.
 
@@ -41,8 +40,6 @@ Each crew includes a **Summary Agent** to consolidate outputs and enable **human
 | **Cumulative Return** | 7.33 % | 5.36 % | 4.92 % | 4.11 % |
 | **Standard Deviation (Volatility)** | 2.61% | 2.18% | 1.78% | 2.03% |
 | **Correltion to MASFIN** | 1.0 | 0.95 | 0.97 | 0.88 |
-
-MASFIN’s high-return profile places it in the **high-risk, high-reward** quadrant. Correlations with major indices (0.97 with S&P 500, 0.95 with NASDAQ) indicate strong directional accuracy within broader market trends.
 
 ---
 
