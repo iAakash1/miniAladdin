@@ -44,6 +44,23 @@ Each crew includes a **Summary Agent** to consolidate outputs and enable **human
 
 ---
 
+### **How to Use**
+- **Install dependencies** listed in `requirements.txt`  
+- **Open** `MASFIN_System_Template.ipynb` in Jupyter Notebook
+- **Connect** API's
+- **Run each crew** in order:  
+  - Postmortem  
+  - Screening  
+  - Analysis  
+  - Timing  
+  - Portfolio  
+- **Use human-in-the-loop (HITL)** review between crews by passing each summary output to the next stage  
+- **Review final outputs:** Buy, Sell, or Hold recommendations from the Portfolio Crew  
+- **Compare performance:** open `Calculations.ipynb` to calculate metrics and place into Analysis Crew for next week (week beginning and end) & can evaluate results against market indices
+- **Repeat weekly** with updated data to track performance over time
+
+---
+
 ### **Reproducibility**
 - **Language & Platform:** Python 3.13 on Windows 11  
 - **Framework:** CrewAI (v0.30.2)  
