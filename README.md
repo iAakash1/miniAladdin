@@ -47,7 +47,7 @@ Each crew includes a **Summary Agent** to consolidate outputs and enable **human
 ### **How to Use**
 - **Install dependencies** listed in `requirements.txt`  
 - **Open** `MASFIN_System_Template.ipynb` in Jupyter Notebook
-- **Connect** API's
+- **Connect** Finnhub API + LLM
 - **Run each crew** in order:  
   - Postmortem  
   - Screening  
