@@ -40,7 +40,7 @@ Each crew includes a **Summary Agent** to consolidate outputs and enable **human
 |:--|:--:|:--:|:--:|:--:|
 | **Cumulative Return** | 7.33 % | 5.36 % | 4.92 % | 4.11 % |
 | **Standard Deviation (Volatility)** | 2.61% | 2.18% | 1.78% | 2.03% |
-| **Correltion to MASFIN** | 1.0 | 0.95 | 0.97 | 0.88 |
+| **Correlation to MASFIN** | 1.0 | 0.95 | 0.97 | 0.88 |
 
 ---
 
