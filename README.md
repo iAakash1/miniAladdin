@@ -4,6 +4,9 @@
 Marc S. Montalvo — Rochester Institute of Technology  
 Dr. Hamed Yaghoobian — Muhlenberg College  
 
+Research presented in-person at the NeurIPS 2025 Workshop on Generative AI in Finance, San Diego, CA
+Paper:[https://arxiv.org/abs/2512.21878]([url](https://arxiv.org/abs/2512.21878))
+
 ---
 
 ### **Overview**
