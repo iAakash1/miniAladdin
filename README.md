@@ -1,89 +1,184 @@
-# MASFIN: A Multi-Agent System for Decomposed Financial Reasoning and Forecasting
+# OmniSignal: Agentic Multi-Factor Risk & Prediction Engine 📊
 
-**Authors:**  
-Marc S. Montalvo — Rochester Institute of Technology  
-Dr. Hamed Yaghoobian — Muhlenberg College  
+> Built on [MASFIN](https://arxiv.org/abs/2512.21878) — A Multi-Agent System for Decomposed Financial Reasoning and Forecasting
 
-Research presented in person at the NeurIPS 2025 Workshop on Generative AI in Finance, San Diego, CA  
-Paper: https://arxiv.org/abs/2512.21878
+**OmniSignal** transforms the MASFIN multi-agent financial forecasting system into a **systemic-risk-aware** prediction engine. Instead of analyzing stocks in isolation, OmniSignal integrates **macro-economic risk signals** from the Federal Reserve, **live news sentiment**, and **technical analysis** into a unified research workflow.
 
 ---
 
-### **Overview**
-MASFIN (*Multi-Agent System for Financial Forecasting*) is a modular multi-agent framework that leverages AI (LLM - GPT-4.1 nano) to make investment portfolio decisions with structured financial metrics and unstructured news sentiment under explicit bias-mitigation protocols. The system was implemented using **CrewAI** and evaluated over an **eight-week live-market period**, generating weekly portfolios of 15–30 equities optimized for short-term returns.
+## 🏗️ Architecture
 
-In its evaluation, MASFIN achieved a **7.33 % cumulative return**, outperforming the **S&P 500**, **NASDAQ-100**, and **Dow Jones** in six of eight weeks, with favorable risk-adjusted performance despite higher volatility.
+```
+┌──────────────────────────────────────────────────────┐
+│                  OmniSignal Pipeline                 │
+├──────────────┬──────────────┬────────────────────────┤
+│  FRED API    │  yfinance    │  Yahoo Finance RSS     │
+│  (Macro)     │  (Technicals)│  (Sentiment)           │
+├──────────────┴──────────────┴────────────────────────┤
+│            AsyncDataPipeline (concurrent)            │
+├──────────────┬──────────────┬────────────────────────┤
+│ Risk Engine  │  Prediction  │  Sentiment             │
+│ (SRM calc)   │  Agent       │  Analyzer              │
+├──────────────┴──────────────┴────────────────────────┤
+│              OmniSignal Report Generator             │
+│              → research_vault/TICKER_report.md       │
+└──────────────────────────────────────────────────────┘
+```
 
----
+### Systemic Risk Multiplier (SRM)
 
-### **System Architecture**
-MASFIN operates as a **five-stage sequential pipeline**, with 3–5 LLM-based agents per stage. Each stage passes structured outputs to the next, ensuring transparency, error control, and reproducibility.
-
-1. **Postmortem Crew** – Analyzes delisted or at-risk firms to detect failure patterns and mitigate survivorship bias.  
-2. **Screening Crew** – Filters the market to 50–100 candidate tickers using sentiment, trends, and rule-based criteria.  
-3. **Analysis Crew** – Evaluates quantitative indicators (21-day and 5-day returns, volatility, Sharpe/Sortino ratios, drawdown, beta, alpha, z-scores, volume trends, among others). 
-4. **Timing Crew** – Assesses short-term entry timing using Sortino ratio, return z-score, regression slope, among others.  
-5. **Portfolio Crew** – Allocates weights across 15–30 equities, balancing return and risk while ensuring diversification and bias control.
-
-Each crew includes a **Summary Agent** to consolidate outputs and enable **human-in-the-loop (HITL)** validation, reducing hallucinations and reinforcing interpretability.
-
----
-
-### **Methodology**
-- **Data Sources:** Yahoo Finance (market data) and Finnhub API (news sentiment).  
-- **Evaluation Period:** June – August 2025.
-- **Performance Metrics** See Calculations.md   
-- **Benchmark Comparison:** S&P 500 (SPY), NASDAQ-100 (QQQ), and Dow Jones (DIA).  
-- **Evaluation Cycle:** weekly rebalancing and performance review.
-
----
-
-### **Results**
-| Metric | MASFIN | NASDAQ-100 | S&P 500 | Dow Jones |
-|:--|:--:|:--:|:--:|:--:|
-| **Cumulative Return** | 7.33 % | 5.36 % | 4.92 % | 4.11 % |
-| **Standard Deviation (Volatility)** | 2.61% | 2.18% | 1.78% | 2.03% |
-| **Correlation to MASFIN** | 1.0 | 0.95 | 0.97 | 0.88 |
+| Condition | Adjustment | Effect |
+|---|---|---|
+| Yield Curve Inverted (10Y < 2Y) | +0.3 | Recession warning |
+| Inflation > 4% YoY | +0.2 | Dampened bullish signals |
+| Fed Funds Rate > 5% | +0.1 | Tighter conditions |
+| SRM > 1.3 | — | Strong Buy → Hold |
 
 ---
 
-### **How to Use**
-- **Install dependencies** listed in `requirements.txt`  
-- **Open** `MASFIN_System_Template.ipynb` in Jupyter Notebook
-- **Connect** Finnhub API + LLM
-- **Run each crew** in order:  
-  - Postmortem  
-  - Screening  
-  - Analysis  
-  - Timing  
-  - Portfolio  
-- **Use human-in-the-loop (HITL)** review between crews by passing each summary output to the next stage  
-- **Review final outputs:** Buy, Sell, or Hold recommendations from the Portfolio Crew  
-- **Compare performance:** open `Calculations.ipynb` to calculate metrics and place into Analysis Crew, Timing Crew, and Portfolio Crew for next week (week beginning, end, among others) & can evaluate results against market indices
-- **Repeat weekly** with updated data to track performance over time
+## 📂 Project Structure
+
+```
+├── .agent/
+│   ├── skills/
+│   │   ├── macro-risk-analyzer/   # FRED macro data skill
+│   │   └── risk-engine/           # SRM calculation skill
+│   └── workflows/
+│       └── deep-equity-research.md  # /research workflow
+├── src/
+│   ├── models.py              # Pydantic data models
+│   ├── risk_analysis.py       # FRED-based Risk Engine
+│   ├── prediction_agent.py    # Risk-aware technical analysis
+│   ├── sentiment_edge.py      # Headline sentiment scoring
+│   ├── data_pipeline.py       # Async concurrent pipeline
+│   └── report_generator.py    # Markdown report output
+├── scripts/
+│   └── fetch_macro.py         # CLI macro data fetcher
+├── tests/                     # Pytest suite (80%+ coverage)
+├── research_vault/            # Generated OmniSignal reports
+├── MASFIN_System_Template.ipynb  # Original MASFIN notebook
+└── Calculations.md            # Financial metric formulas
+```
 
 ---
 
-### **Reproducibility**
-- **Language & Platform:** Python 3.13 on Windows 11  
-- **Framework:** CrewAI (v0.30.2)  
-- **Notebook Environment:** Jupyter Notebook  
-- **Dependencies:** listed in `requirements.txt`  
-- **Evaluation Notebooks:** `MASFIN_System_Template.ipynb` and supporting analysis notebooks  
-- **Data Sources:** Yahoo Finance and Finnhub APIs (June – August 2025)
+## 🚀 Quick Start
 
-All scripts and notebooks are fully reproducible and publicly available.
+### 1. Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 2. Set Up API Keys
+
+```bash
+cp .env.example .env
+# Edit .env and add your FRED API key
+# Get one free at: https://fred.stlouisfed.org/docs/api/api_key.html
+```
+
+### 3. Check Macro Environment
+
+```bash
+python scripts/fetch_macro.py
+```
+
+### 4. Run Tests
+
+```bash
+python -m pytest tests/ -v --tb=short --cov=src
+```
+
+### 5. Use the Research Workflow
+
+In the Antigravity agent, run:
+```
+/research NVDA
+```
 
 ---
 
-### **Limitations and Future Work**
-While MASFIN achieves strong short-term predictive performance, it does not yet include a learning mechanism or statistical inference tools such as confidence intervals or hypothesis testing. Extending evaluation periods and comparing MASFIN to other AI-based financial systems will further contextualize its performance. Future versions aim to integrate adaptive learning modules and automated calibration of agent parameters.
+## 🧠 Key Components
+
+### Risk Engine (`src/risk_analysis.py`)
+Connects to the Federal Reserve FRED API to pull Treasury yield spreads, CPI inflation data, and the Federal Funds Rate. Computes a Systemic Risk Multiplier (0.5–1.6) that adjusts prediction confidence.
+
+### Prediction Agent (`src/prediction_agent.py`)
+Computes RSI-14, Sharpe/Sortino ratios, volatility, momentum, and drawdown. Applies the SRM dampening: multiplier > 1.3 shifts "Strong Buy" down to "Hold".
+
+### Sentiment Edge (`src/sentiment_edge.py`)
+Fetches Yahoo Finance RSS headlines and scores them with a keyword-based sentiment engine. Aggregates into Bullish/Bearish/Neutral with a -1 to +1 composite score.
+
+### Async Pipeline (`src/data_pipeline.py`)
+Orchestrates concurrent data fetching from all three sources and synthesizes the final OmniSignal verdict with confidence scoring.
 
 ---
 
-### **Citation**
-If you use or reference MASFIN, please cite:
+## 🚀 Deployment (Vercel)
 
-> Montalvo, M. S., & Yaghoobian, H. (2025). *MASFIN: A Multi-Agent System for Decomposed Financial Reasoning and Forecasting.*  
-> Proceedings of the NeurIPS 2025 Workshop on Generative AI in Finance.  
+### Local Development
+
+**1. Start the API server:**
+```bash
+pip install -r requirements.txt
+uvicorn api.index:app --reload --port 8000
+```
+
+**2. Start the dashboard:**
+```bash
+cd dashboard && npm install && npm run dev
+```
+
+**3. Open** `http://localhost:3000` — the dashboard proxies `/api/*` to `localhost:8000`.
+
+### Deploy to Vercel
+
+**1. Push to GitHub:**
+```bash
+git add .
+git commit -m "feat: Aladdin-style risk engine with Vercel support"
+git push origin main
+```
+
+**2. Connect to Vercel:**
+- Import your GitHub repo at [vercel.com/new](https://vercel.com/new)
+- Vercel auto-detects the `vercel.json` configuration
+
+**3. Add Environment Variables** in Vercel Dashboard → Settings → Environment Variables:
+
+| Variable | Value |
+|---|---|
+| `FRED_API_KEY` | `6e050ad2ed98fb11706fb33f7ae2b279` |
+
+### API Endpoints
+
+| Endpoint | Method | Description | Speed |
+|---|---|---|---|
+| `/api/health` | GET | Health check | <1s |
+| `/api/macro` | GET | SRM + macro indicators | ~2s |
+| `/api/research/{ticker}` | GET | Full OmniSignal pipeline | ~5s |
+| `/api/research/{ticker}?fast=true` | GET | Fast mode (no sentiment) | ~3s |
+
+---
+
+## 📖 Original MASFIN Research
+
+**MASFIN** (*Multi-Agent System for Financial Forecasting*) is a modular multi-agent framework using CrewAI + GPT-4.1 nano that achieved **7.33% cumulative return** over 8 weeks, outperforming the S&P 500, NASDAQ-100, and Dow Jones.
+
+- **Paper:** [arxiv.org/abs/2512.21878](https://arxiv.org/abs/2512.21878)
+- **Authors:** Marc S. Montalvo (RIT), Dr. Hamed Yaghoobian (Muhlenberg College)
+- **Presented at:** NeurIPS 2025 Workshop on Generative AI in Finance
+
+---
+
+## 📜 Citation
+
+> Montalvo, M. S., & Yaghoobian, H. (2025). *MASFIN: A Multi-Agent System for Decomposed Financial Reasoning and Forecasting.*
+> Proceedings of the NeurIPS 2025 Workshop on Generative AI in Finance.
 > [https://github.com/mmontalvo9/MASFIN](https://github.com/mmontalvo9/MASFIN)
+
+---
+
+*OmniSignal is for research and educational purposes only. Not financial advice.*
+

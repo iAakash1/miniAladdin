@@ -1,0 +1,21 @@
+{
+    "rewrites": [
+        {
+            "source": "/api/(.*)",
+            "destination": "/api/index.py"
+        }
+    ],
+    "functions": {
+        "api/index.py": {
+            "runtime": "@vercel/python",
+            "maxDuration": 10
+        }
+    },
+    "framework": "nextjs",
+    "buildCommand": "cd dashboard && npm run build",
+    "outputDirectory": "dashboard/.next",
+    "installCommand": "cd dashboard && npm install",
+    "env": {
+        "FRED_API_KEY": "@fred_api_key"
+    }
+}

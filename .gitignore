@@ -13,3 +13,26 @@ Thumbs.db
 
 # Large or temporary notebooks (optional, remove if you want to track all)
 notebooks/Research_Week_*_Simulation.*
+
+# Environment variables (contains API keys)
+.env
+
+# Test cache
+.pytest_cache/
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+
+# Virtual environments
+venv/
+.venv/
+
+# Dashboard build artifacts
+dashboard/node_modules/
+dashboard/.next/
+
+# Vercel
+.vercel/
+
