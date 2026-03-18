@@ -7,13 +7,12 @@
     ],
     "functions": {
         "api/index.py": {
-            "runtime": "@vercel/python",
+            "runtime": "@vercel/python@3.9.16",
             "maxDuration": 10
         }
     },
     "framework": "nextjs",
     "buildCommand": "cd dashboard && npm run build",
     "outputDirectory": "dashboard/.next",
-    "installCommand": "cd dashboard && npm install",
-    "env": {}
+    "installCommand": "cd dashboard && npm install"
 }
