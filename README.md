@@ -1,8 +1,6 @@
 # OmniSignal: Agentic Multi-Factor Risk & Prediction Engine 📊
 
-> Built on [MASFIN](https://arxiv.org/abs/2512.21878) — A Multi-Agent System for Decomposed Financial Reasoning and Forecasting
-
-**OmniSignal** transforms the MASFIN multi-agent financial forecasting system into a **systemic-risk-aware** prediction engine. Instead of analyzing stocks in isolation, OmniSignal integrates **macro-economic risk signals** from the Federal Reserve, **live news sentiment**, and **technical analysis** into a unified research workflow.
+**OmniSignal** is a systemic-risk-aware prediction engine that integrates **macro-economic risk signals** from the Federal Reserve, **live news sentiment**, and **technical analysis** into a unified research workflow. Instead of analyzing stocks in isolation, OmniSignal provides a holistic view of market conditions and individual equity performance.
 
 ---
 
@@ -162,21 +160,21 @@ git push origin main
 
 ---
 
-## 📖 Original MASFIN Research
+---
 
-**MASFIN** (*Multi-Agent System for Financial Forecasting*) is a modular multi-agent framework using CrewAI + GPT-4.1 nano that achieved **7.33% cumulative return** over 8 weeks, outperforming the S&P 500, NASDAQ-100, and Dow Jones.
+## 🔬 Technology Stack
 
-- **Paper:** [arxiv.org/abs/2512.21878](https://arxiv.org/abs/2512.21878)
-- **Authors:** Marc S. Montalvo (RIT), Dr. Hamed Yaghoobian (Muhlenberg College)
-- **Presented at:** NeurIPS 2025 Workshop on Generative AI in Finance
+- **Backend:** FastAPI + Python 3.10+
+- **Frontend:** Next.js 16 + React 19 + Tailwind CSS
+- **Data Sources:** FRED API, Yahoo Finance, yfinance
+- **Deployment:** Vercel (serverless)
+- **Testing:** Pytest with 80%+ coverage
 
 ---
 
-## 📜 Citation
+## 📜 License
 
-> Montalvo, M. S., & Yaghoobian, H. (2025). *MASFIN: A Multi-Agent System for Decomposed Financial Reasoning and Forecasting.*
-> Proceedings of the NeurIPS 2025 Workshop on Generative AI in Finance.
-> [https://github.com/mmontalvo9/MASFIN](https://github.com/mmontalvo9/MASFIN)
+MIT License - See LICENSE file for details
 
 ---
 

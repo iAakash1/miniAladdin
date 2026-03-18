@@ -62,11 +62,9 @@ curl http://localhost:8000/api/research/NVDA?fast=true
 ### Step 1: Push to GitHub
 
 ```bash
-git init
-git add .
-git commit -m "feat: OmniSignal risk engine with dashboard"
+# Create a new repository on GitHub first, then:
+git remote add origin https://github.com/iAakash1/omnisignal.git
 git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO.git
 git push -u origin main
 ```
 
