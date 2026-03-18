@@ -84,7 +84,7 @@ In the Vercel dashboard:
 
 | Variable | Value | Environment |
 |---|---|---|
-| `FRED_API_KEY` | Your FRED API key | Production, Preview, Development |
+| `FRED_API_KEY` | `6e050ad2ed98fb11706fb33f7ae2b279` | Production, Preview, Development |
 
 ### Step 4: Deploy
 
