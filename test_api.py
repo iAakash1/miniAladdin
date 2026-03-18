@@ -15,8 +15,14 @@ def test_fred_api():
     try:
         response = requests.get(url, timeout=10)
         if response.status_code == 200:
-            print("✅ FRED API: Working")
-            return True
+            data = response.json()
+            if 'observations' in data and len(data['observations']) > 0:
+                print("✅ FRED API: Working with real data")
+                print(f"   Latest 10Y Treasury: {data['observations'][0].get('value', 'N/A')}%")
+                return True
+            else:
+                print("✅ FRED API: Connected but no data")
+                return True
         else:
             print(f"❌ FRED API: Error {response.status_code}")
             return False

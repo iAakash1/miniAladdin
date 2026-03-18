@@ -75,18 +75,18 @@ git push -u origin main
 3. Select your GitHub repository
 4. Vercel will auto-detect the configuration from `vercel.json`
 
-### Step 3: Configure Environment Variables (Optional)
+### Step 3: Configure Environment Variables
 
-**The app works without any API keys in DEMO MODE!**
+In the Vercel dashboard:
 
-For production use with real FRED data:
+1. Go to **Settings** → **Environment Variables**
+2. Add your FRED API key:
 
-1. Get a free FRED API key at [fred.stlouisfed.org](https://fred.stlouisfed.org/docs/api/api_key.html)
-2. In Vercel dashboard → **Settings** → **Environment Variables**
-3. Add: `FRED_API_KEY` = your key
+| Variable | Value | Environment |
+|---|---|---|
+| `FRED_API_KEY` | `6e050ad2ed98fb11706fb33f7ae2b279` | Production, Preview, Development |
 
-**Without FRED API key**: App uses realistic demo data
-**With FRED API key**: App uses real Federal Reserve data
+This will give you **real Federal Reserve data** instead of demo mode.
 
 ### Step 4: Deploy
 
