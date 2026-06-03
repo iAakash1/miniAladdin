@@ -220,7 +220,7 @@ async def research_ticker(
 
 
 @app.get("/api/chart/{ticker}")
-async def get_chart(ticker: str):
+async def get_chart(ticker: str, period: str = "3mo"):
     """3-month daily OHLCV for the sparkline chart."""
     import yfinance as yf
 
@@ -229,7 +229,8 @@ async def get_chart(ticker: str):
         raise HTTPException(status_code=400, detail="Invalid ticker")
 
     try:
-        hist = yf.Ticker(ticker).history(period="3mo")
+        period = request.query_params.get("period", "3mo") if hasattr(request, "query_params") else "3mo"
+        hist = yf.Ticker(ticker).history(period=period)
         if hist.empty:
             return {"ticker": ticker, "prices": [], "error": "No data"}
 
