@@ -44,7 +44,7 @@ app.add_middleware(
 # ── Shared instances ──────────────────────────────────────────────────────────
 
 risk_engine        = OmniSignalRiskEngine()
-sentiment_analyzer = SentimentAnalyzer(max_headlines=8)
+sentiment_analyzer = SentimentAnalyzer(max_headlines=12)
 av_client          = AlphaVantageClient()
 
 
@@ -190,10 +190,12 @@ async def research_ticker(
                 "dominant_label": sentiment.dominant_label.value,
                 "headlines": [
                     {
-                        "title":  h.headline,
-                        "score":  h.score,
-                        "label":  h.label.value,
-                        "source": h.source,
+                        "title":       h.headline,
+                        "score":       h.score,
+                        "label":       h.label.value,
+                        "source":      h.source,
+                        "url":         h.url,
+                        "published_at": h.published_at,
                     }
                     for h in sentiment.headlines
                 ],
