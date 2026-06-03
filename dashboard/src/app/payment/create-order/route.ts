@@ -12,7 +12,7 @@ export async function POST() {
 
   try {
     const order = await rzp.orders.create({
-      amount:   99900,
+      amount:   5000,
       currency: 'INR',
       receipt:  'omni_' + userId + '_' + Date.now(),
     })

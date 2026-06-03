@@ -73,7 +73,7 @@ export default function UpgradeModal({ onClose, reason }: { onClose: () => void;
 
         {/* Price */}
         <div style={{ background:'rgba(56,189,248,0.06)', border:'1px solid rgba(56,189,248,0.15)', borderRadius:8, padding:'16px 20px', marginBottom:24, textAlign:'center' }}>
-          <div style={{ fontFamily:'JetBrains Mono, monospace', fontSize:'2rem', fontWeight:700, color:'#38bdf8', letterSpacing:'-.02em', lineHeight:1 }}>₹999</div>
+          <div style={{ fontFamily:'JetBrains Mono, monospace', fontSize:'2rem', fontWeight:700, color:'#38bdf8', letterSpacing:'-.02em', lineHeight:1 }}>₹50</div>
           <div style={{ fontFamily:'JetBrains Mono, monospace', fontSize:'.65rem', color:'#4b6480', marginTop:4, letterSpacing:'.08em' }}>PER MONTH · CANCEL ANYTIME</div>
         </div>
 
@@ -101,7 +101,7 @@ export default function UpgradeModal({ onClose, reason }: { onClose: () => void;
           disabled={loading}
           style={{ width:'100%', background: loading ? 'rgba(56,189,248,0.2)' : '#38bdf8', color: loading ? '#38bdf8' : '#060d1b', border:'none', borderRadius:7, padding:'13px 0', fontFamily:'JetBrains Mono, monospace', fontWeight:700, fontSize:'.8rem', letterSpacing:'.08em', cursor: loading ? 'not-allowed' : 'pointer', transition:'all .16s ease' }}
         >
-          {loading ? 'OPENING PAYMENT…' : 'UPGRADE NOW — ₹999/MONTH'}
+          {loading ? 'OPENING PAYMENT…' : 'UPGRADE NOW — ₹50/MONTH'}
         </button>
 
         <div style={{ fontFamily:'JetBrains Mono, monospace', fontSize:'.58rem', color:'#374151', textAlign:'center', marginTop:12, letterSpacing:'.04em' }}>
