@@ -41,6 +41,16 @@ export interface ResearchResult {
   week52_low?: number
   week52_high?: number
 
+  /* Sentiment headlines */
+  headlines?: Array<{
+    title: string
+    score: number
+    label: string
+    source: string
+    url: string
+    published_at: string
+  }>
+
   /* Price history & macro */
   price_history?: Array<{ date: string; close: number }>
   macro: MacroData

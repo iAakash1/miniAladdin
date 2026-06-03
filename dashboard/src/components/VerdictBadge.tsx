@@ -51,7 +51,7 @@ export default function VerdictBadge({ verdict, signalScore, riskAdjusted, srm }
             letterSpacing: '-0.02em',
           }}
         >
-          {verdict.toUpperCase()}
+          {(verdict || "Hold").toUpperCase()}
         </div>
         {riskAdjusted && riskAdjusted !== verdict && (
           <div
@@ -127,7 +127,7 @@ export default function VerdictBadge({ verdict, signalScore, riskAdjusted, srm }
             padding: '2px 8px',
           }}
         >
-          {srm.toFixed(3)} · {srmRisk}
+          {(srm ?? 0).toFixed(3)} · {srmRisk}
         </span>
       </div>
     </div>
