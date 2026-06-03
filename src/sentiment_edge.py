@@ -138,9 +138,15 @@ class SentimentAnalyzer:
             tag = item.find("title")
             if tag and tag.text:
                 title = tag.text.strip()
+                link_tag = item.find("link")
+                url = ""
+                if link_tag:
+                    url = link_tag.text.strip() if link_tag.text else (link_tag.get("href","") or "")
                 out.append({
                     "title":      title,
                     "source":     "Yahoo Finance",
+                    "url":        url,
+                    "published":  item.find("pubDate").text.strip() if item.find("pubDate") else "",
                     "is_breaking": self._detect_breaking(title),
                 })
         return out
