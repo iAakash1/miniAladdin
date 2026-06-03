@@ -229,7 +229,6 @@ async def get_chart(ticker: str, period: str = "3mo"):
         raise HTTPException(status_code=400, detail="Invalid ticker")
 
     try:
-        period = request.query_params.get("period", "3mo") if hasattr(request, "query_params") else "3mo"
         hist = yf.Ticker(ticker).history(period=period)
         if hist.empty:
             return {"ticker": ticker, "prices": [], "error": "No data"}
