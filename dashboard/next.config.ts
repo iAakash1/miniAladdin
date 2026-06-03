@@ -1,12 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Proxy API calls to local FastAPI during development
   async rewrites() {
+    const apiBase =
+      process.env.API_URL ||
+      "https://minialaddin-production.up.railway.app";
     return [
       {
         source: "/api/:path*",
-        destination: "http://127.0.0.1:8000/api/:path*",
+        destination: `${apiBase}/api/:path*`,
       },
     ];
   },
