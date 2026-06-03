@@ -187,6 +187,8 @@ class SentimentAnalyzer:
                 score=score,
                 label=label,
                 source=source,
+                url=h.get("url",""),
+                published_at=h.get("published",""),
             ))
 
         if not results:

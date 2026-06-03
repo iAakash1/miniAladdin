@@ -53,10 +53,12 @@ class RiskAssessment(BaseModel):
 # ── Sentiment ─────────────────────────────────────────────────────────────────
 
 class SentimentResult(BaseModel):
-    headline: str = Field(..., min_length=1)
-    score:    float = Field(..., ge=-1.0, le=1.0)
-    label:    SentimentLabel
-    source:   str = "unknown"
+    headline:     str = Field(..., min_length=1)
+    score:        float = Field(..., ge=-1.0, le=1.0)
+    label:        SentimentLabel
+    source:       str = "unknown"
+    url:          str = ""
+    published_at: str = ""
 
 
 class AggregateSentiment(BaseModel):
