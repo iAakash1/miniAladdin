@@ -34,7 +34,7 @@ function MetricRow({ label, value, unit, warn, inverse }: RowProps) {
         }}
       >
         {value >= 0 && !inverse && unit === '%' ? '' : ''}
-        {value.toFixed(2)}
+        {(isNaN(value) ? "—" : value.toFixed(2))}
         {unit}
       </span>
     </div>
@@ -89,7 +89,7 @@ export default function MacroPanel({ macro }: MacroPanelProps) {
             lineHeight: 1,
           }}
         >
-          {macro.srm.toFixed(3)}
+          {(macro.srm ?? 0).toFixed(3)}
         </div>
         <div
           style={{
