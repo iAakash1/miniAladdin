@@ -36,3 +36,4 @@ dashboard/.next/
 # Vercel
 .vercel/
 
+.coverage
