@@ -9,8 +9,10 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@clerk/nextjs": "^7.4.3",
     "lucide-react": "^0.577.0",
     "next": "16.1.6",
+    "razorpay": "^2.9.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "recharts": "^3.8.0"
