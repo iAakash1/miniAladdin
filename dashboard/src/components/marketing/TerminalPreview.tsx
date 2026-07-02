@@ -22,7 +22,7 @@ export default function TerminalPreview() {
         className="theme-dark"
         style={{
           background: 'var(--bg)',
-          border: '1px solid rgba(28, 27, 24, 0.9)',
+          border: '1px solid var(--line-strong)',
           borderRadius: 12,
           overflow: 'hidden',
           boxShadow: '0 32px 80px rgba(28, 27, 24, 0.28), 0 4px 16px rgba(28, 27, 24, 0.12)',

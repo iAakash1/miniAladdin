@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { UserButton } from '@clerk/nextjs'
 import { LogoMark } from '@/components/ui/Logo'
+import ThemeToggle from '@/components/ui/ThemeToggle'
 import { fmtNum, fmtPctRaw } from '@/lib/format'
 import { FREE_DAILY_LIMIT } from '@/lib/usage'
 import type { Macro } from '@/lib/types'
@@ -107,6 +108,7 @@ export default function TerminalHeader({ macro, isPro, usedToday, onUpgrade }: T
             flexShrink: 0,
           }}
         >
+          <ThemeToggle />
           {isPro ? (
             <span className="badge badge--accent">Pro</span>
           ) : (

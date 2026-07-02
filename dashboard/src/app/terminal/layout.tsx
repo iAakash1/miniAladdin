@@ -12,9 +12,9 @@ export const dynamic = 'force-dynamic'
 export default function TerminalLayout({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider>
-      <div className="theme-dark" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}>
-        {children}
-      </div>
+      {/* Theme comes from html[data-theme]: dark by default on this route,
+          light if the user has explicitly chosen it. */}
+      <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}>{children}</div>
     </ClerkProvider>
   )
 }
