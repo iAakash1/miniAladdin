@@ -42,17 +42,31 @@ function text(v: unknown): string {
 
 /** Strip tags/entities left behind by feeds that embed HTML in descriptions. */
 export function cleanText(raw: string): string {
-  return raw
-    .replace(/<!\[CDATA\[|\]\]>/g, '')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&#0?39;|&apos;/gi, "'")
-    .replace(/&quot;/gi, '"')
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    .replace(/\s+/g, ' ')
-    .trim()
+  return (
+    raw
+      .replace(/<!\[CDATA\[|\]\]>/g, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/&apos;/gi, "'")
+      .replace(/&quot;/gi, '"')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      // Numeric character references, hex and decimal (e.g. &#x2019; &#8217;),
+      // which several Dow Jones feeds double-encode.
+      .replace(/&#x([0-9a-f]{1,6});/gi, (_, hex: string) => safeCodePoint(parseInt(hex, 16)))
+      .replace(/&#(\d{1,7});/g, (_, dec: string) => safeCodePoint(parseInt(dec, 10)))
+      .replace(/\s+/g, ' ')
+      .trim()
+  )
+}
+
+function safeCodePoint(code: number): string {
+  try {
+    return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : ''
+  } catch {
+    return ''
+  }
 }
 
 function truncate(s: string, max = 240): string {

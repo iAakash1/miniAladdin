@@ -101,6 +101,15 @@ test('cleanText strips tags, CDATA and collapses whitespace', () => {
   assert.equal(cleanText('<![CDATA[Hello   <b>world</b>&amp;co]]>'), 'Hello world &co')
 })
 
+test('cleanText decodes numeric character references (MarketWatch style)', () => {
+  assert.equal(cleanText('The dollar&#x2019;s strength'), 'The dollar’s strength')
+  assert.equal(cleanText('a &#8216;carry trade&#8217; blowup'), 'a ‘carry trade’ blowup')
+  // Double-encoded: &amp;#x2019; -> &#x2019; -> ’
+  assert.equal(cleanText('It&amp;#x2019;s fine'), 'It’s fine')
+  // Out-of-range references vanish rather than throw (max valid is 0x10FFFF)
+  assert.equal(cleanText('x&#1114112;y'), 'xy')
+})
+
 /* ---------- classify ---------- */
 
 test('classifier routes by keyword with correct precedence', () => {
