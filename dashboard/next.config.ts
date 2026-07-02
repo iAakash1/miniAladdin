@@ -3,6 +3,9 @@ import type { NextConfig } from 'next'
 const API_BASE = process.env.API_URL || 'https://minialaddin-production.up.railway.app'
 
 const nextConfig: NextConfig = {
+  // Explicit root: a stray lockfile higher up the tree otherwise makes
+  // Turbopack guess the wrong workspace directory.
+  turbopack: { root: __dirname },
   async rewrites() {
     // Proxy analysis endpoints to the FastAPI backend on Railway.
     // App-router routes (e.g. /api/news) take precedence over these rewrites.
