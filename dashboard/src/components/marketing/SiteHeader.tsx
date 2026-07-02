@@ -2,8 +2,9 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import Logo from '@/components/ui/Logo'
+import ThemeToggle from '@/components/ui/ThemeToggle'
 
 const NAV = [
   { href: '/#methodology', label: 'Methodology' },
@@ -11,9 +12,24 @@ const NAV = [
   { href: '/news', label: 'News' },
 ]
 
+/**
+ * Clerk marks auth state in the readable `__client_uat` cookie (a unix
+ * timestamp; 0 or absent = signed out). Reading it keeps the marketing
+ * pages free of Clerk's JavaScript while still reflecting the session.
+ */
+const noopSubscribe = () => () => {}
+function useSignedIn(): boolean {
+  return useSyncExternalStore(
+    noopSubscribe,
+    () => /(?:^|;\s*)__client_uat(?:_[^=]*)?=[1-9]/.test(document.cookie),
+    () => false,
+  )
+}
+
 export default function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false)
   const pathname = usePathname()
+  const signedIn = useSignedIn()
   // Every link inside the mobile menu closes it on click, so no
   // navigation-watching effect is needed.
 
@@ -54,9 +70,12 @@ export default function SiteHeader() {
         </nav>
 
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Link href="/sign-in" className="btn btn--ghost btn--sm site-signin" style={{ fontWeight: 500 }}>
-            Sign in
-          </Link>
+          <ThemeToggle />
+          {!signedIn && (
+            <Link href="/sign-in" className="btn btn--ghost btn--sm site-signin" style={{ fontWeight: 500 }}>
+              Sign in
+            </Link>
+          )}
           <Link href="/terminal" className="btn btn--primary btn--sm">
             Open terminal
           </Link>
@@ -86,7 +105,7 @@ export default function SiteHeader() {
             gap: 2,
           }}
         >
-          {[...NAV, { href: '/sign-in', label: 'Sign in' }].map((item) => (
+          {[...NAV, ...(signedIn ? [] : [{ href: '/sign-in', label: 'Sign in' }])].map((item) => (
             <Link
               key={item.href}
               href={item.href}

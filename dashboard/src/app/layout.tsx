@@ -6,6 +6,7 @@ import '@fontsource/ibm-plex-mono/400.css'
 import '@fontsource/ibm-plex-mono/500.css'
 import '@fontsource/ibm-plex-mono/600.css'
 import './globals.css'
+import ThemeSync from '@/components/ui/ThemeSync'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://mini-aladding.vercel.app'
 
@@ -44,13 +45,19 @@ export const viewport: Viewport = {
   initialScale: 1,
 }
 
+/** Runs before paint: explicit choice from localStorage wins; otherwise the
+    site defaults light and the terminal defaults dark. */
+const THEME_SCRIPT = `(function(){try{var t=localStorage.getItem('omni-theme');if(t!=='dark'&&t!=='light'){t=location.pathname.indexOf('/terminal')===0?'dark':'light'}document.documentElement.dataset.theme=t}catch(e){document.documentElement.dataset.theme='light'}})()`
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         <a href="#main" className="skip-link">
           Skip to content
         </a>
+        <ThemeSync />
         {children}
       </body>
     </html>
