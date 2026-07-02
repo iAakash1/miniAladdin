@@ -17,7 +17,8 @@ export async function POST() {
       receipt:  'omni_' + userId + '_' + Date.now(),
     })
     return NextResponse.json(order)
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 })
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : 'Order creation failed'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
