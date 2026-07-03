@@ -33,11 +33,23 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# Explicit origin allowlist (comma-separated env var). Wildcard + credentials
+# is invalid per the CORS spec; nothing cookie-based crosses this boundary,
+# so credentials stay off.
+ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv(
+        "ALLOWED_ORIGINS",
+        "https://mini-aladding.vercel.app,http://localhost:3000",
+    ).split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
