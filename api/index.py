@@ -49,6 +49,7 @@ from src.news_api import NewsAPIClient
 from src.models import MacroIndicators
 from src import providers
 from src.providers.schemas import PriceSeries
+from src.scoring import score_ticker
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 # Railway captures stdout; structured single-line records with timestamps.
@@ -292,34 +293,57 @@ def research_ticker(
     technicals: dict[str, Any] = {}
     tech_error: Optional[str] = None
 
+    def _days_to_earnings() -> Optional[int]:
+        """Best-effort business days to the next confirmed earnings date."""
+        try:
+            import pandas as pd
+            import yfinance as yf
+
+            calendar = yf.Ticker(ticker).calendar
+            dates = calendar.get("Earnings Date") if isinstance(calendar, dict) else None
+            if not dates:
+                return None
+            next_date = min(d for d in dates if d is not None)
+            days = len(pd.bdate_range(start=pd.Timestamp.utcnow().date(), end=next_date)) - 1
+            return max(0, days)
+        except Exception:  # noqa: BLE001 — calendar is a nice-to-have
+            return None
+
     def _run_technicals():
-        # Price history through the MarketDataProvider fallback chain
-        # (Polygon → TwelveData → FMP → MarketStack → yfinance → stale cache);
-        # the agent computes indicators on whatever series the chain returned
-        # and falls back to its own yfinance fetch if the chain is empty.
-        series_result = providers.market_data.get_series(ticker, "3mo")
-        injected = (
+        # One year of history through the MarketDataProvider fallback chain
+        # (Polygon → TwelveData → FMP → MarketStack → yfinance → stale cache).
+        # The scoring engine consumes the full year (rolling distributions);
+        # the legacy agent gets the trailing quarter so its reported metrics
+        # (volatility, Sharpe, drawdown windows) stay unchanged.
+        series_result = providers.market_data.get_series(ticker, "1y")
+        full_frame = (
             _series_to_dataframe(series_result.data)
             if series_result.ok and series_result.data.bars
             else None
         )
-        if injected is not None:
+        if full_frame is not None:
             logger.info(
-                "technicals %s: price series via %s (confidence %.2f%s)",
-                ticker, series_result.source, series_result.confidence,
+                "technicals %s: %d bars via %s (confidence %.2f%s)",
+                ticker, len(full_frame), series_result.source, series_result.confidence,
                 ", stale" if series_result.stale else "",
             )
+        quarter = full_frame.iloc[-63:] if full_frame is not None and len(full_frame) > 63 else full_frame
         agent = RiskAwarePredictionAgent(
-            ticker, period="3mo", av_client=av_client, price_data=injected
+            ticker, period="3mo", av_client=av_client, price_data=quarter
         )
-        return agent.predict(risk_multiplier=1.0)
+        prediction_result = agent.predict(risk_multiplier=1.0)
+        return prediction_result, full_frame, series_result.confidence, _days_to_earnings()
+
+    scoring_frame = None
+    series_confidence = 1.0
+    days_to_earnings: Optional[int] = None
 
     with ThreadPoolExecutor(max_workers=2, thread_name_prefix="research") as pool:
         macro_future = pool.submit(_fetch_macro_safe)
         tech_future = pool.submit(_run_technicals)
         multiplier, macro_stats = macro_future.result()
         try:
-            prediction = tech_future.result()
+            prediction, scoring_frame, series_confidence, days_to_earnings = tech_future.result()
         except Exception:
             logger.exception("Technical analysis failed for %s", ticker)
             tech_error = "Technical analysis failed — check that the ticker symbol is valid"
@@ -443,7 +467,44 @@ def research_ticker(
                 "note":           "Sentiment analysis failed",
             }
 
-    # ── Step 4: Deterministic decision synthesis (shared with the CLI pipeline)
+    # ── Step 4: Quantitative scoring (docs/SCORING.md). The v2 engine is the
+    # primary verdict source; the v1 point system remains solely as the
+    # fallback for short price histories (< 60 bars) or scoring failures.
+    scorecard = None
+    if prediction is not None and scoring_frame is not None:
+        try:
+            spy_result = providers.market_data.get_series("SPY", "1y")
+            spy_frame = (
+                _series_to_dataframe(spy_result.data)
+                if spy_result.ok and spy_result.data.bars else None
+            )
+            scorecard = score_ticker(
+                scoring_frame,
+                srm=multiplier,
+                price=prediction.current_price,
+                pe_ratio=prediction.pe_ratio,
+                forward_pe=prediction.forward_pe,
+                analyst_target=prediction.analyst_target,
+                beta=prediction.beta,
+                sentiment_avg=sentiment_obj.average_score if sentiment_obj.headline_count else None,
+                headline_count=sentiment_obj.headline_count,
+                spy_frame=spy_frame,
+                days_to_earnings=days_to_earnings,
+                data_confidence=series_confidence,
+            )
+        except Exception:  # noqa: BLE001 — scoring must never take down research
+            logger.exception("Scoring engine failed for %s — using legacy verdict", ticker)
+
+    if scorecard is not None:
+        # The engine's verdicts replace the legacy signal fields (same field
+        # names and value vocabulary — contract shape unchanged).
+        technicals["raw_signal"] = scorecard.raw_verdict
+        technicals["risk_adjusted_signal"] = scorecard.verdict
+        prediction.raw_signal = SignalVerdict(scorecard.raw_verdict)
+        prediction.risk_adjusted_signal = SignalVerdict(scorecard.verdict)
+
+    # ── Step 5: Decision synthesis (rationale text; confidence source depends
+    # on path: scorecard when available, legacy agreement formula otherwise)
     verdict = technicals.get("risk_adjusted_signal") or "Hold"
 
     macro_obj = _macro_assessment(multiplier, macro_stats)
@@ -458,6 +519,19 @@ def research_ticker(
     )
 
     confidence_pct = round(confidence * 100)
+    if scorecard is not None:
+        confidence_pct = scorecard.confidence
+        rationale = (
+            f"Composite score {scorecard.raw_score:+.2f} "
+            f"(momentum {scorecard.momentum_score if scorecard.momentum_score is not None else 'n/a'}, "
+            f"fundamental {scorecard.fundamental_score if scorecard.fundamental_score is not None else 'n/a'}, "
+            f"news {scorecard.news_score if scorecard.news_score is not None else 'n/a'}; "
+            f"macro gate {scorecard.macro_gate}); {rationale}"
+        )
+        breakdown = [{"component": "Model confidence base", "points": 100}] + [
+            {"component": f"Less: {loss.component}", "points": -loss.points}
+            for loss in scorecard.confidence_losses
+        ]
 
     # ── Step 5: LLM explanation layer (optional; never fatal; fast mode skips)
     ai: Optional[dict[str, Any]] = None
@@ -475,6 +549,31 @@ def research_ticker(
                     technicals=technicals,
                     sentiment=sentiment_data,
                     confidence_breakdown=breakdown,
+                    quant=(
+                        {
+                            "raw_score": scorecard.raw_score,
+                            "ungated_score": scorecard.ungated_score,
+                            "momentum_score": scorecard.momentum_score,
+                            "fundamental_score": scorecard.fundamental_score,
+                            "news_score": scorecard.news_score,
+                            "macro_gate": scorecard.macro_gate,
+                            "conflict_index": scorecard.conflict_index,
+                            "uncertainty": scorecard.uncertainty,
+                            "risk_score": scorecard.risk_score,
+                            "weights_used": scorecard.weights_used,
+                            "regimes": scorecard.regimes,
+                            "top_contributions": sorted(
+                                (
+                                    {"factor": row.name, "contribution": row.contribution}
+                                    for row in scorecard.factors
+                                    if row.score is not None
+                                ),
+                                key=lambda item: abs(item["contribution"]),
+                                reverse=True,
+                            )[:6],
+                        }
+                        if scorecard is not None else None
+                    ),
                 )
             )
         except Exception:  # belt and braces — the service already never raises
@@ -499,6 +598,7 @@ def research_ticker(
         "confidence_breakdown": breakdown,
         "risk_level":  risk_level,
         "rationale":   rationale,
+        "quant":       scorecard.model_dump() if scorecard is not None else None,
         "ai":          ai,
         "disclaimer":  DISCLAIMER,
         "elapsed_seconds": elapsed,

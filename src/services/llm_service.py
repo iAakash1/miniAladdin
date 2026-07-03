@@ -388,6 +388,7 @@ def build_payload(
     technicals: dict[str, Any],
     sentiment: Optional[dict[str, Any]],
     confidence_breakdown: Optional[list[dict[str, Any]]] = None,
+    quant: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     """Assemble the structured facts the model is allowed to reference."""
     headlines = []
@@ -399,6 +400,7 @@ def build_payload(
     return {
         "ticker": ticker,
         "as_of": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+        "quant": quant,  # v2 scorecard summary: family scores, weights, regimes
         "decision": {
             "recommendation": recommendation,
             "confidence": confidence,
