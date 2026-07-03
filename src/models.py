@@ -115,10 +115,14 @@ class TechnicalAnalysis(BaseModel):
 class OmniSignalReport(BaseModel):
     ticker:       str
     generated_at: datetime = Field(default_factory=datetime.now)
-    version:      str = "1.0.0"
+    version:      str = "1.1.0"
     macro:        Optional[RiskAssessment] = None
     technicals:   Optional[TechnicalAnalysis] = None
     sentiment:    Optional[AggregateSentiment] = None
     omnisignal_verdict: SignalVerdict = SignalVerdict.HOLD
     confidence:   float = Field(0.5, ge=0.0, le=1.0)
     rationale:    str = ""
+    # Optional AI-generated executive summary (additive; empty when the
+    # LLM layer is unconfigured or fell back).
+    llm_summary:  str = ""
+    llm_generated: bool = False

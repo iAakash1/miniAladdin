@@ -26,11 +26,13 @@ from fastapi.responses import JSONResponse
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.decision import compute_decision, derive_risk_level
+from src.decision import compute_decision, derive_risk_level, verdict_to_recommendation
+from src.services import llm_service
 from src.models import (
     AggregateSentiment,
     MacroStatus,
     RiskAssessment,
+    SignalVerdict,
     TechnicalAnalysis,
 )
 from src.risk_analysis import OmniSignalRiskEngine
@@ -303,10 +305,34 @@ def research_ticker(
         beta=tech_obj.beta,
     )
 
+    confidence_pct = round(confidence * 100)
+
+    # ── Step 5: LLM explanation layer (optional; never fatal; fast mode skips)
+    ai: Optional[dict[str, Any]] = None
+    if not fast and prediction is not None:
+        try:
+            ai = llm_service.explain_recommendation(
+                llm_service.build_payload(
+                    ticker=ticker,
+                    recommendation=verdict_to_recommendation(SignalVerdict(verdict)),
+                    confidence=confidence_pct,
+                    risk=risk_level,
+                    verdict=verdict,
+                    rationale=rationale,
+                    macro={"risk_multiplier": multiplier, **macro_stats},
+                    technicals=technicals,
+                    sentiment=sentiment_data,
+                )
+            )
+        except Exception:  # belt and braces — the service already never raises
+            logger.exception("LLM layer raised unexpectedly for %s", ticker)
+            ai = None
+
     elapsed = round(time.time() - start, 2)
     logger.info(
-        "research %s: verdict=%s confidence=%.2f risk=%s mode=%s elapsed=%.2fs",
-        ticker, verdict, confidence, risk_level, "fast" if fast else "full", elapsed,
+        "research %s: verdict=%s confidence=%d risk=%s ai=%s mode=%s elapsed=%.2fs",
+        ticker, verdict, confidence_pct, risk_level,
+        (ai or {}).get("generated"), "fast" if fast else "full", elapsed,
     )
 
     return {
@@ -316,9 +342,10 @@ def research_ticker(
         "sentiment":  sentiment_data,
         "verdict":    verdict,
         # Additive fields (v1.1): deterministic synthesis shared with the CLI pipeline.
-        "confidence":  round(confidence * 100),
+        "confidence":  confidence_pct,
         "risk_level":  risk_level,
         "rationale":   rationale,
+        "ai":          ai,
         "disclaimer":  DISCLAIMER,
         "elapsed_seconds": elapsed,
         "mode":  "fast" if fast else "full",
