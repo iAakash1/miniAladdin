@@ -49,6 +49,17 @@ class OmniSignalReportGenerator:
 ---
 """
 
+    def _format_ai_summary(self, report: OmniSignalReport) -> str:
+        """Optional AI executive summary section (additive; empty when absent)."""
+        if not report.llm_summary:
+            return ""
+        badge = "AI-generated" if report.llm_generated else "Engine rationale (AI unavailable)"
+        return (
+            f"## 🧠 Executive Summary\n\n"
+            f"*{badge}*\n\n"
+            f"{report.llm_summary}\n\n---\n"
+        )
+
     def _format_macro(self, macro: Optional[RiskAssessment]) -> str:
         """Format the macro environment section."""
         if macro is None:
@@ -180,6 +191,7 @@ class OmniSignalReportGenerator:
         """
         content = ""
         content += self._format_header(report)
+        content += self._format_ai_summary(report)
         content += self._format_macro(report.macro)
         content += self._format_technicals(report.technicals)
         content += self._format_sentiment(report.sentiment)
