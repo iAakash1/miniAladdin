@@ -61,17 +61,20 @@ function asRiskLevel(v: string | undefined | null): RiskLevel | null {
 }
 
 function normalizeAi(raw: RawAiAnalysis | null | undefined): AiAnalysis | null {
-  if (!raw || typeof raw.summary !== 'string' || !raw.summary) return null
+  if (!raw || typeof raw.executive_summary !== 'string' || !raw.executive_summary) return null
   const rec = raw.recommendation
   return {
     recommendation: rec === 'BUY' || rec === 'SELL' ? rec : 'HOLD',
     confidence: typeof raw.confidence === 'number' ? Math.round(raw.confidence) : 50,
     risk: asRiskLevel(raw.risk) ?? 'MEDIUM',
-    summary: raw.summary,
-    bullishFactors: raw.bullish_factors ?? [],
-    bearishFactors: raw.bearish_factors ?? [],
-    reasoning: raw.reasoning ?? [],
-    limitations: raw.limitations ?? [],
+    executiveSummary: raw.executive_summary,
+    technicalReasoning: raw.technical_reasoning ?? '',
+    macroReasoning: raw.macro_reasoning ?? '',
+    newsReasoning: raw.news_reasoning ?? '',
+    riskReasoning: raw.risk_reasoning ?? '',
+    confidenceReason: raw.confidence_reason ?? '',
+    keyCatalysts: raw.key_catalysts ?? [],
+    keyRisks: raw.key_risks ?? [],
     investmentHorizon: raw.investment_horizon ?? '',
     marketOutlook: raw.market_outlook ?? '',
     generated: raw.generated ?? false,
