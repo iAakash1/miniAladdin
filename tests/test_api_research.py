@@ -88,7 +88,12 @@ def test_research_llm_fallback_when_unconfigured(client):
     assert ai["recommendation"] == "SELL"  # maps the dampened Sell verdict
     assert ai["risk"] == body["risk_level"]
     assert ai["confidence"] == body["confidence"]
-    assert isinstance(ai["summary"], str) and ai["summary"]
+    assert isinstance(ai["executive_summary"], str) and ai["executive_summary"]
+    assert isinstance(ai["confidence_reason"], str) and ai["confidence_reason"]
+
+    # Confidence breakdown is deterministic and sums to the confidence value
+    breakdown = body["confidence_breakdown"]
+    assert sum(item["points"] for item in breakdown) == body["confidence"]
 
 
 def test_fast_mode_skips_sentiment_and_llm(client):

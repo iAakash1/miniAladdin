@@ -364,6 +364,7 @@ def research_ticker(
                     macro={"risk_multiplier": multiplier, **macro_stats},
                     technicals=technicals,
                     sentiment=sentiment_data,
+                    confidence_breakdown=breakdown,
                 )
             )
         except Exception:  # belt and braces — the service already never raises

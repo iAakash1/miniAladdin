@@ -1,5 +1,5 @@
 """
-Tests for the Groq LLM explanation service.
+Tests for the Groq LLM explanation service (schema v2) and its observability.
 
 The Groq client is always mocked — these tests never touch the network.
 """
@@ -12,18 +12,19 @@ from unittest.mock import MagicMock
 import pytest
 
 from src.services import llm_service
+from src.services.metrics import llm_metrics
 
 
 VALID_MODEL_JSON = {
-    "recommendation": "BUY",
-    "confidence": 84,
-    "risk": "MEDIUM",
-    "summary": "The engine favors upside given RSI-14 at 28.4 and a Sharpe of 1.6.",
-    "bullish_factors": ["RSI-14 at 28.4 signals oversold conditions"],
-    "bearish_factors": ["SRM at 1.2 marks an elevated macro regime"],
-    "reasoning": ["Oversold RSI adds +2", "Sharpe above 1.5 adds +2"],
-    "limitations": ["MACD unavailable for this run"],
-    "investment_horizon": "medium-term, driven by the 21-day momentum window",
+    "executive_summary": "The engine holds at elevated risk: RSI-14 at 28.4 is oversold while SRM 1.2 dampens upside.",
+    "technical_reasoning": "RSI-14 at 28.4 flags oversold; Sharpe of 1.6 shows strong risk-adjusted returns.",
+    "macro_reasoning": "SRM at 1.2 marks an elevated regime, pulling the raw signal one step toward caution.",
+    "news_reasoning": "Sentiment was unavailable for this run.",
+    "risk_reasoning": "Risk is HIGH given the elevated macro regime.",
+    "confidence_reason": "Base 50% plus 20% for technical agreement equals the supplied 70%.",
+    "key_catalysts": ["Oversold RSI-14 at 28.4", "Sharpe ratio 1.6"],
+    "key_risks": ["Elevated macro regime at SRM 1.2"],
+    "investment_horizon": "medium-term, tied to the 21-day momentum window",
     "market_outlook": "Elevated but not critical regime at SRM 1.2.",
 }
 
@@ -34,6 +35,10 @@ def make_payload(**overrides):
         "decision": {
             "recommendation": "HOLD",
             "confidence": 70,
+            "confidence_breakdown": [
+                {"component": "Base confidence", "points": 50},
+                {"component": "Technical signal agrees with the final verdict", "points": 20},
+            ],
             "risk": "HIGH",
             "verdict": "Hold",
             "rationale": "Neutral sentiment (avg score 0.05); Macro environment is ELEVATED (SRM=1.2)",
@@ -61,7 +66,7 @@ def fake_client_returning(*contents: str) -> MagicMock:
 
 @pytest.fixture(autouse=True)
 def clean_service(monkeypatch):
-    """Reset client/cache and configure a fake key for each test."""
+    """Reset client/cache/metrics and configure a fake key for each test."""
     llm_service.reset_client_for_tests()
     llm_service._missing_key_logged = False
     monkeypatch.setenv("GROQ_API_KEY", "test_key_placeholder")
@@ -75,29 +80,41 @@ def install_client(monkeypatch, client) -> None:
 
 class TestSuccessPath:
     def test_valid_response_is_parsed_and_flagged_generated(self, monkeypatch):
-        client = fake_client_returning(json.dumps({**VALID_MODEL_JSON,
-                                                   "recommendation": "HOLD",
-                                                   "confidence": 70,
-                                                   "risk": "HIGH"}))
+        client = fake_client_returning(json.dumps(VALID_MODEL_JSON))
         install_client(monkeypatch, client)
 
         result = llm_service.explain_recommendation(make_payload())
 
         assert result["generated"] is True
         assert result["cached"] is False
-        assert result["summary"].startswith("The engine favors")
+        assert result["executive_summary"].startswith("The engine holds")
+        assert result["key_catalysts"] == VALID_MODEL_JSON["key_catalysts"]
         assert client.chat.completions.create.call_count == 1
 
-    def test_deterministic_fields_are_enforced_over_model_output(self, monkeypatch):
-        # Model disagrees with the engine on all three deterministic fields.
+    def test_deterministic_fields_come_from_engine_not_model(self, monkeypatch):
+        # The v2 schema has no recommendation/confidence/risk keys at all —
+        # they must be attached verbatim from the decision block.
         client = fake_client_returning(json.dumps(VALID_MODEL_JSON))
         install_client(monkeypatch, client)
 
         result = llm_service.explain_recommendation(make_payload())
 
-        assert result["recommendation"] == "HOLD"  # engine value, not BUY
-        assert result["confidence"] == 70          # engine value, not 84
-        assert result["risk"] == "HIGH"            # engine value, not MEDIUM
+        assert result["recommendation"] == "HOLD"
+        assert result["confidence"] == 70
+        assert result["risk"] == "HIGH"
+
+    def test_model_supplied_deterministic_fields_are_ignored(self, monkeypatch):
+        # Even if the model smuggles decision fields into its JSON, the
+        # strict schema drops unknown keys and engine values are attached.
+        tampered = {**VALID_MODEL_JSON, "recommendation": "BUY", "confidence": 99, "risk": "LOW"}
+        client = fake_client_returning(json.dumps(tampered))
+        install_client(monkeypatch, client)
+
+        result = llm_service.explain_recommendation(make_payload())
+
+        assert result["recommendation"] == "HOLD"
+        assert result["confidence"] == 70
+        assert result["risk"] == "HIGH"
 
     def test_deterministic_request_parameters(self, monkeypatch):
         client = fake_client_returning(json.dumps(VALID_MODEL_JSON))
@@ -124,15 +141,11 @@ class TestFailurePaths:
         assert client.chat.completions.create.call_count == 2  # initial + 1 corrective
         assert result["generated"] is False
         assert result["recommendation"] == "HOLD"
-        assert "rationale" not in result  # fallback shape matches schema keys
-        assert "Neutral sentiment" in result["summary"]
+        assert "Neutral sentiment" in result["executive_summary"]
+        assert "Base confidence (50%)" in result["confidence_reason"]
 
     def test_invalid_then_valid_json_succeeds_on_retry(self, monkeypatch):
-        client = fake_client_returning(
-            "garbage",
-            json.dumps({**VALID_MODEL_JSON, "recommendation": "HOLD",
-                        "confidence": 70, "risk": "HIGH"}),
-        )
+        client = fake_client_returning("garbage", json.dumps(VALID_MODEL_JSON))
         install_client(monkeypatch, client)
 
         result = llm_service.explain_recommendation(make_payload())
@@ -154,11 +167,9 @@ class TestFailurePaths:
         class RateLimitError(Exception):
             status_code = 429
 
-        good = json.dumps({**VALID_MODEL_JSON, "recommendation": "HOLD",
-                           "confidence": 70, "risk": "HIGH"})
         completion = MagicMock()
         completion.choices = [MagicMock()]
-        completion.choices[0].message.content = good
+        completion.choices[0].message.content = json.dumps(VALID_MODEL_JSON)
 
         client = MagicMock()
         client.chat.completions.create.side_effect = [RateLimitError(), completion]
@@ -183,9 +194,7 @@ class TestFailurePaths:
 
 class TestCache:
     def test_second_identical_request_is_served_from_cache(self, monkeypatch):
-        client = fake_client_returning(json.dumps({**VALID_MODEL_JSON,
-                                                   "recommendation": "HOLD",
-                                                   "confidence": 70, "risk": "HIGH"}))
+        client = fake_client_returning(json.dumps(VALID_MODEL_JSON))
         install_client(monkeypatch, client)
 
         first = llm_service.explain_recommendation(make_payload())
@@ -194,7 +203,7 @@ class TestCache:
         assert client.chat.completions.create.call_count == 1
         assert first["cached"] is False
         assert second["cached"] is True
-        assert second["summary"] == first["summary"]
+        assert second["executive_summary"] == first["executive_summary"]
 
     def test_fallbacks_are_not_cached(self, monkeypatch):
         client = MagicMock()
@@ -208,8 +217,48 @@ class TestCache:
         assert client.chat.completions.create.call_count == 2
 
 
+class TestObservability:
+    def test_metrics_record_success_latency_and_model(self, monkeypatch):
+        client = fake_client_returning(json.dumps(VALID_MODEL_JSON))
+        install_client(monkeypatch, client)
+
+        llm_service.explain_recommendation(make_payload())
+        snap = llm_metrics.snapshot()
+
+        assert snap["calls"] == 1
+        assert snap["generated"] == 1
+        assert snap["fallbacks"] == 0
+        assert snap["last_model"] == llm_service._model_name()
+        assert snap["last_prompt_version"] == llm_service.PROMPT_VERSION
+        assert snap["last_generated_at"] is not None
+        assert snap["avg_latency_ms"] >= 0
+
+    def test_metrics_record_cache_hits_and_retries(self, monkeypatch):
+        client = fake_client_returning("garbage", json.dumps(VALID_MODEL_JSON))
+        install_client(monkeypatch, client)
+
+        llm_service.explain_recommendation(make_payload())  # 1 validation retry
+        llm_service.explain_recommendation(make_payload())  # cache hit
+        snap = llm_metrics.snapshot()
+
+        assert snap["validation_retries"] == 1
+        assert snap["cache_hits"] == 1
+        assert snap["calls"] == 1
+
+    def test_metrics_record_fallbacks(self, monkeypatch):
+        client = MagicMock()
+        client.chat.completions.create.side_effect = ValueError("down")
+        install_client(monkeypatch, client)
+
+        llm_service.explain_recommendation(make_payload())
+        snap = llm_metrics.snapshot()
+
+        assert snap["fallbacks"] == 1
+        assert snap["generated"] == 0
+
+
 class TestPayloadBuilder:
-    def test_build_payload_carries_decision_and_truncates_headlines(self):
+    def test_build_payload_carries_decision_breakdown_and_truncates_headlines(self):
         sentiment = {
             "average_score": 0.2,
             "dominant_label": "Bullish",
@@ -217,11 +266,14 @@ class TestPayloadBuilder:
             "headlines": [{"title": f"h{i}", "score": 0.1, "label": "Neutral",
                            "source": "x", "url": "", "published_at": ""} for i in range(12)],
         }
+        breakdown = [{"component": "Base confidence", "points": 50}]
         payload = llm_service.build_payload(
             ticker="NVDA", recommendation="BUY", confidence=80, risk="LOW",
             verdict="Buy", rationale="r", macro={"risk_multiplier": 1.0},
             technicals={"rsi_14": 50}, sentiment=sentiment,
+            confidence_breakdown=breakdown,
         )
         assert payload["decision"]["recommendation"] == "BUY"
+        assert payload["decision"]["confidence_breakdown"] == breakdown
         assert len(payload["sentiment"]["headlines"]) == 8  # capped
         assert payload["sentiment"]["headline_count"] == 12
