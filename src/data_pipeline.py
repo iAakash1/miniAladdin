@@ -6,8 +6,10 @@ Concurrent data fetching from FRED, Yahoo Finance, and news sources.
 from __future__ import annotations
 
 import asyncio
+import logging
 from typing import Optional
 
+from src.decision import compute_decision
 from src.models import (
     AggregateSentiment,
     OmniSignalReport,
@@ -18,6 +20,8 @@ from src.models import (
 from src.prediction_agent import RiskAwarePredictionAgent
 from src.risk_analysis import OmniSignalRiskEngine
 from src.sentiment_edge import SentimentAnalyzer
+
+logger = logging.getLogger(__name__)
 
 
 class AsyncDataPipeline:
@@ -67,74 +71,11 @@ class AsyncDataPipeline:
         Compute the final OmniSignal verdict by synthesizing all three factors.
 
         Returns (verdict, confidence, rationale).
+
+        The implementation lives in src/decision.py so the HTTP API and this
+        pipeline share a single source of truth.
         """
-        signal_order = [
-            SignalVerdict.STRONG_SELL,
-            SignalVerdict.SELL,
-            SignalVerdict.HOLD,
-            SignalVerdict.BUY,
-            SignalVerdict.STRONG_BUY,
-        ]
-
-        # Start from technical risk-adjusted signal
-        tech_signal = technicals.risk_adjusted_signal or SignalVerdict.HOLD
-        idx = signal_order.index(tech_signal)
-
-        rationale_parts = []
-
-        # Sentiment adjustment
-        if sentiment.headline_count > 0:
-            if sentiment.average_score > 0.3:
-                idx = min(len(signal_order) - 1, idx + 1)
-                rationale_parts.append(
-                    f"Positive sentiment (avg score {sentiment.average_score:.2f}) "
-                    f"boosted signal"
-                )
-            elif sentiment.average_score < -0.3:
-                idx = max(0, idx - 1)
-                rationale_parts.append(
-                    f"Negative sentiment (avg score {sentiment.average_score:.2f}) "
-                    f"dampened signal"
-                )
-            else:
-                rationale_parts.append(
-                    f"Neutral sentiment (avg score {sentiment.average_score:.2f})"
-                )
-        else:
-            rationale_parts.append("No sentiment data available")
-
-        # Macro context
-        if macro.recession_warning:
-            rationale_parts.append(
-                "⚠️ Recession warning: yield curve is inverted"
-            )
-        if macro.status.value == "CRITICAL":
-            rationale_parts.append(
-                f"Macro environment is CRITICAL (SRM={macro.risk_multiplier})"
-            )
-        elif macro.status.value == "ELEVATED":
-            rationale_parts.append(
-                f"Macro environment is ELEVATED (SRM={macro.risk_multiplier})"
-            )
-        else:
-            rationale_parts.append(
-                f"Macro environment is STABLE (SRM={macro.risk_multiplier})"
-            )
-
-        verdict = signal_order[idx]
-
-        # Confidence = higher when all signals agree
-        base_confidence = 0.5
-        if tech_signal == verdict:
-            base_confidence += 0.2
-        if sentiment.headline_count >= 3:
-            base_confidence += 0.1
-        if macro.status.value == "STABLE":
-            base_confidence += 0.1
-        confidence = min(1.0, round(base_confidence, 2))
-
-        rationale = "; ".join(rationale_parts)
-        return verdict, confidence, rationale
+        return compute_decision(macro, technicals, sentiment)
 
     async def run(self, ticker: str) -> OmniSignalReport:
         """
@@ -144,7 +85,7 @@ class AsyncDataPipeline:
         try:
             macro = await self._fetch_macro()
         except Exception as e:
-            print(f"[Pipeline] Macro fetch failed: {e}. Using defaults.")
+            logger.exception("Macro fetch failed — falling back to neutral SRM (%s)", e)
             macro = RiskAssessment(risk_multiplier=1.0)
 
         # Step 2: Technicals + Sentiment in parallel
@@ -181,14 +122,14 @@ class AsyncDataPipeline:
         try:
             macro = await self._fetch_macro()
         except Exception as e:
-            print(f"[Pipeline] Macro fetch failed: {e}. Using defaults.")
+            logger.exception("Macro fetch failed — falling back to neutral SRM (%s)", e)
             macro = RiskAssessment(risk_multiplier=1.0)
 
         # Step 2: Technicals only (no sentiment)
         try:
             technicals = await self._fetch_technicals(ticker, macro.risk_multiplier)
         except Exception as e:
-            print(f"[Pipeline] Technical fetch failed: {e}.")
+            logger.exception("Technical fetch failed for %s (%s)", ticker, e)
             technicals = TechnicalAnalysis(ticker=ticker.upper())
 
         # Compute verdict without sentiment

@@ -5,6 +5,8 @@ Connects to FRED to calculate the Systemic Risk Multiplier (SRM).
 
 from __future__ import annotations
 
+import logging
+
 import os
 from typing import Optional
 
@@ -15,6 +17,8 @@ from src.models import MacroIndicators, MacroStatus, RiskAssessment
 
 load_dotenv()
 
+
+logger = logging.getLogger(__name__)
 
 class OmniSignalRiskEngine:
     """
@@ -165,7 +169,7 @@ class OmniSignalRiskEngine:
             }
             return assessment.risk_multiplier, stats
         except Exception as e:
-            print(f"[OmniSignal] Error fetching macro data: {e}")
+            logger.exception("FRED macro fetch failed — returning neutral SRM (%s)", e)
             return self.BASE_MULTIPLIER, {"status": MacroStatus.DATA_ERROR.value, "error": str(e)}
 
 

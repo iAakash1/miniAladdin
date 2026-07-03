@@ -9,14 +9,18 @@ Falls back gracefully to empty list if key missing or quota exceeded.
 
 from __future__ import annotations
 
+import logging
+
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import requests
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 NEWSAPI_BASE = "https://newsapi.org/v2/everything"
 
@@ -66,7 +70,7 @@ class NewsAPIClient:
             query = f'"{ticker}" stock'
 
         # Last 7 days
-        from_date = (datetime.utcnow() - timedelta(days=7)).strftime("%Y-%m-%dT%H:%M:%S")
+        from_date = (datetime.now(timezone.utc) - timedelta(days=7)).strftime("%Y-%m-%dT%H:%M:%S")
 
         params = {
             "q":        query,
@@ -82,7 +86,7 @@ class NewsAPIClient:
             data = r.json()
 
             if data.get("status") != "ok":
-                print(f"[NewsAPI] Non-ok status: {data.get('message', 'unknown error')}")
+                logger.warning("NewsAPI non-ok status: %s", data.get('message', 'unknown error'))
                 return []
 
             articles = data.get("articles", [])
@@ -116,14 +120,14 @@ class NewsAPIClient:
 
         except requests.exceptions.HTTPError as e:
             if e.response is not None and e.response.status_code == 426:
-                print("[NewsAPI] Upgrade required — free tier only supports headlines endpoint with developer account")
+                logger.warning("NewsAPI upgrade required (426) — free tier limitation")
             elif e.response is not None and e.response.status_code == 401:
-                print("[NewsAPI] Invalid API key")
+                logger.error("NewsAPI invalid API key (401)")
             elif e.response is not None and e.response.status_code == 429:
-                print("[NewsAPI] Rate limit exceeded")
+                logger.warning("NewsAPI rate limit exceeded (429)")
             else:
-                print(f"[NewsAPI] HTTP error: {e}")
+                logger.warning("NewsAPI HTTP error: %s", e)
             return []
         except Exception as e:
-            print(f"[NewsAPI] Fetch failed: {e}")
+            logger.warning("NewsAPI fetch failed: %s", e)
             return []

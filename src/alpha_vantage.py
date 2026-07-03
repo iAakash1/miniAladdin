@@ -8,6 +8,8 @@ Strategy: 1 OVERVIEW call (fundamentals) + 1 MACD call per research request.
 
 from __future__ import annotations
 
+import logging
+
 import os
 import time
 from typing import Optional
@@ -17,6 +19,8 @@ import requests
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 BASE_URL = "https://www.alphavantage.co/query"
 
@@ -84,11 +88,11 @@ class AlphaVantageClient:
             # AV returns {"Information": "..."} when rate limited
             if "Information" in data or "Note" in data:
                 msg = data.get("Information") or data.get("Note", "Rate limited")
-                print(f"[AlphaVantage] {msg[:80]}")
+                logger.warning("Alpha Vantage rate-limited or informational response: %s", msg[:120])
                 return None
             return data
         except Exception as e:
-            print(f"[AlphaVantage] Request failed: {e}")
+            logger.warning("Alpha Vantage request failed: %s", e)
             return None
 
     def get_fundamentals(self, ticker: str) -> FundamentalData:

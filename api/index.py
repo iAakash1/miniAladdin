@@ -1,15 +1,23 @@
 """
 OmniSignal API — FastAPI Backend
-Multi-factor risk intelligence: FRED macro + yfinance technicals + Alpha Vantage fundamentals + NewsAPI sentiment.
+Multi-factor risk intelligence: FRED macro + yfinance technicals + Alpha Vantage
+fundamentals + NewsAPI sentiment, with an optional LLM explanation layer.
+
+Handlers are deliberately *synchronous* (`def`, not `async def`): every data
+source here is blocking (fredapi / yfinance / requests), and FastAPI runs sync
+handlers in its threadpool — so one slow upstream can no longer stall the
+event loop for every concurrent request (see docs/AUDIT.md H3).
 """
 
 from __future__ import annotations
 
+import logging
 import os
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,19 +26,36 @@ from fastapi.responses import JSONResponse
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.models import MacroStatus, SignalVerdict
+from src.decision import compute_decision, derive_risk_level
+from src.models import (
+    AggregateSentiment,
+    MacroStatus,
+    RiskAssessment,
+    TechnicalAnalysis,
+)
 from src.risk_analysis import OmniSignalRiskEngine
 from src.prediction_agent import RiskAwarePredictionAgent
 from src.sentiment_edge import SentimentAnalyzer
 from src.alpha_vantage import AlphaVantageClient
 from src.news_api import NewsAPIClient
 
+# ── Logging ───────────────────────────────────────────────────────────────────
+# Railway captures stdout; structured single-line records with timestamps.
+
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO").upper(),
+    format="%(asctime)s %(levelname)s %(name)s — %(message)s",
+)
+logger = logging.getLogger("omnisignal.api")
+
+DISCLAIMER = "Research and education only — not investment advice."
+
 # ── App ───────────────────────────────────────────────────────────────────────
 
 app = FastAPI(
     title="OmniSignal API",
-    description="Agentic Multi-Factor Risk & Prediction Engine",
-    version="1.0.0",
+    description="Multi-Factor Risk & Prediction Engine",
+    version="1.1.0",
 )
 
 # Explicit origin allowlist (comma-separated env var). Wildcard + credentials
@@ -59,6 +84,8 @@ risk_engine        = OmniSignalRiskEngine()
 sentiment_analyzer = SentimentAnalyzer(max_headlines=12)
 av_client          = AlphaVantageClient()
 
+DEMO_MACRO_MULTIPLIER = 1.15
+
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -75,63 +102,95 @@ def _fmt_market_cap(v: Optional[float]) -> Optional[str]:
     return f"${v:,.0f}"
 
 
+def _demo_macro_stats() -> dict[str, Any]:
+    """Fallback macro payload when FRED is unreachable. Loud in logs, harmless to clients."""
+    return {
+        "status":               "DEMO_MODE",
+        "error":                "FRED API unavailable - using demo data",
+        "yield_curve_inverted": False,
+        "inflation_rate":       3.2,
+        "fed_funds_rate":       5.25,
+        "note":                 "Get a free FRED API key at fred.stlouisfed.org",
+    }
+
+
+def _fetch_macro_safe() -> tuple[float, dict[str, Any]]:
+    """SRM + stats with demo fallback. Never raises."""
+    try:
+        return risk_engine.get_systemic_risk_multiplier()
+    except Exception:
+        logger.exception("Macro fetch failed — serving DEMO_MODE fallback")
+        return DEMO_MACRO_MULTIPLIER, _demo_macro_stats()
+
+
+def _macro_assessment(multiplier: float, stats: dict[str, Any]) -> RiskAssessment:
+    """Rebuild a RiskAssessment object from the stats dict for decision logic."""
+    status_raw = str(stats.get("status", "STABLE"))
+    try:
+        status = MacroStatus(status_raw)
+    except ValueError:  # e.g. "DEMO_MODE"
+        status = MacroStatus.DATA_ERROR
+    return RiskAssessment(
+        risk_multiplier=max(0.5, min(1.6, multiplier)),
+        yield_curve_inverted=bool(stats.get("yield_curve_inverted", False)),
+        status=status,
+        recession_warning=bool(stats.get("recession_warning", False)),
+    )
+
+
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
 @app.get("/api/health")
-async def health():
+def health():
     """Health check — reports which API keys are configured."""
+    environment = (
+        "production"
+        if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("ENV") == "production"
+        else "development"
+    )
     return {
         "status":  "ok",
         "service": "OmniSignal API",
-        "version": "1.0.0",
+        "version": "1.1.0",
         "data_sources": {
-            "fred":         bool(os.getenv("FRED_API_KEY")),
+            "fred":          bool(os.getenv("FRED_API_KEY")),
             "alpha_vantage": av_client.available,
-            "news_api":     NewsAPIClient().available,
-            "yfinance":     True,     # always available
-            "yahoo_scraper": True,    # always available
+            "news_api":      NewsAPIClient().available,
+            "llm":           bool(os.getenv("GROQ_API_KEY")),
+            "yfinance":      True,
+            "yahoo_scraper": True,
         },
-        "environment": "production" if os.getenv("VERCEL") else "development",
+        "environment": environment,
     }
 
 
 @app.get("/api/macro")
-async def get_macro():
+def get_macro():
     """Systemic Risk Multiplier + FRED macro indicators."""
     start = time.time()
-    try:
-        multiplier, stats = risk_engine.get_systemic_risk_multiplier()
-        return {
+    multiplier, stats = _fetch_macro_safe()
+    return JSONResponse(
+        status_code=200,
+        content={
             "risk_multiplier": multiplier,
             "stats":           stats,
             "elapsed_seconds": round(time.time() - start, 2),
-        }
-    except Exception as e:
-        return JSONResponse(status_code=200, content={
-            "risk_multiplier": 1.15,
-            "stats": {
-                "status":               "DEMO_MODE",
-                "error":                "FRED API unavailable - using demo data",
-                "yield_curve_inverted": False,
-                "inflation_rate":       3.2,
-                "fed_funds_rate":       5.25,
-                "note":                 "Get a free FRED API key at fred.stlouisfed.org",
-            },
-            "elapsed_seconds": round(time.time() - start, 2),
-        })
+        },
+    )
 
 
 @app.get("/api/research/{ticker}")
-async def research_ticker(
+def research_ticker(
     ticker: str,
-    fast: bool = Query(False, description="Skip sentiment for speed"),
+    fast: bool = Query(False, description="Skip sentiment and LLM analysis for speed"),
 ):
     """
     Full OmniSignal research pipeline:
-      1. FRED macro risk (SRM)
-      2. yfinance technical analysis
-      3. Alpha Vantage fundamentals + MACD  (if key configured)
-      4. NewsAPI / Yahoo sentiment           (unless fast=true)
+      1. FRED macro risk (SRM)          ┐ fetched concurrently —
+      2. yfinance + Alpha Vantage       ┘ independent upstreams
+      3. NewsAPI / Yahoo sentiment       (unless fast=true; needs company name)
+      4. Deterministic decision synthesis (verdict / confidence / risk level)
+      5. LLM explanation layer           (unless fast=true; optional, never fatal)
     """
     start  = time.time()
     ticker = ticker.upper().strip()
@@ -139,22 +198,33 @@ async def research_ticker(
     if not ticker or len(ticker) > 10:
         raise HTTPException(status_code=400, detail="Invalid ticker symbol")
 
-    # ── Step 1: Macro ────────────────────────────────────────────────────────
-    try:
-        multiplier, macro_stats = risk_engine.get_systemic_risk_multiplier()
-    except Exception:
-        multiplier  = 1.15
-        macro_stats = {
-            "status": "DEMO_MODE",
-            "error":  "FRED API unavailable",
-            "note":   "Using demo risk multiplier",
-        }
+    # ── Steps 1+2 concurrently: macro and technicals are independent. ────────
+    # predict() is run with a neutral multiplier, then the real dampening is
+    # applied once the SRM is known — apply_dampening is stateless, so the
+    # arithmetic is identical to the sequential version.
+    prediction = None
+    technicals: dict[str, Any] = {}
+    tech_error: Optional[str] = None
 
-    # ── Step 2 & 3: Technical analysis + Alpha Vantage ───────────────────────
-    technicals = {}
-    try:
-        agent      = RiskAwarePredictionAgent(ticker, period="3mo", av_client=av_client)
-        prediction = agent.predict(risk_multiplier=multiplier)
+    with ThreadPoolExecutor(max_workers=2, thread_name_prefix="research") as pool:
+        macro_future = pool.submit(_fetch_macro_safe)
+        tech_future = pool.submit(
+            lambda: RiskAwarePredictionAgent(
+                ticker, period="3mo", av_client=av_client
+            ).predict(risk_multiplier=1.0)
+        )
+        multiplier, macro_stats = macro_future.result()
+        try:
+            prediction = tech_future.result()
+        except Exception:
+            logger.exception("Technical analysis failed for %s", ticker)
+            tech_error = "Technical analysis failed — check that the ticker symbol is valid"
+
+    if prediction is not None:
+        risk_adjusted = RiskAwarePredictionAgent.apply_dampening(
+            prediction.raw_signal, multiplier
+        ) if prediction.raw_signal else None
+        prediction.risk_adjusted_signal = risk_adjusted or prediction.risk_adjusted_signal
 
         technicals = {
             "ticker":        prediction.ticker,
@@ -186,41 +256,58 @@ async def research_ticker(
             "sector":         prediction.sector,
             "company_name":   prediction.company_name,
         }
-    except Exception as e:
-        technicals = {"error": str(e), "note": "Technical analysis failed — check ticker"}
+    else:
+        technicals = {"error": tech_error, "note": "Technical analysis failed — check ticker"}
 
-    # ── Step 4: Sentiment ────────────────────────────────────────────────────
-    sentiment_data = None
+    # ── Step 3: Sentiment (after technicals — reuses the resolved company name)
+    sentiment_data: Optional[dict[str, Any]] = None
+    sentiment_obj = AggregateSentiment()
     if not fast:
-        # Pass company name from fundamentals for better NewsAPI query
         company_name = technicals.get("company_name", "") or ""
         try:
-            sentiment = sentiment_analyzer.analyze_ticker(ticker, company_name=company_name)
+            sentiment_obj = sentiment_analyzer.analyze_ticker(ticker, company_name=company_name)
             sentiment_data = {
-                "headline_count": sentiment.headline_count,
-                "average_score":  sentiment.average_score,
-                "dominant_label": sentiment.dominant_label.value,
+                "headline_count": sentiment_obj.headline_count,
+                "average_score":  sentiment_obj.average_score,
+                "dominant_label": sentiment_obj.dominant_label.value,
                 "headlines": [
                     {
-                        "title":       h.headline,
-                        "score":       h.score,
-                        "label":       h.label.value,
-                        "source":      h.source,
-                        "url":         h.url,
+                        "title":        h.headline,
+                        "score":        h.score,
+                        "label":        h.label.value,
+                        "source":       h.source,
+                        "url":          h.url,
                         "published_at": h.published_at,
                     }
-                    for h in sentiment.headlines
+                    for h in sentiment_obj.headlines
                 ],
             }
-        except Exception as e:
+        except Exception:
+            logger.exception("Sentiment analysis failed for %s", ticker)
             sentiment_data = {
-                "error":          str(e),
+                "error":          "Sentiment sources unavailable",
                 "headline_count": 0,
                 "note":           "Sentiment analysis failed",
             }
 
-    # ── Verdict ──────────────────────────────────────────────────────────────
+    # ── Step 4: Deterministic decision synthesis (shared with the CLI pipeline)
     verdict = technicals.get("risk_adjusted_signal") or "Hold"
+
+    macro_obj = _macro_assessment(multiplier, macro_stats)
+    tech_obj = prediction if prediction is not None else TechnicalAnalysis(ticker=ticker)
+    _, confidence, rationale = compute_decision(macro_obj, tech_obj, sentiment_obj)
+    risk_level = derive_risk_level(
+        volatility=tech_obj.volatility,
+        risk_multiplier=multiplier,
+        max_drawdown=tech_obj.max_drawdown,
+        beta=tech_obj.beta,
+    )
+
+    elapsed = round(time.time() - start, 2)
+    logger.info(
+        "research %s: verdict=%s confidence=%.2f risk=%s mode=%s elapsed=%.2fs",
+        ticker, verdict, confidence, risk_level, "fast" if fast else "full", elapsed,
+    )
 
     return {
         "ticker":  ticker,
@@ -228,14 +315,19 @@ async def research_ticker(
         "technicals": technicals,
         "sentiment":  sentiment_data,
         "verdict":    verdict,
-        "elapsed_seconds": round(time.time() - start, 2),
+        # Additive fields (v1.1): deterministic synthesis shared with the CLI pipeline.
+        "confidence":  round(confidence * 100),
+        "risk_level":  risk_level,
+        "rationale":   rationale,
+        "disclaimer":  DISCLAIMER,
+        "elapsed_seconds": elapsed,
         "mode":  "fast" if fast else "full",
     }
 
 
 @app.get("/api/chart/{ticker}")
-async def get_chart(ticker: str, period: str = "3mo"):
-    """3-month daily OHLCV for the sparkline chart."""
+def get_chart(ticker: str, period: str = "3mo"):
+    """Daily close + volume series for the terminal chart."""
     import yfinance as yf
 
     ticker = ticker.upper().strip()
@@ -257,5 +349,6 @@ async def get_chart(ticker: str, period: str = "3mo"):
             })
 
         return {"ticker": ticker, "prices": prices}
-    except Exception as e:
-        return {"ticker": ticker, "prices": [], "error": str(e)}
+    except Exception:
+        logger.exception("Chart fetch failed for %s period=%s", ticker, period)
+        return {"ticker": ticker, "prices": [], "error": "Price history unavailable"}
