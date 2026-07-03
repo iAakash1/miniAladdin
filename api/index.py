@@ -14,6 +14,7 @@ from __future__ import annotations
 import logging
 import os
 import sys
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -26,7 +27,12 @@ from fastapi.responses import JSONResponse
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.decision import compute_decision, derive_risk_level, verdict_to_recommendation
+from src.decision import (
+    compute_decision,
+    confidence_breakdown,
+    derive_risk_level,
+    verdict_to_recommendation,
+)
 from src.services import llm_service
 from src.models import (
     AggregateSentiment,
@@ -80,6 +86,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.middleware("http")
+async def request_logging(request, call_next):
+    """One structured line per request: method, path, status, duration."""
+    started = time.perf_counter()
+    try:
+        response = await call_next(request)
+    except Exception:
+        logger.exception("unhandled error %s %s", request.method, request.url.path)
+        raise
+    duration_ms = (time.perf_counter() - started) * 1000
+    logger.info(
+        "%s %s -> %d in %.0fms",
+        request.method, request.url.path, response.status_code, duration_ms,
+    )
+    return response
+
 # ── Shared instances ──────────────────────────────────────────────────────────
 
 risk_engine        = OmniSignalRiskEngine()
@@ -116,10 +139,28 @@ def _demo_macro_stats() -> dict[str, Any]:
     }
 
 
+
+# FRED series update at most daily; a short TTL cache removes 1-2s of latency
+# from every research call and keeps free-tier quota usage flat.
+MACRO_CACHE_TTL_SECONDS = float(os.getenv("MACRO_CACHE_TTL", "300"))
+_macro_cache: dict[str, tuple[float, tuple[float, dict[str, Any]]]] = {}
+_macro_lock = threading.Lock()
+
+
 def _fetch_macro_safe() -> tuple[float, dict[str, Any]]:
-    """SRM + stats with demo fallback. Never raises."""
+    """SRM + stats with demo fallback and a short TTL cache. Never raises."""
+    now = time.time()
+    with _macro_lock:
+        entry = _macro_cache.get("srm")
+        if entry and entry[0] > now:
+            return entry[1]
     try:
-        return risk_engine.get_systemic_risk_multiplier()
+        result = risk_engine.get_systemic_risk_multiplier()
+        # Only healthy responses are cached; failures retry on the next call.
+        if str(result[1].get("status", "")) != MacroStatus.DATA_ERROR.value:
+            with _macro_lock:
+                _macro_cache["srm"] = (now + MACRO_CACHE_TTL_SECONDS, result)
+        return result
     except Exception:
         logger.exception("Macro fetch failed — serving DEMO_MODE fallback")
         return DEMO_MACRO_MULTIPLIER, _demo_macro_stats()
@@ -297,7 +338,8 @@ def research_ticker(
 
     macro_obj = _macro_assessment(multiplier, macro_stats)
     tech_obj = prediction if prediction is not None else TechnicalAnalysis(ticker=ticker)
-    _, confidence, rationale = compute_decision(macro_obj, tech_obj, sentiment_obj)
+    decision_verdict, confidence, rationale = compute_decision(macro_obj, tech_obj, sentiment_obj)
+    breakdown = confidence_breakdown(macro_obj, tech_obj, sentiment_obj, decision_verdict)
     risk_level = derive_risk_level(
         volatility=tech_obj.volatility,
         risk_multiplier=multiplier,
@@ -343,6 +385,7 @@ def research_ticker(
         "verdict":    verdict,
         # Additive fields (v1.1): deterministic synthesis shared with the CLI pipeline.
         "confidence":  confidence_pct,
+        "confidence_breakdown": breakdown,
         "risk_level":  risk_level,
         "rationale":   rationale,
         "ai":          ai,

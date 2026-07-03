@@ -133,6 +133,37 @@ def derive_risk_level(
     return "LOW"
 
 
+def confidence_breakdown(
+    macro: RiskAssessment,
+    technicals: TechnicalAnalysis,
+    sentiment: AggregateSentiment,
+    verdict: SignalVerdict,
+) -> list[dict[str, object]]:
+    """
+    Itemized composition of the confidence score, mirroring compute_decision's
+    formula exactly (points are percentage contributions; they sum to the
+    confidence value). Consumed by the API response and by the LLM payload so
+    the model can explain the confidence without inventing arithmetic.
+    """
+    items: list[dict[str, object]] = [
+        {"component": "Base confidence", "points": 50},
+    ]
+    tech_signal = technicals.risk_adjusted_signal or SignalVerdict.HOLD
+    if tech_signal == verdict:
+        items.append({
+            "component": "Technical signal agrees with the final verdict",
+            "points": 20,
+        })
+    if sentiment.headline_count >= 3:
+        items.append({
+            "component": f"Sentiment sample is meaningful ({sentiment.headline_count} headlines)",
+            "points": 10,
+        })
+    if macro.status.value == "STABLE":
+        items.append({"component": "Stable macro regime", "points": 10})
+    return items
+
+
 def verdict_to_recommendation(verdict: SignalVerdict) -> str:
     """Map the five-step verdict onto the LLM contract's BUY / SELL / HOLD."""
     if verdict in (SignalVerdict.STRONG_BUY, SignalVerdict.BUY):
