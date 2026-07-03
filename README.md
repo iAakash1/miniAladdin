@@ -140,8 +140,30 @@ Opt-in live smoke tests: `OMNISIGNAL_LIVE_TESTS=1 python -m pytest tests/test_li
 | `GET /api/chart/{ticker}?period=` | Daily close/volume series |
 
 Contract note: `verdict`, `macro`, `technicals`, `sentiment` are stable;
-`confidence`, `risk_level`, `rationale`, `ai`, `disclaimer` were added
-additively in v1.1.
+`confidence`, `confidence_breakdown`, `risk_level`, `rationale`, `ai`,
+`disclaimer` were added additively in v1.1.
+
+### LLM explanation layer
+
+`src/services/llm_service.py` calls Groq `openai/gpt-oss-120b` with
+deterministic parameters (`temperature=0.2, top_p=1, reasoning_effort=medium,
+max 4096 tokens, JSON-object mode`). The model receives the engine's finished
+decision — recommendation, confidence with itemized breakdown, risk level,
+rationale, indicators, macro, sentiment — and returns narrative only:
+
+```
+executive_summary · technical_reasoning · macro_reasoning · news_reasoning
+risk_reasoning · confidence_reason · key_catalysts[] · key_risks[]
+investment_horizon · market_outlook
+```
+
+Output is `json.loads`-parsed and Pydantic-validated (one corrective retry,
+then a deterministic fallback assembled from the engine's own rationale —
+never a failed request). The schema has no decision fields, so the model
+*cannot* alter recommendation/confidence/risk; engine values are attached
+verbatim. Responses cache 5 minutes per (ticker, day, verdict, model, prompt
+version). Latency, retries, cache hits, model and prompt version are recorded
+in-process (`src/services/metrics.py`) and logged, not exposed.
 
 ## License
 
