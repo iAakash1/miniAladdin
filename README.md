@@ -1,180 +1,148 @@
-# OmniSignal: Agentic Multi-Factor Risk & Prediction Engine 📊
+# OmniSignal — Multi-Factor Risk & Prediction Engine
 
-**OmniSignal** is a systemic-risk-aware prediction engine that integrates **macro-economic risk signals** from the Federal Reserve, **live news sentiment**, and **technical analysis** into a unified research workflow. Instead of analyzing stocks in isolation, OmniSignal provides a holistic view of market conditions and individual equity performance.
+OmniSignal scores equities across five weighted signals — momentum, risk-adjusted
+return, trend, street expectations and news sentiment — then dampens the result
+by a Systemic Risk Multiplier computed from Federal Reserve macro data. The
+result is a single, explainable verdict with every number behind it, plus an
+optional LLM-written explanation grounded strictly in those numbers.
+
+**Live:** [mini-aladding.vercel.app](https://mini-aladding.vercel.app) ·
+Engineering docs: [`docs/AUDIT.md`](docs/AUDIT.md) ·
+[`docs/REDESIGN.md`](docs/REDESIGN.md) · [`docs/DESIGN-SYSTEM.md`](docs/DESIGN-SYSTEM.md) ·
+[`docs/QA.md`](docs/QA.md)
 
 ---
 
-## 🏗️ Architecture
+## Architecture (what actually runs where)
 
 ```
-┌──────────────────────────────────────────────────────┐
-│                  OmniSignal Pipeline                 │
-├──────────────┬──────────────┬────────────────────────┤
-│  FRED API    │  yfinance    │  Yahoo Finance RSS     │
-│  (Macro)     │  (Technicals)│  (Sentiment)           │
-├──────────────┴──────────────┴────────────────────────┤
-│            AsyncDataPipeline (concurrent)            │
-├──────────────┬──────────────┬────────────────────────┤
-│ Risk Engine  │  Prediction  │  Sentiment             │
-│ (SRM calc)   │  Agent       │  Analyzer              │
-├──────────────┴──────────────┴────────────────────────┤
-│              OmniSignal Report Generator             │
-│              → research_vault/TICKER_report.md       │
-└──────────────────────────────────────────────────────┘
+Browser
+  │
+  ▼
+Vercel — Next.js frontend (dashboard/)
+  │  static marketing + /news (own RSS aggregation in a route handler)
+  │  /terminal behind Clerk auth · Razorpay Pro tier
+  │
+  │  next.config.ts rewrites /api/* ──────────┐
+  ▼                                           ▼
+Railway — FastAPI backend (api/index.py + src/)
+  ├─ FRED (macro → Systemic Risk Multiplier)
+  ├─ yfinance (prices, technicals)
+  ├─ Alpha Vantage (fundamentals, MACD)
+  ├─ NewsAPI / Yahoo RSS (headline sentiment)
+  └─ Groq LLM (explanation layer — optional, never fatal)
 ```
 
-### Systemic Risk Multiplier (SRM)
+- **Vercel serves the frontend only.** There is no serverless Python on Vercel.
+- **Railway serves the API.** Deployment config lives in the hosting dashboards
+  (Railway start command: `uvicorn api.index:app --host 0.0.0.0 --port $PORT`);
+  there is intentionally no Procfile/vercel.json in the repo.
+- `dashboard/src/app/api/news` is the one API implemented inside Next.js
+  (public market news aggregation); app routes take precedence over the
+  `/api/*` rewrite.
 
-| Condition | Adjustment | Effect |
+### Decision pipeline
+
+All math is Python; the LLM only explains numbers it is given.
+
+```
+prices/technicals ─┐
+macro (FRED→SRM) ──┼─► RiskAwarePredictionAgent (5 scoring layers ±10)
+sentiment ─────────┘        │ raw signal
+                            ▼
+              SRM dampening (src/prediction_agent.py)
+                            ▼
+     compute_decision (src/decision.py — shared, single source of truth)
+        verdict · confidence · rationale · risk level
+                            ▼
+        Groq gpt-oss-120b explanation (src/services/llm_service.py)
+        validated JSON · cached 5 min · falls back, never fails the request
+```
+
+| SRM condition | Adjustment |
+|---|---|
+| Yield curve inverted (10Y − 2Y < 0) | +0.3 |
+| Inflation > 4% YoY | +0.2 |
+| Fed funds > 5% | +0.1 |
+| SRM ≥ 1.3 | verdict pulled two steps toward Sell |
+| SRM ≥ 1.2 | one step |
+
+## Environment variables
+
+**Railway (backend)**
+
+| Var | Required | Purpose |
 |---|---|---|
-| Yield Curve Inverted (10Y < 2Y) | +0.3 | Recession warning |
-| Inflation > 4% YoY | +0.2 | Dampened bullish signals |
-| Fed Funds Rate > 5% | +0.1 | Tighter conditions |
-| SRM > 1.3 | — | Strong Buy → Hold |
+| `FRED_API_KEY` | yes | Macro series (free: fred.stlouisfed.org) |
+| `ALPHA_VANTAGE_KEY` | optional | Fundamentals + MACD (free tier: 25 req/day) |
+| `NEWSAPI_KEY` | optional | Premium headlines (falls back to Yahoo RSS) |
+| `GROQ_API_KEY` | optional | LLM explanations (free tier: console.groq.com) |
+| `LLM_MODEL` | optional | Default `openai/gpt-oss-120b` |
+| `ALLOWED_ORIGINS` | optional | CORS allowlist, comma-separated |
+| `LOG_LEVEL` | optional | Default `INFO` |
 
----
+**Vercel (frontend)**
 
-## 📂 Project Structure
+| Var | Required | Purpose |
+|---|---|---|
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` | yes | Auth |
+| `NEXT_PUBLIC_RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` | yes | Pro checkout |
+| `API_URL` | optional | Backend base (defaults to the Railway deployment) |
+| `NEXT_PUBLIC_SITE_URL` | optional | Canonical URL for metadata |
 
-```
-├── .agent/
-│   ├── skills/
-│   │   ├── macro-risk-analyzer/   # FRED macro data skill
-│   │   └── risk-engine/           # SRM calculation skill
-│   └── workflows/
-│       └── deep-equity-research.md  # /research workflow
-├── src/
-│   ├── models.py              # Pydantic data models
-│   ├── risk_analysis.py       # FRED-based Risk Engine
-│   ├── prediction_agent.py    # Risk-aware technical analysis
-│   ├── sentiment_edge.py      # Headline sentiment scoring
-│   ├── data_pipeline.py       # Async concurrent pipeline
-│   └── report_generator.py    # Markdown report output
-├── scripts/
-│   └── fetch_macro.py         # CLI macro data fetcher
-├── tests/                     # Pytest suite (80%+ coverage)
-├── research_vault/            # Generated OmniSignal reports
-├── MASFIN_System_Template.ipynb  # Original MASFIN notebook
-└── Calculations.md            # Financial metric formulas
-```
+Keys live **only** in hosting dashboards and local `.env` files (gitignored).
+CI runs gitleaks on full history; `pre-commit install` adds the same scan locally.
 
----
-
-## 🚀 Quick Start
-
-### 1. Install Dependencies
+## Development
 
 ```bash
-pip install -r requirements.txt
-```
-
-### 2. Set Up API Keys
-
-```bash
-cp .env.example .env
-# Edit .env and add your FRED API key
-# Get one free at: https://fred.stlouisfed.org/docs/api/api_key.html
-```
-
-### 3. Check Macro Environment
-
-```bash
-python scripts/fetch_macro.py
-```
-
-### 4. Run Tests
-
-```bash
-python -m pytest tests/ -v --tb=short --cov=src
-```
-
-### 5. Use the Research Workflow
-
-In the Antigravity agent, run:
-```
-/research NVDA
-```
-
----
-
-## 🧠 Key Components
-
-### Risk Engine (`src/risk_analysis.py`)
-Connects to the Federal Reserve FRED API to pull Treasury yield spreads, CPI inflation data, and the Federal Funds Rate. Computes a Systemic Risk Multiplier (0.5–1.6) that adjusts prediction confidence.
-
-### Prediction Agent (`src/prediction_agent.py`)
-Computes RSI-14, Sharpe/Sortino ratios, volatility, momentum, and drawdown. Applies the SRM dampening: multiplier > 1.3 shifts "Strong Buy" down to "Hold".
-
-### Sentiment Edge (`src/sentiment_edge.py`)
-Fetches Yahoo Finance RSS headlines and scores them with a keyword-based sentiment engine. Aggregates into Bullish/Bearish/Neutral with a -1 to +1 composite score.
-
-### Async Pipeline (`src/data_pipeline.py`)
-Orchestrates concurrent data fetching from all three sources and synthesizes the final OmniSignal verdict with confidence scoring.
-
----
-
-## 🚀 Deployment (Vercel)
-
-### Local Development
-
-**1. Start the API server:**
-```bash
-pip install -r requirements.txt
+# Backend
+pip install -r requirements-dev.txt
+cp .env.example .env            # add your FRED key
 uvicorn api.index:app --reload --port 8000
+python -m pytest tests/ -v      # hermetic by default
+
+# Frontend
+cd dashboard
+npm install && npm run dev      # http://localhost:3000, proxies /api → :8000
+npm test && npm run lint && npm run build
 ```
 
-**2. Start the dashboard:**
-```bash
-cd dashboard && npm install && npm run dev
+Opt-in live smoke tests: `OMNISIGNAL_LIVE_TESTS=1 python -m pytest tests/test_live_smoke.py`.
+
+## Project structure
+
+```
+├── api/index.py          FastAPI app (thin HTTP layer; sync handlers on purpose)
+├── src/
+│   ├── models.py         Pydantic domain models
+│   ├── decision.py       Shared verdict/confidence/risk synthesis
+│   ├── risk_analysis.py  FRED → Systemic Risk Multiplier
+│   ├── prediction_agent.py  5-layer scoring + SRM dampening
+│   ├── sentiment_edge.py Multi-source headline sentiment
+│   ├── news_api.py · alpha_vantage.py   Upstream clients
+│   ├── data_pipeline.py  Async CLI pipeline (report generation)
+│   ├── report_generator.py  Markdown/PDF reports → research_vault/
+│   └── services/llm_service.py  Groq explanation layer
+├── dashboard/            Next.js 16 app (see dashboard/README.md)
+├── tests/                Pytest suite + opt-in live smoke tests
+├── docs/                 Audit, redesign, design system, QA
+└── research_vault/       Generated reports (gitignored; one example kept)
 ```
 
-**3. Open** `http://localhost:3000` — the dashboard proxies `/api/*` to `localhost:8000`.
+## API
 
-### Deploy to Vercel
+| Endpoint | Description |
+|---|---|
+| `GET /api/health` | Service + data-source status |
+| `GET /api/macro` | SRM + FRED indicators (demo fallback if FRED is down) |
+| `GET /api/research/{ticker}` | Full pipeline; `?fast=true` skips sentiment + LLM |
+| `GET /api/chart/{ticker}?period=` | Daily close/volume series |
 
-**1. Push to GitHub:**
-```bash
-git add .
-git commit -m "feat: Aladdin-style risk engine with Vercel support"
-git push origin main
-```
+Contract note: `verdict`, `macro`, `technicals`, `sentiment` are stable;
+`confidence`, `risk_level`, `rationale`, `ai`, `disclaimer` were added
+additively in v1.1.
 
-**2. Connect to Vercel:**
-- Import your GitHub repo at [vercel.com/new](https://vercel.com/new)
-- Vercel auto-detects the `vercel.json` configuration
+## License
 
-**3. Add Environment Variables** in Vercel Dashboard → Settings → Environment Variables:
-
-
-
-### API Endpoints
-
-| Endpoint | Method | Description | Speed |
-|---|---|---|---|
-| `/api/health` | GET | Health check | <1s |
-| `/api/macro` | GET | SRM + macro indicators | ~2s |
-| `/api/research/{ticker}` | GET | Full OmniSignal pipeline | ~5s |
-| `/api/research/{ticker}?fast=true` | GET | Fast mode (no sentiment) | ~3s |
-
----
-
----
-
-## 🔬 Technology Stack
-
-- **Backend:** FastAPI + Python 3.10+
-- **Frontend:** Next.js 16 + React 19 + Tailwind CSS
-- **Data Sources:** FRED API, Yahoo Finance, yfinance
-- **Deployment:** Vercel (serverless)
-- **Testing:** Pytest with 80%+ coverage
-
----
-
-## 📜 License
-
-MIT License - See LICENSE file for details
-
----
-
-*OmniSignal is for research and educational purposes only. Not financial advice.*
-
+MIT — see LICENSE. Research and education only; not investment advice.

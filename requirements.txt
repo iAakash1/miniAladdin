@@ -1,14 +1,16 @@
-fastapi>=0.100.0
-uvicorn>=0.23.0
-python-dotenv>=1.0.0
-requests>=2.31.0
-pydantic>=2.0.0
-yfinance>=0.2.18
-pandas>=2.0.0
-numpy>=1.24.0
-beautifulsoup4>=4.12.0
-lxml>=4.9.0
-aiohttp>=3.8.0
-fpdf2>=2.7.0
-
-fredapi
+# Runtime dependencies — exact pins (docs/AUDIT.md H4).
+# Regenerate deliberately: bump a pin, run the test suite, commit.
+fastapi==0.139.0
+uvicorn==0.49.0
+python-dotenv==1.2.2
+requests==2.34.2
+pydantic==2.13.4
+yfinance==1.5.1
+pandas==2.3.3
+numpy==2.2.6
+beautifulsoup4==4.15.0
+lxml==6.1.1
+aiohttp==3.14.1
+fpdf2==2.8.7
+fredapi==0.5.2
+groq==1.5.0
