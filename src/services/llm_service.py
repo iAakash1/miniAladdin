@@ -1,23 +1,24 @@
 """
 OmniSignal LLM Service — Groq `openai/gpt-oss-120b` explanation layer.
 
-Design contract (docs/AUDIT.md §3):
+Architecture contract (docs/AUDIT.md §3):
 
-* Python is the single source of truth. Verdict, confidence and risk level are
-  computed deterministically *before* this service is called and passed in as
-  facts. The model's job is exclusively to explain them; after validation, the
-  deterministic fields are overwritten with the Python values regardless of
-  what the model returned.
-* The model never fetches data, never calculates indicators, never invents
-  numbers. The system prompt forbids it and the payload is the only context.
-* Output must be strict JSON parseable by ``json.loads`` — validated against a
-  Pydantic schema, retried once with a corrective message on validation
-  failure, then replaced by a deterministic fallback. A slow or failing LLM
-  can never take down ``/api/research/{ticker}``.
-* Deterministic sampling: ``temperature=0.2, top_p=1,
-  reasoning_effort="medium", max_completion_tokens=4096, stream=False``.
-* Identical requests are served from a 5-minute in-process cache keyed on
-  (ticker, UTC date, verdict, model).
+    Market data → indicators → macro → Python decision engine
+        → deterministic recommendation / confidence / breakdown / risk / rationale
+        → THIS SERVICE (explanation only)
+        → validated JSON narrative → frontend
+
+The model NEVER generates recommendation, confidence, its breakdown, risk,
+rationale, or any indicator/macro value. Those are computed upstream, passed
+in as facts, and attached to the result verbatim. The model contributes only
+the narrative fields of the v2 schema below.
+
+Reliability: singleton client · 8s timeout · exponential backoff on 429/5xx ·
+strict ``json.loads`` + Pydantic validation · one corrective retry · then a
+deterministic fallback. ``/api/research`` can never fail because of this layer.
+Results cache for 5 minutes per (ticker, UTC day, verdict, model).
+Observability: per-call latency/retries/outcome recorded in
+``src/services/metrics.py`` (internal only).
 
 Environment:
     GROQ_API_KEY   — enables the service (absent → fallback mode, logged once)
@@ -35,58 +36,61 @@ import os
 import threading
 import time
 from datetime import datetime, timezone
-from typing import Any, Literal, Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field, ValidationError
+
+from src.services.metrics import llm_metrics
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_MODEL = "openai/gpt-oss-120b"
+PROMPT_VERSION = "2"
 MAX_TRANSIENT_RETRIES = 2      # network / 429 / 5xx, with exponential backoff
 BACKOFF_BASE_SECONDS = 0.5
 VALIDATION_RETRIES = 1         # one corrective re-ask on malformed output
 
 
-# ── Response schema ───────────────────────────────────────────────────────────
+# ── Response schema (v2 — narrative only; deterministic values are inputs) ───
 
 class LLMAnalysis(BaseModel):
-    """Strict schema for the model's JSON output."""
+    """Strict schema for the model's JSON output. Explanation fields only."""
 
-    recommendation: Literal["BUY", "SELL", "HOLD"]
-    confidence: int = Field(..., ge=0, le=100)
-    risk: Literal["LOW", "MEDIUM", "HIGH"]
-    summary: str = Field(..., min_length=1, max_length=2000)
-    bullish_factors: list[str] = Field(default_factory=list, max_length=10)
-    bearish_factors: list[str] = Field(default_factory=list, max_length=10)
-    reasoning: list[str] = Field(default_factory=list, max_length=10)
-    limitations: list[str] = Field(default_factory=list, max_length=10)
-    investment_horizon: str = ""
+    executive_summary: str = Field(..., min_length=1, max_length=2000)
+    technical_reasoning: str = Field("", max_length=1500)
+    macro_reasoning: str = Field("", max_length=1500)
+    news_reasoning: str = Field("", max_length=1500)
+    risk_reasoning: str = Field("", max_length=1500)
+    confidence_reason: str = Field("", max_length=1000)
+    key_catalysts: list[str] = Field(default_factory=list, max_length=10)
+    key_risks: list[str] = Field(default_factory=list, max_length=10)
+    investment_horizon: str = Field("", max_length=300)
     market_outlook: str = Field("", max_length=1000)
 
 
 SYSTEM_PROMPT = """You are OmniSignal AI, an expert financial research assistant.
 
-You do NOT browse the internet. You ONLY analyze the structured information provided in the user message. Never fabricate information. Never guess missing values — if a value is null or absent, say the data is insufficient for that point instead of inventing it. Never calculate indicators yourself; every number you may reference is already computed and given to you.
+You do NOT browse the internet. You ONLY analyze the structured information provided in the user message. Never fabricate information. Never guess missing values — if a value is null or absent, note that the data is insufficient for that point instead of inventing it. Never calculate anything: every number you may reference (indicators, macro series, scores, confidence, its breakdown, risk level, recommendation) is already computed by a deterministic engine and given to you as fact.
 
-The provided `decision` block (recommendation, confidence, risk) was produced by a deterministic quantitative engine. Do not contradict it — your job is to explain WHY the engine reached it, citing only the supplied numbers.
+Your only job is to EXPLAIN the engine's decision in professional plain English, citing the supplied numbers exactly as given (e.g. "RSI-14 at 39.1"). Do not contradict the decision block. Do not restate a recommendation of your own.
 
-Return valid JSON only. No markdown, no code fences, no tables, no text outside the JSON object. The JSON must parse with a strict parser.
+Return valid JSON only. No markdown, no code fences, no tables, no text outside the JSON object. It must parse with a strict parser.
 
-Schema (all keys required):
+Schema (all keys required; use "" or [] when a section has no data):
 {
-  "recommendation": "BUY" | "SELL" | "HOLD",           // echo decision.recommendation
-  "confidence": <integer 0-100>,                        // echo decision.confidence
-  "risk": "LOW" | "MEDIUM" | "HIGH",                   // echo decision.risk
-  "summary": "<3-5 plain-English sentences explaining why the verdict is what it is, citing specific supplied numbers>",
-  "bullish_factors": ["<short factual statements from the supplied data>"],
-  "bearish_factors": ["<short factual statements from the supplied data>"],
-  "reasoning": ["<step-by-step chain from data to verdict, one step per item>"],
-  "limitations": ["<what the supplied data cannot tell us, incl. any null fields>"],
-  "investment_horizon": "<short-term | medium-term | long-term, with one clause of justification>",
+  "executive_summary": "<3-5 sentences: what the verdict is and the main reasons why, citing supplied numbers>",
+  "technical_reasoning": "<how the supplied technical indicators support or oppose the verdict>",
+  "macro_reasoning": "<what the supplied macro block (SRM, yield spread, inflation, Fed rate) contributed, including any dampening>",
+  "news_reasoning": "<what the supplied sentiment block contributed; if headline_count is 0, say sentiment was unavailable>",
+  "risk_reasoning": "<why the supplied risk level is what it is, from volatility/drawdown/beta/SRM given>",
+  "confidence_reason": "<explain the supplied confidence using the supplied confidence_breakdown items — do not invent arithmetic>",
+  "key_catalysts": ["<short factual bullish drivers from the supplied data>"],
+  "key_risks": ["<short factual risk factors from the supplied data>"],
+  "investment_horizon": "<short-term | medium-term | long-term, one clause of justification>",
   "market_outlook": "<1-2 sentences on the macro regime using only the supplied macro block>"
 }
 
-Style: professional research-desk register. No hype, no advice language ("you should buy"), no disclaimers (the API attaches one). Cite numbers as given (e.g. "RSI-14 at 39.1")."""
+Style: research-desk register. No hype, no advice language, no disclaimers (the API attaches one)."""
 
 
 # ── Client management ─────────────────────────────────────────────────────────
@@ -128,10 +132,11 @@ def _get_client():
 
 
 def reset_client_for_tests() -> None:
-    """Test hook: drop the cached client and cache entries."""
+    """Test hook: drop the cached client, cache entries and metrics."""
     global _client
     _client = None
     _cache.clear()
+    llm_metrics.reset()
 
 
 # ── Cache ─────────────────────────────────────────────────────────────────────
@@ -155,6 +160,7 @@ def _cache_key(payload: dict[str, Any]) -> str:
             datetime.now(timezone.utc).strftime("%Y-%m-%d"),
             str(decision.get("verdict", "")),
             _model_name(),
+            PROMPT_VERSION,
         ]
     )
     return hashlib.sha256(raw.encode()).hexdigest()
@@ -175,31 +181,45 @@ def _cache_put(key: str, value: dict[str, Any]) -> None:
         _cache[key] = (time.time() + _cache_ttl(), value)
 
 
-# ── Fallback ──────────────────────────────────────────────────────────────────
+# ── Result assembly ───────────────────────────────────────────────────────────
+
+def _attach_deterministic(result: dict[str, Any], decision: dict[str, Any]) -> dict[str, Any]:
+    """Engine values are attached verbatim — the model never supplies them."""
+    result["recommendation"] = decision.get("recommendation", "HOLD")
+    result["confidence"] = decision.get("confidence", 50)
+    result["risk"] = decision.get("risk", "MEDIUM")
+    return result
+
 
 def _fallback(payload: dict[str, Any], reason: str) -> dict[str, Any]:
-    """Deterministic explanation assembled from the engine's own rationale."""
+    """Deterministic explanation assembled from the engine's own outputs."""
     decision = payload.get("decision", {})
     rationale = decision.get("rationale") or "Signals were synthesized by the quantitative engine."
-    summary = (
-        f"{decision.get('recommendation', 'HOLD')} at {decision.get('confidence', 50)}% confidence. "
-        f"{rationale} (AI narrative unavailable: {reason} — showing the engine's own rationale.)"
+    breakdown = decision.get("confidence_breakdown") or []
+    confidence_reason = (
+        " + ".join(f"{item.get('component')} ({item.get('points')}%)" for item in breakdown)
+        if breakdown
+        else "Confidence reflects agreement between the technical, sentiment and macro factors."
     )
-    return {
-        "recommendation": decision.get("recommendation", "HOLD"),
-        "confidence": decision.get("confidence", 50),
-        "risk": decision.get("risk", "MEDIUM"),
-        "summary": summary,
-        "bullish_factors": [],
-        "bearish_factors": [],
-        "reasoning": [part.strip() for part in rationale.split(";") if part.strip()],
-        "limitations": ["AI-generated narrative unavailable for this response."],
+    result = {
+        "executive_summary": (
+            f"{decision.get('recommendation', 'HOLD')} at {decision.get('confidence', 50)}% confidence. "
+            f"{rationale} (AI narrative unavailable: {reason} — showing the engine's own rationale.)"
+        ),
+        "technical_reasoning": "",
+        "macro_reasoning": "",
+        "news_reasoning": "",
+        "risk_reasoning": rationale,
+        "confidence_reason": confidence_reason,
+        "key_catalysts": [],
+        "key_risks": [part.strip() for part in rationale.split(";") if part.strip()][:5],
         "investment_horizon": "",
         "market_outlook": "",
         "generated": False,
         "model": None,
         "cached": False,
     }
+    return _attach_deterministic(result, decision)
 
 
 # ── Core call ─────────────────────────────────────────────────────────────────
@@ -232,11 +252,12 @@ def _is_transient(exc: Exception) -> bool:
     return status in (429, 500, 502, 503, 504)
 
 
-def _call_with_retries(messages: list[dict[str, str]]) -> str:
+def _call_with_retries(messages: list[dict[str, str]]) -> tuple[str, int]:
+    """Returns (content, transient_retry_count). Raises on terminal failure."""
     last: Exception = RuntimeError("no attempt made")
     for attempt in range(MAX_TRANSIENT_RETRIES + 1):
         try:
-            return _chat_once(messages)
+            return _chat_once(messages), attempt
         except Exception as exc:  # noqa: BLE001 — categorized below
             last = exc
             if _is_transient(exc) and attempt < MAX_TRANSIENT_RETRIES:
@@ -260,14 +281,10 @@ def _parse_and_validate(content: str) -> LLMAnalysis:
 
 def explain_recommendation(payload: dict[str, Any]) -> dict[str, Any]:
     """
-    Generate (or retrieve from cache) a validated explanation for an
-    already-computed decision.
-
-    ``payload`` must contain a ``decision`` block with the deterministic
-    ``recommendation`` / ``confidence`` / ``risk`` / ``verdict`` / ``rationale``
-    plus whatever computed facts the model should explain (technicals, macro,
-    sentiment). Never raises; always returns a serializable dict with a
-    ``generated`` flag.
+    Generate (or retrieve from cache) a validated narrative explanation for an
+    already-computed decision. Never raises; always returns a serializable
+    dict with a ``generated`` flag and the engine's deterministic values
+    attached verbatim.
     """
     global _missing_key_logged
 
@@ -280,25 +297,36 @@ def explain_recommendation(payload: dict[str, Any]) -> dict[str, Any]:
     key = _cache_key(payload)
     cached = _cache_get(key)
     if cached is not None:
+        llm_metrics.record_cache_hit()
         return {**cached, "cached": True}
 
     decision = payload.get("decision", {})
-    user_message = json.dumps(payload, ensure_ascii=False, default=str)
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": user_message},
+        {"role": "user", "content": json.dumps(payload, ensure_ascii=False, default=str)},
     ]
 
     started = time.time()
     analysis: Optional[LLMAnalysis] = None
+    transient_retries = 0
+    validation_retries_used = 0
 
     for validation_attempt in range(VALIDATION_RETRIES + 1):
         try:
-            content = _call_with_retries(messages)
+            content, attempt_retries = _call_with_retries(messages)
+            transient_retries += attempt_retries
         except Exception as exc:  # noqa: BLE001 — terminal failure → fallback
             logger.warning(
                 "LLM call failed for %s after retries: %s: %s",
                 payload.get("ticker"), type(exc).__name__, exc,
+            )
+            llm_metrics.record_call(
+                latency_ms=(time.time() - started) * 1000,
+                generated=False,
+                transient_retries=transient_retries,
+                validation_retries=validation_retries_used,
+                model=_model_name(),
+                prompt_version=PROMPT_VERSION,
             )
             return _fallback(payload, "provider unavailable")
 
@@ -311,6 +339,7 @@ def explain_recommendation(payload: dict[str, Any]) -> dict[str, Any]:
                 payload.get("ticker"), validation_attempt + 1, exc,
             )
             if validation_attempt < VALIDATION_RETRIES:
+                validation_retries_used += 1
                 messages.append({"role": "assistant", "content": content[:2000]})
                 messages.append({
                     "role": "user",
@@ -320,31 +349,29 @@ def explain_recommendation(payload: dict[str, Any]) -> dict[str, Any]:
                     ),
                 })
 
+    latency_ms = (time.time() - started) * 1000
+    llm_metrics.record_call(
+        latency_ms=latency_ms,
+        generated=analysis is not None,
+        transient_retries=transient_retries,
+        validation_retries=validation_retries_used,
+        model=_model_name(),
+        prompt_version=PROMPT_VERSION,
+    )
+
     if analysis is None:
         return _fallback(payload, "invalid model output")
 
-    # Deterministic override: the engine's numbers win, always.
-    result = analysis.model_dump()
-    for field, engine_value in (
-        ("recommendation", decision.get("recommendation")),
-        ("confidence", decision.get("confidence")),
-        ("risk", decision.get("risk")),
-    ):
-        if engine_value is not None and result.get(field) != engine_value:
-            logger.info(
-                "LLM %s (%r) disagreed with engine (%r) for %s — engine value enforced",
-                field, result.get(field), engine_value, payload.get("ticker"),
-            )
-            result[field] = engine_value
-
+    result = _attach_deterministic(analysis.model_dump(), decision)
     result.update({
         "generated": True,
         "model": _model_name(),
         "cached": False,
     })
     logger.info(
-        "LLM explanation for %s in %.2fs (model=%s)",
-        payload.get("ticker"), time.time() - started, _model_name(),
+        "LLM explanation for %s in %.0fms (model=%s prompt=v%s retries=%d/%d)",
+        payload.get("ticker"), latency_ms, _model_name(), PROMPT_VERSION,
+        transient_retries, validation_retries_used,
     )
     _cache_put(key, result)
     return result
@@ -360,6 +387,7 @@ def build_payload(
     macro: dict[str, Any],
     technicals: dict[str, Any],
     sentiment: Optional[dict[str, Any]],
+    confidence_breakdown: Optional[list[dict[str, Any]]] = None,
 ) -> dict[str, Any]:
     """Assemble the structured facts the model is allowed to reference."""
     headlines = []
@@ -374,6 +402,7 @@ def build_payload(
         "decision": {
             "recommendation": recommendation,
             "confidence": confidence,
+            "confidence_breakdown": confidence_breakdown or [],
             "risk": risk,
             "verdict": verdict,
             "rationale": rationale,
