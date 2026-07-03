@@ -14,8 +14,13 @@ Thumbs.db
 # Large or temporary notebooks (optional, remove if you want to track all)
 notebooks/Research_Week_*_Simulation.*
 
-# Environment variables (contains API keys)
+# Environment variables (contain API keys) — every variant, root and dashboard
 .env
+.env.local
+.env.*.local
+dashboard/.env
+dashboard/.env.local
+dashboard/.env.*.local
 
 # Test cache
 .pytest_cache/
