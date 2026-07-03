@@ -37,15 +37,30 @@ function FactorList({ title, items, tone }: { title: string; items: string[]; to
   )
 }
 
+function ReasoningRow({ label, text }: { label: string; text: string }) {
+  if (!text) return null
+  return (
+    <div style={{ padding: '10px 0', borderBottom: '1px solid var(--line)' }}>
+      <p className="label" style={{ marginBottom: 5 }}>
+        {label}
+      </p>
+      <p style={{ fontSize: '0.8125rem', lineHeight: 1.6, color: 'var(--muted)' }}>{text}</p>
+    </div>
+  )
+}
+
 /**
- * AI explanation panel. The verdict, confidence and risk shown here are the
- * engine's deterministic values (enforced server-side); the model contributes
- * only the narrative. Falls back to the engine's own rationale with a clear
- * badge when the LLM is unavailable.
+ * AI explanation panel. Recommendation, confidence and risk are the engine's
+ * deterministic values (attached server-side); the model contributes only the
+ * narrative. Falls back to the engine's own rationale with a clear badge when
+ * the LLM is unavailable.
  */
 export default function AiPanel({ analysis }: { analysis: Analysis }) {
   const ai = analysis.ai
   if (!ai) return null
+
+  const hasReasoning =
+    ai.technicalReasoning || ai.macroReasoning || ai.newsReasoning || ai.riskReasoning
 
   return (
     <section aria-label="AI analysis" className="panel" style={{ padding: 'clamp(18px, 3vw, 24px)' }}>
@@ -58,7 +73,7 @@ export default function AiPanel({ analysis }: { analysis: Analysis }) {
           marginBottom: 14,
         }}
       >
-        <h3 className="h-panel">Analysis</h3>
+        <h3 className="h-panel">Executive summary</h3>
         {ai.generated ? (
           <span className="badge badge--accent" title={ai.model ?? undefined}>
             AI-generated
@@ -86,23 +101,29 @@ export default function AiPanel({ analysis }: { analysis: Analysis }) {
           lineHeight: 1.7,
           color: 'var(--text)',
           maxWidth: '72ch',
-          marginBottom: ai.bullishFactors.length || ai.bearishFactors.length ? 18 : 0,
         }}
       >
-        {ai.summary}
+        {ai.executiveSummary}
       </p>
 
-      {(ai.bullishFactors.length > 0 || ai.bearishFactors.length > 0) && (
+      {ai.confidenceReason && (
+        <p style={{ fontSize: '0.8125rem', lineHeight: 1.6, color: 'var(--muted)', marginTop: 10, maxWidth: '72ch' }}>
+          <span style={{ fontWeight: 560, color: 'var(--text)' }}>Why {ai.confidence}%: </span>
+          {ai.confidenceReason}
+        </p>
+      )}
+
+      {(ai.keyCatalysts.length > 0 || ai.keyRisks.length > 0) && (
         <div
           className="hairline-top"
-          style={{ display: 'flex', flexWrap: 'wrap', gap: '18px 40px', paddingTop: 16 }}
+          style={{ display: 'flex', flexWrap: 'wrap', gap: '18px 40px', paddingTop: 16, marginTop: 16 }}
         >
-          <FactorList title="Working for it" items={ai.bullishFactors} tone="pos" />
-          <FactorList title="Working against it" items={ai.bearishFactors} tone="neg" />
+          <FactorList title="Key catalysts" items={ai.keyCatalysts} tone="pos" />
+          <FactorList title="Key risks" items={ai.keyRisks} tone="neg" />
         </div>
       )}
 
-      {ai.reasoning.length > 0 && (
+      {hasReasoning && (
         <details style={{ marginTop: 16 }}>
           <summary
             style={{
@@ -113,28 +134,19 @@ export default function AiPanel({ analysis }: { analysis: Analysis }) {
               userSelect: 'none',
             }}
           >
-            How the engine got here
+            Detailed reasoning
           </summary>
-          <ol
-            style={{
-              margin: '10px 0 0',
-              paddingLeft: 20,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 6,
-            }}
-          >
-            {ai.reasoning.map((step) => (
-              <li key={step} className="num" style={{ fontSize: '0.8125rem', lineHeight: 1.55, color: 'var(--muted)' }}>
-                <span style={{ fontFamily: 'var(--font-sans)' }}>{step}</span>
-              </li>
-            ))}
-          </ol>
+          <div style={{ marginTop: 4 }}>
+            <ReasoningRow label="Technicals" text={ai.technicalReasoning} />
+            <ReasoningRow label="Macro" text={ai.macroReasoning} />
+            <ReasoningRow label="News" text={ai.newsReasoning} />
+            <ReasoningRow label="Risk" text={ai.riskReasoning} />
+          </div>
         </details>
       )}
 
       {(ai.investmentHorizon || ai.marketOutlook) && (
-        <dl style={{ margin: '16px 0 0' }}>
+        <dl style={{ margin: '14px 0 0' }}>
           {ai.investmentHorizon && (
             <div className="metric-row">
               <dt>Suggested horizon</dt>
@@ -152,12 +164,6 @@ export default function AiPanel({ analysis }: { analysis: Analysis }) {
             </div>
           )}
         </dl>
-      )}
-
-      {ai.limitations.length > 0 && (
-        <p style={{ fontSize: '0.6875rem', color: 'var(--faint)', marginTop: 14, lineHeight: 1.6 }}>
-          Limitations: {ai.limitations.join(' · ')}
-        </p>
       )}
     </section>
   )

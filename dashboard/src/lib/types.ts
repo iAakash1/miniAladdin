@@ -73,21 +73,31 @@ export interface RawSentiment {
   headlines?: RawHeadline[]
 }
 
-/** Raw AI explanation block (v1.1, additive; null in fast mode) */
+/** Raw AI explanation block (additive; null in fast mode). Narrative fields
+    come from the model; recommendation/confidence/risk are engine values
+    attached server-side. */
 export interface RawAiAnalysis {
   recommendation?: string
   confidence?: number
   risk?: string
-  summary?: string
-  bullish_factors?: string[]
-  bearish_factors?: string[]
-  reasoning?: string[]
-  limitations?: string[]
+  executive_summary?: string
+  technical_reasoning?: string
+  macro_reasoning?: string
+  news_reasoning?: string
+  risk_reasoning?: string
+  confidence_reason?: string
+  key_catalysts?: string[]
+  key_risks?: string[]
   investment_horizon?: string
   market_outlook?: string
   generated?: boolean
   model?: string | null
   cached?: boolean
+}
+
+export interface ConfidenceComponent {
+  component: string
+  points: number
 }
 
 /** Raw shape of GET /api/research/{ticker} */
@@ -99,6 +109,7 @@ export interface RawResearchResponse {
   verdict?: string
   // v1.1 additive fields
   confidence?: number // 0–100
+  confidence_breakdown?: ConfidenceComponent[]
   risk_level?: string // "LOW" | "MEDIUM" | "HIGH"
   rationale?: string
   ai?: RawAiAnalysis | null
@@ -145,13 +156,16 @@ export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH'
 
 export interface AiAnalysis {
   recommendation: 'BUY' | 'SELL' | 'HOLD'
-  confidence: number // 0–100, engine-enforced
+  confidence: number // 0–100, engine value
   risk: RiskLevel
-  summary: string
-  bullishFactors: string[]
-  bearishFactors: string[]
-  reasoning: string[]
-  limitations: string[]
+  executiveSummary: string
+  technicalReasoning: string
+  macroReasoning: string
+  newsReasoning: string
+  riskReasoning: string
+  confidenceReason: string
+  keyCatalysts: string[]
+  keyRisks: string[]
   investmentHorizon: string
   marketOutlook: string
   generated: boolean
