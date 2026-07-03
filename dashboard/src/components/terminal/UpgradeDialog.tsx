@@ -59,7 +59,14 @@ export default function UpgradeDialog({ open, onClose, reason }: UpgradeDialogPr
     try {
       await loadRazorpay()
       const res = await fetch('/payment/create-order', { method: 'POST' })
-      if (!res.ok) throw new Error('Could not create the order. Please try again.')
+      if (!res.ok) {
+        // Surface the server's diagnostic message (temporary, while the
+        // create-order route is in debug mode) instead of a generic string.
+        const body = await res.json().catch(() => null)
+        const detail = body?.message ?? 'Could not create the order. Please try again.'
+        const code = body?.code ? ` [${body.code}]` : ''
+        throw new Error(`${detail}${code}`)
+      }
       const order = await res.json()
 
       if (!window.Razorpay) throw new Error('Payment provider unavailable.')

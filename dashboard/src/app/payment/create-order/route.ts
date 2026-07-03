@@ -81,8 +81,17 @@ export async function POST() {
     console.log('[create-order] order created', { orderId: order.id, status: order.status })
     return NextResponse.json(order)
   } catch (e: unknown) {
+    // Log the COMPLETE raw error object (Vercel renders nested objects),
+    // then a JSON-safe copy in case of odd prototypes.
+    console.error('[create-order] raw exception:', e)
+    try {
+      console.error('[create-order] exception JSON:', JSON.stringify(e, Object.getOwnPropertyNames(e as object)))
+    } catch {
+      /* circular structure — raw log above already captured it */
+    }
+
     const rzpError = e as RazorpayApiError
-    const diagnostics = {
+    const razorpayError = {
       statusCode: rzpError.statusCode ?? null,
       code: rzpError.error?.code ?? null,
       description: rzpError.error?.description ?? null,
@@ -92,16 +101,19 @@ export async function POST() {
       field: rzpError.error?.field ?? null,
       metadata: rzpError.error?.metadata ?? null,
     }
-    console.error('[create-order] razorpay error', JSON.stringify(diagnostics))
 
-    // TEMPORARY DEBUG RESPONSE — verbose by design while diagnosing the
-    // test-mode failure; revert to a generic message once resolved.
-    // Contains no secrets (key prefix only; auth-gated route).
+    // TEMPORARY DEBUG RESPONSE — full diagnostics, no secrets
+    // (key prefix only; route is auth-gated). Revert once diagnosed.
     return NextResponse.json(
       {
-        message: diagnostics.description ?? 'Razorpay order creation failed',
-        razorpay: diagnostics,
+        message:
+          razorpayError.description ??
+          (e instanceof Error ? e.message : 'Razorpay order creation failed'),
+        error: e instanceof Error ? e.message : String(e),
         stack: e instanceof Error ? e.stack ?? null : null,
+        razorpayError,
+        code: razorpayError.code,
+        statusCode: razorpayError.statusCode,
         environment: { hasKeyId, hasSecret, keyIdPrefix },
       },
       { status: 500 },
