@@ -41,6 +41,32 @@ Railway — FastAPI backend (api/index.py + src/)
   (public market news aggregation); app routes take precedence over the
   `/api/*` rewrite.
 
+### Provider layer (`src/providers/`)
+
+All external market data flows through five vendor-agnostic providers —
+components and even the decision engine never call a vendor API directly:
+
+| Provider | Interface | Fallback chain (healthy vendors, in order) |
+|---|---|---|
+| MarketDataProvider | `get_price` / `get_prices` / `get_series` | Polygon → Finnhub → TwelveData → FMP → MarketStack → yfinance |
+| FundamentalsProvider | `get_company` / `get_fundamentals` / `get_analyst_targets` | Alpha Vantage → Finnhub → FMP |
+| NewsProvider | `get_news` | NewsAPI → GNews → Yahoo RSS → Tavily |
+| MacroProvider | `get_macro` | FRED |
+| SearchProvider | `search` | Tavily → Exa |
+
+Every call returns one normalized schema inside a `ProviderResult` envelope
+carrying `source`, `sources_consulted`, `confidence` (cross-source agreement
+scoring: two vendors within 0.5% → 1.0; >2% apart → 0.5 + disagreement flag;
+stale cache → 0.3), `cached`/`stale` flags. Infrastructure per vendor:
+token-bucket rate limiting (`PROVIDER_<NAME>_RPM` override), 6s timeouts,
+bounded retries with exponential backoff, cooldown circuit after repeated
+failures, health/latency/success statistics (`GET /api/providers/health`).
+Requests deduplicate in flight (single-flight), responses cache in a
+TTL+LRU store that retains stale entries as the last resort; the cache sits
+behind a `CacheBackend` protocol so Redis can slot in without touching
+providers. Vendors without keys self-disable; the keyless yfinance/Yahoo RSS
+anchors guarantee every chain resolves.
+
 ### Decision pipeline
 
 All math is Python; the LLM only explains numbers it is given.

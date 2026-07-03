@@ -50,11 +50,18 @@ class RiskAwarePredictionAgent:
         ticker: str,
         period: str = "3mo",
         av_client: Optional["AlphaVantageClient"] = None,
+        price_data: Optional[pd.DataFrame] = None,
     ):
+        """
+        price_data: optionally inject an OHLCV DataFrame (columns incl.
+        'Close'; 'Volume' optional). The API layer supplies this from the
+        MarketDataProvider fallback chain; when absent the agent fetches
+        via yfinance itself, preserving the original standalone behavior.
+        """
         self.ticker    = ticker.upper()
         self.period    = period
         self.av_client = av_client
-        self._data: Optional[pd.DataFrame] = None
+        self._data: Optional[pd.DataFrame] = price_data if price_data is not None and not price_data.empty else None
 
     @property
     def data(self) -> pd.DataFrame:

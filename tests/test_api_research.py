@@ -15,11 +15,13 @@ from fastapi.testclient import TestClient
 
 import api.index as api_module
 from src.models import AggregateSentiment, SignalVerdict, TechnicalAnalysis
+from src.providers.schemas import MacroSnapshot, ProviderResult
 
 
 @pytest.fixture()
 def client(monkeypatch):
     monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    api_module._macro_cache.clear()  # module-level SRM cache must not leak between tests
 
     technicals = TechnicalAnalysis(
         ticker="NVDA",
@@ -46,8 +48,29 @@ def client(monkeypatch):
         "recession_warning": False,
     }
 
+    # Macro flows through the MacroProvider now: 4.47% inflation > 4% adds
+    # +0.2 → SRM 1.2 via the real calculate_multiplier (same numbers as the
+    # old (1.2, stats) mock, but exercising the actual SRM math).
+    macro_result = ProviderResult[MacroSnapshot](
+        data=MacroSnapshot(yield_spread=0.31, inflation_rate=4.47, fed_funds_rate=3.63),
+        source="fred", confidence=0.85,
+    )
+    del macro_stats  # shape now produced by the endpoint itself
+
     with patch.object(
-        api_module.risk_engine, "get_systemic_risk_multiplier", return_value=(1.2, macro_stats)
+        api_module.providers.macro, "get_macro", return_value=macro_result
+    ), patch.object(
+        api_module.providers.market_data, "get_series",
+        return_value=ProviderResult(data=None, error="mocked out"),
+    ), patch.object(
+        api_module.providers.fundamentals, "get_company",
+        return_value=ProviderResult(data=None, error="mocked out"),
+    ), patch.object(
+        api_module.providers.fundamentals, "get_fundamentals",
+        return_value=ProviderResult(data=None, error="mocked out"),
+    ), patch.object(
+        api_module.providers.news, "get_news",
+        return_value=ProviderResult(data=None, error="mocked out"),
     ), patch.object(
         api_module.RiskAwarePredictionAgent, "predict", return_value=technicals
     ), patch.object(
