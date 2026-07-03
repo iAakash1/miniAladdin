@@ -7,14 +7,17 @@
 
 import { parsePercentString } from './format'
 import type {
+  AiAnalysis,
   Analysis,
   Headline,
   Macro,
   PricePoint,
+  RawAiAnalysis,
   RawChartResponse,
   RawMacroResponse,
   RawResearchMacro,
   RawResearchResponse,
+  RiskLevel,
   Verdict,
 } from './types'
 
@@ -53,6 +56,29 @@ export function normalizeMacro(raw: RawMacroResponse | RawResearchMacro | null |
   }
 }
 
+function asRiskLevel(v: string | undefined | null): RiskLevel | null {
+  return v === 'LOW' || v === 'MEDIUM' || v === 'HIGH' ? v : null
+}
+
+function normalizeAi(raw: RawAiAnalysis | null | undefined): AiAnalysis | null {
+  if (!raw || typeof raw.summary !== 'string' || !raw.summary) return null
+  const rec = raw.recommendation
+  return {
+    recommendation: rec === 'BUY' || rec === 'SELL' ? rec : 'HOLD',
+    confidence: typeof raw.confidence === 'number' ? Math.round(raw.confidence) : 50,
+    risk: asRiskLevel(raw.risk) ?? 'MEDIUM',
+    summary: raw.summary,
+    bullishFactors: raw.bullish_factors ?? [],
+    bearishFactors: raw.bearish_factors ?? [],
+    reasoning: raw.reasoning ?? [],
+    limitations: raw.limitations ?? [],
+    investmentHorizon: raw.investment_horizon ?? '',
+    marketOutlook: raw.market_outlook ?? '',
+    generated: raw.generated ?? false,
+    model: raw.model ?? null,
+  }
+}
+
 export function normalizeAnalysis(raw: RawResearchResponse): Analysis {
   const t = raw.technicals ?? {}
   const s = raw.sentiment ?? null
@@ -68,6 +94,11 @@ export function normalizeAnalysis(raw: RawResearchResponse): Analysis {
     verdict,
     riskAdjusted,
     signalScore: VERDICT_SCORE[riskAdjusted],
+
+    engineConfidence: typeof raw.confidence === 'number' ? raw.confidence : null,
+    riskLevel: asRiskLevel(raw.risk_level),
+    rationale: raw.rationale ?? null,
+    ai: normalizeAi(raw.ai),
 
     price: t.current_price ?? 0,
     return5d: t.return_5d ?? 0,
