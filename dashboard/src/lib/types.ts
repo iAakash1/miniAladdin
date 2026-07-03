@@ -73,6 +73,23 @@ export interface RawSentiment {
   headlines?: RawHeadline[]
 }
 
+/** Raw AI explanation block (v1.1, additive; null in fast mode) */
+export interface RawAiAnalysis {
+  recommendation?: string
+  confidence?: number
+  risk?: string
+  summary?: string
+  bullish_factors?: string[]
+  bearish_factors?: string[]
+  reasoning?: string[]
+  limitations?: string[]
+  investment_horizon?: string
+  market_outlook?: string
+  generated?: boolean
+  model?: string | null
+  cached?: boolean
+}
+
 /** Raw shape of GET /api/research/{ticker} */
 export interface RawResearchResponse {
   ticker?: string
@@ -80,6 +97,12 @@ export interface RawResearchResponse {
   technicals?: RawTechnicals
   sentiment?: RawSentiment | null
   verdict?: string
+  // v1.1 additive fields
+  confidence?: number // 0–100
+  risk_level?: string // "LOW" | "MEDIUM" | "HIGH"
+  rationale?: string
+  ai?: RawAiAnalysis | null
+  disclaimer?: string
   elapsed_seconds?: number
   mode?: string
   detail?: string
@@ -118,6 +141,23 @@ export interface PricePoint {
   volume: number
 }
 
+export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH'
+
+export interface AiAnalysis {
+  recommendation: 'BUY' | 'SELL' | 'HOLD'
+  confidence: number // 0–100, engine-enforced
+  risk: RiskLevel
+  summary: string
+  bullishFactors: string[]
+  bearishFactors: string[]
+  reasoning: string[]
+  limitations: string[]
+  investmentHorizon: string
+  marketOutlook: string
+  generated: boolean
+  model: string | null
+}
+
 export interface Analysis {
   ticker: string
   companyName: string
@@ -127,6 +167,12 @@ export interface Analysis {
   verdict: Verdict
   riskAdjusted: Verdict
   signalScore: number
+
+  /** v1.1 additive: deterministic engine synthesis */
+  engineConfidence: number | null // 0–100
+  riskLevel: RiskLevel | null
+  rationale: string | null
+  ai: AiAnalysis | null
 
   price: number
   return5d: number

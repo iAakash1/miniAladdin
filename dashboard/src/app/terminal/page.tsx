@@ -4,6 +4,7 @@ import dynamicImport from 'next/dynamic'
 import { useCallback, useEffect, useState } from 'react'
 import { useUser } from '@clerk/nextjs'
 
+import AiPanel from '@/components/terminal/AiPanel'
 import CommandBar from '@/components/terminal/CommandBar'
 import CompanyBand from '@/components/terminal/CompanyBand'
 import Fundamentals from '@/components/terminal/Fundamentals'
@@ -259,6 +260,8 @@ export default function TerminalPage() {
           {status === 'ready' && analysis && (
             <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <CompanyBand analysis={analysis} />
+
+              <AiPanel analysis={analysis} />
 
               <div className="terminal-grid-main">
                 <section aria-label="Price history" className="panel" style={{ padding: '20px 22px' }}>
