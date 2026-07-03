@@ -5,6 +5,8 @@ Generates Markdown research reports in the research_vault directory.
 
 from __future__ import annotations
 
+import logging
+
 import os
 from datetime import datetime
 from pathlib import Path
@@ -22,6 +24,8 @@ from src.models import (
 # Default vault location relative to project root
 DEFAULT_VAULT = Path(__file__).parent.parent / "research_vault"
 
+
+logger = logging.getLogger(__name__)
 
 class OmniSignalReportGenerator:
     """Generates Markdown reports from OmniSignalReport data."""
@@ -187,12 +191,12 @@ class OmniSignalReportGenerator:
         filepath = self.vault_dir / filename
 
         filepath.write_text(content, encoding="utf-8")
-        print(f"[OmniSignal] Markdown report saved: {filepath}")
+        logger.info("Markdown report saved: %s", filepath)
 
         # Generate PDF version
         if pdf:
             pdf_path = self.generate_pdf(report, date_str)
-            print(f"[OmniSignal] PDF report saved: {pdf_path}")
+            logger.info("PDF report saved: %s", pdf_path)
 
         return str(filepath)
 
@@ -207,7 +211,7 @@ class OmniSignalReportGenerator:
         try:
             from fpdf import FPDF
         except ImportError:
-            print("[OmniSignal] fpdf2 not installed. Install with: pip install fpdf2")
+            logger.warning("fpdf2 not installed — skipping PDF generation")
             return ""
 
         if date_str is None:

@@ -12,6 +12,7 @@ Signal scoring layers:
 
 from __future__ import annotations
 
+import logging
 from typing import Optional, TYPE_CHECKING
 
 import yfinance as yf
@@ -19,6 +20,8 @@ import numpy as np
 import pandas as pd
 
 from src.models import SignalVerdict, TechnicalAnalysis
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from src.alpha_vantage import AlphaVantageClient, FundamentalData, MacdSignal
@@ -179,8 +182,15 @@ class RiskAwarePredictionAgent:
         elif score <= -2: return SignalVerdict.SELL
         return SignalVerdict.HOLD
 
-    def _apply_dampening(self, raw: SignalVerdict, risk_multiplier: float) -> SignalVerdict:
-        """Macro risk dampening / boosting."""
+    @classmethod
+    def apply_dampening(cls, raw: SignalVerdict, risk_multiplier: float) -> SignalVerdict:
+        """
+        Macro risk dampening / boosting.
+
+        Public and stateless so callers that fetch macro data concurrently with
+        price data can apply the final adjustment once both are available,
+        without re-running the technical pipeline.
+        """
         order = [
             SignalVerdict.STRONG_SELL,
             SignalVerdict.SELL,
@@ -189,13 +199,16 @@ class RiskAwarePredictionAgent:
             SignalVerdict.STRONG_BUY,
         ]
         idx = order.index(raw)
-        if risk_multiplier >= self.CRITICAL_THRESHOLD:
+        if risk_multiplier >= cls.CRITICAL_THRESHOLD:
             idx = max(0, idx - 2)
-        elif risk_multiplier >= self.DAMPEN_THRESHOLD:
+        elif risk_multiplier >= cls.DAMPEN_THRESHOLD:
             idx = max(0, idx - 1)
-        elif risk_multiplier <= self.BOOST_THRESHOLD:
+        elif risk_multiplier <= cls.BOOST_THRESHOLD:
             idx = min(len(order) - 1, idx + 1)
         return order[idx]
+
+    # Backwards-compatible alias (older call sites/tests use the underscore name)
+    _apply_dampening = apply_dampening
 
     # ── Main entry point ──────────────────────────────────────────────────────
 
@@ -225,13 +238,13 @@ class RiskAwarePredictionAgent:
         if self.av_client and self.av_client.available:
             try:
                 fundamentals = self.av_client.get_fundamentals(self.ticker)
-            except Exception as e:
-                print(f"[Agent] Fundamentals failed: {e}")
+            except Exception:
+                logger.exception("Alpha Vantage fundamentals failed for %s", self.ticker)
 
             try:
                 macd = self.av_client.get_macd(self.ticker)
-            except Exception as e:
-                print(f"[Agent] MACD failed: {e}")
+            except Exception:
+                logger.exception("Alpha Vantage MACD failed for %s", self.ticker)
 
         # Build signal
         raw_signal = self._raw_signal(

@@ -10,6 +10,8 @@ Source priority:
 
 from __future__ import annotations
 
+import logging
+
 import re
 from dataclasses import dataclass, field
 from typing import Optional
@@ -22,6 +24,8 @@ from src.news_api import NewsAPIClient
 
 
 # ── Keyword dictionaries ─────────────────────────────────────────────────────
+
+logger = logging.getLogger(__name__)
 
 BULLISH_KEYWORDS: set[str] = {
     "surge", "surges", "surging", "rally", "rallies", "rallying",
@@ -118,7 +122,7 @@ class SentimentAnalyzer:
             )
             return articles
         except Exception as e:
-            print(f"[SentimentEdge] NewsAPI failed: {e}")
+            logger.warning("NewsAPI fetch failed: %s", e)
             return []
 
     def _fetch_yahoo_rss(self, ticker: str) -> list[dict]:
@@ -128,7 +132,7 @@ class SentimentAnalyzer:
             r = requests.get(url, headers={"User-Agent": self.USER_AGENT}, timeout=10)
             r.raise_for_status()
         except Exception as e:
-            print(f"[SentimentEdge] Yahoo RSS failed: {e}")
+            logger.warning("Yahoo RSS fetch failed: %s", e)
             return []
 
         soup  = BeautifulSoup(r.content, "xml")
@@ -158,7 +162,7 @@ class SentimentAnalyzer:
             r = requests.get(url, headers={"User-Agent": self.USER_AGENT}, timeout=15)
             r.raise_for_status()
         except Exception as e:
-            print(f"[SentimentEdge] Yahoo HTML failed: {e}")
+            logger.warning("Yahoo HTML fetch failed: %s", e)
             return []
 
         soup     = BeautifulSoup(r.text, "html.parser")
@@ -242,8 +246,8 @@ class SentimentAnalyzer:
             source_used = "Yahoo HTML" if headlines else None
 
         if not headlines:
-            print(f"[SentimentEdge] No headlines found for {ticker}")
+            logger.info("No headlines found for %s from any source", ticker)
             return AggregateSentiment(headline_count=0)
 
-        print(f"[SentimentEdge] {ticker}: {len(headlines)} headlines via {source_used}")
+        logger.info("%s: %d headlines via %s", ticker, len(headlines), source_used)
         return self.analyze_headlines(headlines[:self.max_headlines])

@@ -1,13 +1,7 @@
-"""Tests for the Enhanced Sentiment Analyzer with Browser Actuation."""
-
-import pytest
+"""Tests for the multi-source Sentiment Analyzer."""
 
 from src.models import SentimentLabel
-from src.sentiment_edge import (
-    BREAKING_NEWS_AMPLIFIERS,
-    SentimentAnalyzer,
-    BrowserVerificationResult,
-)
+from src.sentiment_edge import SentimentAnalyzer
 
 
 class TestScoreHeadline:
@@ -87,9 +81,9 @@ class TestBreakingNewsAmplification:
 
     def test_detect_breaking_in_text(self):
         """Test breaking news keyword detection."""
-        assert self.analyzer._detect_breaking_in_text("BREAKING: Stock surges")
-        assert self.analyzer._detect_breaking_in_text("URGENT market alert")
-        assert not self.analyzer._detect_breaking_in_text("Regular market update")
+        assert self.analyzer._detect_breaking("BREAKING: Stock surges")
+        assert self.analyzer._detect_breaking("URGENT market alert")
+        assert not self.analyzer._detect_breaking("Regular market update")
 
 
 class TestAnalyzeHeadlines:
@@ -129,39 +123,3 @@ class TestAnalyzeHeadlines:
         )
         assert result.headline_count == 1
         assert "BREAKING" in result.headlines[0].source
-
-
-class TestBrowserVerification:
-    """Test browser verification logic."""
-
-    def setup_method(self):
-        self.analyzer = SentimentAnalyzer()
-
-    def test_verification_detects_breaking_in_rss(self):
-        rss_headlines = [
-            {"title": "Breaking: NVDA surges 10%", "source": "Yahoo", "is_breaking": True},
-            {"title": "Market update for today", "source": "Yahoo", "is_breaking": False},
-        ]
-        # Patch out the HTML fetch to avoid network calls
-        self.analyzer.fetch_headlines_html = lambda ticker: []
-
-        result = self.analyzer.browser_verify_headlines("NVDA", rss_headlines)
-        assert result.has_breaking_banner is True
-        assert len(result.breaking_headlines) == 1
-
-    def test_verification_no_breaking(self):
-        rss_headlines = [
-            {"title": "Regular market update", "source": "Yahoo", "is_breaking": False},
-        ]
-        self.analyzer.fetch_headlines_html = lambda ticker: []
-
-        result = self.analyzer.browser_verify_headlines("NVDA", rss_headlines)
-        assert result.has_breaking_banner is False
-        assert len(result.breaking_headlines) == 0
-
-    def test_browser_verification_result_defaults(self):
-        result = BrowserVerificationResult()
-        assert result.has_breaking_banner is False
-        assert result.breaking_headlines == []
-        assert result.live_price is None
-        assert result.verified_headlines == []
