@@ -22,8 +22,9 @@ npm run build
 |---|---|---|
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Vercel + local | Clerk auth |
 | `CLERK_SECRET_KEY` | Vercel + local | Clerk auth (middleware) |
-| `NEXT_PUBLIC_RAZORPAY_KEY_ID` | Vercel + local | Pro checkout |
-| `RAZORPAY_KEY_SECRET` | Vercel | Order creation + webhook HMAC |
+| `NEXT_PUBLIC_RAZORPAY_KEY_ID` | Vercel + local | Razorpay Checkout in the browser (intentionally public) |
+| `RAZORPAY_KEY_ID` | Vercel + local | Server-only key ID for order creation (API routes never read `NEXT_PUBLIC_*`) |
+| `RAZORPAY_KEY_SECRET` | Vercel | Order creation + webhook HMAC — never exposed to the browser |
 | `API_URL` | optional | FastAPI base (defaults to the Railway deployment) |
 | `NEXT_PUBLIC_SITE_URL` | optional | Canonical URL for metadata/sitemap |
 

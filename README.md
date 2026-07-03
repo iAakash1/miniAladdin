@@ -86,7 +86,9 @@ sentiment ─────────┘        │ raw signal
 | Var | Required | Purpose |
 |---|---|---|
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` | yes | Auth |
-| `NEXT_PUBLIC_RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` | yes | Pro checkout |
+| `NEXT_PUBLIC_RAZORPAY_KEY_ID` | yes | Razorpay Checkout in the browser (key IDs are public by design — this one is *intentionally* exposed) |
+| `RAZORPAY_KEY_ID` | yes | Server-only copy of the key ID for order creation — API routes never read `NEXT_PUBLIC_*` values |
+| `RAZORPAY_KEY_SECRET` | yes | Order creation + HMAC verification — must **never** be exposed to the browser |
 | `API_URL` | optional | Backend base (defaults to the Railway deployment) |
 | `NEXT_PUBLIC_SITE_URL` | optional | Canonical URL for metadata |
 
