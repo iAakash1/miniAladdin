@@ -46,6 +46,9 @@ from src.prediction_agent import RiskAwarePredictionAgent
 from src.sentiment_edge import SentimentAnalyzer
 from src.alpha_vantage import AlphaVantageClient
 from src.news_api import NewsAPIClient
+from src.models import MacroIndicators
+from src import providers
+from src.providers.schemas import PriceSeries
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 # Railway captures stdout; structured single-line records with timestamps.
@@ -148,22 +151,62 @@ _macro_lock = threading.Lock()
 
 
 def _fetch_macro_safe() -> tuple[float, dict[str, Any]]:
-    """SRM + stats with demo fallback and a short TTL cache. Never raises."""
+    """
+    SRM + stats, sourced through the MacroProvider (FRED behind cache,
+    retries and health tracking); SRM math stays in the risk engine.
+    Demo fallback preserved. Never raises.
+    """
     now = time.time()
     with _macro_lock:
         entry = _macro_cache.get("srm")
         if entry and entry[0] > now:
             return entry[1]
     try:
-        result = risk_engine.get_systemic_risk_multiplier()
-        # Only healthy responses are cached; failures retry on the next call.
-        if str(result[1].get("status", "")) != MacroStatus.DATA_ERROR.value:
-            with _macro_lock:
-                _macro_cache["srm"] = (now + MACRO_CACHE_TTL_SECONDS, result)
+        snapshot_result = providers.macro.get_macro()
+        if not snapshot_result.ok:
+            raise RuntimeError(snapshot_result.error or "macro provider returned no data")
+        snap = snapshot_result.data
+        indicators = MacroIndicators(
+            yield_spread=snap.yield_spread if snap.yield_spread is not None else 0.0,
+            inflation_rate=snap.inflation_rate if snap.inflation_rate is not None else 0.0,
+            fed_funds_rate=snap.fed_funds_rate,
+        )
+        assessment = risk_engine.calculate_multiplier(indicators)
+        stats: dict[str, Any] = {
+            "yield_spread": indicators.yield_spread,
+            "inflation_rate": f"{indicators.inflation_rate:.2f}%",
+            "fed_funds_rate": (
+                f"{indicators.fed_funds_rate:.2f}%"
+                if indicators.fed_funds_rate is not None else "N/A"
+            ),
+            "yield_curve_inverted": assessment.yield_curve_inverted,
+            "status": assessment.status.value,
+            "recession_warning": assessment.recession_warning,
+        }
+        result = (assessment.risk_multiplier, stats)
+        with _macro_lock:
+            _macro_cache["srm"] = (now + MACRO_CACHE_TTL_SECONDS, result)
         return result
     except Exception:
         logger.exception("Macro fetch failed — serving DEMO_MODE fallback")
         return DEMO_MACRO_MULTIPLIER, _demo_macro_stats()
+
+
+def _series_to_dataframe(series: PriceSeries):
+    """Convert normalized OHLCV bars to the DataFrame shape the agent expects."""
+    import pandas as pd
+
+    frame = pd.DataFrame(
+        {
+            "Open": [bar.open for bar in series.bars],
+            "High": [bar.high for bar in series.bars],
+            "Low": [bar.low for bar in series.bars],
+            "Close": [bar.close for bar in series.bars],
+            "Volume": [bar.volume if bar.volume is not None else 0 for bar in series.bars],
+        },
+        index=pd.to_datetime([bar.date for bar in series.bars]),
+    )
+    return frame
 
 
 def _macro_assessment(multiplier: float, stats: dict[str, Any]) -> RiskAssessment:
@@ -249,13 +292,31 @@ def research_ticker(
     technicals: dict[str, Any] = {}
     tech_error: Optional[str] = None
 
+    def _run_technicals():
+        # Price history through the MarketDataProvider fallback chain
+        # (Polygon → TwelveData → FMP → MarketStack → yfinance → stale cache);
+        # the agent computes indicators on whatever series the chain returned
+        # and falls back to its own yfinance fetch if the chain is empty.
+        series_result = providers.market_data.get_series(ticker, "3mo")
+        injected = (
+            _series_to_dataframe(series_result.data)
+            if series_result.ok and series_result.data.bars
+            else None
+        )
+        if injected is not None:
+            logger.info(
+                "technicals %s: price series via %s (confidence %.2f%s)",
+                ticker, series_result.source, series_result.confidence,
+                ", stale" if series_result.stale else "",
+            )
+        agent = RiskAwarePredictionAgent(
+            ticker, period="3mo", av_client=av_client, price_data=injected
+        )
+        return agent.predict(risk_multiplier=1.0)
+
     with ThreadPoolExecutor(max_workers=2, thread_name_prefix="research") as pool:
         macro_future = pool.submit(_fetch_macro_safe)
-        tech_future = pool.submit(
-            lambda: RiskAwarePredictionAgent(
-                ticker, period="3mo", av_client=av_client
-            ).predict(risk_multiplier=1.0)
-        )
+        tech_future = pool.submit(_run_technicals)
         multiplier, macro_stats = macro_future.result()
         try:
             prediction = tech_future.result()
@@ -302,13 +363,62 @@ def research_ticker(
     else:
         technicals = {"error": tech_error, "note": "Technical analysis failed — check ticker"}
 
+    # ── Step 2b: fill fundamentals gaps through the FundamentalsProvider chain
+    # (Alpha Vantage → Finnhub → FMP). Only missing fields are filled; the
+    # agent's own enrichment always wins when present.
+    if prediction is not None and technicals.get("company_name") is None:
+        try:
+            company_result = providers.fundamentals.get_company(ticker)
+            if company_result.ok:
+                profile = company_result.data
+                technicals["company_name"] = technicals.get("company_name") or profile.name or None
+                technicals["sector"] = technicals.get("sector") or (profile.sector or None)
+                if technicals.get("market_cap") is None and profile.market_cap:
+                    technicals["market_cap"] = _fmt_market_cap(profile.market_cap)
+        except Exception:  # noqa: BLE001 — enrichment is never fatal
+            logger.exception("Fundamentals enrichment failed for %s", ticker)
+    if prediction is not None and technicals.get("pe_ratio") is None:
+        try:
+            fund_result = providers.fundamentals.get_fundamentals(ticker)
+            if fund_result.ok:
+                fund = fund_result.data
+                for field, value in (
+                    ("pe_ratio", fund.pe_ratio), ("forward_pe", fund.forward_pe),
+                    ("eps", fund.eps), ("beta", fund.beta),
+                    ("week_52_high", fund.week_52_high), ("week_52_low", fund.week_52_low),
+                ):
+                    if technicals.get(field) is None and value is not None:
+                        technicals[field] = value
+        except Exception:  # noqa: BLE001
+            logger.exception("Fundamentals metrics enrichment failed for %s", ticker)
+
     # ── Step 3: Sentiment (after technicals — reuses the resolved company name)
     sentiment_data: Optional[dict[str, Any]] = None
     sentiment_obj = AggregateSentiment()
     if not fast:
         company_name = technicals.get("company_name", "") or ""
         try:
-            sentiment_obj = sentiment_analyzer.analyze_ticker(ticker, company_name=company_name)
+            # Headlines through the NewsProvider chain (NewsAPI → GNews →
+            # Yahoo RSS → Tavily → stale cache); the keyword scorer is unchanged.
+            news_result = providers.news.get_news(ticker, company_name, limit=12)
+            if news_result.ok and news_result.data:
+                headline_dicts = [
+                    {
+                        "title": h.title,
+                        "source": h.source,
+                        "url": h.url,
+                        "published": h.published_at,
+                        "is_breaking": sentiment_analyzer._detect_breaking(h.title),
+                    }
+                    for h in news_result.data
+                ]
+                sentiment_obj = sentiment_analyzer.analyze_headlines(headline_dicts)
+                logger.info(
+                    "sentiment %s: %d headlines via %s",
+                    ticker, len(headline_dicts), news_result.source,
+                )
+            else:
+                sentiment_obj = sentiment_analyzer.analyze_ticker(ticker, company_name=company_name)
             sentiment_data = {
                 "headline_count": sentiment_obj.headline_count,
                 "average_score":  sentiment_obj.average_score,
@@ -398,28 +508,35 @@ def research_ticker(
 
 @app.get("/api/chart/{ticker}")
 def get_chart(ticker: str, period: str = "3mo"):
-    """Daily close + volume series for the terminal chart."""
-    import yfinance as yf
-
+    """Daily close + volume series through the MarketDataProvider chain."""
     ticker = ticker.upper().strip()
     if not ticker or len(ticker) > 10:
         raise HTTPException(status_code=400, detail="Invalid ticker")
 
     try:
-        hist = yf.Ticker(ticker).history(period=period)
-        if hist.empty:
+        result = providers.market_data.get_series(ticker, period)
+        if not result.ok or not result.data.bars:
             return {"ticker": ticker, "prices": [], "error": "No data"}
 
-        prices = []
-        for idx, row in hist.iterrows():
-            date_str = idx.strftime("%Y-%m-%d") if hasattr(idx, "strftime") else str(idx)[:10]
-            prices.append({
-                "date":   date_str,
-                "close":  round(float(row["Close"]), 2),
-                "volume": int(row["Volume"]) if "Volume" in row else None,
-            })
-
+        prices = [
+            {
+                "date": bar.date,
+                "close": round(bar.close, 2),
+                "volume": bar.volume,
+            }
+            for bar in result.data.bars
+        ]
+        logger.info(
+            "chart %s %s: %d bars via %s%s",
+            ticker, period, len(prices), result.source, " (stale)" if result.stale else "",
+        )
         return {"ticker": ticker, "prices": prices}
     except Exception:
         logger.exception("Chart fetch failed for %s period=%s", ticker, period)
         return {"ticker": ticker, "prices": [], "error": "Price history unavailable"}
+
+
+@app.get("/api/providers/health")
+def get_providers_health():
+    """Vendor health: success %, latency, cooldowns, cache and dedupe stats."""
+    return providers.providers_health()
