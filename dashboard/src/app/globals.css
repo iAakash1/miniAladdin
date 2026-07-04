@@ -542,6 +542,44 @@ img { max-width: 100%; display: block; }
   .terminal-header-macro { display: none !important; }
 }
 
+/* ---------- Auth shell (login/signup) ---------- */
+.auth-shell {
+  min-height: 100vh;
+  position: relative;
+  background:
+    radial-gradient(1100px 600px at 50% -10%,
+      color-mix(in srgb, var(--accent) 7%, transparent), transparent 70%),
+    var(--paper);
+}
+.auth-main {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 96px 20px 48px;
+}
+.auth-panel {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: clamp(22px, 4vw, 34px) clamp(18px, 3.5vw, 30px);
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: var(--shadow-dialog);
+}
+@keyframes bar-rise {
+  from { transform: scaleY(0.2); opacity: 0.2; }
+  to   { transform: none; opacity: 1; }
+}
+.auth-bar { transform-origin: bottom; animation: bar-rise 500ms var(--ease-out) both; }
+.auth-bar-2 { animation-delay: 90ms; }
+.auth-bar-3 { animation-delay: 180ms; }
+
 /* ---------- Screen search hits ---------- */
 .screen-hit { transition: background-color var(--t-fast) var(--ease-out); }
 .screen-hit:hover, .screen-hit:focus-visible { background: var(--surface-2); }

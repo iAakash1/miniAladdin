@@ -1,35 +1,76 @@
-/* Clerk theming aligned to the editorial light language. */
+/*
+ * Clerk theming: the card is rendered CHROMELESS (transparent, no border,
+ * no shadow) — the surrounding AuthShell glass panel provides all surface
+ * language, in both themes. Element-level styles use CSS variables so the
+ * form follows the active theme; Clerk passes them through as inline
+ * styles, which resolve against the page's custom properties.
+ */
+
+const control = {
+  background: 'var(--surface)',
+  border: '1px solid var(--line-strong)',
+  color: 'var(--text)',
+  borderRadius: '6px',
+}
 
 export const clerkAppearance = {
   variables: {
     colorPrimary: '#1e6b54',
-    colorText: '#1c1b18',
-    colorTextSecondary: '#5b594f',
-    colorBackground: '#ffffff',
-    colorInputBackground: '#ffffff',
-    colorInputText: '#1c1b18',
-    colorDanger: '#b3382e',
     borderRadius: '6px',
     fontFamily: "'Inter Variable', -apple-system, 'Segoe UI', sans-serif",
     fontSize: '15px',
   },
   elements: {
+    rootBox: { width: '100%' },
     card: {
-      border: '1px solid #e8e6de',
-      boxShadow: '0 2px 8px rgba(28, 27, 24, 0.07), 0 1px 2px rgba(28, 27, 24, 0.05)',
-      borderRadius: '10px',
+      background: 'transparent',
+      border: 'none',
+      boxShadow: 'none',
+      width: '100%',
+      padding: '8px 4px',
     },
     headerTitle: {
       fontFamily: "'Newsreader Variable', Georgia, serif",
       fontWeight: 500,
-      fontSize: '1.5rem',
+      fontSize: '1.4rem',
       letterSpacing: '-0.01em',
+      color: 'var(--text)',
     },
+    headerSubtitle: { color: 'var(--muted)' },
+    socialButtonsBlockButton: {
+      ...control,
+      transition: 'border-color 120ms ease-out, background 120ms ease-out',
+    },
+    socialButtonsBlockButtonText: { color: 'var(--text)', fontWeight: 550 },
+    dividerLine: { background: 'var(--line)' },
+    dividerText: { color: 'var(--faint)' },
+    formFieldLabel: { color: 'var(--muted)', fontWeight: 550 },
+    formFieldInput: control,
     formButtonPrimary: {
+      background: 'var(--accent)',
+      color: '#ffffff',
       fontWeight: 550,
       textTransform: 'none' as const,
       fontSize: '0.875rem',
+      borderRadius: '6px',
     },
-    footerActionLink: { color: '#1e6b54', fontWeight: 550 },
+    footer: { background: 'transparent' },
+    footerActionText: { color: 'var(--muted)' },
+    footerActionLink: { color: 'var(--accent-strong)', fontWeight: 550 },
+    identityPreview: control,
+    identityPreviewText: { color: 'var(--text)' },
+    otpCodeFieldInput: control,
+    formResendCodeLink: { color: 'var(--accent-strong)' },
+    // Clerk's development-instance badge: keep it, but as a quiet status
+    // chip rather than a warning ("Development Preview", not an error).
+    badge: {
+      background: 'var(--surface-2)',
+      color: 'var(--muted)',
+      border: '1px solid var(--line)',
+      borderRadius: '4px',
+      fontWeight: 550,
+      letterSpacing: '0.04em',
+    },
+    logoBox: { display: 'none' },
   },
 }
