@@ -113,10 +113,13 @@ export interface RawQuant {
   conflict_index?: number
   momentum_score?: number | null
   fundamental_score?: number | null
+  quality_score?: number | null
   news_score?: number | null
+  reversal_score?: number | null
   macro_gate?: number
+  stress_probability?: number | null
   risk_score?: number
-  risk_components?: Record<string, number>
+  risk_components?: Array<{ name: string; percentile: number; weight: number; contribution: number }>
   weights_used?: Record<string, number>
   regimes?: string[]
   factors?: Array<{
@@ -152,10 +155,13 @@ export interface QuantCard {
   conflictIndex: number
   momentumScore: number | null
   fundamentalScore: number | null
+  qualityScore: number | null
   newsScore: number | null
+  reversalScore: number | null
   macroGate: number
+  stressProbability: number | null
   riskScore: number
-  riskComponents: Record<string, number>
+  riskComponents: Array<{ name: string; percentile: number; weight: number; contribution: number }>
   weightsUsed: Record<string, number>
   regimes: string[]
   factors: QuantFactor[]

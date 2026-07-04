@@ -27,6 +27,7 @@ Deterministic, pure, unit-tested. No model calls.
 
 from __future__ import annotations
 
+import math
 import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -62,6 +63,7 @@ class ScoredHeadline:
     event_type: str = "general"
     reliability: float = 0.5
     decay: float = 0.5
+    age_hours: Optional[float] = None
     novelty: float = 1.0        # 1 = first report; REPEAT_WEIGHT = duplicate
     confirmation: float = 1.0   # cluster-level multiplier
     cluster_id: int = 0
@@ -75,6 +77,7 @@ class NewsEvidence:
     n_eff: float                # effective evidence count (Σ weights)
     s_eff: Optional[float]      # weight-averaged sentiment
     clusters: int
+    median_age_hours: Optional[float] = None
     note: str = (
         "n_eff = Σ reliability·decay·novelty·confirmation per headline; "
         "sentiment shrinkage uses n_eff, so stale or repeated stories "
@@ -123,6 +126,8 @@ def score_headlines(
         # recency_of uses 48h half-life; convert to the news 60h half-life:
         # weight = recency ^ (48/60)
         decay = recency ** (48.0 / DECAY_HALF_LIFE_HOURS)
+        # Age recovered from the 48h-half-life recency (0.5 exactly = unknown date)
+        age_hours = None if abs(recency - 0.5) < 1e-9 else round(-math.log2(max(recency, 1e-6)) * 48.0, 1)
         scored.append(ScoredHeadline(
             title=title,
             sentiment=float(row.get("score", 0.0)),
@@ -132,6 +137,7 @@ def score_headlines(
             event_type=classify_event(title),
             reliability=reliability_of(str(row.get("url", "")), str(row.get("source", ""))),
             decay=round(decay, 4),
+            age_hours=age_hours,
         ))
         token_cache.append(_tokens(title))
 
@@ -172,10 +178,13 @@ def score_headlines(
         round(sum(h.weight * h.sentiment for h in scored) / n_eff, 4)
         if n_eff > 1e-9 else None
     )
+    ages = sorted(h.age_hours for h in scored if h.age_hours is not None)
+    median_age = ages[len(ages) // 2] if ages else None
     return NewsEvidence(
         headlines=scored,
         n_raw=len(scored),
         n_eff=n_eff,
         s_eff=s_eff,
         clusters=len(members),
+        median_age_hours=median_age,
     )

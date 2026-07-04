@@ -194,16 +194,22 @@ export function diffSnapshots(before: AnalysisSnapshot, after: AnalysisSnapshot)
 
 /** Human labels for factor names — used by timeline explanations. */
 export const FACTOR_LABELS: Record<string, string> = {
-  r21: '21-day momentum',
+  r12_1: '12-1 momentum',
+  r21: '21-day momentum (timing)',
   r63: '63-day momentum',
   rsi_dev: 'RSI deviation',
   macd_hist: 'MACD histogram',
   rev5: '5-day reversal',
+  reversal: 'Reversal (5d + RSI, contrarian)',
   vol_confirm: 'Volume confirmation',
   high52_prox: '52-week-high proximity',
   rel21_vs_spy: 'Relative strength vs SPY',
   target_upside: 'Analyst target upside',
   earnings_yield: 'Earnings yield',
   pe_gap: 'Forward PE gap',
+  pead: 'Post-earnings drift',
+  gross_profitability: 'Gross profitability (GP/A)',
+  net_issuance: 'Net share issuance',
+  asset_growth: 'Asset growth',
   sentiment: 'News sentiment',
 }

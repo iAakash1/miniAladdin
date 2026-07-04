@@ -91,15 +91,23 @@ export default function QuantPanel({ analysis }: { analysis: Analysis }) {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(20px, 4vw, 44px)', marginBottom: 18 }}>
         <ScorePill label={`Momentum · w ${quant.weightsUsed.momentum ?? '—'}`} value={quant.momentumScore} />
         <ScorePill label={`Fundamental · w ${quant.weightsUsed.fundamental ?? '—'}`} value={quant.fundamentalScore} />
+        {quant.qualityScore !== null && (
+          <ScorePill label={`Quality · w ${quant.weightsUsed.quality ?? '—'}`} value={quant.qualityScore} />
+        )}
         <ScorePill label={`News · w ${quant.weightsUsed.news ?? '—'}`} value={quant.newsScore} />
+        {quant.reversalScore !== null && (
+          <ScorePill label={`Reversal · w ${quant.weightsUsed.reversal ?? '—'}`} value={quant.reversalScore} />
+        )}
         <div>
-          <span className="label" style={{ fontSize: '0.625rem' }}>Macro gate</span>
+          <span className="label" style={{ fontSize: '0.625rem' }}>Momentum gate</span>
           <p className="num" style={{ fontSize: '1.125rem', fontWeight: 600, color: gatePct > 0 ? 'var(--warn)' : 'var(--text)' }}>
             ×{quant.macroGate.toFixed(2)}
           </p>
-          {gatePct > 0 && (
-            <p style={{ fontSize: '0.625rem', color: 'var(--faint)' }}>−{gatePct}% off bullish score</p>
-          )}
+          <p style={{ fontSize: '0.625rem', color: 'var(--faint)' }}>
+            {quant.stressProbability !== null
+              ? `stress p ${(quant.stressProbability * 100).toFixed(0)}%`
+              : gatePct > 0 ? `−${gatePct}% off bullish momentum` : 'no macro drag'}
+          </p>
         </div>
         <div>
           <span className="label" style={{ fontSize: '0.625rem' }}>Conflict</span>
@@ -171,11 +179,16 @@ export default function QuantPanel({ analysis }: { analysis: Analysis }) {
               : `100 ${quant.confidenceLosses.map((loss) => `− ${loss.points} (${loss.component.toLowerCase()})`).join(' ')} = ${quant.confidence}%`}
           </p>
         </div>
-        <div>
-          <p className="label" style={{ fontSize: '0.625rem', marginBottom: 6 }}>Risk composition</p>
+        <div style={{ maxWidth: 460 }}>
+          <p className="label" style={{ fontSize: '0.625rem', marginBottom: 6 }}>
+            Risk composition (weight × percentile = contribution)
+          </p>
           <p className="num" style={{ fontSize: '0.75rem', color: 'var(--muted)', lineHeight: 1.7 }}>
-            vol {quant.riskComponents.volatility ?? '—'} · drawdown {quant.riskComponents.drawdown ?? '—'} ·
-            beta {quant.riskComponents.beta ?? '—'} · srm {quant.riskComponents.srm ?? '—'}
+            {quant.riskComponents.length === 0
+              ? '—'
+              : quant.riskComponents
+                  .map((component) => `${component.name.replace(/_/g, ' ')} ${component.contribution}`)
+                  .join(' · ')}
           </p>
         </div>
         <div>
