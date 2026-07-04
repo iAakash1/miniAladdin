@@ -642,6 +642,14 @@ def get_providers_health():
     return providers.providers_health()
 
 
+@app.get("/api/dashboard")
+def get_dashboard():
+    """Market intelligence dashboard: macro board, breadth, sectors, events."""
+    from src.services import dashboard_service
+
+    return dashboard_service.get_dashboard()
+
+
 @app.get("/api/memo/{ticker}")
 def get_memo(ticker: str):
     """

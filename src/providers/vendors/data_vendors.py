@@ -81,6 +81,18 @@ class FredVendor(VendorClient):
             self._fred = Fred(api_key=self.api_key)
         return self._fred
 
+    def get_observations(self, series_id: str, count: int = 8) -> Optional[list[tuple[str, float]]]:
+        """Last `count` (date, value) observations of any FRED series."""
+        if not self.available:
+            raise VendorError("fred: FRED_API_KEY not configured", transient=False)
+
+        def _fetch() -> list[tuple[str, float]]:
+            series = self._client().get_series(series_id).dropna().tail(count)
+            return [(index.strftime("%Y-%m-%d"), float(value)) for index, value in series.items()]
+
+        observations = self.timed_call(_fetch)
+        return observations or None
+
     def get_macro(self) -> Optional[MacroSnapshot]:
         def _fetch() -> MacroSnapshot:
             fred = self._client()

@@ -1,9 +1,15 @@
 'use client'
 
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { UserButton } from '@clerk/nextjs'
 import { LogoMark } from '@/components/ui/Logo'
 import ThemeToggle from '@/components/ui/ThemeToggle'
+
+const TABS = [
+  { href: '/terminal', label: 'Market' },
+  { href: '/terminal/analyze', label: 'Analyze' },
+]
 import { fmtNum, fmtPctRaw } from '@/lib/format'
 import { FREE_DAILY_LIMIT } from '@/lib/usage'
 import type { Macro } from '@/lib/types'
@@ -36,6 +42,7 @@ function HeaderStat({ label, value, tone }: { label: string; value: string; tone
 }
 
 export default function TerminalHeader({ macro, isPro, usedToday, onUpgrade }: TerminalHeaderProps) {
+  const pathname = usePathname()
   return (
     <header
       style={{
@@ -80,6 +87,28 @@ export default function TerminalHeader({ macro, isPro, usedToday, onUpgrade }: T
             Terminal
           </span>
         </Link>
+
+        <nav aria-label="Terminal sections" style={{ display: 'flex', gap: 2 }}>
+          {TABS.map((tab) => {
+            const active = pathname === tab.href
+            return (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                aria-current={active ? 'page' : undefined}
+                className="btn btn--ghost btn--sm"
+                style={{
+                  height: 28,
+                  fontWeight: active ? 600 : 500,
+                  color: active ? 'var(--text)' : 'var(--muted)',
+                  background: active ? 'var(--surface-2)' : undefined,
+                }}
+              >
+                {tab.label}
+              </Link>
+            )
+          })}
+        </nav>
 
         {/* Live macro readout */}
         {macro && (

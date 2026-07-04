@@ -173,13 +173,15 @@ class NewsProvider:
 
 
 class MacroProvider:
-    """get_macro — FRED series behind cache; callers keep their demo fallback."""
+    """get_macro / get_series_snapshot — FRED behind cache; callers keep demo fallbacks."""
 
-    TTL = 900.0  # FRED updates at most daily
+    TTL = 900.0        # headline snapshot
+    SERIES_TTL = 1800.0  # individual series move at most daily
 
     def __init__(self, cache: CacheBackend, flight: SingleFlight):
         self.fred = FredVendor()
         self._chain = FallbackChain[MacroSnapshot]("macro.snapshot", cache, flight, self.TTL)
+        self._series_chain = FallbackChain[list]("macro.series", cache, flight, self.SERIES_TTL)
 
     @property
     def vendors(self):
@@ -189,6 +191,13 @@ class MacroProvider:
         return self._chain.execute(
             "macro:snapshot",
             [ChainLink(self.fred, self.fred.get_macro)],
+        )
+
+    def get_series_snapshot(self, series_id: str, count: int = 8) -> ProviderResult[list]:
+        """Last N (date, value) pairs of any FRED series, cached per series."""
+        return self._series_chain.execute(
+            f"macro:series:{series_id}:{count}",
+            [ChainLink(self.fred, lambda: self.fred.get_observations(series_id, count))],
         )
 
 
