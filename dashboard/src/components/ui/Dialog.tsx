@@ -65,6 +65,7 @@ export default function Dialog({ open, onClose, labelledBy, children, maxWidth =
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
+      className="dialog-backdrop"
       style={{
         position: 'fixed',
         inset: 0,
@@ -82,7 +83,7 @@ export default function Dialog({ open, onClose, labelledBy, children, maxWidth =
         aria-modal="true"
         aria-labelledby={labelledBy}
         tabIndex={-1}
-        className="fade-in"
+        className="dialog-panel"
         style={{
           width: '100%',
           maxWidth,

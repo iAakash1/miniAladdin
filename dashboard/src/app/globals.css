@@ -35,6 +35,11 @@
   --r-md: 6px;
   --r-lg: 10px;
 
+  /* Motion: one timing vocabulary everywhere. Fast, decisive, never floaty. */
+  --ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --t-fast: 120ms;
+  --t-med: 180ms;
+
   --shadow-1: 0 1px 2px rgba(28, 27, 24, 0.05);
   --shadow-2: 0 2px 8px rgba(28, 27, 24, 0.07), 0 1px 2px rgba(28, 27, 24, 0.05);
   --shadow-dialog: 0 24px 64px rgba(28, 27, 24, 0.22), 0 4px 12px rgba(28, 27, 24, 0.10);
@@ -67,9 +72,12 @@
   --warn:         #d9a13c;
   --warn-wash:    rgba(217, 161, 60, 0.10);
 
-  --shadow-1: none;
-  --shadow-2: none;
-  --shadow-dialog: 0 24px 64px rgba(0, 0, 0, 0.5);
+  /* Dark elevation is designed, not inverted: hairlines carry structure,
+     and depth comes from soft warm-black shadows — barely-there at rest,
+     unmistakable on overlays. Surfaces get slightly lighter as they rise. */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-2: 0 4px 14px rgba(0, 0, 0, 0.40), 0 1px 3px rgba(0, 0, 0, 0.30);
+  --shadow-dialog: 0 24px 64px rgba(0, 0, 0, 0.55), 0 4px 16px rgba(0, 0, 0, 0.35);
 
   --text: var(--ink);
   --muted: var(--ink-2);
@@ -224,11 +232,14 @@ img { max-width: 100%; display: block; }
   text-decoration: none;
   cursor: pointer;
   white-space: nowrap;
-  transition: background-color 150ms ease-out, border-color 150ms ease-out,
-              color 150ms ease-out, transform 100ms ease-out;
+  transition: background-color var(--t-fast) var(--ease-out),
+              border-color var(--t-fast) var(--ease-out),
+              color var(--t-fast) var(--ease-out),
+              box-shadow var(--t-fast) var(--ease-out),
+              transform 80ms var(--ease-out);
   user-select: none;
 }
-.btn:active { transform: translateY(0.5px); }
+.btn:active:not([disabled]) { transform: translateY(1px); }
 .btn[disabled], .btn[aria-disabled='true'] {
   opacity: 0.5;
   cursor: not-allowed;
@@ -271,8 +282,10 @@ img { max-width: 100%; display: block; }
   border-radius: var(--r-md);
   color: var(--text);
   font-size: 0.9375rem;
-  transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
+  transition: border-color var(--t-fast) var(--ease-out),
+              box-shadow var(--t-fast) var(--ease-out);
 }
+.input:hover:not(:focus) { border-color: var(--faint); }
 .input::placeholder { color: var(--faint); }
 .input:focus {
   outline: none;
@@ -293,6 +306,8 @@ img { max-width: 100%; display: block; }
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
+  box-shadow: var(--shadow-1);
+  transition: border-color var(--t-med) var(--ease-out);
 }
 
 .hairline-top { border-top: 1px solid var(--line); }
@@ -381,8 +396,20 @@ img { max-width: 100%; display: block; }
 .skeleton {
   background: var(--surface-2);
   border-radius: var(--r-md);
-  animation: skeleton-pulse 1.5s ease-in-out infinite;
+  animation: skeleton-pulse 1.2s var(--ease-out) infinite;
 }
+
+/* ---------- Dialog motion ---------- */
+@keyframes dialog-in {
+  from { opacity: 0; transform: scale(0.98) translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.dialog-backdrop { animation: backdrop-in var(--t-fast) var(--ease-out) both; }
+.dialog-panel { animation: dialog-in var(--t-med) var(--ease-out) both; }
 :is(.theme-dark, [data-theme='dark']) .skeleton { background: var(--surface-2); }
 
 /* ---------- Live dot ---------- */
@@ -461,7 +488,9 @@ img { max-width: 100%; display: block; }
   padding: 20px 0;
   font-size: 1.0625rem;
   font-weight: 550;
+  transition: color var(--t-fast) var(--ease-out);
 }
+.faq-item summary:hover { color: var(--accent-strong); }
 .faq-item summary::-webkit-details-marker { display: none; }
 .faq-item summary::after {
   content: '+';
@@ -507,11 +536,27 @@ img { max-width: 100%; display: block; }
   .terminal-header-macro { display: none !important; }
 }
 
+/* ---------- Footer & nav link polish ---------- */
+footer a { transition: color var(--t-fast) var(--ease-out); }
+footer a:hover { color: var(--text) !important; }
+
+/* ---------- Segmented control focus ---------- */
+.seg__btn:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
 /* ---------- Site header responsive ---------- */
 .menu-toggle { display: none; }
 @media (max-width: 720px) {
   .site-nav, .site-signin { display: none !important; }
   .menu-toggle { display: inline-flex; }
+}
+
+/* ---------- Mobile: hero CTAs go full width ---------- */
+@media (max-width: 480px) {
+  .hero-cta { flex-direction: column; align-items: stretch !important; }
+  .hero-cta .btn { width: 100%; }
 }
 
 /* ---------- Tables ---------- */
@@ -533,6 +578,8 @@ img { max-width: 100%; display: block; }
   vertical-align: top;
 }
 .data-table tr:last-child td { border-bottom: none; }
+.data-table tbody tr { transition: background-color var(--t-fast) var(--ease-out); }
+.data-table tbody tr:hover { background: var(--surface-2); }
 
 /* ---------- Scrollbar (subtle, standards-based) ---------- */
 * { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }

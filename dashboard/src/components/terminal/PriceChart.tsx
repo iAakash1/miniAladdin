@@ -37,6 +37,7 @@ function ChartTooltip({ active, payload }: { active?: boolean; payload?: Tooltip
         borderRadius: 'var(--r-md)',
         padding: '8px 12px',
         fontSize: '0.75rem',
+        boxShadow: 'var(--shadow-2)',
       }}
     >
       <div style={{ color: 'var(--faint)', marginBottom: 3 }}>{point.dateLabel}</div>
