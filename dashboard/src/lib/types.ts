@@ -100,6 +100,69 @@ export interface ConfidenceComponent {
   points: number
 }
 
+/** Raw v2 scorecard (additive `quant` field; null in fast/legacy mode) */
+export interface RawQuant {
+  raw_score?: number
+  ungated_score?: number
+  verdict?: string
+  raw_verdict?: string
+  confidence?: number
+  confidence_losses?: Array<{ component: string; points: number }>
+  uncertainty?: number
+  uncertainty_components?: Record<string, number>
+  conflict_index?: number
+  momentum_score?: number | null
+  fundamental_score?: number | null
+  news_score?: number | null
+  macro_gate?: number
+  risk_score?: number
+  risk_components?: Record<string, number>
+  weights_used?: Record<string, number>
+  regimes?: string[]
+  factors?: Array<{
+    name: string
+    family: string
+    value?: number | null
+    z?: number | null
+    score?: number | null
+    contribution: number
+  }>
+  data_completeness?: number
+  model_version?: string
+}
+
+export interface QuantFactor {
+  name: string
+  family: string
+  value: number | null
+  z: number | null
+  score: number | null
+  contribution: number
+}
+
+export interface QuantCard {
+  rawScore: number
+  ungatedScore: number
+  verdict: string
+  rawVerdict: string
+  confidence: number
+  confidenceLosses: Array<{ component: string; points: number }>
+  uncertainty: number
+  uncertaintyComponents: Record<string, number>
+  conflictIndex: number
+  momentumScore: number | null
+  fundamentalScore: number | null
+  newsScore: number | null
+  macroGate: number
+  riskScore: number
+  riskComponents: Record<string, number>
+  weightsUsed: Record<string, number>
+  regimes: string[]
+  factors: QuantFactor[]
+  dataCompleteness: number
+  modelVersion: string
+}
+
 /** Raw shape of GET /api/research/{ticker} */
 export interface RawResearchResponse {
   ticker?: string
@@ -112,6 +175,7 @@ export interface RawResearchResponse {
   confidence_breakdown?: ConfidenceComponent[]
   risk_level?: string // "LOW" | "MEDIUM" | "HIGH"
   rationale?: string
+  quant?: RawQuant | null
   ai?: RawAiAnalysis | null
   disclaimer?: string
   elapsed_seconds?: number
@@ -186,6 +250,7 @@ export interface Analysis {
   engineConfidence: number | null // 0–100
   riskLevel: RiskLevel | null
   rationale: string | null
+  quant: QuantCard | null
   ai: AiAnalysis | null
 
   price: number
