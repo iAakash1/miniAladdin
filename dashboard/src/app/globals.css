@@ -510,6 +510,12 @@ img { max-width: 100%; display: block; }
 }
 
 /* ---------- Terminal grids ---------- */
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
+  gap: 12px;
+}
+
 .terminal-grid-main {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
