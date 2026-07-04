@@ -10,6 +10,7 @@ const TABS = [
   { href: '/terminal', label: 'Market' },
   { href: '/terminal/analyze', label: 'Analyze' },
   { href: '/terminal/portfolio', label: 'Portfolio' },
+  { href: '/terminal/validation', label: 'Validation' },
 ]
 import { fmtNum, fmtPctRaw } from '@/lib/format'
 import { FREE_DAILY_LIMIT } from '@/lib/usage'

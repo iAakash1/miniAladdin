@@ -642,6 +642,17 @@ def get_providers_health():
     return providers.providers_health()
 
 
+@app.get("/api/backtest/{ticker}")
+def get_backtest(ticker: str):
+    """Walk-forward validation of the scoring engine's momentum core (1h cache)."""
+    from src.services import backtest_service
+
+    ticker = ticker.upper().strip()
+    if not ticker or len(ticker) > 10:
+        raise HTTPException(status_code=400, detail="Invalid ticker symbol")
+    return backtest_service.run_backtest(ticker)
+
+
 @app.get("/api/screen")
 def get_screen(q: str = Query(..., min_length=1, max_length=120)):
     """Natural-language ticker screening: lookup or thematic web-grounded search."""
