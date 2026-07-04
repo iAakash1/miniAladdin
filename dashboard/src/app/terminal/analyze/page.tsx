@@ -7,6 +7,7 @@ import { useUser } from '@clerk/nextjs'
 import AiPanel from '@/components/terminal/AiPanel'
 import CommandBar from '@/components/terminal/CommandBar'
 import CompanyBand from '@/components/terminal/CompanyBand'
+import QuantPanel from '@/components/terminal/QuantPanel'
 import VerdictTimeline from '@/components/terminal/VerdictTimeline'
 import { recordAnalysis } from '@/lib/history'
 import Fundamentals from '@/components/terminal/Fundamentals'
@@ -276,6 +277,8 @@ export default function TerminalPage() {
               <CompanyBand analysis={analysis} />
 
               <AiPanel analysis={analysis} />
+
+              <QuantPanel analysis={analysis} />
 
               <div className="terminal-grid-main">
                 <section aria-label="Price history" className="panel" style={{ padding: '20px 22px' }}>
