@@ -7,6 +7,8 @@ import { useUser } from '@clerk/nextjs'
 import AiPanel from '@/components/terminal/AiPanel'
 import CommandBar from '@/components/terminal/CommandBar'
 import CompanyBand from '@/components/terminal/CompanyBand'
+import VerdictTimeline from '@/components/terminal/VerdictTimeline'
+import { recordAnalysis } from '@/lib/history'
 import Fundamentals from '@/components/terminal/Fundamentals'
 import Headlines from '@/components/terminal/Headlines'
 import KeyStats from '@/components/terminal/KeyStats'
@@ -98,9 +100,11 @@ export default function TerminalPage() {
           fetchAnalysis(ticker, fast),
           fetchChart(ticker, forPeriod),
         ])
-        setAnalysis(normalizeAnalysis(rawResearch))
+        const normalized = normalizeAnalysis(rawResearch)
+        setAnalysis(normalized)
         setChart(normalizeChart(rawChart))
         setStatus('ready')
+        recordAnalysis(normalized) // verdict history (Phase 3)
         if (!isPro) bumpTodayCount()
       } catch (e) {
         setError(e instanceof Error ? e.message : 'The analysis failed. Please try again.')
@@ -109,6 +113,17 @@ export default function TerminalPage() {
     },
     [fast, isPro, period],
   )
+
+  /* Deep link: /terminal/analyze?ticker=NVDA (portfolio rows link here). */
+  useEffect(() => {
+    const symbol = new URLSearchParams(window.location.search).get('ticker')
+    if (symbol && /^[A-Z.^-]{1,8}$/.test(symbol.toUpperCase())) {
+      // Microtask: state updates stay out of the synchronous effect body.
+      queueMicrotask(() => run(symbol.toUpperCase()))
+    }
+    // Run once on mount only — `run` identity changes with settings.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   /* Changing timeframe refetches only the chart — the verdict doesn't change with the window. */
   const changePeriod = useCallback(
@@ -323,6 +338,8 @@ export default function TerminalPage() {
                 isPro={isPro}
                 onUpgrade={() => setUpgrade({ open: true, reason: 'feature' })}
               />
+
+              <VerdictTimeline ticker={analysis.ticker} />
 
               <p style={{ fontSize: '0.75rem', color: 'var(--faint)', textAlign: 'center', padding: '8px 0' }}>
                 Research and education only — not investment advice.

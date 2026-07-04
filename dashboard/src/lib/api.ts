@@ -12,9 +12,11 @@ import type {
   Headline,
   Macro,
   PricePoint,
+  QuantCard,
   RawAiAnalysis,
   RawChartResponse,
   RawMacroResponse,
+  RawQuant,
   RawResearchMacro,
   RawResearchResponse,
   RiskLevel,
@@ -82,6 +84,39 @@ function normalizeAi(raw: RawAiAnalysis | null | undefined): AiAnalysis | null {
   }
 }
 
+function normalizeQuant(raw: RawQuant | null | undefined): QuantCard | null {
+  if (!raw || typeof raw.raw_score !== 'number') return null
+  return {
+    rawScore: raw.raw_score,
+    ungatedScore: raw.ungated_score ?? raw.raw_score,
+    verdict: raw.verdict ?? 'Hold',
+    rawVerdict: raw.raw_verdict ?? raw.verdict ?? 'Hold',
+    confidence: raw.confidence ?? 50,
+    confidenceLosses: raw.confidence_losses ?? [],
+    uncertainty: raw.uncertainty ?? 0,
+    uncertaintyComponents: raw.uncertainty_components ?? {},
+    conflictIndex: raw.conflict_index ?? 0,
+    momentumScore: raw.momentum_score ?? null,
+    fundamentalScore: raw.fundamental_score ?? null,
+    newsScore: raw.news_score ?? null,
+    macroGate: raw.macro_gate ?? 1,
+    riskScore: raw.risk_score ?? 50,
+    riskComponents: raw.risk_components ?? {},
+    weightsUsed: raw.weights_used ?? {},
+    regimes: raw.regimes ?? [],
+    factors: (raw.factors ?? []).map((f) => ({
+      name: f.name,
+      family: f.family,
+      value: f.value ?? null,
+      z: f.z ?? null,
+      score: f.score ?? null,
+      contribution: f.contribution,
+    })),
+    dataCompleteness: raw.data_completeness ?? 1,
+    modelVersion: raw.model_version ?? 'scoring-v2',
+  }
+}
+
 export function normalizeAnalysis(raw: RawResearchResponse): Analysis {
   const t = raw.technicals ?? {}
   const s = raw.sentiment ?? null
@@ -101,6 +136,7 @@ export function normalizeAnalysis(raw: RawResearchResponse): Analysis {
     engineConfidence: typeof raw.confidence === 'number' ? raw.confidence : null,
     riskLevel: asRiskLevel(raw.risk_level),
     rationale: raw.rationale ?? null,
+    quant: normalizeQuant(raw.quant),
     ai: normalizeAi(raw.ai),
 
     price: t.current_price ?? 0,

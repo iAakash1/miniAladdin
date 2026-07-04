@@ -642,6 +642,42 @@ def get_providers_health():
     return providers.providers_health()
 
 
+@app.get("/api/quotes")
+def get_quotes(symbols: str = Query(..., description="Comma-separated tickers, max 25")):
+    """
+    Batch quotes for watchlists: price, 1-day and 1-week change per symbol.
+    Served from the MarketDataProvider series cache; per-symbol failures
+    return an error entry rather than failing the batch.
+    """
+    requested = [s.strip().upper() for s in symbols.split(",") if s.strip()][:25]
+    if not requested:
+        raise HTTPException(status_code=400, detail="No symbols supplied")
+
+    out: dict[str, Any] = {}
+    for symbol in requested:
+        if len(symbol) > 10:
+            out[symbol] = {"error": "invalid symbol"}
+            continue
+        try:
+            result = providers.market_data.get_series(symbol, "3mo")
+            if not result.ok or len(result.data.bars) < 6:
+                out[symbol] = {"error": "no data"}
+                continue
+            bars = result.data.bars
+            closes = [bar.close for bar in bars]
+            out[symbol] = {
+                "price": round(closes[-1], 2),
+                "change_1d": round((closes[-1] / closes[-2] - 1) * 100, 2) if closes[-2] else None,
+                "change_1w": round((closes[-1] / closes[-6] - 1) * 100, 2) if len(closes) >= 6 and closes[-6] else None,
+                "source": result.source,
+                "stale": result.stale,
+            }
+        except Exception:  # noqa: BLE001 — one bad symbol never fails the batch
+            logger.exception("quote failed for %s", symbol)
+            out[symbol] = {"error": "unavailable"}
+    return {"quotes": out, "count": len(out)}
+
+
 @app.get("/api/dashboard")
 def get_dashboard():
     """Market intelligence dashboard: macro board, breadth, sectors, events."""
