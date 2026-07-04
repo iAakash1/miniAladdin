@@ -78,15 +78,25 @@ RESEARCH = {
 }
 
 VALID_MEMO = {
-    "summary": "Engine favors upside with composite +0.22; earnings beat supports it [E1].",
-    "bull_case": "Momentum 0.4 with strong demand [E1].",
-    "bear_case": "Valuation stretched per coverage [E2].",
-    "key_catalysts": ["Next earnings [E1]"],
-    "key_risks": ["Macro gate at 0.9"],
-    "macro_environment": "SRM 1.1, mildly elevated.",
-    "technical_factors": "Momentum score 0.4.",
-    "fundamental_factors": "RSI 55 neutral.",
-    "news_summary": "Coverage is constructive [E1][E2].",
+    "executive_summary": "Engine favors upside with composite +0.22; earnings beat supports it [E1].",
+    "investment_thesis": "Momentum 0.4 with strong demand [E1].",
+    "catalysts": ["Next earnings [E1]"],
+    "headwinds": ["Valuation stretched per coverage [E2]"],
+    "competitive_position": "No competitor coverage was supplied in evidence.",
+    "industry_outlook": "Sector coverage constructive [E2].",
+    "macro_impact": "SRM 1.1, mildly elevated; gate 0.9 trims bullish score.",
+    "valuation": "No PE supplied for this run.",
+    "technical_picture": "Momentum score 0.4.",
+    "fundamental_picture": "RSI 55 neutral.",
+    "institutional_activity": "No institutional evidence was supplied.",
+    "analyst_consensus": "No analyst target supplied.",
+    "risk_factors": ["Macro gate at 0.9"],
+    "counter_arguments": ["Momentum could fade without follow-through [E2]"],
+    "scenario_analysis": {
+        "best_case": "Earnings strength continues [E1].",
+        "base_case": "Buy verdict holds at composite +0.22.",
+        "worst_case": "Valuation concerns dominate [E2].",
+    },
 }
 
 TWO_ITEMS = [
@@ -136,7 +146,7 @@ class TestMemoService:
 
     def test_invented_citation_fails_then_retry_succeeds(self, monkeypatch):
         monkeypatch.setattr(memo_service, "collect_evidence", lambda *a, **k: list(TWO_ITEMS))
-        bad = {**VALID_MEMO, "summary": "Great quarter [E9]."}  # E9 doesn't exist
+        bad = {**VALID_MEMO, "executive_summary": "Great quarter [E9]."}  # E9 doesn't exist
         calls = stub_llm(monkeypatch, json.dumps(bad), json.dumps(VALID_MEMO))
 
         memo = memo_service.generate_memo(RESEARCH)
@@ -152,7 +162,8 @@ class TestMemoService:
 
         assert memo["generated"] is False
         assert memo["final_recommendation"] == "Buy"
-        assert "unavailable" in memo["summary"]
+        assert "unavailable" in memo["executive_summary"]
+        assert memo["scenario_analysis"]["base_case"].startswith("Engine verdict")
         assert len(memo["source_attribution"]) == 2  # attribution survives fallback
 
     def test_unconfigured_llm_serves_fallback(self, monkeypatch):
