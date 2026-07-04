@@ -1,4 +1,54 @@
-# OmniSignal Quantitative Scoring Framework (v2)
+# OmniSignal Quantitative Scoring Framework (v2 + v2.1 amendments)
+
+> **v2.1 amendments (July 2026, from docs/QUANT-REVIEW.md).** Implemented in
+> `src/scoring/engine.py` (`scoring-v2.1`):
+>
+> 1. **Momentum anchor is 12-1** (twelve-month return excluding the most
+>    recent month — Jegadeesh–Titman 1993), member weight 2.0. `r21` is
+>    demoted to a timing feature (0.5) and MACD to 0.5 (trend-collinear).
+> 2. **Return-type factors use t-statistic normalization**: z = r/(σ_MAD·√h)
+>    — "how many multiples of its own noise is this move". Self-history
+>    z-scores null out on steady trends (a stock down 30% would read
+>    'normal for itself'); the t-stat preserves trend sign while staying
+>    per-name adaptive and outlier-robust. Oscillators (MACD, volume ratio,
+>    RSI) keep distribution-z; 52w-high proximity uses a level prior
+>    (center 0.85, σ 0.10 — the George–Hwang effect *is* the level).
+> 3. **Reversal is one sleeve** (5d-return t-stat ⊕ RSI z, contrarian),
+>    weight 0.05 normally, **0.20 only in high-volatility regimes** funded
+>    by the momentum halving (Nagel 2012; Daniel–Moskowitz 2016). RSI is
+>    display-only elsewhere.
+> 4. **Sleeves & base weights:** momentum 0.40 · fundamental 0.20 (value +
+>    analyst + PEAD) · quality 0.15 (GP/A — Novy-Marx; net issuance —
+>    Pontiff–Woodgate; asset growth — Cooper et al.; slow, must never
+>    dominate momentum) · news 0.20 · reversal 0.05.
+> 5. **Macro gate is probabilistic and momentum-only:** p_stress =
+>    logistic(−2.0 + 1.07·(−term) + 0.5·NFCI + 0.5·credit_z +
+>    0.5·(2·vix_pct−1)); the term coefficient anchors to Estrella–Mishkin
+>    (1998); g = 1 − 0.5·p applies to the momentum sleeve's bullish side
+>    only — value/quality/news are never macro-suppressed (defensive
+>    premia work in drawdowns). SRM curve remains the fallback when fast
+>    inputs are missing.
+> 6. **News consumes effective evidence** (`src/services/news_scoring.py`):
+>    n_eff = Σ reliability·decay(60h half-life)·novelty·confirmation;
+>    shrinkage n_eff/(n_eff+6) — stale or repeated stories cannot inflate
+>    confidence.
+> 7. **PEAD**: earnings-surprise t vs a conservative 5% σ, linearly decayed
+>    over the 60-day drift window (Bernard–Thomas 1989); absent data ⇒
+>    absent factor.
+> 8. **Confidence adds** u_fresh (price/news staleness vs stated τ),
+>    u_model (1 − IC_rolling/0.05, capped 0.30; "unmeasured" costs half the
+>    cap), u_stab (0.10 per verdict flip in the last six signals, cap
+>    0.30), u_macro (peak at p_stress = 0.5 — maximal regime ambiguity).
+>    Loss attribution remains exact and itemized.
+> 9. **Risk v2** components (weight — measure): downside semi-dev 0.20,
+>    tail (rolling VaR₉₅ percentile) 0.15, drawdown state 0.12, vol regime
+>    +vol-of-vol 0.13, beta level+stability 0.10, idiosyncratic share
+>    (1−R² vs SPY) 0.10, Amihud liquidity 0.08, macro (p_stress) 0.07,
+>    sector 0.05, event floor +5. Each row exposes weight × percentile =
+>    contribution; the rows sum to the score.
+
+*(The v2 text below remains the base specification; where it conflicts with
+the amendments above, v2.1 governs.)*
 
 A transparent, explainable factor model. No deep learning, no black boxes,
 no arbitrary thresholds: every transformation has a stated statistical

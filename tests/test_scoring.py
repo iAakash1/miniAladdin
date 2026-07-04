@@ -93,10 +93,27 @@ class TestMacroGate:
         assert stressed_bear.ungated_score == pytest.approx(calm_bear.ungated_score)
         assert stressed_bear.raw_score == pytest.approx(stressed_bear.ungated_score)
 
-    def test_gate_bounds(self):
-        assert engine.macro_gate(0.5, []) == pytest.approx(1.0)
-        worst = engine.macro_gate(1.6, [])
-        assert 1.0 - engine.GATE_LAMBDA <= worst < 1.0
+    def test_gate_bounds_and_probabilistic_path(self):
+        # Legacy SRM fallback (no fast inputs)
+        assert engine.momentum_gate(None, 0.5) == pytest.approx(1.0)
+        worst_legacy = engine.momentum_gate(None, 1.6)
+        assert 1.0 - engine.GATE_LAMBDA <= worst_legacy < 1.0
+        # Probabilistic path: stress p directly controls the gate
+        assert engine.momentum_gate(0.0, 1.6) == pytest.approx(1.0)
+        assert engine.momentum_gate(1.0, 0.5) == pytest.approx(1.0 - engine.GATE_LAMBDA)
+
+    def test_stress_probability_monotonicity(self):
+        calm = engine.stress_probability(term_spread=1.5, nfci=-0.5,
+                                         credit_spread_z=-0.5, vix_percentile=0.2, regimes=[])
+        stressed = engine.stress_probability(term_spread=-0.5, nfci=1.0,
+                                             credit_spread_z=1.5, vix_percentile=0.95, regimes=[])
+        assert calm is not None and stressed is not None
+        assert calm < 0.2 < stressed
+        assert engine.stress_probability(None, None, None, None, []) is None
+        # Term spread alone is a valid reduced model (Estrella–Mishkin)
+        term_only = engine.stress_probability(term_spread=-1.0, nfci=None,
+                                              credit_spread_z=None, vix_percentile=None, regimes=[])
+        assert term_only is not None and term_only > 0.2
 
 
 class TestRegimes:
@@ -173,8 +190,13 @@ class TestRiskScore:
 
     def test_risk_components_present_and_bounded(self):
         card = score(make_frame(), beta=2.0)
-        assert set(card.risk_components) == {"volatility", "drawdown", "beta", "srm"}
+        names = {component.name for component in card.risk_components}
+        assert {"downside_dev", "tail_risk", "drawdown", "vol_regime", "beta",
+                "idiosyncratic", "liquidity", "macro", "sector"} <= names
         assert 0 <= card.risk_score <= 100
+        # Contributions are exact: weight × percentile, summing to the score
+        total = sum(component.contribution for component in card.risk_components)
+        assert card.risk_score == pytest.approx(total, abs=1)
 
 
 class TestVerdictMapping:
