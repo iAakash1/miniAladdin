@@ -34,13 +34,16 @@ def make_series(days: int, drift: float, vol: float, seed: int = 11) -> Provider
 
 
 def make_regime_series(days: int, seed: int = 11) -> ProviderResult[PriceSeries]:
-    """Regime-switching drift (±0.2%/day, ~6-month regimes): serially
-    correlated returns where momentum genuinely predicts forward returns."""
+    """Regime-switching drift (±0.2%/day) with ~18-month regimes — matching
+    the 6-12+ month trend persistence that makes 12-1 momentum work
+    empirically (Jegadeesh–Titman). Regimes shorter than the momentum
+    lookback would make ANY long-window momentum anti-predictive by
+    construction (the factor would measure the previous regime)."""
     rng = np.random.default_rng(seed)
     returns = np.empty(days)
     drift = 0.002
     for i in range(days):
-        if i % 126 == 0 and i > 0:
+        if i % 378 == 0 and i > 0:
             drift = -drift
         returns[i] = rng.normal(drift, 0.008)
     closes = 100 * np.cumprod(1 + returns)
