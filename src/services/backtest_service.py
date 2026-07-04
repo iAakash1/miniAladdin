@@ -108,6 +108,7 @@ def run_backtest(ticker: str) -> dict[str, Any]:
     confidences: list[int] = []
     verdicts: list[str] = []
     forwards: list[float] = []
+    factor_series: dict[str, dict[int, float]] = {}  # factor -> step index -> score
 
     for t in range(MIN_WINDOW, len(bars) - HORIZON, STEP):
         window = frame.iloc[:t + 1]
@@ -115,11 +116,15 @@ def run_backtest(ticker: str) -> dict[str, Any]:
                             today=window.index[-1].date())
         if card is None:
             continue
+        step = len(scores)
         signal_dates.append(bars[t].date)
         scores.append(card.ungated_score)
         confidences.append(card.confidence)
         verdicts.append(card.raw_verdict)
         forwards.append(float(closes[t + HORIZON] / closes[t] - 1))
+        for row in card.factors:
+            if row.score is not None:
+                factor_series.setdefault(row.name, {})[step] = row.score
 
     if len(scores) < 12:
         return {"ticker": ticker, "error": "Too few valid walk-forward samples."}
@@ -224,6 +229,81 @@ def run_backtest(ticker: str) -> dict[str, Any]:
     for v in verdicts:
         verdict_counts[v] = verdict_counts.get(v, 0) + 1
 
+    # ── Factor-level diagnostics (validation v2) ─────────────────────────────
+    # Per-factor IC, sign-stability across rolling windows, and pairwise
+    # correlations — the raw material of the KEEP/MODIFY/REMOVE audit.
+    factor_diagnostics: dict[str, Any] = {}
+    for name, values in factor_series.items():
+        indexes = sorted(values.keys())
+        if len(indexes) < 12:
+            continue
+        f_scores = np.array([values[i] for i in indexes])
+        f_forwards = np.array([forwards[i] for i in indexes])
+        f_ic = _spearman(f_scores, f_forwards)
+        # Sign stability: fraction of rolling windows whose IC shares the
+        # overall sign (1.0 = the factor never flips its relationship).
+        window_ics = []
+        for start in range(0, len(indexes) - ROLLING_IC_WINDOW, max(1, ROLLING_IC_WINDOW // 2)):
+            chunk_ic = _spearman(f_scores[start:start + ROLLING_IC_WINDOW],
+                                 f_forwards[start:start + ROLLING_IC_WINDOW])
+            if chunk_ic is not None:
+                window_ics.append(chunk_ic)
+        stability = (
+            round(sum(1 for w in window_ics if (w > 0) == ((f_ic or 0) > 0)) / len(window_ics), 2)
+            if window_ics and f_ic is not None else None
+        )
+        factor_diagnostics[name] = {
+            "ic": round(f_ic, 3) if f_ic is not None else None,
+            "sign_stability": stability,
+            "samples": len(indexes),
+        }
+
+    factor_correlations: dict[str, float] = {}
+    names_with_data = [n for n in factor_series if len(factor_series[n]) >= 12]
+    for i, a in enumerate(names_with_data):
+        for b in names_with_data[i + 1:]:
+            shared = sorted(set(factor_series[a]) & set(factor_series[b]))
+            if len(shared) >= 12:
+                rho = _spearman(np.array([factor_series[a][s] for s in shared]),
+                                np.array([factor_series[b][s] for s in shared]))
+                if rho is not None:
+                    factor_correlations[f"{a}~{b}"] = round(rho, 2)
+
+    # Prediction drift: PSI of the score distribution, first half vs second
+    half = len(scores) // 2
+    psi = None
+    if half >= 20:
+        edges = np.arange(-0.6, 0.61, 0.15)
+        p_counts, _ = np.histogram(score_arr[:half], bins=edges)
+        q_counts, _ = np.histogram(score_arr[half:], bins=edges)
+        p_frac = np.clip(p_counts / max(1, p_counts.sum()), 1e-4, None)
+        q_frac = np.clip(q_counts / max(1, q_counts.sum()), 1e-4, None)
+        psi = round(float(np.sum((q_frac - p_frac) * np.log(q_frac / p_frac))), 3)
+
+    # Naive 12-1 baseline: sign of the 12-1 return, long/flat, same windows
+    baseline_ic = None
+    baseline = None
+    if len(bars) > MIN_WINDOW + HORIZON:
+        naive_scores = []
+        for t in range(MIN_WINDOW, len(bars) - HORIZON, STEP):
+            if t >= 252:
+                naive_scores.append(closes[t - 21] / closes[t - 252] - 1)
+            else:
+                naive_scores.append(0.0)
+        naive_arr = np.array(naive_scores[: len(forwards)])
+        baseline_ic = _spearman(naive_arr, fwd_arr)
+        naive_positions = np.zeros(len(daily_returns))
+        naive_value = 0.0
+        cursor2 = 0
+        for t in range(MIN_WINDOW, len(bars) - HORIZON, STEP):
+            if cursor2 < len(naive_arr):
+                naive_value = 1.0 if naive_arr[cursor2] > 0 else 0.0
+                cursor2 += 1
+            if t < len(naive_positions):
+                naive_positions[t:] = naive_value  # held until next signal
+        naive_daily = (naive_positions * daily_returns)[MIN_WINDOW:]
+        baseline = _annualized(naive_daily)
+
     # Recent-signal summary consumed by the live engine's confidence terms
     # (u_model, u_stab) — only ever read from cache, never computed inline.
     flips_last6 = sum(
@@ -246,6 +326,12 @@ def run_backtest(ticker: str) -> dict[str, Any]:
         "samples": len(scores),
         "period": {"start": signal_dates[0], "end": signal_dates[-1]},
         "ic": round(ic, 3) if ic is not None else None,
+        "baseline_12_1_ic": round(baseline_ic, 3) if baseline_ic is not None else None,
+        "baseline_12_1_strategy": baseline,
+        "factor_diagnostics": factor_diagnostics,
+        "factor_correlations": factor_correlations,
+        "prediction_drift_psi": psi,
+        "psi_note": "PSI of the score distribution, first vs second half; > 0.25 signals distribution drift.",
         "rolling_ic": rolling_ic,
         "hit_rate": hit_rate,
         "directional_samples": len(directional),

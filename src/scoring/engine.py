@@ -60,13 +60,15 @@ BASE_WEIGHTS = {
 REVERSAL_WEIGHT_HIGH_VOL = 0.20   # funded by the momentum cut below
 HIGH_VOL_MOMENTUM_MULT = 0.5      # Daniel–Moskowitz momentum-crash regimes
 
-# Within-momentum member weights (v2.1 §1): the anchor is 12-1;
-# r21 is timing-only; MACD is trend-collinear and demoted.
+# Within-momentum member weights (v2.1 §1): the anchor is 12-1; r21 is
+# timing-only. MACD was REMOVED from scoring after the synthetic audit
+# (docs/FACTOR-AUDIT.md): IC ≈ 0 in every test world while correlating
+# −0.65…−0.81 with the reversal sleeve — a redundant heuristic. It remains
+# a display statistic in the technicals panel via the prediction agent.
 MOMENTUM_MEMBER_WEIGHTS = {
     "r12_1": 2.0,
     "r63": 1.0,
     "r21": 0.5,
-    "macd_hist": 0.5,
     "vol_confirm": 1.0,
     "high52_prox": 1.0,
     "rel21_vs_spy": 1.0,
@@ -276,14 +278,6 @@ def _rsi_series(closes: pd.Series, window: int = 14) -> pd.Series:
     return 100 - 100 / (1 + rs)
 
 
-def _macd_hist_series(closes: pd.Series) -> pd.Series:
-    ema12 = closes.ewm(span=12, adjust=False).mean()
-    ema26 = closes.ewm(span=26, adjust=False).mean()
-    macd = ema12 - ema26
-    signal = macd.ewm(span=9, adjust=False).mean()
-    return (macd - signal) / closes
-
-
 def momentum_factors(frame: pd.DataFrame, spy: Optional[pd.DataFrame]) -> list[FactorRow]:
     closes = frame["Close"]
     rows: list[FactorRow] = []
@@ -310,9 +304,7 @@ def momentum_factors(frame: pd.DataFrame, spy: Optional[pd.DataFrame]) -> list[F
     add_tstat("r12_1", horizon=231, skip=21)   # 12-1 skip-month (J–T 1993)
     add_tstat("r63", horizon=63)
     add_tstat("r21", horizon=21)               # timing feature (demoted weight)
-
-    # Oscillator/ratio factors: distribution z vs own history.
-    add_dist("macd_hist", _macd_hist_series(closes))  # demoted: trend-collinear
+    # MACD removed from scoring (audit: IC≈0, redundant) — display-only elsewhere.
 
     if "Volume" in frame.columns and frame["Volume"].fillna(0).sum() > 0:
         volume = frame["Volume"].astype(float)
