@@ -541,6 +541,9 @@ img { max-width: 100%; display: block; }
   .terminal-grid-four { grid-template-columns: 1fr; }
   .terminal-header-macro { display: none !important; }
 }
+@media (max-width: 640px) {
+  .terminal-header-search { display: none !important; }
+}
 
 /* ---------- Auth shell (login/signup) ---------- */
 .auth-shell {
@@ -582,7 +585,13 @@ img { max-width: 100%; display: block; }
 
 /* ---------- Screen search hits ---------- */
 .screen-hit { transition: background-color var(--t-fast) var(--ease-out); }
-.screen-hit:hover, .screen-hit:focus-visible { background: var(--surface-2); }
+.screen-hit:hover, .screen-hit:focus-visible, .screen-hit--active { background: var(--surface-2); }
+.screen-hit mark {
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
 
 /* ---------- Footer & nav link polish ---------- */
 footer a { transition: color var(--t-fast) var(--ease-out); }

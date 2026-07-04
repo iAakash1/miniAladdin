@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useUser } from '@clerk/nextjs'
 
 import MarketDashboard from '@/components/terminal/MarketDashboard'
-import ScreenSearch from '@/components/terminal/ScreenSearch'
 import TerminalHeader from '@/components/terminal/TerminalHeader'
 import UpgradeDialog from '@/components/terminal/UpgradeDialog'
 import { fetchMacroClient } from '@/lib/api'
@@ -65,9 +64,6 @@ export default function MarketPage() {
           padding: '28px clamp(16px, 3vw, 28px) 64px',
         }}
       >
-        <div style={{ marginBottom: 26 }}>
-          <ScreenSearch />
-        </div>
         <MarketDashboard />
       </main>
     </div>

@@ -346,3 +346,21 @@ class YFinanceVendor(VendorClient):
         if series and series.bars:
             return PriceQuote(symbol=symbol, price=series.bars[-1].close)
         return None
+
+    def search_symbols(self, query: str, limit: int = 8) -> Optional[list[dict]]:
+        """Yahoo's own autocomplete search — keyless and fuzzy-tolerant, so
+        it anchors the symbol-resolver chain the same way it already
+        anchors prices/series when Finnhub/FMP are unconfigured, rate
+        limited, or cooling down after failures."""
+        import yfinance as yf
+
+        def _fetch():
+            return yf.Search(query, max_results=limit, enable_fuzzy_query=True).quotes
+
+        quotes = self.timed_call(_fetch)
+        out = [
+            {"symbol": row["symbol"], "name": row.get("shortname") or row.get("longname") or row["symbol"]}
+            for row in (quotes or [])
+            if row.get("symbol")
+        ]
+        return out[:limit] or None

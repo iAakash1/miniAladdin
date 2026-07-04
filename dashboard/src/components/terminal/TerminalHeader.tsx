@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { UserButton } from '@clerk/nextjs'
+import ScreenSearch from '@/components/terminal/ScreenSearch'
 import { LogoMark } from '@/components/ui/Logo'
 import ThemeToggle from '@/components/ui/ThemeToggle'
 
@@ -111,6 +112,11 @@ export default function TerminalHeader({ macro, isPro, usedToday, onUpgrade }: T
             )
           })}
         </nav>
+
+        {/* Global search — available on every /terminal/* page, not just Market */}
+        <div className="terminal-header-search" style={{ flex: '1 1 200px', minWidth: 0, maxWidth: 280 }}>
+          <ScreenSearch maxWidth={280} />
+        </div>
 
         {/* Live macro readout */}
         {macro && (
