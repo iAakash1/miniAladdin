@@ -85,7 +85,7 @@ export default function LandingPage() {
               result by the state of the macro cycle. What you get is a single,
               explainable verdict and every number behind it.
             </p>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div className="hero-cta" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
               <Link href="/terminal" className="btn btn--primary btn--lg">
                 Open the terminal
               </Link>
