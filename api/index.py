@@ -642,6 +642,14 @@ def get_providers_health():
     return providers.providers_health()
 
 
+@app.get("/api/screen")
+def get_screen(q: str = Query(..., min_length=1, max_length=120)):
+    """Natural-language ticker screening: lookup or thematic web-grounded search."""
+    from src.services import screen_service
+
+    return screen_service.screen(q)
+
+
 @app.get("/api/quotes")
 def get_quotes(symbols: str = Query(..., description="Comma-separated tickers, max 25")):
     """

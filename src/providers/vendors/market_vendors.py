@@ -112,6 +112,17 @@ class FinnhubVendor(VendorClient):
             exchange=data.get("exchange", ""),
         )
 
+    def search_symbols(self, query: str, limit: int = 8) -> Optional[list[dict]]:
+        """Symbol lookup: [{symbol, name}] for a company-name/ticker query."""
+        data = self._get_json(f"{self.BASE}/search", params=self._params(q=query))
+        rows = (data.get("result") or [])[: limit * 2]
+        out = [
+            {"symbol": row.get("symbol", ""), "name": row.get("description", "")}
+            for row in rows
+            if row.get("symbol") and "." not in row.get("symbol", "")  # US listings first
+        ]
+        return out[:limit] or None
+
     def get_fundamentals(self, symbol: str) -> Optional[FundamentalsData]:
         data = self._get_json(
             f"{self.BASE}/stock/metric", params=self._params(symbol=symbol, metric="all")
@@ -217,6 +228,22 @@ class FMPVendor(VendorClient):
             if _safe_float(item.get("close")) is not None
         ]
         return PriceSeries(symbol=symbol, bars=bars) if bars else None
+
+    def search_symbols(self, query: str, limit: int = 8) -> Optional[list[dict]]:
+        """Symbol lookup: [{symbol, name}] for a company-name/ticker query."""
+        data = self._get_json(
+            f"{self.BASE}/search",
+            params={"query": query, "limit": limit, "exchange": "NASDAQ,NYSE,AMEX",
+                    "apikey": self.api_key},
+        )
+        if not isinstance(data, list):
+            return None
+        out = [
+            {"symbol": row.get("symbol", ""), "name": row.get("name", "")}
+            for row in data
+            if row.get("symbol")
+        ]
+        return out[:limit] or None
 
     def get_company(self, symbol: str) -> Optional[CompanyProfile]:
         data = self._get_json(f"{self.BASE}/profile/{symbol}", params={"apikey": self.api_key})
