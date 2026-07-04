@@ -545,6 +545,137 @@ img { max-width: 100%; display: block; }
   .terminal-header-search { display: none !important; }
 }
 
+/* ---------- Market dashboard: hero ---------- */
+.dash-hero { padding: clamp(20px, 3vw, 28px); }
+.dash-hero__metrics {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: clamp(14px, 2.5vw, 24px);
+}
+@media (max-width: 860px) {
+  .dash-hero__metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 18px; }
+}
+@media (max-width: 480px) {
+  .dash-hero__metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* ---------- Market dashboard: cards ---------- */
+.dash-card {
+  padding: 14px 16px;
+  transition: transform var(--t-med) var(--ease-out),
+              box-shadow var(--t-med) var(--ease-out),
+              border-color var(--t-med) var(--ease-out);
+}
+.dash-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-2); border-color: var(--line-strong); }
+
+.dash-card:hover .sparkline-line { animation: sparkline-draw var(--t-med) var(--ease-out); }
+@keyframes sparkline-draw {
+  from { stroke-dashoffset: 80; stroke-dasharray: 80; }
+  to   { stroke-dashoffset: 0; stroke-dasharray: 80; }
+}
+
+/* ---------- Info tooltip ---------- */
+.info-trigger {
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--faint);
+  font-size: 0.6875rem;
+  line-height: 1;
+  cursor: help;
+  border-radius: var(--r-sm);
+  transition: color var(--t-fast) var(--ease-out);
+}
+.info-trigger:hover, .info-trigger:focus-visible { color: var(--accent-strong); }
+.tooltip-bubble {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 70;
+  width: max-content;
+  max-width: 240px;
+  padding: 10px 12px;
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--muted);
+  text-transform: none;
+  letter-spacing: normal;
+  box-shadow: var(--shadow-2);
+}
+
+/* ---------- Expandable dashboard sections ---------- */
+.dash-section {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-1);
+  padding: 16px 20px;
+}
+.dash-section summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 0;
+}
+.dash-section summary::-webkit-details-marker { display: none; }
+.dash-section summary::after {
+  content: '+';
+  margin-left: auto;
+  font-size: 1.125rem;
+  font-weight: 400;
+  color: var(--faint);
+  transition: transform 200ms ease-out;
+}
+.dash-section[open] summary::after { transform: rotate(45deg); }
+.dash-section__summary { color: var(--faint); }
+.dash-section__body { margin-top: 16px; }
+
+/* ---------- Sector heatmap ---------- */
+.sector-heatmap {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 8px;
+}
+.sector-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  cursor: default;
+  transition: transform var(--t-fast) var(--ease-out), border-color var(--t-fast) var(--ease-out);
+}
+.sector-tile:hover, .sector-tile:focus-visible { transform: translateY(-1px); border-color: var(--line-strong); }
+
+/* ---------- Events timeline ---------- */
+.dash-events { padding: clamp(16px, 2.5vw, 22px); }
+.events-timeline { list-style: none; margin: 0; padding: 0; }
+.events-timeline__row { padding-top: 12px; }
+.events-timeline__row:first-child { padding-top: 0; }
+.events-timeline__bucket {
+  display: block;
+  font-size: 0.625rem;
+  color: var(--faint);
+  margin-bottom: 8px;
+}
+.events-timeline__item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.events-timeline__row:last-child .events-timeline__item { border-bottom: none; padding-bottom: 0; }
+.events-timeline__countdown { margin-left: auto; font-size: 0.75rem; color: var(--muted); }
+.events-timeline__countdown[data-soon] { color: var(--warn); }
+
 /* ---------- Auth shell (login/signup) ---------- */
 .auth-shell {
   min-height: 100vh;
