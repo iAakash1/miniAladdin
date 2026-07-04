@@ -224,8 +224,19 @@ def run_backtest(ticker: str) -> dict[str, Any]:
     for v in verdicts:
         verdict_counts[v] = verdict_counts.get(v, 0) + 1
 
+    # Recent-signal summary consumed by the live engine's confidence terms
+    # (u_model, u_stab) — only ever read from cache, never computed inline.
+    flips_last6 = sum(
+        1 for a, b in zip(verdicts[-6:], verdicts[-5:]) if a != b
+    ) if len(verdicts) >= 2 else 0
+    recent = {
+        "rolling_ic_last": rolling_ic[-1]["ic"] if rolling_ic else None,
+        "verdict_flips_last6": flips_last6,
+    }
+
     payload = {
         "ticker": ticker,
+        "recent": recent,
         "scope_note": (
             "Momentum-family walk-forward, ungated (SRM=1.0): point-in-time "
             "fundamentals/news/macro are unavailable in free data, so this "
@@ -258,6 +269,17 @@ def run_backtest(ticker: str) -> dict[str, Any]:
     logger.info("backtest %s: %d samples, IC=%s, %.0fms",
                 ticker, len(scores), payload["ic"], payload["computed_in_ms"])
     return payload
+
+
+def peek_cached(ticker: str) -> Optional[dict[str, Any]]:
+    """Cached backtest payload or None — NEVER computes. The research path
+    uses this for u_model/u_stab so a heavy walk-forward can't be triggered
+    implicitly by an analyze request."""
+    with _lock:
+        entry = _cache.get(ticker.upper())
+        if entry and entry[0] > time.time():
+            return entry[1]
+    return None
 
 
 def reset_for_tests() -> None:

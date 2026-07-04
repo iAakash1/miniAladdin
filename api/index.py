@@ -17,6 +17,7 @@ import sys
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
@@ -50,6 +51,8 @@ from src.models import MacroIndicators
 from src import providers
 from src.providers.schemas import PriceSeries
 from src.scoring import score_ticker
+from src.services import analyst_store, fundamentals_data, news_scoring
+from src.services.backtest_service import peek_cached as peek_backtest
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 # Railway captures stdout; structured single-line records with timestamps.
@@ -193,6 +196,59 @@ def _fetch_macro_safe() -> tuple[float, dict[str, Any]]:
         return DEMO_MACRO_MULTIPLIER, _demo_macro_stats()
 
 
+# ── Fast macro stress inputs (engine v2.1 probabilistic gate) ────────────────
+# NFCI (weekly), Moody's BAA−10Y credit spread z, T10Y2Y term spread, VIX
+# percentile. Cached 15 min; every input optional — the gate degrades to the
+# term-only Estrella–Mishkin reduced model, then to the legacy SRM curve.
+STRESS_CACHE_TTL = 900.0
+_stress_cache: dict[str, tuple[float, dict[str, Any]]] = {}
+
+
+def _stress_inputs() -> dict[str, Any]:
+    now = time.time()
+    with _macro_lock:
+        entry = _stress_cache.get("v1")
+        if entry and entry[0] > now:
+            return entry[1]
+
+    out: dict[str, Any] = {"term_spread": None, "nfci": None,
+                           "credit_spread_z": None, "vix_percentile": None}
+    try:
+        term = providers.macro.get_series_snapshot("T10Y2Y", count=5)
+        if term.ok and term.data:
+            out["term_spread"] = float(term.data[-1][1])
+    except Exception:  # noqa: BLE001
+        logger.exception("term spread fetch failed")
+    try:
+        nfci = providers.macro.get_series_snapshot("NFCI", count=5)
+        if nfci.ok and nfci.data:
+            out["nfci"] = float(nfci.data[-1][1])  # NFCI is standardized at source
+    except Exception:  # noqa: BLE001
+        logger.exception("NFCI fetch failed")
+    try:
+        credit = providers.macro.get_series_snapshot("BAA10Y", count=260)
+        if credit.ok and credit.data and len(credit.data) >= 60:
+            values = [v for _, v in credit.data]
+            median = sorted(values)[len(values) // 2]
+            mad = sorted(abs(v - median) for v in values)[len(values) // 2]
+            if mad > 1e-9:
+                out["credit_spread_z"] = round((values[-1] - median) / (1.4826 * mad), 3)
+    except Exception:  # noqa: BLE001
+        logger.exception("credit spread fetch failed")
+    try:
+        vix = providers.market_data.get_series("^VIX", "1y")
+        if vix.ok and len(vix.data.bars) >= 60:
+            closes = [bar.close for bar in vix.data.bars]
+            latest = closes[-1]
+            out["vix_percentile"] = round(sum(1 for c in closes if c <= latest) / len(closes), 3)
+    except Exception:  # noqa: BLE001
+        logger.exception("VIX percentile fetch failed")
+
+    with _macro_lock:
+        _stress_cache["v1"] = (now + STRESS_CACHE_TTL, out)
+    return out
+
+
 def _series_to_dataframe(series: PriceSeries):
     """Convert normalized OHLCV bars to the DataFrame shape the agent expects."""
     import pandas as pd
@@ -332,18 +388,25 @@ def research_ticker(
             ticker, period="3mo", av_client=av_client, price_data=quarter
         )
         prediction_result = agent.predict(risk_multiplier=1.0)
-        return prediction_result, full_frame, series_result.confidence, _days_to_earnings()
+        # Slow inputs for the v2.1 quality/PEAD sleeves (6h-cached, optional)
+        quality_inputs = fundamentals_data.get_quality_inputs(ticker)
+        pead_inputs = fundamentals_data.get_pead_inputs(ticker)
+        return (prediction_result, full_frame, series_result.confidence,
+                _days_to_earnings(), quality_inputs, pead_inputs)
 
     scoring_frame = None
     series_confidence = 1.0
     days_to_earnings: Optional[int] = None
+    quality_inputs: dict[str, Any] = {}
+    pead_inputs: dict[str, Any] = {}
 
     with ThreadPoolExecutor(max_workers=2, thread_name_prefix="research") as pool:
         macro_future = pool.submit(_fetch_macro_safe)
         tech_future = pool.submit(_run_technicals)
         multiplier, macro_stats = macro_future.result()
         try:
-            prediction, scoring_frame, series_confidence, days_to_earnings = tech_future.result()
+            (prediction, scoring_frame, series_confidence,
+             days_to_earnings, quality_inputs, pead_inputs) = tech_future.result()
         except Exception:
             logger.exception("Technical analysis failed for %s", ticker)
             tech_error = "Technical analysis failed — check that the ticker symbol is valid"
@@ -467,8 +530,32 @@ def research_ticker(
                 "note":           "Sentiment analysis failed",
             }
 
-    # ── Step 4: Quantitative scoring (docs/SCORING.md). The v2 engine is the
-    # primary verdict source; the v1 point system remains solely as the
+    # ── Step 3b: News evidence methodology (v2.1 §7) — decay, novelty,
+    # clustering, confirmation → effective evidence for the engine. The raw
+    # sentiment block keeps its contract; additive fields report the method.
+    news_evidence = None
+    if sentiment_obj.headline_count:
+        try:
+            news_evidence = news_scoring.score_headlines([
+                {
+                    "title": h.headline, "score": h.score, "source": h.source,
+                    "url": h.url, "published_at": h.published_at,
+                }
+                for h in sentiment_obj.headlines
+            ])
+            if sentiment_data is not None:
+                sentiment_data["n_eff"] = news_evidence.n_eff
+                sentiment_data["s_eff"] = news_evidence.s_eff
+                sentiment_data["clusters"] = news_evidence.clusters
+                sentiment_data["method_note"] = news_evidence.note
+                for row, scored in zip(sentiment_data.get("headlines", []), news_evidence.headlines):
+                    row["event_type"] = scored.event_type
+                    row["evidence_weight"] = scored.weight
+        except Exception:  # noqa: BLE001 — methodology layer must never break research
+            logger.exception("News scoring failed for %s", ticker)
+
+    # ── Step 4: Quantitative scoring (docs/SCORING.md v2.1). The engine is
+    # the primary verdict source; the v1 point system remains solely as the
     # fallback for short price histories (< 60 bars) or scoring failures.
     scorecard = None
     if prediction is not None and scoring_frame is not None:
@@ -478,6 +565,13 @@ def research_ticker(
                 _series_to_dataframe(spy_result.data)
                 if spy_result.ok and spy_result.data.bars else None
             )
+            stress = _stress_inputs()
+            backtest_recent = (peek_backtest(ticker) or {}).get("recent", {})
+            last_bar_age_days = max(
+                0.0,
+                (datetime.now(timezone.utc).date()
+                 - date.fromisoformat(scoring_frame.index[-1].strftime("%Y-%m-%d"))).days,
+            ) if len(scoring_frame) else None
             scorecard = score_ticker(
                 scoring_frame,
                 srm=multiplier,
@@ -486,14 +580,40 @@ def research_ticker(
                 forward_pe=prediction.forward_pe,
                 analyst_target=prediction.analyst_target,
                 beta=prediction.beta,
-                sentiment_avg=sentiment_obj.average_score if sentiment_obj.headline_count else None,
-                headline_count=sentiment_obj.headline_count,
+                sentiment_avg=(news_evidence.s_eff if news_evidence
+                               else (sentiment_obj.average_score if sentiment_obj.headline_count else None)),
+                headline_count=(news_evidence.n_eff if news_evidence
+                                else float(sentiment_obj.headline_count)),
                 spy_frame=spy_frame,
                 days_to_earnings=days_to_earnings,
                 data_confidence=series_confidence,
+                gross_profit_over_assets=quality_inputs.get("gross_profit_over_assets"),
+                net_issuance_yoy=quality_inputs.get("net_issuance_yoy"),
+                asset_growth_yoy=quality_inputs.get("asset_growth_yoy"),
+                earnings_surprise_pct=pead_inputs.get("surprise_pct"),
+                days_since_earnings=pead_inputs.get("days_since"),
+                nfci=stress.get("nfci"),
+                credit_spread_z=stress.get("credit_spread_z"),
+                vix_percentile=stress.get("vix_percentile"),
+                term_spread=stress.get("term_spread"),
+                price_age_days=last_bar_age_days,
+                news_age_hours=news_evidence.median_age_hours if news_evidence else None,
+                model_rolling_ic=backtest_recent.get("rolling_ic_last"),
+                recent_verdict_flips=backtest_recent.get("verdict_flips_last6"),
             )
         except Exception:  # noqa: BLE001 — scoring must never take down research
             logger.exception("Scoring engine failed for %s — using legacy verdict", ticker)
+
+    # ── Step 4b: analyst snapshot persistence (plan item 10 — stored, not scored)
+    if prediction is not None:
+        analyst_store.record_snapshot(
+            ticker,
+            price=prediction.current_price,
+            analyst_target=prediction.analyst_target,
+            pe_ratio=prediction.pe_ratio,
+            forward_pe=prediction.forward_pe,
+            eps=prediction.eps,
+        )
 
     if scorecard is not None:
         # The engine's verdicts replace the legacy signal fields (same field
