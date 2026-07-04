@@ -640,3 +640,21 @@ def get_chart(ticker: str, period: str = "3mo"):
 def get_providers_health():
     """Vendor health: success %, latency, cooldowns, cache and dedupe stats."""
     return providers.providers_health()
+
+
+@app.get("/api/memo/{ticker}")
+def get_memo(ticker: str):
+    """
+    Full analyst memo: runs the research pipeline, collects + ranks cited
+    evidence, and generates a citation-audited investment memo. Heavier than
+    /api/research (evidence search + larger LLM call); cached 15 minutes.
+    """
+    from src.services import memo_service
+
+    ticker = ticker.upper().strip()
+    if not ticker or len(ticker) > 10:
+        raise HTTPException(status_code=400, detail="Invalid ticker symbol")
+
+    research = research_ticker(ticker, fast=False)
+    memo = memo_service.generate_memo(research)
+    return {"memo": memo, "research": research}
