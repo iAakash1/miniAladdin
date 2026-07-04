@@ -166,6 +166,15 @@ Opt-in live smoke tests: `OMNISIGNAL_LIVE_TESTS=1 python -m pytest tests/test_li
 | `GET /api/macro` | SRM + FRED indicators (demo fallback if FRED is down) |
 | `GET /api/research/{ticker}` | Full pipeline; `?fast=true` skips sentiment + LLM |
 | `GET /api/chart/{ticker}?period=` | Daily close/volume series |
+| `GET /api/dashboard` | Market intelligence: FRED macro board, breadth, 11 sectors, event calendar (15-min cache) |
+| `GET /api/quotes?symbols=` | Batch watchlist quotes (≤25; per-symbol failure isolation) |
+| `GET /api/screen?q=` | Ticker/company/theme search — thematic queries are web-grounded and symbol-validated |
+| `GET /api/memo/{ticker}` | Evidence-cited investment memo (memo-2 sections) on top of research |
+| `GET /api/backtest/{ticker}` | Walk-forward validation: IC, calibration, confusion matrix, long/flat vs buy & hold |
+| `GET /api/providers/health` | Vendor success %, latency, cooldowns, cache + dedupe stats |
+
+Terminal pages: `/terminal` (Market), `/terminal/analyze`, `/terminal/portfolio`
+(client-persisted watchlists + verdict history), `/terminal/validation`.
 
 Contract note: `verdict`, `macro`, `technicals`, `sentiment` are stable;
 `confidence`, `confidence_breakdown`, `risk_level`, `rationale`, `ai`,
