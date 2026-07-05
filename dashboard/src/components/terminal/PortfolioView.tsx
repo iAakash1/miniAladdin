@@ -4,7 +4,9 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import EmptyState from '@/components/ui/EmptyState'
 import Skeleton from '@/components/ui/Skeleton'
-import { diffSnapshots, useAllHistory } from '@/lib/history'
+import Tooltip from '@/components/ui/Tooltip'
+import { FACTOR_LABELS, diffSnapshots, useAllHistory } from '@/lib/history'
+import { timeAgo } from '@/lib/format'
 import {
   SUGGESTED_LISTS,
   type Watchlist,
@@ -39,6 +41,51 @@ function ChangeCell({ value }: { value: number | null | undefined }) {
   )
 }
 
+interface StorageRow {
+  label: string
+  location: string
+  detail: string
+}
+
+const STORAGE_ROWS: StorageRow[] = [
+  { label: 'Watchlists', location: 'Browser', detail: 'Saved in this browser’s local storage only — not on OmniSignal’s servers.' },
+  { label: 'Verdict & confidence history', location: 'Browser', detail: 'Same mechanism, per ticker, last 50 runs kept.' },
+  { label: 'Prices & quotes', location: 'Server (live)', detail: 'Fetched fresh from the provider chain each time you open this list or click Refresh — not cached in your browser between visits.' },
+  { label: 'AI research narrative', location: 'Server (5 min cache)', detail: 'Briefly cached to avoid duplicate model calls; not persisted beyond that.' },
+  { label: 'Sync across devices', location: 'None', detail: 'There is no account-linked cloud sync yet — this list will not appear on another browser or device.' },
+]
+
+/** Explicit, unambiguous account of where portfolio data actually lives —
+ *  the product currently keeps all user-editable state client-side by
+ *  design, so this states that plainly rather than leaving it implicit. */
+function StorageStatus() {
+  return (
+    <details className="panel" style={{ padding: '14px 18px' }}>
+      <summary style={{ cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 550, color: 'var(--text)', userSelect: 'none' }}>
+        Where is this stored?
+      </summary>
+      <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {STORAGE_ROWS.map((row) => (
+          <div key={row.label} style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+            <span style={{ width: 190, flexShrink: 0, fontSize: '0.75rem', fontWeight: 550, color: 'var(--text)' }}>
+              {row.label}
+            </span>
+            <span
+              className="badge badge--neutral"
+              style={{ height: 19, fontSize: '0.625rem', flexShrink: 0 }}
+            >
+              {row.location}
+            </span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--muted)', lineHeight: 1.5, flex: '1 1 320px' }}>
+              {row.detail}
+            </span>
+          </div>
+        ))}
+      </div>
+    </details>
+  )
+}
+
 export default function PortfolioView() {
   const lists = useWatchlists()
   const history = useAllHistory()
@@ -48,6 +95,7 @@ export default function PortfolioView() {
   const [quotes, setQuotes] = useState<Record<string, Quote>>({})
   const [loadingQuotes, setLoadingQuotes] = useState(false)
   const [quotesReload, setQuotesReload] = useState(0)
+  const [quotesFetchedAt, setQuotesFetchedAt] = useState<string | null>(null)
 
   const active: Watchlist | null =
     lists.find((list) => list.id === activeId) ?? lists[0] ?? null
@@ -66,7 +114,10 @@ export default function PortfolioView() {
     fetch(`/api/quotes?symbols=${encodeURIComponent(activeTickersKey)}`, { signal: controller.signal })
       .then((response) => (response.ok ? response.json() : Promise.reject(new Error(String(response.status)))))
       .then((json: { quotes: Record<string, Quote> }) => {
-        if (alive) setQuotes(json.quotes ?? {})
+        if (alive) {
+          setQuotes(json.quotes ?? {})
+          setQuotesFetchedAt(new Date().toISOString())
+        }
       })
       .catch((error: unknown) => {
         if (alive && (error as Error).name !== 'AbortError') setQuotes({})
@@ -210,6 +261,8 @@ export default function PortfolioView() {
         )}
       </div>
 
+      <StorageStatus />
+
       {active && (
         <>
           {/* Add ticker */}
@@ -221,7 +274,7 @@ export default function PortfolioView() {
                 setAddSymbol('')
               }
             }}
-            style={{ display: 'flex', gap: 8 }}
+            style={{ display: 'flex', gap: 8, alignItems: 'center' }}
           >
             <label htmlFor="add-ticker" className="visually-hidden">Add ticker to {active.name}</label>
             <input
@@ -236,15 +289,21 @@ export default function PortfolioView() {
             <button type="submit" className="btn btn--secondary btn--sm" disabled={!addSymbol.trim()}>
               Add to {active.name}
             </button>
-            <button
-              type="button"
-              className="btn btn--ghost btn--sm"
-              style={{ marginLeft: 'auto' }}
-              onClick={() => setQuotesReload((key) => key + 1)}
-              disabled={loadingQuotes || active.tickers.length === 0}
-            >
-              {loadingQuotes ? 'Refreshing…' : 'Refresh quotes'}
-            </button>
+            <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
+              {quotesFetchedAt && !loadingQuotes && (
+                <span style={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>
+                  Quotes updated {timeAgo(quotesFetchedAt)}
+                </span>
+              )}
+              <button
+                type="button"
+                className="btn btn--ghost btn--sm"
+                onClick={() => setQuotesReload((key) => key + 1)}
+                disabled={loadingQuotes || active.tickers.length === 0}
+              >
+                {loadingQuotes ? 'Refreshing…' : 'Refresh quotes'}
+              </button>
+            </span>
           </form>
 
           {active.tickers.length === 0 ? (
@@ -254,7 +313,7 @@ export default function PortfolioView() {
             />
           ) : (
             <div className="panel" style={{ overflowX: 'auto' }}>
-              <table className="data-table" style={{ minWidth: 820 }}>
+              <table className="data-table" style={{ minWidth: 960 }}>
                 <caption className="visually-hidden">
                   {active.name} watchlist, ranked by verdict then confidence
                 </caption>
@@ -265,16 +324,16 @@ export default function PortfolioView() {
                     <th scope="col" style={{ textAlign: 'right' }}>1D</th>
                     <th scope="col" style={{ textAlign: 'right' }}>1W</th>
                     <th scope="col">Verdict</th>
-                    <th scope="col">Signal change</th>
+                    <th scope="col">Previous</th>
+                    <th scope="col">Change</th>
                     <th scope="col" style={{ textAlign: 'right' }}>Conf</th>
                     <th scope="col">Risk</th>
-                    <th scope="col" style={{ textAlign: 'right' }}>Momentum</th>
-                    <th scope="col" style={{ textAlign: 'right' }}>Gate</th>
+                    <th scope="col">Last analyzed</th>
                     <th scope="col"><span className="visually-hidden">Actions</span></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map(({ ticker, quote, latest, diff }) => (
+                  {rows.map(({ ticker, quote, latest, previous, diff }) => (
                     <tr key={ticker}>
                       <td>
                         <Link
@@ -300,12 +359,31 @@ export default function PortfolioView() {
                           <span style={{ fontSize: '0.75rem', color: 'var(--faint)' }}>not analyzed</span>
                         )}
                       </td>
+                      <td style={{ fontSize: '0.75rem', color: 'var(--faint)' }}>
+                        {previous ? previous.verdict : '—'}
+                      </td>
                       <td>
+                        {diff && (diff.verdictChanged || Math.abs(diff.confidenceDelta) >= 3) ? (
+                          <Tooltip label={`Why ${ticker} changed`}>
+                            <p style={{ margin: 0, fontWeight: 550, color: 'var(--text)' }}>
+                              Confidence {diff.confidenceDelta >= 0 ? '+' : ''}{diff.confidenceDelta}pp
+                              {diff.scoreDelta !== null && ` · composite ${diff.scoreDelta >= 0 ? '+' : ''}${diff.scoreDelta.toFixed(3)}`}
+                            </p>
+                            {diff.topDrivers.length > 0 && (
+                              <ul style={{ listStyle: 'none', margin: '6px 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                {diff.topDrivers.slice(0, 3).map((driver) => (
+                                  <li key={driver.name} style={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>
+                                    {FACTOR_LABELS[driver.name] ?? driver.name}: {driver.before.toFixed(2)} → {driver.after.toFixed(2)}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </Tooltip>
+                        ) : null}
                         {diff?.verdictChanged ? (
                           <span
                             className={`badge ${diff.direction === 'upgrade' ? 'badge--pos' : 'badge--neg'}`}
-                            style={{ height: 19, fontSize: '0.625rem' }}
-                            title={`Confidence ${diff.confidenceDelta >= 0 ? '+' : ''}${diff.confidenceDelta}pp`}
+                            style={{ height: 19, fontSize: '0.625rem', marginLeft: 4 }}
                           >
                             {diff.direction === 'upgrade' ? '▲ upgrade' : '▼ downgrade'}
                           </span>
@@ -319,15 +397,17 @@ export default function PortfolioView() {
                       <td style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
                         {latest?.riskLevel?.toLowerCase() ?? '—'}
                       </td>
-                      <td className="num" style={{ textAlign: 'right' }}>
-                        {latest?.momentumScore !== null && latest?.momentumScore !== undefined
-                          ? latest.momentumScore.toFixed(2) : '—'}
+                      <td style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+                        {latest ? timeAgo(latest.ts) : '—'}
                       </td>
-                      <td className="num" style={{ textAlign: 'right' }}>
-                        {latest?.macroGate !== null && latest?.macroGate !== undefined
-                          ? latest.macroGate.toFixed(2) : '—'}
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
+                      <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <Link
+                          href={`/terminal/analyze?ticker=${ticker}`}
+                          className="btn btn--ghost btn--sm"
+                          style={{ height: 24, padding: '0 8px', fontSize: '0.6875rem', textDecoration: 'none' }}
+                        >
+                          Explain
+                        </Link>
                         <button
                           type="button"
                           className="btn btn--ghost btn--sm"
@@ -345,8 +425,9 @@ export default function PortfolioView() {
             </div>
           )}
           <p style={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>
-            Verdict columns come from your own analysis runs (stored in this browser); run
-            Analyze on a ticker to populate them. Quotes via the provider fallback chain.
+            Verdict columns come from your own analysis runs, stored in this browser (see “Where is
+            this stored?” above) — run Analyze on a ticker to populate them. Quotes via the provider
+            fallback chain.
           </p>
         </>
       )}
