@@ -62,7 +62,7 @@ function asRiskLevel(v: string | undefined | null): RiskLevel | null {
   return v === 'LOW' || v === 'MEDIUM' || v === 'HIGH' ? v : null
 }
 
-function normalizeAi(raw: RawAiAnalysis | null | undefined): AiAnalysis | null {
+export function normalizeAi(raw: RawAiAnalysis | null | undefined): AiAnalysis | null {
   if (!raw || typeof raw.executive_summary !== 'string' || !raw.executive_summary) return null
   const rec = raw.recommendation
   return {
@@ -70,6 +70,8 @@ function normalizeAi(raw: RawAiAnalysis | null | undefined): AiAnalysis | null {
     confidence: typeof raw.confidence === 'number' ? Math.round(raw.confidence) : 50,
     risk: asRiskLevel(raw.risk) ?? 'MEDIUM',
     executiveSummary: raw.executive_summary,
+    bullCase: raw.bull_case ?? '',
+    bearCase: raw.bear_case ?? '',
     technicalReasoning: raw.technical_reasoning ?? '',
     macroReasoning: raw.macro_reasoning ?? '',
     newsReasoning: raw.news_reasoning ?? '',
@@ -77,6 +79,7 @@ function normalizeAi(raw: RawAiAnalysis | null | undefined): AiAnalysis | null {
     confidenceReason: raw.confidence_reason ?? '',
     keyCatalysts: raw.key_catalysts ?? [],
     keyRisks: raw.key_risks ?? [],
+    thingsToWatch: raw.things_to_watch ?? [],
     investmentHorizon: raw.investment_horizon ?? '',
     marketOutlook: raw.market_outlook ?? '',
     generated: raw.generated ?? false,

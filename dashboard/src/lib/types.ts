@@ -81,6 +81,8 @@ export interface RawAiAnalysis {
   confidence?: number
   risk?: string
   executive_summary?: string
+  bull_case?: string
+  bear_case?: string
   technical_reasoning?: string
   macro_reasoning?: string
   news_reasoning?: string
@@ -88,6 +90,7 @@ export interface RawAiAnalysis {
   confidence_reason?: string
   key_catalysts?: string[]
   key_risks?: string[]
+  things_to_watch?: string[]
   investment_horizon?: string
   market_outlook?: string
   generated?: boolean
@@ -229,6 +232,8 @@ export interface AiAnalysis {
   confidence: number // 0–100, engine value
   risk: RiskLevel
   executiveSummary: string
+  bullCase: string
+  bearCase: string
   technicalReasoning: string
   macroReasoning: string
   newsReasoning: string
@@ -236,6 +241,7 @@ export interface AiAnalysis {
   confidenceReason: string
   keyCatalysts: string[]
   keyRisks: string[]
+  thingsToWatch: string[]
   investmentHorizon: string
   marketOutlook: string
   generated: boolean

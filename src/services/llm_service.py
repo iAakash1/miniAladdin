@@ -11,7 +11,7 @@ Architecture contract (docs/AUDIT.md §3):
 The model NEVER generates recommendation, confidence, its breakdown, risk,
 rationale, or any indicator/macro value. Those are computed upstream, passed
 in as facts, and attached to the result verbatim. The model contributes only
-the narrative fields of the v2 schema below.
+the narrative fields of the v3 schema below.
 
 Reliability: singleton client · 8s timeout · exponential backoff on 429/5xx ·
 strict ``json.loads`` + Pydantic validation · one corrective retry · then a
@@ -45,18 +45,20 @@ from src.services.metrics import llm_metrics
 logger = logging.getLogger(__name__)
 
 DEFAULT_MODEL = "openai/gpt-oss-120b"
-PROMPT_VERSION = "2"
+PROMPT_VERSION = "3"
 MAX_TRANSIENT_RETRIES = 2      # network / 429 / 5xx, with exponential backoff
 BACKOFF_BASE_SECONDS = 0.5
 VALIDATION_RETRIES = 1         # one corrective re-ask on malformed output
 
 
-# ── Response schema (v2 — narrative only; deterministic values are inputs) ───
+# ── Response schema (v3 — narrative only; deterministic values are inputs) ───
 
 class LLMAnalysis(BaseModel):
     """Strict schema for the model's JSON output. Explanation fields only."""
 
     executive_summary: str = Field(..., min_length=1, max_length=2000)
+    bull_case: str = Field("", max_length=1000)
+    bear_case: str = Field("", max_length=1000)
     technical_reasoning: str = Field("", max_length=1500)
     macro_reasoning: str = Field("", max_length=1500)
     news_reasoning: str = Field("", max_length=1500)
@@ -64,6 +66,7 @@ class LLMAnalysis(BaseModel):
     confidence_reason: str = Field("", max_length=1000)
     key_catalysts: list[str] = Field(default_factory=list, max_length=10)
     key_risks: list[str] = Field(default_factory=list, max_length=10)
+    things_to_watch: list[str] = Field(default_factory=list, max_length=10)
     investment_horizon: str = Field("", max_length=300)
     market_outlook: str = Field("", max_length=1000)
 
@@ -79,6 +82,8 @@ Return valid JSON only. No markdown, no code fences, no tables, no text outside 
 Schema (all keys required; use "" or [] when a section has no data):
 {
   "executive_summary": "<3-5 sentences: what the verdict is and the main reasons why, citing supplied numbers>",
+  "bull_case": "<the strongest case FOR the position, built only from supplied factors that point that way — even for a HOLD or SELL verdict, state what a bull would point to>",
+  "bear_case": "<the strongest case AGAINST the position, built only from supplied factors that point that way — even for a BUY verdict, state what a bear would point to>",
   "technical_reasoning": "<how the supplied technical indicators support or oppose the verdict>",
   "macro_reasoning": "<what the supplied macro block (SRM, yield spread, inflation, Fed rate) contributed, including any dampening>",
   "news_reasoning": "<what the supplied sentiment block contributed; if headline_count is 0, say sentiment was unavailable>",
@@ -86,9 +91,12 @@ Schema (all keys required; use "" or [] when a section has no data):
   "confidence_reason": "<explain the supplied confidence using the supplied confidence_breakdown items — do not invent arithmetic>",
   "key_catalysts": ["<short factual bullish drivers from the supplied data>"],
   "key_risks": ["<short factual risk factors from the supplied data>"],
+  "things_to_watch": ["<short forward-looking items worth monitoring next — upcoming levels, thresholds or regime shifts implied by the supplied data; do not just repeat key_risks>"],
   "investment_horizon": "<short-term | medium-term | long-term, one clause of justification>",
   "market_outlook": "<1-2 sentences on the macro regime using only the supplied macro block>"
 }
+
+bull_case and bear_case must both be present regardless of verdict — a HOLD still has a case on each side, drawn only from the supplied numbers. things_to_watch is forward-looking (what could change the picture), not a restatement of key_risks (what is true now).
 
 Style: research-desk register. No hype, no advice language, no disclaimers (the API attaches one)."""
 
@@ -206,6 +214,8 @@ def _fallback(payload: dict[str, Any], reason: str) -> dict[str, Any]:
             f"{decision.get('recommendation', 'HOLD')} at {decision.get('confidence', 50)}% confidence. "
             f"{rationale} (AI narrative unavailable: {reason} — showing the engine's own rationale.)"
         ),
+        "bull_case": "",
+        "bear_case": "",
         "technical_reasoning": "",
         "macro_reasoning": "",
         "news_reasoning": "",
@@ -213,6 +223,7 @@ def _fallback(payload: dict[str, Any], reason: str) -> dict[str, Any]:
         "confidence_reason": confidence_reason,
         "key_catalysts": [],
         "key_risks": [part.strip() for part in rationale.split(";") if part.strip()][:5],
+        "things_to_watch": [],
         "investment_horizon": "",
         "market_outlook": "",
         "generated": False,

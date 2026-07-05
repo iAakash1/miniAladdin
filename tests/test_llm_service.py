@@ -17,6 +17,8 @@ from src.services.metrics import llm_metrics
 
 VALID_MODEL_JSON = {
     "executive_summary": "The engine holds at elevated risk: RSI-14 at 28.4 is oversold while SRM 1.2 dampens upside.",
+    "bull_case": "RSI-14 at 28.4 is oversold and Sharpe of 1.6 shows strong risk-adjusted returns to date.",
+    "bear_case": "SRM at 1.2 marks an elevated macro regime that has historically capped upside for this signal.",
     "technical_reasoning": "RSI-14 at 28.4 flags oversold; Sharpe of 1.6 shows strong risk-adjusted returns.",
     "macro_reasoning": "SRM at 1.2 marks an elevated regime, pulling the raw signal one step toward caution.",
     "news_reasoning": "Sentiment was unavailable for this run.",
@@ -24,6 +26,7 @@ VALID_MODEL_JSON = {
     "confidence_reason": "Base 50% plus 20% for technical agreement equals the supplied 70%.",
     "key_catalysts": ["Oversold RSI-14 at 28.4", "Sharpe ratio 1.6"],
     "key_risks": ["Elevated macro regime at SRM 1.2"],
+    "things_to_watch": ["Whether SRM eases back below 1.0", "RSI-14 crossing back above 40"],
     "investment_horizon": "medium-term, tied to the 21-day momentum window",
     "market_outlook": "Elevated but not critical regime at SRM 1.2.",
 }
@@ -89,7 +92,24 @@ class TestSuccessPath:
         assert result["cached"] is False
         assert result["executive_summary"].startswith("The engine holds")
         assert result["key_catalysts"] == VALID_MODEL_JSON["key_catalysts"]
+        assert result["bull_case"] == VALID_MODEL_JSON["bull_case"]
+        assert result["bear_case"] == VALID_MODEL_JSON["bear_case"]
+        assert result["things_to_watch"] == VALID_MODEL_JSON["things_to_watch"]
         assert client.chat.completions.create.call_count == 1
+
+    def test_bull_bear_and_watch_are_optional_in_model_output(self, monkeypatch):
+        # A model reply that omits the new v3 keys must still validate — they
+        # default to "" / [] rather than failing the whole explanation.
+        partial = {k: v for k, v in VALID_MODEL_JSON.items() if k not in ("bull_case", "bear_case", "things_to_watch")}
+        client = fake_client_returning(json.dumps(partial))
+        install_client(monkeypatch, client)
+
+        result = llm_service.explain_recommendation(make_payload())
+
+        assert result["generated"] is True
+        assert result["bull_case"] == ""
+        assert result["bear_case"] == ""
+        assert result["things_to_watch"] == []
 
     def test_deterministic_fields_come_from_engine_not_model(self, monkeypatch):
         # The v2 schema has no recommendation/confidence/risk keys at all —
@@ -162,6 +182,10 @@ class TestFailurePaths:
 
         assert result["generated"] is False
         assert result["confidence"] == 70
+        # v3 narrative-only fields default cleanly in the fallback path too.
+        assert result["bull_case"] == ""
+        assert result["bear_case"] == ""
+        assert result["things_to_watch"] == []
 
     def test_transient_errors_retry_with_backoff(self, monkeypatch):
         class RateLimitError(Exception):

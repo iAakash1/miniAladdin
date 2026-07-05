@@ -8,7 +8,17 @@ const RISK_BADGE: Record<RiskLevel, string> = {
   HIGH: 'badge--neg',
 }
 
-function FactorList({ title, items, tone }: { title: string; items: string[]; tone: 'pos' | 'neg' }) {
+const DOT_COLOR = { pos: 'var(--pos)', neg: 'var(--neg)', neutral: 'var(--warn)' } as const
+
+function FactorList({
+  title,
+  items,
+  tone,
+}: {
+  title: string
+  items: string[]
+  tone: 'pos' | 'neg' | 'neutral'
+}) {
   if (items.length === 0) return null
   return (
     <div style={{ flex: '1 1 240px', minWidth: 0 }}>
@@ -26,13 +36,28 @@ function FactorList({ title, items, tone }: { title: string; items: string[]; to
                 width: 6,
                 height: 6,
                 borderRadius: 1,
-                background: tone === 'pos' ? 'var(--pos)' : 'var(--neg)',
+                background: DOT_COLOR[tone],
               }}
             />
             {item}
           </li>
         ))}
       </ul>
+    </div>
+  )
+}
+
+function CaseColumn({ title, text, tone }: { title: string; text: string; tone: 'pos' | 'neg' }) {
+  if (!text) return null
+  return (
+    <div style={{ flex: '1 1 260px', minWidth: 0 }}>
+      <p
+        className="label"
+        style={{ marginBottom: 6, color: tone === 'pos' ? 'var(--pos)' : 'var(--neg)' }}
+      >
+        {title}
+      </p>
+      <p style={{ fontSize: '0.8125rem', lineHeight: 1.6, color: 'var(--text)' }}>{text}</p>
     </div>
   )
 }
@@ -113,13 +138,24 @@ export default function AiPanel({ analysis }: { analysis: Analysis }) {
         </p>
       )}
 
-      {(ai.keyCatalysts.length > 0 || ai.keyRisks.length > 0) && (
+      {(ai.bullCase || ai.bearCase) && (
+        <div
+          className="hairline-top"
+          style={{ display: 'flex', flexWrap: 'wrap', gap: '14px 40px', paddingTop: 16, marginTop: 16 }}
+        >
+          <CaseColumn title="Bull case" text={ai.bullCase} tone="pos" />
+          <CaseColumn title="Bear case" text={ai.bearCase} tone="neg" />
+        </div>
+      )}
+
+      {(ai.keyCatalysts.length > 0 || ai.keyRisks.length > 0 || ai.thingsToWatch.length > 0) && (
         <div
           className="hairline-top"
           style={{ display: 'flex', flexWrap: 'wrap', gap: '18px 40px', paddingTop: 16, marginTop: 16 }}
         >
           <FactorList title="Key catalysts" items={ai.keyCatalysts} tone="pos" />
           <FactorList title="Key risks" items={ai.keyRisks} tone="neg" />
+          <FactorList title="Things to watch" items={ai.thingsToWatch} tone="neutral" />
         </div>
       )}
 
