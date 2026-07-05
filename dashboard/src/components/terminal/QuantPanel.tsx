@@ -4,12 +4,6 @@ import { useState } from 'react'
 import { FACTOR_LABELS } from '@/lib/history'
 import type { Analysis } from '@/lib/types'
 
-const FAMILY_LABEL: Record<string, string> = {
-  momentum: 'Momentum',
-  fundamental: 'Fundamental',
-  news: 'News',
-}
-
 function ScorePill({ label, value }: { label: string; value: number | null }) {
   if (value === null) {
     return (
