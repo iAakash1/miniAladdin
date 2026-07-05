@@ -64,7 +64,7 @@ export async function POST() {
   })
 
   const orderRequest = {
-    amount: 5000, // paise → ₹50.00; integer >= 100 required by Razorpay ✓
+    amount: 10000, // paise → ₹100.00; integer >= 100 required by Razorpay ✓
     currency: 'INR', // supported currency ✓
     receipt: buildReceipt(userId), // <= 40 chars enforced above ✓
   }

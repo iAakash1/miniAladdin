@@ -145,7 +145,7 @@ export default function UpgradeDialog({ open, onClose, reason }: UpgradeDialogPr
           }}
         >
           <span className="num" style={{ fontSize: '1.75rem', fontWeight: 600 }}>
-            ₹50
+            ₹100
           </span>
           <span style={{ fontSize: '0.8125rem', color: 'var(--faint)' }}>per month · cancel anytime</span>
         </div>

@@ -60,7 +60,7 @@ const FAQ = [
   },
   {
     q: 'Can I cancel Pro?',
-    a: 'Yes, anytime. Pro is ₹50 per month through Razorpay. If you cancel, you keep Pro until the end of the billing period and then return to the free tier — nothing is deleted.',
+    a: 'Yes, anytime. Pro is ₹100 per month through Razorpay. If you cancel, you keep Pro until the end of the billing period and then return to the free tier — nothing is deleted.',
   },
 ]
 
@@ -352,7 +352,7 @@ export default function LandingPage() {
                 </div>
                 <p style={{ marginBottom: 22 }}>
                   <span className="num" style={{ fontSize: '2rem', fontWeight: 600 }}>
-                    ₹50
+                    ₹100
                   </span>
                   <span style={{ fontSize: '0.875rem', color: 'var(--faint)' }}> / month</span>
                 </p>
