@@ -11,7 +11,22 @@ Architecture contract (docs/AUDIT.md §3):
 The model NEVER generates recommendation, confidence, its breakdown, risk,
 rationale, or any indicator/macro value. Those are computed upstream, passed
 in as facts, and attached to the result verbatim. The model contributes only
-the narrative fields of the v3 schema below.
+the narrative fields of the v4 schema below — a full research-report layer:
+executive summary, investment thesis, bull/bear case, verdict rationale,
+per-family impact commentary (momentum, quality, value, PEAD, macro, news),
+a synthesis of the biggest positive/negative contributors, catalysts, risks,
+things to watch and a closing conclusion.
+
+Family-level "impact" subtotals (momentum/quality/value/PEAD/news) are NOT
+computed by the model — ``_group_factor_impacts`` sums the engine's own
+per-factor ``contribution`` values (already computed by ``src/scoring/
+engine.py``) into presentation buckets before the request is ever sent. This
+regrouping is display-only: it does not touch the engine's real scoring
+families or weights. The model receives the subtotals as facts and explains
+them; it never adds them up itself. There is deliberately no "what changed
+since last analysis" field here — that history lives client-side only
+(``dashboard/src/lib/history.ts``, browser localStorage), so the backend has
+no prior snapshot to narrate; the frontend's own diff view owns that story.
 
 Reliability: singleton client · 8s timeout · exponential backoff on 429/5xx ·
 strict ``json.loads`` + Pydantic validation · one corrective retry · then a
@@ -45,60 +60,132 @@ from src.services.metrics import llm_metrics
 logger = logging.getLogger(__name__)
 
 DEFAULT_MODEL = "openai/gpt-oss-120b"
-PROMPT_VERSION = "3"
+PROMPT_VERSION = "4"
 MAX_TRANSIENT_RETRIES = 2      # network / 429 / 5xx, with exponential backoff
 BACKOFF_BASE_SECONDS = 0.5
 VALIDATION_RETRIES = 1         # one corrective re-ask on malformed output
 
 
-# ── Response schema (v3 — narrative only; deterministic values are inputs) ───
+# ── Response schema (v4 — full research report; deterministic values are inputs) ─
 
 class LLMAnalysis(BaseModel):
     """Strict schema for the model's JSON output. Explanation fields only."""
 
     executive_summary: str = Field(..., min_length=1, max_length=2000)
+    investment_thesis: str = Field("", max_length=1500)
+    verdict_rationale: str = Field("", max_length=1000)
     bull_case: str = Field("", max_length=1000)
     bear_case: str = Field("", max_length=1000)
     technical_reasoning: str = Field("", max_length=1500)
+    momentum_impact: str = Field("", max_length=800)
+    quality_impact: str = Field("", max_length=800)
+    value_impact: str = Field("", max_length=800)
+    pead_impact: str = Field("", max_length=800)
     macro_reasoning: str = Field("", max_length=1500)
     news_reasoning: str = Field("", max_length=1500)
     risk_reasoning: str = Field("", max_length=1500)
     confidence_reason: str = Field("", max_length=1000)
+    top_positive_narrative: str = Field("", max_length=600)
+    top_negative_narrative: str = Field("", max_length=600)
     key_catalysts: list[str] = Field(default_factory=list, max_length=10)
     key_risks: list[str] = Field(default_factory=list, max_length=10)
     things_to_watch: list[str] = Field(default_factory=list, max_length=10)
     investment_horizon: str = Field("", max_length=300)
     market_outlook: str = Field("", max_length=1000)
+    conclusion: str = Field("", max_length=800)
 
 
-SYSTEM_PROMPT = """You are OmniSignal AI, an expert financial research assistant.
+# ── Factor-impact grouping (presentation layer — see module docstring) ───────
 
-You do NOT browse the internet. You ONLY analyze the structured information provided in the user message. Never fabricate information. Never guess missing values — if a value is null or absent, note that the data is insufficient for that point instead of inventing it. Never calculate anything: every number you may reference (indicators, macro series, scores, confidence, its breakdown, risk level, recommendation) is already computed by a deterministic engine and given to you as fact.
-
-Your only job is to EXPLAIN the engine's decision in professional plain English, citing the supplied numbers exactly as given (e.g. "RSI-14 at 39.1"). Do not contradict the decision block. Do not restate a recommendation of your own.
-
-Return valid JSON only. No markdown, no code fences, no tables, no text outside the JSON object. It must parse with a strict parser.
-
-Schema (all keys required; use "" or [] when a section has no data):
-{
-  "executive_summary": "<3-5 sentences: what the verdict is and the main reasons why, citing supplied numbers>",
-  "bull_case": "<the strongest case FOR the position, built only from supplied factors that point that way — even for a HOLD or SELL verdict, state what a bull would point to>",
-  "bear_case": "<the strongest case AGAINST the position, built only from supplied factors that point that way — even for a BUY verdict, state what a bear would point to>",
-  "technical_reasoning": "<how the supplied technical indicators support or oppose the verdict>",
-  "macro_reasoning": "<what the supplied macro block (SRM, yield spread, inflation, Fed rate) contributed, including any dampening>",
-  "news_reasoning": "<what the supplied sentiment block contributed; if headline_count is 0, say sentiment was unavailable>",
-  "risk_reasoning": "<why the supplied risk level is what it is, from volatility/drawdown/beta/SRM given>",
-  "confidence_reason": "<explain the supplied confidence using the supplied confidence_breakdown items — do not invent arithmetic>",
-  "key_catalysts": ["<short factual bullish drivers from the supplied data>"],
-  "key_risks": ["<short factual risk factors from the supplied data>"],
-  "things_to_watch": ["<short forward-looking items worth monitoring next — upcoming levels, thresholds or regime shifts implied by the supplied data; do not just repeat key_risks>"],
-  "investment_horizon": "<short-term | medium-term | long-term, one clause of justification>",
-  "market_outlook": "<1-2 sentences on the macro regime using only the supplied macro block>"
+# Maps the engine's own FactorRow.family (src/scoring/engine.py) to a
+# narrative "impact" bucket. "pead" is pulled out of "fundamental" into its
+# own bucket because it is explicitly called out in the report; the rest of
+# "fundamental" (target_upside, earnings_yield, pe_gap) becomes "value";
+# "reversal" (the short-horizon contrarian signal) reads to an end user as a
+# momentum-family concept, so it is folded into "momentum" here — this does
+# NOT change how the engine weights or scores it, only how it is grouped for
+# the narrative.
+_FAMILY_TO_IMPACT = {
+    "momentum": "momentum",
+    "reversal": "momentum",
+    "quality": "quality",
+    "fundamental": "value",
+    "news": "news",
+}
+IMPACT_LABELS = {
+    "momentum": "Momentum",
+    "quality": "Quality",
+    "value": "Value",
+    "pead": "Post-earnings drift",
+    "news": "News",
 }
 
-bull_case and bear_case must both be present regardless of verdict — a HOLD still has a case on each side, drawn only from the supplied numbers. things_to_watch is forward-looking (what could change the picture), not a restatement of key_risks (what is true now).
 
-Style: research-desk register. No hype, no advice language, no disclaimers (the API attaches one)."""
+def _group_factor_impacts(factors: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """
+    Sum the engine's own per-factor ``contribution`` values into the five
+    narrative buckets (momentum, quality, value, pead, news). Pure and
+    order-stable; used both to build the LLM payload and could be reused by
+    any other consumer that wants the same grouping. Never invents a number —
+    every contribution here was already computed by the scoring engine.
+    """
+    buckets: dict[str, dict[str, Any]] = {
+        key: {"contribution": 0.0, "factors": []}
+        for key in ("momentum", "quality", "value", "pead", "news")
+    }
+    for factor in factors:
+        name = factor.get("name")
+        family = factor.get("family")
+        contribution = factor.get("contribution")
+        if contribution is None:
+            continue
+        bucket_key = "pead" if name == "pead" else _FAMILY_TO_IMPACT.get(family)
+        if bucket_key is None:
+            continue
+        bucket = buckets[bucket_key]
+        bucket["contribution"] = round(bucket["contribution"] + contribution, 4)
+        bucket["factors"].append({"name": name, "contribution": contribution})
+    for bucket in buckets.values():
+        bucket["factors"].sort(key=lambda f: abs(f["contribution"]), reverse=True)
+    return buckets
+
+
+SYSTEM_PROMPT = """You are OmniSignal Research, writing the narrative layer of an institutional equity research report.
+
+FACTS AND BOUNDARIES
+You do not browse the internet and have no knowledge beyond the JSON supplied in the user message. Every number that matters — recommendation, confidence, its breakdown, risk level, risk breakdown, factor contributions, factor-family impact subtotals (momentum, quality, value, PEAD, news), macro readings, technical indicators, sentiment — is already computed by a deterministic engine and handed to you as fact. You never calculate, estimate, re-derive, or adjust any of these numbers. You never invent a number, ticker fact, catalyst, or event that is not present in the supplied JSON. If a field is null, empty, or absent, say plainly that the data was unavailable for that point — never fill the gap with a plausible-sounding guess. You never contradict the supplied decision block, and you never issue a recommendation of your own — the recommendation is the engine's, stated once, and your job is only to explain why it follows from the supplied facts.
+
+OUTPUT
+Return one valid JSON object and nothing else — no markdown, no code fences, no commentary before or after. It must parse with a strict parser on the first try.
+
+Schema (every key required; use "" or [] for a section with no supporting data rather than omitting the key):
+{
+  "executive_summary": "<3-5 sentences: the verdict, the confidence and risk levels, and the two or three supplied numbers that matter most>",
+  "investment_thesis": "<the core argument in 3-4 sentences: why this verdict follows from the supplied factor and macro data, as a research analyst would frame it>",
+  "verdict_rationale": "<1-2 tight sentences answering directly: why is this a Buy / Hold / Sell, citing the specific supplied scores or factors that tipped it>",
+  "bull_case": "<the strongest case FOR the position, built only from supplied factors that point that way — even a HOLD or SELL has a bull case, drawn only from the supplied numbers>",
+  "bear_case": "<the strongest case AGAINST the position, built only from supplied factors that point that way — even a BUY has a bear case, drawn only from the supplied numbers>",
+  "technical_reasoning": "<how the supplied technical indicators support or oppose the verdict, citing values (e.g. "RSI-14 at 28.4")>",
+  "momentum_impact": "<what the supplied momentum_impact subtotal and its listed factors contributed — cite the subtotal number>",
+  "quality_impact": "<what the supplied quality_impact subtotal and its listed factors (profitability, issuance, asset growth) contributed — cite the subtotal number>",
+  "value_impact": "<what the supplied value_impact subtotal and its listed factors (earnings yield, forward PE gap, analyst target) contributed — cite the subtotal number>",
+  "pead_impact": "<what the supplied pead_impact subtotal (post-earnings-announcement drift) contributed — cite the number; if the factor is absent say drift data was unavailable>",
+  "macro_reasoning": "<what the supplied macro block (SRM, yield spread, inflation, Fed rate, macro gate) contributed, including any dampening of the raw signal>",
+  "news_reasoning": "<what the supplied sentiment block contributed; if headline_count is 0, say sentiment was unavailable>",
+  "risk_reasoning": "<why the supplied risk level is what it is, from the supplied risk components/volatility/drawdown/beta/SRM>",
+  "confidence_reason": "<explain the supplied confidence using the supplied confidence_breakdown items only — do not invent arithmetic>",
+  "top_positive_narrative": "<1-2 sentences synthesizing the supplied top positive contributors — what they are and why they push the score up>",
+  "top_negative_narrative": "<1-2 sentences synthesizing the supplied top negative contributors — what they are and why they push the score down>",
+  "key_catalysts": ["<short factual bullish drivers from the supplied data>"],
+  "key_risks": ["<short factual risk factors from the supplied data>"],
+  "things_to_watch": ["<short forward-looking items worth monitoring next — thresholds, upcoming levels or regime shifts implied by the supplied data; do not just repeat key_risks>"],
+  "investment_horizon": "<short-term | medium-term | long-term, one clause of justification>",
+  "market_outlook": "<1-2 sentences on the macro regime using only the supplied macro block>",
+  "conclusion": "<2-3 sentences closing the report: restate the verdict, the single strongest supporting fact, and the single most important thing that would change it>"
+}
+
+STYLE
+Write like a sell-side research desk: institutional, concise, plain declarative sentences. No hype ("massive", "explosive", "to the moon"), no advice language ("you should buy"), no disclaimers (the API attaches its own), no filler openers ("In conclusion", "It's worth noting that"), no hedge-everything qualifiers. Do not use em dashes, "--", "///" or other decorative separators to join ideas — use a period and a new sentence, or a comma, the way a published research note would. Never use generic AI phrasing ("as an AI", "based on the data provided, it appears that") — state the fact and move on. Every sentence should earn its place by citing or interpreting a specific supplied number; do not pad."""
 
 
 # ── Client management ─────────────────────────────────────────────────────────
@@ -191,12 +278,28 @@ def _cache_put(key: str, value: dict[str, Any]) -> None:
 
 # ── Result assembly ───────────────────────────────────────────────────────────
 
-def _attach_deterministic(result: dict[str, Any], decision: dict[str, Any]) -> dict[str, Any]:
+def _attach_deterministic(result: dict[str, Any], payload: dict[str, Any]) -> dict[str, Any]:
     """Engine values are attached verbatim — the model never supplies them."""
+    decision = payload.get("decision", {})
     result["recommendation"] = decision.get("recommendation", "HOLD")
     result["confidence"] = decision.get("confidence", 50)
     result["risk"] = decision.get("risk", "MEDIUM")
+    # Factor-impact subtotals are the engine's own numbers (see module
+    # docstring) — the frontend renders them alongside the model's narrative.
+    result["factor_impacts"] = payload.get("factor_impacts", {})
     return result
+
+
+def _impact_line(bucket: Optional[dict[str, Any]]) -> str:
+    """
+    A bare, honest one-liner for a factor-impact bucket using only the
+    engine's own subtotal — no narrative flourish, since the fallback path
+    has no model to write one. Empty when the bucket has no factors, so the
+    UI's conditional rendering hides it like every other blank field.
+    """
+    if not bucket or not bucket.get("factors"):
+        return ""
+    return f"Net contribution {bucket['contribution']:+.3f} from the engine's own factor weights."
 
 
 def _fallback(payload: dict[str, Any], reason: str) -> dict[str, Any]:
@@ -209,28 +312,38 @@ def _fallback(payload: dict[str, Any], reason: str) -> dict[str, Any]:
         if breakdown
         else "Confidence reflects agreement between the technical, sentiment and macro factors."
     )
+    impacts = payload.get("factor_impacts") or {}
     result = {
         "executive_summary": (
             f"{decision.get('recommendation', 'HOLD')} at {decision.get('confidence', 50)}% confidence. "
             f"{rationale} (AI narrative unavailable: {reason} — showing the engine's own rationale.)"
         ),
+        "investment_thesis": "",
+        "verdict_rationale": "",
         "bull_case": "",
         "bear_case": "",
         "technical_reasoning": "",
+        "momentum_impact": _impact_line(impacts.get("momentum")),
+        "quality_impact": _impact_line(impacts.get("quality")),
+        "value_impact": _impact_line(impacts.get("value")),
+        "pead_impact": _impact_line(impacts.get("pead")),
         "macro_reasoning": "",
         "news_reasoning": "",
         "risk_reasoning": rationale,
         "confidence_reason": confidence_reason,
+        "top_positive_narrative": "",
+        "top_negative_narrative": "",
         "key_catalysts": [],
         "key_risks": [part.strip() for part in rationale.split(";") if part.strip()][:5],
         "things_to_watch": [],
         "investment_horizon": "",
         "market_outlook": "",
+        "conclusion": "",
         "generated": False,
         "model": None,
         "cached": False,
     }
-    return _attach_deterministic(result, decision)
+    return _attach_deterministic(result, payload)
 
 
 # ── Core call ─────────────────────────────────────────────────────────────────
@@ -373,7 +486,7 @@ def explain_recommendation(payload: dict[str, Any]) -> dict[str, Any]:
     if analysis is None:
         return _fallback(payload, "invalid model output")
 
-    result = _attach_deterministic(analysis.model_dump(), decision)
+    result = _attach_deterministic(analysis.model_dump(), payload)
     result.update({
         "generated": True,
         "model": _model_name(),
@@ -408,10 +521,14 @@ def build_payload(
             {"title": h.get("title"), "score": h.get("score"), "label": h.get("label")}
             for h in sentiment["headlines"][:8]
         ]
+    factor_impacts = _group_factor_impacts((quant or {}).get("factors") or [])
     return {
         "ticker": ticker,
         "as_of": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
         "quant": quant,  # v2 scorecard summary: family scores, weights, regimes
+        # Presentation-layer subtotals (see module docstring) — deterministic,
+        # summed from the engine's own per-factor contributions above.
+        "factor_impacts": factor_impacts,
         "decision": {
             "recommendation": recommendation,
             "confidence": confidence,

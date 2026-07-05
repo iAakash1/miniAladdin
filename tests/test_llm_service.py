@@ -1,5 +1,5 @@
 """
-Tests for the Groq LLM explanation service (schema v2) and its observability.
+Tests for the Groq LLM explanation service (schema v4) and its observability.
 
 The Groq client is always mocked — these tests never touch the network.
 """
@@ -17,18 +17,27 @@ from src.services.metrics import llm_metrics
 
 VALID_MODEL_JSON = {
     "executive_summary": "The engine holds at elevated risk: RSI-14 at 28.4 is oversold while SRM 1.2 dampens upside.",
+    "investment_thesis": "The technical setup is oversold but the elevated macro regime caps conviction at a Hold.",
+    "verdict_rationale": "Momentum is oversold while the macro gate discounts upside, netting out to Hold.",
     "bull_case": "RSI-14 at 28.4 is oversold and Sharpe of 1.6 shows strong risk-adjusted returns to date.",
     "bear_case": "SRM at 1.2 marks an elevated macro regime that has historically capped upside for this signal.",
     "technical_reasoning": "RSI-14 at 28.4 flags oversold; Sharpe of 1.6 shows strong risk-adjusted returns.",
+    "momentum_impact": "Momentum contributed +0.180, led by oversold RSI-14.",
+    "quality_impact": "Quality contributed +0.040 on stable profitability.",
+    "value_impact": "Value contributed +0.020 on a modest forward PE gap.",
+    "pead_impact": "Post-earnings drift contributed +0.010, a minor tailwind.",
     "macro_reasoning": "SRM at 1.2 marks an elevated regime, pulling the raw signal one step toward caution.",
     "news_reasoning": "Sentiment was unavailable for this run.",
     "risk_reasoning": "Risk is HIGH given the elevated macro regime.",
     "confidence_reason": "Base 50% plus 20% for technical agreement equals the supplied 70%.",
+    "top_positive_narrative": "Oversold momentum and stable quality factors are the biggest positive drivers.",
+    "top_negative_narrative": "The elevated macro regime is the single largest drag on the score.",
     "key_catalysts": ["Oversold RSI-14 at 28.4", "Sharpe ratio 1.6"],
     "key_risks": ["Elevated macro regime at SRM 1.2"],
     "things_to_watch": ["Whether SRM eases back below 1.0", "RSI-14 crossing back above 40"],
     "investment_horizon": "medium-term, tied to the 21-day momentum window",
     "market_outlook": "Elevated but not critical regime at SRM 1.2.",
+    "conclusion": "Hold reflects oversold momentum offset by an elevated macro regime; a break below SRM 1.0 is the key swing factor.",
 }
 
 
@@ -95,21 +104,34 @@ class TestSuccessPath:
         assert result["bull_case"] == VALID_MODEL_JSON["bull_case"]
         assert result["bear_case"] == VALID_MODEL_JSON["bear_case"]
         assert result["things_to_watch"] == VALID_MODEL_JSON["things_to_watch"]
+        assert result["investment_thesis"] == VALID_MODEL_JSON["investment_thesis"]
+        assert result["verdict_rationale"] == VALID_MODEL_JSON["verdict_rationale"]
+        assert result["momentum_impact"] == VALID_MODEL_JSON["momentum_impact"]
+        assert result["quality_impact"] == VALID_MODEL_JSON["quality_impact"]
+        assert result["value_impact"] == VALID_MODEL_JSON["value_impact"]
+        assert result["pead_impact"] == VALID_MODEL_JSON["pead_impact"]
+        assert result["top_positive_narrative"] == VALID_MODEL_JSON["top_positive_narrative"]
+        assert result["top_negative_narrative"] == VALID_MODEL_JSON["top_negative_narrative"]
+        assert result["conclusion"] == VALID_MODEL_JSON["conclusion"]
         assert client.chat.completions.create.call_count == 1
 
-    def test_bull_bear_and_watch_are_optional_in_model_output(self, monkeypatch):
-        # A model reply that omits the new v3 keys must still validate — they
-        # default to "" / [] rather than failing the whole explanation.
-        partial = {k: v for k, v in VALID_MODEL_JSON.items() if k not in ("bull_case", "bear_case", "things_to_watch")}
+    def test_v4_report_fields_are_optional_in_model_output(self, monkeypatch):
+        # A model reply that omits the newer report keys must still validate —
+        # they default to "" / [] rather than failing the whole explanation.
+        v4_only_keys = (
+            "bull_case", "bear_case", "things_to_watch", "investment_thesis",
+            "verdict_rationale", "momentum_impact", "quality_impact", "value_impact",
+            "pead_impact", "top_positive_narrative", "top_negative_narrative", "conclusion",
+        )
+        partial = {k: v for k, v in VALID_MODEL_JSON.items() if k not in v4_only_keys}
         client = fake_client_returning(json.dumps(partial))
         install_client(monkeypatch, client)
 
         result = llm_service.explain_recommendation(make_payload())
 
         assert result["generated"] is True
-        assert result["bull_case"] == ""
-        assert result["bear_case"] == ""
-        assert result["things_to_watch"] == []
+        for key in v4_only_keys:
+            assert result[key] in ("", [])
 
     def test_deterministic_fields_come_from_engine_not_model(self, monkeypatch):
         # The v2 schema has no recommendation/confidence/risk keys at all —
@@ -135,6 +157,20 @@ class TestSuccessPath:
         assert result["recommendation"] == "HOLD"
         assert result["confidence"] == 70
         assert result["risk"] == "HIGH"
+
+    def test_factor_impacts_are_attached_verbatim_alongside_the_narrative(self, monkeypatch):
+        # factor_impacts is engine arithmetic (see _group_factor_impacts) — it
+        # must reach the final result unchanged, same guarantee as
+        # recommendation/confidence/risk.
+        client = fake_client_returning(json.dumps(VALID_MODEL_JSON))
+        install_client(monkeypatch, client)
+
+        impacts = llm_service._group_factor_impacts([
+            {"name": "r12_1", "family": "momentum", "contribution": 0.18},
+        ])
+        result = llm_service.explain_recommendation(make_payload(factor_impacts=impacts))
+
+        assert result["factor_impacts"]["momentum"]["contribution"] == 0.18
 
     def test_deterministic_request_parameters(self, monkeypatch):
         client = fake_client_returning(json.dumps(VALID_MODEL_JSON))
@@ -182,10 +218,32 @@ class TestFailurePaths:
 
         assert result["generated"] is False
         assert result["confidence"] == 70
-        # v3 narrative-only fields default cleanly in the fallback path too.
+        # v4 narrative-only fields default cleanly in the fallback path too.
         assert result["bull_case"] == ""
         assert result["bear_case"] == ""
         assert result["things_to_watch"] == []
+        assert result["momentum_impact"] == ""
+
+    def test_fallback_still_states_factor_impact_subtotals_as_bare_facts(self, monkeypatch):
+        # Even with no model, the engine's own factor-impact subtotals (see
+        # _group_factor_impacts) are real numbers already computed upstream —
+        # the fallback may state them plainly, just without narrative flair.
+        client = MagicMock()
+        client.chat.completions.create.side_effect = ValueError("boom")
+        install_client(monkeypatch, client)
+
+        payload = make_payload(factor_impacts=llm_service._group_factor_impacts([
+            {"name": "r12_1", "family": "momentum", "contribution": 0.18},
+            {"name": "gross_profitability", "family": "quality", "contribution": 0.04},
+        ]))
+
+        result = llm_service.explain_recommendation(payload)
+
+        assert result["generated"] is False
+        assert "+0.180" in result["momentum_impact"]
+        assert "+0.040" in result["quality_impact"]
+        assert result["value_impact"] == ""  # no fundamental factors supplied
+        assert result["pead_impact"] == ""
 
     def test_transient_errors_retry_with_backoff(self, monkeypatch):
         class RateLimitError(Exception):
@@ -281,6 +339,46 @@ class TestObservability:
         assert snap["generated"] == 0
 
 
+class TestFactorImpactGrouping:
+    """
+    _group_factor_impacts is pure and never invents a number — it only sums
+    the engine's own per-factor contributions into presentation buckets.
+    """
+
+    def test_quality_and_value_are_split_from_the_engine_fundamental_family(self):
+        factors = [
+            {"name": "gross_profitability", "family": "quality", "contribution": 0.03},
+            {"name": "net_issuance", "family": "quality", "contribution": 0.01},
+            {"name": "earnings_yield", "family": "fundamental", "contribution": 0.02},
+            {"name": "pe_gap", "family": "fundamental", "contribution": -0.01},
+            {"name": "pead", "family": "fundamental", "contribution": 0.015},
+        ]
+        impacts = llm_service._group_factor_impacts(factors)
+
+        assert impacts["quality"]["contribution"] == 0.04
+        assert impacts["value"]["contribution"] == 0.01  # earnings_yield + pe_gap, pead excluded
+        assert impacts["pead"]["contribution"] == 0.015
+        assert [f["name"] for f in impacts["value"]["factors"]] == ["earnings_yield", "pe_gap"]
+
+    def test_reversal_family_folds_into_momentum(self):
+        factors = [
+            {"name": "r21", "family": "momentum", "contribution": 0.10},
+            {"name": "reversal", "family": "reversal", "contribution": -0.02},
+        ]
+        impacts = llm_service._group_factor_impacts(factors)
+
+        assert impacts["momentum"]["contribution"] == 0.08
+        assert {f["name"] for f in impacts["momentum"]["factors"]} == {"r21", "reversal"}
+
+    def test_missing_families_produce_empty_buckets_not_errors(self):
+        impacts = llm_service._group_factor_impacts([])
+        assert all(bucket["contribution"] == 0.0 and bucket["factors"] == [] for bucket in impacts.values())
+
+    def test_unscored_factors_with_null_contribution_are_skipped(self):
+        impacts = llm_service._group_factor_impacts([{"name": "sentiment", "family": "news", "contribution": None}])
+        assert impacts["news"]["factors"] == []
+
+
 class TestPayloadBuilder:
     def test_build_payload_carries_decision_breakdown_and_truncates_headlines(self):
         sentiment = {
@@ -301,3 +399,28 @@ class TestPayloadBuilder:
         assert payload["decision"]["confidence_breakdown"] == breakdown
         assert len(payload["sentiment"]["headlines"]) == 8  # capped
         assert payload["sentiment"]["headline_count"] == 12
+
+    def test_build_payload_derives_factor_impacts_from_quant_factors(self):
+        quant = {
+            "raw_score": 0.2,
+            "factors": [
+                {"name": "r12_1", "family": "momentum", "contribution": 0.12},
+                {"name": "gross_profitability", "family": "quality", "contribution": 0.03},
+                {"name": "pead", "family": "fundamental", "contribution": 0.01},
+            ],
+        }
+        payload = llm_service.build_payload(
+            ticker="NVDA", recommendation="BUY", confidence=80, risk="LOW",
+            verdict="Buy", rationale="r", macro={}, technicals={}, sentiment=None,
+            quant=quant,
+        )
+        assert payload["factor_impacts"]["momentum"]["contribution"] == 0.12
+        assert payload["factor_impacts"]["quality"]["contribution"] == 0.03
+        assert payload["factor_impacts"]["pead"]["contribution"] == 0.01
+
+    def test_build_payload_with_no_quant_yields_empty_factor_impacts(self):
+        payload = llm_service.build_payload(
+            ticker="NVDA", recommendation="BUY", confidence=80, risk="LOW",
+            verdict="Buy", rationale="r", macro={}, technicals={}, sentiment=None,
+        )
+        assert all(b["factors"] == [] for b in payload["factor_impacts"].values())

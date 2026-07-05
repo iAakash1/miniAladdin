@@ -9,12 +9,15 @@ import { parsePercentString } from './format'
 import type {
   AiAnalysis,
   Analysis,
+  FactorImpact,
+  FactorImpacts,
   Headline,
   Macro,
   PricePoint,
   QuantCard,
   RawAiAnalysis,
   RawChartResponse,
+  RawFactorImpact,
   RawMacroResponse,
   RawQuant,
   RawResearchMacro,
@@ -22,6 +25,13 @@ import type {
   RiskLevel,
   Verdict,
 } from './types'
+
+const EMPTY_IMPACT: FactorImpact = { contribution: 0, factors: [] }
+
+function normalizeImpact(raw: RawFactorImpact | undefined): FactorImpact {
+  if (!raw) return EMPTY_IMPACT
+  return { contribution: raw.contribution ?? 0, factors: raw.factors ?? [] }
+}
 
 const VERDICTS: Verdict[] = ['Strong Buy', 'Buy', 'Hold', 'Sell', 'Strong Sell']
 
@@ -65,23 +75,41 @@ function asRiskLevel(v: string | undefined | null): RiskLevel | null {
 export function normalizeAi(raw: RawAiAnalysis | null | undefined): AiAnalysis | null {
   if (!raw || typeof raw.executive_summary !== 'string' || !raw.executive_summary) return null
   const rec = raw.recommendation
+  const impacts = raw.factor_impacts
+  const factorImpacts: FactorImpacts = {
+    momentum: normalizeImpact(impacts?.momentum),
+    quality: normalizeImpact(impacts?.quality),
+    value: normalizeImpact(impacts?.value),
+    pead: normalizeImpact(impacts?.pead),
+    news: normalizeImpact(impacts?.news),
+  }
   return {
     recommendation: rec === 'BUY' || rec === 'SELL' ? rec : 'HOLD',
     confidence: typeof raw.confidence === 'number' ? Math.round(raw.confidence) : 50,
     risk: asRiskLevel(raw.risk) ?? 'MEDIUM',
     executiveSummary: raw.executive_summary,
+    investmentThesis: raw.investment_thesis ?? '',
+    verdictRationale: raw.verdict_rationale ?? '',
     bullCase: raw.bull_case ?? '',
     bearCase: raw.bear_case ?? '',
     technicalReasoning: raw.technical_reasoning ?? '',
+    momentumImpact: raw.momentum_impact ?? '',
+    qualityImpact: raw.quality_impact ?? '',
+    valueImpact: raw.value_impact ?? '',
+    peadImpact: raw.pead_impact ?? '',
     macroReasoning: raw.macro_reasoning ?? '',
     newsReasoning: raw.news_reasoning ?? '',
     riskReasoning: raw.risk_reasoning ?? '',
     confidenceReason: raw.confidence_reason ?? '',
+    topPositiveNarrative: raw.top_positive_narrative ?? '',
+    topNegativeNarrative: raw.top_negative_narrative ?? '',
     keyCatalysts: raw.key_catalysts ?? [],
     keyRisks: raw.key_risks ?? [],
     thingsToWatch: raw.things_to_watch ?? [],
     investmentHorizon: raw.investment_horizon ?? '',
     marketOutlook: raw.market_outlook ?? '',
+    conclusion: raw.conclusion ?? '',
+    factorImpacts,
     generated: raw.generated ?? false,
     model: raw.model ?? null,
   }

@@ -76,23 +76,46 @@ export interface RawSentiment {
 /** Raw AI explanation block (additive; null in fast mode). Narrative fields
     come from the model; recommendation/confidence/risk are engine values
     attached server-side. */
+export interface RawFactorImpact {
+  contribution: number
+  factors: Array<{ name: string; contribution: number }>
+}
+
+export interface RawFactorImpacts {
+  momentum?: RawFactorImpact
+  quality?: RawFactorImpact
+  value?: RawFactorImpact
+  pead?: RawFactorImpact
+  news?: RawFactorImpact
+}
+
 export interface RawAiAnalysis {
   recommendation?: string
   confidence?: number
   risk?: string
   executive_summary?: string
+  investment_thesis?: string
+  verdict_rationale?: string
   bull_case?: string
   bear_case?: string
   technical_reasoning?: string
+  momentum_impact?: string
+  quality_impact?: string
+  value_impact?: string
+  pead_impact?: string
   macro_reasoning?: string
   news_reasoning?: string
   risk_reasoning?: string
   confidence_reason?: string
+  top_positive_narrative?: string
+  top_negative_narrative?: string
   key_catalysts?: string[]
   key_risks?: string[]
   things_to_watch?: string[]
   investment_horizon?: string
   market_outlook?: string
+  conclusion?: string
+  factor_impacts?: RawFactorImpacts
   generated?: boolean
   model?: string | null
   cached?: boolean
@@ -227,23 +250,46 @@ export interface PricePoint {
 
 export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH'
 
+export interface FactorImpact {
+  contribution: number
+  factors: Array<{ name: string; contribution: number }>
+}
+
+export interface FactorImpacts {
+  momentum: FactorImpact
+  quality: FactorImpact
+  value: FactorImpact
+  pead: FactorImpact
+  news: FactorImpact
+}
+
 export interface AiAnalysis {
   recommendation: 'BUY' | 'SELL' | 'HOLD'
   confidence: number // 0–100, engine value
   risk: RiskLevel
   executiveSummary: string
+  investmentThesis: string
+  verdictRationale: string
   bullCase: string
   bearCase: string
   technicalReasoning: string
+  momentumImpact: string
+  qualityImpact: string
+  valueImpact: string
+  peadImpact: string
   macroReasoning: string
   newsReasoning: string
   riskReasoning: string
   confidenceReason: string
+  topPositiveNarrative: string
+  topNegativeNarrative: string
   keyCatalysts: string[]
   keyRisks: string[]
   thingsToWatch: string[]
   investmentHorizon: string
   marketOutlook: string
+  conclusion: string
+  factorImpacts: FactorImpacts
   generated: boolean
   model: string | null
 }

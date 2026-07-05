@@ -675,6 +675,7 @@ def research_ticker(
                             "ungated_score": scorecard.ungated_score,
                             "momentum_score": scorecard.momentum_score,
                             "fundamental_score": scorecard.fundamental_score,
+                            "quality_score": scorecard.quality_score,
                             "news_score": scorecard.news_score,
                             "macro_gate": scorecard.macro_gate,
                             "conflict_index": scorecard.conflict_index,
@@ -682,6 +683,14 @@ def research_ticker(
                             "risk_score": scorecard.risk_score,
                             "weights_used": scorecard.weights_used,
                             "regimes": scorecard.regimes,
+                            # Full per-factor list (name/family/contribution) —
+                            # llm_service._group_factor_impacts sums this into
+                            # the momentum/quality/value/pead/news subtotals.
+                            "factors": [
+                                {"name": row.name, "family": row.family, "contribution": row.contribution}
+                                for row in scorecard.factors
+                                if row.score is not None
+                            ],
                             "top_contributions": sorted(
                                 (
                                     {"factor": row.name, "contribution": row.contribution}
@@ -691,6 +700,23 @@ def research_ticker(
                                 key=lambda item: abs(item["contribution"]),
                                 reverse=True,
                             )[:6],
+                            "top_positive": sorted(
+                                (
+                                    {"factor": row.name, "contribution": row.contribution}
+                                    for row in scorecard.factors
+                                    if row.score is not None and row.contribution > 0
+                                ),
+                                key=lambda item: item["contribution"],
+                                reverse=True,
+                            )[:5],
+                            "top_negative": sorted(
+                                (
+                                    {"factor": row.name, "contribution": row.contribution}
+                                    for row in scorecard.factors
+                                    if row.score is not None and row.contribution < 0
+                                ),
+                                key=lambda item: item["contribution"],
+                            )[:5],
                         }
                         if scorecard is not None else None
                     ),
