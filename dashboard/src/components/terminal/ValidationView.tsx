@@ -1,14 +1,23 @@
 'use client'
 
 import dynamicImport from 'next/dynamic'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import EmptyState from '@/components/ui/EmptyState'
 import Skeleton from '@/components/ui/Skeleton'
+import Section from '@/components/ui/Section'
+import MetricExplainer from './MetricExplainer'
+import { METRIC_GLOSSARY } from '@/lib/metricGlossary'
+import { failureModes, overallHealth } from '@/lib/validationInsights'
+import { FACTOR_LABELS } from '@/lib/history'
 
-const ValidationCharts = dynamicImport(() => import('./ValidationCharts'), {
-  ssr: false,
-  loading: () => <Skeleton height={300} />,
-})
+const EquityCurveChart = dynamicImport(
+  () => import('./ValidationCharts').then((m) => ({ default: m.EquityCurveChart })),
+  { ssr: false, loading: () => <Skeleton height={240} /> },
+)
+const RollingIcChart = dynamicImport(
+  () => import('./ValidationCharts').then((m) => ({ default: m.RollingIcChart })),
+  { ssr: false, loading: () => <Skeleton height={240} /> },
+)
 
 export interface BacktestData {
   ticker: string
@@ -16,7 +25,10 @@ export interface BacktestData {
   samples: number
   period: { start: string; end: string }
   ic: number | null
+  baseline_12_1_ic: number | null
+  baseline_12_1_strategy: Record<string, number | null> | null
   rolling_ic: Array<{ date: string; ic: number }>
+  recent: { rolling_ic_last: number | null; verdict_flips_last6: number }
   hit_rate: number | null
   directional_samples: number
   confusion_matrix: Record<'long' | 'flat' | 'short', { up: number; down: number }>
@@ -30,8 +42,14 @@ export interface BacktestData {
   monthly_strategy_returns: Record<string, number>
   score_distribution: Array<{ bin: string; count: number }>
   verdict_distribution: Record<string, number>
+  factor_diagnostics: Record<string, { ic: number | null; sign_stability: number | null; samples: number }>
+  factor_correlations: Record<string, number>
+  prediction_drift_psi: number | null
+  psi_note: string
   error?: string
 }
+
+const HEALTH_BADGE = { pos: 'badge--pos', warn: 'badge--warn', neg: 'badge--neg' } as const
 
 function Metric({ label, value, suffix = '' }: { label: string; value: number | null | undefined; suffix?: string }) {
   return (
@@ -42,6 +60,22 @@ function Metric({ label, value, suffix = '' }: { label: string; value: number | 
       </p>
     </div>
   )
+}
+
+function fmt(value: number | null | undefined, digits = 3): string {
+  return value === null || value === undefined ? '—' : value.toFixed(digits)
+}
+
+function fmtSigned(value: number | null | undefined, digits = 3): string {
+  if (value === null || value === undefined) return '—'
+  return `${value >= 0 ? '+' : ''}${value.toFixed(digits)}`
+}
+
+function toneFor(value: number | null | undefined, goodAbove: number, badBelow: number): 'pos' | 'neg' | 'neutral' {
+  if (value === null || value === undefined) return 'neutral'
+  if (value > goodAbove) return 'pos'
+  if (value < badBelow) return 'neg'
+  return 'neutral'
 }
 
 export default function ValidationView() {
@@ -79,14 +113,43 @@ export default function ValidationView() {
 
   const maxScoreCount = data ? Math.max(1, ...data.score_distribution.map((row) => row.count)) : 1
 
+  const health = useMemo(
+    () => data && !data.error
+      ? overallHealth({ ic: data.ic, hitRate: data.hit_rate, sharpe: data.strategy.sharpe, samples: data.samples })
+      : null,
+    [data],
+  )
+  const flags = useMemo(
+    () => data && !data.error
+      ? failureModes({
+          psi: data.prediction_drift_psi,
+          factorDiagnostics: data.factor_diagnostics,
+          confusionMatrix: data.confusion_matrix,
+          scoreDistribution: data.score_distribution,
+        })
+      : [],
+    [data],
+  )
+  const sortedFactors = useMemo(
+    () => data
+      ? Object.entries(data.factor_diagnostics).sort(([, a], [, b]) => Math.abs(b.ic ?? 0) - Math.abs(a.ic ?? 0))
+      : [],
+    [data],
+  )
+  const sortedCorrelations = useMemo(
+    () => data
+      ? Object.entries(data.factor_correlations).sort(([, a], [, b]) => Math.abs(b) - Math.abs(a)).slice(0, 10)
+      : [],
+    [data],
+  )
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       <div>
         <h2 className="h-panel" style={{ fontSize: '1rem', marginBottom: 6 }}>Model validation</h2>
         <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', maxWidth: '78ch', lineHeight: 1.6 }}>
-          Walk-forward evaluation of the scoring engine on real price history — signals
-          recompute weekly on an expanding window, measured against 21-day forward returns.
-          No look-ahead, no simulation.
+          Walk-forward evaluation of the scoring engine on real price history — the question this
+          page answers is simple: can this model be trusted, and under what conditions.
         </p>
       </div>
 
@@ -131,47 +194,153 @@ export default function ValidationView() {
         <EmptyState title={`Cannot validate ${data.ticker}`} description={data.error} />
       )}
 
-      {!loading && !failed && data && !data.error && (
-        <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          <p style={{ fontSize: '0.75rem', color: 'var(--warn)', lineHeight: 1.6, maxWidth: '86ch' }}>
-            {data.scope_note}
-          </p>
+      {!loading && !failed && data && !data.error && health && (
+        <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-          {/* Headline metrics */}
-          <section aria-label="Headline metrics" className="panel" style={{ padding: '16px 20px' }}>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(18px, 3.5vw, 44px)' }}>
-              <Metric label={`IC (Spearman, n=${data.samples})`} value={data.ic} />
-              <Metric label={`Hit rate (${data.directional_samples} calls)`} value={data.hit_rate} suffix="%" />
-              <Metric label="Strategy Sharpe" value={data.strategy.sharpe} />
-              <Metric label="Sortino" value={data.strategy.sortino} />
-              <Metric label="Calmar" value={data.strategy.calmar} />
-              <Metric label="Max drawdown" value={data.strategy.max_drawdown} suffix="%" />
-              <Metric label="Ann. volatility" value={data.strategy.volatility} suffix="%" />
-              <Metric label="Ann. return" value={data.strategy.return} suffix="%" />
-              <Metric label="Win rate (invested days)" value={data.win_rate_invested_days} suffix="%" />
-              <Metric label="Avg holding" value={data.avg_holding_days} suffix="d" />
-              <Metric label="Time invested" value={data.time_invested_pct} suffix="%" />
+          {/* Overall Model Health — the lead answer, always visible */}
+          <section aria-label="Overall model health" className="panel" style={{ padding: '18px 20px' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+              <h3 className="h-panel">Overall model health</h3>
+              <span className={`badge ${HEALTH_BADGE[health.tone]}`}>{health.label}</span>
+              <span className="num" style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--faint)' }}>
+                {data.samples} samples · {data.period.start} → {data.period.end}
+              </span>
             </div>
-            <p style={{ fontSize: '0.6875rem', color: 'var(--faint)', marginTop: 12, lineHeight: 1.6 }}>
-              IC = rank correlation between signal score and 21-day forward return (0 = no signal;
-              sustained |IC| above ~0.05 is meaningful for a single name). Hit rate counts only
-              non-Hold calls. Strategy = long when score ≥ +0.15, flat otherwise, daily returns, no costs —
-              buy &amp; hold over the same window returned {data.buy_hold.return ?? '—'}% ann.
-              ({data.period.start} → {data.period.end}).
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 5 }}>
+              {health.reasons.map((reason) => (
+                <li key={reason} style={{ fontSize: '0.8125rem', lineHeight: 1.55, color: 'var(--muted)' }}>{reason}</li>
+              ))}
+            </ul>
+            <p style={{ fontSize: '0.75rem', color: 'var(--warn)', lineHeight: 1.6, marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--line)' }}>
+              {data.scope_note}
             </p>
           </section>
 
-          {/* Charts: equity + rolling IC */}
-          <ValidationCharts data={data} />
+          {/* Prediction Quality */}
+          <Section id="val-prediction-quality" title="Prediction quality" defaultOpen>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(20px, 4vw, 48px)', marginBottom: 16 }}>
+              <MetricExplainer entry={METRIC_GLOSSARY.ic} value={fmt(data.ic)} valueTone={toneFor(data.ic, 0.05, 0)} />
+              <div>
+                <span className="label" style={{ fontSize: '0.625rem' }}>Naive 12-1 baseline IC</span>
+                <p className="num" style={{ fontSize: '1.0625rem', fontWeight: 600, color: 'var(--muted)' }}>
+                  {fmt(data.baseline_12_1_ic)}
+                </p>
+                <p style={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>Sign of 12-1 return, no engine — the bar the engine should clear.</p>
+              </div>
+              <MetricExplainer
+                entry={METRIC_GLOSSARY.rollingIc}
+                value={fmt(data.recent.rolling_ic_last)}
+                valueTone={toneFor(data.recent.rolling_ic_last, 0.05, 0)}
+              />
+            </div>
+            <RollingIcChart data={data} />
+          </Section>
 
-          {/* Reliability diagram */}
-          <section aria-label="Confidence calibration" className="panel" style={{ padding: '16px 20px' }}>
-            <h3 className="h-panel" style={{ marginBottom: 4 }}>Confidence calibration</h3>
-            <p style={{ fontSize: '0.6875rem', color: 'var(--faint)', marginBottom: 14, lineHeight: 1.6 }}>
-              Reliability diagram: within each confidence bucket, the bar shows the realized hit
-              rate. A calibrated model tracks the expected marker — bars far below their marker
-              mean overconfidence.
-            </p>
+          {/* Historical Performance */}
+          <Section id="val-historical-performance" title="Historical performance" defaultOpen>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(18px, 3.5vw, 44px)', marginBottom: 16 }}>
+              <MetricExplainer entry={METRIC_GLOSSARY.annualReturn} value={`${fmt(data.strategy.return, 1)}%`} valueTone={toneFor((data.strategy.return ?? 0) - (data.buy_hold.return ?? 0), 0, 0)} />
+              <MetricExplainer entry={METRIC_GLOSSARY.volatility} value={`${fmt(data.strategy.volatility, 1)}%`} />
+              <MetricExplainer entry={METRIC_GLOSSARY.sharpe} value={fmt(data.strategy.sharpe, 2)} valueTone={toneFor(data.strategy.sharpe, 1.0, 0)} />
+              <MetricExplainer entry={METRIC_GLOSSARY.sortino} value={fmt(data.strategy.sortino, 2)} valueTone={toneFor(data.strategy.sortino, 1.5, 0)} />
+              <MetricExplainer entry={METRIC_GLOSSARY.calmar} value={fmt(data.strategy.calmar, 2)} valueTone={toneFor(data.strategy.calmar, 1.0, 0.5)} />
+              <MetricExplainer entry={METRIC_GLOSSARY.maxDrawdown} value={`${fmt(data.strategy.max_drawdown, 1)}%`} valueTone={toneFor(data.strategy.max_drawdown, -15, -40)} />
+              <MetricExplainer entry={METRIC_GLOSSARY.winRate} value={`${fmt(data.win_rate_invested_days, 1)}%`} valueTone={toneFor(data.win_rate_invested_days, 50, 48)} />
+              <Metric label="Avg holding" value={data.avg_holding_days} suffix="d" />
+              <Metric label="Time invested" value={data.time_invested_pct} suffix="%" />
+            </div>
+
+            <table className="data-table" style={{ marginBottom: 16 }}>
+              <thead>
+                <tr>
+                  <th scope="col">vs.</th>
+                  <th scope="col" style={{ textAlign: 'right' }}>Return</th>
+                  <th scope="col" style={{ textAlign: 'right' }}>Sharpe</th>
+                  <th scope="col" style={{ textAlign: 'right' }}>Max drawdown</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style={{ fontWeight: 550 }}>Engine signal</td>
+                  <td className="num" style={{ textAlign: 'right' }}>{fmtSigned(data.strategy.return, 1)}%</td>
+                  <td className="num" style={{ textAlign: 'right' }}>{fmt(data.strategy.sharpe, 2)}</td>
+                  <td className="num" style={{ textAlign: 'right' }}>{fmt(data.strategy.max_drawdown, 1)}%</td>
+                </tr>
+                <tr>
+                  <td style={{ color: 'var(--muted)' }}>Buy &amp; hold</td>
+                  <td className="num" style={{ textAlign: 'right', color: 'var(--muted)' }}>{fmtSigned(data.buy_hold.return, 1)}%</td>
+                  <td className="num" style={{ textAlign: 'right', color: 'var(--muted)' }}>{fmt(data.buy_hold.sharpe, 2)}</td>
+                  <td className="num" style={{ textAlign: 'right', color: 'var(--muted)' }}>{fmt(data.buy_hold.max_drawdown, 1)}%</td>
+                </tr>
+                {data.baseline_12_1_strategy && (
+                  <tr>
+                    <td style={{ color: 'var(--muted)' }}>Naive 12-1 baseline</td>
+                    <td className="num" style={{ textAlign: 'right', color: 'var(--muted)' }}>{fmtSigned(data.baseline_12_1_strategy.return, 1)}%</td>
+                    <td className="num" style={{ textAlign: 'right', color: 'var(--muted)' }}>{fmt(data.baseline_12_1_strategy.sharpe, 2)}</td>
+                    <td className="num" style={{ textAlign: 'right', color: 'var(--muted)' }}>{fmt(data.baseline_12_1_strategy.max_drawdown, 1)}%</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+
+            <EquityCurveChart data={data} />
+
+            <div style={{ marginTop: 16 }}>
+              <p className="label" style={{ fontSize: '0.625rem', marginBottom: 10 }}>Monthly strategy returns</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {Object.entries(data.monthly_strategy_returns).map(([month, value]) => (
+                  <span key={month} className="num" style={{
+                    fontSize: '0.6875rem', padding: '3px 8px', borderRadius: 'var(--r-sm)',
+                    background: value > 0 ? 'var(--pos-wash)' : value < 0 ? 'var(--neg-wash)' : 'var(--surface-2)',
+                    color: value > 0 ? 'var(--pos)' : value < 0 ? 'var(--neg)' : 'var(--faint)',
+                  }}>
+                    {month} {value > 0 ? '+' : ''}{value}%
+                  </span>
+                ))}
+              </div>
+            </div>
+          </Section>
+
+          {/* Reliability */}
+          <Section id="val-reliability" title="Reliability">
+            <div style={{ marginBottom: 16 }}>
+              <MetricExplainer
+                entry={METRIC_GLOSSARY.hitRate}
+                value={`${fmt(data.hit_rate, 1)}%`}
+                valueTone={toneFor((data.hit_rate ?? 0) - 50, 5, -2)}
+              />
+              <p style={{ fontSize: '0.75rem', color: 'var(--faint)', marginTop: 6 }}>
+                {data.directional_samples} directional calls (Holds excluded).
+              </p>
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <MetricExplainer entry={METRIC_GLOSSARY.confusionMatrix} />
+            </div>
+            <table className="data-table">
+              <thead>
+                <tr><th scope="col">Signal</th><th scope="col" style={{ textAlign: 'right' }}>Realized ▲</th><th scope="col" style={{ textAlign: 'right' }}>Realized ▼</th></tr>
+              </thead>
+              <tbody>
+                {(['long', 'flat', 'short'] as const).map((row) => (
+                  <tr key={row}>
+                    <td style={{ fontWeight: 550 }}>{row}</td>
+                    <td className="num" style={{ textAlign: 'right', color: row === 'long' ? 'var(--pos)' : undefined }}>
+                      {data.confusion_matrix[row].up}
+                    </td>
+                    <td className="num" style={{ textAlign: 'right', color: row === 'short' ? 'var(--pos)' : undefined }}>
+                      {data.confusion_matrix[row].down}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Section>
+
+          {/* Calibration */}
+          <Section id="val-calibration" title="Calibration">
+            <div style={{ marginBottom: 12 }}>
+              <MetricExplainer entry={METRIC_GLOSSARY.calibration} value="" />
+            </div>
             {data.calibration.length === 0 ? (
               <p style={{ fontSize: '0.8125rem', color: 'var(--muted)' }}>
                 Not enough non-Hold calls per confidence bucket to measure calibration on this ticker.
@@ -201,82 +370,181 @@ export default function ValidationView() {
                 ))}
               </div>
             )}
-          </section>
+          </Section>
 
-          {/* Confusion matrix + distributions */}
-          <div className="terminal-grid-main">
-            <section aria-label="Confusion matrix" className="panel" style={{ padding: '16px 20px' }}>
-              <h3 className="h-panel" style={{ marginBottom: 4 }}>Confusion matrix</h3>
-              <p style={{ fontSize: '0.6875rem', color: 'var(--faint)', marginBottom: 12 }}>
-                Signal direction vs. realized 21-day direction. Off-diagonal mass = wrong-way calls.
+          {/* Risk */}
+          <Section id="val-risk" title="Risk">
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(20px, 4vw, 48px)', marginBottom: 14 }}>
+              <MetricExplainer entry={METRIC_GLOSSARY.maxDrawdown} value={`${fmt(data.strategy.max_drawdown, 1)}%`} valueTone={toneFor(data.strategy.max_drawdown, -15, -40)} />
+              <MetricExplainer entry={METRIC_GLOSSARY.volatility} value={`${fmt(data.strategy.volatility, 1)}%`} />
+            </div>
+            {data.strategy.calmar !== null && (
+              <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', lineHeight: 1.6 }}>
+                Calmar of {fmt(data.strategy.calmar, 2)}: the {fmtSigned(data.strategy.return, 1)}% annualized return came
+                against a worst drawdown of {fmt(data.strategy.max_drawdown, 1)}% — the number an investor would have had
+                to sit through at the low point.
               </p>
-              <table className="data-table">
-                <thead>
-                  <tr><th scope="col">Signal</th><th scope="col" style={{ textAlign: 'right' }}>Realized ▲</th><th scope="col" style={{ textAlign: 'right' }}>Realized ▼</th></tr>
-                </thead>
-                <tbody>
-                  {(['long', 'flat', 'short'] as const).map((row) => (
-                    <tr key={row}>
-                      <td style={{ fontWeight: 550 }}>{row}</td>
-                      <td className="num" style={{ textAlign: 'right', color: row === 'long' ? 'var(--pos)' : undefined }}>
-                        {data.confusion_matrix[row].up}
-                      </td>
-                      <td className="num" style={{ textAlign: 'right', color: row === 'short' ? 'var(--pos)' : undefined }}>
-                        {data.confusion_matrix[row].down}
-                      </td>
+            )}
+          </Section>
+
+          {/* Stability */}
+          <Section id="val-stability" title="Stability">
+            <div style={{ marginBottom: 18 }}>
+              <MetricExplainer
+                entry={METRIC_GLOSSARY.psi}
+                value={fmt(data.prediction_drift_psi, 3)}
+                valueTone={toneFor(0.25 - (data.prediction_drift_psi ?? 0), 0.15, 0)}
+              />
+              <p style={{ fontSize: '0.75rem', color: 'var(--faint)', marginTop: 6 }}>{data.psi_note}</p>
+            </div>
+
+            <div style={{ marginBottom: 18 }}>
+              <MetricExplainer entry={METRIC_GLOSSARY.factorStability} value="" />
+              {sortedFactors.length === 0 ? (
+                <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', marginTop: 8 }}>Not enough per-factor history yet.</p>
+              ) : (
+                <table className="data-table" style={{ marginTop: 10 }}>
+                  <thead>
+                    <tr>
+                      <th scope="col">Factor</th>
+                      <th scope="col" style={{ textAlign: 'right' }}>IC</th>
+                      <th scope="col" style={{ textAlign: 'right' }}>Sign stability</th>
+                      <th scope="col" style={{ textAlign: 'right' }}>Samples</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </section>
+                  </thead>
+                  <tbody>
+                    {sortedFactors.map(([name, diag]) => (
+                      <tr key={name}>
+                        <td>{FACTOR_LABELS[name] ?? name}</td>
+                        <td className="num" style={{ textAlign: 'right' }}>{fmtSigned(diag.ic, 3)}</td>
+                        <td className="num" style={{ textAlign: 'right', color: diag.sign_stability !== null && diag.sign_stability < 0.5 ? 'var(--neg)' : undefined }}>
+                          {fmt(diag.sign_stability, 2)}
+                        </td>
+                        <td className="num" style={{ textAlign: 'right', color: 'var(--faint)' }}>{diag.samples}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
 
-            <section aria-label="Distributions" className="panel" style={{ padding: '16px 20px' }}>
-              <h3 className="h-panel" style={{ marginBottom: 4 }}>Score distribution</h3>
-              <p style={{ fontSize: '0.6875rem', color: 'var(--faint)', marginBottom: 12 }}>
-                Composite scores across all walk-forward samples — most days should sit near zero
-                (Hold); fat action tails would mean an overactive model.
+            <div>
+              <MetricExplainer entry={METRIC_GLOSSARY.factorCorrelation} value="" />
+              {sortedCorrelations.length === 0 ? (
+                <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', marginTop: 8 }}>Not enough overlapping factor history yet.</p>
+              ) : (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+                  {sortedCorrelations.map(([pair, rho]) => {
+                    const [a, b] = pair.split('~')
+                    return (
+                      <span
+                        key={pair}
+                        className="num"
+                        style={{
+                          fontSize: '0.75rem', padding: '4px 9px', borderRadius: 'var(--r-sm)',
+                          background: Math.abs(rho) > 0.8 ? 'var(--neg-wash)' : 'var(--surface-2)',
+                          color: Math.abs(rho) > 0.8 ? 'var(--neg)' : 'var(--muted)',
+                        }}
+                      >
+                        {FACTOR_LABELS[a] ?? a} ~ {FACTOR_LABELS[b] ?? b}: {fmtSigned(rho, 2)}
+                      </span>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </Section>
+
+          {/* Failure Modes */}
+          <Section id="val-failure-modes" title="Failure modes" summary={flags.length > 0 ? `${flags.length} flagged` : 'none flagged'}>
+            {flags.length === 0 ? (
+              <p style={{ fontSize: '0.8125rem', color: 'var(--pos)', lineHeight: 1.6 }}>
+                No known failure mode is flagged for this ticker over the tested window.
               </p>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 90 }}>
-                {data.score_distribution.map((bucket) => (
-                  <div key={bucket.bin} title={`${bucket.bin}: ${bucket.count}`}
-                       style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%' }}>
-                    <div style={{
-                      height: `${(bucket.count / maxScoreCount) * 100}%`,
-                      background: bucket.bin.startsWith('-') ? 'var(--neg)' : 'var(--pos)',
-                      opacity: 0.65, borderRadius: '2px 2px 0 0', minHeight: bucket.count > 0 ? 2 : 0,
-                    }} />
-                  </div>
+            ) : (
+              <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {flags.map((flag) => (
+                  <li key={flag} style={{ display: 'flex', gap: 9, fontSize: '0.8125rem', lineHeight: 1.55, color: 'var(--text)' }}>
+                    <span aria-hidden="true" style={{ flexShrink: 0, marginTop: 7, width: 6, height: 6, borderRadius: 1, background: 'var(--neg)' }} />
+                    {flag}
+                  </li>
                 ))}
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
-                <span className="num" style={{ fontSize: '0.625rem', color: 'var(--faint)' }}>−0.6</span>
-                <span className="num" style={{ fontSize: '0.625rem', color: 'var(--faint)' }}>0</span>
-                <span className="num" style={{ fontSize: '0.625rem', color: 'var(--faint)' }}>+0.6</span>
-              </div>
-              <p className="num" style={{ fontSize: '0.6875rem', color: 'var(--muted)', marginTop: 10 }}>
-                Verdicts: {Object.entries(data.verdict_distribution).map(([verdict, count]) => `${verdict} ${count}`).join(' · ')}
-              </p>
-            </section>
-          </div>
+              </ul>
+            )}
+          </Section>
 
-          {/* Monthly table */}
-          <section aria-label="Monthly strategy returns" className="panel" style={{ padding: '16px 20px' }}>
-            <h3 className="h-panel" style={{ marginBottom: 4 }}>Monthly strategy returns</h3>
-            <p style={{ fontSize: '0.6875rem', color: 'var(--faint)', marginBottom: 12 }}>
-              Long/flat signal-following, by calendar month. Flat months show 0.00 — the model was out.
+          {/* Limitations */}
+          <Section id="val-limitations" title="Limitations" defaultOpen>
+            <p style={{ fontSize: '0.8125rem', color: 'var(--text)', lineHeight: 1.65, maxWidth: '80ch' }}>
+              {data.scope_note}
             </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {Object.entries(data.monthly_strategy_returns).map(([month, value]) => (
-                <span key={month} className="num" style={{
-                  fontSize: '0.6875rem', padding: '3px 8px', borderRadius: 'var(--r-sm)',
-                  background: value > 0 ? 'var(--pos-wash)' : value < 0 ? 'var(--neg-wash)' : 'var(--surface-2)',
-                  color: value > 0 ? 'var(--pos)' : value < 0 ? 'var(--neg)' : 'var(--faint)',
-                }}>
-                  {month} {value > 0 ? '+' : ''}{value}%
-                </span>
+            <ul style={{ listStyle: 'none', margin: '12px 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {[
+                'This validates one ticker at a time — it is not a portfolio-level backtest and says nothing about diversification effects.',
+                'The long/flat strategy test assumes no transaction costs, slippage, taxes or borrow fees.',
+                'Signals recompute weekly on an expanding window; the live product may re-score more frequently on new data intraday.',
+              ].map((item) => (
+                <li key={item} style={{ display: 'flex', gap: 9, fontSize: '0.8125rem', lineHeight: 1.55, color: 'var(--muted)' }}>
+                  <span aria-hidden="true" style={{ flexShrink: 0, marginTop: 7, width: 6, height: 6, borderRadius: 1, background: 'var(--faint)' }} />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </Section>
+
+          {/* Current Confidence */}
+          <Section id="val-current-confidence" title="Current confidence" defaultOpen>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(20px, 4vw, 48px)' }}>
+              <div>
+                <span className="label" style={{ fontSize: '0.625rem' }}>Most recent rolling IC</span>
+                <p className="num" style={{ fontSize: '1.0625rem', fontWeight: 600, color: toneFor(data.recent.rolling_ic_last, 0.05, 0) === 'pos' ? 'var(--pos)' : toneFor(data.recent.rolling_ic_last, 0.05, 0) === 'neg' ? 'var(--neg)' : undefined }}>
+                  {fmt(data.recent.rolling_ic_last)}
+                </p>
+                <p style={{ fontSize: '0.75rem', color: 'var(--faint)' }}>
+                  vs. {fmt(data.ic)} over the full window
+                  {data.recent.rolling_ic_last !== null && data.ic !== null && data.recent.rolling_ic_last < data.ic - 0.03
+                    ? ' — recent skill is running below the historical average.'
+                    : ' — consistent with the historical average.'}
+                </p>
+              </div>
+              <div>
+                <span className="label" style={{ fontSize: '0.625rem' }}>Verdict flips, last 6 signals</span>
+                <p className="num" style={{ fontSize: '1.0625rem', fontWeight: 600, color: data.recent.verdict_flips_last6 >= 3 ? 'var(--warn)' : undefined }}>
+                  {data.recent.verdict_flips_last6}
+                </p>
+                <p style={{ fontSize: '0.75rem', color: 'var(--faint)' }}>
+                  {data.recent.verdict_flips_last6 >= 3
+                    ? 'The verdict has been unusually unstable recently — treat the current read with extra caution.'
+                    : 'A stable recent verdict history — the current call is not the product of rapid flip-flopping.'}
+                </p>
+              </div>
+            </div>
+          </Section>
+
+          {/* Score distribution */}
+          <Section id="val-score-distribution" title="Score distribution">
+            <MetricExplainer entry={METRIC_GLOSSARY.scoreDistribution} value="" />
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 90, marginTop: 12 }}>
+              {data.score_distribution.map((bucket) => (
+                <div key={bucket.bin} title={`${bucket.bin}: ${bucket.count}`}
+                     style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%' }}>
+                  <div style={{
+                    height: `${(bucket.count / maxScoreCount) * 100}%`,
+                    background: bucket.bin.startsWith('-') ? 'var(--neg)' : 'var(--pos)',
+                    opacity: 0.65, borderRadius: '2px 2px 0 0', minHeight: bucket.count > 0 ? 2 : 0,
+                  }} />
+                </div>
               ))}
             </div>
-          </section>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+              <span className="num" style={{ fontSize: '0.625rem', color: 'var(--faint)' }}>−0.6</span>
+              <span className="num" style={{ fontSize: '0.625rem', color: 'var(--faint)' }}>0</span>
+              <span className="num" style={{ fontSize: '0.625rem', color: 'var(--faint)' }}>+0.6</span>
+            </div>
+            <p className="num" style={{ fontSize: '0.6875rem', color: 'var(--muted)', marginTop: 10 }}>
+              Verdicts: {Object.entries(data.verdict_distribution).map(([verdict, count]) => `${verdict} ${count}`).join(' · ')}
+            </p>
+          </Section>
         </div>
       )}
     </div>
