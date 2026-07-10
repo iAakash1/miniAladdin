@@ -7,6 +7,7 @@ import BreadthHeatmap from './BreadthHeatmap'
 import EventsTimeline from './EventsTimeline'
 import MacroSections from './MacroSections'
 import MarketHero from './MarketHero'
+import MarketWhatChanged from './MarketWhatChanged'
 import type { DashboardData } from '@/lib/dashboardInsights'
 
 function DashboardSkeleton() {
@@ -20,12 +21,13 @@ function DashboardSkeleton() {
 }
 
 /**
- * Terminal home: "what is happening in the market right now?" — answered
- * in the hero, in one glance. Everything below it is progressive
- * disclosure: a visual breadth read, a timeline of upcoming events, then
- * the full 14-indicator macro board grouped into three collapsed sections
- * for whoever wants to drill in. Same /api/dashboard call as before, same
- * 15-minute cache — this pass only changes how the response is presented.
+ * Terminal home: "what is happening in the market right now, and why?" —
+ * answered in the hero, in one glance. Everything below it follows the
+ * research-reading order: what changed since your last visit, upcoming
+ * events worth watching, a visual breadth read, then the full 14-indicator
+ * macro board grouped into three collapsed sections for whoever wants to
+ * drill in. Same /api/dashboard call as before, same 15-minute cache —
+ * this pass only changes how the response is presented.
  */
 export default function MarketDashboard() {
   const [data, setData] = useState<DashboardData | null>(null)
@@ -71,8 +73,9 @@ export default function MarketDashboard() {
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
       <MarketHero data={data} />
-      <BreadthHeatmap breadth={data.breadth} sectors={data.sectors} />
+      <MarketWhatChanged data={data} />
       <EventsTimeline events={data.events} />
+      <BreadthHeatmap breadth={data.breadth} sectors={data.sectors} />
       <MacroSections cards={data.macro.cards} />
       <p style={{ fontSize: '0.6875rem', color: 'var(--faint)', textAlign: 'center' }}>
         Data refreshes every 15 minutes · generated {new Date(data.generated_at).toLocaleTimeString()}
