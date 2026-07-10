@@ -93,7 +93,7 @@ export default function TerminalHeader({ macro, isPro, usedToday, onUpgrade }: T
           </span>
         </Link>
 
-        <nav aria-label="Terminal sections" style={{ display: 'flex', gap: 2 }}>
+        <nav aria-label="Terminal sections" className="terminal-tabs" style={{ display: 'flex', gap: 2, minWidth: 0 }}>
           {TABS.map((tab) => {
             const active = pathname === tab.href
             return (
@@ -104,6 +104,7 @@ export default function TerminalHeader({ macro, isPro, usedToday, onUpgrade }: T
                 className="btn btn--ghost btn--sm"
                 style={{
                   height: 28,
+                  flexShrink: 0,
                   fontWeight: active ? 600 : 500,
                   color: active ? 'var(--text)' : 'var(--muted)',
                   background: active ? 'var(--surface-2)' : undefined,

@@ -545,6 +545,18 @@ img { max-width: 100%; display: block; }
   .terminal-header-search { display: none !important; }
 }
 
+/* Terminal section tabs: scroll instead of squeezing or breaking the
+   header layout once the tab count or a narrow viewport outgrows the
+   available width. Scrollbar hidden — this is a nav, not a content
+   pane, and the row already communicates its own overflow by clipping
+   the last tab at the edge. */
+.terminal-tabs {
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.terminal-tabs::-webkit-scrollbar { display: none; }
+
 /* ---------- Market dashboard: hero ---------- */
 .dash-hero { padding: clamp(20px, 3vw, 28px); }
 .dash-hero__metrics {
