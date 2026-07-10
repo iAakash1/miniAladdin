@@ -4,7 +4,7 @@
 
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { normalizeAi } from '../src/lib/api'
+import { fetchMacroClient, normalizeAi } from '../src/lib/api'
 import type { RawAiAnalysis } from '../src/lib/types'
 
 function rawAi(overrides: Partial<RawAiAnalysis> = {}): RawAiAnalysis {
@@ -83,4 +83,31 @@ test('normalizeAi defaults factor_impacts to empty buckets when absent (fallback
 test('normalizeAi returns null when there is no executive summary (fast mode / ai: null)', () => {
   assert.equal(normalizeAi(null), null)
   assert.equal(normalizeAi({ executive_summary: '' }), null)
+})
+
+/* fetchMacroClient: every /terminal/* page mounts TerminalHeader and calls
+   this independently (Performance pass — avoid duplicate API requests).
+   Verifies the client-side cache + single-flight actually collapses both
+   concurrent calls and rapid-repeat calls into one network request. Kept
+   as one test (rather than split) since macroCache/macroInflight are
+   module-level singleton state — splitting across tests would make the
+   second test's assertion depend on execution order instead of on the
+   behavior actually being exercised within it. */
+test('fetchMacroClient de-duplicates concurrent calls and reuses the cache within the TTL window', async (t) => {
+  let callCount = 0
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = (async () => {
+    callCount += 1
+    return { ok: true, json: async () => ({}) } as Response
+  }) as typeof fetch
+  t.after(() => {
+    globalThis.fetch = originalFetch
+  })
+
+  const [a, b] = await Promise.all([fetchMacroClient(), fetchMacroClient()])
+  assert.equal(callCount, 1, 'two concurrent calls should share one in-flight request')
+  assert.deepEqual(a, b)
+
+  await fetchMacroClient()
+  assert.equal(callCount, 1, 'a repeat call within the TTL window should hit the cache, not the network')
 })

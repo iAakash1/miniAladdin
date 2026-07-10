@@ -249,13 +249,41 @@ export async function fetchChart(ticker: string, period: string): Promise<RawCha
   return res.json()
 }
 
+/*
+ * Every /terminal/* page mounts TerminalHeader independently and each one
+ * calls fetchMacroClient() on its own — navigating Market -> Portfolio ->
+ * Validation -> Methodology in one session was firing a fresh
+ * GET /api/macro on every single page mount, for a value the backend
+ * itself only refreshes every 15 minutes (MacroProvider.TTL,
+ * src/providers/providers.py). MACRO_CACHE_TTL_MS mirrors that same
+ * short-lived-cache-plus-single-flight shape the provider layer already
+ * uses server-side (src/providers/dedupe.py SingleFlight) — applied here
+ * client-side for the one clearly duplicated request, not a general
+ * fetch-caching layer.
+ */
+const MACRO_CACHE_TTL_MS = 60_000
+let macroCache: { data: Macro; fetchedAt: number } | null = null
+let macroInflight: Promise<Macro | null> | null = null
+
 export async function fetchMacroClient(): Promise<Macro | null> {
-  try {
-    const res = await fetch('/api/macro')
-    if (!res.ok) return null
-    return normalizeMacro((await res.json()) as RawMacroResponse)
-  } catch {
-    return null
+  if (macroCache && Date.now() - macroCache.fetchedAt < MACRO_CACHE_TTL_MS) {
+    return macroCache.data
   }
+  if (macroInflight) return macroInflight
+
+  macroInflight = (async () => {
+    try {
+      const res = await fetch('/api/macro')
+      if (!res.ok) return null
+      const data = normalizeMacro((await res.json()) as RawMacroResponse)
+      macroCache = { data, fetchedAt: Date.now() }
+      return data
+    } catch {
+      return null
+    } finally {
+      macroInflight = null
+    }
+  })()
+  return macroInflight
 }
 
