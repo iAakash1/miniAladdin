@@ -21,6 +21,12 @@ export interface MetricEntry {
   typicalRange: string
   why: string
   references: string[]
+  /** Optional — used by factorGlossary.ts entries (Methodology Center),
+   *  left blank for validation metrics. Kept on the shared type so both
+   *  glossaries can reuse the same MetricEntry shape and MetricExplainer
+   *  component instead of two near-duplicate ones. */
+  limitations?: string
+  entersScore?: string
 }
 
 export type MetricKey =

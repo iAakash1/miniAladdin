@@ -64,6 +64,8 @@ export default function MetricExplainer({
           <ExplainRow label="Good" text={entry.good} tone="pos" />
           <ExplainRow label="Bad" text={entry.bad} tone="neg" />
           <ExplainRow label="Typical range" text={entry.typicalRange} />
+          {entry.limitations && <ExplainRow label="Limitations" text={entry.limitations} />}
+          {entry.entersScore && <ExplainRow label="Where it enters the score" text={entry.entersScore} />}
           <ExplainRow label="Why OmniSignal uses it" text={entry.why} />
           <ExplainRow label="References" text={entry.references.join(' · ')} />
         </div>
