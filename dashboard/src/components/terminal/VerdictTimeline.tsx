@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { FACTOR_LABELS, diffSnapshots, useHistory } from '@/lib/history'
-import { timeAgo } from '@/lib/format'
+import { fmtDate, timeAgo } from '@/lib/format'
 
 function verdictTone(verdict: string): string {
   return verdict.includes('Buy') ? 'badge--pos' : verdict.includes('Sell') ? 'badge--neg' : 'badge--warn'
@@ -46,7 +46,7 @@ export default function VerdictTimeline({ ticker }: { ticker: string }) {
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                 <span className="num" style={{ fontSize: '0.75rem', color: 'var(--faint)', width: 110 }}>
-                  {new Date(entry.ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  {fmtDate(entry.ts)}
                   {' · '}
                   {timeAgo(entry.ts)}
                 </span>

@@ -11,7 +11,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { fmtPrice } from '@/lib/format'
+import { fmtDate, fmtPrice } from '@/lib/format'
 import type { PricePoint } from '@/lib/types'
 
 interface PriceChartProps {
@@ -64,7 +64,7 @@ export default function PriceChart({ data, ticker, periodLabel }: PriceChartProp
 
   const points = data.map((d) => ({
     ...d,
-    dateLabel: new Date(d.date).toLocaleDateString('en-US', {
+    dateLabel: fmtDate(d.date, {
       month: 'short',
       day: 'numeric',
       year: data.length > 260 ? '2-digit' : undefined,
