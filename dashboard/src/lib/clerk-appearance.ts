@@ -72,5 +72,24 @@ export const clerkAppearance = {
       letterSpacing: '0.04em',
     },
     logoBox: { display: 'none' },
+
+    // UserButton popover (terminal header, dark by default). Same CSS-
+    // variable approach as above — previously unstyled, so it fell back to
+    // Clerk's own light-mode default card and overrode the surrounding
+    // dark theme whenever it opened.
+    userButtonPopoverCard: {
+      background: 'var(--surface)',
+      border: '1px solid var(--line-strong)',
+      boxShadow: 'var(--shadow-2)',
+    },
+    userButtonPopoverMain: { background: 'var(--surface)' },
+    userButtonPopoverActionButton: { color: 'var(--text)' },
+    userButtonPopoverActionButtonText: { color: 'var(--text)', fontWeight: 500 },
+    userButtonPopoverActionButtonIcon: { color: 'var(--muted)' },
+    userButtonPopoverFooter: { background: 'var(--surface-2)' },
+    userPreviewMainIdentifier: { color: 'var(--text)' },
+    userPreviewSecondaryIdentifier: { color: 'var(--muted)' },
+    menuList: { background: 'var(--surface)', border: '1px solid var(--line-strong)' },
+    menuItem: { color: 'var(--text)' },
   },
 }

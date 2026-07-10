@@ -6,6 +6,7 @@ import { UserButton } from '@clerk/nextjs'
 import ScreenSearch from '@/components/terminal/ScreenSearch'
 import { LogoMark } from '@/components/ui/Logo'
 import ThemeToggle from '@/components/ui/ThemeToggle'
+import { clerkAppearance } from '@/lib/clerk-appearance'
 
 const TABS = [
   { href: '/terminal', label: 'Market' },
@@ -164,7 +165,8 @@ export default function TerminalHeader({ macro, isPro, usedToday, onUpgrade }: T
           )}
           <UserButton
             appearance={{
-              elements: { avatarBox: { width: 28, height: 28 } },
+              variables: clerkAppearance.variables,
+              elements: { ...clerkAppearance.elements, avatarBox: { width: 28, height: 28 } },
             }}
           />
         </div>
