@@ -1,6 +1,11 @@
 import type { NextConfig } from 'next'
 
-const API_BASE = process.env.API_URL || 'https://minialaddin-d8oe.onrender.com'
+// Backend origin for the /api/* proxy. Deliberately NOT read from API_URL:
+// the hosting env had a stale API_URL pinned to a dead Railway backend that
+// silently overrode this. BACKEND_ORIGIN is a fresh name the host doesn't set,
+// so production always resolves to the live Render service below. For local
+// dev against a local backend, set BACKEND_ORIGIN in dashboard/.env.local.
+const API_BASE = process.env.BACKEND_ORIGIN || 'https://minialaddin-d8oe.onrender.com'
 
 const nextConfig: NextConfig = {
   // Explicit root: a stray lockfile higher up the tree otherwise makes
