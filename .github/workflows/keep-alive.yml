@@ -1,0 +1,39 @@
+name: Keep backend warm
+
+# Render's free tier spins the service down after ~15 min of inactivity, so
+# the next request cold-starts for 30-60s and the dashboard looks broken.
+# This pings the health endpoint every ~10 min to keep the instance awake.
+#
+# Notes:
+#  * GitHub cron is best-effort and can be delayed under load — 10 min leaves
+#    slack under the 15-min spin-down window.
+#  * GitHub auto-disables scheduled workflows after 60 days of repo inactivity;
+#    a single push (or the "Enable workflow" button) re-arms it.
+#  * Runs are tiny (one curl) and stay well within the free Actions minutes.
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch: {} # allow a manual "wake it now" from the Actions tab
+
+permissions:
+  contents: read
+
+concurrency:
+  group: keep-alive
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render health endpoint
+        run: |
+          URL="https://minialaddin-d8oe.onrender.com/api/health"
+          echo "Pinging $URL"
+          # --retry rides out the cold-start; max-time covers a full wake.
+          code=$(curl -sS -o /dev/null -w '%{http_code}' \
+            --max-time 90 --retry 3 --retry-all-errors --retry-delay 15 \
+            "$URL")
+          echo "HTTP $code"
+          test "$code" = "200"
