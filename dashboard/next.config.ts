@@ -1,6 +1,6 @@
 import type { NextConfig } from 'next'
 
-const API_BASE = process.env.API_URL || 'https://minialaddin-production.up.railway.app'
+const API_BASE = process.env.API_URL || 'https://minialaddin-d8oe.onrender.com'
 
 const nextConfig: NextConfig = {
   // Explicit root: a stray lockfile higher up the tree otherwise makes
