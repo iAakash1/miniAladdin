@@ -81,7 +81,16 @@ function ImpactRow({
 }) {
   if (!narrative) return null
   return (
-    <div style={{ display: 'flex', gap: 14, padding: '9px 0', borderBottom: '1px solid var(--line)', alignItems: 'baseline' }}>
+    <div
+      style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '4px 14px',
+        padding: '9px 0',
+        borderBottom: '1px solid var(--line)',
+        alignItems: 'baseline',
+      }}
+    >
       <span style={{ width: 108, flexShrink: 0, fontSize: '0.75rem', fontWeight: 550, color: 'var(--text)' }}>
         {label}
       </span>
@@ -91,7 +100,11 @@ function ImpactRow({
       >
         {valueText}
       </span>
-      <span style={{ fontSize: '0.8125rem', lineHeight: 1.55, color: 'var(--muted)' }}>{narrative}</span>
+      {/* Wraps under the label/value pair on narrow screens instead of
+          squeezing into a few characters per line. */}
+      <span style={{ flex: '1 1 260px', minWidth: 0, fontSize: '0.8125rem', lineHeight: 1.55, color: 'var(--muted)' }}>
+        {narrative}
+      </span>
     </div>
   )
 }
@@ -171,19 +184,30 @@ export default function AiPanel({ analysis }: { analysis: Analysis }) {
         </p>
       )}
 
-      <p style={{ fontSize: '0.9375rem', lineHeight: 1.7, color: 'var(--text)', maxWidth: '72ch' }}>
+      {/* Lead paragraph in serif — the report reads like research, not UI chrome. */}
+      <p
+        style={{
+          fontFamily: 'var(--font-serif)',
+          fontSize: '1.0625rem',
+          lineHeight: 1.65,
+          color: 'var(--text)',
+          maxWidth: '68ch',
+          letterSpacing: '0.002em',
+        }}
+      >
         {ai.executiveSummary}
       </p>
 
       {ai.investmentThesis && (
         <p
           style={{
-            fontSize: '0.875rem',
+            fontFamily: 'var(--font-serif)',
+            fontSize: '0.9375rem',
             lineHeight: 1.65,
             color: 'var(--text)',
-            maxWidth: '72ch',
-            marginTop: 10,
-            paddingLeft: 12,
+            maxWidth: '68ch',
+            marginTop: 12,
+            paddingLeft: 14,
             borderLeft: '2px solid var(--accent)',
           }}
         >
@@ -304,20 +328,20 @@ export default function AiPanel({ analysis }: { analysis: Analysis }) {
       )}
 
       {ai.conclusion && (
-        <p
-          className="hairline-top"
-          style={{
-            fontSize: '0.875rem',
-            lineHeight: 1.65,
-            color: 'var(--text)',
-            fontWeight: 480,
-            maxWidth: '72ch',
-            paddingTop: 16,
-            marginTop: 16,
-          }}
-        >
-          {ai.conclusion}
-        </p>
+        <div className="hairline-top" style={{ paddingTop: 16, marginTop: 16 }}>
+          <p className="label" style={{ marginBottom: 8 }}>Conclusion</p>
+          <p
+            style={{
+              fontFamily: 'var(--font-serif)',
+              fontSize: '0.9688rem',
+              lineHeight: 1.65,
+              color: 'var(--text)',
+              maxWidth: '68ch',
+            }}
+          >
+            {ai.conclusion}
+          </p>
+        </div>
       )}
     </section>
   )
