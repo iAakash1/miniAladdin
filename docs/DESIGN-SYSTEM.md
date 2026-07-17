@@ -43,7 +43,10 @@ All pairings meet WCAG AA at their used sizes; body text exceeds AAA.
 padding 20–26px; data rows 9–13px vertical. Radii: 4 / 6 / 10px (`--r-sm/md/lg`)
 — rectangles, not pills. Shadows: `--shadow-1/2` are near-invisible on light;
 **none** on dark (hairline borders carry all structure). `--shadow-dialog` only
-for modals.
+for modals. Overlays (dialogs, dropdowns, tooltips, popovers) sit on
+`--surface-3` — equal to `--surface` on light, one step lighter on dark, so
+dark surfaces get lighter as they rise. Dialog scrims use `--backdrop`
+(warm-ink on light, deeper on dark).
 
 ### Motion
 
@@ -59,12 +62,14 @@ by the `prefers-reduced-motion` block. Nothing spins, floats, or glows.
 ### CSS primitives (globals.css)
 
 `.btn` + `--primary` (ink-filled) / `--accent` (emerald) / `--secondary`
-(hairline) / `--ghost`, sizes `--sm/--lg` · `.input` (accent focus ring) ·
-`.card` / `.panel` · `.badge--pos/neg/warn/neutral/accent` · `.seg` +
-`.seg__btn[aria-pressed]` segmented control · `.metric-row` (dt/dd data rows) ·
-`.data-table` · `.skeleton` · `.container` (1120px, 12-col-friendly gutters) ·
-`.faq-item` (styled details/summary) · grid helpers: `.hero-grid`, `.split-2`,
-`.terminal-grid-main/three/four` — all collapse for mobile.
+(hairline) / `--ghost`, sizes `--xs/--sm/--lg` (24/32/46px; default 40px —
+no ad-hoc heights) · `.input` (accent focus ring; 40px standalone, 32px in
+compact inline forms) · `.card` / `.panel` · `.badge--pos/neg/warn/neutral/accent`
+· `.seg` + `.seg__btn[aria-pressed]` segmented control · `.metric-row` (dt/dd
+data rows) · `.data-table` · `.skeleton` · `.container` (1120px, 12-col-friendly
+gutters) · `.faq-item` and `.disclosure` (styled details/summary — every
+expander shares the rotating +/× affordance) · grid helpers: `.hero-grid`,
+`.split-2`, `.terminal-grid-main/three/four` — all collapse for mobile.
 
 ### React components
 
