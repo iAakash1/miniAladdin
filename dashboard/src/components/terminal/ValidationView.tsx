@@ -164,12 +164,12 @@ export default function ValidationView() {
         <input
           id="bt-ticker"
           className="input mono"
-          style={{ maxWidth: 160, height: 38, letterSpacing: '0.06em' }}
+          style={{ maxWidth: 160, letterSpacing: '0.06em' }}
           maxLength={8}
           value={ticker}
           onChange={(event) => setTicker(event.target.value.toUpperCase().replace(/[^A-Z.^-]/g, ''))}
         />
-        <button type="submit" className="btn btn--primary btn--sm" style={{ height: 38 }} disabled={loading}>
+        <button type="submit" className="btn btn--primary" disabled={loading}>
           {loading ? 'Computing…' : 'Run validation'}
         </button>
       </form>

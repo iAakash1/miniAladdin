@@ -189,7 +189,7 @@ export default function PortfolioView() {
           <input
             id="new-list"
             className="input"
-            style={{ maxWidth: 220, height: 36 }}
+            style={{ maxWidth: 220, height: 32, fontSize: '0.8125rem' }}
             placeholder="Or name a new list…"
             value={newName}
             onChange={(event) => setNewName(event.target.value)}
@@ -280,7 +280,7 @@ export default function PortfolioView() {
             <input
               id="add-ticker"
               className="input mono"
-              style={{ maxWidth: 180, height: 36, letterSpacing: '0.06em' }}
+              style={{ maxWidth: 180, height: 32, fontSize: '0.8125rem', letterSpacing: '0.06em' }}
               placeholder="Add ticker…"
               maxLength={8}
               value={addSymbol}
@@ -403,17 +403,17 @@ export default function PortfolioView() {
                       <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                         <Link
                           href={`/terminal/analyze?ticker=${ticker}`}
-                          className="btn btn--ghost btn--sm"
-                          style={{ height: 24, padding: '0 8px', fontSize: '0.6875rem', textDecoration: 'none' }}
+                          className="btn btn--ghost btn--xs"
+                          style={{ textDecoration: 'none' }}
                         >
                           Explain
                         </Link>
                         <button
                           type="button"
-                          className="btn btn--ghost btn--sm"
+                          className="btn btn--ghost btn--xs"
                           aria-label={`Remove ${ticker} from ${active.name}`}
                           onClick={() => removeTicker(active.id, ticker)}
-                          style={{ height: 24, padding: '0 8px', color: 'var(--faint)' }}
+                          style={{ color: 'var(--faint)' }}
                         >
                           ✕
                         </button>

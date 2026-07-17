@@ -2,7 +2,6 @@
 
 import dynamicImport from 'next/dynamic'
 import { useCallback, useEffect, useState } from 'react'
-import { useUser } from '@clerk/nextjs'
 
 import AiPanel from '@/components/terminal/AiPanel'
 import CommandBar from '@/components/terminal/CommandBar'
@@ -15,15 +14,14 @@ import Headlines from '@/components/terminal/Headlines'
 import KeyStats from '@/components/terminal/KeyStats'
 import MacroPanel from '@/components/terminal/MacroPanel'
 import SentimentPanel from '@/components/terminal/SentimentPanel'
-import TerminalHeader from '@/components/terminal/TerminalHeader'
-import UpgradeDialog from '@/components/terminal/UpgradeDialog'
+import TerminalShell, { type TerminalShellContext } from '@/components/terminal/TerminalShell'
 import Skeleton from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
 import { LogoMark } from '@/components/ui/Logo'
 
 import { fetchAnalysis, fetchChart, fetchMacroClient, normalizeAnalysis, normalizeChart } from '@/lib/api'
 import { fmtNum, fmtPctRaw } from '@/lib/format'
-import { FREE_DAILY_LIMIT, bumpTodayCount, readTodayCount, useTodayCount } from '@/lib/usage'
+import { FREE_DAILY_LIMIT, bumpTodayCount, readTodayCount } from '@/lib/usage'
 import type { Analysis, Macro, PricePoint } from '@/lib/types'
 
 /* Recharts stays out of the initial bundle. */
@@ -60,8 +58,15 @@ function ResultSkeleton() {
 }
 
 export default function TerminalPage() {
-  const { user, isLoaded } = useUser()
-  const isPro = (user?.publicMetadata?.isPro as boolean) ?? false
+  return (
+    <TerminalShell loadingLabel="Loading terminal…">
+      {(shell) => <AnalyzeView shell={shell} />}
+    </TerminalShell>
+  )
+}
+
+function AnalyzeView({ shell }: { shell: TerminalShellContext }) {
+  const { isPro, usedToday, requestUpgrade } = shell
 
   const [status, setStatus] = useState<Status>('idle')
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
@@ -71,8 +76,6 @@ export default function TerminalPage() {
   const [macro, setMacro] = useState<Macro | null>(null)
   const [fast, setFast] = useState(false)
   const [period, setPeriod] = useState('3mo')
-  const usedToday = useTodayCount()
-  const [upgrade, setUpgrade] = useState<{ open: boolean; reason?: 'limit' | 'feature' }>({ open: false })
 
   useEffect(() => {
     let cancelled = false
@@ -90,7 +93,7 @@ export default function TerminalPage() {
       if (!ticker) return
 
       if (!isPro && readTodayCount() >= FREE_DAILY_LIMIT) {
-        setUpgrade({ open: true, reason: 'limit' })
+        requestUpgrade('limit')
         return
       }
 
@@ -112,7 +115,7 @@ export default function TerminalPage() {
         setStatus('error')
       }
     },
-    [fast, isPro, period],
+    [fast, isPro, period, requestUpgrade],
   )
 
   /* Deep link: /terminal/analyze?ticker=NVDA (portfolio rows link here). */
@@ -130,7 +133,7 @@ export default function TerminalPage() {
   const changePeriod = useCallback(
     async (next: string) => {
       if (!isPro && next !== '3mo') {
-        setUpgrade({ open: true, reason: 'feature' })
+        requestUpgrade('feature')
         return
       }
       setPeriod(next)
@@ -142,45 +145,11 @@ export default function TerminalPage() {
         setChartLoading(false)
       }
     },
-    [analysis, isPro],
+    [analysis, isPro, requestUpgrade],
   )
 
-  if (!isLoaded) {
-    return (
-      <div
-        style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-        aria-busy="true"
-      >
-        <span className="label">Loading terminal…</span>
-      </div>
-    )
-  }
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <TerminalHeader
-        macro={macro}
-        isPro={isPro}
-        usedToday={usedToday}
-        onUpgrade={() => setUpgrade({ open: true })}
-      />
-
-      <UpgradeDialog
-        open={upgrade.open}
-        reason={upgrade.reason}
-        onClose={() => setUpgrade({ open: false })}
-      />
-
-      <main
-        id="main"
-        style={{
-          flex: 1,
-          width: '100%',
-          maxWidth: 1200,
-          margin: '0 auto',
-          padding: '28px clamp(16px, 3vw, 28px) 64px',
-        }}
-      >
+    <>
         {/* Command area */}
         <section aria-label="Run an analysis" style={{ marginBottom: 24 }}>
           <CommandBar loading={status === 'loading'} fast={fast} onFastChange={setFast} onAnalyze={run} />
@@ -240,7 +209,7 @@ export default function TerminalPage() {
                       <p
                         className="num"
                         style={{
-                          fontSize: '1.375rem',
+                          fontSize: '1.25rem',
                           fontWeight: 600,
                           color: s.warn ? 'var(--warn)' : 'var(--text)',
                           marginBottom: 3,
@@ -305,7 +274,7 @@ export default function TerminalPage() {
                         >
                           {p.label}
                           {!isPro && p.value !== '3mo' && (
-                            <span aria-label="Pro feature" style={{ fontSize: '0.5625rem', color: 'var(--warn)' }}>
+                            <span aria-label="Pro feature" style={{ fontSize: '0.625rem', color: 'var(--warn)' }}>
                               PRO
                             </span>
                           )}
@@ -339,7 +308,7 @@ export default function TerminalPage() {
               <Headlines
                 headlines={analysis.headlines}
                 isPro={isPro}
-                onUpgrade={() => setUpgrade({ open: true, reason: 'feature' })}
+                onUpgrade={() => requestUpgrade('feature')}
               />
 
               <VerdictTimeline ticker={analysis.ticker} />
@@ -350,7 +319,6 @@ export default function TerminalPage() {
             </div>
           )}
         </div>
-      </main>
-    </div>
+    </>
   )
 }

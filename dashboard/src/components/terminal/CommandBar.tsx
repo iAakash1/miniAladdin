@@ -44,14 +44,14 @@ export default function CommandBar({ loading, fast, onFastChange, onAnalyze }: C
             placeholder="Ticker — e.g. NVDA"
             value={value}
             onChange={(e) => setValue(e.target.value.toUpperCase().replace(/[^A-Z.^-]/g, ''))}
-            style={{ height: 44, fontSize: '0.9375rem', fontWeight: 500, letterSpacing: '0.06em' }}
+            style={{ fontSize: '0.9375rem', fontWeight: 500, letterSpacing: '0.06em' }}
           />
         </div>
         <button
           type="submit"
           className="btn btn--primary"
           disabled={loading || !value.trim()}
-          style={{ height: 44, minWidth: 110 }}
+          style={{ minWidth: 110 }}
         >
           {loading ? 'Analyzing…' : 'Analyze'}
         </button>
