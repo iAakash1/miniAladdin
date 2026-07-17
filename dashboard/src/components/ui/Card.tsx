@@ -55,7 +55,7 @@ export default function Card({
         )}
       </div>
       {previous && (
-        <p className="num" style={{ fontSize: '0.5625rem', color: 'var(--faint)', marginTop: 6 }}>prev {previous}</p>
+        <p className="num" style={{ fontSize: '0.625rem', color: 'var(--faint)', marginTop: 6 }}>prev {previous}</p>
       )}
     </article>
   )

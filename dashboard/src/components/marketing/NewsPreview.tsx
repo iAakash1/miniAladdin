@@ -68,7 +68,7 @@ export default function NewsPreview() {
                 <p
                   style={{
                     fontFamily: 'var(--font-serif)',
-                    fontSize: '1.1875rem',
+                    fontSize: '1.125rem',
                     fontWeight: 500,
                     lineHeight: 1.35,
                     color: 'var(--text)',

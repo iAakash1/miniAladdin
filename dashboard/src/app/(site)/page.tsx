@@ -322,7 +322,7 @@ export default function LandingPage() {
                     'Live macro conditions',
                     'Headline sentiment (without links)',
                   ].map((f) => (
-                    <li key={f} style={{ display: 'flex', gap: 10, fontSize: '0.9063rem', color: 'var(--muted)' }}>
+                    <li key={f} style={{ display: 'flex', gap: 10, fontSize: '0.9375rem', color: 'var(--muted)' }}>
                       <span aria-hidden="true" style={{ color: 'var(--pos)', fontWeight: 600 }}>
                         ✓
                       </span>
@@ -363,7 +363,7 @@ export default function LandingPage() {
                     'Full article access from sentiment',
                     'Everything in Free',
                   ].map((f) => (
-                    <li key={f} style={{ display: 'flex', gap: 10, fontSize: '0.9063rem', color: 'var(--muted)' }}>
+                    <li key={f} style={{ display: 'flex', gap: 10, fontSize: '0.9375rem', color: 'var(--muted)' }}>
                       <span aria-hidden="true" style={{ color: 'var(--pos)', fontWeight: 600 }}>
                         ✓
                       </span>

@@ -82,7 +82,7 @@ export default function TerminalHeader({ macro, isPro, usedToday, onUpgrade }: T
           }}
         >
           <LogoMark size={19} />
-          <span style={{ fontSize: '0.9063rem', fontWeight: 620, letterSpacing: '-0.02em' }}>
+          <span style={{ fontSize: '0.9375rem', fontWeight: 620, letterSpacing: '-0.02em' }}>
             OmniSignal
           </span>
           <span

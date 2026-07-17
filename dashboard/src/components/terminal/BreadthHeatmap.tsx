@@ -26,7 +26,7 @@ function SectorTile({ sector, isLeader, isLaggard }: { sector: SectorRow; isLead
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
         <span style={{ fontSize: '0.6875rem', fontWeight: 600 }}>{sector.symbol}</span>
         {(isLeader || isLaggard) && (
-          <span className="label" style={{ fontSize: '0.5rem' }}>{isLeader ? 'Leader' : 'Laggard'}</span>
+          <span className="label" style={{ fontSize: '0.625rem' }}>{isLeader ? 'Leader' : 'Laggard'}</span>
         )}
       </div>
       <span className="num" style={{ fontSize: '0.875rem', fontWeight: 650, color: positive ? 'var(--pos)' : 'var(--neg)' }}>

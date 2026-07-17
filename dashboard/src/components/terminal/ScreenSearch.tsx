@@ -167,7 +167,6 @@ export default function ScreenSearch({ maxWidth = 520 }: ScreenSearchProps) {
         onChange={(event) => onChange(event.target.value)}
         onFocus={() => setOpen(true)}
         onKeyDown={onKeyDown}
-        style={{ height: 42 }}
       />
 
       {showPanel && (
