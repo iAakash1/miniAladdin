@@ -183,6 +183,7 @@ export default function ScreenSearch({ maxWidth = 520 }: ScreenSearchProps) {
             zIndex: 60,
             maxHeight: 420,
             overflowY: 'auto',
+            background: 'var(--surface-3)',
             boxShadow: 'var(--shadow-dialog)',
             padding: '6px',
           }}
