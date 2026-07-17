@@ -84,6 +84,7 @@ export default function ValidationView() {
   const [data, setData] = useState<BacktestData | null>(null)
   const [loading, setLoading] = useState(true)
   const [failed, setFailed] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -109,7 +110,7 @@ export default function ValidationView() {
       alive = false
       controller.abort()
     }
-  }, [query])
+  }, [query, reloadKey])
 
   const maxScoreCount = data ? Math.max(1, ...data.score_distribution.map((row) => row.count)) : 1
 
@@ -176,9 +177,17 @@ export default function ValidationView() {
 
       {failed && (
         <EmptyState
-          title="Validation service unreachable"
-          description="Try again shortly."
-          action={<button type="button" className="btn btn--secondary btn--sm" onClick={() => setQuery(`${query}`)}>Retry</button>}
+          title={`We couldn't run the validation for ${query}`}
+          description="The backtest service didn't respond — it may be waking from idle, which takes a few seconds. Your ticker and settings are unchanged."
+          action={
+            <button
+              type="button"
+              className="btn btn--secondary btn--sm"
+              onClick={() => setReloadKey((key) => key + 1)}
+            >
+              Try again
+            </button>
+          }
         />
       )}
 
@@ -250,7 +259,8 @@ export default function ValidationView() {
               <Metric label="Time invested" value={data.time_invested_pct} suffix="%" />
             </div>
 
-            <table className="data-table" style={{ marginBottom: 16 }}>
+            <div style={{ overflowX: 'auto', marginBottom: 16 }}>
+            <table className="data-table">
               <thead>
                 <tr>
                   <th scope="col">vs.</th>
@@ -282,6 +292,7 @@ export default function ValidationView() {
                 )}
               </tbody>
             </table>
+            </div>
 
             <EquityCurveChart data={data} />
 
@@ -403,7 +414,8 @@ export default function ValidationView() {
               {sortedFactors.length === 0 ? (
                 <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', marginTop: 8 }}>Not enough per-factor history yet.</p>
               ) : (
-                <table className="data-table" style={{ marginTop: 10 }}>
+                <div style={{ overflowX: 'auto', marginTop: 10 }}>
+                <table className="data-table">
                   <thead>
                     <tr>
                       <th scope="col">Factor</th>
@@ -425,6 +437,7 @@ export default function ValidationView() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               )}
             </div>
 
