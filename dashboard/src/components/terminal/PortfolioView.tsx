@@ -261,8 +261,6 @@ export default function PortfolioView() {
         )}
       </div>
 
-      <StorageStatus />
-
       {active && (
         <>
           {/* Add ticker */}
@@ -426,9 +424,11 @@ export default function PortfolioView() {
           )}
           <p style={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>
             Verdict columns come from your own analysis runs, stored in this browser (see “Where is
-            this stored?” above) — run Analyze on a ticker to populate them. Quotes via the provider
+            this stored?” below) — run Analyze on a ticker to populate them. Quotes via the provider
             fallback chain.
           </p>
+
+          <StorageStatus />
         </>
       )}
     </div>
