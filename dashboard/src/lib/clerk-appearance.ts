@@ -22,6 +22,18 @@ export const clerkAppearance = {
   },
   elements: {
     rootBox: { width: '100%' },
+    // Clerk v7 wraps the card in a cardBox that carries its own default
+    // width (400px), border and drop shadow. Left unstyled it renders as a
+    // second card that overflows the 420px AuthShell panel — neutralize it
+    // so the glass shell is the only visible surface.
+    cardBox: {
+      width: '100%',
+      maxWidth: '100%',
+      background: 'transparent',
+      border: 'none',
+      boxShadow: 'none',
+      borderRadius: 0,
+    },
     card: {
       background: 'transparent',
       border: 'none',
