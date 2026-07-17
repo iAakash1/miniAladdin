@@ -324,7 +324,7 @@ export default function PortfolioView() {
                     <th scope="col">Verdict</th>
                     <th scope="col">Previous</th>
                     <th scope="col">Change</th>
-                    <th scope="col" style={{ textAlign: 'right' }}>Conf</th>
+                    <th scope="col" style={{ textAlign: 'right' }}>Confidence</th>
                     <th scope="col">Risk</th>
                     <th scope="col">Last analyzed</th>
                     <th scope="col"><span className="visually-hidden">Actions</span></th>

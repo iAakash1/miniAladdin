@@ -29,7 +29,7 @@ export default function AuthShell({ children }: { children: React.ReactNode }) {
           <div style={{ textAlign: 'center', marginBottom: 4 }}>
             <p className="eyebrow" style={{ marginBottom: 8 }}>Research terminal</p>
             <p style={{ fontSize: '0.875rem', color: 'var(--muted)', lineHeight: 1.6, maxWidth: '34ch', margin: '0 auto' }}>
-              Five signal sleeves, one explainable verdict — every number auditable.
+              Five signals, one explainable verdict — every number auditable.
             </p>
           </div>
           {children}
