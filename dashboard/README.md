@@ -25,7 +25,7 @@ npm run build
 | `NEXT_PUBLIC_RAZORPAY_KEY_ID` | Vercel + local | Razorpay Checkout in the browser (intentionally public) |
 | `RAZORPAY_KEY_ID` | Vercel + local | Server-only key ID for order creation (API routes never read `NEXT_PUBLIC_*`) |
 | `RAZORPAY_KEY_SECRET` | Vercel | Order creation + webhook HMAC — never exposed to the browser |
-| `API_URL` | optional | FastAPI base (defaults to the Railway deployment) |
+| `BACKEND_ORIGIN` | optional | FastAPI base for the `/api/*` proxy (defaults to the Render deployment; set `http://127.0.0.1:8000` locally to hit a local backend) |
 | `NEXT_PUBLIC_SITE_URL` | optional | Canonical URL for metadata/sitemap |
 
 ## Structure
