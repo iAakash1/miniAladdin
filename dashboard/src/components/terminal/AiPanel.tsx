@@ -151,7 +151,12 @@ export default function AiPanel({ analysis }: { analysis: Analysis }) {
             AI-generated
           </span>
         ) : (
-          <span className="badge badge--neutral">Engine rationale — AI offline</span>
+          <span
+            className="badge badge--neutral"
+            title="The narrative model was unavailable for this run — this text is the engine's own deterministic rationale."
+          >
+            Engine rationale
+          </span>
         )}
 
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 14 }}>
