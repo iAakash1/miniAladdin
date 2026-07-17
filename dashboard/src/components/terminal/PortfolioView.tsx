@@ -60,8 +60,8 @@ const STORAGE_ROWS: StorageRow[] = [
  *  design, so this states that plainly rather than leaving it implicit. */
 function StorageStatus() {
   return (
-    <details className="panel" style={{ padding: '14px 18px' }}>
-      <summary style={{ cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 550, color: 'var(--text)', userSelect: 'none' }}>
+    <details className="panel disclosure" style={{ padding: '14px 18px' }}>
+      <summary style={{ fontSize: '0.8125rem', fontWeight: 550, color: 'var(--text)' }}>
         Where is this stored?
       </summary>
       <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>

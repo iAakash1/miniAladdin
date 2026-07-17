@@ -230,16 +230,8 @@ export default function AiPanel({ analysis }: { analysis: Analysis }) {
       )}
 
       {hasAttribution && (
-        <details style={{ marginTop: 16 }}>
-          <summary
-            style={{
-              cursor: 'pointer',
-              fontSize: '0.8125rem',
-              fontWeight: 550,
-              color: 'var(--muted)',
-              userSelect: 'none',
-            }}
-          >
+        <details className="disclosure" style={{ marginTop: 16 }}>
+          <summary style={{ fontSize: '0.8125rem', fontWeight: 550, color: 'var(--muted)' }}>
             Factor attribution
           </summary>
           <div style={{ marginTop: 10 }}>
