@@ -129,7 +129,7 @@ export default function QuantPanel({ analysis }: { analysis: Analysis }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {visible.map((factor) => (
           <div key={factor.name} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ width: 172, fontSize: '0.75rem', color: 'var(--muted)', flexShrink: 0 }}>
+            <span style={{ flex: '0 1 172px', minWidth: 96, fontSize: '0.75rem', color: 'var(--muted)' }}>
               {FACTOR_LABELS[factor.name] ?? factor.name}
               {factor.z !== null && (
                 <span className="num" style={{ color: 'var(--faint)' }}> z {factor.z.toFixed(1)}</span>
