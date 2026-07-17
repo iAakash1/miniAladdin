@@ -11,6 +11,10 @@
   --paper:        #faf9f6;
   --surface:      #ffffff;
   --surface-2:    #f3f1ec;
+  /* Overlay surface: dialogs, dropdowns, tooltips. Same as --surface on
+     light (elevation comes from shadow); one step lighter on dark. */
+  --surface-3:    #ffffff;
+  --backdrop:     rgba(28, 27, 24, 0.45);
   --ink:          #1c1b18;
   --ink-2:        #5b594f;
   --ink-3:        #8b887c;
@@ -56,6 +60,9 @@
   --paper:        #111210;
   --surface:      #181917;
   --surface-2:    #1f201d;
+  /* Overlays rise one more step — surfaces get lighter as they get closer. */
+  --surface-3:    #242522;
+  --backdrop:     rgba(4, 5, 4, 0.62);
   --ink:          #eae8e1;
   --ink-2:        #a3a198;
   --ink-3:        #737169;
@@ -609,6 +616,7 @@ img { max-width: 100%; display: block; }
   z-index: 70;
   width: max-content;
   max-width: 240px;
+  background: var(--surface-3);
   padding: 10px 12px;
   font-size: 0.75rem;
   font-weight: 400;
