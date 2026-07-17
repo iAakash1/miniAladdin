@@ -183,6 +183,8 @@ Opt-in live smoke tests: `OMNISIGNAL_LIVE_TESTS=1 python -m pytest tests/test_li
 │   └── services/         Backtest, dashboard, screen, memo, news scoring,
 │                         LLM narration, in-process metrics
 ├── dashboard/            Next.js 16 app (see dashboard/README.md)
+├── supabase/             Supabase CLI scaffold, linked to the hosted project
+│                         (home for future migrations — not yet wired into the app)
 ├── tests/                Pytest suite (176 tests) + opt-in live smoke tests
 ├── docs/                 Scoring framework, audits, design system, QA log
 └── research_vault/       Generated reports (gitignored; one example kept)
