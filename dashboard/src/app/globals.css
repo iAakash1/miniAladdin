@@ -767,6 +767,40 @@ img { max-width: 100%; display: block; }
 .auth-bar-2 { animation-delay: 90ms; }
 .auth-bar-3 { animation-delay: 180ms; }
 
+/* ---------- Company report: section map ---------- */
+.section-nav {
+  position: sticky;
+  top: 54px; /* directly under the terminal header */
+  z-index: 40;
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 6px 0;
+  margin: -6px 0 2px;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.section-nav::-webkit-scrollbar { display: none; }
+.section-nav__link {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: var(--r-sm);
+  font-size: 0.6875rem;
+  font-weight: 550;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--faint);
+  text-decoration: none;
+  transition: color var(--t-fast) var(--ease-out), background-color var(--t-fast) var(--ease-out);
+}
+.section-nav__link:hover { color: var(--text); background: var(--surface-2); }
+/* Anchor jumps land below the sticky header + section map. */
+.report-section { scroll-margin-top: 96px; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
 /* ---------- Screen search hits ---------- */
 .screen-hit { transition: background-color var(--t-fast) var(--ease-out); }
 .screen-hit:hover, .screen-hit:focus-visible, .screen-hit--active { background: var(--surface-2); }

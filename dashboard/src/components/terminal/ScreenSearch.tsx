@@ -144,7 +144,7 @@ export default function ScreenSearch({ maxWidth = 520 }: ScreenSearchProps) {
     } else if (event.key === 'Enter' && activeIndex >= 0) {
       event.preventDefault()
       setOpen(false)
-      router.push(`/terminal/analyze?ticker=${flatSymbols[activeIndex]}`)
+      router.push(`/company/${flatSymbols[activeIndex]}`)
     }
   }
 
@@ -305,7 +305,7 @@ function ResultRow({
       id={id}
       role="option"
       aria-selected={active}
-      href={`/terminal/analyze?ticker=${symbol}`}
+      href={`/company/${symbol}`}
       onClick={onSelect}
       style={{ display: 'block', padding: '9px 10px', borderRadius: 'var(--r-md)', textDecoration: 'none' }}
       className={`screen-hit${active ? ' screen-hit--active' : ''}`}
