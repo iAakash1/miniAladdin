@@ -196,6 +196,46 @@ export interface QuantCard {
 }
 
 /** Raw shape of GET /api/research/{ticker} */
+/* ---------- Technical intelligence (v4.5 additive) ----------
+   Deterministic output of src/scoring/technical_intelligence.py — a
+   presentation-layer read of the same OHLCV frame the engine scored.
+   Passed through verbatim; the frontend computes nothing. */
+
+export type TechTone = 'pos' | 'neg' | 'neutral'
+
+export interface TechIndicatorRow {
+  key: string
+  label: string
+  value: string
+  detail: string
+  state: string
+  tone: TechTone
+}
+
+export interface TechRegime {
+  label: string
+  tone: TechTone
+  note: string
+}
+
+export interface TechLevels {
+  close: number
+  support: number
+  resistance: number
+  support_distance_pct: number
+  resistance_distance_pct: number
+  lookback_days: number
+}
+
+export interface TechnicalIntelligence {
+  indicators: TechIndicatorRow[]
+  regimes: { trend: TechRegime; momentum: TechRegime; volatility: TechRegime; volume: TechRegime }
+  levels: TechLevels
+  findings: Array<{ text: string; tone: TechTone }>
+  as_of: string
+  bars: number
+}
+
 export interface RawResearchResponse {
   ticker?: string
   macro?: RawResearchMacro
@@ -215,6 +255,8 @@ export interface RawResearchResponse {
   // v3.5 additive: id of the automatically persisted history row (null when
   // persistence or authentication is unavailable).
   history_id?: string | null
+  // v4.5 additive: deterministic technical read (null on thin history).
+  technical_intelligence?: TechnicalIntelligence | null
   detail?: string
 }
 
@@ -341,6 +383,7 @@ export interface Analysis {
 
   macro: Macro
   mode: string
+  technicalIntelligence: TechnicalIntelligence | null
 }
 
 /* ---------- News (our own /api/news aggregation) ---------- */

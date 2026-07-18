@@ -14,6 +14,7 @@ import Headlines from '@/components/terminal/Headlines'
 import KeyStats from '@/components/terminal/KeyStats'
 import MacroPanel from '@/components/terminal/MacroPanel'
 import SentimentPanel from '@/components/terminal/SentimentPanel'
+import TechnicalIntelligence from '@/components/terminal/TechnicalIntelligence'
 import TerminalShell, { type TerminalShellContext } from '@/components/terminal/TerminalShell'
 import Skeleton from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
@@ -298,6 +299,8 @@ function AnalyzeView({ shell }: { shell: TerminalShellContext }) {
 
                 <KeyStats analysis={analysis} />
               </div>
+
+              <TechnicalIntelligence block={analysis.technicalIntelligence} />
 
               <div className="terminal-grid-three">
                 <Fundamentals analysis={analysis} />
