@@ -16,6 +16,7 @@ import os
 import sys
 import threading
 import time
+import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -72,7 +73,7 @@ DISCLAIMER = "Research and education only — not investment advice."
 app = FastAPI(
     title="OmniSignal API",
     description="Multi-Factor Risk & Prediction Engine",
-    version="1.1.0",
+    version="3.5.0",
 )
 
 # Explicit origin allowlist (comma-separated env var). Wildcard + credentials
@@ -104,18 +105,32 @@ app.include_router(persistence_router)
 
 @app.middleware("http")
 async def request_logging(request, call_next):
-    """One structured line per request: method, path, status, duration."""
+    """One structured line per request: id, method, path, user, status, duration.
+
+    The request id is generated here and echoed as X-Request-Id so a client
+    error report can be matched to its server log line. The Clerk user id is
+    attached by the auth dependency (request.state.clerk_user) when a valid
+    token was presented — never any token contents.
+    """
+    request_id = uuid.uuid4().hex[:12]
+    request.state.request_id = request_id
     started = time.perf_counter()
     try:
         response = await call_next(request)
     except Exception:
-        logger.exception("unhandled error %s %s", request.method, request.url.path)
+        logger.exception(
+            "rid=%s unhandled error %s %s", request_id, request.method, request.url.path
+        )
         raise
     duration_ms = (time.perf_counter() - started) * 1000
+    user = getattr(request.state, "clerk_user", None)
     logger.info(
-        "%s %s -> %d in %.0fms",
-        request.method, request.url.path, response.status_code, duration_ms,
+        "rid=%s %s %s%s -> %d in %.0fms",
+        request_id, request.method, request.url.path,
+        f" user={user}" if user else "",
+        response.status_code, duration_ms,
     )
+    response.headers["X-Request-Id"] = request_id
     return response
 
 # ── Shared instances ──────────────────────────────────────────────────────────
@@ -299,10 +314,15 @@ def health():
         if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("ENV") == "production"
         else "development"
     )
+    missing_persistence = [
+        name
+        for name in ("SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "CLERK_JWKS_URL", "CLERK_ISSUER")
+        if not os.getenv(name)
+    ]
     return {
         "status":  "ok",
         "service": "OmniSignal API",
-        "version": "1.1.0",
+        "version": "3.5.0",
         "data_sources": {
             "fred":          bool(os.getenv("FRED_API_KEY")),
             "alpha_vantage": av_client.available,
@@ -310,6 +330,13 @@ def health():
             "llm":           bool(os.getenv("GROQ_API_KEY")),
             "yfinance":      True,
             "yahoo_scraper": True,
+        },
+        # Presence booleans only — names, never values. Lets a release engineer
+        # confirm from outside that the deployed build reads its env correctly.
+        "persistence": {
+            "database_configured": database.is_configured(),
+            "auth_configured": bool(os.getenv("CLERK_JWKS_URL")),
+            "missing_env": missing_persistence,
         },
         "environment": environment,
     }

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from types import SimpleNamespace
 
 import jwt
 import pytest
@@ -72,24 +73,32 @@ class TestVerifyToken:
         assert clerk_auth.verify_token(_token(other)) is None
 
 
+def _stub_request():
+    """Minimal stand-in for fastapi.Request: the dependency only touches .state."""
+    return SimpleNamespace(state=SimpleNamespace())
+
+
 class TestDependencies:
     def test_require_user_valid(self, configured, keypair):
         private, _ = keypair
-        assert clerk_auth.require_clerk_user(f"Bearer {_token(private)}") == "user_123"
+        request = _stub_request()
+        assert clerk_auth.require_clerk_user(request, f"Bearer {_token(private)}") == "user_123"
+        # The middleware reads the verified user from request.state for logging.
+        assert request.state.clerk_user == "user_123"
 
     def test_require_user_missing_token(self, configured):
         with pytest.raises(HTTPException) as err:
-            clerk_auth.require_clerk_user("")
+            clerk_auth.require_clerk_user(_stub_request(), "")
         assert err.value.status_code == 401
 
     def test_require_user_unconfigured_is_503(self, monkeypatch):
         monkeypatch.delenv("CLERK_JWKS_URL", raising=False)
         clerk_auth._reset_for_testing()
         with pytest.raises(HTTPException) as err:
-            clerk_auth.require_clerk_user("Bearer whatever")
+            clerk_auth.require_clerk_user(_stub_request(), "Bearer whatever")
         assert err.value.status_code == 503
 
     def test_optional_user_never_raises(self, monkeypatch):
         monkeypatch.delenv("CLERK_JWKS_URL", raising=False)
         clerk_auth._reset_for_testing()
-        assert clerk_auth.optional_clerk_user("Bearer junk") is None
+        assert clerk_auth.optional_clerk_user(_stub_request(), "Bearer junk") is None

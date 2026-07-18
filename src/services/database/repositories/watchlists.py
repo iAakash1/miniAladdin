@@ -110,13 +110,19 @@ class WatchlistsRepository:
         clean = name.strip()[:40]
         if not clean:
             return False
-        self._c.table("watchlists").update({"name": clean}).eq("id", watchlist_id).execute()
+        # Mutations re-assert the user filter even after the ownership check —
+        # every write is self-scoping, not dependent on a prior read.
+        self._c.table("watchlists").update({"name": clean}).eq("id", watchlist_id).eq(
+            "clerk_user_id", clerk_user_id
+        ).execute()
         return True
 
     def delete(self, clerk_user_id: str, watchlist_id: str) -> bool:
         if self._owned(clerk_user_id, watchlist_id) is None:
             return False
-        self._c.table("watchlists").delete().eq("id", watchlist_id).execute()
+        self._c.table("watchlists").delete().eq("id", watchlist_id).eq(
+            "clerk_user_id", clerk_user_id
+        ).execute()
         return True
 
     def add_ticker(self, clerk_user_id: str, watchlist_id: str, ticker: str) -> bool:
