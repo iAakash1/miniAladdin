@@ -46,3 +46,37 @@ API changes only (v1.x contract preserved). Provider abstraction unbroken —
 no component knows which vendor answered. Every increment lands with tests,
 lint/typecheck, production build, and a production-stability check before the
 next begins.
+
+## v5 charter — product ownership (adopted 2026-07-18)
+
+Standing priorities from the product charter, in execution order. Each item
+lands with the full QA matrix and a production-stability check, per the
+established discipline.
+
+1. **Company-page information architecture + routing.** Restructure the
+   analyze experience around the research narrative (overview → thesis →
+   financial health → growth → valuation → technical → street → news →
+   macro → risk → history) with domain routing (`/company/{ticker}` and
+   per-section deep links). The company page becomes the heart of the
+   product; existing panels become sections of one flowing report.
+2. **Command palette + keyboard navigation.** ⌘K over companies, terminal
+   sections, watchlist entries, vault history, and Learn More topics —
+   search as the primary navigation mechanism. Recently viewed + pinned
+   companies (persisted via the existing preferences/Supabase layer).
+3. **Search Intelligence Engine.** Question-shaped queries composed over
+   the existing deterministic engines ("why did the recommendation
+   change", "compare A and B" → vault compare; "what changed since
+   earnings" → history diff + news clusters). Deterministic retrieval
+   first; LLM narrates only.
+4. **Learn More index.** One browsable, searchable education surface over
+   the four glossaries (validation, factor, technical, street) — the
+   platform's finance curriculum, discoverable from the palette.
+5. **Table system.** Sorting/filtering/sticky headers/density as shared
+   primitives for portfolio, vault, and validation tables.
+6. **Finnhub metric=all mapping** (P1 from the provider audit) feeding a
+   financial-health section of the company page.
+
+Charter constraints binding all of it: professional calm over novelty, the
+existing token system, color as meaning only, density with progressive
+disclosure, accessibility as a requirement, deterministic engines produce
+every number, and nothing ships half-done.
