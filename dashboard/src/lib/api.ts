@@ -206,6 +206,7 @@ export function normalizeAnalysis(raw: RawResearchResponse): Analysis {
 
     macro: normalizeMacro(raw.macro),
     mode: raw.mode ?? 'full',
+    technicalIntelligence: raw.technical_intelligence ?? null,
   }
 }
 

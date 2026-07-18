@@ -122,6 +122,18 @@ The macro readout shown across the product is the Systemic Risk Multiplier
 | Fed funds > 5% | +0.1 |
 | Clamp | [0.5, 1.6] |
 
+### Technical intelligence (v4.5)
+
+Every research run also computes the full classic indicator suite — moving
+averages and 50/200 crosses, MACD, RSI, ADX/DI, ATR with a volatility-regime
+percentile, Bollinger %B, stochastic, OBV confirmation, MFI, CCI, ROC, Aroon,
+rolling VWAP, and 40-day swing support/resistance — locally from the same
+OHLCV frame the engine scored (zero extra API calls). The block classifies
+trend/momentum/volatility/volume regimes, states deterministic findings in
+plain language, and ships with a full Learn More glossary so every indicator
+is explained in-product. Presentation-layer only: it never alters the
+engine's verdict. See docs/PROVIDERS-AUDIT.md for the audit that scoped it.
+
 ### Validation
 
 `GET /api/backtest/{ticker}` replays the same engine walk-forward on an

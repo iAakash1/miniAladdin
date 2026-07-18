@@ -52,6 +52,7 @@ from src.models import MacroIndicators
 from src import providers
 from src.providers.schemas import PriceSeries
 from src.scoring import score_ticker
+from src.scoring import technical_intelligence
 from src.services import analyst_store, database, fundamentals_data, news_scoring
 from src.services.backtest_service import peek_cached as peek_backtest
 from src.services.clerk_auth import optional_clerk_user
@@ -593,6 +594,14 @@ def research_ticker(
     # ── Step 4: Quantitative scoring (docs/SCORING.md v2.1). The engine is
     # the primary verdict source; the v1 point system remains solely as the
     # fallback for short price histories (< 60 bars) or scoring failures.
+    # v4.5: deterministic technical intelligence from the frame we already hold.
+    tech_intel = None
+    if scoring_frame is not None:
+        try:
+            tech_intel = technical_intelligence.build(scoring_frame)
+        except Exception:  # noqa: BLE001 — presentation layer must never break research
+            logger.exception("technical intelligence failed for %s", ticker)
+
     scorecard = None
     if prediction is not None and scoring_frame is not None:
         try:
@@ -781,6 +790,10 @@ def research_ticker(
         "risk_level":  risk_level,
         "rationale":   rationale,
         "quant":       scorecard.model_dump() if scorecard is not None else None,
+        # v4.5 additive: deterministic technical read of the same OHLCV frame
+        # the engine scored. Presentation intelligence only — never a scoring
+        # input, never fatal, absent when history is too thin.
+        "technical_intelligence": tech_intel,
         "ai":          ai,
         "disclaimer":  DISCLAIMER,
         "elapsed_seconds": elapsed,
