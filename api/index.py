@@ -74,7 +74,7 @@ DISCLAIMER = "Research and education only — not investment advice."
 app = FastAPI(
     title="OmniSignal API",
     description="Multi-Factor Risk & Prediction Engine",
-    version="3.5.0",
+    version="4.5.0",
 )
 
 # Explicit origin allowlist (comma-separated env var). Wildcard + credentials
@@ -323,7 +323,7 @@ def health():
     return {
         "status":  "ok",
         "service": "OmniSignal API",
-        "version": "3.5.0",
+        "version": "4.5.0",
         "data_sources": {
             "fred":          bool(os.getenv("FRED_API_KEY")),
             "alpha_vantage": av_client.available,
