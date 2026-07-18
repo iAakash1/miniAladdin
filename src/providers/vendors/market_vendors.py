@@ -15,10 +15,13 @@ from src.providers.base import VendorClient, VendorError
 from src.providers.schemas import (
     AnalystTargets,
     CompanyProfile,
+    EarningsSurprise,
     FundamentalsData,
     OHLCVBar,
     PriceQuote,
     PriceSeries,
+    RecommendationMonth,
+    StreetData,
 )
 
 PERIOD_DAYS = {"1mo": 31, "3mo": 92, "6mo": 184, "1y": 366, "5y": 1830}
@@ -153,6 +156,63 @@ class FinnhubVendor(VendorClient):
             target_high=_safe_float(data.get("targetHigh")),
             target_low=_safe_float(data.get("targetLow")),
             analyst_count=int(data["numberOfAnalysts"]) if data.get("numberOfAnalysts") else None,
+        )
+
+    def get_street(self, symbol: str) -> Optional[StreetData]:
+        """v4.5: recommendation trends + EPS surprises + insider sentiment —
+        three free-tier endpoints combined into one normalized read. Each
+        sub-fetch is independent; a partial answer is still an answer."""
+        recs: list[RecommendationMonth] = []
+        try:
+            rows = self._get_json(f"{self.BASE}/stock/recommendation", params=self._params(symbol=symbol))
+            for row in (rows or [])[:4]:
+                recs.append(RecommendationMonth(
+                    period=str(row.get("period", "")),
+                    strong_buy=int(row.get("strongBuy") or 0),
+                    buy=int(row.get("buy") or 0),
+                    hold=int(row.get("hold") or 0),
+                    sell=int(row.get("sell") or 0),
+                    strong_sell=int(row.get("strongSell") or 0),
+                ))
+        except Exception:  # noqa: BLE001 — partial street data is acceptable
+            pass
+
+        surprises: list[EarningsSurprise] = []
+        try:
+            rows = self._get_json(f"{self.BASE}/stock/earnings", params=self._params(symbol=symbol))
+            for row in (rows or [])[:4]:
+                actual, estimate = _safe_float(row.get("actual")), _safe_float(row.get("estimate"))
+                pct = None
+                if actual is not None and estimate not in (None, 0):
+                    pct = round(100 * (actual - estimate) / abs(estimate), 2)
+                surprises.append(EarningsSurprise(
+                    period=str(row.get("period", "")), actual=actual, estimate=estimate, surprise_pct=pct,
+                ))
+        except Exception:  # noqa: BLE001
+            pass
+
+        mspr = net = None
+        try:
+            from datetime import date, timedelta
+            end = date.today()
+            start = end - timedelta(days=183)
+            data = self._get_json(
+                f"{self.BASE}/stock/insider-sentiment",
+                params=self._params(symbol=symbol, **{"from": start.isoformat(), "to": end.isoformat()}),
+            )
+            months = (data or {}).get("data") or []
+            if months:
+                latest = months[-1]
+                mspr = _safe_float(latest.get("mspr"))
+                net = _safe_float(latest.get("change"))
+        except Exception:  # noqa: BLE001
+            pass
+
+        if not recs and not surprises and mspr is None:
+            return None
+        return StreetData(
+            symbol=symbol, recommendations=recs, surprises=surprises,
+            insider_mspr=mspr, insider_net_shares=net,
         )
 
 

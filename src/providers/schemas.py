@@ -109,6 +109,32 @@ class AnalystTargets(BaseModel):
     analyst_count: Optional[int] = None
 
 
+# ── Street data (v4.5: analyst recommendations, surprises, insiders) ─────────
+
+class RecommendationMonth(BaseModel):
+    period: str  # YYYY-MM-01
+    strong_buy: int = 0
+    buy: int = 0
+    hold: int = 0
+    sell: int = 0
+    strong_sell: int = 0
+
+
+class EarningsSurprise(BaseModel):
+    period: str
+    actual: Optional[float] = None
+    estimate: Optional[float] = None
+    surprise_pct: Optional[float] = None
+
+
+class StreetData(BaseModel):
+    symbol: str
+    recommendations: list[RecommendationMonth] = []  # newest first
+    surprises: list[EarningsSurprise] = []           # newest first
+    insider_mspr: Optional[float] = None             # monthly share purchase ratio, −100…100
+    insider_net_shares: Optional[float] = None       # net insider share change, same window
+
+
 # ── News ──────────────────────────────────────────────────────────────────────
 
 class NewsHeadline(BaseModel):

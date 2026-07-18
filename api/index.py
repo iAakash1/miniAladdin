@@ -53,7 +53,7 @@ from src import providers
 from src.providers.schemas import PriceSeries
 from src.scoring import score_ticker
 from src.scoring import technical_intelligence
-from src.services import analyst_store, database, fundamentals_data, news_scoring
+from src.services import analyst_store, database, fundamentals_data, news_scoring, street_intelligence
 from src.services.backtest_service import peek_cached as peek_backtest
 from src.services.clerk_auth import optional_clerk_user
 from src.services.database.repositories import AnalysisRepository
@@ -602,6 +602,16 @@ def research_ticker(
         except Exception:  # noqa: BLE001 — presentation layer must never break research
             logger.exception("technical intelligence failed for %s", ticker)
 
+    # v4.5 P0-B: street & insider intelligence (Finnhub free tier, 6h cache).
+    street_intel = None
+    if prediction is not None:
+        try:
+            street_result = providers.fundamentals.get_street(ticker)
+            if street_result.ok:
+                street_intel = street_intelligence.build(street_result.data)
+        except Exception:  # noqa: BLE001 — additive block, never fatal
+            logger.exception("street intelligence failed for %s", ticker)
+
     scorecard = None
     if prediction is not None and scoring_frame is not None:
         try:
@@ -794,6 +804,7 @@ def research_ticker(
         # the engine scored. Presentation intelligence only — never a scoring
         # input, never fatal, absent when history is too thin.
         "technical_intelligence": tech_intel,
+        "street_intelligence": street_intel,
         "ai":          ai,
         "disclaimer":  DISCLAIMER,
         "elapsed_seconds": elapsed,
