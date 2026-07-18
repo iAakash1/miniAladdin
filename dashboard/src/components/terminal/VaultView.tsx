@@ -1,5 +1,6 @@
 'use client'
 
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import AiPanel from '@/components/terminal/AiPanel'
 import CompanyBand from '@/components/terminal/CompanyBand'
@@ -32,7 +33,34 @@ function verdictTone(verdict: string): string {
   return verdict.includes('Buy') ? 'badge--pos' : verdict.includes('Sell') ? 'badge--neg' : 'badge--warn'
 }
 
-type Mode = { view: 'history' } | { view: 'saved' } | { view: 'detail'; id: string } | { view: 'compare'; a: string; b: string }
+export type Mode = { view: 'history' } | { view: 'saved' } | { view: 'detail'; id: string } | { view: 'compare'; a: string; b: string }
+
+/** Mode ↔ URL: /terminal/vault[?view=saved | ?id=… | ?compare=a,b].
+ *  Every vault state is a real, bookmarkable URL and browser Back always
+ *  returns to the previous vault state instead of leaving the page. */
+export function modeFromParams(params: URLSearchParams): Mode {
+  const id = params.get('id')
+  if (id) return { view: 'detail', id }
+  const compare = params.get('compare')
+  if (compare && compare.includes(',')) {
+    const [a, b] = compare.split(',', 2)
+    if (a && b) return { view: 'compare', a, b }
+  }
+  return params.get('view') === 'saved' ? { view: 'saved' } : { view: 'history' }
+}
+
+export function modeToQuery(mode: Mode): string {
+  switch (mode.view) {
+    case 'saved':
+      return '?view=saved'
+    case 'detail':
+      return `?id=${encodeURIComponent(mode.id)}`
+    case 'compare':
+      return `?compare=${encodeURIComponent(mode.a)},${encodeURIComponent(mode.b)}`
+    default:
+      return ''
+  }
+}
 
 /**
  * Research Vault — every analysis the account has ever run, recorded
@@ -42,7 +70,14 @@ type Mode = { view: 'history' } | { view: 'saved' } | { view: 'detail'; id: stri
  * deterministically on the backend).
  */
 export default function VaultView() {
-  const [mode, setMode] = useState<Mode>({ view: 'history' })
+  const router = useRouter()
+  const pathname = usePathname()
+  const params = useSearchParams()
+  const mode = modeFromParams(new URLSearchParams(params.toString()))
+  const setMode = useCallback(
+    (next: Mode) => router.push(`${pathname}${modeToQuery(next)}`, { scroll: true }),
+    [router, pathname],
+  )
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div>
