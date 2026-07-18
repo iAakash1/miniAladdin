@@ -159,6 +159,7 @@ export function normalizeAnalysis(raw: RawResearchResponse): Analysis {
 
   return {
     ticker: raw.ticker ?? t.ticker ?? '—',
+    historyId: raw.history_id ?? null,
     companyName: t.company_name ?? raw.ticker ?? '—',
     sector: t.sector ? titleCase(t.sector) : null,
     marketCap: t.market_cap ?? null,
@@ -235,7 +236,10 @@ export class ApiError extends Error {
 }
 
 export async function fetchAnalysis(ticker: string, fast: boolean): Promise<RawResearchResponse> {
-  const res = await fetch(`/api/research/${encodeURIComponent(ticker)}${fast ? '?fast=true' : ''}`)
+  // The Clerk token lets the backend persist this run to the user's history
+  // automatically; without it the analysis still works, just unrecorded.
+  const { authFetch } = await import('./persistence')
+  const res = await authFetch(`/api/research/${encodeURIComponent(ticker)}${fast ? '?fast=true' : ''}`)
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
     throw new ApiError(body?.detail || `The analysis service returned an error (${res.status}).`, res.status)

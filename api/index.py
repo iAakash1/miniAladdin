@@ -21,7 +21,7 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -51,8 +51,10 @@ from src.models import MacroIndicators
 from src import providers
 from src.providers.schemas import PriceSeries
 from src.scoring import score_ticker
-from src.services import analyst_store, fundamentals_data, news_scoring
+from src.services import analyst_store, database, fundamentals_data, news_scoring
 from src.services.backtest_service import peek_cached as peek_backtest
+from src.services.clerk_auth import optional_clerk_user
+from src.services.database.repositories import AnalysisRepository
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 # Railway captures stdout; structured single-line records with timestamps.
@@ -89,9 +91,15 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=False,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["*"],
 )
+
+# Persistence REST API (watchlists, portfolio, history, saved reports,
+# preferences) — Clerk-authenticated, Supabase-backed, optional at runtime.
+from api.persistence import router as persistence_router  # noqa: E402
+
+app.include_router(persistence_router)
 
 
 @app.middleware("http")
@@ -326,6 +334,7 @@ def get_macro():
 def research_ticker(
     ticker: str,
     fast: bool = Query(False, description="Skip sentiment and LLM analysis for speed"),
+    clerk_user: Optional[str] = Depends(optional_clerk_user),
 ):
     """
     Full OmniSignal research pipeline:
@@ -733,7 +742,7 @@ def research_ticker(
         (ai or {}).get("generated"), "fast" if fast else "full", elapsed,
     )
 
-    return {
+    response = {
         "ticker":  ticker,
         "macro":   {"risk_multiplier": multiplier, **macro_stats},
         "technicals": technicals,
@@ -750,6 +759,22 @@ def research_ticker(
         "elapsed_seconds": elapsed,
         "mode":  "fast" if fast else "full",
     }
+
+    # ── Automatic history persistence (v3.5, additive) ───────────────────────
+    # Every completed run is recorded for the authenticated user without any
+    # frontend action. Failures here must never fail the analysis: the whole
+    # step is best-effort, logged, and skipped entirely when Supabase or Clerk
+    # verification is not configured.
+    response["history_id"] = None
+    if clerk_user is not None and prediction is not None:
+        db = database.get_client()
+        if db is not None:
+            try:
+                response["history_id"] = AnalysisRepository(db).record(clerk_user, response)
+            except Exception:  # noqa: BLE001 — persistence must never break research
+                logger.exception("history persistence failed for %s", ticker)
+
+    return response
 
 
 @app.get("/api/chart/{ticker}")

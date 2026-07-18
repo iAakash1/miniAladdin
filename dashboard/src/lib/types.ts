@@ -212,6 +212,9 @@ export interface RawResearchResponse {
   disclaimer?: string
   elapsed_seconds?: number
   mode?: string
+  // v3.5 additive: id of the automatically persisted history row (null when
+  // persistence or authentication is unavailable).
+  history_id?: string | null
   detail?: string
 }
 
@@ -296,6 +299,8 @@ export interface AiAnalysis {
 
 export interface Analysis {
   ticker: string
+  /** Server-side history row for this run — enables "Save report". */
+  historyId: string | null
   companyName: string
   sector: string | null
   marketCap: string | null

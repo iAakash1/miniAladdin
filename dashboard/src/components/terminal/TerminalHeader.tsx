@@ -12,6 +12,7 @@ const TABS = [
   { href: '/terminal', label: 'Market' },
   { href: '/terminal/analyze', label: 'Analyze' },
   { href: '/terminal/portfolio', label: 'Portfolio' },
+  { href: '/terminal/vault', label: 'Vault' },
   { href: '/terminal/validation', label: 'Validation' },
   { href: '/terminal/methodology', label: 'Methodology' },
 ]
