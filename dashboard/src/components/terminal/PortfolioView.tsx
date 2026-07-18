@@ -7,14 +7,17 @@ import Skeleton from '@/components/ui/Skeleton'
 import Tooltip from '@/components/ui/Tooltip'
 import { FACTOR_LABELS, diffSnapshots, useAllHistory } from '@/lib/history'
 import { timeAgo } from '@/lib/format'
+import PositionsPanel from '@/components/terminal/PositionsPanel'
 import {
   SUGGESTED_LISTS,
   type Watchlist,
   addTicker,
   createWatchlist,
   deleteWatchlist,
+  refreshWatchlists,
   removeTicker,
   useWatchlists,
+  useWatchlistsStatus,
 } from '@/lib/watchlists'
 
 interface Quote {
@@ -48,11 +51,12 @@ interface StorageRow {
 }
 
 const STORAGE_ROWS: StorageRow[] = [
-  { label: 'Watchlists', location: 'Browser', detail: 'Saved in this browser’s local storage only — not on OmniSignal’s servers.' },
-  { label: 'Verdict & confidence history', location: 'Browser', detail: 'Same mechanism, per ticker, last 50 runs kept.' },
+  { label: 'Watchlists', location: 'Cloud', detail: 'Synced to your OmniSignal account — sign in on any device and they follow you.' },
+  { label: 'Portfolio positions', location: 'Cloud', detail: 'Shares and average cost, stored per account like watchlists.' },
+  { label: 'Analysis history & saved reports', location: 'Cloud', detail: 'Every completed analysis is recorded automatically to your account — browse it in the Vault tab.' },
+  { label: 'Verdict timeline (Analyze page)', location: 'Browser', detail: 'The per-ticker run-to-run diff shown under an analysis still lives in this browser’s local storage.' },
   { label: 'Prices & quotes', location: 'Server (live)', detail: 'Fetched fresh from the provider chain each time you open this list or click Refresh — not cached in your browser between visits.' },
-  { label: 'AI research narrative', location: 'Server (5 min cache)', detail: 'Briefly cached to avoid duplicate model calls; not persisted beyond that.' },
-  { label: 'Sync across devices', location: 'None', detail: 'There is no account-linked cloud sync yet — this list will not appear on another browser or device.' },
+  { label: 'AI research narrative', location: 'Server (5 min cache)', detail: 'Briefly cached to avoid duplicate model calls; the full report is kept with each history row.' },
 ]
 
 /** Explicit, unambiguous account of where portfolio data actually lives —
@@ -88,6 +92,7 @@ function StorageStatus() {
 
 export default function PortfolioView() {
   const lists = useWatchlists()
+  const wlStatus = useWatchlistsStatus()
   const history = useAllHistory()
   const [activeId, setActiveId] = useState<string | null>(null)
   const [newName, setNewName] = useState('')
@@ -151,13 +156,36 @@ export default function PortfolioView() {
       })
   }, [active, history, quotes])
 
+  /* ── store not ready yet: loading / unreachable ── */
+  if (lists.length === 0 && (wlStatus === 'idle' || wlStatus === 'loading')) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }} aria-busy="true">
+        <Skeleton height={40} width={320} />
+        <Skeleton height={220} />
+      </div>
+    )
+  }
+  if (lists.length === 0 && wlStatus === 'error') {
+    return (
+      <EmptyState
+        title="Your watchlists couldn't be loaded"
+        description="The persistence service didn't respond. Your lists are safe on the server — try again in a moment."
+        action={
+          <button type="button" className="btn btn--secondary btn--sm" onClick={() => refreshWatchlists()}>
+            Try again
+          </button>
+        }
+      />
+    )
+  }
+
   /* ── no lists yet: suggestions ── */
   if (lists.length === 0) {
     return (
       <div>
         <EmptyState
           title="No watchlists yet"
-          description="Create your first list, or start from a suggestion — everything is stored in this browser."
+          description="Create your first list, or start from a suggestion — lists are saved to your account and follow you across devices."
         />
         <div className="terminal-grid-four" style={{ maxWidth: 880, margin: '0 auto' }}>
           {SUGGESTED_LISTS.map((suggestion) => (
@@ -165,7 +193,7 @@ export default function PortfolioView() {
               key={suggestion.name}
               type="button"
               className="panel"
-              onClick={() => createWatchlist(suggestion.name, suggestion.tickers)}
+              onClick={() => void createWatchlist(suggestion.name, suggestion.tickers)}
               style={{ padding: '16px 18px', textAlign: 'left', cursor: 'pointer', background: 'var(--surface)' }}
             >
               <p className="h-panel" style={{ marginBottom: 6 }}>{suggestion.name}</p>
@@ -179,7 +207,7 @@ export default function PortfolioView() {
           onSubmit={(event) => {
             event.preventDefault()
             if (newName.trim()) {
-              createWatchlist(newName)
+              void createWatchlist(newName)
               setNewName('')
             }
           }}
@@ -226,8 +254,9 @@ export default function PortfolioView() {
           onSubmit={(event) => {
             event.preventDefault()
             if (newName.trim()) {
-              const created = createWatchlist(newName)
-              setActiveId(created.id)
+              void createWatchlist(newName).then((created) => {
+                if (created) setActiveId(created.id)
+              })
               setNewName('')
             }
           }}
@@ -427,6 +456,8 @@ export default function PortfolioView() {
             this stored?” below) — run Analyze on a ticker to populate them. Quotes via the provider
             fallback chain.
           </p>
+
+          <PositionsPanel />
 
           <StorageStatus />
         </>

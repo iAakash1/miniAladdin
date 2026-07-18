@@ -6,6 +6,7 @@ import { useUser } from '@clerk/nextjs'
 import TerminalHeader from '@/components/terminal/TerminalHeader'
 import UpgradeDialog from '@/components/terminal/UpgradeDialog'
 import { fetchMacroClient } from '@/lib/api'
+import { syncProfile } from '@/lib/persistence'
 import { useTodayCount } from '@/lib/usage'
 import type { Macro } from '@/lib/types'
 
@@ -47,6 +48,23 @@ export default function TerminalShell({ loadingLabel, children }: TerminalShellP
       cancelled = true
     }
   }, [])
+
+  /* Profile auto-create/refresh on first successful login — best-effort,
+     once per browser session. */
+  useEffect(() => {
+    if (!isLoaded || !user) return
+    try {
+      if (sessionStorage.getItem('omni-profile-synced')) return
+      sessionStorage.setItem('omni-profile-synced', '1')
+    } catch {
+      /* private mode: sync every visit, harmless upsert */
+    }
+    void syncProfile({
+      email: user.primaryEmailAddress?.emailAddress ?? undefined,
+      full_name: user.fullName ?? undefined,
+      avatar_url: user.imageUrl ?? undefined,
+    })
+  }, [isLoaded, user])
 
   const requestUpgrade = useCallback(
     (reason?: 'limit' | 'feature') => setUpgrade({ open: true, reason }),

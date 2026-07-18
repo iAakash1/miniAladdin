@@ -1,6 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import { fmtPrice } from '@/lib/format'
+import { saveReport } from '@/lib/persistence'
 import type { Analysis, Verdict } from '@/lib/types'
 
 const VERDICT_TONE: Record<Verdict, 'pos' | 'warn' | 'neg'> = {
@@ -34,6 +36,38 @@ export function VerdictChip({ verdict, size = 'md' }: { verdict: Verdict; size?:
     >
       {verdict}
     </span>
+  )
+}
+
+/** Bookmark this run into Saved Reports (Vault). Only rendered when the
+ *  backend recorded the analysis (historyId present). */
+function SaveReportButton({ historyId }: { historyId: string }) {
+  const [state, setState] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle')
+
+  const save = async () => {
+    setState('saving')
+    const saved = await saveReport(historyId)
+    setState(saved ? 'saved' : 'failed')
+  }
+
+  if (state === 'saved') {
+    return (
+      <span className="badge badge--accent" style={{ height: 24 }}>
+        ★ Saved to Vault
+      </span>
+    )
+  }
+  return (
+    <button
+      type="button"
+      className="btn btn--ghost btn--sm"
+      onClick={save}
+      disabled={state === 'saving'}
+      title="Bookmark this analysis in your Vault"
+      style={{ border: '1px solid var(--line)' }}
+    >
+      {state === 'saving' ? 'Saving…' : state === 'failed' ? 'Retry save' : '☆ Save report'}
+    </button>
   )
 }
 
@@ -79,9 +113,18 @@ export default function CompanyBand({ analysis }: { analysis: Analysis }) {
         </div>
 
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
-          <p className="label" style={{ marginBottom: 10 }}>
-            Risk-adjusted verdict
-          </p>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'baseline',
+              justifyContent: 'flex-end',
+              gap: 12,
+              marginBottom: 10,
+            }}
+          >
+            {analysis.historyId && <SaveReportButton historyId={analysis.historyId} />}
+            <p className="label">Risk-adjusted verdict</p>
+          </div>
           <VerdictChip verdict={analysis.riskAdjusted} size="lg" />
           <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', marginTop: 12, maxWidth: 240 }}>
             {wasDampened ? (
