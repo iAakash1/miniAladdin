@@ -9,7 +9,10 @@ Python over stored engine output — the LLM is never asked to compute deltas.
 
 from __future__ import annotations
 
+import re
 from typing import Any, Optional
+
+_SEARCH_SAFE = re.compile(r"[^\w .&\-^]")
 
 SUMMARY_COLUMNS = (
     "id,ticker,company_name,verdict,confidence,risk_level,composite_score,created_at"
@@ -61,7 +64,9 @@ class AnalysisRepository:
         )
         if not rows:
             return False
-        self._c.table("analysis_history").delete().eq("id", history_id).execute()
+        self._c.table("analysis_history").delete().eq("id", history_id).eq(
+            "clerk_user_id", clerk_user_id
+        ).execute()
         return True
 
     # ── reads ────────────────────────────────────────────────────────────────
@@ -106,7 +111,9 @@ class AnalysisRepository:
         if date_to:
             query = query.lte("created_at", date_to)
         if search:
-            term = search.strip().replace("%", "").replace(",", "")
+            # PostgREST or_() treats , ( ) % as syntax — keep a conservative
+            # character set rather than trying to escape.
+            term = _SEARCH_SAFE.sub("", search.strip())[:60]
             if term:
                 query = query.or_(f"ticker.ilike.%{term}%,company_name.ilike.%{term}%")
 
@@ -210,14 +217,21 @@ class AnalysisRepository:
         if not patch:
             return None
         rows = (
-            self._c.table("saved_reports").update(patch).eq("id", saved_id).execute().data
+            self._c.table("saved_reports")
+            .update(patch)
+            .eq("id", saved_id)
+            .eq("clerk_user_id", clerk_user_id)
+            .execute()
+            .data
         )
         return rows[0] if rows else None
 
     def delete_saved(self, clerk_user_id: str, saved_id: str) -> bool:
         if not self._saved_owned(clerk_user_id, saved_id):
             return False
-        self._c.table("saved_reports").delete().eq("id", saved_id).execute()
+        self._c.table("saved_reports").delete().eq("id", saved_id).eq(
+            "clerk_user_id", clerk_user_id
+        ).execute()
         return True
 
     # ── deterministic comparison ─────────────────────────────────────────────

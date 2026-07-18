@@ -19,7 +19,7 @@ import os
 from typing import Optional
 
 import jwt
-from fastapi import Header, HTTPException
+from fastapi import Header, HTTPException, Request
 from jwt import PyJWKClient
 
 logger = logging.getLogger("omnisignal.auth")
@@ -76,18 +76,22 @@ def _token_from_header(authorization: str) -> str:
     return ""
 
 
-def require_clerk_user(authorization: str = Header(default="")) -> str:
+def require_clerk_user(request: Request, authorization: str = Header(default="")) -> str:
     """FastAPI dependency: a valid Clerk user or an explicit HTTP error."""
     if not is_configured():
         raise HTTPException(status_code=503, detail="Authentication is not configured on this server.")
     user_id = verify_token(_token_from_header(authorization))
     if not user_id:
         raise HTTPException(status_code=401, detail="A valid Clerk session token is required.")
+    request.state.clerk_user = user_id  # read by the request-logging middleware
     return user_id
 
 
-def optional_clerk_user(authorization: str = Header(default="")) -> Optional[str]:
+def optional_clerk_user(request: Request, authorization: str = Header(default="")) -> Optional[str]:
     """FastAPI dependency: the Clerk user if a valid token is present, else None."""
     if not is_configured():
         return None
-    return verify_token(_token_from_header(authorization))
+    user_id = verify_token(_token_from_header(authorization))
+    if user_id:
+        request.state.clerk_user = user_id
+    return user_id
