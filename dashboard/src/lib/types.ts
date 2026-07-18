@@ -236,6 +236,20 @@ export interface TechnicalIntelligence {
   bars: number
 }
 
+export interface StreetIntelligence {
+  recommendations?: {
+    period: string; analysts: number; strong_buy: number; buy: number
+    hold: number; sell: number; strong_sell: number
+    buy_ratio: number | null; trend: 'improving' | 'steady' | 'deteriorating'; months: number
+  }
+  surprises?: {
+    quarters: number; beats: number; avg_surprise_pct: number
+    last_surprise_pct: number | null; last_period: string
+  }
+  insider?: { mspr: number; net_shares: number | null; read: 'buying' | 'selling' | 'neutral' }
+  findings: Array<{ text: string; tone: TechTone }>
+}
+
 export interface RawResearchResponse {
   ticker?: string
   macro?: RawResearchMacro
@@ -257,6 +271,7 @@ export interface RawResearchResponse {
   history_id?: string | null
   // v4.5 additive: deterministic technical read (null on thin history).
   technical_intelligence?: TechnicalIntelligence | null
+  street_intelligence?: StreetIntelligence | null
   detail?: string
 }
 
@@ -384,6 +399,7 @@ export interface Analysis {
   macro: Macro
   mode: string
   technicalIntelligence: TechnicalIntelligence | null
+  streetIntelligence: StreetIntelligence | null
 }
 
 /* ---------- News (our own /api/news aggregation) ---------- */

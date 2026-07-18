@@ -21,6 +21,7 @@ from src.providers.schemas import (
     PriceSeries,
     ProviderResult,
     SearchResult,
+    StreetData,
 )
 from src.providers.vendors.data_vendors import AlphaVantageVendor, FredVendor
 from src.providers.vendors.market_vendors import (
@@ -102,6 +103,7 @@ class FundamentalsProvider:
         self._company_chain = FallbackChain[CompanyProfile]("fund.company", cache, flight, self.TTL)
         self._fund_chain = FallbackChain[FundamentalsData]("fund.metrics", cache, flight, self.TTL)
         self._target_chain = FallbackChain[AnalystTargets]("fund.targets", cache, flight, self.TTL)
+        self._street_chain = FallbackChain[StreetData]("fund.street", cache, flight, 21600.0)
 
     @property
     def vendors(self):
@@ -133,6 +135,14 @@ class FundamentalsProvider:
             ChainLink(self.finnhub, lambda: self.finnhub.get_analyst_targets(symbol)),
         ]
         return self._target_chain.execute(f"targets:{symbol}", links)
+
+    def get_street(self, symbol: str) -> ProviderResult[StreetData]:
+        """v4.5: recommendation trends, EPS surprises, insider sentiment.
+        Finnhub-only (the sole vendor with these on a free tier); 6h TTL —
+        this data moves on a monthly cadence."""
+        symbol = symbol.upper()
+        links = [ChainLink(self.finnhub, lambda: self.finnhub.get_street(symbol))]
+        return self._street_chain.execute(f"street:{symbol}", links)
 
 
 class NewsProvider:

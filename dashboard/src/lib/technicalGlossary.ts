@@ -229,3 +229,50 @@ export const TECHNICAL_GLOSSARY: Record<string, MetricEntry> = {
     references: ['Edwards & Magee, Technical Analysis of Stock Trends'],
   },
 }
+
+/* Street & insider readings (v4.5 P0-B) — same authored-reference discipline. */
+export const STREET_GLOSSARY: Record<string, MetricEntry> = {
+  recommendations: {
+    label: 'Analyst recommendation trend',
+    short: 'How many covering analysts rate the stock buy/hold/sell, and whether that mix has been improving or deteriorating month over month.',
+    formula: 'Buy ratio = (strong buy + buy) / total ratings; trend compares the ratio across the last four monthly snapshots.',
+    interpretation:
+      'The level shows consensus; the trend shows where consensus is heading. Revisions move prices more than levels — a 60% buy ratio that was 45% three months ago is a stronger signal than a static 70%.',
+    good: 'A rising buy ratio — upgrades outpacing downgrades.',
+    bad: 'A falling ratio, especially from a high level: early distribution often shows up in ratings first.',
+    typicalRange: 'Large caps average roughly 55–65% buy ratings — sell ratings are structurally rare.',
+    why: 'Analyst revisions are one of the best-documented drivers of medium-term returns.',
+    limitations:
+      'Ratings herd and lag price; sell-side incentives skew the base rate optimistic. Read the trend, discount the level.',
+    entersScore: 'Not a scoring input — analyst price targets feed the fundamental sleeve separately; this trend is context.',
+    references: ['Womack (1996), Journal of Finance', 'Jegadeesh et al. (2004)'],
+  },
+  surprises: {
+    label: 'EPS surprise history',
+    short: 'Whether reported earnings beat or missed consensus estimates in recent quarters, and by how much.',
+    formula: 'Surprise % = (actual EPS − estimated EPS) / |estimate|.',
+    interpretation:
+      'A consistent beat record means management guides conservatively and executes; repeated misses mean estimates are running ahead of the business. Post-earnings drift makes recent surprises predictive, not just descriptive.',
+    good: 'Consistent beats with a positive average surprise.',
+    bad: 'Consecutive misses — consensus is still too high, and further cuts usually follow.',
+    typicalRange: 'S&P 500 companies beat roughly 70–75% of the time (managed expectations); the informative part is the magnitude and the exceptions.',
+    why: 'Execution against expectations is the cleanest quarterly test of management credibility available for free.',
+    limitations: 'EPS is manageable (buybacks, one-offs); a beat on collapsing revenue quality is not a beat.',
+    entersScore: 'The most recent surprise feeds the engine\'s PEAD factor (drift window); this panel shows the fuller record.',
+    references: ['Bernard & Thomas (1989) — post-earnings-announcement drift'],
+  },
+  insider: {
+    label: 'Insider sentiment (MSPR)',
+    short: 'Finnhub\'s monthly share purchase ratio: are the company\'s own officers and directors net buyers or net sellers, −100 to +100.',
+    formula: 'MSPR aggregates insider buy vs sell transactions, weighted by size, over the month.',
+    interpretation:
+      'Insiders sell for many reasons (compensation, diversification) but buy for essentially one: they expect the stock to rise. Sustained readings beyond ±20 carry signal; small negatives are background noise.',
+    good: 'MSPR above +20 — conviction buying by the people with the best information.',
+    bad: 'MSPR below −20 — selling beyond routine compensation patterns.',
+    typicalRange: 'Mildly negative most of the time (stock comp creates structural selling).',
+    why: 'Insider trades are disclosed by law and are among the few genuinely non-public-information-adjacent signals a free platform can offer.',
+    limitations: '10b5-1 scheduled plans blur intent; small caps have thin insider activity and noisy readings.',
+    entersScore: 'Not a scoring input — surfaced as context alongside the deterministic verdict.',
+    references: ['Cohen, Malloy & Pomorski (2012), Journal of Finance'],
+  },
+}
