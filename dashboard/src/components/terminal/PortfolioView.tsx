@@ -364,7 +364,7 @@ export default function PortfolioView() {
                     <tr key={ticker}>
                       <td>
                         <Link
-                          href={`/terminal/analyze?ticker=${ticker}`}
+                          href={`/company/${ticker}`}
                           className="mono"
                           style={{ fontWeight: 600, textDecoration: 'none', color: 'var(--text)' }}
                         >
@@ -429,7 +429,7 @@ export default function PortfolioView() {
                       </td>
                       <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                         <Link
-                          href={`/terminal/analyze?ticker=${ticker}`}
+                          href={`/company/${ticker}`}
                           className="btn btn--ghost btn--xs"
                           style={{ textDecoration: 'none' }}
                         >
