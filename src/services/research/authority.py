@@ -108,3 +108,49 @@ def confidence_for(url: str) -> float:
     if score >= TIER_GENERAL:
         return 0.40
     return 0.25
+
+
+# ── provider priors ──────────────────────────────────────────────────────────
+# Retrieval quality differs between providers, but it only matters when the
+# SOURCE itself is unremarkable. A SEC filing is authoritative no matter who
+# found it; a generic blog is worth slightly more from semantic retrieval
+# (Exa) than from a keyword index. So the prior nudges generic sources and
+# is ignored for high-authority ones — which keeps "community never outranks
+# a filing" true regardless of provider.
+PROVIDER_PRIOR: dict[str, float] = {
+    "exa": 0.60,
+    "tavily": 0.55,
+    "brave": 0.52,
+    "newsapi": 0.50,
+    "gnews": 0.48,
+    "news": 0.50,
+    "apify": 0.45,
+    "research": 0.50,
+}
+
+PRIOR_APPLIES_BELOW = TIER_MAJOR_NEWS  # above this, the source speaks for itself
+
+
+def confidence_for_source(url: str, provider: str = "") -> float:
+    """Blend source authority with the retrieving provider's prior."""
+    base = confidence_for(url)
+    if authority_of(url) >= PRIOR_APPLIES_BELOW:
+        return base
+    prior = PROVIDER_PRIOR.get(provider.split(".")[0].lower(), 0.5)
+    # Mean of the two, capped by the authority band so a strong provider can
+    # never lift community content above its tier ceiling.
+    return round(min(base + 0.10, (base + prior) / 2 + 0.05), 3)
+
+
+# Independent corroboration is genuine evidence: two providers finding the
+# same claim in different sources raises confidence, toward a ceiling that
+# still sits below the deterministic record.
+CORROBORATION_STEP = 0.05
+CORROBORATION_CEILING = 0.80
+
+
+def corroborated(confidence: float, provider_count: int) -> float:
+    if provider_count <= 1:
+        return confidence
+    return round(min(CORROBORATION_CEILING,
+                     confidence + CORROBORATION_STEP * (provider_count - 1)), 3)

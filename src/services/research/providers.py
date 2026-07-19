@@ -14,7 +14,7 @@ from typing import Any, Optional
 
 from src.providers.base import VendorClient
 from src.providers.vendors.apify_vendor import ApifyVendor
-from src.providers.vendors.news_vendors import YahooRssVendor
+from src.providers.vendors.news_vendors import GNewsVendor, NewsApiVendor, YahooRssVendor
 from src.providers.vendors.search_vendors import ExaVendor, TavilyVendor
 from src.services.research.base import (
     ProviderCapabilities,
@@ -109,9 +109,15 @@ class TavilyProvider(ResearchProvider):
     def search(self, query: str, limit: int = 6) -> list[ResearchHit]:
         if not self._vendor.available:
             return []
-        results = self._vendor.search(query, limit=limit) or []
+        # advanced depth + raw content: Tavily's value is extracted page
+        # text, not snippets. Year window keeps research current.
+        results = self._vendor.search(
+            query, limit=limit, search_depth="advanced",
+            time_range="year", include_raw_content=True,
+        ) or []
         return [
             ResearchHit(url=r.url, title=r.title, snippet=getattr(r, "snippet", "") or "",
+                        published_at=getattr(r, "published_at", "") or None,
                         provider=self.name)
             for r in results if getattr(r, "url", "")
         ][:limit]
@@ -135,15 +141,21 @@ class ExaProvider(ResearchProvider):
         return ProviderHealth(name=self.name, available=self._vendor.available,
                               configured=self._vendor.available, stats=self._vendor.health_snapshot())
 
-    def search(self, query: str, limit: int = 6) -> list[ResearchHit]:
+    def search(self, query: str, limit: int = 6, category: Optional[str] = None) -> list[ResearchHit]:
         if not self._vendor.available:
             return []
-        results = self._vendor.search(query, limit=limit) or []
+        results = self._vendor.search(query, limit=limit, category=category) or []
         return [
             ResearchHit(url=r.url, title=r.title, snippet=getattr(r, "snippet", "") or "",
+                        published_at=getattr(r, "published_at", "") or None,
                         provider=self.name)
             for r in results if getattr(r, "url", "")
         ][:limit]
+
+    def discover(self, query: str, category: str, limit: int = 6) -> list[ResearchHit]:
+        """Semantic discovery by kind — companies, research papers, financial
+        reports. This is what Exa offers that keyword indexes cannot."""
+        return self.search(query, limit=limit, category=category)
 
 
 class NewsProvider(ResearchProvider):
@@ -212,3 +224,53 @@ class ApifyProvider(ResearchProvider):
                         snippet=row.get("snippet", ""), provider=self.name)
             for row in rows if row.get("url")
         ][:limit]
+
+
+class _RssStyleNewsProvider(ResearchProvider):
+    """Shared shape for keyed news vendors: both return NewsHeadline rows,
+    so normalization lives here once rather than twice."""
+
+    vendor_cls: type = NewsApiVendor
+
+    def __init__(self) -> None:
+        self._vendor = self.vendor_cls()
+
+    def is_configured(self) -> bool:
+        return self._vendor.available
+
+    def capabilities(self) -> ProviderCapabilities:
+        return ProviderCapabilities(search=True, company_research=True, news=True)
+
+    def health(self) -> ProviderHealth:
+        return ProviderHealth(name=self.name, available=self._vendor.available,
+                              configured=self._vendor.available,
+                              stats=self._vendor.health_snapshot())
+
+    def search(self, query: str, limit: int = 6) -> list[ResearchHit]:
+        if not self._vendor.available:
+            return []
+        try:
+            headlines = self._vendor.get_news(query, "", limit=limit) or []
+        except Exception:  # noqa: BLE001 — optional like every research source
+            return []
+        return [
+            ResearchHit(
+                url=h.url, title=h.title,
+                snippet=(getattr(h, "summary", "") or h.title),
+                published_at=getattr(h, "published_at", "") or None,
+                provider=self.name,
+            )
+            for h in headlines if getattr(h, "url", "")
+        ][:limit]
+
+
+class NewsApiProvider(_RssStyleNewsProvider):
+    """NewsAPI — broad English-language coverage."""
+    name = "newsapi"
+    vendor_cls = NewsApiVendor
+
+
+class GNewsProvider(_RssStyleNewsProvider):
+    """GNews — international and regional publishers NewsAPI misses."""
+    name = "gnews"
+    vendor_cls = GNewsVendor

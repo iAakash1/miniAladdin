@@ -104,12 +104,36 @@ class TestFallback:
             assert engine.search("q") == []
             assert engine.research_company("NVDA").claims == []
 
-    def test_chain_stops_once_enough_evidence_is_gathered(self):
-        many = _Fake("many", [_hit(f"https://site{i}.com/a") for i in range(engine.TARGET_HITS)])
-        extra = _Fake("extra", [_hit("https://late.com/a")])
-        with patch.object(engine, "providers_in_order", return_value=[many, extra]):
+    def test_later_waves_are_skipped_once_evidence_suffices(self):
+        # Providers inside one wave run concurrently (that IS the
+        # parallelism), but a wave that would only add duplicates is never
+        # dispatched — that is where the cost saving lives.
+        wave_one = [
+            _Fake(f"w1-{i}", [_hit(f"https://site{i}-{j}.com/a") for j in range(3)])
+            for i in range(engine.PARALLEL_WAVE)
+        ]
+        wave_two = _Fake("w2", [_hit("https://late.com/a")])
+        with patch.object(engine, "providers_in_order", return_value=[*wave_one, wave_two]):
             engine.search("q")
-        assert extra.calls == 0  # not consulted — no duplicate work
+        assert all(p.calls == 1 for p in wave_one)  # first wave fully dispatched
+        assert wave_two.calls == 0                  # second wave never paid for
+
+    def test_providers_in_a_wave_run_concurrently(self):
+        import threading, time
+
+        barrier = threading.Barrier(2, timeout=3)
+
+        class _Blocking(_Fake):
+            def search(self, query: str, limit: int = 6):
+                # Deadlocks (and fails the test) unless both run at once.
+                barrier.wait()
+                return self._hits
+
+        a = _Blocking("a", [_hit("https://a.com/x")])
+        b = _Blocking("b", [_hit("https://b.com/x")])
+        with patch.object(engine, "providers_in_order", return_value=[a, b]):
+            hits = engine.search("q")
+        assert len(hits) == 2
 
 
 class TestMergeAndRank:

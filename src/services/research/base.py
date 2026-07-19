@@ -22,7 +22,7 @@ from src.providers.research_schemas import (
     ResearchEvidence,
     ResearchSource,
 )
-from src.services.research.authority import authority_of, confidence_for
+from src.services.research.authority import authority_of, confidence_for_source
 
 
 @dataclass
@@ -114,7 +114,7 @@ class ResearchProvider:
                 bundle.claims.append(ResearchClaim(
                     id=f"claim:{self.name}:{symbol}:{index}:{n}",
                     statement=statement,
-                    confidence=confidence_for(hit.url),
+                    confidence=confidence_for_source(hit.url, hit.provider or self.name),
                     evidence=[ResearchEvidence(
                         id=f"evidence:{self.name}:{symbol}:{index}:{n}",
                         source=source, excerpt=statement, doc_section="web research",
