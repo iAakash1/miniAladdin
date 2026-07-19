@@ -124,3 +124,25 @@ test('related watchlists: only lists holding the ticker', () => {
   assert.equal(related[0].title, 'AI')
   assert.equal(relatedWatchlists('TSLA', lists).length, 0)
 })
+
+/* ── learn knowledge center: index integrity ── */
+import { LEARN_INDEX, allTopics, learnRoute, relatedTopics } from '../src/lib/learn'
+
+test('learn index: all four sources present, slugs unique and routable', () => {
+  const topics = allTopics()
+  const sources = new Set(topics.map((t) => t.source))
+  assert.deepEqual([...sources].sort(), ['factor', 'metric', 'street', 'technical'])
+  assert.equal(new Set(topics.map((t) => t.slug)).size, topics.length)
+  for (const t of topics) {
+    assert.ok(t.entry.label && t.entry.short, t.slug)
+    assert.equal(learnRoute(t.source, t.key), `/learn/${t.slug}`)
+  }
+})
+
+test('related topics stay within source and exclude self', () => {
+  const rsi = LEARN_INDEX['technical-rsi']
+  assert.ok(rsi)
+  const related = relatedTopics('technical-rsi')
+  assert.ok(related.length > 0)
+  assert.ok(related.every((t) => t.source === 'technical' && t.slug !== 'technical-rsi'))
+})

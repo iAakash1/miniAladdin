@@ -7,9 +7,7 @@
    Async tier: company resolver (/api/screen), vault history.
    ============================================================ */
 
-import { FACTOR_GLOSSARY } from '../factorGlossary'
-import { METRIC_GLOSSARY } from '../metricGlossary'
-import { STREET_GLOSSARY, TECHNICAL_GLOSSARY } from '../technicalGlossary'
+import { allTopics } from '../learn'
 import { fetchHistory } from '../persistence'
 import { readWatchlistsSnapshot } from '../watchlists'
 import type { Entity } from './entities'
@@ -32,28 +30,18 @@ const ROUTE_ENTITIES: Entity[] = [
 /* ---------- static: glossaries (the Learn layer) ---------- */
 
 function glossaryEntities(): Entity[] {
-  const out: Entity[] = []
-  const sources: Array<[string, Record<string, { label: string; short: string }>, string]> = [
-    ['technical', TECHNICAL_GLOSSARY, '/terminal/methodology'],
-    ['street', STREET_GLOSSARY, '/terminal/methodology'],
-    ['metric', METRIC_GLOSSARY as never, '/terminal/validation'],
-    ['factor', FACTOR_GLOSSARY as never, '/terminal/methodology'],
-  ]
-  for (const [source, glossary, route] of sources) {
-    for (const [key, entry] of Object.entries(glossary)) {
-      out.push({
-        id: `glossary:${source}:${key}`,
-        type: 'glossary',
-        title: entry.label,
-        subtitle: 'Learn',
-        description: entry.short,
-        route,
-        keywords: [key.toLowerCase(), ...entry.label.toLowerCase().split(/[\s()/,]+/).filter(Boolean)],
-        metadata: { source },
-      })
-    }
-  }
-  return out
+  // One aggregation in the codebase: lib/learn owns the index; providers,
+  // cross-links and the Knowledge Center pages all consume it.
+  return allTopics().map((topic) => ({
+    id: `glossary:${topic.source}:${topic.key}`,
+    type: 'glossary',
+    title: topic.entry.label,
+    subtitle: 'Learn',
+    description: topic.entry.short,
+    route: `/learn/${topic.slug}`,
+    keywords: [topic.key.toLowerCase(), ...topic.entry.label.toLowerCase().split(/[\s()/,]+/).filter(Boolean)],
+    metadata: { source: topic.source },
+  }))
 }
 
 /* ---------- registration ---------- */

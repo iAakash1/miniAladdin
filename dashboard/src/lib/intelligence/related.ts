@@ -11,6 +11,7 @@
    persistence calls the reasoning provider uses.
    ============================================================ */
 
+import { learnRoute } from '../learn'
 import { fetchHistory } from '../persistence'
 import { STREET_GLOSSARY, TECHNICAL_GLOSSARY } from '../technicalGlossary'
 import type { Watchlist } from '../watchlists'
@@ -29,7 +30,7 @@ export function relatedLearnTopics(indicatorKeys: string[], hasStreet: boolean, 
       title: entry.label,
       subtitle: 'Learn',
       description: entry.short,
-      route: '/terminal/methodology',
+      route: learnRoute('technical', key),
       keywords: [key],
     })
   }
@@ -41,7 +42,7 @@ export function relatedLearnTopics(indicatorKeys: string[], hasStreet: boolean, 
         title: entry.label,
         subtitle: 'Learn',
         description: entry.short,
-        route: '/terminal/methodology',
+        route: learnRoute('street', key),
         keywords: [key],
       })
     }
