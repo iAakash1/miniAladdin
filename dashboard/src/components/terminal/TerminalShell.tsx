@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useUser } from '@clerk/nextjs'
 
+import CommandPalette from '@/components/terminal/CommandPalette'
 import TerminalHeader from '@/components/terminal/TerminalHeader'
 import UpgradeDialog from '@/components/terminal/UpgradeDialog'
 import { fetchMacroClient } from '@/lib/api'
@@ -97,6 +98,7 @@ export default function TerminalShell({ loadingLabel, children }: TerminalShellP
         reason={upgrade.reason}
         onClose={() => setUpgrade({ open: false })}
       />
+      <CommandPalette />
 
       <main
         id="main"

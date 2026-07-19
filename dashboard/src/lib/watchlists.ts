@@ -85,6 +85,12 @@ function markMutated() {
   status = 'ready'
 }
 
+/** Non-reactive read of the current store state — for consumers outside
+ *  React (the Intelligence OS watchlists provider). */
+export function readWatchlistsSnapshot(): Watchlist[] {
+  return lists
+}
+
 export function useWatchlists(): Watchlist[] {
   return useSyncExternalStore(subscribe, () => lists, () => [] as Watchlist[])
 }
