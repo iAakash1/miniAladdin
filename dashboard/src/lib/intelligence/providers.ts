@@ -24,6 +24,7 @@ const ROUTE_ENTITIES: Entity[] = [
   { id: 'route:vault', type: 'route', title: 'Research Vault', subtitle: 'Every analysis you have run', route: '/terminal/vault', keywords: ['history', 'saved', 'reports', 'archive'] },
   { id: 'route:vault-saved', type: 'route', title: 'Saved reports', subtitle: 'Bookmarked research', route: '/terminal/vault?view=saved', keywords: ['bookmarks', 'notes', 'saved'] },
   { id: 'route:graph', type: 'route', title: 'Knowledge graph', subtitle: 'Explore entities and relationships', route: '/terminal/graph', keywords: ['graph', 'explore', 'entities', 'relationships', 'ecosystem', 'network'] },
+  { id: 'route:sessions', type: 'route', title: 'Investigations', subtitle: 'Saved research sessions', route: '/terminal/sessions', keywords: ['session', 'investigation', 'notebook', 'notes', 'saved research'] },
   { id: 'route:validation', type: 'route', title: 'Validation', subtitle: 'Walk-forward model evaluation', route: '/terminal/validation', keywords: ['backtest', 'ic', 'calibration', 'model health'] },
   { id: 'route:methodology', type: 'route', title: 'Methodology', subtitle: 'How OmniSignal works', route: '/terminal/methodology', keywords: ['factors', 'pipeline', 'how it works', 'docs'] },
   { id: 'route:news', type: 'route', title: 'Market news', subtitle: 'Live aggregated feed', route: '/news', keywords: ['headlines', 'feed', 'stories'] },

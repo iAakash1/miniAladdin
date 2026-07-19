@@ -8,6 +8,19 @@ import EmptyState from '@/components/ui/EmptyState'
 import Skeleton from '@/components/ui/Skeleton'
 import { computeLayout, viewBoxFor, type LayoutNode } from '@/lib/graph/layout'
 import { EDGE_LABELS } from '@/lib/knowledge'
+import {
+  addNote,
+  captureSnapshot,
+  createSession,
+  emptyWorkspaceState,
+  flushWorkspace,
+  onSaveStateChange,
+  openSession,
+  recordActivity,
+  updateWorkspace,
+  type ResearchSession,
+  type WorkspaceState,
+} from '@/lib/sessions'
 
 interface RawNode { id: string; type: string; label: string; route?: string | null; description?: string | null; metadata?: Record<string, string> }
 interface RawEdge { source_id: string; target_id: string; type: string; confidence: number; provider: string; observed_at?: string }
@@ -48,10 +61,73 @@ export default function GraphWorkspace() {
   const minConfidence = params.get('minconf') || ''
   const before = params.get('before') || ''
 
+  const sessionId = params.get('session') || ''
   const [data, setData] = useState<Workspace | null>(null)
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<string | null>(null)
   const [pinned, setPinned] = useState<string[]>([])
+  const [session, setSession] = useState<ResearchSession | null>(null)
+  const [state, setState] = useState<WorkspaceState>(emptyWorkspaceState())
+  const [saving, setSaving] = useState(false)
+  const [noteDraft, setNoteDraft] = useState('')
+
+  useEffect(() => onSaveStateChange(setSaving), [])
+
+  /* Restore: opening a session rebuilds the exact workspace it was left in. */
+  useEffect(() => {
+    if (!sessionId) return
+    let alive = true
+    openSession(sessionId).then((loaded) => {
+      if (!alive || !loaded) return
+      setSession(loaded)
+      setState(loaded.workspace_state)
+      setPinned(loaded.workspace_state.pinned)
+      setSelected(loaded.workspace_state.selected)
+      // Restore the graph the session was viewing.
+      const stored = loaded.workspace_state.symbols.join(',')
+      if (stored && stored !== symbols) {
+        const next = new URLSearchParams(params.toString())
+        next.set('symbols', stored)
+        next.set('hops', String(loaded.workspace_state.filters.hops))
+        router.replace(`/terminal/graph?${next}`)
+      }
+    })
+    return () => { alive = false }
+    // Restore runs once per session id — later state changes are saves, not loads.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId])
+
+  /* Autosave: every workspace mutation persists, debounced. Users never save. */
+  const persist = useCallback((mutate: (current: WorkspaceState) => WorkspaceState) => {
+    setState((current) => {
+      const next = mutate(current)
+      if (sessionId) updateWorkspace(sessionId, next)
+      return next
+    })
+  }, [sessionId])
+
+  /* Keep the graph view in the session state as the user navigates. */
+  useEffect(() => {
+    if (!sessionId) return
+    persist((current) => ({
+      ...current,
+      symbols: symbols.split(',').filter(Boolean),
+      selected,
+      pinned,
+      filters: { ...current.filters, hops, node_types: typeFilter },
+    }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId, symbols, hops, typeFilter, selected, pinned])
+
+  /* A pending save must not be lost when the tab closes. */
+  useEffect(() => {
+    const onLeave = () => { void flushWorkspace() }
+    window.addEventListener('pagehide', onLeave)
+    return () => {
+      window.removeEventListener('pagehide', onLeave)
+      void flushWorkspace()
+    }
+  }, [])
 
   useEffect(() => {
     let alive = true
@@ -90,8 +166,33 @@ export default function GraphWorkspace() {
   )
   const nodeById = new Map((data?.nodes ?? []).map((n) => [n.id, n]))
 
-  const togglePin = (id: string) =>
+  const togglePin = (id: string) => {
     setPinned((current) => current.includes(id) ? current.filter((p) => p !== id) : [...current, id])
+    persist((current) => recordActivity(current, 'pin', id))
+  }
+
+  const startSession = async () => {
+    const created = await createSession(
+      `${symbols} investigation`, undefined, [],
+      { ...emptyWorkspaceState(), symbols: symbols.split(',').filter(Boolean) },
+    )
+    if (created) {
+      const next = new URLSearchParams(params.toString())
+      next.set('session', created.id)
+      router.push(`/terminal/graph?${next}`)
+    }
+  }
+
+  const saveNote = async () => {
+    if (!sessionId || !noteDraft.trim()) return
+    const refs = selected ? [{ type: 'entity', id: selected }] : []
+    const note = await addNote(sessionId, noteDraft.trim(), refs)
+    if (note) {
+      setSession((current) => current ? { ...current, notes: [note, ...current.notes] } : current)
+      setNoteDraft('')
+      persist((current) => recordActivity(current, 'note', note.body.slice(0, 60)))
+    }
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -102,6 +203,40 @@ export default function GraphWorkspace() {
           companies to see what they share, or trace how any two entities connect. Nothing here is
           inferred — every edge names the provider that asserted it and the confidence it carries.
         </p>
+      </div>
+
+      {/* Session bar: the investigation this workspace belongs to */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+        {session ? (
+          <>
+            <span className="badge badge--accent">{session.title}</span>
+            <span style={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>
+              {saving ? 'Saving…' : 'All changes saved'}
+            </span>
+            <button type="button" className="btn btn--ghost btn--xs"
+                    style={{ border: '1px solid var(--line)' }}
+                    onClick={() => persist((current) => captureSnapshot(current, `${symbols} view`))}>
+              Snapshot ({state.snapshots.length})
+            </button>
+            <Link href="/terminal/sessions" className="btn btn--ghost btn--xs"
+                  style={{ border: '1px solid var(--line)', textDecoration: 'none' }}>
+              All investigations
+            </Link>
+          </>
+        ) : (
+          <>
+            <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+              Not in a session — pins and notes won&apos;t be saved.
+            </span>
+            <button type="button" className="btn btn--secondary btn--xs" onClick={startSession}>
+              Start investigation
+            </button>
+            <Link href="/terminal/sessions" className="btn btn--ghost btn--xs"
+                  style={{ border: '1px solid var(--line)', textDecoration: 'none' }}>
+              Open existing
+            </Link>
+          </>
+        )}
       </div>
 
       {/* Controls: symbols, depth, filters, time machine */}
@@ -309,6 +444,45 @@ export default function GraphWorkspace() {
           )}
         </section>
       </div>
+
+      {/* Notebook — belongs to the session, references what is selected */}
+      {session && (
+        <section aria-label="Research notebook" className="panel" style={{ padding: '16px 18px' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 10 }}>
+            <h3 className="h-panel" style={{ fontSize: '0.875rem' }}>Notebook</h3>
+            <span style={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>
+              {session.notes.length} note{session.notes.length === 1 ? '' : 's'}
+              {selected ? ` · will reference ${selected.split(':')[1] ?? selected}` : ''}
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            <label htmlFor="note-draft" className="visually-hidden">New note</label>
+            <input id="note-draft" className="input" value={noteDraft}
+                   placeholder="Record a finding…"
+                   style={{ height: 32, fontSize: '0.8125rem' }}
+                   onChange={(e) => setNoteDraft(e.target.value)}
+                   onKeyDown={(e) => { if (e.key === 'Enter') void saveNote() }} />
+            <button type="button" className="btn btn--secondary btn--sm"
+                    disabled={!noteDraft.trim()} onClick={() => void saveNote()}>
+              Add
+            </button>
+          </div>
+          {session.notes.length > 0 && (
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {session.notes.slice(0, 8).map((note) => (
+                <li key={note.id} style={{ fontSize: '0.8125rem', lineHeight: 1.5 }}>
+                  <span style={{ color: 'var(--text)' }}>{note.body}</span>
+                  {note.refs.length > 0 && (
+                    <span className="num" style={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>
+                      {' · '}{note.refs.map((r) => r.id.split(':')[1] ?? r.id).join(', ')}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
 
       {pinned.length > 0 && (
         <p style={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>

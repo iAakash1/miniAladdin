@@ -19,6 +19,7 @@ from src.services import database
 from src.services.clerk_auth import require_clerk_user
 from src.services.database.repositories import (
     AnalysisRepository,
+    SessionsRepository,
     PortfolioRepository,
     PreferencesRepository,
     ProfilesRepository,
@@ -299,3 +300,107 @@ def patch_preferences(
     return PreferencesRepository(_client()).patch(
         user, body.model_dump(exclude_unset=True)
     ) or {}
+
+
+# ── research sessions ────────────────────────────────────────────────────────
+# An investigation that survives: workspace state, notebook and activity,
+# all scoped to the signed-in user.
+
+class SessionCreateBody(BaseModel):
+    title: str = Field(min_length=1, max_length=120)
+    description: Optional[str] = Field(default=None, max_length=2000)
+    tags: list[str] = Field(default_factory=list, max_length=12)
+    workspace_state: Optional[dict[str, Any]] = None
+
+
+class SessionPatchBody(BaseModel):
+    title: Optional[str] = Field(default=None, max_length=120)
+    description: Optional[str] = Field(default=None, max_length=2000)
+    tags: Optional[list[str]] = Field(default=None, max_length=12)
+    status: Optional[str] = None
+    color: Optional[str] = Field(default=None, max_length=32)
+    icon: Optional[str] = Field(default=None, max_length=32)
+    workspace_state: Optional[dict[str, Any]] = None
+    touch: bool = False
+
+
+class NoteBody(BaseModel):
+    body: str = Field(default="", max_length=20000)
+    refs: list[dict[str, Any]] = Field(default_factory=list)
+    tags: list[str] = Field(default_factory=list, max_length=12)
+    pinned: Optional[bool] = None
+
+
+@router.get("/sessions")
+def list_sessions(user: str = Depends(require_clerk_user), status: Optional[str] = None):
+    return {"sessions": SessionsRepository(_client()).list(user, status)}
+
+
+@router.post("/sessions", status_code=201)
+def create_session(body: SessionCreateBody, user: str = Depends(require_clerk_user)):
+    created = SessionsRepository(_client()).create(
+        user, body.title, body.description, body.tags, body.workspace_state
+    )
+    if created is None:
+        raise HTTPException(status_code=409, detail="Session limit reached (100).")
+    return created
+
+
+@router.get("/sessions/search")
+def search_sessions(q: str = Query(..., max_length=80), user: str = Depends(require_clerk_user)):
+    return SessionsRepository(_client()).search(user, q)
+
+
+@router.get("/sessions/{session_id}")
+def get_session(session_id: str, user: str = Depends(require_clerk_user)):
+    repo = SessionsRepository(_client())
+    session = repo.get(user, session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found.")
+    repo.touch(user, session_id)
+    session["notes"] = repo.list_notes(user, session_id)
+    return session
+
+
+@router.patch("/sessions/{session_id}")
+def patch_session(session_id: str, body: SessionPatchBody, user: str = Depends(require_clerk_user)):
+    updated = SessionsRepository(_client()).patch(
+        user, session_id, body.model_dump(exclude_unset=True)
+    )
+    if updated is None:
+        raise HTTPException(status_code=404, detail="Session not found.")
+    return updated
+
+
+@router.delete("/sessions/{session_id}")
+def delete_session(session_id: str, user: str = Depends(require_clerk_user)):
+    if not SessionsRepository(_client()).delete(user, session_id):
+        raise HTTPException(status_code=404, detail="Session not found.")
+    return {"ok": True}
+
+
+@router.post("/sessions/{session_id}/notes", status_code=201)
+def add_note(session_id: str, body: NoteBody, user: str = Depends(require_clerk_user)):
+    note = SessionsRepository(_client()).add_note(
+        user, session_id, body.body, body.refs, body.tags
+    )
+    if note is None:
+        raise HTTPException(status_code=404, detail="Session not found.")
+    return note
+
+
+@router.patch("/notes/{note_id}")
+def patch_note(note_id: str, body: NoteBody, user: str = Depends(require_clerk_user)):
+    note = SessionsRepository(_client()).patch_note(
+        user, note_id, body.model_dump(exclude_unset=True)
+    )
+    if note is None:
+        raise HTTPException(status_code=404, detail="Note not found.")
+    return note
+
+
+@router.delete("/notes/{note_id}")
+def delete_note(note_id: str, user: str = Depends(require_clerk_user)):
+    if not SessionsRepository(_client()).delete_note(user, note_id):
+        raise HTTPException(status_code=404, detail="Note not found.")
+    return {"ok": True}
