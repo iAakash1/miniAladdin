@@ -74,7 +74,7 @@ DISCLAIMER = "Research and education only — not investment advice."
 app = FastAPI(
     title="OmniSignal API",
     description="Multi-Factor Risk & Prediction Engine",
-    version="4.5.0",
+    version="5.0.0",
 )
 
 # Explicit origin allowlist (comma-separated env var). Wildcard + credentials
@@ -323,7 +323,7 @@ def health():
     return {
         "status":  "ok",
         "service": "OmniSignal API",
-        "version": "4.5.0",
+        "version": "5.0.0",
         "data_sources": {
             "fred":          bool(os.getenv("FRED_API_KEY")),
             "alpha_vantage": av_client.available,
@@ -869,6 +869,16 @@ def knowledge(ticker: str):
     if not symbol or len(symbol) > 10:
         raise HTTPException(status_code=400, detail="Invalid ticker symbol")
     return company_intelligence.build(symbol)
+
+
+@app.get("/api/graph/expand")
+def graph_expand(node: str = Query(..., max_length=120), label: str = Query(default="", max_length=120)):
+    """Expand any knowledge-graph node into its neighbours — the traversal
+    behind the Knowledge Graph Explorer. Every node type is a valid entry
+    point, so exploration is continuous."""
+    from src.services import graph_service
+
+    return graph_service.expand(node, label)
 
 
 @app.get("/api/providers/health")
