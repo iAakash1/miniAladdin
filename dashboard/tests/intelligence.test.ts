@@ -103,3 +103,24 @@ test('answer entities rank first regardless of title text', () => {
   const ranked = rankEntities('compare nvda and amd', [answer, company('NVDA', 'Nvidia')])
   assert.equal(ranked[0].entity.type, 'answer')
 })
+
+/* ── cross-links: pure related-entity composition ── */
+import { relatedLearnTopics, relatedWatchlists } from '../src/lib/intelligence/related'
+
+test('related learn topics map rendered indicators to glossary entities, capped', () => {
+  const topics = relatedLearnTopics(['rsi', 'macd', 'nonexistent'], false)
+  assert.deepEqual(topics.map((t) => t.id), ['glossary:technical:rsi', 'glossary:technical:macd'])
+  const capped = relatedLearnTopics(['rsi', 'macd', 'adx', 'atr', 'bollinger', 'stoch', 'obv'], true, 6)
+  assert.equal(capped.length, 6)
+})
+
+test('related watchlists: only lists holding the ticker', () => {
+  const lists = [
+    { id: 'a', name: 'AI', tickers: ['NVDA', 'AMD'], createdAt: '' },
+    { id: 'b', name: 'Dividends', tickers: ['KO'], createdAt: '' },
+  ]
+  const related = relatedWatchlists('nvda', lists)
+  assert.equal(related.length, 1)
+  assert.equal(related[0].title, 'AI')
+  assert.equal(relatedWatchlists('TSLA', lists).length, 0)
+})
