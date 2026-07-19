@@ -53,28 +53,30 @@ Standing priorities from the product charter, in execution order. Each item
 lands with the full QA matrix and a production-stability check, per the
 established discipline.
 
-1. **Company-page information architecture + routing.** Restructure the
-   analyze experience around the research narrative (overview → thesis →
-   financial health → growth → valuation → technical → street → news →
-   macro → risk → history) with domain routing (`/company/{ticker}` and
-   per-section deep links). The company page becomes the heart of the
-   product; existing panels become sections of one flowing report.
-2. **Command palette + keyboard navigation.** ⌘K over companies, terminal
-   sections, watchlist entries, vault history, and Learn More topics —
-   search as the primary navigation mechanism. Recently viewed + pinned
-   companies (persisted via the existing preferences/Supabase layer).
+1. ~~**Company-page IA + routing.**~~ **Shipped** (`0323f29`):
+   `/company/{ticker}` permanent URLs, CompanyReport with self-filtering
+   section map, launcher + legacy redirects. This established the
+   **Research Section framework** (report-section anchors + SectionNav) —
+   every future section extends it rather than inventing placement.
+2. **The intelligence operating system (⌘K).** One surface over
+   companies, terminal sections, vault history, watchlists, and Learn More
+   topics; recently-viewed + pinned persisted via the preferences layer.
+   Navigation becomes retrieval; the six-tab header stops growing.
 3. **Search Intelligence Engine.** Question-shaped queries composed over
-   the existing deterministic engines ("why did the recommendation
-   change", "compare A and B" → vault compare; "what changed since
-   earnings" → history diff + news clusters). Deterministic retrieval
-   first; LLM narrates only.
-4. **Learn More index.** One browsable, searchable education surface over
-   the four glossaries (validation, factor, technical, street) — the
-   platform's finance curriculum, discoverable from the palette.
-5. **Table system.** Sorting/filtering/sticky headers/density as shared
-   primitives for portfolio, vault, and validation tables.
-6. **Finnhub metric=all mapping** (P1 from the provider audit) feeding a
-   financial-health section of the company page.
+   the deterministic engines ("why did the recommendation change",
+   "compare A and B" → vault compare; "what changed since earnings" →
+   history diff + news clusters). Deterministic retrieval; LLM narrates.
+   Lands inside the ⌘K surface, not beside it.
+4. **The universal OmniSignal data table.** One component: sorting,
+   filtering, sticky headers, density, keyboard navigation, CSV export,
+   inline explanations — then portfolio, vault, and validation tables
+   become configurations of it, not implementations.
+5. **The Learn More index.** One browsable, searchable education surface
+   over the four glossaries — the platform's finance curriculum,
+   discoverable from ⌘K, deep-linkable per entry.
+6. **Financial-health section** (Finnhub metric=all mapping, P1 from the
+   provider audit) — the first new consumer of the Research Section
+   framework and the universal table.
 
 Charter constraints binding all of it: professional calm over novelty, the
 existing token system, color as meaning only, density with progressive
