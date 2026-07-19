@@ -6,6 +6,7 @@ import { useCallback, useState } from 'react'
 import AiPanel from '@/components/terminal/AiPanel'
 import CompanyBand from '@/components/terminal/CompanyBand'
 import CompanyCrossLinks from '@/components/terminal/CompanyCrossLinks'
+import CompanyEcosystem from '@/components/terminal/CompanyEcosystem'
 import Fundamentals from '@/components/terminal/Fundamentals'
 import Headlines from '@/components/terminal/Headlines'
 import KeyStats from '@/components/terminal/KeyStats'
@@ -45,6 +46,7 @@ const SECTIONS: Array<{ id: string; label: string; present: (a: Analysis) => boo
   { id: 'street', label: 'Street', present: (a) => a.streetIntelligence !== null },
   { id: 'fundamentals', label: 'Fundamentals', present: () => true },
   { id: 'news', label: 'News', present: (a) => a.headlines.length > 0 },
+  { id: 'ecosystem', label: 'Ecosystem', present: () => true },
   { id: 'history', label: 'History', present: () => true },
   { id: 'related', label: 'Related', present: () => true },
 ]
@@ -183,6 +185,10 @@ export default function CompanyReport({ analysis, initialChart, isPro, requestUp
           isPro={isPro}
           onUpgrade={() => requestUpgrade('feature')}
         />
+      </div>
+
+      <div id="ecosystem" className="report-section">
+        <CompanyEcosystem ticker={analysis.ticker} />
       </div>
 
       <div id="history" className="report-section">

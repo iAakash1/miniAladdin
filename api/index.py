@@ -858,6 +858,19 @@ def get_chart(ticker: str, period: str = "3mo"):
         return {"ticker": ticker, "prices": [], "error": "Price history unavailable"}
 
 
+@app.get("/api/knowledge/{ticker}")
+def knowledge(ticker: str):
+    """Company ecosystem: merged knowledge graph, timeline and SEC-grounded
+    findings. Additive and independent of /api/research — a failure here
+    never affects analysis."""
+    from src.services import company_intelligence
+
+    symbol = ticker.upper().strip()
+    if not symbol or len(symbol) > 10:
+        raise HTTPException(status_code=400, detail="Invalid ticker symbol")
+    return company_intelligence.build(symbol)
+
+
 @app.get("/api/providers/health")
 def get_providers_health():
     """Vendor health: success %, latency, cooldowns, cache and dedupe stats."""
