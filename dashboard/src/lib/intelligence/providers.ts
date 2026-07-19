@@ -9,7 +9,10 @@
 
 import { fetchKnowledge, knowledgeEntities } from '../knowledge'
 import { allTopics } from '../learn'
+import { readHistorySnapshot } from '../history'
 import { fetchHistory } from '../persistence'
+import { localMatches } from '../search'
+import { listSessions } from '../sessions'
 import { readWatchlistsSnapshot } from '../watchlists'
 import type { Entity } from './entities'
 import { readRecents, registerProvider } from './registry'
@@ -25,6 +28,7 @@ const ROUTE_ENTITIES: Entity[] = [
   { id: 'route:vault-saved', type: 'route', title: 'Saved reports', subtitle: 'Bookmarked research', route: '/terminal/vault?view=saved', keywords: ['bookmarks', 'notes', 'saved'] },
   { id: 'route:graph', type: 'route', title: 'Knowledge graph', subtitle: 'Explore entities and relationships', route: '/terminal/graph', keywords: ['graph', 'explore', 'entities', 'relationships', 'ecosystem', 'network'] },
   { id: 'route:sessions', type: 'route', title: 'Investigations', subtitle: 'Saved research sessions', route: '/terminal/sessions', keywords: ['session', 'investigation', 'notebook', 'notes', 'saved research'] },
+  { id: 'route:learn', type: 'route', title: 'Learn', subtitle: 'Knowledge center', route: '/learn', keywords: ['learn', 'glossary', 'concepts', 'education', 'definitions'] },
   { id: 'route:validation', type: 'route', title: 'Validation', subtitle: 'Walk-forward model evaluation', route: '/terminal/validation', keywords: ['backtest', 'ic', 'calibration', 'model health'] },
   { id: 'route:methodology', type: 'route', title: 'Methodology', subtitle: 'How OmniSignal works', route: '/terminal/methodology', keywords: ['factors', 'pipeline', 'how it works', 'docs'] },
   { id: 'route:news', type: 'route', title: 'Market news', subtitle: 'Live aggregated feed', route: '/news', keywords: ['headlines', 'feed', 'stories'] },
@@ -88,6 +92,26 @@ export function registerDefaultProviders(): void {
     },
   })
 
+  // Instant, network-free matches against what the user already tracks:
+  // a ticker in a watchlist or previously analysed answers before any
+  // request is made. (This capability came from the old header search;
+  // it lives on the single search surface now.)
+  registerProvider({
+    id: 'owned',
+    tier: 'sync',
+    entities: (query) => {
+      if (!query.trim()) return []
+      return localMatches(query, readWatchlistsSnapshot(), readHistorySnapshot()).map((match) => ({
+        id: `company:${match.symbol}`,
+        type: 'company' as const,
+        title: match.symbol,
+        subtitle: match.context,
+        route: `/company/${encodeURIComponent(match.symbol)}`,
+        keywords: [match.symbol.toLowerCase()],
+      }))
+    },
+  })
+
   registerProvider({
     id: 'recents',
     tier: 'sync',
@@ -146,6 +170,29 @@ export function registerDefaultProviders(): void {
       if (symbols.length === 0) return []
       const bundles = await Promise.all(symbols.map((symbol) => fetchKnowledge(symbol)))
       return bundles.flatMap((bundle) => (bundle ? knowledgeEntities(bundle) : []))
+    },
+  })
+
+  // Investigations are destinations: "where was I working on export
+  // controls?" should answer from the palette, not a page.
+  registerProvider({
+    id: 'sessions',
+    tier: 'async',
+    entities: async (query) => {
+      if (query.trim().length < 2) return []
+      try {
+        const sessions = await listSessions()
+        return sessions.map((session) => ({
+          id: `session:${session.id}`,
+          type: 'vault' as const,
+          title: session.title,
+          subtitle: `Investigation · ${session.tags.join(' ') || 'no tags'}`,
+          route: `/terminal/graph?session=${encodeURIComponent(session.id)}`,
+          keywords: [...session.tags, (session.description ?? '')].map((t) => t.toLowerCase()),
+        }))
+      } catch {
+        return [] // signed out — retrieval still works
+      }
     },
   })
 

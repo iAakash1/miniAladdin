@@ -3,20 +3,23 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { UserButton } from '@clerk/nextjs'
-import ScreenSearch from '@/components/terminal/ScreenSearch'
 import { LogoMark } from '@/components/ui/Logo'
 import ThemeToggle from '@/components/ui/ThemeToggle'
 import { clerkAppearance } from '@/lib/clerk-appearance'
 
+/* Navigation names WORKFLOWS, not implementation. Eight tabs had grown to
+   mirror the route table; an analyst thinks in five moves — see what is
+   happening, research a name, check holdings, continue an investigation,
+   learn a concept. Everything removed from here (Vault, Graph, Validation,
+   Methodology) stays one ⌘K keystroke away and is linked from the surface
+   it belongs to, which is why the palette affordance beside these tabs is
+   part of this change rather than a nicety. */
 const TABS = [
-  { href: '/terminal', label: 'Market' },
-  { href: '/terminal/analyze', label: 'Analyze' },
-  { href: '/terminal/portfolio', label: 'Portfolio' },
-  { href: '/terminal/vault', label: 'Vault' },
-  { href: '/terminal/graph', label: 'Graph' },
-  { href: '/terminal/sessions', label: 'Sessions' },
-  { href: '/terminal/validation', label: 'Validation' },
-  { href: '/terminal/methodology', label: 'Methodology' },
+  { href: '/terminal', label: 'Market', match: (p: string) => p === '/terminal' },
+  { href: '/terminal/analyze', label: 'Research', match: (p: string) => p.startsWith('/terminal/analyze') || p.startsWith('/company') },
+  { href: '/terminal/portfolio', label: 'Portfolio', match: (p: string) => p.startsWith('/terminal/portfolio') },
+  { href: '/terminal/sessions', label: 'Workspace', match: (p: string) => p.startsWith('/terminal/sessions') || p.startsWith('/terminal/graph') || p.startsWith('/terminal/vault') },
+  { href: '/learn', label: 'Learn', match: (p: string) => p.startsWith('/learn') || p.startsWith('/terminal/methodology') || p.startsWith('/terminal/validation') },
 ]
 import { fmtNum, fmtPctRaw } from '@/lib/format'
 import { FREE_DAILY_LIMIT } from '@/lib/usage'
@@ -98,7 +101,9 @@ export default function TerminalHeader({ macro, isPro, usedToday, onUpgrade }: T
 
         <nav aria-label="Terminal sections" className="terminal-tabs" style={{ display: 'flex', gap: 2, minWidth: 0 }}>
           {TABS.map((tab) => {
-            const active = pathname === tab.href
+            // A tab stays lit for every surface inside its workflow, so the
+            // user never loses their place after following a deep link.
+            const active = tab.match(pathname)
             return (
               <Link
                 key={tab.href}
@@ -119,10 +124,27 @@ export default function TerminalHeader({ macro, isPro, usedToday, onUpgrade }: T
           })}
         </nav>
 
-        {/* Global search — available on every /terminal/* page, not just Market */}
-        <div className="terminal-header-search" style={{ flex: '1 1 200px', minWidth: 0, maxWidth: 280 }}>
-          <ScreenSearch maxWidth={280} />
-        </div>
+        {/* One search surface, not two: the palette is the search box AND
+            the way to reach everything no longer in the tab bar. Making the
+            shortcut visible is what allows the tab reduction. */}
+        <button
+          type="button"
+          className="terminal-header-search btn btn--secondary btn--sm"
+          onClick={() => window.dispatchEvent(new CustomEvent('omni-open-palette'))}
+          aria-keyshortcuts="Meta+K Control+K"
+          style={{
+            flex: '1 1 180px', minWidth: 0, maxWidth: 260, justifyContent: 'space-between',
+            color: 'var(--muted)', fontWeight: 450,
+          }}
+        >
+          <span>Search everything…</span>
+          <kbd className="num" style={{
+            fontSize: '0.625rem', color: 'var(--faint)', border: '1px solid var(--line)',
+            borderRadius: 'var(--r-sm)', padding: '1px 5px',
+          }}>
+            ⌘K
+          </kbd>
+        </button>
 
         {/* Live macro readout */}
         {macro && (

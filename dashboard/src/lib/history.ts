@@ -103,6 +103,12 @@ function subscribe(onChange: () => void) {
   }
 }
 
+/** Non-reactive read — for consumers outside React (Intelligence OS
+ *  providers), matching readWatchlistsSnapshot in the watchlists store. */
+export function readHistorySnapshot(): Store {
+  return snapshotStore()
+}
+
 export function useHistory(ticker: string | null): AnalysisSnapshot[] {
   const store = useSyncExternalStore(subscribe, snapshotStore, () => ({}) as Store)
   return ticker ? (store[ticker.toUpperCase()] ?? []) : []
