@@ -102,13 +102,15 @@ export function knowledgeEntities(knowledge: CompanyKnowledge): Entity[] {
   const out: Entity[] = []
   for (const group of knowledge.ecosystem) {
     for (const member of group.members) {
-      if (!member.route) continue
+      // Non-addressable members still explore in the graph rather than
+      // becoming dead ends.
+      const route = member.route ?? `/terminal/graph?node=${encodeURIComponent(member.id)}&label=${encodeURIComponent(member.label)}`
       out.push({
         id: member.id,
         type: 'company',
         title: member.label,
         subtitle: `${group.label} · ${knowledge.symbol}`,
-        route: member.route,
+        route,
         keywords: [member.label.toLowerCase()],
         relationships: [`company:${knowledge.symbol}`],
       })
