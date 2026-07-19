@@ -58,10 +58,26 @@ established discipline.
    section map, launcher + legacy redirects. This established the
    **Research Section framework** (report-section anchors + SectionNav) —
    every future section extends it rather than inventing placement.
-2. **The intelligence operating system (⌘K).** One surface over
-   companies, terminal sections, vault history, watchlists, and Learn More
-   topics; recently-viewed + pinned persisted via the preferences layer.
-   Navigation becomes retrieval; the six-tab header stops growing.
+2. **The Intelligence OS — infrastructure, not UI.** A universal entity
+   layer that every surface consumes; ⌘K is merely its first client.
+   - **Entity contract** (define before any client): `{ id, type, title,
+     description, route, keywords, relationships, actions, metadata }`.
+     Entity types span the whole domain: company, indicator, metric,
+     glossary topic, vault entry, watchlist, portfolio holding, macro
+     series, news cluster, validation item, methodology section.
+   - **Registry architecture:** a frontend entity registry composed of
+     providers — static (routes, glossary entries, methodology sections),
+     local (recently viewed), and async (vault history, watchlists,
+     company lookup via /api/screen). Backend counterpart: engines
+     already return entity-shaped rows; the screen service becomes the
+     company-entity resolver. No client couples to a source.
+   - **Search is reasoning:** question-shaped queries compose engines
+     ("what changed since earnings" = history diff + news clusters;
+     "compare A and B" = vault compare). Deterministic engines answer;
+     the LLM only explains. Grows inside the same entity layer.
+   - **Clients, in order:** ⌘K palette → header search upgrade → related-
+     content cross-links on company pages → future surfaces (context
+     panels, API consumers) — all reading the same registry.
 3. **Search Intelligence Engine.** Question-shaped queries composed over
    the deterministic engines ("why did the recommendation change",
    "compare A and B" → vault compare; "what changed since earnings" →
