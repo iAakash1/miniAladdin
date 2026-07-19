@@ -22,6 +22,7 @@ every consumer degrades to the providers that remain.
 from __future__ import annotations
 
 import logging
+import os
 import re
 from typing import Any, Optional
 from urllib.parse import urlparse
@@ -67,10 +68,20 @@ class ApifyVendor(VendorClient):
 
     BASE = "https://api.apify.com/v2"
 
-    # Actor ids are configurable so a deprecated Actor never requires a
-    # code change — only an env update.
-    PERPLEXITY_ACTOR = "jons/perplexity-actor"
-    GOOGLE_SEARCH_ACTOR = "apify/google-search-scraper"
+    # Actor ids are overridable by env so a pricing or availability change
+    # never requires a code change.
+    #
+    # apify/rag-web-browser is Apify's own research actor: it runs a search
+    # and returns the resulting pages' content WITH their URLs, which is
+    # exactly the shape our sourced-claims model needs. It bills from
+    # platform credits.
+    #
+    # It replaces jons/perplexity-actor, which is a FLAT_PRICE_PER_MONTH
+    # rental ($30/mo): invoking a rental actor without an active
+    # subscription returns 403 Forbidden regardless of token validity —
+    # verified against the live Apify API, not inferred from the error.
+    RESEARCH_ACTOR = os.getenv("APIFY_RESEARCH_ACTOR", "apify/rag-web-browser")
+    GOOGLE_SEARCH_ACTOR = os.getenv("APIFY_SEARCH_ACTOR", "apify/google-search-scraper")
 
     def _run_actor(self, actor_id: str, payload: dict[str, Any], timeout_secs: int = 90) -> list[dict[str, Any]]:
         """Run an Actor synchronously and return its dataset items."""
@@ -94,12 +105,38 @@ class ApifyVendor(VendorClient):
             f"and key risks — cite sources"
         )
         try:
-            items = self._run_actor(self.PERPLEXITY_ACTOR, {"query": query, "maxResults": 1})
+            items = self._run_actor(
+                self.RESEARCH_ACTOR,
+                {
+                    "query": query,
+                    "maxResults": 3,
+                    "outputFormats": ["markdown"],
+                    "scrapingTool": "raw-http",  # fast path; no browser needed for article text
+                },
+            )
         except Exception:  # noqa: BLE001 — web research is always optional
-            logger.info("apify perplexity run failed for %s", symbol, exc_info=True)
+            logger.info("apify research run failed for %s", symbol, exc_info=True)
             return KnowledgeBundle()
 
-        return self._claims_from_items(symbol, items, "apify.perplexity")
+        return self._claims_from_items(symbol, self._normalize_research(items), "apify.web")
+
+    @staticmethod
+    def _normalize_research(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """rag-web-browser yields one item per fetched page; reshape into the
+        {answer, sources} form the claim extractor already validates, so the
+        evidence discipline (no source -> no claim) is unchanged."""
+        out: list[dict[str, Any]] = []
+        for item in items:
+            metadata = item.get("metadata") or {}
+            url = metadata.get("url") or item.get("url") or ""
+            text = item.get("markdown") or item.get("text") or ""
+            if not url or not text:
+                continue
+            out.append({
+                "answer": text[:1500],  # lead content; enough for claim-sized statements
+                "sources": [{"url": url, "title": metadata.get("title") or ""}],
+            })
+        return out
 
     def _claims_from_items(self, symbol: str, items: list[dict[str, Any]], provider: str) -> KnowledgeBundle:
         bundle = KnowledgeBundle()
