@@ -69,3 +69,45 @@ class TestAvailability:
         with patch.object(ApifyVendor, "_run_actor", side_effect=RuntimeError("actor down")):
             assert vendor.research_company("NVDA", "NVIDIA").claims == []
             assert vendor.search("x") == []
+
+
+class TestResearchActorMigration:
+    """jons/perplexity-actor is a $30/mo rental — invoking it without a
+    subscription returns 403 regardless of token validity. These pin the
+    migration to a credit-billed actor and its different output shape."""
+
+    def test_default_actor_is_not_the_rental_actor(self):
+        vendor = ApifyVendor()
+        assert "perplexity-actor" not in vendor.RESEARCH_ACTOR
+        assert vendor.RESEARCH_ACTOR == "apify/rag-web-browser"
+
+    def test_actor_id_is_env_overridable_without_code_change(self, monkeypatch):
+        monkeypatch.setenv("APIFY_RESEARCH_ACTOR", "someone/other-actor")
+        import importlib
+
+        from src.providers.vendors import apify_vendor
+
+        importlib.reload(apify_vendor)
+        try:
+            assert apify_vendor.ApifyVendor.RESEARCH_ACTOR == "someone/other-actor"
+        finally:
+            monkeypatch.delenv("APIFY_RESEARCH_ACTOR", raising=False)
+            importlib.reload(apify_vendor)
+
+    def test_page_items_normalize_into_claim_ready_shape(self):
+        vendor = ApifyVendor()
+        items = [
+            {"metadata": {"url": "https://reuters.com/a", "title": "Reuters"},
+             "markdown": "Nvidia reported record data center revenue this quarter."},
+            {"metadata": {"url": ""}, "markdown": "dropped: no url"},
+            {"metadata": {"url": "https://ft.com/b", "title": "FT"}, "markdown": ""},
+        ]
+        normalized = vendor._normalize_research(items)
+        assert len(normalized) == 1
+        assert normalized[0]["sources"][0]["url"] == "https://reuters.com/a"
+
+    def test_migrated_output_still_obeys_the_no_source_no_claim_rule(self):
+        vendor = ApifyVendor()
+        # A page with content but no resolvable URL must produce nothing.
+        normalized = vendor._normalize_research([{"metadata": {}, "markdown": "x" * 200}])
+        assert vendor._claims_from_items("NVDA", normalized, "apify.web").claims == []
