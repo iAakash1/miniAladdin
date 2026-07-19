@@ -5,6 +5,7 @@ import { useCallback, useState } from 'react'
 
 import AiPanel from '@/components/terminal/AiPanel'
 import CompanyBand from '@/components/terminal/CompanyBand'
+import CompanyCrossLinks from '@/components/terminal/CompanyCrossLinks'
 import Fundamentals from '@/components/terminal/Fundamentals'
 import Headlines from '@/components/terminal/Headlines'
 import KeyStats from '@/components/terminal/KeyStats'
@@ -45,6 +46,7 @@ const SECTIONS: Array<{ id: string; label: string; present: (a: Analysis) => boo
   { id: 'fundamentals', label: 'Fundamentals', present: () => true },
   { id: 'news', label: 'News', present: (a) => a.headlines.length > 0 },
   { id: 'history', label: 'History', present: () => true },
+  { id: 'related', label: 'Related', present: () => true },
 ]
 
 function SectionNav({ analysis }: { analysis: Analysis }) {
@@ -185,6 +187,10 @@ export default function CompanyReport({ analysis, initialChart, isPro, requestUp
 
       <div id="history" className="report-section">
         <VerdictTimeline ticker={analysis.ticker} />
+      </div>
+
+      <div id="related" className="report-section">
+        <CompanyCrossLinks analysis={analysis} />
       </div>
 
       <p style={{ fontSize: '0.75rem', color: 'var(--faint)', textAlign: 'center', padding: '8px 0' }}>
