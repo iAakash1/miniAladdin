@@ -37,9 +37,12 @@ from src.providers.research_schemas import (
 
 logger = logging.getLogger(__name__)
 
-# Web research is corroborating context, never authority: capped well below
-# the confidence carried by filings (1.0) and encyclopedic facts (0.9).
-WEB_CLAIM_CONFIDENCE = 0.55
+# Confidence is decided by the policy engine, not here — one place answers
+# "why is this number what it is". Kept as a module attribute because
+# existing tests assert the web/deterministic ordering through it.
+from src.services.confidence import for_provider as _confidence_for
+
+WEB_CLAIM_CONFIDENCE = _confidence_for("apify")
 
 # Domains whose content is not research-grade for financial claims.
 LOW_QUALITY_HOSTS = {

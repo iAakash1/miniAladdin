@@ -131,15 +131,18 @@ PROVIDER_PRIOR: dict[str, float] = {
 PRIOR_APPLIES_BELOW = TIER_MAJOR_NEWS  # above this, the source speaks for itself
 
 
-def confidence_for_source(url: str, provider: str = "") -> float:
-    """Blend source authority with the retrieving provider's prior."""
-    base = confidence_for(url)
-    if authority_of(url) >= PRIOR_APPLIES_BELOW:
-        return base
-    prior = PROVIDER_PRIOR.get(provider.split(".")[0].lower(), 0.5)
-    # Mean of the two, capped by the authority band so a strong provider can
-    # never lift community content above its tier ceiling.
-    return round(min(base + 0.10, (base + prior) / 2 + 0.05), 3)
+def confidence_for_source(url: str, provider: str = "", published_at: str = "") -> float:
+    """Delegates to the confidence policy — this module owns SOURCE
+    authority (what a URL is worth); the policy owns how authority,
+    provider reliability, corroboration and freshness combine."""
+    from src.services.confidence import score
+
+    return score(
+        provider or "research",
+        source_authority=confidence_for(url),
+        published_at=published_at or None,
+        is_web_source=True,
+    ).value
 
 
 # Independent corroboration is genuine evidence: two providers finding the
@@ -150,7 +153,10 @@ CORROBORATION_CEILING = 0.80
 
 
 def corroborated(confidence: float, provider_count: int) -> float:
+    """Delegates to the confidence policy."""
+    from src.services.confidence import score
+
     if provider_count <= 1:
         return confidence
-    return round(min(CORROBORATION_CEILING,
-                     confidence + CORROBORATION_STEP * (provider_count - 1)), 3)
+    return score("research", source_authority=confidence,
+                 corroborating_providers=provider_count, is_web_source=True).value

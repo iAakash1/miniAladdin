@@ -101,7 +101,20 @@ class GraphEdge(BaseModel):
     type: EdgeType
     provider: str
     confidence: float = 0.7
+
+    # ── temporal model ──────────────────────────────────────────────────
+    # `observed_at` is when OMNISIGNAL RECORDED the relationship — it is
+    # always populated and is what filtering currently uses.
     observed_at: str = Field(default_factory=lambda: datetime.utcnow().date().isoformat())
+
+    # `valid_from` / `valid_to` are when the relationship was TRUE in the
+    # world. No current provider supplies them (Wikidata has P580/P582
+    # qualifiers we do not yet read; SEC filings imply but do not state
+    # them), so they stay None and historical reconstruction remains
+    # DISABLED rather than faked. When a provider can populate these, the
+    # graph filter gains a real as-of mode without a schema change.
+    valid_from: Optional[str] = None
+    valid_to: Optional[str] = None
 
 
 class KnowledgeBundle(BaseModel):

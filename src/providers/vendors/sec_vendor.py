@@ -21,6 +21,7 @@ import re
 from typing import Any, Optional
 
 from src.providers.base import VendorClient
+from src.services.confidence import for_provider as _confidence_for
 from src.providers.research_schemas import (
     GraphEdge,
     GraphNode,
@@ -228,7 +229,7 @@ class SECVendor(VendorClient):
             ))
             bundle.edges.append(GraphEdge(
                 source_id=company_id, target_id=filing_id, type="mentions", provider="sec",
-                confidence=1.0, observed_at=filing["filed_at"] or "",
+                confidence=_confidence_for("sec"), observed_at=filing["filed_at"] or "",
             ))
             bundle.events.append(TimelineEvent(
                 id=f"event:{filing_id}", date=filing["filed_at"], kind="filing",

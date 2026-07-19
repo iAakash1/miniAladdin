@@ -169,6 +169,16 @@ def shared_neighbors(bundle: KnowledgeBundle, node_ids: list[str]) -> list[dict[
 
 # ── filtering ────────────────────────────────────────────────────────────────
 
+def supports_historical_reconstruction(bundle: KnowledgeBundle) -> bool:
+    """True only when providers have populated real validity intervals.
+
+    Guards any as-of UI: while this is False, the product must not offer
+    historical reconstruction, because `observed_at` records when we
+    fetched an edge, not when it was true.
+    """
+    return any(edge.valid_from for edge in bundle.edges)
+
+
 def filter_graph(
     bundle: KnowledgeBundle,
     node_types: Optional[set[str]] = None,
@@ -176,6 +186,7 @@ def filter_graph(
     min_confidence: float = 0.0,
     providers: Optional[set[str]] = None,
     before: Optional[str] = None,
+    as_of: Optional[str] = None,
 ) -> KnowledgeBundle:
     """Filtered view.
 
@@ -202,6 +213,13 @@ def filter_graph(
             continue
         if before and edge.observed_at and edge.observed_at > before:
             continue
+        # True as-of filtering, active only for edges carrying real validity
+        # intervals; edges without them are never silently excluded.
+        if as_of and edge.valid_from:
+            if edge.valid_from > as_of:
+                continue
+            if edge.valid_to and edge.valid_to < as_of:
+                continue
         keep_edges.append(edge)
     return KnowledgeBundle(nodes=keep_nodes, edges=keep_edges)
 

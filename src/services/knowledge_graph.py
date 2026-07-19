@@ -61,9 +61,15 @@ def merge_bundles(bundles: Iterable[KnowledgeBundle]) -> KnowledgeBundle:
             if existing is None:
                 edges[key] = edge.model_copy(deep=True)
             else:
-                # Independent corroboration raises confidence, capped at 0.99
-                # (certainty is never claimed) and the freshest date wins.
-                existing.confidence = min(0.99, max(existing.confidence, edge.confidence) + 0.05 * (len(providers) - 1))
+                # Corroboration handled by the confidence policy — the one
+                # place that decides any confidence number.
+                from src.services.confidence import score as _score
+
+                existing.confidence = _score(
+                    edge.provider,
+                    source_authority=max(existing.confidence, edge.confidence),
+                    corroborating_providers=len(providers),
+                ).value
                 if edge.observed_at > existing.observed_at:
                     existing.observed_at = edge.observed_at
 
