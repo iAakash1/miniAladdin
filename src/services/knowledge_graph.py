@@ -24,6 +24,7 @@ from src.providers.research_schemas import (
     GraphEdge,
     GraphNode,
     KnowledgeBundle,
+    ResearchClaim,
     ResearchFinding,
     TimelineEvent,
 )
@@ -35,6 +36,7 @@ def merge_bundles(bundles: Iterable[KnowledgeBundle]) -> KnowledgeBundle:
     edges: dict[tuple[str, str, str], GraphEdge] = {}
     edge_providers: dict[tuple[str, str, str], set[str]] = {}
     findings: dict[str, ResearchFinding] = {}
+    claims: dict[str, ResearchClaim] = {}
     events: dict[str, TimelineEvent] = {}
 
     for bundle in bundles:
@@ -67,6 +69,15 @@ def merge_bundles(bundles: Iterable[KnowledgeBundle]) -> KnowledgeBundle:
 
         for finding in bundle.findings:
             findings.setdefault(finding.id, finding)
+        for claim in bundle.claims:
+            existing_claim = claims.get(claim.id)
+            if existing_claim is None:
+                claims[claim.id] = claim.model_copy(deep=True)
+            else:
+                # Same statement corroborated by another source: union the
+                # evidence rather than keeping one arbitrary copy.
+                known = {e.source.url for e in existing_claim.evidence}
+                existing_claim.evidence.extend(e for e in claim.evidence if e.source.url not in known)
         for event in bundle.events:
             events.setdefault(event.id, event)
 
@@ -78,6 +89,7 @@ def merge_bundles(bundles: Iterable[KnowledgeBundle]) -> KnowledgeBundle:
         nodes=sorted(nodes.values(), key=lambda n: (n.type, n.label)),
         edges=sorted(edges.values(), key=lambda e: (e.source_id, e.type, e.target_id)),
         findings=sorted(findings.values(), key=lambda f: f.label),
+        claims=sorted(claims.values(), key=lambda c: c.id),
         events=sorted(events.values(), key=lambda e: e.date, reverse=True),
     )
 

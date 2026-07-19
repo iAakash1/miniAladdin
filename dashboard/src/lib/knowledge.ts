@@ -48,9 +48,21 @@ export interface KnowledgeFinding {
   }>
 }
 
+export interface KnowledgeClaim {
+  id: string
+  statement: string
+  confidence: number
+  evidence: Array<{
+    id: string
+    excerpt: string
+    source: { provider: string; title: string; url: string | null }
+  }>
+}
+
 export interface CompanyKnowledge {
   symbol: string
   ecosystem: EcosystemGroup[]
+  claims: KnowledgeClaim[]
   timeline: KnowledgeTimelineEvent[]
   findings: KnowledgeFinding[]
   graph: { nodes: number; edges: number; providers: string[] }
