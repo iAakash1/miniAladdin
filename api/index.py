@@ -890,6 +890,42 @@ def graph_expand(node: str = Query(..., max_length=120), label: str = Query(defa
     return graph_service.expand(node, label)
 
 
+@app.get("/api/graph/workspace")
+def graph_workspace(
+    symbols: str = Query(..., max_length=60, description="Comma-separated tickers"),
+    hops: int = Query(default=2, ge=0, le=3),
+    node_types: str = Query(default=""),
+    edge_types: str = Query(default=""),
+    min_confidence: float = Query(default=0.0, ge=0.0, le=1.0),
+    before: str = Query(default=""),
+):
+    """The Knowledge Graph Workspace payload: a bounded, filtered working
+    graph over one or more companies, with analytics and (for multi-select)
+    shared neighbours. `before` reconstructs the graph as of a date."""
+    from src.services import graph_service
+
+    return graph_service.workspace(
+        symbols.split(","),
+        hops=hops,
+        node_types={t.strip() for t in node_types.split(",") if t.strip()} or None,
+        edge_types={t.strip() for t in edge_types.split(",") if t.strip()} or None,
+        min_confidence=min_confidence,
+        before=before or None,
+    )
+
+
+@app.get("/api/graph/path")
+def graph_path(
+    symbols: str = Query(..., max_length=60),
+    source: str = Query(..., max_length=120),
+    target: str = Query(..., max_length=120),
+):
+    """Shortest deterministic path between two entities, edge by edge."""
+    from src.services import graph_service
+
+    return {"path": graph_service.path_between(symbols.split(","), source, target)}
+
+
 @app.get("/api/providers/health")
 def get_providers_health():
     """Vendor health: success %, latency, cooldowns, cache and dedupe stats."""

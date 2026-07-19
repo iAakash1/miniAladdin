@@ -28,12 +28,17 @@ Tone = Literal["pos", "neg", "neutral"]
 NodeType = Literal[
     "company", "person", "product", "brand", "industry", "country",
     "exchange", "subsidiary", "technology", "topic", "filing", "concept",
+    # V9 workspace types
+    "patent", "research", "event", "news", "sector", "etf", "investor",
 ]
 EdgeType = Literal[
     "ceo_of", "founded", "board_member_of", "competes_with", "supplies",
     "owns", "subsidiary_of", "parent_of", "acquired", "belongs_to",
     "headquartered_in", "listed_on", "produces", "uses", "mentions",
     "related_to",
+    # V9 workspace relationships
+    "partners_with", "invested_in", "patent_for", "reports_to",
+    "located_in", "customer_of",
 ]
 
 
