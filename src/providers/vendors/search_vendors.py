@@ -5,7 +5,7 @@ news fallback (news-topic search when every headline vendor is down).
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Optional
 
 from src.providers.base import VendorClient
 from src.providers.schemas import NewsHeadline, SearchResult
@@ -18,23 +18,40 @@ class TavilyVendor(VendorClient):
 
     BASE = "https://api.tavily.com"
 
-    def search(self, query: str, limit: int = 8, topic: str = "general") -> Optional[list[SearchResult]]:
+    def search(
+        self,
+        query: str,
+        limit: int = 8,
+        topic: str = "general",
+        search_depth: str = "basic",
+        time_range: Optional[str] = None,
+        include_raw_content: bool = False,
+    ) -> Optional[list[SearchResult]]:
+        """Tavily search. Auth is `Authorization: Bearer` — the api_key-in-body
+        form is legacy. search_depth basic|advanced|fast|ultra-fast;
+        topic general|news; time_range day|week|month|year."""
+        body: dict[str, Any] = {
+            "query": query,
+            "topic": topic,
+            "search_depth": search_depth,
+            "max_results": min(limit, 20),
+            "include_answer": False,
+        }
+        if time_range:
+            body["time_range"] = time_range
+        if include_raw_content:
+            body["include_raw_content"] = "text"
         data = self._post_json(
             f"{self.BASE}/search",
-            json_body={
-                "api_key": self.api_key,
-                "query": query,
-                "topic": topic,
-                "max_results": min(limit, 20),
-                "include_answer": False,
-            },
+            json_body=body,
+            headers={"Authorization": f"Bearer {self.api_key}"},
         )
         results = data.get("results") or []
         parsed = [
             SearchResult(
                 title=row.get("title", ""),
                 url=row.get("url", ""),
-                snippet=(row.get("content") or "")[:400],
+                snippet=((row.get("raw_content") or row.get("content") or "")[:600]),
                 published_at=row.get("published_date", "") or "",
                 score=row.get("score"),
             )
@@ -64,15 +81,29 @@ class ExaVendor(VendorClient):
 
     BASE = "https://api.exa.ai"
 
-    def search(self, query: str, limit: int = 8) -> Optional[list[SearchResult]]:
+    def search(
+        self,
+        query: str,
+        limit: int = 8,
+        category: Optional[str] = None,
+    ) -> Optional[list[SearchResult]]:
+        """Exa semantic search. `category` narrows retrieval by kind
+        (company | research paper | news | financial report | people),
+        which is what makes Exa useful for discovery rather than lookup."""
+        body: dict[str, Any] = {
+            "query": query,
+            "numResults": min(limit, 20),
+            "type": "auto",
+            "contents": {
+                "text": {"maxCharacters": 600},
+                "highlights": True,
+            },
+        }
+        if category:
+            body["category"] = category
         data = self._post_json(
             f"{self.BASE}/search",
-            json_body={
-                "query": query,
-                "numResults": min(limit, 20),
-                "type": "auto",
-                "contents": {"text": {"maxCharacters": 400}},
-            },
+            json_body=body,
             headers={"x-api-key": self.api_key},
         )
         results = data.get("results") or []
