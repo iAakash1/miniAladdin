@@ -18,6 +18,7 @@ import logging
 import time
 from typing import Any, Optional
 
+from src.providers.research_schemas import KnowledgeBundle
 from src.providers.vendors.wikidata_vendor import WikidataVendor
 from src.services import company_intelligence
 from src.services.knowledge_graph import neighbors
@@ -183,3 +184,83 @@ def _empty(node_id: str, label: str = "", node_type: str = "concept") -> dict[st
 def reset_for_tests() -> None:
     _cache.clear()
     _qid_index.clear()
+
+
+# ── V9 workspace operations ──────────────────────────────────────────────────
+# Composed from graph_api primitives over a bundle assembled from the nodes
+# the user has actually explored. No UI component implements traversal.
+
+def _bundle_for(symbols: list[str]) -> KnowledgeBundle:
+    """Merge the ecosystems of several companies into one working graph."""
+    from src.providers.vendors.sec_vendor import SECVendor
+    from src.services.knowledge_graph import merge_bundles
+
+    bundles = []
+    for symbol in symbols[:4]:  # bounded: a workspace, not a crawl
+        try:
+            bundles.append(_wikidata.get_knowledge(symbol, ""))
+        except Exception:  # noqa: BLE001
+            logger.info("workspace bundle failed for %s", symbol, exc_info=True)
+    return merge_bundles(bundles) if bundles else KnowledgeBundle()
+
+
+def workspace(symbols: list[str], hops: int = 2,
+              node_types: Optional[set[str]] = None,
+              edge_types: Optional[set[str]] = None,
+              min_confidence: float = 0.0,
+              before: Optional[str] = None) -> dict[str, Any]:
+    """A filtered, bounded working graph plus its analytics — the payload
+    behind the Knowledge Graph Workspace."""
+    from src.services import graph_api
+
+    symbols = [s.upper().strip() for s in symbols if s.strip()][:4]
+    if not symbols:
+        return {"nodes": [], "edges": [], "analytics": {}, "roots": []}
+
+    cache_key = f"ws:{','.join(symbols)}:{hops}"
+    now = time.time()
+    cached = _cache.get(cache_key)
+    if cached and cached[0] > now and not (node_types or edge_types or min_confidence or before):
+        return cached[1]
+
+    bundle = _bundle_for(symbols)
+    roots = [f"company:{s}" for s in symbols]
+
+    # Expand from every root, then union the reachable sets.
+    reached: list[str] = []
+    for root in roots:
+        reached.extend(n.id for n in graph_api.within_hops(bundle, root, hops=hops).nodes)
+    view = graph_api.subgraph(bundle, reached)
+    view = graph_api.filter_graph(
+        view, node_types=node_types, edge_types=edge_types,
+        min_confidence=min_confidence, before=before,
+    )
+
+    result = {
+        "roots": roots,
+        "nodes": [n.model_dump() for n in view.nodes],
+        "edges": [e.model_dump() for e in view.edges],
+        "analytics": graph_api.analytics(view),
+        "shared": [
+            {"node": row["node"].model_dump(), "connects_to": row["connects_to"]}
+            for row in graph_api.shared_neighbors(view, roots)
+        ] if len(roots) > 1 else [],
+    }
+    if not (node_types or edge_types or min_confidence or before):
+        _cache[cache_key] = (now + CACHE_TTL_SECONDS, result)
+    return result
+
+
+def path_between(symbols: list[str], source: str, target: str) -> list[dict[str, Any]]:
+    """Shortest deterministic path, explained edge by edge."""
+    from src.services import graph_api
+
+    bundle = _bundle_for([s.upper().strip() for s in symbols if s.strip()])
+    chain = graph_api.shortest_path(bundle, source, target)
+    return [
+        {
+            "node": step["node"].model_dump(),
+            "edge": step["edge"].model_dump() if "edge" in step else None,
+        }
+        for step in chain
+    ]
