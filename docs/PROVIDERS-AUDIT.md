@@ -116,3 +116,30 @@ endpoints of value beyond OHLCV. Search is research-context only.
   read.
 - Everything marked P2 is documented for the next release; everything marked
   ✗ is deliberately out of scope with the reason stated above.
+
+
+## v5 knowledge providers (July 2026)
+
+Three research-grade providers added since the original audit. All
+normalize into `src/providers/research_schemas.py` (KnowledgeBundle) and
+merge through `src/services/knowledge_graph.py`.
+
+| Provider | Key | Cost | What it contributes |
+|---|---|---|---|
+| SEC EDGAR | none (SEC_API optional) | free | Filings with resolved URLs, XBRL company facts (restatement-aware), filing timeline, evidence-bearing financial findings |
+| Wikidata | none | free | Executives, founders, subsidiaries, products, industry, exchange, HQ — the entity graph |
+| Apify | APIFY_API_TOKEN | paid credits | Web research as **sourced claims only**; unsourced text is discarded |
+
+**Confidence hierarchy is structural, not advisory:** SEC 1.0 > Wikidata
+0.9 > web research 0.55. Corroboration across providers raises an edge's
+confidence toward a 0.99 ceiling; certainty is never asserted.
+
+**Two findings worth recording for future work:**
+
+1. Wikidata stores tickers as a *qualifier* (`pq:P249`) on the
+   `p:P414` exchange-listing statement, not as a direct `wdt:P249`
+   property. The obvious query returns zero rows for every company.
+2. FMP's premium wall (documented above) is what makes SEC XBRL valuable:
+   `companyfacts` provides revenue, net income, balance-sheet and
+   cash-flow history for free, straight from the filer, which is
+   strictly better provenance than any vendor aggregation.

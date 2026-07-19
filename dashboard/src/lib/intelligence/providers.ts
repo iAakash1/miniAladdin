@@ -7,6 +7,7 @@
    Async tier: company resolver (/api/screen), vault history.
    ============================================================ */
 
+import { fetchKnowledge, knowledgeEntities } from '../knowledge'
 import { allTopics } from '../learn'
 import { fetchHistory } from '../persistence'
 import { readWatchlistsSnapshot } from '../watchlists'
@@ -125,6 +126,24 @@ export function registerDefaultProviders(): void {
       } catch {
         return [] // signed-out or persistence down — retrieval still works
       }
+    },
+  })
+
+  // Ecosystem entities (executives, subsidiaries, products) for companies
+  // the user has actually opened — the knowledge graph made searchable
+  // without a network call per keystroke.
+  registerProvider({
+    id: 'knowledge',
+    tier: 'async',
+    entities: async (query) => {
+      if (query.trim().length < 2) return []
+      const symbols = readRecents()
+        .filter((entity) => entity.type === 'company')
+        .slice(0, 3)
+        .map((entity) => entity.title)
+      if (symbols.length === 0) return []
+      const bundles = await Promise.all(symbols.map((symbol) => fetchKnowledge(symbol)))
+      return bundles.flatMap((bundle) => (bundle ? knowledgeEntities(bundle) : []))
     },
   })
 
