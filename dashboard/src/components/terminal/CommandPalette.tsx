@@ -32,8 +32,15 @@ export default function CommandPalette() {
         setOpen((value) => !value)
       }
     }
+    // The header affordance opens the same surface as the shortcut, so
+    // there is exactly one search experience in the product.
+    const onRequest = () => setOpen(true)
     document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
+    window.addEventListener('omni-open-palette', onRequest)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      window.removeEventListener('omni-open-palette', onRequest)
+    }
   }, [])
 
   /* Query the registry on every keystroke; empty query shows recents. */

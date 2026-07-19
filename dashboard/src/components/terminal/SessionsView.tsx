@@ -64,6 +64,23 @@ export default function SessionsView() {
         </p>
       </div>
 
+      {/* Workspace is a hub: the surfaces that left the tab bar are one
+          click from here, and one ⌘K keystroke from anywhere. */}
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        {[
+          ['/terminal/graph', 'Knowledge graph', 'Entities and how they connect'],
+          ['/terminal/vault', 'Research Vault', 'Every analysis you have run'],
+          ['/terminal/validation', 'Validation', 'How well the model performs'],
+          ['/terminal/methodology', 'Methodology', 'How the engine works'],
+        ].map(([href, label, description]) => (
+          <Link key={href} href={href} className="panel"
+                style={{ padding: '10px 14px', textDecoration: 'none', flex: '1 1 200px' }}>
+            <span style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600 }}>{label}</span>
+            <span style={{ display: 'block', fontSize: '0.6875rem', color: 'var(--faint)' }}>{description}</span>
+          </Link>
+        ))}
+      </div>
+
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         <label htmlFor="new-session" className="visually-hidden">New investigation title</label>
         <input id="new-session" className="input" value={title} placeholder="New investigation…"
