@@ -44,7 +44,7 @@ export default function CompanyEcosystem({ ticker }: { ticker: string }) {
   }
 
   const data = state.data
-  if (!data || (data.ecosystem.length === 0 && data.timeline.length === 0 && data.findings.length === 0)) {
+  if (!data || (data.ecosystem.length === 0 && data.timeline.length === 0 && data.findings.length === 0 && data.claims.length === 0)) {
     return null
   }
 
@@ -125,6 +125,36 @@ export default function CompanyEcosystem({ ticker }: { ticker: string }) {
                         source
                       </a>
                     </>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+
+      {data.claims.length > 0 && (
+        <details className="disclosure" style={{ marginTop: 10 }}>
+          <summary style={{ fontSize: '0.8125rem', fontWeight: 550, color: 'var(--muted)' }}>
+            Web research ({data.claims.length}) — corroborating context, every claim sourced
+          </summary>
+          <ul style={{ listStyle: 'none', margin: '12px 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {data.claims.map((claim) => (
+              <li key={claim.id} style={{ fontSize: '0.8125rem', lineHeight: 1.55, color: 'var(--muted)' }}>
+                {claim.statement}
+                <span style={{ display: 'block', marginTop: 3 }}>
+                  {claim.evidence.slice(0, 3).map((evidence) =>
+                    evidence.source.url ? (
+                      <a
+                        key={evidence.id}
+                        href={evidence.source.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ fontSize: '0.6875rem', color: 'var(--accent-strong)', marginRight: 10 }}
+                      >
+                        {evidence.source.title}
+                      </a>
+                    ) : null,
                   )}
                 </span>
               </li>

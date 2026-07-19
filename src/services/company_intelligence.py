@@ -20,6 +20,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Optional
 
 from src.providers.research_schemas import KnowledgeBundle
+from src.providers.vendors.apify_vendor import ApifyVendor
 from src.providers.vendors.sec_vendor import SECVendor
 from src.providers.vendors.wikidata_vendor import WikidataVendor
 from src.services.knowledge_graph import merge_bundles, neighbors, timeline
@@ -31,6 +32,7 @@ _cache: dict[str, tuple[float, dict[str, Any]]] = {}
 
 _sec = SECVendor()
 _wikidata = WikidataVendor()
+_apify = ApifyVendor()
 
 # Edge types grouped into the ecosystem views the company page renders.
 ECOSYSTEM_GROUPS: list[tuple[str, str, set[str]]] = [
@@ -62,11 +64,15 @@ def build(symbol: str, company_name: str = "") -> dict[str, Any]:
     if cached and cached[0] > now:
         return cached[1]
 
-    with ThreadPoolExecutor(max_workers=2, thread_name_prefix="knowledge") as pool:
+    with ThreadPoolExecutor(max_workers=3, thread_name_prefix="knowledge") as pool:
         futures = [
             pool.submit(_safe, "sec", lambda: _sec.get_knowledge(symbol)),
             pool.submit(_safe, "wikidata", lambda: _wikidata.get_knowledge(symbol, company_name)),
         ]
+        # Web research only runs when configured; it is corroborating
+        # context, never a dependency.
+        if _apify.available:
+            futures.append(pool.submit(_safe, "apify", lambda: _apify.research_company(symbol, company_name)))
         bundles = [future.result() for future in futures]
 
     merged = merge_bundles(bundles)
@@ -102,6 +108,7 @@ def build(symbol: str, company_name: str = "") -> dict[str, Any]:
     result: dict[str, Any] = {
         "symbol": symbol,
         "ecosystem": ecosystem,
+        "claims": [claim.model_dump() for claim in merged.claims],
         "timeline": [event.model_dump() for event in timeline(merged, limit=24)],
         "findings": [finding.model_dump() for finding in merged.findings],
         "graph": {
@@ -115,7 +122,7 @@ def build(symbol: str, company_name: str = "") -> dict[str, Any]:
 
 
 def _empty() -> dict[str, Any]:
-    return {"symbol": "", "ecosystem": [], "timeline": [], "findings": [],
+    return {"symbol": "", "ecosystem": [], "claims": [], "timeline": [], "findings": [],
             "graph": {"nodes": 0, "edges": 0, "providers": []}}
 
 

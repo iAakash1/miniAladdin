@@ -125,3 +125,25 @@ class TestDeterminism:
         backward = merge_bundles([b, a])
         assert [n.id for n in forward.nodes] == [n.id for n in backward.nodes]
         assert [e.provider for e in forward.edges] == [e.provider for e in backward.edges]
+
+
+class TestClaimMerge:
+    def test_same_claim_from_two_runs_unions_evidence(self):
+        from src.providers.research_schemas import ResearchClaim, ResearchEvidence, ResearchSource
+
+        def claim(url: str) -> ResearchClaim:
+            return ResearchClaim(
+                id="claim:web:NVDA:0", statement="Data center revenue hit a record.",
+                evidence=[ResearchEvidence(
+                    id=f"e:{url}", excerpt="…record…",
+                    source=ResearchSource(provider="apify.perplexity", title="src", url=url),
+                )],
+            )
+
+        merged = merge_bundles([
+            _bundle(findings=[]) .model_copy(update={"claims": [claim("https://a.com")]}),
+            _bundle(findings=[]).model_copy(update={"claims": [claim("https://b.com")]}),
+        ])
+        assert len(merged.claims) == 1
+        urls = {e.source.url for e in merged.claims[0].evidence}
+        assert urls == {"https://a.com", "https://b.com"}
