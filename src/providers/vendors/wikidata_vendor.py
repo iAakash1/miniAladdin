@@ -19,6 +19,7 @@ from typing import Any, Optional
 
 from src.providers.base import VendorClient
 from src.providers.research_schemas import GraphEdge, GraphNode, KnowledgeBundle
+from src.services.confidence import for_provider as _confidence_for
 
 logger = logging.getLogger(__name__)
 
@@ -151,12 +152,12 @@ class WikidataVendor(VendorClient):
             if edge_type in {"ceo_of", "founded", "subsidiary_of"}:
                 bundle.edges.append(GraphEdge(
                     source_id=node_id, target_id=company_id, type=edge_type,
-                    provider="wikidata", confidence=0.9,
+                    provider="wikidata", confidence=_confidence_for("wikidata"),
                 ))
             else:
                 bundle.edges.append(GraphEdge(
                     source_id=company_id, target_id=node_id, type=edge_type,
-                    provider="wikidata", confidence=0.9,
+                    provider="wikidata", confidence=_confidence_for("wikidata"),
                 ))
         return bundle
 
@@ -203,7 +204,7 @@ class WikidataVendor(VendorClient):
                 ))
             bundle.edges.append(GraphEdge(
                 source_id=node_id, target_id=other_id, type=edge_type,
-                provider="wikidata", confidence=0.9,
+                provider="wikidata", confidence=_confidence_for("wikidata"),
             ))
 
         # Inward: companies whose CEO/founder/product/subsidiary this is.
@@ -246,6 +247,6 @@ class WikidataVendor(VendorClient):
                 ))
             bundle.edges.append(GraphEdge(
                 source_id=company_id, target_id=node_id, type=edge_type,
-                provider="wikidata", confidence=0.9,
+                provider="wikidata", confidence=_confidence_for("wikidata"),
             ))
         return bundle

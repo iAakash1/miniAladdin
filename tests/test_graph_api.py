@@ -184,3 +184,30 @@ class TestAnalytics:
     def test_empty_graph_does_not_divide_by_zero(self):
         stats = analytics(KnowledgeBundle())
         assert stats["density"] == 0.0 and stats["avg_confidence"] == 0.0
+
+
+class TestTemporalModel:
+    """Historical reconstruction is PREPARED but disabled until providers
+    populate validity intervals — the architecture is ready, the UI is not
+    allowed to pretend."""
+
+    def test_reconstruction_is_reported_unsupported_without_validity_data(self):
+        from src.services.graph_api import supports_historical_reconstruction
+        assert supports_historical_reconstruction(_graph()) is False
+
+    def test_as_of_ignores_edges_that_carry_no_validity_interval(self):
+        # Without valid_from, an as_of filter must not silently drop edges.
+        result = filter_graph(_graph(), as_of="2015-01-01")
+        assert len(result.edges) == len(_graph().edges)
+
+    def test_as_of_filters_correctly_once_intervals_exist(self):
+        bundle = _graph()
+        bundle.edges[0].valid_from = "2023-01-01"   # Jensen became CEO (hypothetical)
+        bundle.edges[1].valid_from = "2010-01-01"
+        bundle.edges[1].valid_to = "2015-01-01"     # ended
+        from src.services.graph_api import supports_historical_reconstruction
+        assert supports_historical_reconstruction(bundle) is True
+        result = filter_graph(bundle, as_of="2020-01-01")
+        types = {e.type for e in result.edges}
+        assert "ceo_of" not in types      # not yet valid in 2020
+        assert "produces" not in types    # already ended by 2020
