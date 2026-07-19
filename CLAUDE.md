@@ -50,6 +50,18 @@ client), Clerk auth (JWT verified backend-side against JWKS).
 
 - **Audit before building; notes before code.** Never redesign for its own
   sake; preserve what already feels correct.
+- **Think in systems, not tickets.** Don't improve a table — extend the
+  table system. Don't improve a section — extend the Research Section
+  framework (`CompanyReport` sections + section map). Every solution should
+  be the reusable version of itself; one-off implementations are debt.
+- **The bar test, before every commit:** if this were Bloomberg's,
+  Palantir's, or Stripe's codebase, would this change raise or lower the
+  overall quality bar? If it lowers it even slightly, refine before
+  committing.
+- **Product review after every major implementation.** Stop and review the
+  product, not the code: would an analyst enjoy this daily? Would a
+  Bloomberg user understand it instantly? Would a principal engineer
+  respect the architecture? If not clearly yes, keep refining.
 - **Complete increments only.** Each change lands with: backend tests
   (`.venv/bin/python -m pytest tests/ --ignore=tests/test_live_smoke.py`),
   frontend QA (`npx tsc --noEmit && npm run lint && npm test &&
