@@ -14,6 +14,7 @@ import { fetchHistory } from '../persistence'
 import { readWatchlistsSnapshot } from '../watchlists'
 import type { Entity } from './entities'
 import { readRecents, registerProvider } from './registry'
+import { answerIntent, parseIntent } from './reasoning'
 
 /* ---------- static: routes ---------- */
 
@@ -122,6 +123,20 @@ export function registerDefaultProviders(): void {
         route: `/company/${encodeURIComponent(row.symbol)}`,
         keywords: [row.symbol.toLowerCase(), ...row.name.toLowerCase().split(/\s+/)],
       }))
+    },
+  })
+
+  registerProvider({
+    id: 'reasoning',
+    tier: 'async',
+    entities: async (query) => {
+      const intent = parseIntent(query)
+      if (!intent) return []
+      try {
+        return await answerIntent(intent)
+      } catch {
+        return [] // signed-out or persistence down — retrieval still works
+      }
     },
   })
 

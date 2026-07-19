@@ -11,6 +11,7 @@
    ============================================================ */
 
 export type EntityType =
+  | 'answer'
   | 'company'
   | 'route'
   | 'glossary'
@@ -42,6 +43,7 @@ export interface Entity {
 
 /** Human labels for grouped result headers, in display order. */
 export const TYPE_LABELS: Record<EntityType, string> = {
+  answer: 'Answers',
   company: 'Companies',
   route: 'Go to',
   vault: 'Research Vault',
@@ -55,13 +57,14 @@ export const TYPE_LABELS: Record<EntityType, string> = {
 }
 
 export const TYPE_ORDER: EntityType[] = [
-  'company', 'route', 'vault', 'watchlist', 'holding',
+  'answer', 'company', 'route', 'vault', 'watchlist', 'holding',
   'glossary', 'indicator', 'metric', 'macro', 'news',
 ]
 
 /* ---------- ranking (pure, deterministic) ---------- */
 
 const TYPE_WEIGHT: Partial<Record<EntityType, number>> = {
+  answer: 50,
   company: 30,
   route: 24,
   watchlist: 18,
@@ -103,7 +106,10 @@ export function rankEntities(
   for (const entity of entities) {
     const title = entity.title.toLowerCase()
     let score = 0
-    if (title === q) score = 100
+    // Answer entities exist only because the query's intent produced them:
+    // the whole query is their match, independent of title text.
+    if (entity.type === 'answer') score = 100
+    else if (title === q) score = 100
     else if (entity.keywords.includes(q)) score = 90
     else if (title.startsWith(q)) score = 80
     else if (title.split(/\s+/).some((w) => w.startsWith(q))) score = 60

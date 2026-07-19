@@ -72,3 +72,34 @@ test('registry: sync tier answers immediately, async merges once, stale queries 
   assert.equal(calls[1].settled, true)
   assert.equal(calls[1].n, 2)
 })
+
+/* ── search as reasoning: intent parser ── */
+import { parseIntent } from '../src/lib/intelligence/reasoning'
+
+test('compare intent: tickers extracted, stopwords ignored', () => {
+  assert.deepEqual(parseIntent('compare NVDA and AMD'), { kind: 'compare', a: 'NVDA', b: 'AMD' })
+  assert.deepEqual(parseIntent('nvda vs amd'), { kind: 'compare', a: 'NVDA', b: 'AMD' })
+  assert.deepEqual(parseIntent('compare between MSFT and AAPL'), { kind: 'compare', a: 'MSFT', b: 'AAPL' })
+})
+
+test('changed intent: single ticker, various phrasings', () => {
+  assert.deepEqual(parseIntent('what changed for NVDA'), { kind: 'changed', ticker: 'NVDA' })
+  assert.deepEqual(parseIntent("what's changed since earnings TSLA"), { kind: 'changed', ticker: 'TSLA' })
+  assert.deepEqual(parseIntent('AAPL what moved'), { kind: 'changed', ticker: 'AAPL' })
+})
+
+test('no intent: plain retrieval queries pass through', () => {
+  assert.equal(parseIntent('nvidia'), null)
+  assert.equal(parseIntent('NVDA'), null)
+  assert.equal(parseIntent('compare apples to oranges'), null) // no tickers
+  assert.equal(parseIntent(''), null)
+})
+
+test('answer entities rank first regardless of title text', () => {
+  const answer: Entity = {
+    id: 'answer:x', type: 'answer', title: 'Compare NVDA vs AMD',
+    route: '/terminal/vault?compare=a,b', keywords: [],
+  }
+  const ranked = rankEntities('compare nvda and amd', [answer, company('NVDA', 'Nvidia')])
+  assert.equal(ranked[0].entity.type, 'answer')
+})
