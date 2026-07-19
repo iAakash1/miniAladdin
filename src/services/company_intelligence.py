@@ -20,10 +20,10 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Optional
 
 from src.providers.research_schemas import KnowledgeBundle
-from src.providers.vendors.apify_vendor import ApifyVendor
 from src.providers.vendors.sec_vendor import SECVendor
 from src.providers.vendors.wikidata_vendor import WikidataVendor
 from src.services.knowledge_graph import merge_bundles, neighbors, timeline
+from src.services.research import engine as research_engine
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +32,6 @@ _cache: dict[str, tuple[float, dict[str, Any]]] = {}
 
 _sec = SECVendor()
 _wikidata = WikidataVendor()
-_apify = ApifyVendor()
 
 # Edge types grouped into the ecosystem views the company page renders.
 ECOSYSTEM_GROUPS: list[tuple[str, str, set[str]]] = [
@@ -69,10 +68,12 @@ def build(symbol: str, company_name: str = "") -> dict[str, Any]:
             pool.submit(_safe, "sec", lambda: _sec.get_knowledge(symbol)),
             pool.submit(_safe, "wikidata", lambda: _wikidata.get_knowledge(symbol, company_name)),
         ]
-        # Web research only runs when configured; it is corroborating
-        # context, never a dependency.
-        if _apify.available:
-            futures.append(pool.submit(_safe, "apify", lambda: _apify.research_company(symbol, company_name)))
+        # Web research runs through the provider-agnostic engine: it walks
+        # its own fallback chain (Brave → Tavily → Exa → news → Apify) and
+        # returns merged, authority-ranked evidence. This engine neither
+        # knows nor cares which provider answered.
+        futures.append(pool.submit(_safe, "research",
+                                   lambda: research_engine.research_company(symbol, company_name)))
         bundles = [future.result() for future in futures]
 
     merged = merge_bundles(bundles)

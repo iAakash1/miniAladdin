@@ -871,6 +871,15 @@ def knowledge(ticker: str):
     return company_intelligence.build(symbol)
 
 
+@app.get("/api/research/providers/health")
+def research_provider_health():
+    """Per-provider research status: configured, available, capabilities.
+    Names and booleans only — never key material."""
+    from src.services.research import health as research_health
+
+    return {"providers": research_health(), "order": os.getenv("RESEARCH_PROVIDER_ORDER", "default")}
+
+
 @app.get("/api/graph/expand")
 def graph_expand(node: str = Query(..., max_length=120), label: str = Query(default="", max_length=120)):
     """Expand any knowledge-graph node into its neighbours — the traversal

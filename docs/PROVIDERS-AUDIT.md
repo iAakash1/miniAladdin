@@ -143,3 +143,40 @@ confidence toward a 0.99 ceiling; certainty is never asserted.
    `companyfacts` provides revenue, net income, balance-sheet and
    cash-flow history for free, straight from the filer, which is
    strictly better provenance than any vendor aggregation.
+
+
+## Research provider ecosystem (v6, July 2026)
+
+Web research is provider-agnostic. Every source implements
+`ResearchProvider` (`src/services/research/base.py`) and returns
+`ResearchHit` rows; the engine merges, deduplicates and ranks them. No
+code outside `src/services/research/` names a concrete provider.
+
+| Order | Provider | Key | Notes |
+|---|---|---|---|
+| 1 | Brave | `BRAVE_API_KEY` | Independent index, 2k/mo free |
+| 2 | Tavily | `TAVILY_API_KEY` | AI-native, extracts content |
+| 3 | Exa | `EXA_API_KEY` | Semantic — finds related material |
+| 4 | News (Yahoo RSS) | none | Keyless, always available |
+| 5 | Apify | `APIFY_API_TOKEN` | Page extraction; never a rental actor |
+
+Order is overridable with `RESEARCH_PROVIDER_ORDER` (comma-separated).
+The chain stops once ~8 unique sources are gathered; unconfigured,
+failing and empty providers are skipped silently. With every provider
+removed the engine returns an empty bundle — never an error.
+
+**Authority ranking lives with the SOURCE, not the provider**
+(`authority.py`), which is what makes providers swappable without
+changing how evidence is ordered:
+
+    SEC/EDGAR 100 > government 90 > company IR 80 > major news 65 >
+    research 50 > general 35 > community 10
+
+Claim confidence derives from that tier and is capped at 0.75, so no web
+source can rival SEC XBRL (1.0) or Wikidata (0.9). Community content
+cannot outrank a filing regardless of which provider surfaced it.
+
+**Adding a provider:** implement `ResearchProvider`, add it to
+`_REGISTRY` and `DEFAULT_ORDER` in `engine.py`. Nothing else changes.
+
+Status is observable at `GET /api/research/providers/health`.
