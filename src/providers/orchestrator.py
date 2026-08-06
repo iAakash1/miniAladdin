@@ -40,6 +40,23 @@ AGREE_TOLERANCE = 0.005   # 0.5 % → full agreement
 DISAGREE_TOLERANCE = 0.02  # > 2 % → material disagreement
 
 
+def _is_trustworthy(value: object) -> bool:
+    """Whether a vendor's payload passed validation well enough to use.
+
+    Duck-typed on purpose: the chain is generic over payload types, and only
+    price series currently carry a `quality` record. Anything without one is
+    trusted, so adding validation to a new schema is opt-in and cannot
+    retroactively start rejecting payloads that were never checked.
+    """
+    quality = getattr(value, "quality", None)
+    return getattr(quality, "is_trustworthy", True)
+
+
+def _quality_summary(value: object) -> str:
+    quality = getattr(value, "quality", None)
+    return quality.summary() if quality is not None else "no quality record"
+
+
 class ChainLink(Generic[T]):
     def __init__(self, vendor: VendorClient, fetch: FetchFn):
         self.vendor = vendor
@@ -117,6 +134,16 @@ class FallbackChain(Generic[T]):
                 logger.exception("%s: %s adapter raised unexpectedly", self.name, link.vendor.NAME)
                 continue
             if value is None:
+                continue
+            if not _is_trustworthy(value):
+                # The vendor answered, but with data that failed validation
+                # badly enough that it is malfunctioning rather than merely
+                # imperfect. Treat it as a failure so the chain reaches a
+                # healthier source, instead of scoring a fiction.
+                logger.warning(
+                    "%s: %s returned untrustworthy data (%s), falling through",
+                    self.name, link.vendor.NAME, _quality_summary(value),
+                )
                 continue
 
             latency_ms = (time.perf_counter() - started) * 1000

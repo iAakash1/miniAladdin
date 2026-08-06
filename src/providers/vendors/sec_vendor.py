@@ -197,6 +197,58 @@ class SECVendor(VendorClient):
                 break
         return series
 
+    def get_xbrl_timeline(self, symbol: str) -> list[dict[str, Any]]:
+        """Every reported value with the date it was filed — restatements kept.
+
+        Deliberately different from `get_xbrl_facts`, which collapses each
+        fiscal year to its most recently filed value. That is right for a
+        display panel and **wrong for research**: keeping only the restated
+        figure means a 2020 backtest sees a number published in 2023, which is
+        look-ahead bias of the purest kind.
+
+        Here every filing survives, tagged with `filed`. A point-in-time read
+        selects the latest value filed *on or before* the observation date, so
+        a restatement becomes visible exactly when the market saw it and not a
+        day earlier.
+
+        Returns rows of {concept, label, fiscal_year, period_end, value, unit,
+        form, filed}, oldest filing first.
+        """
+        entry = self.resolve_cik(symbol)
+        if not entry:
+            return []
+        data = self._get_json(
+            f"{self.DATA_BASE}/api/xbrl/companyfacts/CIK{entry['cik']}.json",
+            headers=self._headers(),
+        )
+        gaap = ((data or {}).get("facts") or {}).get("us-gaap") or {}
+
+        rows: list[dict[str, Any]] = []
+        for concept, label in XBRL_CONCEPTS.items():
+            node = gaap.get(concept)
+            if not node:
+                continue
+            for unit, entries in (node.get("units") or {}).items():
+                for row in entries:
+                    if row.get("form") not in ("10-K", "10-Q"):
+                        continue
+                    if row.get("val") is None or not row.get("filed"):
+                        continue
+                    rows.append({
+                        "concept": concept,
+                        "label": label,
+                        "fiscal_year": row.get("fy"),
+                        "fiscal_period": row.get("fp"),
+                        "period_end": row.get("end"),
+                        "value": float(row["val"]),
+                        "unit": unit,
+                        "form": row.get("form"),
+                        "filed": str(row["filed"]),
+                    })
+                break   # first unit with data wins, as in get_xbrl_facts
+        rows.sort(key=lambda r: (r["filed"], r.get("period_end") or ""))
+        return rows
+
     # ── knowledge bundle ─────────────────────────────────────────────────────
     def get_knowledge(self, symbol: str) -> KnowledgeBundle:
         """Filings + XBRL → graph nodes, timeline events, deterministic findings."""
