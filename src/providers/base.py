@@ -24,9 +24,23 @@ from typing import Any, Optional
 
 import requests
 
+from src.observability import metrics as _metrics
+
 logger = logging.getLogger(__name__)
 
 TRANSIENT_STATUS = {429, 500, 502, 503, 504}
+
+
+def _observe(vendor: str, operation: str, outcome: str, latency_ms: float) -> None:
+    """Record one vendor call into the process registry and the live request.
+
+    Labels are a closed set — vendor names, operation names, ok/error — so
+    cardinality stays bounded. Deliberately never labelled by symbol: that is
+    unbounded and would turn the registry into a memory leak.
+    """
+    _metrics.registry.observe(
+        "vendor.call", latency_ms, vendor=vendor, operation=operation, outcome=outcome
+    )
 
 
 class RateLimiter:
@@ -148,20 +162,27 @@ class VendorClient:
     # ── HTTP core ────────────────────────────────────────────────────────────
 
     def _get_json(self, url: str, params: Optional[dict[str, Any]] = None,
-                  headers: Optional[dict[str, str]] = None) -> Any:
-        return self._request_json("GET", url, params=params, headers=headers)
+                  headers: Optional[dict[str, str]] = None,
+                  operation: str = "http") -> Any:
+        return self._request_json("GET", url, params=params, headers=headers,
+                                  operation=operation)
 
     def _post_json(self, url: str, json_body: dict[str, Any],
-                   headers: Optional[dict[str, str]] = None) -> Any:
-        return self._request_json("POST", url, json_body=json_body, headers=headers)
+                   headers: Optional[dict[str, str]] = None,
+                   operation: str = "http") -> Any:
+        return self._request_json("POST", url, json_body=json_body, headers=headers,
+                                  operation=operation)
 
-    def timed_call(self, fn):
+    def timed_call(self, fn, operation: str = "call"):
         """
         Wrap a library call (yfinance, fredapi) with the same rate limiting,
         stats and cooldown behavior as HTTP adapters.
         """
         if not self.rate_limiter.try_acquire():
             self.stats.rate_limited += 1
+            _metrics.registry.increment(
+                "vendor.rate_limited", vendor=self.NAME, operation=operation
+            )
             raise VendorError(f"{self.NAME}: local rate limit reached", transient=True)
         started = time.perf_counter()
         try:
@@ -169,24 +190,32 @@ class VendorClient:
         except Exception as exc:  # noqa: BLE001 — normalized to VendorError
             latency = (time.perf_counter() - started) * 1000
             self.stats.record(False, latency, str(exc))
+            _observe(self.NAME, operation, "error", latency)
             if self.stats.consecutive_failures >= self.COOLDOWN_AFTER_FAILURES:
                 self._cooldown_until = time.monotonic() + self.COOLDOWN_SECONDS
             raise VendorError(f"{self.NAME}: {exc}", transient=True) from exc
-        self.stats.record(True, (time.perf_counter() - started) * 1000)
+        latency = (time.perf_counter() - started) * 1000
+        self.stats.record(True, latency)
+        _observe(self.NAME, operation, "ok", latency)
         return value
 
     def _request_json(self, method: str, url: str,
                       params: Optional[dict[str, Any]] = None,
                       json_body: Optional[dict[str, Any]] = None,
-                      headers: Optional[dict[str, str]] = None) -> Any:
+                      headers: Optional[dict[str, str]] = None,
+                      operation: str = "http") -> Any:
         """
         HTTP with rate limiting, timeout, bounded retries + exponential backoff.
         Raises VendorError on terminal failure; records stats either way.
         """
         if not self.rate_limiter.try_acquire():
             self.stats.rate_limited += 1
+            _metrics.registry.increment(
+                "vendor.rate_limited", vendor=self.NAME, operation=operation
+            )
             raise VendorError(f"{self.NAME}: local rate limit reached", transient=True)
 
+        request_started = time.perf_counter()
         last_error: Optional[VendorError] = None
         for attempt in range(self.MAX_RETRIES + 1):
             started = time.perf_counter()
@@ -201,6 +230,11 @@ class VendorClient:
                 response.raise_for_status()
                 payload = response.json()
                 self.stats.record(True, latency)
+                # Total elapsed, not this attempt's: retries and backoff are
+                # time the caller genuinely waited, and hiding them is how a
+                # vendor that "averages 800ms" costs 18s in practice.
+                _observe(self.NAME, operation, "ok",
+                         (time.perf_counter() - request_started) * 1000)
                 return payload
             except VendorError as exc:
                 latency = (time.perf_counter() - started) * 1000
@@ -221,9 +255,12 @@ class VendorClient:
                 continue
             break
 
+        _observe(self.NAME, operation, "error",
+                 (time.perf_counter() - request_started) * 1000)
         if self.stats.consecutive_failures >= self.COOLDOWN_AFTER_FAILURES:
             self._cooldown_until = time.monotonic() + self.COOLDOWN_SECONDS
             logger.warning("%s cooling down for %.0fs after %d consecutive failures",
                            self.NAME, self.COOLDOWN_SECONDS, self.stats.consecutive_failures)
+            _metrics.registry.increment("vendor.cooldown", vendor=self.NAME)
         assert last_error is not None
         raise last_error

@@ -49,11 +49,14 @@ from src.sentiment_edge import SentimentAnalyzer
 from src.alpha_vantage import AlphaVantageClient
 from src.news_api import NewsAPIClient
 from src.models import MacroIndicators
-from src import providers
+from src import observability, providers
 from src.providers.schemas import PriceSeries
 from src.scoring import score_ticker
 from src.scoring import technical_intelligence
-from src.services import analyst_store, database, fundamentals_data, news_scoring, street_intelligence
+from src.services import (
+    analyst_store, database, factor_lab_service, fundamentals_data,
+    news_scoring, research_prefetch, street_intelligence,
+)
 from src.services.backtest_service import peek_cached as peek_backtest
 from src.services.clerk_auth import optional_clerk_user
 from src.services.database.repositories import AnalysisRepository
@@ -115,6 +118,11 @@ async def request_logging(request, call_next):
     """
     request_id = uuid.uuid4().hex[:12]
     request.state.request_id = request_id
+    # Profile every request. Attribution is per-label and lock-guarded, and
+    # measured at 0.19 µs per record (benchmarks/observability.py), so this
+    # stays on in production rather than behind a flag nobody enables before
+    # the incident they needed it for.
+    profile = observability.begin(f"{request.method} {request.url.path}")
     started = time.perf_counter()
     try:
         response = await call_next(request)
@@ -125,14 +133,36 @@ async def request_logging(request, call_next):
         raise
     duration_ms = (time.perf_counter() - started) * 1000
     user = getattr(request.state, "clerk_user", None)
+    report = profile.report()
+    observability.registry.observe(
+        "http.request", duration_ms,
+        method=request.method, path=_metrics_path(request.url.path),
+    )
     logger.info(
-        "rid=%s %s %s%s -> %d in %.0fms",
+        "rid=%s %s %s%s -> %d in %.0fms (work %.0fms, %.1fx parallel, %.0fms unattributed)",
         request_id, request.method, request.url.path,
         f" user={user}" if user else "",
         response.status_code, duration_ms,
+        report["work_ms"], report["parallelism"], report["unattributed_ms"],
     )
+    observability.clear()
     response.headers["X-Request-Id"] = request_id
     return response
+
+
+def _metrics_path(path: str) -> str:
+    """Collapse path parameters so metric labels stay bounded.
+
+    `/api/research/AAPL` and `/api/research/MSFT` are the same endpoint. Left
+    raw, a ticker in the label is unbounded cardinality — the exact leak the
+    registry's series cap exists to catch.
+    """
+    parts = path.strip("/").split("/")
+    collapsed = [
+        part if index < 2 or not part or part.islower() else ":param"
+        for index, part in enumerate(parts)
+    ]
+    return "/" + "/".join(collapsed)
 
 # ── Shared instances ──────────────────────────────────────────────────────────
 
@@ -377,6 +407,14 @@ def research_ticker(
 
     if not ticker or len(ticker) > 10:
         raise HTTPException(status_code=400, detail="Invalid ticker symbol")
+
+    # ── Step 0: warm the seven independent upstreams concurrently. ──────────
+    # Purely a latency measure. Every fetch below is cache-first and
+    # single-flight wrapped, so a warmed key returns instantly and a call
+    # that races the warm joins it instead of duplicating it. Nothing here
+    # changes what the handler computes — if the warm fails entirely, each
+    # call below simply fetches as it always did.
+    research_prefetch.warm(ticker)
 
     # ── Steps 1+2 concurrently: macro and technicals are independent. ────────
     # predict() is run with a neutral multiplier, then the real dampening is
@@ -926,7 +964,49 @@ def graph_path(
     return {"path": graph_service.path_between(symbols.split(","), source, target)}
 
 
-@app.get("/api/providers/health")
+@app.get("/api/factors", tags=["research"])
+def get_factor_lab(
+    universe: str = Query("mega30", description="named universe to evaluate"),
+    years: float = Query(2.5, ge=0.5, le=10.0),
+    horizon: int = Query(21, ge=5, le=126, description="forward-return horizon in trading days"),
+):
+    """Cross-sectional evidence for every factor in the scoring engine.
+
+    Answers the question single-ticker views structurally cannot: does this
+    factor rank names correctly? Rank IC per observation date, Newey-West
+    corrected for the overlap that inflates naive t-statistics, plus the
+    quantile spread and the full ranked cross-section on the latest date.
+
+    Slow and honest on a cold cache (a full point-in-time panel build);
+    milliseconds afterwards. Caveats ship inside the payload rather than in
+    documentation nobody reads.
+    """
+    return factor_lab_service.run(universe, years, horizon)
+
+
+@app.get("/api/factors/universes", tags=["research"])
+def get_factor_universes():
+    return {"universes": factor_lab_service.available_universes()}
+
+
+@app.get("/api/metrics", tags=["ops"])
+def get_metrics(reset: bool = Query(False, description="clear counters after reading")):
+    """Latency percentiles and counters for every instrumented seam.
+
+    Percentiles rather than averages: the distribution here is bimodal — a
+    cache hit at 0.4 ms and a vendor exhausting its retries at 18 s average
+    to a number that never happened. p95/p99 are what an operator can act on.
+
+    `?reset=true` starts a fresh window, so a vendor that misbehaved an hour
+    ago stops colouring the current picture.
+    """
+    snapshot = observability.registry.snapshot()
+    if reset:
+        observability.registry.reset()
+    return snapshot
+
+
+@app.get("/api/providers/health", tags=["ops"])
 def get_providers_health():
     """Vendor health: success %, latency, cooldowns, cache and dedupe stats."""
     return providers.providers_health()

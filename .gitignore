@@ -46,3 +46,6 @@ dashboard/.next/
 # Generated research reports (pipeline output, not source)
 research_vault/*
 !research_vault/EXAMPLE_NVDA_report.md
+
+# Panel snapshots (build artifacts — reproducible from the manifest)
+data/panel/

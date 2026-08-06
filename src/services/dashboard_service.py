@@ -27,6 +27,7 @@ from datetime import date, datetime, timezone
 from typing import Any, Optional
 
 from src import providers
+from src.providers.parallel import map_concurrent, values
 from src.scoring.engine import map_verdict
 from src.scoring.fomc_calendar import FOMC_DECISION_DATES
 
@@ -149,15 +150,22 @@ def _macro_card(meta: dict[str, str]) -> Optional[dict[str, Any]]:
     }
 
 
+def _gather(fn, items, label: str, describe) -> list[Any]:
+    """Fan out `fn` over `items`, keeping per-item diagnostics.
+
+    `map_concurrent` isolates failures but only knows an item by position;
+    the loops this replaced logged *which* series or symbol failed, and that
+    is the first thing anyone debugging a half-empty dashboard wants.
+    """
+    outcomes = map_concurrent(fn, items, label=label)
+    for item, outcome in zip(items, outcomes):
+        if not outcome.ok:
+            logger.warning("%s failed: %s (%s)", label, describe(item), outcome.error)
+    return values(outcomes)
+
+
 def _macro_board() -> dict[str, Any]:
-    cards = []
-    for meta in MACRO_SERIES:
-        try:
-            card = _macro_card(meta)
-            if card:
-                cards.append(card)
-        except Exception:  # noqa: BLE001 — one bad series never kills the board
-            logger.exception("macro card failed: %s", meta["id"])
+    cards = _gather(_macro_card, MACRO_SERIES, "macro", lambda meta: meta["id"])
 
     macro_result = providers.macro.get_macro()
     regime: dict[str, Any] = {"available": macro_result.ok}
@@ -184,14 +192,6 @@ def _macro_board() -> dict[str, Any]:
 
 # ── Breadth & sectors ─────────────────────────────────────────────────────────
 
-def _pct_change(bars: list, days: int) -> Optional[float]:
-    closes = [bar.close for bar in bars]
-    if len(closes) <= days:
-        return None
-    base = closes[-1 - days]
-    return round((closes[-1] / base - 1) * 100, 2) if base else None
-
-
 def _sector_row(symbol: str, name: str) -> Optional[dict[str, Any]]:
     result = providers.market_data.get_series(symbol, "1y")
     if not result.ok or len(result.data.bars) < 70:
@@ -200,11 +200,23 @@ def _sector_row(symbol: str, name: str) -> Optional[dict[str, Any]]:
     closes = [bar.close for bar in bars]
     price = closes[-1]
     ma50 = sum(closes[-50:]) / 50
-    daily = [(closes[i] / closes[i - 1] - 1) for i in range(max(1, len(closes) - 63), len(closes))]
+    # Guarded division, even though `PriceSeries` now rejects non-positive
+    # closes at the provider boundary. This crashed four of eleven sector
+    # rows with `float division by zero` when a fallback vendor returned a
+    # zero close, and defence in depth is cheap here: the alternative is a
+    # whole sector silently vanishing from the board again if any future
+    # path constructs bars without going through validation.
+    daily = [
+        closes[i] / closes[i - 1] - 1
+        for i in range(max(1, len(closes) - 63), len(closes))
+        if closes[i - 1]
+    ]
+    if not daily:
+        return None
     mean = sum(daily) / len(daily)
     volatility = (sum((r - mean) ** 2 for r in daily) / max(1, len(daily) - 1)) ** 0.5 * (252 ** 0.5)
-    strength = _pct_change(bars, 21)
-    momentum = _pct_change(bars, 63)
+    strength = result.data.pct_change(21)
+    momentum = result.data.pct_change(63)
     composite = ((strength or 0) / 100 * 2 + (momentum or 0) / 100) / 2  # simple, documented blend
     return {
         "symbol": symbol,
@@ -219,32 +231,27 @@ def _sector_row(symbol: str, name: str) -> Optional[dict[str, Any]]:
     }
 
 
+def _index_row(symbol: str) -> Optional[dict[str, Any]]:
+    series = providers.market_data.get_series(symbol, "3mo")
+    if not series.ok or len(series.data.bars) < 6:
+        return None
+    bars = series.data.bars
+    return {
+        "symbol": symbol.replace("^", ""),
+        "price": round(bars[-1].close, 2),
+        "change_1d": series.data.pct_change(1),
+        "change_1w": series.data.pct_change(5),
+        "source": series.source,
+    }
+
+
 def _breadth_and_sectors() -> tuple[dict[str, Any], list[dict[str, Any]]]:
-    sectors = []
-    for symbol, name in SECTOR_ETFS:
-        try:
-            row = _sector_row(symbol, name)
-            if row:
-                sectors.append(row)
-        except Exception:  # noqa: BLE001
-            logger.exception("sector row failed: %s", symbol)
+    sectors = _gather(
+        lambda pair: _sector_row(*pair), SECTOR_ETFS, "sectors", lambda pair: pair[0]
+    )
     sectors.sort(key=lambda row: row.get("strength_21d") or -999, reverse=True)
 
-    indexes = []
-    for symbol in INDEX_TICKERS:
-        try:
-            series = providers.market_data.get_series(symbol, "3mo")
-            if series.ok and len(series.data.bars) >= 6:
-                bars = series.data.bars
-                indexes.append({
-                    "symbol": symbol.replace("^", ""),
-                    "price": round(bars[-1].close, 2),
-                    "change_1d": _pct_change(bars, 1),
-                    "change_1w": _pct_change(bars, 5),
-                    "source": series.source,
-                })
-        except Exception:  # noqa: BLE001
-            logger.exception("index quote failed: %s", symbol)
+    indexes = _gather(_index_row, INDEX_TICKERS, "indexes", lambda symbol: symbol)
 
     above = sum(1 for row in sectors if row["above_50d"])
     breadth_score = round(above / len(sectors) * 100) if sectors else None

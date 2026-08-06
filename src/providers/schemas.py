@@ -7,10 +7,15 @@ answered. Vendor-specific field names never escape src/providers/vendors/.
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone
 from typing import Generic, Optional, TypeVar
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
+
+from src.providers.validation import SeriesQuality, sanitize_bars
+
+logger = logging.getLogger("omnisignal.providers.schemas")
 
 T = TypeVar("T")
 
@@ -72,8 +77,53 @@ class OHLCVBar(BaseModel):
 
 
 class PriceSeries(BaseModel):
+    """A price history, validated on construction.
+
+    Validation lives here rather than in each vendor adapter so that no
+    vendor — present or future — can route around it. Every adapter already
+    returns a `PriceSeries`, so this covers all of them and required no
+    adapter changes.
+
+    `quality` records what was dropped. Consumers that care about data
+    integrity read it; consumers that do not are simply protected.
+    """
+
     symbol: str
     bars: list[OHLCVBar] = Field(default_factory=list)
+    quality: SeriesQuality = Field(default_factory=SeriesQuality)
+
+    def pct_change(self, days: int) -> Optional[float]:
+        """Percent change over `days` bars, or None when it is not knowable.
+
+        Canonical: this was reimplemented in three places, and one of those
+        copies omitted the zero-base guard the other two had — the same class
+        of gap that let a zero close crash four sector rows. Percent change
+        belongs to the series, not to whoever happens to be reading it.
+        """
+        if len(self.bars) <= days:
+            return None
+        base = self.bars[-1 - days].close
+        if not base:
+            return None
+        return round((self.bars[-1].close / base - 1) * 100, 2)
+
+    @model_validator(mode="after")
+    def _reject_impossible_bars(self) -> "PriceSeries":
+        # Skip when quality is already populated: re-validating a series that
+        # has been round-tripped (cache, tests) would count the same bars
+        # twice and report a retention that never happened.
+        if self.quality.bars_received:
+            return self
+
+        kept, quality = sanitize_bars(self.bars)
+        if quality.dropped:
+            logger.warning(
+                "%s: dropped %d of %d bars — %s",
+                self.symbol, quality.dropped, quality.bars_received, quality.summary(),
+            )
+        object.__setattr__(self, "bars", kept)
+        object.__setattr__(self, "quality", quality)
+        return self
 
 
 # ── Fundamentals ──────────────────────────────────────────────────────────────
