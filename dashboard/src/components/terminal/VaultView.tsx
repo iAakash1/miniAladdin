@@ -6,6 +6,7 @@ import AiPanel from '@/components/terminal/AiPanel'
 import CompanyBand from '@/components/terminal/CompanyBand'
 import QuantPanel from '@/components/terminal/QuantPanel'
 import EmptyState from '@/components/ui/EmptyState'
+import PageHeader from '@/components/ui/PageHeader'
 import Skeleton from '@/components/ui/Skeleton'
 import { normalizeAnalysis } from '@/lib/api'
 import { fmtDate, timeAgo } from '@/lib/format'
@@ -81,11 +82,11 @@ export default function VaultView() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div>
-        <h2 className="h-panel" style={{ fontSize: '1rem', marginBottom: 6 }}>Research Vault</h2>
-        <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', maxWidth: '78ch', lineHeight: 1.6 }}>
-          Every analysis you run is recorded to your account automatically — reopen any past
-          report exactly as it was, or compare two runs to see which factors moved the verdict.
-        </p>
+        <PageHeader
+          eyebrow="Workspace"
+          title="Research Vault"
+          lede="Every analysis you run is recorded to your account automatically. Reopen any past report exactly as it was, or compare two runs to see which factors moved the verdict."
+        />
       </div>
 
       {(mode.view === 'history' || mode.view === 'saved') && (

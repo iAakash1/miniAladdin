@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
+import PageHeader from '@/components/ui/PageHeader'
 import EmptyState from '@/components/ui/EmptyState'
 import Skeleton from '@/components/ui/Skeleton'
 import { computeLayout, viewBoxFor, type LayoutNode } from '@/lib/graph/layout'
@@ -197,12 +198,11 @@ export default function GraphWorkspace() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div>
-        <h2 className="h-panel" style={{ fontSize: '1rem', marginBottom: 6 }}>Knowledge graph workspace</h2>
-        <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', maxWidth: '78ch', lineHeight: 1.6 }}>
-          Every entity and relationship OmniSignal knows, from SEC filings and Wikidata. Compare
-          companies to see what they share, or trace how any two entities connect. Nothing here is
-          inferred — every edge names the provider that asserted it and the confidence it carries.
-        </p>
+        <PageHeader
+          eyebrow="Workspace"
+          title="Knowledge graph"
+          lede="Every entity and relationship OmniSignal knows, from SEC filings and Wikidata. Compare companies to see what they share, or trace how any two entities connect. Nothing here is inferred — every edge names the provider that asserted it and the confidence it carries."
+        />
       </div>
 
       {/* Session bar: the investigation this workspace belongs to */}

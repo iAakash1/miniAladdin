@@ -689,22 +689,176 @@ img { max-width: 100%; display: block; }
 .dash-section__body { margin-top: 16px; }
 
 /* ---------- Sector heatmap ---------- */
-.sector-heatmap {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: 8px;
+/* ---------- Market map ----------
+   Rebuilt around the market rather than around a score. Two columns: a
+   narrow "read" rail (score, verdict, trend, participation) and a dense
+   sector map where every row carries 90 sessions of real price action.
+   Colour marks only sign and focus — eleven saturated blocks compete, and
+   then nothing reads as important. */
+
+.market-map {
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg, 10px);
+  background: var(--surface);
+  overflow: hidden;
 }
-.sector-tile {
+
+.mm-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 18px clamp(18px, 3vw, 26px);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-2);
+}
+.mm-head__id { display: flex; flex-direction: column; gap: 2px; }
+.mm-head__title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.mm-head__sub { font-size: 0.6875rem; color: var(--faint); }
+
+.mm-tape { display: flex; flex-wrap: wrap; gap: 18px; }
+.mm-tape__item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+}
+.mm-tape__sym { color: var(--faint); letter-spacing: 0.04em; }
+.mm-tape__px { font-weight: 600; font-size: 0.75rem; }
+
+.mm-body {
+  display: grid;
+  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+}
+
+.mm-read {
+  padding: clamp(20px, 3vw, 28px);
+  border-right: 1px solid var(--line);
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 10px 12px;
-  border-radius: var(--r-md);
-  border: 1px solid var(--line);
-  cursor: default;
-  transition: transform var(--t-fast) var(--ease-out), border-color var(--t-fast) var(--ease-out);
 }
-.sector-tile:hover, .sector-tile:focus-visible { transform: translateY(-1px); border-color: var(--line-strong); }
+.mm-read__score { display: flex; align-items: flex-start; gap: 10px; }
+.mm-read__number {
+  font-size: 4rem;
+  font-weight: 600;
+  line-height: 0.9;
+  letter-spacing: -0.045em;
+  font-variant-numeric: tabular-nums;
+}
+.mm-read__unit {
+  font-size: 0.625rem;
+  color: var(--faint);
+  line-height: 1.3;
+  padding-top: 5px;
+}
+.mm-read__verdict {
+  display: block;
+  margin-top: 14px;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.mm-read__detail {
+  margin-top: 5px;
+  font-size: 0.75rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.mm-read__trend { margin-top: 18px; }
+.mm-read__trendfoot {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 3px;
+  font-size: 0.625rem;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+.mm-read__stats {
+  margin: 18px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 7px;
+}
+.mm-read__stat { display: flex; justify-content: space-between; align-items: baseline; }
+.mm-read__stat dt { font-size: 0.6875rem; color: var(--muted); }
+.mm-read__stat dd { margin: 0; font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+.mm-read__stat dd span { color: var(--faint); }
+
+.mm-map { padding: 10px clamp(12px, 2vw, 18px) 16px; min-width: 0; }
+.mm-num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.mm-map__head,
+.mm-map__row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1.3fr) minmax(90px, 1.6fr) 62px 62px 52px 56px;
+  align-items: center;
+  gap: 12px;
+}
+.mm-map__head {
+  padding: 8px 10px;
+  font-size: 0.5625rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--faint);
+  border-bottom: 1px solid var(--line);
+}
+.mm-map__sparkh, .mm-map__mah { text-align: center; }
+
+.mm-map__row {
+  padding: 9px 10px;
+  border-radius: var(--r-sm, 4px);
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
+  transition: background var(--t-fast) var(--ease-out);
+  outline: none;
+  cursor: default;
+}
+.mm-map__row:last-child { border-bottom: none; }
+.mm-map__row:hover,
+.mm-map__row:focus-visible,
+.mm-map__row.is-active { background: var(--surface-2); }
+
+.mm-map__name { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.mm-map__symbol { font-size: 0.75rem; font-weight: 650; letter-spacing: 0.02em; }
+.mm-map__label {
+  font-size: 0.625rem;
+  color: var(--faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mm-map__sparkcell { display: block; min-width: 0; }
+.mm-spark { display: block; width: 100%; height: 26px; }
+
+.mm-map__lead { font-size: 0.8125rem; font-weight: 650; }
+.mm-map__muted { font-size: 0.6875rem; color: var(--muted); }
+.mm-map__ma {
+  text-align: center;
+  font-size: 0.5625rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--neg);
+  opacity: 0.7;
+}
+.mm-map__ma.is-above { color: var(--pos); }
+
+@media (max-width: 900px) {
+  .mm-body { grid-template-columns: 1fr; }
+  .mm-read { border-right: none; border-bottom: 1px solid var(--line); }
+  .mm-map__head, .mm-map__row {
+    grid-template-columns: minmax(80px, 1fr) minmax(70px, 1.4fr) 56px 50px;
+  }
+  .mm-map__muted:last-of-type, .mm-map__ma, .mm-map__mah { display: none; }
+}
 
 /* ---------- Events timeline ---------- */
 .dash-events { padding: clamp(16px, 2.5vw, 22px); }
@@ -868,4 +1022,341 @@ footer a:hover { color: var(--text) !important; }
   }
   .reveal { opacity: 1; transform: none; }
   html { scroll-behavior: auto; }
+}
+
+
+/* ---------- Factor Lab: loading and failure ----------
+   A cold build takes 30-60s, almost all of it waiting on vendors. A spinner
+   for that long reads as broken; narrating the real pipeline reads as work
+   being done. Failures get an explanation and a next step, never a raw
+   backend string. */
+
+.lab-state {
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg, 10px);
+  background: var(--surface);
+  padding: clamp(28px, 5vw, 48px);
+  max-width: 720px;
+}
+.lab-state__title {
+  font-size: clamp(1.25rem, 2.4vw, 1.5rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 6px 0 10px;
+}
+.lab-state__lede {
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: var(--muted);
+  max-width: 60ch;
+}
+.lab-state__actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+.lab-state__foot {
+  margin-top: 22px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  font-size: 0.6875rem;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.lab-steps { list-style: none; margin: 26px 0 0; padding: 0; display: grid; gap: 2px; }
+.lab-steps__item {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 10px 12px;
+  border-radius: var(--r-sm, 4px);
+  opacity: 0.42;
+  transition: opacity var(--t-med, 220ms) var(--ease-out),
+              background var(--t-med, 220ms) var(--ease-out);
+}
+.lab-steps__item.is-done { opacity: 0.72; }
+.lab-steps__item.is-active { opacity: 1; background: var(--surface-2); }
+
+.lab-steps__mark {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong, var(--line));
+  font-size: 0.625rem;
+  color: var(--pos);
+}
+.lab-steps__item.is-done .lab-steps__mark { border-color: var(--pos); }
+.lab-steps__item.is-active .lab-steps__mark {
+  border-color: var(--accent, #2f6feb);
+  border-top-color: transparent;
+  animation: lab-spin 900ms linear infinite;
+}
+@keyframes lab-spin { to { transform: rotate(360deg); } }
+
+.lab-steps__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.lab-steps__text strong { font-size: 0.8125rem; font-weight: 550; }
+.lab-steps__text span { font-size: 0.75rem; color: var(--faint); line-height: 1.5; }
+
+@media (prefers-reduced-motion: reduce) {
+  .lab-steps__item.is-active .lab-steps__mark { animation: none; border-top-color: var(--accent, #2f6feb); }
+}
+
+
+/* ---------- Workspace ----------
+   Rebuilt around the work rather than around a list. Each card renders the
+   session's actual substance — pins, notes, snapshots, symbols, last action —
+   because a page that shows no evidence of work gives no reason to return. */
+
+
+
+
+
+.ws-input { height: 34px; font-size: 0.8125rem; min-width: 240px; }
+
+.ws-search { display: flex; align-items: center; gap: 10px; }
+.ws-search .ws-input { flex: 1 1 auto; max-width: 520px; }
+.ws-search__count { font-size: 0.6875rem; color: var(--faint); }
+
+/* search results */
+.ws-results { display: grid; gap: 2px; }
+.ws-result {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 14px;
+  align-items: baseline;
+  padding: 11px 14px;
+  border-radius: var(--r-sm, 4px);
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid transparent;
+  transition: background var(--t-fast) var(--ease-out), border-color var(--t-fast) var(--ease-out);
+}
+.ws-result:hover, .ws-result:focus-visible {
+  background: var(--surface-2);
+  border-color: var(--line);
+}
+.ws-result__kind {
+  font-size: 0.5625rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.ws-result__body { font-size: 0.8125rem; line-height: 1.6; color: var(--muted); }
+.ws-mark { background: var(--warn-wash); color: var(--text); border-radius: 2px; padding: 0 2px; }
+.ws-empty-line { font-size: 0.8125rem; color: var(--muted); padding: 10px 14px; }
+
+/* continue rail */
+.ws-resume {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: clamp(20px, 3vw, 28px);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg, 10px);
+  background: var(--surface-2);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color var(--t-fast) var(--ease-out), transform var(--t-fast) var(--ease-out);
+}
+.ws-resume:hover, .ws-resume:focus-visible {
+  border-color: var(--line-strong, var(--line));
+  transform: translateY(-1px);
+}
+.ws-resume__eyebrow {
+  font-size: 0.5625rem;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.ws-resume__title {
+  font-size: clamp(1.125rem, 2.2vw, 1.375rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.ws-resume__desc { font-size: 0.8125rem; color: var(--muted); }
+.ws-resume__foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.ws-resume__when { font-size: 0.6875rem; color: var(--faint); }
+.ws-resume__last {
+  font-size: 0.6875rem;
+  color: var(--faint);
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+/* counts + symbols */
+.ws-counts { display: flex; flex-wrap: wrap; gap: 14px; }
+.ws-counts__item { font-size: 0.6875rem; color: var(--muted); }
+.ws-counts__item strong { font-variant-numeric: tabular-nums; color: var(--text); }
+
+.ws-symbols { display: flex; flex-wrap: wrap; gap: 5px; margin: 2px 0; }
+.ws-symbols__chip {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  padding: 2px 7px;
+  border-radius: 3px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+
+/* cards */
+.ws-section {
+  font-size: 0.6875rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin: 4px 0 -12px;
+  font-weight: 500;
+}
+.ws-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+.ws-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md, 8px);
+  background: var(--surface);
+  transition: border-color var(--t-fast) var(--ease-out), transform var(--t-fast) var(--ease-out);
+}
+.ws-card:hover { border-color: var(--line-strong, var(--line)); transform: translateY(-1px); }
+.ws-card__link {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 16px 18px 14px;
+  text-decoration: none;
+  color: inherit;
+  flex: 1;
+}
+.ws-card__title { font-size: 0.9375rem; font-weight: 600; letter-spacing: -0.012em; }
+.ws-card__desc { font-size: 0.75rem; color: var(--muted); line-height: 1.55; }
+.ws-card__blank { font-size: 0.6875rem; color: var(--faint); font-style: italic; }
+.ws-card__foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 18px;
+  border-top: 1px solid var(--line);
+  font-size: 0.6875rem;
+  color: var(--faint);
+}
+.ws-card__delete { color: var(--faint); opacity: 0; transition: opacity var(--t-fast) var(--ease-out); }
+.ws-card:hover .ws-card__delete,
+.ws-card__delete:focus-visible { opacity: 1; }
+
+/* jump rail */
+.ws-jump {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 1px;
+  margin-top: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md, 8px);
+  overflow: hidden;
+  background: var(--line);
+}
+.ws-jump__item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 14px 16px;
+  background: var(--surface);
+  text-decoration: none;
+  color: inherit;
+  transition: background var(--t-fast) var(--ease-out);
+}
+.ws-jump__item:hover, .ws-jump__item:focus-visible { background: var(--surface-2); }
+.ws-jump__label { font-size: 0.8125rem; font-weight: 600; }
+.ws-jump__desc { font-size: 0.6875rem; color: var(--faint); line-height: 1.45; }
+
+@media (max-width: 640px) {
+  .ws-result { grid-template-columns: 1fr; gap: 4px; }
+  .ws-card__delete { opacity: 1; }
+}
+
+
+/* ---------- Page header ----------
+   One header treatment for every route. Replaces six hand-rolled variants
+   that disagreed on heading level, type scale and spacing — three of which
+   repeated the same inline override verbatim. Line length is capped here so
+   the decision is made once. */
+
+.page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: clamp(16px, 4vw, 40px);
+  flex-wrap: wrap;
+  padding-bottom: clamp(16px, 2.5vw, 22px);
+  border-bottom: 1px solid var(--line);
+}
+.page-head__text { min-width: 0; }
+.page-head__eyebrow {
+  display: block;
+  font-size: 0.5625rem;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-bottom: 7px;
+}
+.page-head__title {
+  font-size: clamp(1.375rem, 2.6vw, 1.75rem);
+  font-weight: 600;
+  letter-spacing: -0.028em;
+  line-height: 1.15;
+  margin: 0;
+}
+.page-head__lede {
+  margin: 9px 0 0;
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: var(--muted);
+  max-width: 68ch;
+}
+.page-head__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 12px;
+  font-size: 0.6875rem;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+.page-head__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Consistent vertical rhythm for every terminal route. */
+.page-stack { display: flex; flex-direction: column; gap: clamp(20px, 3vw, 30px); }
+
+@media (max-width: 640px) {
+  .page-head { align-items: stretch; }
+  .page-head__actions { width: 100%; }
+}
+
+/* Factor Lab headline verdict — the sentence the whole page exists to earn. */
+.lab-headline {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  font-weight: 500;
+  max-width: 74ch;
+  padding: 14px 18px;
+  border-left: 2px solid var(--line-strong, var(--line));
+  color: var(--text);
 }

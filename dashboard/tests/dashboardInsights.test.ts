@@ -11,7 +11,6 @@ import {
   eventBucket,
   eventsWithBuckets,
   groupMacroCards,
-  heatIntensity,
   heroSummary,
   type IndexQuote,
   type MacroCard,
@@ -44,7 +43,8 @@ function regime(overrides: Partial<Regime> = {}): Regime {
 
 function breadth(overrides: Partial<Breadth> = {}): Breadth {
   return {
-    indexes: [], sectors_above_50d: 6, sector_count: 11, breadth_score: 55,
+    indexes: [],
+    history: [], sectors_above_50d: 6, sector_count: 11, breadth_score: 55,
     explain: 'Breadth score explain.', leadership: 'Technology', laggard: 'Utilities',
     ...overrides,
   }
@@ -187,21 +187,6 @@ test('groupMacroCards buckets known series ids into Economic/Rates/Inflation', (
   assert.equal(groups.inflation.length, 1)
   const total = groups.economic.length + groups.rates.length + groups.inflation.length
   assert.equal(total, 3) // the unknown series is dropped, not mis-filed
-})
-
-/* ── heatIntensity ─────────────────────────────────────────────────────────── */
-
-test('heatIntensity floors at a visible minimum and caps at the range ceiling', () => {
-  assert.equal(heatIntensity(null), 0)
-  assert.equal(heatIntensity(0), 6) // floor — still visibly colored
-  const capped = heatIntensity(50, 15) // far beyond the cap
-  assert.equal(capped, 6 + 32)
-})
-
-test('heatIntensity scales monotonically with magnitude', () => {
-  const small = heatIntensity(2, 15)
-  const large = heatIntensity(10, 15)
-  assert.ok(large > small)
 })
 
 /* ── eventBucket ───────────────────────────────────────────────────────────── */

@@ -3,6 +3,7 @@
 import dynamicImport from 'next/dynamic'
 import { useEffect, useMemo, useState } from 'react'
 import EmptyState from '@/components/ui/EmptyState'
+import PageHeader from '@/components/ui/PageHeader'
 import Skeleton from '@/components/ui/Skeleton'
 import Section from '@/components/ui/Section'
 import MetricExplainer from './MetricExplainer'
@@ -147,11 +148,11 @@ export default function ValidationView() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       <div>
-        <h2 className="h-panel" style={{ fontSize: '1rem', marginBottom: 6 }}>Model validation</h2>
-        <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', maxWidth: '78ch', lineHeight: 1.6 }}>
-          Walk-forward evaluation of the scoring engine on real price history — the question this
-          page answers is simple: can this model be trusted, and under what conditions.
-        </p>
+        <PageHeader
+          eyebrow="Research"
+          title="Model validation"
+          lede="Walk-forward evaluation of the scoring engine on real price history. The question this page answers is simple: can this model be trusted, and under what conditions."
+        />
       </div>
 
       <form
