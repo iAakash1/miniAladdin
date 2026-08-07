@@ -21,8 +21,7 @@
  */
 
 import { useEffect, useMemo, useState } from 'react'
-import EmptyState from '@/components/ui/EmptyState'
-import Skeleton from '@/components/ui/Skeleton'
+import PageHeader from '@/components/ui/PageHeader'
 import Section from '@/components/ui/Section'
 import { FACTOR_LABELS } from '@/lib/history'
 
@@ -585,6 +584,116 @@ interface Settled {
   error: string | null
 }
 
+/* ── loading and failure ──────────────────────────────────────────────────── */
+
+const BUILD_STEPS = [
+  ['Fetching price history', 'every symbol in the universe, through the provider fallback chain'],
+  ['Building the point-in-time panel', 'each factor recomputed from a window truncated at its own date'],
+  ['Loading SEC filings', 'point-in-time fundamentals, dated by when each figure was published'],
+  ['Measuring forward returns', 'what actually happened after each observation date'],
+  ['Running the estimators', 'rank IC, Newey\u2013West correction, portfolios, attribution'],
+] as const
+
+/**
+ * A cold build genuinely takes 30-60 seconds, most of it waiting on vendors.
+ * A bare spinner for that long reads as broken, so this narrates the actual
+ * pipeline and advances through it on a timer calibrated to the measured
+ * stage durations. The steps are real and in execution order; the timing is
+ * an estimate, and the footer says so rather than implying live progress.
+ */
+function BuildingPanel({ universe }: { universe: string }) {
+  const [step, setStep] = useState(0)
+  const [elapsed, setElapsed] = useState(0)
+
+  useEffect(() => {
+    const tick = setInterval(() => setElapsed((s) => s + 1), 1000)
+    return () => clearInterval(tick)
+  }, [])
+
+  useEffect(() => {
+    if (step >= BUILD_STEPS.length - 1) return
+    const advance = setTimeout(() => setStep((s) => s + 1), step === 0 ? 9000 : 7000)
+    return () => clearTimeout(advance)
+  }, [step])
+
+  return (
+    <div className="lab-state">
+      <span className="eyebrow">Factor Lab</span>
+      <h2 className="lab-state__title">Measuring every factor against what actually happened</h2>
+      <p className="lab-state__lede">
+        Building a point-in-time panel for <strong>{universe}</strong>, then testing each factor
+        across the whole cross-section. The first run fetches full price history &mdash; later
+        runs are instant for an hour.
+      </p>
+
+      <ol className="lab-steps">
+        {BUILD_STEPS.map(([title, detail], index) => (
+          <li key={title}
+              className={`lab-steps__item${index < step ? ' is-done' : ''}${index === step ? ' is-active' : ''}`}>
+            <span className="lab-steps__mark" aria-hidden>{index < step ? '\u2713' : ''}</span>
+            <span className="lab-steps__text">
+              <strong>{title}</strong>
+              <span>{detail}</span>
+            </span>
+          </li>
+        ))}
+      </ol>
+
+      <p className="lab-state__foot">
+        {elapsed}s elapsed &middot; typically 30&ndash;60s cold. Stage timings are estimated, not live.
+      </p>
+    </div>
+  )
+}
+
+/**
+ * Failures here are usually one of three specific, explainable things.
+ * A raw backend string tells a user nothing they can act on, so each known
+ * cause gets its own explanation and its own next step.
+ */
+function LabError({ message, universe, onRetry, onSwitch }: {
+  message: string; universe: string
+  onRetry: () => void; onSwitch: (u: string) => void
+}) {
+  const tooSmall = /at least \d+ names|symbols; cross-sectional/i.test(message)
+  const noReturns = /forward returns/i.test(message)
+  const noPanel = /no panel data/i.test(message)
+
+  const title = tooSmall ? 'This universe is too small to rank'
+    : noReturns ? 'Not enough history has elapsed yet'
+    : noPanel ? 'No price history could be assembled'
+    : 'The factor evaluation could not complete'
+
+  const explanation = tooSmall
+    ? `A rank correlation across ${universe} is noise rather than a ranking \u2014 cross-sectional evidence needs at least ten names on every date. Rather than show a number that would look real, the lab reports nothing.`
+    : noReturns
+    ? 'Every observation date needs a realised forward return to measure against, and none of the requested window has closed yet. A longer window will have some.'
+    : noPanel
+    ? 'Price history for this universe could not be fetched. That is usually a vendor being rate-limited or briefly unavailable, and it normally clears within a minute.'
+    : `Something upstream failed while assembling the panel. The server logs have the detail; the message returned was: \u201c${message}\u201d`
+
+  return (
+    <div className="lab-state">
+      <span className="eyebrow">Factor Lab</span>
+      <h2 className="lab-state__title">{title}</h2>
+      <p className="lab-state__lede">{explanation}</p>
+      <div className="lab-state__actions">
+        {tooSmall
+          ? (
+            <button type="button" className="btn btn--primary btn--sm" onClick={() => onSwitch('mega30')}>
+              Use mega30 instead
+            </button>
+          ) : (
+            <button type="button" className="btn btn--primary btn--sm" onClick={onRetry}>
+              Try again
+            </button>
+          )}
+        <a className="btn btn--ghost btn--sm" href="/terminal/methodology">How the engine works</a>
+      </div>
+    </div>
+  )
+}
+
 export default function FactorLabView() {
   const [universe, setUniverse] = useState('mega30')
   const [settled, setSettled] = useState<Settled | null>(null)
@@ -616,71 +725,50 @@ export default function FactorLabView() {
     [data],
   )
 
-  if (loading) {
-    return (
-      <div className="panel" style={{ padding: 22 }}>
-        <p className="body-copy" style={{ marginBottom: 12 }}>
-          Building a point-in-time factor panel for the universe and measuring every
-          factor against realised forward returns. The first run fetches full price
-          history; later runs are instant.
-        </p>
-        <Skeleton height={280} />
-      </div>
-    )
-  }
+  if (loading) return <BuildingPanel universe={universe} />
 
   if (error) {
     return (
-      <EmptyState
-        title="Factor evaluation unavailable"
-        description={`${error}. The lab needs price history for the whole universe; if vendors are rate-limited, try again shortly.`}
-      />
+      <LabError message={error} universe={universe}
+                onRetry={() => setSettled(null)} onSwitch={setUniverse} />
     )
   }
+
   if (!data) return null
 
   const selectedEvaluation = data.factors.find((f) => f.factor === selected) ?? null
 
   return (
-    <div style={{ display: 'grid', gap: 20 }}>
-      <header className="panel" style={{ padding: '20px 22px' }}>
-        <span className="eyebrow">Factor Lab</span>
-        <h1 className="h-section" style={{ margin: '4px 0 8px' }}>
-          Does the engine&rsquo;s ranking predict anything?
-        </h1>
-        <p className="body-copy" style={{ maxWidth: '68ch' }}>
-          A factor does not claim one stock will rise. It claims the names it ranks
-          highly will outperform the names it ranks poorly. This measures exactly
-          that, across {data.universe.symbols.length} names and{' '}
-          {data.window.observation_dates} observation dates, using only information
-          that was knowable on each date.
-        </p>
-
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18, marginTop: 14 }}>
-          <label className="metric-row">
-            <span className="label">Universe</span>
-            <select
-              className="input"
-              value={universe}
-              onChange={(event) => setUniverse(event.target.value)}
-              aria-label="Universe to evaluate"
-            >
+    <div className="page-stack">
+      <PageHeader
+        eyebrow="Factor Lab"
+        title="Does the engine&rsquo;s ranking predict anything?"
+        lede={`A factor does not claim one stock will rise. It claims the names it ranks highly will outperform the names it ranks poorly. This measures exactly that, across ${data.universe.symbols.length} names and ${data.window.observation_dates} observation dates, using only information that was knowable on each date.`}
+        actions={
+          <>
+            <label htmlFor="lab-universe" className="visually-hidden">Universe to evaluate</label>
+            <select id="lab-universe" className="input" value={universe}
+                    onChange={(event) => setUniverse(event.target.value)}>
               <option value="dev">dev (5 names)</option>
               <option value="mega30">mega30 (30 names)</option>
             </select>
-          </label>
-          <Stat label="Window" value={`${data.window.start} → ${data.window.end}`} />
-          <Stat label="Horizon" value={`${data.window.horizon_days} trading days`} />
-          <Stat label="Evaluable cells" value={data.window.evaluable_cells.toLocaleString()} />
-          <Stat label="Engine" value={data.engine_version} />
-        </div>
+          </>
+        }
+        meta={
+          <>
+            <span>{data.window.start} &rarr; {data.window.end}</span>
+            <span>{data.window.horizon_days}-day horizon</span>
+            <span>{data.window.evaluable_cells.toLocaleString()} evaluable cells</span>
+            <span>{data.engine_version}</span>
+          </>
+        }
+      />
 
-        <p className="body-copy" style={{ marginTop: 12, fontWeight: 500 }}>
-          {anySignificant
-            ? 'At least one factor clears |t| 2.0 after correcting for overlapping windows — read it against the multiple-comparison caveat below.'
-            : 'No factor clears |t| 2.0 after correcting for overlapping windows. On this sample there is no statistical evidence that these rankings predict forward returns.'}
-        </p>
-      </header>
+      <p className="lab-headline">
+        {anySignificant
+          ? 'At least one factor clears |t| 2.0 after correcting for overlapping windows — read it against the multiple-comparison caveat below.'
+          : 'No factor clears |t| 2.0 after correcting for overlapping windows. On this sample there is no statistical evidence that these rankings predict forward returns.'}
+      </p>
 
       <section className="panel" style={{ padding: '20px 22px' }} aria-label="Factor evidence">
         <h2 className="h-panel">Evidence, factor by factor</h2>

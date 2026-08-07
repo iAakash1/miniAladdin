@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
+import PageHeader from '@/components/ui/PageHeader'
 import EmptyState from '@/components/ui/EmptyState'
 import Skeleton from '@/components/ui/Skeleton'
 import { EDGE_LABELS } from '@/lib/knowledge'
@@ -66,22 +67,27 @@ export default function GraphExplorer() {
   const nodeId = params.get('node') || 'company:NVDA'
   const label = params.get('label') || ''
 
-  const [slice, setSlice] = useState<GraphSlice | null>(null)
-  const [loading, setLoading] = useState(true)
+  // Tagged with the node it describes, so `loading` is derived rather than
+  // held in its own state and flipped inside the effect body.
+  const [settled, setSettled] = useState<{ node: string; slice: GraphSlice | null } | null>(null)
+  const slice = settled?.node === nodeId ? settled.slice : null
+  const loading = settled === null || settled.node !== nodeId
   const [active, setActive] = useState(0)
   const [trail, setTrail] = useState<GraphNodeRef[]>([])
   const svgRef = useRef<SVGSVGElement>(null)
 
   useEffect(() => {
     let alive = true
-    setLoading(true)
+    // `setLoading(true)` used to run here, synchronously inside the effect
+    // body. Loading is now derived from whether the settled slice matches the
+    // node being asked for, which removes the cascading render and the stale
+    // response race in one move.
     fetch(`/api/graph/expand?node=${encodeURIComponent(nodeId)}&label=${encodeURIComponent(label)}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data: GraphSlice | null) => {
         if (!alive) return
-        setSlice(data)
+        setSettled({ node: nodeId, slice: data })
         setActive(0)
-        setLoading(false)
         if (data?.center) {
           setTrail((current) =>
             current.some((n) => n.id === data.center.id)
@@ -90,7 +96,7 @@ export default function GraphExplorer() {
           )
         }
       })
-      .catch(() => alive && setLoading(false))
+      .catch(() => { if (alive) setSettled({ node: nodeId, slice: null }) })
     return () => {
       alive = false
     }
@@ -105,7 +111,9 @@ export default function GraphExplorer() {
     [router],
   )
 
-  const edges = slice?.edges ?? []
+  // Memoised so the empty-array fallback is not a fresh identity each
+  // render, which would invalidate the layout memo below on every pass.
+  const edges = useMemo(() => slice?.edges ?? [], [slice])
 
   /* Deterministic radial layout, grouped by relationship so related
      neighbours sit together rather than scattering. */
@@ -143,12 +151,11 @@ export default function GraphExplorer() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div>
-        <h2 className="h-panel" style={{ fontSize: '1rem', marginBottom: 6 }}>Knowledge graph</h2>
-        <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', maxWidth: '78ch', lineHeight: 1.6 }}>
-          Every entity OmniSignal knows about, and how they connect. Select any node to re-center —
-          companies, executives, products and industries are all valid starting points. Relationships
-          come from SEC filings and Wikidata; nothing here is inferred.
-        </p>
+        <PageHeader
+          eyebrow="Workspace"
+          title="Graph explorer"
+          lede="Every entity OmniSignal knows about, and how they connect. Select any node to re-center — companies, executives, products and industries are all valid starting points. Relationships come from SEC filings and Wikidata; nothing here is inferred."
+        />
       </div>
 
       {/* Breadcrumb trail: exploration history, always reversible. */}

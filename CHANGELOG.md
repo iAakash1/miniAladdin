@@ -6,6 +6,53 @@ test that has been shown capable of failing.
 
 ## V15 — research platform (in progress)
 
+### Craftsmanship: one page header, zero lint errors
+
+- **`PageHeader`** replaces six hand-rolled page headers. Three of them
+  repeated the identical `style={{ fontSize: '1rem', marginBottom: 6 }}`
+  override verbatim — the tell that the token was wrong, not the usage — and
+  several routes opened at `<h2>`, shipping **with no `<h1>` at all**. Line
+  length, type scale and heading level are now decided once.
+- Applied to Validation, Vault, Methodology, Workspace, Factor Lab, Graph
+  workspace and Graph explorer. Dead `.ws-head` rules deleted.
+- **Frontend lint is clean for the first time.** Four pre-existing errors
+  fixed rather than tolerated, all the same class of bug:
+  - `CompanyEcosystem`, `GraphExplorer`: `setState` in an effect body →
+    settled-result-tagged-by-key, so loading is *derived* and a stale
+    response for a previous ticker/node can no longer overwrite the current
+    one. Same pattern already used in `FactorLabView`.
+  - `company/[ticker]`: ticker validity is derived from the URL, not fetched,
+    so it is computed during render; the quota write is deferred.
+  - `CommandPalette`: reset-on-open now adjusts during render against the
+    previous value (React's documented pattern) instead of writing state from
+    an effect — one less render pass and no frame of stale query. A counter
+    mutated during render is now derived, which matters under concurrent
+    rendering.
+
+### Product: market map, workspace, and Factor Lab states
+
+Three UI rebuilds, none of them incremental.
+
+- **Market map** replaces the breadth panel. Reorganised around the *market*
+  rather than a score: eleven sectors each drawn as 90 sessions of real
+  rebased price action, with breadth as the left-hand read. The first rebuild
+  of this panel was too conservative — before and after were hard to tell
+  apart — so it was rebuilt again from a different question.
+- Sector price history is real and free: recomputed from the same series the
+  panel already fetched, rebased to 100 so eleven instruments trading between
+  $30 and $250 share a scale.
+- **Workspace** rebuilt around the work. Sessions already stored pins,
+  collections, snapshots, notes and an activity log; **none of it was ever
+  surfaced**. Cards now render that substance, the most recent investigation
+  gets a full-width resume rail, and search shows matched note text with the
+  term highlighted rather than listing that a match exists.
+- **Factor Lab loading and errors.** A cold build takes 30-60s and used to
+  show a bare skeleton; it now narrates the real pipeline stage by stage and
+  labels its own timings as estimated, not live. Failures no longer expose
+  backend strings — the three known causes each get an explanation and a
+  next step (a too-small universe offers to switch to mega30).
+- Deleted `heatIntensity` and its tests, dead after the rewrite.
+
 ### Point-in-time fundamentals from SEC XBRL
 
 `SECVendor.get_xbrl_timeline` + `src/panel/fundamentals.py`: every filed

@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { TYPE_LABELS, groupByType, type Entity } from '@/lib/intelligence/entities'
 import { registerDefaultProviders } from '@/lib/intelligence/providers'
@@ -43,15 +43,29 @@ export default function CommandPalette() {
     }
   }, [])
 
-  /* Query the registry on every keystroke; empty query shows recents. */
-  useEffect(() => {
-    if (!open) return
-    if (!query.trim()) {
-      setResults(readRecents())
-      setSettled(true)
+  /* Opening the palette resets it. React's documented way to reset state
+     when a prop changes is to adjust during render against the previous
+     value — not to write state from an effect, which costs an extra render
+     pass and shows one frame of the old query. */
+  const [wasOpen, setWasOpen] = useState(open)
+  if (open !== wasOpen) {
+    setWasOpen(open)
+    if (open) {
+      setQuery('')
       setActive(0)
-      return
+      setSettled(true)
     }
+  }
+
+  useEffect(() => {
+    if (open) queueMicrotask(() => inputRef.current?.focus())
+  }, [open])
+
+  /* Query the registry on every keystroke. An empty query is *derived* —
+     recents are already in hand, so fetching them through state would be a
+     round trip to produce a value we can read directly. */
+  useEffect(() => {
+    if (!open || !query.trim()) return
     queryIntelligence(query, readRecents().map((e) => e.id), ({ scored, settled: done }) => {
       setResults(scored.map((s) => s.entity))
       setSettled(done)
@@ -59,14 +73,13 @@ export default function CommandPalette() {
     })
   }, [query, open])
 
-  useEffect(() => {
-    if (open) {
-      setQuery('')
-      setResults(readRecents())
-      setActive(0)
-      queueMicrotask(() => inputRef.current?.focus())
-    }
-  }, [open])
+  // Recents are read directly rather than pushed through state: they are
+  // already in hand, so routing them through a setState would be a render
+  // pass spent producing a value we can compute here.
+  const shown = useMemo(
+    () => (query.trim() ? results : readRecents()),
+    [query, results],
+  )
 
   const openEntity = useCallback(
     (entity: Entity) => {
@@ -101,8 +114,7 @@ export default function CommandPalette() {
 
   if (!open) return null
 
-  const groups = groupByType(results.map((entity) => ({ entity, score: 0 })))
-  let flatIndex = -1
+  const groups = groupByType(shown.map((entity) => ({ entity, score: 0 })))
 
   return (
     <div
@@ -130,9 +142,9 @@ export default function CommandPalette() {
         <input
           ref={inputRef}
           role="combobox"
-          aria-expanded={results.length > 0}
+          aria-expanded={shown.length > 0}
           aria-controls="palette-results"
-          aria-activedescendant={results[active] ? `palette-${active}` : undefined}
+          aria-activedescendant={shown[active] ? `palette-${active}` : undefined}
           className="input"
           placeholder="Search companies, research, watchlists, concepts…"
           value={query}
@@ -141,19 +153,23 @@ export default function CommandPalette() {
           style={{ height: 48, border: 'none', borderBottom: '1px solid var(--line)', borderRadius: 0, background: 'transparent', fontSize: '0.9375rem' }}
         />
         <div id="palette-results" role="listbox" ref={listRef} style={{ maxHeight: '52vh', overflowY: 'auto', padding: 6 }}>
-          {results.length === 0 && (
+          {shown.length === 0 && (
             <p style={{ padding: '18px 14px', fontSize: '0.8125rem', color: 'var(--faint)' }}>
               {query.trim()
                 ? settled ? 'Nothing matches — try a ticker, a page, or a concept.' : 'Searching…'
                 : 'Type to search. Recent destinations appear here as you use the terminal.'}
             </p>
           )}
-          {groups.map((group) => (
+          {groups.map((group, groupIndex) => (
             <div key={group.type}>
               <p className="label" style={{ padding: '8px 10px 4px', fontSize: '0.625rem' }}>{group.label}</p>
-              {group.items.map((entity) => {
-                flatIndex += 1
-                const index = flatIndex
+              {group.items.map((entity, itemIndex) => {
+                // Derived, not accumulated. A counter mutated during render
+                // produces a different result on a re-render that starts
+                // mid-tree, which is exactly what concurrent React does.
+                const index = groups
+                  .slice(0, groupIndex)
+                  .reduce((total, g) => total + g.items.length, 0) + itemIndex + 1
                 return (
                   <button
                     key={entity.id}

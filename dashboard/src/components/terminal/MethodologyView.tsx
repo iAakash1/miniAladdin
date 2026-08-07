@@ -1,6 +1,7 @@
 'use client'
 
 import Section from '@/components/ui/Section'
+import PageHeader from '@/components/ui/PageHeader'
 import MetricExplainer from './MetricExplainer'
 import { FACTOR_GLOSSARY, FACTOR_FAMILY, FAMILY_TITLES, type FactorFamily, type FactorKey } from '@/lib/factorGlossary'
 
@@ -249,11 +250,11 @@ export default function MethodologyView() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       <div>
-        <h2 className="h-panel" style={{ fontSize: '1rem', marginBottom: 6 }}>Methodology</h2>
-        <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', maxWidth: '78ch', lineHeight: 1.6 }}>
-          What OmniSignal actually computes, where every number comes from, and where it stops —
-          in the same amount of detail a research desk would expect before trusting a signal.
-        </p>
+        <PageHeader
+          eyebrow="Learn"
+          title="Methodology"
+          lede="What OmniSignal actually computes, where every number comes from, and where it stops — in the same amount of detail a research desk would expect before trusting a signal."
+        />
       </div>
 
       <Section id="meth-architecture" title="Overall architecture" defaultOpen>

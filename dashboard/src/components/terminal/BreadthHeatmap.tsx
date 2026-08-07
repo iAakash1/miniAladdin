@@ -1,101 +1,278 @@
 'use client'
 
-import Tooltip from '@/components/ui/Tooltip'
-import { type Breadth, heatIntensity, type SectorRow } from '@/lib/dashboardInsights'
+/**
+ * Market map — the whole market on one screen.
+ *
+ * Rebuilt a second time, because the first rebuild was too polite: it kept
+ * the original panel's shape and improved it, which meant the before and
+ * after were hard to tell apart. This one starts from a different question.
+ *
+ * The old panel asked "what is the breadth score?" and arranged everything
+ * around a number. This one asks **"what is the market doing?"** and
+ * arranges everything around eleven sectors, each drawn as ninety days of
+ * real price action. The breadth score becomes the left-hand read on that
+ * map rather than its subject.
+ *
+ * Three decisions worth stating:
+ *
+ * **Sparklines per sector, on a shared rebased scale.** Every sector is
+ * rebased to 100 at the start of the window, so eleven instruments trading
+ * between $30 and $250 become directly comparable. A number tells you where
+ * a sector ended; the line tells you how it got there, and those are
+ * different facts — a sector up 4% in a straight line and one up 4% after a
+ * 12% round trip are not the same market.
+ *
+ * **Colour is reserved for meaning.** Sectors are drawn in ink; red and
+ * green mark only the sign of a move and the active row. Eleven saturated
+ * blocks compete with each other and nothing reads as important, so
+ * typography and position carry the hierarchy instead.
+ *
+ * **Everything is real.** Breadth history and sector paths are recomputed
+ * from the same price series the panel already fetched — no fabricated
+ * trend, no placeholder series, no smoothing that invents shape.
+ */
 
-function SectorTile({ sector, isLeader, isLaggard }: { sector: SectorRow; isLeader: boolean; isLaggard: boolean }) {
-  const value = sector.strength_21d
-  const positive = (value ?? 0) >= 0
-  const intensity = heatIntensity(value)
-  const background = value === null
-    ? 'var(--surface-2)'
-    : `color-mix(in srgb, ${positive ? 'var(--pos)' : 'var(--neg)'} ${intensity}%, var(--surface))`
-  const changeText = value !== null ? `${value > 0 ? '+' : ''}${value}%` : '—'
-  const momentumText = sector.momentum_63d !== null
-    ? `${sector.momentum_63d > 0 ? '+' : ''}${sector.momentum_63d}%` : '—'
+import { useMemo, useState } from 'react'
+import Tooltip from '@/components/ui/Tooltip'
+import { type Breadth, type SectorRow } from '@/lib/dashboardInsights'
+
+/* ── interpretation ───────────────────────────────────────────────────────── */
+
+export interface Verdict {
+  headline: string
+  detail: string
+  tone: 'pos' | 'warn' | 'neg' | 'neutral'
+}
+
+/** The score alone is a number. This is what it means. */
+export function readScore(score: number | null, positive21: number, count: number): Verdict {
+  if (score === null) {
+    return { headline: 'Unavailable', detail: 'Sector data did not load.', tone: 'neutral' }
+  }
+  const shortTerm = count > 0 ? (positive21 / count) * 100 : 0
+  const narrowing = score >= 60 && shortTerm < score - 25
+
+  if (narrowing) {
+    return {
+      headline: 'Narrowing',
+      detail: `${score}% hold their 50-day average but only ${Math.round(shortTerm)}% are positive over 21 days — leadership is thinning.`,
+      tone: 'warn',
+    }
+  }
+  if (score >= 80) {
+    return {
+      headline: 'Broad participation',
+      detail: 'Nearly every sector is above its 50-day average. Rallies this wide are rarely driven by a single theme.',
+      tone: 'pos',
+    }
+  }
+  if (score >= 60) {
+    return { headline: 'Healthy', detail: 'A clear majority of sectors are trending above their 50-day average.', tone: 'pos' }
+  }
+  if (score >= 40) {
+    return { headline: 'Mixed', detail: 'Sectors are split. Moves here tend to be rotation rather than direction.', tone: 'neutral' }
+  }
+  if (score >= 20) {
+    return { headline: 'Narrow', detail: 'Most sectors are below their 50-day average. Index strength, if any, rests on few names.', tone: 'warn' }
+  }
+  return { headline: 'Broad weakness', detail: 'Participation has collapsed across almost every sector.', tone: 'neg' }
+}
+
+const TONE: Record<Verdict['tone'], string> = {
+  pos: 'var(--pos)', warn: 'var(--warn)', neg: 'var(--neg)', neutral: 'var(--muted)',
+}
+
+const signed = (v: number | null, digits = 1) =>
+  v === null ? '—' : `${v > 0 ? '+' : ''}${v.toFixed(digits)}%`
+
+/* ── the read: score, verdict, trend ──────────────────────────────────────── */
+
+function BreadthRead({ breadth, verdict, positive21, positive63, total }: {
+  breadth: Breadth; verdict: Verdict
+  positive21: number; positive63: number; total: number
+}) {
+  const history = useMemo(() => breadth.history ?? [], [breadth.history])
+  const score = breadth.breadth_score
+
+  const path = useMemo(() => {
+    if (history.length < 8) return null
+    const w = 260, h = 58
+    const x = (i: number) => (i / (history.length - 1)) * w
+    const y = (s: number) => h - (s / 100) * h
+    const line = history.map((p, i) => `${x(i)},${y(p.score)}`).join(' ')
+    return { w, h, line, area: `${x(0)},${h} ${line} ${x(history.length - 1)},${h}`, y50: y(50) }
+  }, [history])
+
+  const change = history.length > 1 ? history[history.length - 1].score - history[0].score : null
 
   return (
-    <div
-      className="sector-tile"
-      style={{ background }}
-      tabIndex={0}
-      role="group"
-      aria-label={`${sector.name}: ${changeText} over 21 days, verdict ${sector.verdict}`}
-      title={`${sector.name} (${sector.symbol}) · 21d ${changeText} · 63d ${momentumText} · vol ${sector.volatility}% · ${sector.verdict}`}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <span style={{ fontSize: '0.6875rem', fontWeight: 600 }}>{sector.symbol}</span>
-        {(isLeader || isLaggard) && (
-          <span className="label" style={{ fontSize: '0.625rem' }}>{isLeader ? 'Leader' : 'Laggard'}</span>
-        )}
+    <div className="mm-read">
+      <div className="mm-read__score">
+        <span className="mm-read__number" style={{ color: TONE[verdict.tone] }}>{score ?? '—'}</span>
+        <span className="mm-read__unit">/ 100<br />breadth</span>
       </div>
-      <span className="num" style={{ fontSize: '0.875rem', fontWeight: 650, color: positive ? 'var(--pos)' : 'var(--neg)' }}>
-        {changeText}
-      </span>
-      <span style={{ fontSize: '0.625rem', color: 'var(--muted)' }}>{sector.name}</span>
+
+      <span className="mm-read__verdict">{verdict.headline}</span>
+      <p className="mm-read__detail">{verdict.detail}</p>
+
+      {path && (
+        <div className="mm-read__trend">
+          <svg viewBox={`0 0 ${path.w} ${path.h}`} width="100%" height={58}
+               preserveAspectRatio="none" role="img"
+               aria-label={`Breadth over ${history.length} trading days, ${history[0].score} to ${history[history.length - 1].score}`}>
+            <line x1="0" y1={path.y50} x2={path.w} y2={path.y50}
+                  stroke="var(--line)" strokeWidth="1" strokeDasharray="2 4" />
+            <polygon points={path.area} fill={TONE[verdict.tone]} opacity="0.09" />
+            <polyline points={path.line} fill="none" stroke={TONE[verdict.tone]}
+                      strokeWidth="1.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
+          </svg>
+          <div className="mm-read__trendfoot">
+            <span>{history.length} sessions</span>
+            <span style={{ color: change !== null && change >= 0 ? 'var(--pos)' : 'var(--neg)' }}>
+              {change !== null ? `${change >= 0 ? '+' : ''}${change} pts` : ''}
+            </span>
+          </div>
+        </div>
+      )}
+
+      <dl className="mm-read__stats">
+        {([
+          ['Above 50-day', breadth.sectors_above_50d, breadth.sector_count],
+          ['Up 21 days', positive21, total],
+          ['Up 63 days', positive63, total],
+        ] as const).map(([label, n, d]) => (
+          <div key={label} className="mm-read__stat">
+            <dt>{label}</dt>
+            <dd><strong>{n}</strong><span>/{d}</span></dd>
+          </div>
+        ))}
+      </dl>
     </div>
   )
 }
 
-/**
- * Market breadth as an actual visual — an 11-tile sector heatmap (color =
- * 21-day strength) instead of the old plain data table, plus index quotes
- * and the leadership/laggard read. Replaces the previous BreadthSection +
- * SectorsSection pair: the two communicated almost the same thing, so
- * they're merged into one section per the redesign brief.
- */
-export default function BreadthHeatmap({ breadth, sectors }: { breadth: Breadth; sectors: SectorRow[] }) {
+/* ── the map: eleven sectors, ninety days each ────────────────────────────── */
+
+function Spark({ points, positive, active }: {
+  points: number[]; positive: boolean; active: boolean
+}) {
+  if (points.length < 4) return <span className="mm-spark" aria-hidden />
+  const w = 140, h = 26
+  const lo = Math.min(...points)
+  const hi = Math.max(...points)
+  const span = hi - lo || 1
+  const y = (v: number) => h - ((v - lo) / span) * (h - 5) - 2.5
+  const d = points.map((v, i) => `${(i / (points.length - 1)) * w},${y(v)}`).join(' ')
+
   return (
-    <section aria-labelledby="breadth-h" className="card dash-breadth">
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
-        <span id="breadth-h" className="h-panel" style={{ fontSize: '0.9375rem', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
-          Market breadth
-          <Tooltip label="Why breadth matters">{breadth.explain}</Tooltip>
-        </span>
-        {breadth.breadth_score !== null && (
-          <span className="num" style={{ fontSize: '0.8125rem', color: 'var(--muted)' }}>
-            <strong style={{ fontSize: '1.125rem', color: 'var(--text)' }}>{breadth.breadth_score}</strong>
-            <span style={{ fontSize: '0.6875rem' }}> /100 above 50-day</span>
-          </span>
-        )}
+    <svg className="mm-spark" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" aria-hidden>
+      <line x1="0" y1={y(points[0])} x2={w} y2={y(points[0])}
+            stroke="var(--line)" strokeWidth="0.75" strokeDasharray="2 3" />
+      <polyline points={d} fill="none" strokeWidth={active ? 2 : 1.25}
+                stroke={positive ? 'var(--pos)' : 'var(--neg)'}
+                vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function SectorMap({ sectors, active, onActive }: {
+  sectors: SectorRow[]; active: string | null; onActive: (s: string | null) => void
+}) {
+  const sorted = useMemo(
+    () => [...sectors].sort((a, b) => (b.strength_21d ?? -999) - (a.strength_21d ?? -999)),
+    [sectors],
+  )
+
+  return (
+    <div className="mm-map">
+      <div className="mm-map__head">
+        <span>Sector</span>
+        <span className="mm-map__sparkh">90 sessions, rebased</span>
+        <span className="mm-num">21d</span>
+        <span className="mm-num">63d</span>
+        <span className="mm-num">Vol</span>
+        <span className="mm-map__mah">50d</span>
       </div>
 
-      {breadth.indexes.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(14px, 3vw, 32px)', marginBottom: 18 }}>
-          {breadth.indexes.map((index) => (
-            <div key={index.symbol}>
-              <div className="label" style={{ fontSize: '0.625rem', marginBottom: 3 }}>{index.symbol}</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                <span className="num" style={{ fontSize: '0.9375rem', fontWeight: 600 }}>{index.price}</span>
-                {index.change_1d !== null && (
-                  <span className="num" style={{ fontSize: '0.6875rem', color: index.change_1d >= 0 ? 'var(--pos)' : 'var(--neg)' }}>
-                    {index.change_1d >= 0 ? '+' : ''}{index.change_1d}%
-                  </span>
-                )}
-              </div>
-            </div>
+      {sorted.map((s) => {
+        const up = (s.strength_21d ?? 0) >= 0
+        const isActive = active === s.symbol
+        return (
+          <div
+            key={s.symbol}
+            className={`mm-map__row${isActive ? ' is-active' : ''}`}
+            tabIndex={0}
+            onMouseEnter={() => onActive(s.symbol)}
+            onMouseLeave={() => onActive(null)}
+            onFocus={() => onActive(s.symbol)}
+            onBlur={() => onActive(null)}
+            aria-label={`${s.name}, ${signed(s.strength_21d)} over 21 days, ${s.above_50d ? 'above' : 'below'} its 50-day average, verdict ${s.verdict}`}
+          >
+            <span className="mm-map__name">
+              <span className="mm-map__symbol">{s.symbol}</span>
+              <span className="mm-map__label">{s.name}</span>
+            </span>
+            <span className="mm-map__sparkcell">
+              <Spark points={s.history ?? []} positive={up} active={isActive} />
+            </span>
+            <span className="mm-num mm-map__lead" style={{ color: up ? 'var(--pos)' : 'var(--neg)' }}>
+              {signed(s.strength_21d)}
+            </span>
+            <span className="mm-num mm-map__muted">{signed(s.momentum_63d)}</span>
+            <span className="mm-num mm-map__muted">{s.volatility.toFixed(0)}%</span>
+            <span className={`mm-map__ma${s.above_50d ? ' is-above' : ''}`}>
+              {s.above_50d ? 'above' : 'below'}
+            </span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+/* ── panel ────────────────────────────────────────────────────────────────── */
+
+export default function BreadthHeatmap({ breadth, sectors }: {
+  breadth: Breadth; sectors: SectorRow[]
+}) {
+  const [active, setActive] = useState<string | null>(null)
+
+  const positive21 = sectors.filter((s) => (s.strength_21d ?? 0) > 0).length
+  const positive63 = sectors.filter((s) => (s.momentum_63d ?? 0) > 0).length
+  const verdict = readScore(breadth.breadth_score, positive21, sectors.length)
+
+  return (
+    <section aria-labelledby="mm-h" className="market-map">
+      <header className="mm-head">
+        <div className="mm-head__id">
+          <span id="mm-h" className="mm-head__title">
+            Market map
+            <Tooltip label="How breadth is measured">{breadth.explain}</Tooltip>
+          </span>
+          <span className="mm-head__sub">{sectors.length} sectors · 90 sessions · rebased to 100</span>
+        </div>
+        <div className="mm-tape">
+          {breadth.indexes.map((i) => (
+            <span key={i.symbol} className="mm-tape__item">
+              <span className="mm-tape__sym">{i.symbol}</span>
+              <span className="mm-tape__px">{i.price}</span>
+              {i.change_1d !== null && (
+                <span style={{ color: i.change_1d >= 0 ? 'var(--pos)' : 'var(--neg)' }}>
+                  {signed(i.change_1d, 2)}
+                </span>
+              )}
+            </span>
           ))}
         </div>
-      )}
+      </header>
 
-      {sectors.length > 0 && (
-        <div className="sector-heatmap" role="list" aria-label="Sector performance, 21-day strength">
-          {sectors.map((sector) => (
-            <SectorTile
-              key={sector.symbol}
-              sector={sector}
-              isLeader={breadth.leadership === sector.name}
-              isLaggard={breadth.laggard === sector.name}
-            />
-          ))}
-        </div>
-      )}
-
-      {breadth.leadership && (
-        <p style={{ fontSize: '0.6875rem', color: 'var(--faint)', marginTop: 14 }}>
-          Leading: {breadth.leadership} · Lagging: {breadth.laggard}
-        </p>
-      )}
+      <div className="mm-body">
+        <BreadthRead breadth={breadth} verdict={verdict}
+                     positive21={positive21} positive63={positive63} total={sectors.length} />
+        {sectors.length > 0
+          ? <SectorMap sectors={sectors} active={active} onActive={setActive} />
+          : <p className="mm-read__detail">Sector data did not load.</p>}
+      </div>
     </section>
   )
 }

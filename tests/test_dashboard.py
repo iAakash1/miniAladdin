@@ -118,3 +118,58 @@ class TestAssemblyCache:
         assert first["cached"] is False
         assert second["cached"] is True
         assert first["macro"]["regime"]["risk_multiplier"] == 1.0
+
+
+# ── breadth history ──────────────────────────────────────────────────────────
+
+def test_breadth_history_is_computed_from_the_sector_series():
+    """Real history from prices already in hand — no persistence, available
+    in full on the first request rather than accumulating over weeks."""
+    from src.services.dashboard_service import HISTORY_DAYS, _breadth_history
+
+    dates = [f"2025-{1 + i // 28:02d}-{1 + i % 28:02d}" for i in range(200)]
+    rising = [{"_closes": [(d, 100.0 + i) for i, d in enumerate(dates)]}]
+    falling = [{"_closes": [(d, 300.0 - i) for i, d in enumerate(dates)]}]
+
+    assert all(p["score"] == 100 for p in _breadth_history(rising))
+    assert all(p["score"] == 0 for p in _breadth_history(falling))
+
+
+def test_breadth_history_is_capped_and_ordered():
+    from src.services.dashboard_service import HISTORY_DAYS, _breadth_history
+
+    dates = [f"2025-{1 + i // 28:02d}-{1 + i % 28:02d}" for i in range(300)]
+    rows = [{"_closes": [(d, 100.0 + i) for i, d in enumerate(dates)]}]
+    history = _breadth_history(rows)
+
+    assert len(history) <= HISTORY_DAYS
+    assert [p["date"] for p in history] == sorted(p["date"] for p in history)
+
+
+def test_breadth_history_mixes_sectors():
+    from src.services.dashboard_service import _breadth_history
+
+    dates = [f"2025-{1 + i // 28:02d}-{1 + i % 28:02d}" for i in range(120)]
+    rows = [
+        {"_closes": [(d, 100.0 + i) for i, d in enumerate(dates)]},
+        {"_closes": [(d, 300.0 - i) for i, d in enumerate(dates)]},
+    ]
+    assert all(p["score"] == 50 for p in _breadth_history(rows))
+
+
+def test_breadth_history_is_empty_without_enough_bars():
+    from src.services.dashboard_service import _breadth_history
+
+    short = [{"_closes": [(f"2025-01-{i + 1:02d}", 100.0) for i in range(20)]}]
+    assert _breadth_history(short) == []
+    assert _breadth_history([]) == []
+    assert _breadth_history([{}]) == []
+
+
+def test_internal_close_series_never_reaches_the_response():
+    """`_closes` is a computation detail; leaking it would bloat every payload."""
+    from src.services import dashboard_service as ds
+
+    ds.reset_for_tests()
+    payload = ds.get_dashboard()
+    assert all("_closes" not in row for row in payload["sectors"])

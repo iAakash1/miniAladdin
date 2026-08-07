@@ -228,6 +228,10 @@ def _sector_row(symbol: str, name: str) -> Optional[dict[str, Any]]:
         "above_50d": price > ma50,
         "verdict": map_verdict(max(-0.99, min(0.99, composite))).value,
         "source": result.source,
+        # Retained for `_breadth_history`, stripped before the response.
+        # The series is already in hand; recomputing breadth for past dates
+        # from it costs nothing and needs no persistence layer.
+        "_closes": [(bar.date, bar.close) for bar in bars],
     }
 
 
@@ -245,6 +249,56 @@ def _index_row(symbol: str) -> Optional[dict[str, Any]]:
     }
 
 
+#: Trading days of breadth history returned. ~4.5 months — long enough to
+#: show a regime change, short enough that every sector ETF has the 50 prior
+#: bars each point needs.
+HISTORY_DAYS = 90
+
+
+def _breadth_history(sectors: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Breadth score for each of the last `HISTORY_DAYS` trading days.
+
+    Real history, not a stored snapshot. Each sector's daily closes are
+    already fetched for the current reading, so the share of sectors above
+    their own 50-day average on any past date is derivable immediately —
+    no persistence, no waiting for data to accumulate, no extra vendor call.
+
+    Each point uses only the 50 closes preceding it, so a date's score is
+    what it would have been on that date rather than a value computed with
+    hindsight.
+    """
+    series = [row["_closes"] for row in sectors if row.get("_closes")]
+    if not series:
+        return []
+
+    # Align on dates every sector actually traded; ETFs share a calendar, so
+    # this drops nothing in practice and guards against a vendor gap.
+    common = set.intersection(*(set(date for date, _ in rows) for rows in series))
+    if len(common) < 51:
+        return []
+    dates = sorted(common)[-(HISTORY_DAYS + 50):]
+
+    lookup = [{date: close for date, close in rows} for rows in series]
+    history: list[dict[str, Any]] = []
+    for index in range(50, len(dates)):
+        window = dates[index - 50:index + 1]
+        above = 0
+        counted = 0
+        for closes in lookup:
+            values = [closes[day] for day in window if day in closes]
+            if len(values) < 51:
+                continue
+            counted += 1
+            if values[-1] > sum(values[-51:-1]) / 50:
+                above += 1
+        if counted:
+            history.append({
+                "date": dates[index],
+                "score": round(above / counted * 100),
+            })
+    return history[-HISTORY_DAYS:]
+
+
 def _breadth_and_sectors() -> tuple[dict[str, Any], list[dict[str, Any]]]:
     sectors = _gather(
         lambda pair: _sector_row(*pair), SECTOR_ETFS, "sectors", lambda pair: pair[0]
@@ -253,6 +307,19 @@ def _breadth_and_sectors() -> tuple[dict[str, Any], list[dict[str, Any]]]:
 
     indexes = _gather(_index_row, INDEX_TICKERS, "indexes", lambda symbol: symbol)
 
+    history = _breadth_history(sectors)
+    for row in sectors:
+        closes = row.pop("_closes", None) or []
+        # 90 trading days of closes, rebased to 100 at the start so eleven
+        # sectors trading between $30 and $250 render on one shared scale.
+        # Already fetched for the strength calculation; sending it turns the
+        # sector list from static numbers into an actual market map.
+        tail = [close for _, close in closes[-HISTORY_DAYS:]]
+        row["history"] = (
+            [round(close / tail[0] * 100, 2) for close in tail]
+            if tail and tail[0] else []
+        )
+
     above = sum(1 for row in sectors if row["above_50d"])
     breadth_score = round(above / len(sectors) * 100) if sectors else None
     breadth = {
@@ -260,9 +327,14 @@ def _breadth_and_sectors() -> tuple[dict[str, Any], list[dict[str, Any]]]:
         "sectors_above_50d": above,
         "sector_count": len(sectors),
         "breadth_score": breadth_score,
+        # Real history, recomputed from the same price series — not a stored
+        # snapshot, so it is available in full on the very first request.
+        "history": history,
         "explain": "Breadth score = share of the 11 SPDR sector ETFs above their 50-day "
                    "average. Advance/decline counts and put/call ratios have no free "
-                   "data source, so this computable proxy is used instead of fake numbers.",
+                   "data source, so this computable proxy is used instead of fake numbers. "
+                   "History is recomputed from each sector's own price series, so every "
+                   "past point uses only the 50 closes preceding it.",
         "leadership": sectors[0]["name"] if sectors else None,
         "laggard": sectors[-1]["name"] if sectors else None,
     }

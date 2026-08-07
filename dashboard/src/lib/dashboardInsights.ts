@@ -42,8 +42,14 @@ export interface IndexQuote {
   change_1w: number | null
 }
 
+export interface BreadthPoint {
+  date: string
+  score: number
+}
+
 export interface Breadth {
   indexes: IndexQuote[]
+  history: BreadthPoint[]
   sectors_above_50d: number
   sector_count: number
   breadth_score: number | null
@@ -61,6 +67,9 @@ export interface SectorRow {
   volatility: number
   above_50d: boolean
   verdict: string
+  /** 90 sessions of closes rebased to 100 at the window start, so eleven
+   *  sectors trading at very different prices share one scale. */
+  history: number[]
 }
 
 export interface EventRow {
@@ -321,23 +330,6 @@ export function groupMacroCards(cards: MacroCard[]): Record<MacroGroupId, MacroC
   }
   return groups
 }
-
-/* ── Sector heatmap intensity ──────────────────────────────────────────────── */
-
-const HEAT_FLOOR_PCT = 6
-const HEAT_RANGE_PCT = 32
-
-/** Maps a 21-day strength reading to a 0-100 color-mix strength for
- * heatmap tiles, capped so a single outlier sector doesn't wash out the
- * rest, and floored so even a flat sector still reads as colored. Kept in
- * the 6-38% band deliberately — the same order of magnitude as the
- * existing --pos-wash/--neg-wash tokens — so tile text never loses
- * contrast against its own background. */
-export function heatIntensity(value: number | null, capPct = 15): number {
-  if (value === null) return 0
-  return HEAT_FLOOR_PCT + Math.round(Math.min(Math.abs(value) / capPct, 1) * HEAT_RANGE_PCT)
-}
-
 /* ── Events timeline bucketing ─────────────────────────────────────────────── */
 
 export function eventBucket(daysAway: number): 'Today' | 'Tomorrow' | 'This week' | 'Later' {

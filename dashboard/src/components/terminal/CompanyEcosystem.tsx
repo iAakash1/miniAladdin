@@ -19,15 +19,19 @@ const TONE_COLOR = { pos: 'var(--pos)', neg: 'var(--neg)', neutral: 'var(--muted
  * anything to say.
  */
 export default function CompanyEcosystem({ ticker }: { ticker: string }) {
-  const [state, setState] = useState<{ status: 'loading' } | { status: 'ready'; data: CompanyKnowledge | null }>({
-    status: 'loading',
-  })
+  // Settled result tagged with the ticker it describes. Loading is derived
+  // from that tag rather than flipped at the top of the effect: no
+  // synchronous setState during an effect body, and a slow response for a
+  // previous ticker cannot overwrite the current one.
+  const [settled, setSettled] = useState<{ ticker: string; data: CompanyKnowledge | null } | null>(null)
+  const state = settled === null || settled.ticker !== ticker
+    ? ({ status: 'loading' } as const)
+    : ({ status: 'ready', data: settled.data } as const)
 
   useEffect(() => {
     let alive = true
-    setState({ status: 'loading' })
     fetchKnowledge(ticker).then((data) => {
-      if (alive) setState({ status: 'ready', data })
+      if (alive) setSettled({ ticker, data })
     })
     return () => {
       alive = false

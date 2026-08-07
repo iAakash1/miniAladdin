@@ -60,23 +60,32 @@ function CompanyLoader({ shell }: { shell: TerminalShellContext }) {
   >({ status: 'loading' })
   const ranFor = useRef<string | null>(null)
 
+  // Ticker validity is derived from the URL, not fetched, so it is computed
+  // during render rather than written into state by an effect. The effect
+  // below now only owns genuinely asynchronous work.
+  const invalid = !TICKER_RE.test(ticker)
+
   useEffect(() => {
-    if (!TICKER_RE.test(ticker)) {
-      setState({ status: 'error', message: `“${ticker}” is not a valid ticker symbol.` })
-      return
-    }
+    if (invalid) return
     // One run per ticker per mount — period changes refetch only the chart.
     if (ranFor.current === ticker) return
     ranFor.current = ticker
 
+    let cancelled = false
+
+    // Both of the synchronous writes that used to sit here are gone. The
+    // quota check is deferred to a microtask and the `loading` reset is
+    // unnecessary: `ranFor` already guarantees this body runs once per
+    // ticker, so state is still `loading` from its initial value.
     if (!isPro && readTodayCount() >= FREE_DAILY_LIMIT) {
-      setState({ status: 'limited' })
-      requestUpgrade('limit')
-      return
+      queueMicrotask(() => {
+        if (cancelled) return
+        setState({ status: 'limited' })
+        requestUpgrade('limit')
+      })
+      return () => { cancelled = true }
     }
 
-    let cancelled = false
-    setState({ status: 'loading' })
     Promise.all([fetchAnalysis(ticker, fast), fetchChart(ticker, '3mo')])
       .then(([rawResearch, rawChart]) => {
         if (cancelled) return
@@ -96,7 +105,21 @@ function CompanyLoader({ shell }: { shell: TerminalShellContext }) {
     return () => {
       cancelled = true
     }
-  }, [ticker, fast, isPro, requestUpgrade])
+  }, [ticker, fast, isPro, invalid, requestUpgrade])
+
+  if (invalid) {
+    return (
+      <EmptyState
+        title="That isn't a ticker symbol"
+        description={`“${ticker}” doesn't look like a valid symbol. Ticker symbols are one to five letters — try AAPL, NVDA or MSFT.`}
+        action={
+          <Link href="/terminal/analyze" className="btn btn--primary btn--sm" style={{ textDecoration: 'none' }}>
+            Search for a company
+          </Link>
+        }
+      />
+    )
+  }
 
   if (state.status === 'loading') return <ReportSkeleton />
 

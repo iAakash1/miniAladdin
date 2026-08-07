@@ -49,6 +49,7 @@ function dashboardFixture(overrides: Partial<DashboardData> = {}): DashboardData
     },
     breadth: {
       indexes: [indexQuote({ symbol: 'SPY' }), indexQuote({ symbol: 'VIX', price: 15, change_1d: 0, change_1w: 0 })],
+      history: [],
       sectors_above_50d: 6, sector_count: 11, breadth_score: 55,
       explain: '', leadership: 'Technology', laggard: 'Utilities',
     },
