@@ -72,18 +72,37 @@ export default function TerminalShell({ loadingLabel, children }: TerminalShellP
     [],
   )
 
+  const shell: TerminalShellContext = { isPro, usedToday, requestUpgrade }
+
+  /* While Clerk resolves, the chrome renders anyway.
+   *
+   * The previous version returned a bare centred label on an otherwise empty
+   * page: no header, no navigation, no layout — which reads as a broken app
+   * rather than a loading one, and then janks as the full chrome pops in.
+   * The header does not depend on the session (macro data is public and the
+   * Pro badge simply resolves later), so it is rendered immediately and only
+   * the content column waits. That also removes the layout shift entirely,
+   * because the frame never changes. */
   if (!isLoaded) {
     return (
-      <div
-        style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-        aria-busy="true"
-      >
-        <span className="label">{loadingLabel}</span>
+      <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        <TerminalHeader macro={macro} isPro={false} usedToday={usedToday} onUpgrade={() => {}} />
+        <main
+          id="main"
+          style={{
+            flex: 1, width: '100%', maxWidth: 1200, margin: '0 auto',
+            padding: '28px clamp(16px, 3vw, 28px) 64px',
+          }}
+          aria-busy="true"
+        >
+          <div className="shell-boot">
+            <span className="shell-boot__dot" aria-hidden />
+            <span className="label">{loadingLabel}</span>
+          </div>
+        </main>
       </div>
     )
   }
-
-  const shell: TerminalShellContext = { isPro, usedToday, requestUpgrade }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>

@@ -115,20 +115,52 @@ export default function GraphExplorer() {
   // render, which would invalidate the layout memo below on every pass.
   const edges = useMemo(() => slice?.edges ?? [], [slice])
 
-  /* Deterministic radial layout, grouped by relationship so related
-     neighbours sit together rather than scattering. */
-  const positioned = useMemo(() => {
-    const count = edges.length || 1
-    return edges.map((edge, index) => {
-      const angle = (2 * Math.PI * index) / count - Math.PI / 2
-      // Alternate two radii so dense graphs stay legible without overlap.
-      const radius = RADIUS + (index % 2 === 0 ? 0 : 46)
-      return {
-        edge,
-        x: Math.cos(angle) * radius,
-        y: Math.sin(angle) * radius,
-      }
-    })
+  /* Radial layout **grouped by relationship type**, each type given its own
+     contiguous arc.
+   *
+   * The previous version claimed to group and did not: it walked `edges` in
+   * arrival order, so twenty-eight semantically distinct relationships —
+   * industry membership, exchange listing, ownership, location — were drawn
+   * as one undifferentiated starburst. Every edge looked the same, which is
+   * precisely what makes a graph read as "objects thrown onto a circle".
+   *
+   * The data was always semantic; only the picture was not. Grouping puts
+   * every industry link in one sector, every ownership link in another, so
+   * the shape itself carries the classification the sidebar was already
+   * reporting. */
+  const { positioned, groups } = useMemo(() => {
+    const buckets = new Map<string, typeof edges>()
+    for (const edge of edges) {
+      const key = edge.types[0] ?? 'related'
+      const bucket = buckets.get(key)
+      if (bucket) bucket.push(edge)
+      else buckets.set(key, [edge])
+    }
+    // Largest families first, so the dominant relationship reads at the top.
+    const ordered = [...buckets.entries()].sort((a, b) => b[1].length - a[1].length)
+    const total = edges.length || 1
+
+    // A gap between sectors is what makes the grouping visible at a glance;
+    // without it adjacent families merge back into one ring.
+    const GAP = 0.16
+    const usable = 2 * Math.PI - GAP * ordered.length
+
+    const laid: Array<{ edge: (typeof edges)[number]; x: number; y: number }> = []
+    const legend: Array<{ type: string; count: number; midAngle: number }> = []
+    let cursor = -Math.PI / 2
+
+    for (const [type, members] of ordered) {
+      const span = (members.length / total) * usable
+      members.forEach((edge, index) => {
+        // Centre each member in its own slot inside the sector.
+        const angle = cursor + (span * (index + 0.5)) / members.length
+        const radius = RADIUS + (index % 2 === 0 ? 0 : 46)
+        laid.push({ edge, x: Math.cos(angle) * radius, y: Math.sin(angle) * radius })
+      })
+      legend.push({ type, count: members.length, midAngle: cursor + span / 2 })
+      cursor += span + GAP
+    }
+    return { positioned: laid, groups: legend }
   }, [edges])
 
   const onKeyDown = (event: React.KeyboardEvent) => {
@@ -202,6 +234,29 @@ export default function GraphExplorer() {
               onKeyDown={onKeyDown}
               style={{ width: '100%', height: 'auto', maxHeight: 480, outline: 'none' }}
             >
+              {/* Sector labels — the grouping is only useful if it is named.
+                  Placed outside the node ring at each family's mid-angle. */}
+              {groups.length > 1 && groups.map((group) => {
+                const r = RADIUS + 96
+                const x = Math.cos(group.midAngle) * r
+                const y = Math.sin(group.midAngle) * r
+                return (
+                  <text
+                    key={`sector-${group.type}`}
+                    x={x} y={y}
+                    textAnchor={Math.abs(Math.cos(group.midAngle)) < 0.3
+                      ? 'middle'
+                      : Math.cos(group.midAngle) > 0 ? 'start' : 'end'}
+                    style={{
+                      fontSize: 9, letterSpacing: '0.08em', textTransform: 'uppercase',
+                      fill: 'var(--faint)',
+                    }}
+                  >
+                    {EDGE_LABELS[group.type] ?? group.type} ({group.count})
+                  </text>
+                )
+              })}
+
               {/* Edges first so nodes paint above them */}
               {positioned.map(({ edge, x, y }, index) => (
                 <line

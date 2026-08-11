@@ -128,3 +128,89 @@ def test_fast_mode_skips_sentiment_and_llm(client):
 
 def test_invalid_ticker_rejected(client):
     assert client.get("/api/research/WAYTOOLONGTICKER").status_code == 400
+
+
+# ── Factor Lab route contract ────────────────────────────────────────────────
+#
+# The Factor Lab returned 404 in the browser. The cause was not in this
+# repository's code at all: `/api/factors` is proxied to whatever
+# BACKEND_ORIGIN names, and the deployed backend was running a build that
+# predates the endpoint. These pin the contract so a genuine regression —
+# the route disappearing or being renamed — is caught here rather than in a
+# browser two deploys later.
+
+def test_factor_lab_routes_are_registered():
+    """The 404 seen in the browser must never originate from this app."""
+    from api.index import app
+
+    paths = {route.path for route in app.routes if hasattr(route, "path")}
+    assert "/api/factors" in paths
+    assert "/api/factors/universes" in paths
+
+
+def test_factor_lab_universes_endpoint_answers():
+    from fastapi.testclient import TestClient
+    from api.index import app
+
+    response = TestClient(app).get("/api/factors/universes")
+    assert response.status_code == 200
+    names = {row["name"] for row in response.json()["universes"]}
+    assert {"dev", "mega30"} <= names
+
+
+def test_factor_lab_rejects_an_unknown_universe_without_500():
+    """A bad universe is a 200 carrying an explanation, not a crash."""
+    from fastapi.testclient import TestClient
+    from api.index import app
+    from src.services import factor_lab_service
+
+    factor_lab_service.reset_for_tests()
+    response = TestClient(app).get("/api/factors", params={"universe": "not-a-universe"})
+    assert response.status_code == 200
+    payload = response.json()
+    assert "error" in payload
+    assert "universes" in payload
+
+
+def test_factor_lab_validates_query_bounds():
+    """Out-of-range params are refused by FastAPI, not passed to the panel."""
+    from fastapi.testclient import TestClient
+    from api.index import app
+
+    client = TestClient(app)
+    assert client.get("/api/factors", params={"years": 99}).status_code == 422
+    assert client.get("/api/factors", params={"horizon": 1}).status_code == 422
+
+
+def test_factor_lab_never_blocks_the_request():
+    """A cold build must not hold the HTTP request open.
+
+    Blocking for 30-60s is not a slow endpoint, it is a broken one: the dev
+    proxy gives up first and a serverless function times out. Observed
+    directly before this changed — the backend logged `200 in 44413ms` while
+    the browser reported a network failure.
+    """
+    import time
+    from fastapi.testclient import TestClient
+    from api.index import app
+    from src.services import factor_lab_service
+
+    factor_lab_service.reset_for_tests()
+    started = time.perf_counter()
+    response = TestClient(app).get("/api/factors", params={"universe": "mega30"})
+    elapsed = time.perf_counter() - started
+
+    assert response.status_code == 200
+    assert elapsed < 5.0, f"endpoint blocked for {elapsed:.1f}s"
+    payload = response.json()
+    assert payload["status"] in {"building", "ready"}
+    if payload["status"] == "building":
+        assert payload["stage"] in factor_lab_service.STAGES
+        assert payload["stage_index"] == 0
+
+
+def test_factor_lab_reports_stages_a_client_can_render():
+    from src.services import factor_lab_service
+
+    assert factor_lab_service.STAGES[0] == "prices"
+    assert len(factor_lab_service.STAGES) == 5

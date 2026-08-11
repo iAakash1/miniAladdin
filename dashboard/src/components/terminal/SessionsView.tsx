@@ -50,42 +50,52 @@ import {
 
 /* ── session substance ────────────────────────────────────────────────────── */
 
+/**
+ * An investigation's contents, kept *typed*.
+ *
+ * The previous version reduced everything to four counts, which made a note
+ * and a company indistinguishable — the exact flattening that made the old
+ * graph meaningless. A note is prose, a company is an entity, a snapshot is
+ * a saved state, and each is rendered as what it is.
+ */
 interface Substance {
-  pins: number
-  notes: number
-  snapshots: number
-  collections: number
-  symbols: string[]
-  lastAction: string | null
+  entities: string[]
+  notes: SessionNote[]
+  snapshots: Array<{ id: string; label: string; at: string }>
+  collections: Array<{ name: string; entity_ids: string[] }>
+  activity: Array<{ at: string; action: string; detail: string }>
+  thesis: string | null
 }
 
 function readSubstance(session: ResearchSession): Substance {
   const state = session.workspace_state
-  const activity = state?.activity ?? []
   return {
-    pins: state?.pinned?.length ?? 0,
-    notes: session.notes?.length ?? 0,
-    snapshots: state?.snapshots?.length ?? 0,
-    collections: state?.collections?.length ?? 0,
-    symbols: (state?.symbols ?? []).slice(0, 6),
-    lastAction: activity.length ? activity[activity.length - 1].detail : null,
+    entities: state?.symbols ?? [],
+    notes: session.notes ?? [],
+    snapshots: state?.snapshots ?? [],
+    collections: state?.collections ?? [],
+    activity: state?.activity ?? [],
+    // The first pinned note reads as the thesis: it is the thing the
+    // researcher chose to keep at the top of their own investigation.
+    thesis: (session.notes ?? []).find((n) => n.pinned)?.body ?? null,
   }
 }
 
 const EMPTY: Substance = {
-  pins: 0, notes: 0, snapshots: 0, collections: 0, symbols: [], lastAction: null,
+  entities: [], notes: [], snapshots: [], collections: [], activity: [], thesis: null,
 }
 
 function isEmpty(s: Substance) {
-  return s.pins + s.notes + s.snapshots + s.collections === 0 && s.symbols.length === 0
+  return s.entities.length + s.notes.length + s.snapshots.length + s.collections.length === 0
 }
 
+/** Counts, but each one links to the kind of thing it counts. */
 function Counts({ substance }: { substance: Substance }) {
   const entries = [
-    ['pin', substance.pins],
-    ['note', substance.notes],
-    ['snapshot', substance.snapshots],
-    ['collection', substance.collections],
+    ['entity', substance.entities.length],
+    ['note', substance.notes.length],
+    ['snapshot', substance.snapshots.length],
+    ['collection', substance.collections.length],
   ] as const
   const shown = entries.filter(([, n]) => n > 0)
   if (!shown.length) return null
@@ -104,8 +114,60 @@ function Symbols({ symbols }: { symbols: string[] }) {
   if (!symbols.length) return null
   return (
     <span className="ws-symbols">
-      {symbols.map((s) => <span key={s} className="ws-symbols__chip">{s}</span>)}
+      {symbols.slice(0, 6).map((s) => <span key={s} className="ws-symbols__chip">{s}</span>)}
+      {symbols.length > 6 && <span className="ws-symbols__more">+{symbols.length - 6}</span>}
     </span>
+  )
+}
+
+/* ── typed object rendering ───────────────────────────────────────────────── */
+
+/**
+ * A note looks like prose. A company looks like an entity. A snapshot looks
+ * like a saved state. Rendering all three as identical cards is what made
+ * the old workspace read as "arbitrary objects in a graph".
+ */
+function ThesisBlock({ thesis }: { thesis: string }) {
+  return (
+    <div className="ws-thesis">
+      <span className="ws-thesis__tag">Thesis</span>
+      <p className="ws-thesis__body">{thesis}</p>
+    </div>
+  )
+}
+
+function NoteList({ notes }: { notes: SessionNote[] }) {
+  if (!notes.length) return null
+  return (
+    <ul className="ws-notes">
+      {notes.slice(0, 3).map((note) => (
+        <li key={note.id} className="ws-note">
+          {note.pinned && <span className="ws-note__pin" aria-label="Pinned">◆</span>}
+          <span className="ws-note__body">{note.body.slice(0, 120)}</span>
+          {note.refs.length > 0 && (
+            <span className="ws-note__refs">
+              {note.refs.slice(0, 3).map((r) => r.label ?? r.id).join(' · ')}
+            </span>
+          )}
+        </li>
+      ))}
+      {notes.length > 3 && <li className="ws-note ws-note--more">+{notes.length - 3} more</li>}
+    </ul>
+  )
+}
+
+function ActivityTrail({ activity }: { activity: Substance['activity'] }) {
+  if (!activity.length) return null
+  return (
+    <ol className="ws-trail">
+      {activity.slice(-4).reverse().map((event, index) => (
+        <li key={`${event.at}-${index}`} className="ws-trail__item">
+          <span className="ws-trail__action">{event.action}</span>
+          <span className="ws-trail__detail">{event.detail}</span>
+          <span className="ws-trail__when">{timeAgo(event.at)}</span>
+        </li>
+      ))}
+    </ol>
   )
 }
 
@@ -264,14 +326,14 @@ export default function SessionsView() {
                 <span className="ws-resume__eyebrow">Continue where you left off</span>
                 <span className="ws-resume__title">{resume.title}</span>
                 {resume.description && <span className="ws-resume__desc">{resume.description}</span>}
-                <Symbols symbols={resumeSubstance.symbols} />
+                {resumeSubstance.thesis && <ThesisBlock thesis={resumeSubstance.thesis} />}
+                <Symbols symbols={resumeSubstance.entities} />
+                <NoteList notes={resumeSubstance.notes} />
                 <span className="ws-resume__foot">
                   <Counts substance={resumeSubstance} />
                   <span className="ws-resume__when">opened {timeAgo(resume.last_opened_at)}</span>
                 </span>
-                {resumeSubstance.lastAction && (
-                  <span className="ws-resume__last">Last: {resumeSubstance.lastAction}</span>
-                )}
+                <ActivityTrail activity={resumeSubstance.activity} />
               </Link>
 
               {rest.length > 0 && (
@@ -285,7 +347,7 @@ export default function SessionsView() {
                           <Link href={`/terminal/graph?session=${s.id}`} className="ws-card__link">
                             <span className="ws-card__title">{s.title}</span>
                             {s.description && <span className="ws-card__desc">{s.description}</span>}
-                            <Symbols symbols={substance.symbols} />
+                            <Symbols symbols={substance.entities} />
                             {isEmpty(substance)
                               ? <span className="ws-card__blank">Nothing captured yet — open it to begin.</span>
                               : <Counts substance={substance} />}

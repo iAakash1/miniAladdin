@@ -68,6 +68,35 @@ DEFAULT_HORIZON = 21
 _cache: dict[str, tuple[float, dict[str, Any]]] = {}
 _lock = threading.Lock()
 
+# ── build jobs ───────────────────────────────────────────────────────────────
+#
+# A cold build takes 30-60 s. Blocking an HTTP request for that long is not a
+# slow endpoint, it is a broken one: the Next.js dev proxy gives up first, and
+# a serverless deployment has a hard function timeout well below it. Observed
+# directly — the backend logged `200 in 44413ms` while the browser showed a
+# network failure.
+#
+# So the endpoint never blocks. It starts a background build, answers
+# immediately with the stage the build has actually reached, and the client
+# polls. That also makes the loader honest for the first time: the stages it
+# shows are reported by the process doing the work rather than estimated from
+# a timer.
+
+STAGES: tuple[str, ...] = (
+    "prices", "panel", "filings", "returns", "estimators",
+)
+
+_jobs: dict[str, dict[str, Any]] = {}
+_jobs_lock = threading.Lock()
+
+
+def _set_stage(key: str, stage: str) -> None:
+    with _jobs_lock:
+        job = _jobs.get(key)
+        if job is not None:
+            job["stage"] = stage
+            job["stage_index"] = STAGES.index(stage) if stage in STAGES else 0
+
 
 def available_universes() -> list[dict[str, Any]]:
     from src.panel.universe import available
@@ -83,38 +112,109 @@ def run(
     years: float = 2.5,
     horizon: int = DEFAULT_HORIZON,
 ) -> dict[str, Any]:
-    """Evaluate every price factor across a universe. Never raises."""
+    """Return the evaluation, or the progress of the build producing it.
+
+    Never blocks. A cached result comes back immediately; otherwise a
+    background build is started (or joined) and the current stage is
+    reported so the caller can poll.
+    """
+    # Validate before anything else. An unknown universe is knowable
+    # instantly, so backgrounding it would make the caller poll a job that was
+    # always going to fail — and would answer "building" to a question that
+    # already has an answer.
+    try:
+        Universe.named(universe_name)
+    except KeyError as exc:
+        return {
+            "status": "error",
+            "error": f"unknown universe: {exc}",
+            "universes": available_universes(),
+        }
+
     key = f"{universe_name}:{years}:{horizon}"
     now = time.time()
+
     with _lock:
         entry = _cache.get(key)
         if entry and entry[0] > now:
-            return {**entry[1], "cached": True}
+            return {**entry[1], "status": "ready", "cached": True}
 
-    try:
-        payload = _build(universe_name, years, horizon)
-    except KeyError as exc:
-        return {"error": f"unknown universe: {exc}", "universes": available_universes()}
-    except Exception:  # noqa: BLE001 — a research view must not 500 the app
-        logger.exception("factor lab failed for %s", universe_name)
-        return {"error": "factor evaluation failed; see server logs"}
+    with _jobs_lock:
+        job = _jobs.get(key)
+        if job is None or (job["done"] and job.get("failed")):
+            job = {
+                "started": now, "stage": STAGES[0], "stage_index": 0,
+                "done": False, "failed": False,
+            }
+            _jobs[key] = job
+            worker = threading.Thread(
+                target=_run_job, args=(key, universe_name, years, horizon),
+                name=f"factor-lab-{universe_name}", daemon=True,
+            )
+            worker.start()
+        snapshot = dict(job)
+
+    if not snapshot["done"]:
+        return {
+            "status": "building",
+            "stage": snapshot["stage"],
+            "stage_index": snapshot["stage_index"],
+            "stages": list(STAGES),
+            "elapsed_seconds": round(time.time() - snapshot["started"], 1),
+            "universe": {"name": universe_name},
+        }
 
     with _lock:
-        _cache[key] = (now + CACHE_TTL_SECONDS, payload)
-    return payload
+        entry = _cache.get(key)
+    if entry:
+        return {**entry[1], "status": "ready", "cached": True}
+    return {"status": "error", "error": snapshot.get("error") or "the build produced no result"}
 
 
-def _build(universe_name: str, years: float, horizon: int) -> dict[str, Any]:
+def _run_job(key: str, universe_name: str, years: float, horizon: int) -> None:
+    """Background build. Records the outcome; never raises into the thread."""
+    try:
+        payload = _build(universe_name, years, horizon, progress=key)
+        with _lock:
+            if "error" not in payload:
+                _cache[key] = (time.time() + CACHE_TTL_SECONDS, payload)
+        with _jobs_lock:
+            _jobs[key].update(
+                done=True, failed="error" in payload, error=payload.get("error")
+            )
+    except KeyError as exc:
+        with _jobs_lock:
+            _jobs[key].update(done=True, failed=True, error=f"unknown universe: {exc}")
+    except Exception as exc:  # noqa: BLE001 — a research view must not 500 the app
+        logger.exception("factor lab failed for %s", universe_name)
+        with _jobs_lock:
+            _jobs[key].update(
+                done=True, failed=True,
+                error=f"factor evaluation failed: {type(exc).__name__}",
+            )
+
+
+def _build(
+    universe_name: str, years: float, horizon: int, progress: Optional[str] = None
+) -> dict[str, Any]:
     started = time.perf_counter()
+
+    def stage(name: str) -> None:
+        if progress:
+            _set_stage(progress, name)
+
+    stage("prices")
     universe = Universe.named(universe_name)
     end = Date.today()
     start = end - timedelta(days=int(years * 365))
 
+    stage("panel")
     with timer("factor_lab.panel_build", universe=universe_name):
         panel, manifest = PanelBuilder().build(universe, start, end, step=STEP_DAYS)
     if panel.empty:
         return {"error": "no panel data could be built for this universe"}
 
+    stage("returns")
     with timer("factor_lab.prices", universe=universe_name):
         prices = _load_prices(list(universe.symbols))
 
@@ -155,6 +255,7 @@ def _build(universe_name: str, years: float, horizon: int) -> dict[str, Any]:
         if name in evaluable.columns and evaluable[name].notna().any()
     )
 
+    stage("estimators")
     with timer("factor_lab.evaluate", universe=universe_name):
         factors = [
             _serialise(evaluation)

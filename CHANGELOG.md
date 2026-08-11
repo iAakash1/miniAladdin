@@ -6,6 +6,115 @@ test that has been shown capable of failing.
 
 ## V15 — research platform (in progress)
 
+### UI polish pass
+
+Uiverse was used for implementation patterns, not visual identity. Three
+ideas translated to a dark financial terminal; the rest (3D loaders, neon,
+glassmorphism) were rejected as wrong for the product.
+
+- **Depth vocabulary.** On near-black, shadow alone reads as smudge — a 1px
+  inset highlight along the top edge is what makes an element look physical.
+  `--edge-hi` / `--lift-1` / `--lift-2` / `--ring` replace ad-hoc shadows, and
+  the light theme gets its own values because paper is not lit from above.
+- **Buttons**: layered elevation, press that collapses the shadow so the
+  button meets the surface, a real loading state that reserves label width so
+  the control never resizes under the cursor, focus ring drawn as shadow.
+- **Inputs**: recessed rather than raised — a field is a well you type into,
+  so the highlight is on the inner top edge. Selects inherit the same
+  treatment plus a drawn chevron, so dropdowns and text fields read as one
+  family.
+- **Skeletons**: a left-to-right sweep instead of an opacity pulse. Throbbing
+  reads as the page breathing; a travelling highlight reads as content
+  arriving, which is what is happening.
+- **ResearchLoader**: a 1px scan line across the panel edge, the running
+  stage marked with an accent rule and nudged 2px forward, completed detail
+  text receding. One moving element, not five.
+- **Factor cards**: selection is a left rule, not a 2px outline — a ring that
+  size dominated the panel and competed with the t-statistic bars.
+- Tabs get an underline flush with the header border; badges get tinted
+  hairlines; tables get tabular numerals and row hover; empty states get a
+  dashed boundary, because dashed reads as "space reserved" while a solid
+  card reads as finished.
+- Fixed during the pass: the loader let its timer estimate run *ahead* of the
+  stage the server reported, briefly showing two rows as active. A reported
+  stage now wins outright, and the footer switches from "timing is estimated"
+  to "stages reported by the running job". Both pinned by tests.
+- Every animation is behind `prefers-reduced-motion`.
+
+### Browser verification: four real bugs found and fixed
+
+Verified in an authenticated session, not by typechecking.
+
+- **Stock analysis never loaded in development.** The once-per-ticker `ranFor`
+  ref survived React StrictMode's remount, so the second effect run returned
+  early while the first run's in-flight response arrived to a cancelled
+  closure and was discarded. The loader span forever against a request that
+  had **succeeded in 4.7 s**. The guard is now released on an undelivered
+  teardown. This was the actual "frozen screen", not a loading-state polish
+  problem.
+- **`/api/factors` blocked the HTTP request for 44 s.** Backend logged
+  `200 in 44413ms` while the browser showed a network failure — the Next dev
+  proxy gives up first, and a serverless deploy would time out harder. The
+  endpoint now starts a background build and answers immediately (**21 ms**)
+  with the stage the build has actually reached; the client polls. The loader
+  ticks are now *server-reported facts* rather than timer estimates.
+- **`/company/[ticker]` rendered in light theme** inside the dark terminal.
+  `ThemeSync` and the pre-hydration script both matched only `/terminal`,
+  so clicking a symbol flipped the whole app mid-workflow. `/company` is
+  terminal chrome and is now treated as such in both places.
+- **`TerminalShell` boot showed a bare centred label on an empty page** — no
+  header, no navigation — then janked as chrome popped in. The header does
+  not depend on the session, so it renders immediately and only the content
+  column waits. No layout shift.
+- **Graph explorer grouped nothing.** A comment claimed edges were "grouped by
+  relationship" while the code walked them in arrival order, drawing 22
+  semantically distinct links as one starburst. Edges are now laid out in
+  labelled arcs by relationship family — Industry (6), Subsidiary (4),
+  Owns (3), Product (3), Founder (2), Location (2), CEO (1), Exchange (1).
+  The data was always semantic; only the picture was not.
+- Fixed during verification: an unknown universe briefly returned
+  `status: building` instead of failing fast, because validation had been
+  moved behind the background job.
+- Stale copy: the redundancy heading said "Seven factors" after `asset_growth`
+  made it eight; it now derives from the data.
+
+### Product: analysis loader, Factor Lab root cause, typed Workspace
+
+**Factor Lab 404 — root cause was configuration, not code.** `/api/factors`
+is proxied to whatever `BACKEND_ORIGIN` names. The deployed Render backend
+answers **404** for it and **200** for `/api/dashboard`: it is running a build
+that predates the endpoint. Locally it returns 200. **The endpoint has never
+been deployed** — nothing in this repository was broken.
+
+- The frontend now distinguishes that case truthfully. A 404/405 says the
+  endpoint is missing from the connected backend and names the fix; a 5xx or
+  network failure says the backend is unreachable. Neither is described as a
+  computation failure any more, which is what the old copy did.
+- Route contract pinned in `tests/test_api_research.py` so a genuine
+  regression is caught here rather than in a browser two deploys later.
+- Verified end to end against real data: mega30 returns 8 factors, 3,482
+  evaluable cells, screen + redundancy + attribution + portfolios + stability
+  all populated, 49.6 s cold.
+
+**`ResearchLoader`** replaces the skeleton on stock analysis, which read as a
+frozen screen while the backend worked.
+
+- Shows the real pipeline, stage by stage, in execution order.
+- **A stage is only ticked when completion is known.** The chart request
+  resolves independently of the analysis, so that one completion is a real
+  signal and ticks stage one; every other stage is a highlight driven by
+  measured durations, and the footer says so outright. Overrunning the
+  estimate parks on the final stage rather than claiming everything finished
+  — asserted in `tests/researchLoader.test.ts`.
+- Shared with the Factor Lab, so both pipelines look and behave the same.
+- One pulse on the active row; `prefers-reduced-motion` respected.
+
+**Workspace objects are typed.** The previous version reduced everything to
+four counts, which made a note and a company indistinguishable — the same
+flattening that made the old graph meaningless. A thesis renders as a thesis,
+notes as prose with their entity references, entities as chips, activity as a
+trail. All from persistence that already existed.
+
 ### Craftsmanship: one page header, zero lint errors
 
 - **`PageHeader`** replaces six hand-rolled page headers. Three of them
