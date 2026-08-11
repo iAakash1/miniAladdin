@@ -33,7 +33,7 @@ export default function MarketWhatChanged({ data }: { data: DashboardData }) {
           What changed
         </span>
         {before && (
-          <span className="num" style={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>
+ <span className="num u-meta" >
             since {timeAgo(before.ts)}
           </span>
         )}

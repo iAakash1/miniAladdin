@@ -316,7 +316,7 @@ export default function GraphExplorer() {
         </section>
 
         {/* Inspector: what the selected edge asserts, and who says so */}
-        <section aria-label="Selected relationship" className="panel" style={{ padding: '20px 22px' }}>
+        <section aria-label="Selected relationship" className="panel panel--pad">
           <h3 className="h-panel" style={{ marginBottom: 12 }}>Relationship</h3>
           {edges[active] ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -333,7 +333,7 @@ export default function GraphExplorer() {
               </div>
               <div>
                 <p className="label" style={{ fontSize: '0.625rem', marginBottom: 4 }}>Provenance</p>
-                <p className="num" style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+ <p className="num u-note" >
                   {edges[active].provider} · confidence {edges[active].confidence}
                 </p>
               </div>
@@ -359,7 +359,7 @@ export default function GraphExplorer() {
               <p className="label" style={{ fontSize: '0.625rem', marginBottom: 8 }}>From filings</p>
               <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {slice!.findings.slice(0, 4).map((finding) => (
-                  <li key={finding.id} style={{ fontSize: '0.75rem', color: 'var(--muted)', lineHeight: 1.5 }}>
+                  <li key={finding.id} className="u-note">
                     {finding.text}
                   </li>
                 ))}

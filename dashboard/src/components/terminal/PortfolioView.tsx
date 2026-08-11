@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
+import PageHeader from '@/components/ui/PageHeader'
 import EmptyState from '@/components/ui/EmptyState'
 import Skeleton from '@/components/ui/Skeleton'
 import Tooltip from '@/components/ui/Tooltip'
@@ -216,8 +217,8 @@ export default function PortfolioView() {
           <label htmlFor="new-list" className="visually-hidden">New watchlist name</label>
           <input
             id="new-list"
-            className="input"
-            style={{ maxWidth: 220, height: 32, fontSize: '0.8125rem' }}
+            className="input input--sm"
+            style={{ maxWidth: 220 }}
             placeholder="Or name a new list…"
             value={newName}
             onChange={(event) => setNewName(event.target.value)}
@@ -231,7 +232,24 @@ export default function PortfolioView() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+    <div className="page-stack">
+      {/* Portfolio was the only route with no header at all: it opened
+          straight into the watchlist switcher, which butted against the
+          global nav and read as content clipped underneath it. The layout
+          was never wrong — 28px of clearance was always there — the page
+          simply had nothing establishing it. */}
+      <PageHeader
+        eyebrow="Portfolio"
+        title="Watchlists & positions"
+        lede="Every name you track, scored by the same engine as a full research report. Watchlists sync to your account; positions stay on this device."
+        meta={
+          <>
+            <span>{lists.length} list{lists.length === 1 ? '' : 's'}</span>
+            <span>{rows.length} name{rows.length === 1 ? '' : 's'} tracked</span>
+          </>
+        }
+      />
+
       {/* List switcher */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
         <div className="seg" role="group" aria-label="Watchlists" style={{ flexWrap: 'wrap' }}>
@@ -244,7 +262,7 @@ export default function PortfolioView() {
               onClick={() => setActiveId(list.id)}
             >
               {list.name}
-              <span className="num" style={{ fontSize: '0.625rem', color: 'var(--faint)' }}>
+ <span className="num u-meta" >
                 {list.tickers.length}
               </span>
             </button>
@@ -318,7 +336,7 @@ export default function PortfolioView() {
             </button>
             <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
               {quotesFetchedAt && !loadingQuotes && (
-                <span style={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>
+                <span className="u-meta">
                   Quotes updated {timeAgo(quotesFetchedAt)}
                 </span>
               )}
@@ -347,13 +365,13 @@ export default function PortfolioView() {
                 <thead>
                   <tr>
                     <th scope="col">Ticker</th>
-                    <th scope="col" style={{ textAlign: 'right' }}>Price</th>
-                    <th scope="col" style={{ textAlign: 'right' }}>1D</th>
-                    <th scope="col" style={{ textAlign: 'right' }}>1W</th>
+                    <th scope="col" className="num">Price</th>
+                    <th scope="col" className="num">1D</th>
+                    <th scope="col" className="num">1W</th>
                     <th scope="col">Verdict</th>
                     <th scope="col">Previous</th>
                     <th scope="col">Change</th>
-                    <th scope="col" style={{ textAlign: 'right' }}>Confidence</th>
+                    <th scope="col" className="num">Confidence</th>
                     <th scope="col">Risk</th>
                     <th scope="col">Last analyzed</th>
                     <th scope="col"><span className="visually-hidden">Actions</span></th>
@@ -371,7 +389,7 @@ export default function PortfolioView() {
                           {ticker}
                         </Link>
                       </td>
-                      <td className="num" style={{ textAlign: 'right' }}>
+                      <td className="num">
                         {loadingQuotes && !quote ? <Skeleton width={54} height={14} /> :
                           quote?.price !== undefined ? quote.price : <span style={{ color: 'var(--faint)' }}>—</span>}
                       </td>
@@ -399,7 +417,7 @@ export default function PortfolioView() {
                             {diff.topDrivers.length > 0 && (
                               <ul style={{ listStyle: 'none', margin: '6px 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
                                 {diff.topDrivers.slice(0, 3).map((driver) => (
-                                  <li key={driver.name} style={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>
+                                  <li key={driver.name} className="u-meta">
                                     {FACTOR_LABELS[driver.name] ?? driver.name}: {driver.before.toFixed(2)} → {driver.after.toFixed(2)}
                                   </li>
                                 ))}
@@ -418,13 +436,13 @@ export default function PortfolioView() {
                           <span style={{ fontSize: '0.75rem', color: 'var(--faint)' }}>unchanged</span>
                         ) : null}
                       </td>
-                      <td className="num" style={{ textAlign: 'right' }}>
+                      <td className="num">
                         {latest ? `${latest.confidence}%` : '—'}
                       </td>
-                      <td style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+                      <td className="u-note">
                         {latest?.riskLevel?.toLowerCase() ?? '—'}
                       </td>
-                      <td style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+                      <td className="u-note">
                         {latest ? timeAgo(latest.ts) : '—'}
                       </td>
                       <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
@@ -451,7 +469,7 @@ export default function PortfolioView() {
               </table>
             </div>
           )}
-          <p style={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>
+          <p className="u-meta">
             Verdict columns come from your own analysis runs, stored in this browser (see “Where is
             this stored?” below) — run Analyze on a ticker to populate them. Quotes via the provider
             fallback chain.

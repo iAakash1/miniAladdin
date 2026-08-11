@@ -1927,3 +1927,110 @@ select.input {
 @media (prefers-reduced-motion: reduce) {
   .lab-factor:hover { transform: none; }
 }
+
+
+/* ---------- Market boot ----------
+   Three bars settling to a baseline, one after another — the shape of a
+   chart resolving. Small, centred, and gone the moment data lands. It reads
+   as an instrument warming up rather than as a page that failed to render. */
+
+.mkt-boot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 46vh;
+  animation: mkt-fade-in 240ms var(--ease-out) both;
+}
+.mkt-boot__mark {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 22px;
+}
+.mkt-boot__bar {
+  width: 3px;
+  border-radius: 1px;
+  background: var(--accent);
+  transform-origin: bottom;
+  animation: mkt-bar 1.5s var(--ease-out) infinite;
+}
+.mkt-boot__bar:nth-child(1) { height: 10px; animation-delay: 0ms; }
+.mkt-boot__bar:nth-child(2) { height: 18px; animation-delay: 140ms; }
+.mkt-boot__bar:nth-child(3) { height: 14px; animation-delay: 280ms; }
+
+@keyframes mkt-bar {
+  0%, 100% { transform: scaleY(0.34); opacity: 0.35; }
+  40%      { transform: scaleY(1);    opacity: 1; }
+}
+@keyframes mkt-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+.mkt-boot__label {
+  font-size: 0.8125rem;
+  font-weight: 550;
+  letter-spacing: -0.008em;
+  color: var(--text);
+}
+.mkt-boot__hint { font-size: 0.6875rem; color: var(--faint); }
+
+@media (prefers-reduced-motion: reduce) {
+  .mkt-boot { animation: none; }
+  .mkt-boot__bar { animation: none; opacity: 0.7; }
+}
+
+/* Content arrives with the same fade the boot state left with, so the
+   swap is a cross-dissolve rather than a jump. */
+.fade-in { animation: mkt-fade-in 260ms var(--ease-out) both; }
+
+
+/* ============================================================
+   Utilities
+   Extracted from what the codebase was already doing inline: 52 copies of
+   "small text in --faint", 47 of textAlign:right, 24 hand-written panel
+   paddings. Each copy is a place the design can drift, and several already
+   had. These are deliberately few and boring — utilities earn their place by
+   replacing repetition, not by anticipating it.
+   ============================================================ */
+
+.u-meta {
+  font-size: 0.6875rem;
+  color: var(--faint);
+  line-height: 1.5;
+}
+.u-note {
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.u-right { text-align: right; }
+.u-stack { display: flex; flex-direction: column; gap: 12px; }
+.u-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.u-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Standard interior padding for a panel. Was written out 24 different ways;
+   the clamp keeps dense screens dense without cramping a phone. */
+.panel--pad { padding: clamp(16px, 2.4vw, 22px); }
+
+/* Compact control size, for toolbars sitting above a table. */
+.input--sm { height: 32px; font-size: 0.8125rem; }
+
+/* Numeric table cells align right without every cell saying so. `.num` already
+   means "tabular figures"; inside a data table that also implies alignment,
+   because a column of right-aligned figures is the only way digits line up. */
+.data-table td.num, .data-table th.num { text-align: right; }
+
+/* Section heading inside a panel — the level below PageHeader. */
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.section-head__title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}

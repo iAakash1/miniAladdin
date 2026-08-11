@@ -210,7 +210,7 @@ export default function GraphWorkspace() {
         {session ? (
           <>
             <span className="badge badge--accent">{session.title}</span>
-            <span style={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>
+            <span className="u-meta">
               {saving ? 'Saving…' : 'All changes saved'}
             </span>
             <button type="button" className="btn btn--ghost btn--xs"
@@ -225,7 +225,7 @@ export default function GraphWorkspace() {
           </>
         ) : (
           <>
-            <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+            <span className="u-note">
               Not in a session — pins and notes won&apos;t be saved.
             </span>
             <button type="button" className="btn btn--secondary btn--xs" onClick={startSession}>
@@ -344,7 +344,7 @@ export default function GraphWorkspace() {
         </section>
 
         {/* Inspector */}
-        <section aria-label="Inspector" className="panel" style={{ padding: '18px 20px' }}>
+        <section aria-label="Inspector" className="panel panel--pad">
           {selectedNode ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
@@ -427,7 +427,7 @@ export default function GraphWorkspace() {
                 <p className="label" style={{ fontSize: '0.625rem', marginBottom: 6 }}>Most connected</p>
                 <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {data.analytics.most_connected.slice(0, 6).map((row) => (
-                    <li key={row.id} style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+                    <li key={row.id} className="u-note">
                       <button type="button" onClick={() => setSelected(row.id)}
                               style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text)' }}>
                         {row.label}
@@ -447,10 +447,10 @@ export default function GraphWorkspace() {
 
       {/* Notebook — belongs to the session, references what is selected */}
       {session && (
-        <section aria-label="Research notebook" className="panel" style={{ padding: '16px 18px' }}>
+        <section aria-label="Research notebook" className="panel panel--pad">
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 10 }}>
             <h3 className="h-panel" style={{ fontSize: '0.875rem' }}>Notebook</h3>
-            <span style={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>
+            <span className="u-meta">
               {session.notes.length} note{session.notes.length === 1 ? '' : 's'}
               {selected ? ` · will reference ${selected.split(':')[1] ?? selected}` : ''}
             </span>
@@ -473,7 +473,7 @@ export default function GraphWorkspace() {
                 <li key={note.id} style={{ fontSize: '0.8125rem', lineHeight: 1.5 }}>
                   <span style={{ color: 'var(--text)' }}>{note.body}</span>
                   {note.refs.length > 0 && (
-                    <span className="num" style={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>
+ <span className="num u-meta" >
                       {' · '}{note.refs.map((r) => r.id.split(':')[1] ?? r.id).join(', ')}
                     </span>
                   )}
@@ -485,7 +485,7 @@ export default function GraphWorkspace() {
       )}
 
       {pinned.length > 0 && (
-        <p style={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>
+        <p className="u-meta">
           Pinned: {pinned.map((id) => nodeById.get(id)?.label ?? id).join(' · ')}
         </p>
       )}

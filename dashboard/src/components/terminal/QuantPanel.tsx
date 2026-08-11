@@ -97,7 +97,7 @@ export default function QuantPanel({ analysis }: { analysis: Analysis }) {
           <p className="num" style={{ fontSize: '1.125rem', fontWeight: 600, color: gatePct > 0 ? 'var(--warn)' : 'var(--text)' }}>
             ×{quant.macroGate.toFixed(2)}
           </p>
-          <p style={{ fontSize: '0.625rem', color: 'var(--faint)' }}>
+          <p className="u-meta">
             {quant.stressProbability !== null
               ? `stress p ${(quant.stressProbability * 100).toFixed(0)}%`
               : gatePct > 0 ? `−${gatePct}% off bullish momentum` : 'no macro drag'}
@@ -114,7 +114,7 @@ export default function QuantPanel({ analysis }: { analysis: Analysis }) {
           <p className="num" style={{ fontSize: '1.125rem', fontWeight: 600 }}>
             {(quant.uncertainty * 100).toFixed(0)}%
           </p>
-          <p style={{ fontSize: '0.625rem', color: 'var(--faint)' }}>
+          <p className="u-meta">
             disp {(quant.uncertaintyComponents.dispersion ?? 0).toFixed(2)} ·
             data {(quant.uncertaintyComponents.data ?? 0).toFixed(2)} ·
             event {(quant.uncertaintyComponents.event ?? 0).toFixed(2)}
@@ -187,7 +187,7 @@ export default function QuantPanel({ analysis }: { analysis: Analysis }) {
         </div>
         <div>
           <p className="label" style={{ fontSize: '0.625rem', marginBottom: 6 }}>Data completeness</p>
-          <p className="num" style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+ <p className="num u-note" >
             {(quant.dataCompleteness * 100).toFixed(0)}% of factors computable
           </p>
         </div>

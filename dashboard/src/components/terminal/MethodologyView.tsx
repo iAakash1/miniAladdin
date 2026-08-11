@@ -189,7 +189,7 @@ function PipelineFlow() {
               gap: 6,
             }}
           >
-            <span className="num" style={{ fontSize: '0.625rem', color: 'var(--faint)' }}>
+ <span className="num u-meta" >
               {String(index + 1).padStart(2, '0')}
             </span>
             <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text)' }}>{stage.title}</span>
@@ -222,7 +222,7 @@ function DataSourceCard({ source }: { source: DataSource }) {
     <div className="panel" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <h4 className="h-panel" style={{ fontSize: '0.875rem' }}>{source.name}</h4>
-        <span className="num" style={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>{source.updateFrequency}</span>
+ <span className="num u-meta" >{source.updateFrequency}</span>
       </div>
       <p style={{ fontSize: '0.8125rem', lineHeight: 1.55, color: 'var(--text)' }}>{source.purpose}</p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>

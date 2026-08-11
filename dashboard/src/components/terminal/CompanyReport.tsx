@@ -116,7 +116,7 @@ export default function CompanyReport({ analysis, initialChart, isPro, requestUp
       </div>
 
       <div id="price" className="report-section terminal-grid-main">
-        <section aria-label="Price history" className="panel" style={{ padding: '20px 22px' }}>
+        <section aria-label="Price history" className="panel panel--pad">
           <div
             style={{
               display: 'flex',

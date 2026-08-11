@@ -6,7 +6,7 @@ export default function SentimentPanel({ analysis: a }: { analysis: Analysis }) 
   const score = a.sentimentScore
 
   return (
-    <section aria-label="News sentiment" className="panel" style={{ padding: '20px 22px' }}>
+    <section aria-label="News sentiment" className="panel panel--pad">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
         <h3 className="h-panel">News sentiment</h3>
         {a.headlineCount > 0 && (
@@ -73,10 +73,10 @@ export default function SentimentPanel({ analysis: a }: { analysis: Analysis }) 
             />
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
-            <span className="num" style={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>
+ <span className="num u-meta" >
               −1 bearish
             </span>
-            <span className="num" style={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>
+ <span className="num u-meta" >
               +1 bullish
             </span>
           </div>

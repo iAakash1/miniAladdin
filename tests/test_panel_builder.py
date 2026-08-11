@@ -258,11 +258,40 @@ def test_lookback_does_not_reintroduce_look_ahead(universe: Universe, market):
     assert window.index.max().date() == date(2022, 6, 15)
 
 
-def test_default_lookback_matches_the_live_fetch_range(universe: Universe, market):
-    """1260 bars ≈ the "5y" range the provider loader requests."""
+def test_default_lookback_exceeds_realistic_vendor_depth():
+    """The lookback must stay ahead of how much history vendors return.
+
+    This replaces a test that pinned the literal `1260`, which is precisely
+    why the regression it was meant to guard went unnoticed: vendors grew to
+    ~1830 bars for the same "5y" request, every symbol fell past the cap,
+    `is_exact_for` refused the vectorized path, and a mega30 build went from
+    1.9 s to 29.3 s — silently, because the constant still equalled the number
+    the test asserted.
+
+    Pinning the *property* catches that; pinning the value never could.
+    """
     from src.panel.builder import LOOKBACK_BARS
 
-    assert LOOKBACK_BARS == 1260
+    # Observed vendor depth for a "5y" request, with headroom for growth.
+    assert LOOKBACK_BARS >= 2000, (
+        f"lookback {LOOKBACK_BARS} is at or below observed vendor depth (~1830 "
+        "bars); every symbol will fall back to the scalar path"
+    )
+
+
+def test_realistic_history_uses_the_vectorized_path(universe: Universe):
+    """A vendor-sized history must not trigger the scalar cliff.
+
+    The end-to-end version of the test above: build with a frame the size
+    vendors actually return and assert the manifest reports zero symbols on
+    the slow path.
+    """
+    frames = {symbol: _prices(1830, seed=seed)
+              for symbol, seed in (("AAPL", 1), ("MSFT", 2), ("SPY", 99))}
+    _, manifest = PanelBuilder(fundamentals=False, load_prices=_loader(frames)).build(
+        universe, date(2025, 1, 2), date(2025, 6, 30)
+    )
+    assert "scalar:0" in manifest.notes, manifest.notes
 
 
 # ── regimes are point-in-time too ────────────────────────────────────────────

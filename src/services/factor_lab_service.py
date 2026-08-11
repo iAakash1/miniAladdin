@@ -90,12 +90,15 @@ _jobs: dict[str, dict[str, Any]] = {}
 _jobs_lock = threading.Lock()
 
 
-def _set_stage(key: str, stage: str) -> None:
+def _set_stage(key: str, stage: str, done: int = 0, total: int = 0) -> None:
     with _jobs_lock:
         job = _jobs.get(key)
         if job is not None:
             job["stage"] = stage
             job["stage_index"] = STAGES.index(stage) if stage in STAGES else 0
+            job["done"] = job.get("done", False)
+            job["progress_done"] = done
+            job["progress_total"] = total
 
 
 def available_universes() -> list[dict[str, Any]]:
@@ -160,6 +163,11 @@ def run(
             "stage": snapshot["stage"],
             "stage_index": snapshot["stage_index"],
             "stages": list(STAGES),
+            # Real counts from the builder — how many symbols are actually
+            # done. A build is dominated by vendor round trips, so without
+            # this the UI sits on one label for forty seconds.
+            "progress_done": snapshot.get("progress_done", 0),
+            "progress_total": snapshot.get("progress_total", 0),
             "elapsed_seconds": round(time.time() - snapshot["started"], 1),
             "universe": {"name": universe_name},
         }
@@ -209,8 +217,17 @@ def _build(
     start = end - timedelta(days=int(years * 365))
 
     stage("panel")
+
+    def relay(sub_stage: str, done: int, total: int) -> None:
+        # The builder knows which symbol it is on; map that onto the stage
+        # names the client renders so the count lands on the right row.
+        if progress:
+            _set_stage(progress, sub_stage if sub_stage in STAGES else "panel", done, total)
+
     with timer("factor_lab.panel_build", universe=universe_name):
-        panel, manifest = PanelBuilder().build(universe, start, end, step=STEP_DAYS)
+        panel, manifest = PanelBuilder(on_progress=relay).build(
+            universe, start, end, step=STEP_DAYS
+        )
     if panel.empty:
         return {"error": "no panel data could be built for this universe"}
 
@@ -516,3 +533,5 @@ def _load_prices(symbols: list[str]) -> dict[str, pd.Series]:
 def reset_for_tests() -> None:
     with _lock:
         _cache.clear()
+    with _jobs_lock:
+        _jobs.clear()

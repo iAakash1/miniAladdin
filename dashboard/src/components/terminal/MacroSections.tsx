@@ -50,7 +50,7 @@ export default function MacroSections({ cards }: { cards: MacroCard[] }) {
             id={`macro-group-${groupId}`}
             title={MACRO_GROUP_TITLES[groupId]}
             summary={
-              <span className="num" style={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>
+ <span className="num u-meta" >
                 {groups[groupId].length} indicators
               </span>
             }

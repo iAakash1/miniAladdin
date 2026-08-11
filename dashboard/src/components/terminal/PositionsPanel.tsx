@@ -79,7 +79,7 @@ export default function PositionsPanel() {
   const totalCost = positions.reduce((sum, p) => sum + p.shares * p.average_price, 0)
 
   return (
-    <section aria-labelledby="positions-h" className="panel" style={{ padding: '18px 20px' }}>
+    <section aria-labelledby="positions-h" className="panel panel--pad">
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
         <h3 id="positions-h" className="h-panel">Positions</h3>
         {positions.length > 0 && (
@@ -158,9 +158,9 @@ export default function PositionsPanel() {
             <thead>
               <tr>
                 <th scope="col">Ticker</th>
-                <th scope="col" style={{ textAlign: 'right' }}>Shares</th>
-                <th scope="col" style={{ textAlign: 'right' }}>Avg price</th>
-                <th scope="col" style={{ textAlign: 'right' }}>Cost basis</th>
+                <th scope="col" className="num">Shares</th>
+                <th scope="col" className="num">Avg price</th>
+                <th scope="col" className="num">Cost basis</th>
                 <th scope="col"><span className="visually-hidden">Actions</span></th>
               </tr>
             </thead>
@@ -170,7 +170,7 @@ export default function PositionsPanel() {
                 return (
                   <tr key={position.id}>
                     <td className="mono" style={{ fontWeight: 600 }}>{position.ticker}</td>
-                    <td className="num" style={{ textAlign: 'right' }}>
+                    <td className="num">
                       {isEditing ? (
                         <input
                           aria-label={`Shares of ${position.ticker}`}
@@ -185,7 +185,7 @@ export default function PositionsPanel() {
                         fmtNum(position.shares, position.shares % 1 === 0 ? 0 : 4)
                       )}
                     </td>
-                    <td className="num" style={{ textAlign: 'right' }}>
+                    <td className="num">
                       {isEditing ? (
                         <input
                           aria-label={`Average price of ${position.ticker}`}
@@ -200,7 +200,7 @@ export default function PositionsPanel() {
                         `$${fmtNum(position.average_price, 2)}`
                       )}
                     </td>
-                    <td className="num" style={{ textAlign: 'right' }}>
+                    <td className="num">
                       ${fmtNum(position.shares * position.average_price, 2)}
                     </td>
                     <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
