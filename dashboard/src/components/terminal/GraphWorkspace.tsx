@@ -71,8 +71,26 @@ export default function GraphWorkspace() {
   const [state, setState] = useState<WorkspaceState>(emptyWorkspaceState())
   const [saving, setSaving] = useState(false)
   const [noteDraft, setNoteDraft] = useState('')
+  /* Right-click target. The inspector already carries these actions, but it
+     lives in a side panel — on a dense graph that is a round trip across the
+     screen for every node you want to try. The menu puts the same actions
+     (no new ones, no fabricated relationships) at the cursor. */
+  const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null)
 
   useEffect(() => onSaveStateChange(setSaving), [])
+
+  useEffect(() => {
+    if (!menu) return undefined
+    const close = () => setMenu(null)
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') setMenu(null) }
+    // `click` rather than `mousedown` so the menu's own buttons fire first.
+    window.addEventListener('click', close)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('click', close)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [menu])
 
   /* Restore: opening a session rebuilds the exact workspace it was left in. */
   useEffect(() => {
@@ -160,6 +178,20 @@ export default function GraphWorkspace() {
     () => data ? computeLayout({ nodes: data.nodes, edges: data.edges, roots: data.roots }) : null,
     [data],
   )
+
+  /* Everything the selection actually touches. Used to dim the rest — the
+     graph answers "what does this connect to?" by removing the noise rather
+     than by making one node bigger. Derived from real edges only, so a node
+     with no recorded relationships correctly leaves everything dimmed. */
+  const related = useMemo(() => {
+    if (!selected || !data) return null
+    const ids = new Set<string>([selected])
+    for (const edge of data.edges) {
+      if (edge.source_id === selected) ids.add(edge.target_id)
+      else if (edge.target_id === selected) ids.add(edge.source_id)
+    }
+    return ids
+  }, [selected, data])
 
   const selectedNode = data?.nodes.find((n) => n.id === selected) ?? null
   const selectedEdges = (data?.edges ?? []).filter(
@@ -291,13 +323,29 @@ export default function GraphWorkspace() {
             />
           ) : !layout || layout.nodes.length === 0 ? (
             <EmptyState
-              title="No graph for those tickers"
-              description="Try a large US-listed company — the graph is built from SEC filings and Wikidata, which cover major issuers best."
+              title={`No relationships recorded for ${symbols}`}
+              description="The graph is assembled from SEC filings and Wikidata, which cover large US issuers best. Nothing is inferred, so a company with no filed or catalogued relationships shows an empty graph rather than a guessed one."
+              action={
+                symbols !== 'NVDA' ? (
+                  <button
+                    type="button"
+                    className="btn btn--secondary btn--sm"
+                    onClick={() => {
+                      const next = new URLSearchParams(params.toString())
+                      next.set('symbols', 'NVDA')
+                      router.replace(`/terminal/graph?${next}`)
+                    }}
+                  >
+                    Open a populated example
+                  </button>
+                ) : undefined
+              }
             />
           ) : (
             <svg
               viewBox={viewBoxFor(layout)}
               role="application"
+              className={`gfocus${related ? ' is-focusing' : ''}`}
               aria-label={`Knowledge graph for ${symbols}`}
               style={{ width: '100%', height: 'auto', maxHeight: 520 }}
             >
@@ -306,6 +354,7 @@ export default function GraphWorkspace() {
                 return (
                   <line
                     key={`${edge.source}-${edge.target}-${i}`}
+                    className={`gfocus__edge${active ? ' is-related' : ''}`}
                     x1={edge.x1} y1={edge.y1} x2={edge.x2} y2={edge.y2}
                     // `--line` is the hairline token for dividers sitting
                     // against an adjacent surface; at 8% white, times a 0.55
@@ -327,7 +376,21 @@ export default function GraphWorkspace() {
                 const radius = isRoot ? 9 : Math.min(7, 3 + node.degree * 0.35)
                 return (
                   <g key={node.id} transform={`translate(${node.x},${node.y})`}
+                     className={`gfocus__node${!related || related.has(node.id) ? ' is-related' : ''}`}
+                     tabIndex={0}
+                     role="button"
+                     aria-pressed={isSelected}
+                     aria-label={`${node.label} — ${node.type}`}
+                     onKeyDown={(e) => {
+                       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(node.id) }
+                       if (e.key === 'Escape') setSelected(null)
+                     }}
                      onClick={() => setSelected(node.id)}
+                     onContextMenu={(event) => {
+                       event.preventDefault()
+                       setSelected(node.id)
+                       setMenu({ id: node.id, x: event.clientX, y: event.clientY })
+                     }}
                      style={{ cursor: 'pointer' }}>
                     {isPinned && <circle r={radius + 4} fill="none" stroke="var(--warn)" strokeWidth={1.2} />}
                     <circle r={radius} fill={color(node.type)}
@@ -345,7 +408,38 @@ export default function GraphWorkspace() {
                 )
               })}
             </svg>
-          )}
+                )}
+          {menu && (() => {
+            const node = nodeById.get(menu.id)
+            if (!node) return null
+            const isPinned = pinned.includes(menu.id)
+            return (
+              <div
+                className="ctxmenu"
+                role="menu"
+                aria-label={`Actions for ${node.label}`}
+                style={{ left: menu.x, top: menu.y }}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <p className="ctxmenu__head">{node.label}</p>
+                <button type="button" role="menuitem" className="ctxmenu__item"
+                        onClick={() => { togglePin(menu.id); setMenu(null) }}>
+                  {isPinned ? 'Unpin' : 'Pin to workspace'}
+                </button>
+                {node.route && (
+                  <Link role="menuitem" className="ctxmenu__item" href={node.route}
+                        onClick={() => setMenu(null)}>
+                    Open research
+                  </Link>
+                )}
+                <button type="button" role="menuitem" className="ctxmenu__item"
+                        onClick={() => { setParam('symbols', menu.id.split(':')[1] ?? ''); setMenu(null) }}
+                        disabled={node.type !== 'company'}>
+                  Centre the graph here
+                </button>
+              </div>
+            )
+          })()}
           {data && (
             <p className="num" style={{ fontSize: '0.6875rem', color: 'var(--faint)', marginTop: 8 }}>
               {data.analytics.nodes} entities · {data.analytics.edges} relationships ·

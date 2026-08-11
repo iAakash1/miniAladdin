@@ -8,7 +8,8 @@ import Skeleton from '@/components/ui/Skeleton'
 import Tooltip from '@/components/ui/Tooltip'
 import { FACTOR_LABELS, diffSnapshots, useAllHistory } from '@/lib/history'
 import ConfirmButton from '@/components/ui/ConfirmButton'
-import { timeAgo } from '@/lib/format'
+import { notify } from '@/components/ui/Toasts'
+import { fmtPctRaw, timeAgo } from '@/lib/format'
 import PositionsPanel from '@/components/terminal/PositionsPanel'
 import {
   SUGGESTED_LISTS,
@@ -36,14 +37,28 @@ function verdictTone(verdict: string): string {
   return verdict.includes('Buy') ? 'badge--pos' : verdict.includes('Sell') ? 'badge--neg' : 'badge--warn'
 }
 
+/** How current a stored analysis is.
+ *
+ *  A watchlist is only useful if you can see at a glance which rows you can
+ *  still trust. Shape carries the state as well as colour — solid, ring,
+ *  dash — so it survives a colour-blind reader and a greyscale screenshot.
+ *  The boundary is one week: analyses are recomputed on demand, not on a
+ *  schedule, so anything older has seen a week of price action it never saw. */
+function freshness(ts: string | null | undefined): string {
+  if (!ts) return 'sdot--none'
+  const age = Date.now() - new Date(ts).getTime()
+  if (Number.isNaN(age)) return 'sdot--none'
+  return age < 7 * 86_400_000 ? 'sdot--fresh' : 'sdot--stale'
+}
+
 function ChangeCell({ value }: { value: number | null | undefined }) {
   if (value === null || value === undefined) return <span style={{ color: 'var(--faint)' }}>—</span>
-  return (
-    <span className="num" style={{ color: value >= 0 ? 'var(--pos)' : 'var(--neg)' }}>
-      {value >= 0 ? '+' : ''}
-      {value}%
-    </span>
-  )
+  // Fixed precision, via the shared formatter. Rendering `{value}%` raw meant
+  // the 1D and 1W columns of the same row disagreed about decimals — "-1.62%"
+  // next to "+1.6%" — and a change that rounds to zero kept its minus sign.
+  const text = fmtPctRaw(value, 2, true)
+  const tone = parseFloat(text) > 0 ? 'var(--pos)' : parseFloat(text) < 0 ? 'var(--neg)' : 'var(--muted)'
+  return <span className="num" style={{ color: tone }}>{text}</span>
 }
 
 interface StorageRow {
@@ -92,6 +107,98 @@ function StorageStatus() {
   )
 }
 
+export type SortKey =
+  | 'ticker' | 'price' | 'change_1d' | 'change_1w' | 'verdict' | 'confidence' | 'analyzed'
+
+export interface SortState { key: SortKey | null; dir: 'asc' | 'desc' }
+
+interface SortableRow {
+  ticker: string
+  quote?: { price?: number; change_1d?: number | null; change_1w?: number | null }
+  latest: { verdict: string; confidence: number; ts: string } | null
+}
+
+/** Value a column sorts on. `null` means "no value", and null always sorts
+ *  last regardless of direction — a row with no analysis is not "the
+ *  smallest", it is absent, and burying it under ascending confidence would
+ *  hide exactly the rows that need attention. */
+function sortValue(row: SortableRow, key: SortKey): number | string | null {
+  switch (key) {
+    case 'ticker': return row.ticker
+    case 'price': return row.quote?.price ?? null
+    case 'change_1d': return row.quote?.change_1d ?? null
+    case 'change_1w': return row.quote?.change_1w ?? null
+    case 'verdict': return row.latest ? VERDICT_ORDER.indexOf(row.latest.verdict) : null
+    case 'confidence': return row.latest?.confidence ?? null
+    case 'analyzed': return row.latest ? new Date(row.latest.ts).getTime() : null
+    default: return null
+  }
+}
+
+/** Stable sort by column. Returns the input untouched when no column is
+ *  active, so the default verdict/confidence ranking survives. */
+export function sortRows<T extends SortableRow>(rows: T[], sort: SortState): T[] {
+  if (!sort.key) return rows
+  const key = sort.key
+  const sign = sort.dir === 'asc' ? 1 : -1
+  return [...rows].sort((a, b) => {
+    const av = sortValue(a, key)
+    const bv = sortValue(b, key)
+    if (av === null && bv === null) return 0
+    if (av === null) return 1          // absent rows sink, both directions
+    if (bv === null) return -1
+    if (typeof av === 'string' || typeof bv === 'string') {
+      return sign * String(av).localeCompare(String(bv))
+    }
+    return sign * (av - bv)
+  })
+}
+
+/** Click cycles: unsorted -> desc -> asc -> unsorted. Descending first
+ *  because every column here is one people read "biggest first". */
+export function nextSort(current: SortState, key: SortKey): SortState {
+  if (current.key !== key) return { key, dir: 'desc' }
+  if (current.dir === 'desc') return { key, dir: 'asc' }
+  return { key: null, dir: 'desc' }
+}
+
+/** A column header that sorts.
+ *
+ *  `aria-sort` is what a screen reader announces, so it carries the state
+ *  rather than the arrow glyph. The arrow is `aria-hidden` and reserved at
+ *  all times — a caret that only exists on the active column shifts every
+ *  other header by its width the moment you sort.
+ */
+function SortHeader({
+  col, sort, onSort, num, children,
+}: {
+  col: SortKey
+  sort: SortState
+  onSort: (next: SortState) => void
+  num?: boolean
+  children: React.ReactNode
+}) {
+  const active = sort.key === col
+  return (
+    <th
+      scope="col"
+      className={num ? 'num' : undefined}
+      aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
+    >
+      <button
+        type="button"
+        className={`th-sort${active ? ' is-active' : ''}`}
+        onClick={() => onSort(nextSort(sort, col))}
+      >
+        {children}
+        <span className="th-sort__caret" aria-hidden>
+          {active ? (sort.dir === 'asc' ? '\u2191' : '\u2193') : '\u2195'}
+        </span>
+      </button>
+    </th>
+  )
+}
+
 export default function PortfolioView() {
   const lists = useWatchlists()
   const wlStatus = useWatchlistsStatus()
@@ -103,6 +210,7 @@ export default function PortfolioView() {
   const [loadingQuotes, setLoadingQuotes] = useState(false)
   const [quotesReload, setQuotesReload] = useState(0)
   const [quotesFetchedAt, setQuotesFetchedAt] = useState<string | null>(null)
+  const [sort, setSort] = useState<SortState>({ key: null, dir: 'desc' })
 
   const active: Watchlist | null =
     lists.find((list) => list.id === activeId) ?? lists[0] ?? null
@@ -157,6 +265,8 @@ export default function PortfolioView() {
         return (b.quote?.change_1w ?? -999) - (a.quote?.change_1w ?? -999)
       })
   }, [active, history, quotes])
+
+  const sortedRows = useMemo(() => sortRows(rows, sort), [rows, sort])
 
   /* ── store not ready yet: loading / unreachable ── */
   if (lists.length === 0 && (wlStatus === 'idle' || wlStatus === 'loading')) {
@@ -315,9 +425,18 @@ export default function PortfolioView() {
           <form
             onSubmit={(event) => {
               event.preventDefault()
-              if (addSymbol.trim()) {
-                addTicker(active.id, addSymbol)
+              const symbol = addSymbol.trim().toUpperCase()
+              if (symbol) {
+                // Adding already succeeded silently — the row appeared and
+                // nothing said so, which is indistinguishable from a slow
+                // network when the list is long enough to scroll.
+                const duplicate = active.tickers.includes(symbol)
+                addTicker(active.id, symbol)
                 setAddSymbol('')
+                notify(
+                  duplicate ? `${symbol} is already in ${active.name}` : `${symbol} added to ${active.name}`,
+                  duplicate ? 'warn' : 'ok',
+                )
               }
             }}
             style={{ display: 'flex', gap: 8, alignItems: 'center' }}
@@ -365,21 +484,21 @@ export default function PortfolioView() {
                 </caption>
                 <thead>
                   <tr>
-                    <th scope="col">Ticker</th>
-                    <th scope="col" className="num">Price</th>
-                    <th scope="col" className="num">1D</th>
-                    <th scope="col" className="num">1W</th>
-                    <th scope="col">Verdict</th>
+                    <SortHeader col="ticker" sort={sort} onSort={setSort}>Ticker</SortHeader>
+                    <SortHeader col="price" sort={sort} onSort={setSort} num>Price</SortHeader>
+                    <SortHeader col="change_1d" sort={sort} onSort={setSort} num>1D</SortHeader>
+                    <SortHeader col="change_1w" sort={sort} onSort={setSort} num>1W</SortHeader>
+                    <SortHeader col="verdict" sort={sort} onSort={setSort}>Verdict</SortHeader>
                     <th scope="col">Previous</th>
                     <th scope="col">Change</th>
-                    <th scope="col" className="num">Confidence</th>
+                    <SortHeader col="confidence" sort={sort} onSort={setSort} num>Confidence</SortHeader>
                     <th scope="col">Risk</th>
-                    <th scope="col">Last analyzed</th>
-                    <th scope="col"><span className="visually-hidden">Actions</span></th>
+                    <SortHeader col="analyzed" sort={sort} onSort={setSort}>Last analyzed</SortHeader>
+                    <th scope="col" className="num"><span className="visually-hidden">Actions</span></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map(({ ticker, quote, latest, previous, diff }) => (
+                  {sortedRows.map(({ ticker, quote, latest, previous, diff }) => (
                     <tr key={ticker}>
                       <td>
                         <Link
@@ -444,7 +563,10 @@ export default function PortfolioView() {
                         {latest?.riskLevel?.toLowerCase() ?? '—'}
                       </td>
                       <td className="u-note">
-                        {latest ? timeAgo(latest.ts) : '—'}
+                        <span className="u-row" style={{ gap: 6, flexWrap: 'nowrap' }}>
+                          <span className={`sdot ${freshness(latest?.ts)}`} aria-hidden />
+                          {latest ? timeAgo(latest.ts) : 'never analyzed'}
+                        </span>
                       </td>
                       <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                         <Link
@@ -455,9 +577,13 @@ export default function PortfolioView() {
                           Explain
                         </Link>
                         <ConfirmButton
+                          className="btn btn--ghost btn--xs reveal"
                           description={`Remove ${ticker} from ${active.name}`}
                           confirmLabel="Remove?"
-                          onConfirm={() => removeTicker(active.id, ticker)}
+                          onConfirm={() => {
+                            removeTicker(active.id, ticker)
+                            notify(`${ticker} removed from ${active.name}`)
+                          }}
                         >
                           ✕
                         </ConfirmButton>

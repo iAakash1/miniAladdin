@@ -1,5 +1,6 @@
 'use client'
 
+import CopyButton from '@/components/ui/CopyButton'
 import { useState } from 'react'
 import { fmtPrice } from '@/lib/format'
 import { saveReport } from '@/lib/persistence'
@@ -94,6 +95,10 @@ export default function CompanyBand({ analysis }: { analysis: Analysis }) {
             <h2 className="mono" style={{ fontSize: '1.25rem', fontWeight: 600, letterSpacing: '0.01em' }}>
               {analysis.ticker}
             </h2>
+            {/* The ticker is the single most-copied string in the product —
+                it goes into notes, spreadsheets and messages constantly, and
+                the alternative is selecting monospace text by hand. */}
+            <CopyButton value={analysis.ticker} label="Copy" title={`Copy ticker ${analysis.ticker}`} />
             <span style={{ fontSize: '1rem', color: 'var(--muted)', fontWeight: 500 }}>
               {analysis.companyName}
             </span>

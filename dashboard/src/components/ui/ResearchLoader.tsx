@@ -71,6 +71,7 @@ export default function ResearchLoader({
   completed = 0,
   active: reported,
   detail,
+  fraction,
   note,
 }: {
   /** What is being done — "Researching", "Building factor panel". */
@@ -86,6 +87,15 @@ export default function ResearchLoader({
   /** Live sub-progress for the running stage, e.g. "12 / 30 symbols".
    *  Only ever a real count — never a synthesised percentage. */
   detail?: string
+  /** Fraction 0-1 of the active stage that is genuinely complete, when the
+   *  backend reports a countable unit of work (symbols fetched, filings
+   *  loaded). Omit it and the active stage shows an indeterminate sweep
+   *  instead — which asserts "working", not "this far along".
+   *
+   *  There is no third option here on purpose: a bar derived from elapsed
+   *  time against an estimate is the fake progress this whole component
+   *  exists to avoid. */
+  fraction?: number
   note?: string
 }) {
   const [elapsed, setElapsed] = useState(0)
@@ -115,6 +125,8 @@ export default function ResearchLoader({
   const active = reported !== undefined ? reported : Math.max(expected, completed)
   const estimating = reported === undefined
   const seconds = Math.floor(elapsed / 1000)
+  const known = typeof fraction === 'number' && Number.isFinite(fraction)
+  const clamped = known ? Math.min(1, Math.max(0, fraction)) : 0
 
   return (
     <section className="rl" aria-live="polite" aria-busy="true">
@@ -144,6 +156,27 @@ export default function ResearchLoader({
                 <span className="rl__detail">
                   {state === 'active' && detail ? detail : stage.detail}
                 </span>
+                {/* The rail only appears on the running stage. Determinate
+                    when the server counted something real, indeterminate
+                    otherwise — the two look different on purpose, so a
+                    filling bar always means measured work. */}
+                {state === 'active' && (
+                  known ? (
+                    <span
+                      className="rl__rail"
+                      role="progressbar"
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={Math.round(clamped * 100)}
+                    >
+                      <span className="rl__rail__fill" style={{ transform: `scaleX(${clamped})` }} />
+                    </span>
+                  ) : (
+                    <span className="rl__rail rl__rail--seeking" aria-hidden>
+                      <span className="rl__rail__sweep" />
+                    </span>
+                  )
+                )}
               </span>
             </li>
           )
@@ -175,10 +208,15 @@ export const ANALYSIS_STAGES: LoaderStage[] = [
   { label: 'Building research', detail: 'scorecard, risk assessment and written synthesis', typicalMs: 6000 },
 ]
 
+/* These mirror `STAGES` in factor_lab_service.py exactly, in the order the
+   build performs them. They previously listed price history first and SEC
+   filings third; the builder loads filings for the whole universe *before*
+   it fetches a single price series, so the labels described a pipeline that
+   does not exist and the highlight jumped backwards when the real stage
+   arrived. Durations are from a measured cold mega30 build (34.5 s total). */
 export const FACTOR_LAB_STAGES: LoaderStage[] = [
-  { label: 'Fetching price history', detail: 'every symbol in the universe, fanned out concurrently', typicalMs: 9000 },
-  { label: 'Building the point-in-time panel', detail: 'each factor from a window truncated at its own date', typicalMs: 8000 },
-  { label: 'Loading SEC filings', detail: 'fundamentals dated by when each figure was published', typicalMs: 9000 },
-  { label: 'Measuring forward returns', detail: 'what actually happened after each observation date', typicalMs: 4000 },
-  { label: 'Running the estimators', detail: 'rank IC, overlap correction, portfolios, attribution', typicalMs: 7000 },
+  { label: 'Loading SEC filings', detail: 'fundamentals dated by when each figure was published', typicalMs: 6000 },
+  { label: 'Building the point-in-time panel', detail: 'price history per symbol, each factor from a window truncated at its own date', typicalMs: 22000 },
+  { label: 'Measuring forward returns', detail: 'what actually happened after each observation date', typicalMs: 3000 },
+  { label: 'Running the estimators', detail: 'rank IC, overlap correction, portfolios, attribution', typicalMs: 2000 },
 ]

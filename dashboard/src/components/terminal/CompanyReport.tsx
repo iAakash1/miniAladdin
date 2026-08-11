@@ -1,8 +1,9 @@
 'use client'
 
 import dynamicImport from 'next/dynamic'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
+import { useHistory } from '@/lib/history'
 import AiPanel from '@/components/terminal/AiPanel'
 import CompanyBand from '@/components/terminal/CompanyBand'
 import CompanyCrossLinks from '@/components/terminal/CompanyCrossLinks'
@@ -34,10 +35,21 @@ const PERIODS: Array<{ value: string; label: string }> = [
   { value: '5y', label: '5Y' },
 ]
 
+/** What the nav can know beyond the analysis payload. The verdict timeline
+ *  lives in client-side history rather than on `Analysis`, so a predicate
+ *  that only sees the payload cannot tell whether that section will render. */
+interface NavContext {
+  /** Stored snapshots for this ticker. `VerdictTimeline` needs two to draw. */
+  historyPoints: number
+}
+
 /** The in-page research map: id anchors → section labels. Sections whose
  *  data is absent for a given company simply don't render, so the nav
- *  filters itself against what the report actually contains. */
-const SECTIONS: Array<{ id: string; label: string; present: (a: Analysis) => boolean }> = [
+ *  filters itself against what the report actually contains — every
+ *  `present` here must agree with whether its component renders anything. */
+const SECTIONS: Array<{
+  id: string; label: string; present: (a: Analysis, ctx: NavContext) => boolean
+}> = [
   { id: 'overview', label: 'Overview', present: () => true },
   { id: 'report', label: 'Report', present: (a) => a.ai !== null },
   { id: 'scorecard', label: 'Scorecard', present: (a) => a.quant !== null },
@@ -47,16 +59,107 @@ const SECTIONS: Array<{ id: string; label: string; present: (a: Analysis) => boo
   { id: 'fundamentals', label: 'Fundamentals', present: () => true },
   { id: 'news', label: 'News', present: (a) => a.headlines.length > 0 },
   { id: 'ecosystem', label: 'Ecosystem', present: () => true },
-  { id: 'history', label: 'History', present: () => true },
+  // Was hardcoded `true`, while `VerdictTimeline` returns null below two
+  // snapshots — the common case for a ticker analysed once. The nav
+  // therefore always offered a "History" link that scrolled to an empty
+  // element, which is a dead end rather than an empty section.
+  { id: 'history', label: 'History', present: (_a, ctx) => ctx.historyPoints >= 2 },
   { id: 'related', label: 'Related', present: () => true },
 ]
 
+/** Which section the reader is currently in.
+ *
+ *  The rule: the last section whose top has crossed the reading line. That
+ *  is deliberately not "the most visible section" — a 900px section and a
+ *  150px one are both fully read by the time the next heading arrives, and
+ *  ranking by visible area makes the highlight jump back to whichever block
+ *  happens to be tallest.
+ *
+ *  Exported because it is the actual decision this nav makes; the scroll
+ *  plumbing around it is not worth a test, but getting this wrong shows up
+ *  as a highlight that lags or skips.
+ */
+export function currentSectionId(
+  tops: Array<{ id: string; top: number }>, line: number,
+): string | null {
+  if (tops.length === 0) return null
+  let best = tops[0].id
+  for (const entry of tops) {
+    if (entry.top <= line) best = entry.id
+  }
+  return best
+}
+
 function SectionNav({ analysis }: { analysis: Analysis }) {
-  const present = SECTIONS.filter((s) => s.present(analysis))
+  const timeline = useHistory(analysis.ticker)
+  // Memoised: a fresh array each render would tear down and re-create the
+  // IntersectionObserver on every state update, including the ones this
+  // observer itself causes.
+  const present = useMemo(
+    () => SECTIONS.filter((s) => s.present(analysis, { historyPoints: timeline.length })),
+    [analysis, timeline.length],
+  )
+  const [current, setCurrent] = useState<string | null>(null)
+
+  /* Which section is actually being read.
+   *
+   * The report is ~4,700px of continuous content and the nav had no notion
+   * of position, so it told you where you could go but never where you were
+   * — on a page this long that is the more useful half.
+   *
+   * A scroll listener rather than IntersectionObserver, deliberately: the
+   * observer is the more elegant API, but the section that "wins" here is
+   * the one whose top has most recently passed the reading line, which is a
+   * different question from "what fraction is visible" and is awkward to
+   * express in thresholds. Reads are batched into a rAF so the handler does
+   * at most one layout pass per frame regardless of scroll rate, and there
+   * are eleven elements to measure, not hundreds.
+   */
+  useEffect(() => {
+    if (present.length === 0) return undefined
+    let last = 0
+
+    const measure = () => {
+      last = Date.now()
+      // The reading line sits a third down the viewport — where the eye
+      // actually rests, not at the very top edge.
+      const line = window.innerHeight * 0.33
+      const tops = present
+        .map((section) => {
+          const el = document.getElementById(section.id)
+          return el ? { id: section.id, top: el.getBoundingClientRect().top } : null
+        })
+        .filter((entry): entry is { id: string; top: number } => entry !== null)
+      setCurrent(currentSectionId(tops, line))
+    }
+
+    // Time-throttled rather than rAF-throttled. rAF is the usual choice, but
+    // it only runs while the document is painting, so the highlight silently
+    // stops updating in any context that is not actively rendering — which
+    // is exactly where this was first caught. A 100 ms floor bounds the work
+    // to ~10 layout reads a second over eleven elements.
+    const onScroll = () => {
+      if (Date.now() - last >= 100) measure()
+    }
+
+    measure()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onScroll, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', onScroll)
+    }
+  }, [present])
+
   return (
     <nav aria-label="Report sections" className="section-nav">
       {present.map((s) => (
-        <a key={s.id} href={`#${s.id}`} className="section-nav__link num">
+        <a
+          key={s.id}
+          href={`#${s.id}`}
+          className={`section-nav__link num${current === s.id ? ' is-current' : ''}`}
+          aria-current={current === s.id ? 'true' : undefined}
+        >
           {s.label}
         </a>
       ))}

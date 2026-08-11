@@ -237,16 +237,57 @@ export class ApiError extends Error {
   }
 }
 
-export async function fetchAnalysis(ticker: string, fast: boolean): Promise<RawResearchResponse> {
-  // The Clerk token lets the backend persist this run to the user's history
-  // automatically; without it the analysis still works, just unrecorded.
-  const { authFetch } = await import('./persistence')
-  const res = await authFetch(`/api/research/${encodeURIComponent(ticker)}${fast ? '?fast=true' : ''}`)
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    throw new ApiError(body?.detail || `The analysis service returned an error (${res.status}).`, res.status)
+/* Concurrent callers asking for the same analysis share one request.
+ *
+ * `/api/research/{ticker}` is *not* a read: the backend records every run to
+ * the user's history, so issuing it twice writes two rows. It was being
+ * issued twice on a single page visit — measured, 1 ms apart — because
+ * React StrictMode mounts, unmounts and remounts in development, and the
+ * page's once-per-ticker guard deliberately frees itself when a run is torn
+ * down before delivering (otherwise the remount never fetches at all and the
+ * report never loads). Correct for the loader, but it means the second mount
+ * starts a genuinely new request while the first is still in flight.
+ *
+ * That is what filled the Vault with pairs of identical NVDA/INTC/ADBE/CRM
+ * rows, and it also spent a second full ~10 s vendor pipeline per visit.
+ *
+ * Deduping here rather than in the page fixes it wherever it comes from —
+ * StrictMode, fast refresh, a double click — and mirrors the single-flight
+ * the provider layer already applies server-side. The entry is dropped as
+ * soon as the request settles, so this is a coalescing window, never a
+ * cache: two visits a minute apart still produce two analyses.
+ */
+export const inFlightAnalyses = new Map<string, Promise<RawResearchResponse>>()
+
+/** Runs `work` unless an identical key is already in flight, in which case
+ *  the caller joins the existing promise. Exported for tests: the coalescing
+ *  window, not the HTTP call, is the behaviour worth pinning. */
+export async function coalesce<T>(
+  registry: Map<string, Promise<T>>, key: string, work: () => Promise<T>,
+): Promise<T> {
+  const existing = registry.get(key)
+  if (existing) return existing
+  const request = work()
+  registry.set(key, request)
+  try {
+    return await request
+  } finally {
+    registry.delete(key)
   }
-  return res.json()
+}
+
+export async function fetchAnalysis(ticker: string, fast: boolean): Promise<RawResearchResponse> {
+  return coalesce(inFlightAnalyses, `${ticker}:${fast}`, async () => {
+    // The Clerk token lets the backend persist this run to the user's history
+    // automatically; without it the analysis still works, just unrecorded.
+    const { authFetch } = await import('./persistence')
+    const res = await authFetch(`/api/research/${encodeURIComponent(ticker)}${fast ? '?fast=true' : ''}`)
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw new ApiError(body?.detail || `The analysis service returned an error (${res.status}).`, res.status)
+    }
+    return res.json() as Promise<RawResearchResponse>
+  })
 }
 
 export async function fetchChart(ticker: string, period: string): Promise<RawChartResponse> {

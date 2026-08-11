@@ -11,7 +11,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { fmtDate, fmtPrice } from '@/lib/format'
+import { fmtDate, fmtPrice, fmtPctRaw } from '@/lib/format'
 import type { PricePoint } from '@/lib/types'
 
 interface PriceChartProps {
@@ -90,8 +90,7 @@ export default function PriceChart({ data, ticker, periodLabel }: PriceChartProp
           className="num"
           style={{ fontSize: '0.8125rem', fontWeight: 500, color: lineColor }}
         >
-          {positive ? '+' : ''}
-          {changePct.toFixed(2)}% · {periodLabel}
+          {fmtPctRaw(changePct, 2, true)} · {periodLabel}
         </span>
       </div>
 

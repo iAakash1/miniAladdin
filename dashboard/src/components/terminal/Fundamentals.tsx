@@ -1,6 +1,6 @@
 'use client'
 
-import { fmtNum, fmtPrice } from '@/lib/format'
+import { fmtNum, fmtPrice, fmtPctRaw } from '@/lib/format'
 import type { Analysis } from '@/lib/types'
 
 /** 52-week range with current price + analyst target markers. */
@@ -99,8 +99,7 @@ export default function Fundamentals({ analysis: a }: { analysis: Analysis }) {
                 {fmtPrice(a.analystTarget)}{' '}
                 {upside != null && (
                   <span style={{ color: upside >= 0 ? 'var(--pos)' : 'var(--neg)' }}>
-                    ({upside >= 0 ? '+' : ''}
-                    {upside.toFixed(1)}%)
+                    ({fmtPctRaw(upside, 1, true)})
                   </span>
                 )}
               </>

@@ -4,6 +4,69 @@ import { useState } from 'react'
 import { FACTOR_LABELS, diffSnapshots, useHistory } from '@/lib/history'
 import { fmtDate, timeAgo } from '@/lib/format'
 
+/** A track of every stored run, oldest to newest.
+ *
+ *  Adapted from the Uiverse stepper/range family, whose mechanism is a rail
+ *  with discrete markers and one indicator that moves between them. The
+ *  timeline below is a list you scroll; this is the same data as a shape —
+ *  ten runs at a glance, with the verdict encoded in each marker, so a
+ *  flip-flopping ticker is visible before reading a single row.
+ *
+ *  Left-to-right is oldest-to-newest, the opposite of the list beneath it,
+ *  because a timeline that ran backwards would be the surprising choice.
+ *  Arrow keys walk it; picking a marker opens that run's diff in the list.
+ */
+function RunScrubber({
+  entries, picked, onPick,
+}: {
+  entries: Array<{ ts: string; verdict: string; confidence: number }>
+  picked: string | null
+  onPick: (ts: string | null) => void
+}) {
+  if (entries.length < 3) return null    // a track of two is just two buttons
+  const oldestFirst = [...entries].reverse()
+
+  return (
+    <div
+      className="scrub"
+      role="listbox"
+      aria-label="Stored runs, oldest first"
+      tabIndex={0}
+      onKeyDown={(event) => {
+        const at = oldestFirst.findIndex((e) => e.ts === picked)
+        const go = (to: number) => {
+          const next = oldestFirst[Math.max(0, Math.min(oldestFirst.length - 1, to))]
+          if (next) { event.preventDefault(); onPick(next.ts) }
+        }
+        if (event.key === 'ArrowRight') go(at < 0 ? 0 : at + 1)
+        if (event.key === 'ArrowLeft') go(at < 0 ? oldestFirst.length - 1 : at - 1)
+        if (event.key === 'Home') go(0)
+        if (event.key === 'End') go(oldestFirst.length - 1)
+        if (event.key === 'Escape') onPick(null)
+      }}
+    >
+      <span className="scrub__rail" aria-hidden />
+      {oldestFirst.map((entry) => (
+        <button
+          key={entry.ts}
+          type="button"
+          role="option"
+          aria-selected={picked === entry.ts}
+          className={`scrub__pip scrub__pip--${verdictKind(entry.verdict)}${picked === entry.ts ? ' is-picked' : ''}`}
+          title={`${fmtDate(entry.ts)} · ${entry.verdict} · ${entry.confidence}%`}
+          aria-label={`Run of ${fmtDate(entry.ts)}, ${entry.verdict}, ${entry.confidence} percent confidence`}
+          onClick={() => onPick(picked === entry.ts ? null : entry.ts)}
+        />
+      ))}
+    </div>
+  )
+}
+
+/** Verdict reduced to the three states a marker can carry. */
+function verdictKind(verdict: string): 'pos' | 'neg' | 'hold' {
+  return verdict.includes('Buy') ? 'pos' : verdict.includes('Sell') ? 'neg' : 'hold'
+}
+
 function verdictTone(verdict: string): string {
   return verdict.includes('Buy') ? 'badge--pos' : verdict.includes('Sell') ? 'badge--neg' : 'badge--warn'
 }
@@ -28,6 +91,8 @@ export default function VerdictTimeline({ ticker }: { ticker: string }) {
           {timeline.length} runs stored in this browser
         </span>
       </div>
+
+      <RunScrubber entries={entries} onPick={setExpanded} picked={expanded} />
 
       <ol style={{ listStyle: 'none', margin: 0, padding: 0 }}>
         {entries.map((entry, index) => {

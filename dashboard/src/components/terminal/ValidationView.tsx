@@ -202,7 +202,21 @@ export default function ValidationView() {
       )}
 
       {!loading && !failed && data?.error && (
-        <EmptyState title={`Cannot validate ${data.ticker}`} description={data.error} />
+        <EmptyState
+          title={`Cannot validate ${data.ticker}`}
+          description={data.error}
+          action={
+            query !== 'SPY' ? (
+              <button
+                type="button"
+                className="btn btn--secondary btn--sm"
+                onClick={() => { setTicker('SPY'); setQuery('SPY') }}
+              >
+                Validate SPY instead
+              </button>
+            ) : undefined
+          }
+        />
       )}
 
       {!loading && !failed && data && !data.error && health && (

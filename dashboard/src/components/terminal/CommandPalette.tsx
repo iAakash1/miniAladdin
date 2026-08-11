@@ -13,6 +13,29 @@ import { queryIntelligence, readRecents, recordRecent } from '@/lib/intelligence
  * this component renders results and handles keys. Instant (sync tier on
  * every keystroke, async merge when it settles), keyboard-first, calm.
  */
+/**
+ * Flat position of an option within the rendered listbox.
+ *
+ * The list is displayed in groups but selected by a single index into
+ * `shown`, so this has to invert the grouping exactly. It is zero-based,
+ * matching `active`: a trailing `+ 1` here previously made every option id
+ * one higher than the state that selects it, which meant
+ * `aria-activedescendant="palette-0"` pointed at no element, nothing was
+ * highlighted when the palette opened, one ArrowDown highlighted the first
+ * row while Enter opened the second, and the final result could never be
+ * reached.
+ *
+ * Derived rather than accumulated in a counter during render: a mutable
+ * counter yields different values when React restarts a render mid-tree.
+ */
+export function optionIndex(
+  groups: Array<{ items: unknown[] }>, groupIndex: number, itemIndex: number,
+): number {
+  return groups
+    .slice(0, groupIndex)
+    .reduce((total, group) => total + group.items.length, 0) + itemIndex
+}
+
 export default function CommandPalette() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -90,18 +113,24 @@ export default function CommandPalette() {
     [router],
   )
 
+  // Every one of these indexes `shown`, which is what the listbox actually
+  // renders. They used to index `results` — the query results — while the
+  // list showed `shown`. With an empty query those differ: the palette
+  // displays recents, so arrowing clamped against a stale (often empty)
+  // array and Enter opened whatever the *previous* search had returned,
+  // not the row under the highlight.
   const onKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === 'Escape') {
       setOpen(false)
     } else if (event.key === 'ArrowDown') {
       event.preventDefault()
-      setActive((index) => Math.min(index + 1, results.length - 1))
+      setActive((index) => Math.min(index + 1, shown.length - 1))
     } else if (event.key === 'ArrowUp') {
       event.preventDefault()
       setActive((index) => Math.max(index - 1, 0))
-    } else if (event.key === 'Enter' && results[active]) {
+    } else if (event.key === 'Enter' && shown[active]) {
       event.preventDefault()
-      openEntity(results[active])
+      openEntity(shown[active])
     }
   }
 
@@ -167,9 +196,7 @@ export default function CommandPalette() {
                 // Derived, not accumulated. A counter mutated during render
                 // produces a different result on a re-render that starts
                 // mid-tree, which is exactly what concurrent React does.
-                const index = groups
-                  .slice(0, groupIndex)
-                  .reduce((total, g) => total + g.items.length, 0) + itemIndex + 1
+                const index = optionIndex(groups, groupIndex, itemIndex)
                 return (
                   <button
                     key={entity.id}

@@ -32,7 +32,8 @@
  * trend, no placeholder series, no smoothing that invents shape.
  */
 
-import { useMemo, useState } from 'react'
+import Link from 'next/link'
+import { Fragment, useMemo, useState } from 'react'
 import Tooltip from '@/components/ui/Tooltip'
 import { type Breadth, type SectorRow } from '@/lib/dashboardInsights'
 
@@ -178,13 +179,44 @@ function Spark({ points, positive, active }: {
 function SectorMap({ sectors, active, onActive }: {
   sectors: SectorRow[]; active: string | null; onActive: (s: string | null) => void
 }) {
+  // Only one sector is open at a time: this is a scan surface, and a
+  // column of simultaneously expanded rows destroys the comparison the
+  // table exists for.
+  const [open, setOpen] = useState<string | null>(null)
+  /* Which horizon ranks the sectors.
+     Leadership over 21 days and over 63 days are different questions, and
+     the gap between them is itself the signal — a sector top of the short
+     list and mid-table on the long one is rotating in. The map used to
+     answer only the first. */
+  const [horizon, setHorizon] = useState<'strength_21d' | 'momentum_63d'>('strength_21d')
   const sorted = useMemo(
-    () => [...sectors].sort((a, b) => (b.strength_21d ?? -999) - (a.strength_21d ?? -999)),
-    [sectors],
+    () => [...sectors].sort((a, b) => ((b[horizon] ?? -999) as number) - ((a[horizon] ?? -999) as number)),
+    [sectors, horizon],
   )
 
   return (
     <div className="mm-map">
+      <div className="mm-map__sortbar">
+        <span className="u-note">Rank by</span>
+        {/* A two-position switch rather than two buttons: the thumb's
+            position *is* the state, so the control reads at a glance from
+            across the table. Adapted from the Uiverse switch family, whose
+            mechanism is a sibling-driven thumb translating between discrete
+            stops — here it carries a real analytical choice rather than
+            on/off. */}
+        <button
+          type="button"
+          role="switch"
+          aria-checked={horizon === 'momentum_63d'}
+          aria-label="Rank sectors by 63-day momentum instead of 21-day strength"
+          className={`hswitch${horizon === 'momentum_63d' ? ' is-long' : ''}`}
+          onClick={() => setHorizon((h) => (h === 'strength_21d' ? 'momentum_63d' : 'strength_21d'))}
+        >
+          <span className="hswitch__opt">21d</span>
+          <span className="hswitch__opt">63d</span>
+          <span className="hswitch__thumb" aria-hidden />
+        </button>
+      </div>
       <div className="mm-map__head">
         <span>Sector</span>
         <span className="mm-map__sparkh">90 sessions, rebased</span>
@@ -197,15 +229,45 @@ function SectorMap({ sectors, active, onActive }: {
       {sorted.map((s) => {
         const up = (s.strength_21d ?? 0) >= 0
         const isActive = active === s.symbol
+        const isOpen = open === s.symbol
         return (
+          <Fragment key={s.symbol}>
           <div
             key={s.symbol}
-            className={`mm-map__row${isActive ? ' is-active' : ''}`}
+            className={`mm-map__row rail${isActive ? ' is-active' : ''}${isOpen ? ' is-open' : ''}`}
             tabIndex={0}
+            role="button"
+            aria-expanded={isOpen}
             onMouseEnter={() => onActive(s.symbol)}
             onMouseLeave={() => onActive(null)}
             onFocus={() => onActive(s.symbol)}
             onBlur={() => onActive(null)}
+            onClick={() => setOpen(isOpen ? null : s.symbol)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                setOpen(isOpen ? null : s.symbol)
+              }
+              if (event.key === 'Escape' && isOpen) setOpen(null)
+              /* Arrow keys walk the sector list.
+                 The map is a ranked table people scan top-to-bottom; making
+                 them Tab through it means every row also stops on whatever
+                 controls the disclosure exposed. Home/End jump to the
+                 strongest and weakest sector, which is the comparison the
+                 ranking exists for. */
+              const rows = Array.from(
+                event.currentTarget.parentElement?.parentElement?.querySelectorAll<HTMLElement>('.mm-map__row') ?? [],
+              )
+              const here = rows.indexOf(event.currentTarget)
+              const go = (to: number) => {
+                const target = rows[Math.max(0, Math.min(rows.length - 1, to))]
+                if (target) { event.preventDefault(); target.focus() }
+              }
+              if (event.key === 'ArrowDown') go(here + 1)
+              if (event.key === 'ArrowUp') go(here - 1)
+              if (event.key === 'Home') go(0)
+              if (event.key === 'End') go(rows.length - 1)
+            }}
             aria-label={`${s.name}, ${signed(s.strength_21d)} over 21 days, ${s.above_50d ? 'above' : 'below'} its 50-day average, verdict ${s.verdict}`}
           >
             <span className="mm-map__name">
@@ -224,6 +286,23 @@ function SectorMap({ sectors, active, onActive }: {
               {s.above_50d ? 'above' : 'below'}
             </span>
           </div>
+          {/* Opening a sector turns a reading into a next step. The row
+              carries no constituent list — the dashboard payload does not
+              contain one and inventing holdings would be fabricated
+              research — so the action offered is the one the data actually
+              supports: the sector ETF is itself a real ticker with a real
+              report at /company/{symbol}. */}
+          {isOpen && (
+            <div className="mm-map__detail" role="region" aria-label={`${s.name} detail`}>
+              <span className="mm-map__verdict">
+                Engine verdict on {s.symbol}: <strong>{s.verdict}</strong>
+              </span>
+              <Link href={`/company/${s.symbol}`} className="btn btn--secondary btn--xs">
+                Research {s.symbol}
+              </Link>
+            </div>
+          )}
+          </Fragment>
         )
       })}
     </div>

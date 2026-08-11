@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { ANALYSIS_STAGES, FACTOR_LAB_STAGES } from '../src/components/ui/ResearchLoader'
+import { ANALYSIS_STAGES, FACTOR_LAB_STAGES, stageState } from '../src/components/ui/ResearchLoader'
 
 /* The loader's contract is honesty, and the honesty lives in two places:
    the stage definitions, and the rule that only *confirmed* stages tick.
@@ -76,14 +76,21 @@ test('a reported stage overrides the timer entirely', () => {
 })
 
 test('exactly one stage is ever active', () => {
+  // Indices are derived from the pipeline, not hardcoded: this used to probe
+  // `reported = 4`, which stopped existing when the stage list was corrected
+  // to the order the backend actually runs (filings before prices) and lost
+  // its non-observable "panel" step.
+  const last = FACTOR_LAB_STAGES.length - 1
+  const probes = [undefined, 0, Math.min(2, last), last]
   for (const elapsed of [0, 5_000, 23_000, 90_000]) {
-    for (const reported of [undefined, 0, 2, 4]) {
+    for (const reported of probes) {
       const done = reported ?? 0
       const act = reported !== undefined
         ? reported
         : Math.max(activeStage(FACTOR_LAB_STAGES, elapsed), done)
-      const states = FACTOR_LAB_STAGES.map((_, i) =>
-        i < done ? 'done' : i === act ? 'active' : 'pending')
+      // Uses the production state machine rather than a copy of it, so this
+      // cannot quietly disagree with what the component renders.
+      const states = FACTOR_LAB_STAGES.map((_, i) => stageState(i, done, act))
       assert.equal(states.filter((s) => s === 'active').length, 1,
         `elapsed=${elapsed} reported=${reported} produced ${states.join(',')}`)
     }

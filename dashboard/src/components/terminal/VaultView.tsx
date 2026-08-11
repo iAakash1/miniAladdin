@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useEffect, useState } from 'react'
+import { Fragment, useCallback, useEffect, useState } from 'react'
 import AiPanel from '@/components/terminal/AiPanel'
 import CompanyBand from '@/components/terminal/CompanyBand'
 import QuantPanel from '@/components/terminal/QuantPanel'
@@ -44,6 +44,31 @@ function describeFilters(filters: HistoryFilters): string {
   if (parts.length === 0) return 'for the current filters'
   if (parts.length === 1) return parts[0]
   return `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`
+}
+
+/** Runs collapsed by ticker, newest group first.
+ *
+ *  A vault accumulates many runs of the same company — re-analysing NVDA
+ *  six times produces six rows that read as six findings when they are one
+ *  company's history. Grouping turns the list into "what have I researched"
+ *  instead of "what did I click", and makes a verdict that moved between
+ *  runs visible without opening the comparison view.
+ *
+ *  Order within a group is preserved from the server (already sorted), and
+ *  groups are ordered by their most recent run so the list still reads
+ *  newest-first at the top level. */
+export function groupByTicker<T extends { ticker: string; created_at: string }>(
+  items: T[],
+): Array<{ ticker: string; runs: T[] }> {
+  const groups = new Map<string, T[]>()
+  for (const item of items) {
+    const bucket = groups.get(item.ticker)
+    if (bucket) bucket.push(item)
+    else groups.set(item.ticker, [item])
+  }
+  return [...groups.entries()]
+    .map(([ticker, runs]) => ({ ticker, runs }))
+    .sort((a, b) => b.runs[0].created_at.localeCompare(a.runs[0].created_at))
 }
 
 function verdictTone(verdict: string): string {
@@ -147,6 +172,7 @@ function HistoryBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
   const [filters, setFilters] = useState<HistoryFilters>({ sort: 'newest', page: 1 })
   const [selected, setSelected] = useState<string[]>([])
   const [reloadKey, setReloadKey] = useState(0)
+  const [grouped, setGrouped] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -233,6 +259,14 @@ function HistoryBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
           value={filters.to ?? ''}
           onChange={(e) => patchFilters({ to: e.target.value || undefined })}
         />
+        <button
+          type="button"
+          className={`btn btn--ghost btn--sm${grouped ? ' is-on' : ''}`}
+          aria-pressed={grouped}
+          onClick={() => setGrouped((current) => !current)}
+        >
+          Group by ticker
+        </button>
         <label htmlFor="vault-sort" className="visually-hidden">Sort</label>
         <select
           id="vault-sort"
@@ -326,16 +360,46 @@ function HistoryBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
                 </tr>
               </thead>
               <tbody>
-                {page.items.map((item) => (
-                  <HistoryRow
-                    key={item.id}
-                    item={item}
-                    selected={selected.includes(item.id)}
-                    onSelect={() => toggleSelect(item.id)}
-                    onOpen={() => onOpen({ view: 'detail', id: item.id })}
-                    onDeleted={() => setReloadKey((k) => k + 1)}
-                  />
-                ))}
+                {grouped
+                  ? groupByTicker(page.items).map((group) => (
+                      <Fragment key={group.ticker}>
+                        <tr className="vault-group">
+                          <th scope="rowgroup" colSpan={8}>
+                            <span className="mono">{group.ticker}</span>
+                            <span className="u-note">
+                              {group.runs.length} run{group.runs.length === 1 ? '' : 's'}
+                              {group.runs.length > 1 && (() => {
+                                // Only worth saying when it actually moved.
+                                const verdicts = new Set(group.runs.map((r) => r.verdict))
+                                return verdicts.size > 1
+                                  ? ` · verdict changed (${[...verdicts].join(' → ')})`
+                                  : ` · ${[...verdicts][0]} throughout`
+                              })()}
+                            </span>
+                          </th>
+                        </tr>
+                        {group.runs.map((item) => (
+                          <HistoryRow
+                            key={item.id}
+                            item={item}
+                            selected={selected.includes(item.id)}
+                            onSelect={() => toggleSelect(item.id)}
+                            onOpen={() => onOpen({ view: 'detail', id: item.id })}
+                            onDeleted={() => setReloadKey((k) => k + 1)}
+                          />
+                        ))}
+                      </Fragment>
+                    ))
+                  : page.items.map((item) => (
+                      <HistoryRow
+                        key={item.id}
+                        item={item}
+                        selected={selected.includes(item.id)}
+                        onSelect={() => toggleSelect(item.id)}
+                        onOpen={() => onOpen({ view: 'detail', id: item.id })}
+                        onDeleted={() => setReloadKey((k) => k + 1)}
+                      />
+                    ))}
               </tbody>
             </table>
           </div>
@@ -378,15 +442,16 @@ function HistoryRow({
   onDeleted: () => void
 }) {
   const [bookmarked, setBookmarked] = useState(false)
+  const [confirming, setConfirming] = useState(false)
   return (
     <tr>
       <td>
         <input
           type="checkbox"
+          className="pick"
           aria-label={`Select ${item.ticker} run from ${fmtDate(item.created_at)} for comparison`}
           checked={selected}
           onChange={onSelect}
-          style={{ accentColor: 'var(--accent)' }}
         />
       </td>
       <td className="num" style={{ fontSize: '0.75rem', color: 'var(--muted)', whiteSpace: 'nowrap' }}>
@@ -413,17 +478,26 @@ function HistoryRow({
         </button>
         <button
           type="button"
-          className="btn btn--ghost btn--xs"
+          className={`btn btn--ghost btn--xs confirmed${confirming ? ' is-confirming' : ''}`}
           title={bookmarked ? 'Saved' : 'Save to reports'}
           aria-label={bookmarked ? `${item.ticker} run saved` : `Save ${item.ticker} run to reports`}
           onClick={() => {
-            void saveReport(item.id).then((saved) => setBookmarked(Boolean(saved)))
+            void saveReport(item.id).then((saved) => {
+              if (!saved) return
+              setBookmarked(true)
+              // The row stays on screen after saving, so unlike a delete
+              // there is nothing to signal that anything happened. One ring,
+              // once, on success only — never on the failed path.
+              setConfirming(true)
+              window.setTimeout(() => setConfirming(false), 500)
+            })
           }}
           style={{ color: bookmarked ? 'var(--accent)' : undefined }}
         >
           {bookmarked ? '★' : '☆'}
         </button>
         <ConfirmButton
+          className="btn btn--ghost btn--xs reveal"
           description={`Delete ${item.ticker} run from ${fmtDate(item.created_at)}`}
           confirmLabel="Delete?"
           onConfirm={() => deleteHistory(item.id)}
@@ -480,6 +554,11 @@ function SavedBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
       <EmptyState
         title="No saved reports yet"
         description="Bookmark an analysis with the ☆ button — on a fresh run, or on any row under All analyses — and it will be pinned here with room for your own notes."
+        action={
+          <button type="button" className="btn btn--secondary btn--sm" onClick={() => onOpen({ view: 'history' })}>
+            Browse all analyses
+          </button>
+        }
       />
     )
   }

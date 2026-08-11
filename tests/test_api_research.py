@@ -210,7 +210,44 @@ def test_factor_lab_never_blocks_the_request():
 
 
 def test_factor_lab_reports_stages_a_client_can_render():
+    """The stage list must describe the build that actually runs.
+
+    This previously pinned `STAGES[0] == "prices"` and a length of 5, which
+    is what let the list drift out of sync with the builder: `PanelBuilder`
+    loads every symbol's SEC facts *before* it fetches any price series, so
+    a real build reported "filings" and then "prices" and the client's stage
+    index ran backwards. Pinning the constants hid that; asserting the
+    relationship catches it.
+    """
+    import inspect
+    import re
+
+    from src.panel import builder as panel_builder
     from src.services import factor_lab_service
 
-    assert factor_lab_service.STAGES[0] == "prices"
-    assert len(factor_lab_service.STAGES) == 5
+    stages = factor_lab_service.STAGES
+    assert len(stages) == len(set(stages)), f"duplicate stage names: {stages}"
+
+    # Every sub-stage the builder can emit must be a real stage. Anything
+    # missing here is silently remapped by the relay and the client shows a
+    # step that is not the one running.
+    emitted = set(
+        re.findall(r'_report\(\s*"([a-z_]+)"', inspect.getsource(panel_builder))
+    )
+    assert emitted, "builder no longer reports progress — the relay is dead code"
+    missing = emitted - set(stages)
+    assert not missing, f"builder reports stages the client cannot render: {missing}"
+
+    # Order: the first stage must be the first thing the builder does.
+    source = inspect.getsource(panel_builder.PanelBuilder.build)
+    positions = {
+        name: source.index(f'_report("{name}"')
+        for name in emitted
+        if f'_report("{name}"' in source
+    }
+    if len(positions) > 1:
+        by_execution = [n for n, _ in sorted(positions.items(), key=lambda kv: kv[1])]
+        by_declaration = [n for n in stages if n in positions]
+        assert by_execution == by_declaration, (
+            f"STAGES declares {by_declaration} but the builder runs {by_execution}"
+        )
