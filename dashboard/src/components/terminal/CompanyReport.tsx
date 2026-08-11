@@ -101,6 +101,16 @@ export default function CompanyReport({ analysis, initialChart, isPro, requestUp
 
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* The report is the product's most important page and it had no h1 —
+          its outline started at the ticker band's h2. This names the page
+          without adding chrome above a hero that already states the ticker,
+          the company and the verdict far better than a title bar could.
+          Hidden rather than visible, and placed here rather than inside
+          CompanyBand, because the band is reused in the Vault detail view
+          under that page's own h1 — a second h1 there would be wrong. */}
+      <h1 className="visually-hidden">
+        {analysis.companyName ? `${analysis.companyName} (${analysis.ticker})` : analysis.ticker} research report
+      </h1>
       <SectionNav analysis={analysis} />
 
       <div id="overview" className="report-section">

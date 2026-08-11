@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import EmptyState from '@/components/ui/EmptyState'
+import WorkBoot from '@/components/ui/WorkBoot'
 import BreadthHeatmap from './BreadthHeatmap'
 import EventsTimeline from './EventsTimeline'
 import MacroSections from './MacroSections'
@@ -23,15 +24,10 @@ import type { DashboardData } from '@/lib/dashboardInsights'
  */
 function MarketBoot() {
   return (
-    <div className="mkt-boot" role="status" aria-live="polite">
-      <span className="mkt-boot__mark" aria-hidden>
-        <span className="mkt-boot__bar" />
-        <span className="mkt-boot__bar" />
-        <span className="mkt-boot__bar" />
-      </span>
-      <span className="mkt-boot__label">Loading market data</span>
-      <span className="mkt-boot__hint">macro series, sector breadth and upcoming events</span>
-    </div>
+    <WorkBoot
+      label="Loading market data"
+      hint="macro series, sector breadth and upcoming events"
+    />
   )
 }
 

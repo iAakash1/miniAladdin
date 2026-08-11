@@ -103,3 +103,107 @@ test('empty graph does not throw', () => {
   assert.deepEqual(layout.nodes, [])
   assert.equal(viewBoxFor(layout), '-400 -300 800 600')
 })
+
+/* ── Relationship grouping ───────────────────────────────────────────────
+   The layout's whole claim is that related entities sit together. A
+   well-connected company has ~20 neighbours across a handful of relationship
+   types; without grouping that renders as one undifferentiated starburst. */
+
+const hub: GraphInput = {
+  roots: ['company:NVDA'],
+  nodes: [
+    { id: 'company:NVDA', type: 'company', label: 'Nvidia' },
+    ...Array.from({ length: 6 }, (_, i) => ({ id: `index:${i}`, type: 'index', label: `Index ${i}` })),
+    ...Array.from({ length: 5 }, (_, i) => ({ id: `industry:${i}`, type: 'industry', label: `Industry ${i}` })),
+    ...Array.from({ length: 4 }, (_, i) => ({ id: `location:${i}`, type: 'location', label: `Location ${i}` })),
+    ...Array.from({ length: 3 }, (_, i) => ({ id: `exchange:${i}`, type: 'exchange', label: `Exchange ${i}` })),
+  ],
+  edges: [
+    ...Array.from({ length: 6 }, (_, i) => ({ source_id: 'company:NVDA', target_id: `index:${i}`, type: 'member_of_index', confidence: 0.9, provider: 'wikidata' })),
+    ...Array.from({ length: 5 }, (_, i) => ({ source_id: 'company:NVDA', target_id: `industry:${i}`, type: 'in_industry', confidence: 0.9, provider: 'wikidata' })),
+    ...Array.from({ length: 4 }, (_, i) => ({ source_id: 'company:NVDA', target_id: `location:${i}`, type: 'headquartered_in', confidence: 0.9, provider: 'wikidata' })),
+    ...Array.from({ length: 3 }, (_, i) => ({ source_id: 'company:NVDA', target_id: `exchange:${i}`, type: 'listed_on', confidence: 0.9, provider: 'wikidata' })),
+  ],
+}
+
+type Ring = Array<{ id: string; angle: number }>
+
+/** The depth-1 ring in angular order, rotated to start after the widest gap.
+ *  A fan spans up to 1.9π, so a naive sort on [0, 2π) cuts one wedge at the
+ *  seam and makes a perfectly grouped ring look interleaved. Rotating to the
+ *  widest gap is what makes "contiguous" well defined on a circle. */
+function ringInOrder(layout: ReturnType<typeof computeLayout>): Ring {
+  const sorted: Ring = layout.nodes
+    .filter((n) => n.depth === 1)
+    .map((n) => ({ id: n.id, angle: (Math.atan2(n.y, n.x) + 2 * Math.PI) % (2 * Math.PI) }))
+    .sort((a, b) => a.angle - b.angle)
+
+  let seam = 0
+  let widest = -1
+  for (let i = 0; i < sorted.length; i += 1) {
+    const next = sorted[(i + 1) % sorted.length]
+    const gap = (next.angle - sorted[i].angle + 2 * Math.PI) % (2 * Math.PI)
+    if (gap > widest) {
+      widest = gap
+      seam = (i + 1) % sorted.length
+    }
+  }
+  return [...sorted.slice(seam), ...sorted.slice(0, seam)]
+}
+
+const typeOf = (id: string) => id.split(':')[0]
+
+/** Sequence of relationship groups encountered walking the ring once. */
+function groupSequence(layout: ReturnType<typeof computeLayout>): string[] {
+  const runs: string[] = []
+  for (const node of ringInOrder(layout)) {
+    const t = typeOf(node.id)
+    if (runs[runs.length - 1] !== t) runs.push(t)
+  }
+  return runs
+}
+
+test('each relationship type occupies one contiguous wedge', () => {
+  const sequence = groupSequence(computeLayout(hub))
+  assert.deepEqual(
+    sequence,
+    [...new Set(sequence)],
+    `a type appeared in more than one run — ring order was ${sequence.join('>')}`,
+  )
+  assert.equal(sequence.length, 4, 'all four relationship types should be present')
+})
+
+test('the blank arc between groups is wider than the spacing inside them', () => {
+  const ring = ringInOrder(computeLayout(hub))
+  const within: number[] = []
+  const between: number[] = []
+  for (let i = 1; i < ring.length; i += 1) {
+    const delta = (ring[i].angle - ring[i - 1].angle + 2 * Math.PI) % (2 * Math.PI)
+    ;(typeOf(ring[i].id) === typeOf(ring[i - 1].id) ? within : between).push(delta)
+  }
+  assert.ok(
+    Math.min(...between) > Math.max(...within),
+    `boundaries (${Math.min(...between).toFixed(3)}) must exceed within-group spacing (${Math.max(...within).toFixed(3)})`,
+  )
+})
+
+test('a dense fan pushes its ring outward so labels have room', () => {
+  const radius = (l: ReturnType<typeof computeLayout>) => {
+    const first = l.nodes.find((n) => n.depth === 1)!
+    return Math.hypot(first.x, first.y)
+  }
+  assert.ok(
+    radius(computeLayout(hub)) > radius(computeLayout(graph)),
+    'an 18-neighbour hub should sit on a wider ring than a 3-neighbour one',
+  )
+})
+
+test('grouping is stable — growing one group does not reorder the others', () => {
+  const before = groupSequence(computeLayout(hub))
+  const after = groupSequence(computeLayout({
+    ...hub,
+    nodes: [...hub.nodes, { id: 'index:new', type: 'index', label: 'Index new' }],
+    edges: [...hub.edges, { source_id: 'company:NVDA', target_id: 'index:new', type: 'member_of_index', confidence: 0.9, provider: 'wikidata' }],
+  }))
+  assert.deepEqual(after, before)
+})

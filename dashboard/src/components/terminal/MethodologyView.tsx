@@ -221,7 +221,7 @@ function DataSourceCard({ source }: { source: DataSource }) {
   return (
     <div className="panel" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-        <h4 className="h-panel" style={{ fontSize: '0.875rem' }}>{source.name}</h4>
+        <h3 className="h-panel" style={{ fontSize: '0.875rem' }}>{source.name}</h3>
  <span className="num u-meta" >{source.updateFrequency}</span>
       </div>
       <p style={{ fontSize: '0.8125rem', lineHeight: 1.55, color: 'var(--text)' }}>{source.purpose}</p>
@@ -290,9 +290,9 @@ export default function MethodologyView() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
           {FAMILY_ORDER.map((family) => (
             <div key={family}>
-              <h4 className="label" style={{ fontSize: '0.6875rem', marginBottom: 10, color: 'var(--faint)' }}>
+              <h3 className="label" style={{ fontSize: '0.6875rem', marginBottom: 10, color: 'var(--faint)' }}>
                 {FAMILY_TITLES[family]}
-              </h4>
+              </h3>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(20px, 4vw, 44px)' }}>
                 {factorsIn(family).map((key) => (
                   <div key={key} style={{ maxWidth: 320 }}>
@@ -308,7 +308,7 @@ export default function MethodologyView() {
       <Section id="meth-composite-score" title="Composite score, confidence & risk">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18, maxWidth: '80ch' }}>
           <div>
-            <h4 className="h-panel" style={{ fontSize: '0.8125rem', marginBottom: 6 }}>Normalization</h4>
+            <h3 className="h-panel" style={{ fontSize: '0.8125rem', marginBottom: 6 }}>Normalization</h3>
             <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', lineHeight: 1.6 }}>
               Return-based factors are converted into a t-statistic — how many multiples of the
               stock’s own noise a move represents — which preserves trend direction and adapts to
@@ -319,7 +319,7 @@ export default function MethodologyView() {
             </p>
           </div>
           <div>
-            <h4 className="h-panel" style={{ fontSize: '0.8125rem', marginBottom: 6 }}>Sleeve aggregation & regime adaptation</h4>
+            <h3 className="h-panel" style={{ fontSize: '0.8125rem', marginBottom: 6 }}>Sleeve aggregation & regime adaptation</h3>
             <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', lineHeight: 1.6 }}>
               Factors combine into one score per family; families combine into the composite score.
               Weights are not static: in a detected high-volatility regime, momentum’s weight is cut
@@ -331,7 +331,7 @@ export default function MethodologyView() {
             </p>
           </div>
           <div>
-            <h4 className="h-panel" style={{ fontSize: '0.8125rem', marginBottom: 6 }}>Macro-stress gate</h4>
+            <h3 className="h-panel" style={{ fontSize: '0.8125rem', marginBottom: 6 }}>Macro-stress gate</h3>
             <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', lineHeight: 1.6 }}>
               A probabilistic stress read, built from the yield curve, financial-conditions index,
               credit spreads and volatility percentile, scales down the momentum sleeve specifically
@@ -341,7 +341,7 @@ export default function MethodologyView() {
             </p>
           </div>
           <div>
-            <h4 className="h-panel" style={{ fontSize: '0.8125rem', marginBottom: 6 }}>Confidence</h4>
+            <h3 className="h-panel" style={{ fontSize: '0.8125rem', marginBottom: 6 }}>Confidence</h3>
             <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', lineHeight: 1.6 }}>
               Confidence starts at 100 and is reduced by named, itemized deductions rather than one
               opaque number: disagreement between active families, data completeness, proximity to an
@@ -351,7 +351,7 @@ export default function MethodologyView() {
             </p>
           </div>
           <div>
-            <h4 className="h-panel" style={{ fontSize: '0.8125rem', marginBottom: 6 }}>Risk</h4>
+            <h3 className="h-panel" style={{ fontSize: '0.8125rem', marginBottom: 6 }}>Risk</h3>
             <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', lineHeight: 1.6 }}>
               A separate 0–100 score, deliberately independent of the verdict — a Strong Buy can carry
               high risk, and a Hold can carry low risk. Nine components, each expressed as a percentile
@@ -362,7 +362,7 @@ export default function MethodologyView() {
             </p>
           </div>
           <div>
-            <h4 className="h-panel" style={{ fontSize: '0.8125rem', marginBottom: 6 }}>Missing factors</h4>
+            <h3 className="h-panel" style={{ fontSize: '0.8125rem', marginBottom: 6 }}>Missing factors</h3>
             <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', lineHeight: 1.6 }}>
               A factor whose required input isn’t available is omitted, never estimated from
               incomplete data. The composite score is a weighted average of whatever factors did
@@ -371,7 +371,7 @@ export default function MethodologyView() {
             </p>
           </div>
           <div>
-            <h4 className="h-panel" style={{ fontSize: '0.8125rem', marginBottom: 6 }}>Verdict</h4>
+            <h3 className="h-panel" style={{ fontSize: '0.8125rem', marginBottom: 6 }}>Verdict</h3>
             <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', lineHeight: 1.6 }}>
               The composite score maps to Strong Buy, Buy, Hold, Sell or Strong Sell once it crosses a
               fixed threshold in either direction. An “ungated” verdict — what the sleeves said before

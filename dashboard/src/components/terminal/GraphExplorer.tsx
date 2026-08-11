@@ -1,12 +1,12 @@
 'use client'
 
+import WorkBoot from '@/components/ui/WorkBoot'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import PageHeader from '@/components/ui/PageHeader'
 import EmptyState from '@/components/ui/EmptyState'
-import Skeleton from '@/components/ui/Skeleton'
 import { EDGE_LABELS } from '@/lib/knowledge'
 
 interface GraphNodeRef {
@@ -213,7 +213,11 @@ export default function GraphExplorer() {
         {/* The graph */}
         <section aria-label="Graph view" className="panel" style={{ padding: 18 }}>
           {loading ? (
-            <Skeleton height={420} />
+            <WorkBoot
+              compact
+              label="Tracing connections"
+              hint="walking asserted relationships outward from this entity"
+            />
           ) : edges.length === 0 ? (
             <EmptyState
               title={`No connections recorded for ${slice?.center.label ?? nodeId}`}
@@ -317,7 +321,7 @@ export default function GraphExplorer() {
 
         {/* Inspector: what the selected edge asserts, and who says so */}
         <section aria-label="Selected relationship" className="panel panel--pad">
-          <h3 className="h-panel" style={{ marginBottom: 12 }}>Relationship</h3>
+          <h2 className="h-panel" style={{ marginBottom: 12 }}>Relationship</h2>
           {edges[active] ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>

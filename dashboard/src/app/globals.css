@@ -1515,6 +1515,10 @@ footer a:hover { color: var(--text) !important; }
   transition: opacity var(--t-med) var(--ease-out), background var(--t-med) var(--ease-out);
 }
 .rl__stage.is-pending { opacity: 0.38; }
+/* Passed-but-unconfirmed sits between reached and not-reached, so it must
+   look like neither. Brighter than pending (it did run), dimmer than done
+   (we were never told it finished). */
+.rl__stage.is-passed  { opacity: 0.55; }
 .rl__stage.is-done    { opacity: 0.7; }
 .rl__stage.is-active  { opacity: 1; background: var(--surface-2); }
 
@@ -1531,6 +1535,7 @@ footer a:hover { color: var(--text) !important; }
   color: var(--pos);
 }
 .rl__stage.is-done .rl__mark { border-color: var(--pos); }
+.rl__stage.is-passed .rl__mark { border-color: var(--line-strong); color: var(--faint); }
 .rl__stage.is-active .rl__mark {
   border-color: var(--accent);
   border-top-color: transparent;
@@ -1655,22 +1660,6 @@ footer a:hover { color: var(--text) !important; }
 
 
 /* Shell boot: chrome is already up, only the content column is waiting. */
-.shell-boot {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: clamp(28px, 6vw, 64px) 0;
-}
-.shell-boot__dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
-  animation: rl-pulse 1.8s var(--ease-out) infinite;
-}
-@media (prefers-reduced-motion: reduce) {
-  .shell-boot__dot { animation: none; }
-}
 
 
 /* ============================================================
@@ -1934,7 +1923,7 @@ select.input {
    chart resolving. Small, centred, and gone the moment data lands. It reads
    as an instrument warming up rather than as a page that failed to render. */
 
-.mkt-boot {
+.boot {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1943,40 +1932,44 @@ select.input {
   min-height: 46vh;
   animation: mkt-fade-in 240ms var(--ease-out) both;
 }
-.mkt-boot__mark {
+.boot__mark {
   display: flex;
   align-items: flex-end;
   gap: 3px;
   height: 22px;
 }
-.mkt-boot__bar {
+.boot__bar {
   width: 3px;
   border-radius: 1px;
   background: var(--accent);
   transform-origin: bottom;
-  animation: mkt-bar 1.5s var(--ease-out) infinite;
+  animation: boot-bar 1.5s var(--ease-out) infinite;
 }
-.mkt-boot__bar:nth-child(1) { height: 10px; animation-delay: 0ms; }
-.mkt-boot__bar:nth-child(2) { height: 18px; animation-delay: 140ms; }
-.mkt-boot__bar:nth-child(3) { height: 14px; animation-delay: 280ms; }
+.boot__bar:nth-child(1) { height: 10px; animation-delay: 0ms; }
+.boot__bar:nth-child(2) { height: 18px; animation-delay: 140ms; }
+.boot__bar:nth-child(3) { height: 14px; animation-delay: 280ms; }
 
-@keyframes mkt-bar {
+@keyframes boot-bar {
   0%, 100% { transform: scaleY(0.34); opacity: 0.35; }
   40%      { transform: scaleY(1);    opacity: 1; }
 }
 @keyframes mkt-fade-in { from { opacity: 0; } to { opacity: 1; } }
 
-.mkt-boot__label {
+.boot__label {
   font-size: 0.8125rem;
   font-weight: 550;
   letter-spacing: -0.008em;
   color: var(--text);
 }
-.mkt-boot__hint { font-size: 0.6875rem; color: var(--faint); }
+.boot__hint { font-size: 0.6875rem; color: var(--faint); }
+
+/* Inside a section that already has its own header and controls, the loader
+   should not claim the viewport — the page keeps its shape while it waits. */
+.boot--compact { min-height: 220px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .mkt-boot { animation: none; }
-  .mkt-boot__bar { animation: none; opacity: 0.7; }
+  .boot { animation: none; }
+  .boot__bar { animation: none; opacity: 0.7; }
 }
 
 /* Content arrives with the same fade the boot state left with, so the
@@ -2004,6 +1997,9 @@ select.input {
   line-height: 1.6;
 }
 .u-right { text-align: right; }
+/* Pushes a flex item to the end of its row — the `marginLeft: 'auto'`
+   that appeared inline in a dozen toolbars. */
+.u-push { margin-left: auto; }
 .u-stack { display: flex; flex-direction: column; gap: 12px; }
 .u-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .u-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -2033,4 +2029,29 @@ select.input {
   font-size: 0.9375rem;
   font-weight: 600;
   letter-spacing: -0.01em;
+}
+
+/* ── Destructive confirmation ──────────────────────────────────────────────
+   The armed state has to read as "this one is different" without becoming a
+   red button in a quiet table — colour states a fact about the action, not a
+   decoration. Border and text carry it; no fill, no glow. */
+.confirm { transition: color 120ms var(--ease-out), border-color 120ms var(--ease-out); }
+.confirm.is-armed {
+  color: var(--neg);
+  border-color: var(--neg);
+  font-variant-numeric: normal;
+  letter-spacing: -0.005em;
+}
+.confirm--failed {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.confirm__msg {
+  font-size: 0.6875rem;
+  color: var(--neg);
+  white-space: nowrap;
+}
+@media (prefers-reduced-motion: reduce) {
+  .confirm { transition: none; }
 }

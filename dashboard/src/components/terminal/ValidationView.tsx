@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react'
 import EmptyState from '@/components/ui/EmptyState'
 import PageHeader from '@/components/ui/PageHeader'
 import Skeleton from '@/components/ui/Skeleton'
+import WorkBoot from '@/components/ui/WorkBoot'
 import Section from '@/components/ui/Section'
 import MetricExplainer from './MetricExplainer'
 import { METRIC_GLOSSARY } from '@/lib/metricGlossary'
@@ -193,11 +194,11 @@ export default function ValidationView() {
       )}
 
       {loading && !failed && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }} aria-busy="true">
-          <Skeleton height={90} />
-          <Skeleton height={300} />
-          <Skeleton height={220} />
-        </div>
+        <WorkBoot
+          compact
+          label={`Validating ${query}`}
+          hint="walking the engine forward over five years of daily bars"
+        />
       )}
 
       {!loading && !failed && data?.error && (
@@ -210,7 +211,7 @@ export default function ValidationView() {
           {/* Overall Model Health — the lead answer, always visible */}
           <section aria-label="Overall model health" className="panel panel--pad">
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-              <h3 className="h-panel">Overall model health</h3>
+              <h2 className="h-panel">Overall model health</h2>
               <span className={`badge ${HEALTH_BADGE[health.tone]}`}>{health.label}</span>
               <span className="num" style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--faint)' }}>
                 {data.samples} samples · {data.period.start} → {data.period.end}

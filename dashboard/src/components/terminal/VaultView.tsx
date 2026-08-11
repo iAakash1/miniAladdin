@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import AiPanel from '@/components/terminal/AiPanel'
@@ -9,6 +10,7 @@ import EmptyState from '@/components/ui/EmptyState'
 import PageHeader from '@/components/ui/PageHeader'
 import Skeleton from '@/components/ui/Skeleton'
 import { normalizeAnalysis } from '@/lib/api'
+import ConfirmButton from '@/components/ui/ConfirmButton'
 import { fmtDate, timeAgo } from '@/lib/format'
 import {
   type CompareResult,
@@ -29,6 +31,20 @@ import type { Analysis, RawResearchResponse } from '@/lib/types'
 
 const VERDICTS = ['Strong Buy', 'Buy', 'Hold', 'Sell', 'Strong Sell']
 const PAGE_SIZE = 20
+
+/** Names the filters actually in force, so an empty result says which
+ *  constraint produced it rather than a generic "nothing found". */
+function describeFilters(filters: HistoryFilters): string {
+  const parts: string[] = []
+  if (filters.q) parts.push(`matching “${filters.q}”`)
+  if (filters.verdict) parts.push(`with a ${filters.verdict} verdict`)
+  if (filters.from && filters.to) parts.push(`between ${filters.from} and ${filters.to}`)
+  else if (filters.from) parts.push(`on or after ${filters.from}`)
+  else if (filters.to) parts.push(`on or before ${filters.to}`)
+  if (parts.length === 0) return 'for the current filters'
+  if (parts.length === 1) return parts[0]
+  return `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`
+}
 
 function verdictTone(verdict: string): string {
   return verdict.includes('Buy') ? 'badge--pos' : verdict.includes('Sell') ? 'badge--neg' : 'badge--warn'
@@ -164,6 +180,14 @@ function HistoryBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
 
   const totalPages = page ? Math.max(1, Math.ceil(page.total / PAGE_SIZE)) : 1
 
+  // `sort` and `page` are always set, so they are not "filters" for the
+  // purpose of explaining an empty result — only the four narrowing controls.
+  const filtersActive = Boolean(filters.q || filters.verdict || filters.from || filters.to)
+  const clearFilters = useCallback(() => {
+    setPage(null)
+    setFilters((f) => ({ sort: f.sort, page: 1 }))
+  }, [])
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* Filter bar */}
@@ -171,17 +195,18 @@ function HistoryBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
         <label htmlFor="vault-q" className="visually-hidden">Search ticker or company</label>
         <input
           id="vault-q"
-          className="input"
           type="search"
           placeholder="Search ticker or company…"
-          style={{ maxWidth: 240, height: 32, fontSize: '0.8125rem' }}
+          className="input input--sm"
+          style={{ maxWidth: 240 }}
+          value={filters.q ?? ''}
           onChange={(e) => patchFilters({ q: e.target.value.trim() || undefined })}
         />
         <label htmlFor="vault-verdict" className="visually-hidden">Filter by verdict</label>
         <select
           id="vault-verdict"
-          className="input"
-          style={{ maxWidth: 150, height: 32, fontSize: '0.8125rem' }}
+          className="input input--sm"
+          style={{ maxWidth: 150 }}
           value={filters.verdict ?? ''}
           onChange={(e) => patchFilters({ verdict: e.target.value || undefined })}
         >
@@ -193,24 +218,26 @@ function HistoryBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
         <label htmlFor="vault-from" className="visually-hidden">From date</label>
         <input
           id="vault-from"
-          className="input num"
+          className="input input--sm num"
           type="date"
-          style={{ maxWidth: 150, height: 32, fontSize: '0.75rem' }}
+          style={{ maxWidth: 150 }}
+          value={filters.from ?? ''}
           onChange={(e) => patchFilters({ from: e.target.value || undefined })}
         />
         <label htmlFor="vault-to" className="visually-hidden">To date</label>
         <input
           id="vault-to"
-          className="input num"
+          className="input input--sm num"
           type="date"
-          style={{ maxWidth: 150, height: 32, fontSize: '0.75rem' }}
+          style={{ maxWidth: 150 }}
+          value={filters.to ?? ''}
           onChange={(e) => patchFilters({ to: e.target.value || undefined })}
         />
         <label htmlFor="vault-sort" className="visually-hidden">Sort</label>
         <select
           id="vault-sort"
-          className="input"
-          style={{ maxWidth: 140, height: 32, fontSize: '0.8125rem' }}
+          className="input input--sm"
+          style={{ maxWidth: 140 }}
           value={filters.sort}
           onChange={(e) => patchFilters({ sort: e.target.value as HistoryFilters['sort'] })}
         >
@@ -250,11 +277,32 @@ function HistoryBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
         </div>
       )}
 
+      {/* Two different nothings. A vault that is genuinely empty needs a
+          pointer to Research; a vault whose filters happen to exclude
+          everything needs the filters cleared — telling someone with 43
+          stored runs that they have none is both wrong and a dead end. */}
       {!failed && page !== null && page.items.length === 0 && (
-        <EmptyState
-          title="No analyses recorded yet"
-          description="Run an analysis on the Analyze tab — every completed run is stored here automatically, with its full report and scorecard."
-        />
+        filtersActive ? (
+          <EmptyState
+            title="No analyses match these filters"
+            description={`Nothing recorded ${describeFilters(filters)}. Widen the range or clear the filters to see your full history.`}
+            action={
+              <button type="button" className="btn btn--secondary btn--sm" onClick={clearFilters}>
+                Clear filters
+              </button>
+            }
+          />
+        ) : (
+          <EmptyState
+            title="No analyses recorded yet"
+            description="Run an analysis on the Research tab — every completed run is stored here automatically, with its full report and scorecard."
+            action={
+              <Link href="/terminal/analyze" className="btn btn--secondary btn--sm">
+                Go to Research
+              </Link>
+            }
+          />
+        )
       )}
 
       {!failed && page !== null && page.items.length > 0 && (
@@ -375,17 +423,14 @@ function HistoryRow({
         >
           {bookmarked ? '★' : '☆'}
         </button>
-        <button
-          type="button"
-          className="btn btn--ghost btn--xs"
-          aria-label={`Delete ${item.ticker} run from ${fmtDate(item.created_at)}`}
-          style={{ color: 'var(--faint)' }}
-          onClick={() => {
-            void deleteHistory(item.id).then((ok) => ok && onDeleted())
-          }}
+        <ConfirmButton
+          description={`Delete ${item.ticker} run from ${fmtDate(item.created_at)}`}
+          confirmLabel="Delete?"
+          onConfirm={() => deleteHistory(item.id)}
+          onDone={onDeleted}
         >
           ✕
-        </button>
+        </ConfirmButton>
       </td>
     </tr>
   )
@@ -531,18 +576,15 @@ function SavedBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
                 >
                   Edit notes
                 </button>
-                <button
-                  type="button"
+                <ConfirmButton
                   className="btn btn--ghost btn--sm"
-                  style={{ marginLeft: 'auto', color: 'var(--faint)' }}
-                  onClick={() => {
-                    void deleteSavedReport(report.id).then((ok) => {
-                      if (ok) setSaved((rows) => rows?.filter((r) => r.id !== report.id) ?? null)
-                    })
-                  }}
+                  description={`Remove saved report ${report.custom_title ?? report.analysis?.ticker ?? ''}`.trim()}
+                  confirmLabel="Remove?"
+                  onConfirm={() => deleteSavedReport(report.id)}
+                  onDone={() => setSaved((rows) => rows?.filter((r) => r.id !== report.id) ?? null)}
                 >
                   Remove
-                </button>
+                </ConfirmButton>
               </div>
             )}
           </article>

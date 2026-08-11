@@ -1,5 +1,6 @@
 'use client'
 
+import ConfirmButton from '@/components/ui/ConfirmButton'
 import { useEffect, useState } from 'react'
 import EmptyState from '@/components/ui/EmptyState'
 import Skeleton from '@/components/ui/Skeleton'
@@ -81,7 +82,7 @@ export default function PositionsPanel() {
   return (
     <section aria-labelledby="positions-h" className="panel panel--pad">
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
-        <h3 id="positions-h" className="h-panel">Positions</h3>
+        <h2 id="positions-h" className="h-panel">Positions</h2>
         {positions.length > 0 && (
           <span className="num" style={{ fontSize: '0.75rem', color: 'var(--faint)' }}>
             {positions.length} · cost basis ${fmtNum(totalCost, 2)}
@@ -228,15 +229,13 @@ export default function PositionsPanel() {
                           >
                             Edit
                           </button>
-                          <button
-                            type="button"
-                            className="btn btn--ghost btn--xs"
-                            aria-label={`Remove ${position.ticker} position`}
-                            style={{ color: 'var(--faint)' }}
-                            onClick={() => remove(position.id)}
+                          <ConfirmButton
+                            description={`Remove ${position.ticker} position`}
+                            confirmLabel="Remove?"
+                            onConfirm={() => remove(position.id)}
                           >
                             ✕
-                          </button>
+                          </ConfirmButton>
                         </>
                       )}
                     </td>

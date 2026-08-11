@@ -1,5 +1,6 @@
 'use client'
 
+import WorkBoot from '@/components/ui/WorkBoot'
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useUser } from '@clerk/nextjs'
 
@@ -95,10 +96,13 @@ export default function TerminalShell({ loadingLabel, children }: TerminalShellP
           }}
           aria-busy="true"
         >
-          <div className="shell-boot">
-            <span className="shell-boot__dot" aria-hidden />
-            <span className="label">{loadingLabel}</span>
-          </div>
+          {/* One loading language across the terminal. This gate previously
+              rendered a 6px dot and a small dim label pinned to the top-left
+              of an otherwise empty 1200px column, which on a wide screen
+              reads as a page that failed to load rather than one that is
+              loading. WorkBoot is the same treatment Market, Validation and
+              the graphs now use. */}
+          <WorkBoot label={loadingLabel.replace(/…$/, '')} />
         </main>
       </div>
     )
