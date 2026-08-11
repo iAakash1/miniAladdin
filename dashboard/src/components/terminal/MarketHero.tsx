@@ -38,7 +38,13 @@ export default function MarketHero({ data }: { data: DashboardData }) {
 
   return (
     <section aria-labelledby="hero-h" className="card dash-hero">
-      <h2 id="hero-h" className="visually-hidden">Market overview</h2>
+      {/* The terminal's landing page had no h1 at all — this was an h2, so
+          the outline started at level 2 with nothing above it. It stays
+          visually hidden on purpose: the hero below already states the
+          regime in far more detail than a title bar would, and adding a
+          visible "Market overview" above it would be chrome for its own
+          sake. Screen readers and heading navigation get the anchor. */}
+      <h1 id="hero-h" className="visually-hidden">Market overview</h1>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
         <span className={`badge ${BADGE_TONE[regime.tone]}`} style={{ fontSize: '0.75rem', height: 26, padding: '0 12px' }}>
           {regime.label.toUpperCase()}

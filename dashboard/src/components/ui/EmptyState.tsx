@@ -1,5 +1,11 @@
 interface EmptyStateProps {
   title: string
+  /** Heading level for the title. Defaults to a plain <p>, which is right
+   *  for an empty state nested inside a page that already has structure —
+   *  it should not inject a heading into someone else's outline. Pass a
+   *  heading only where the empty state *is* the page's main content, as on
+   *  /terminal/analyze, whose entire body is this component. */
+  titleAs?: 'p' | 'h1' | 'h2'
   description?: string
   action?: React.ReactNode
   icon?: React.ReactNode
@@ -17,7 +23,7 @@ interface EmptyStateProps {
  * surface in the product shares one treatment — previously each caller
  * inherited a copy of the same six style properties, which is how they drift.
  */
-export default function EmptyState({ title, description, action, icon }: EmptyStateProps) {
+export default function EmptyState({ title, titleAs: TitleTag = 'p', description, action, icon }: EmptyStateProps) {
   return (
     <div className="empty-state">
       {icon && (
@@ -25,7 +31,7 @@ export default function EmptyState({ title, description, action, icon }: EmptySt
           {icon}
         </div>
       )}
-      <p className="empty-state__title">{title}</p>
+      <TitleTag className="empty-state__title">{title}</TitleTag>
       {description && <p className="empty-state__body">{description}</p>}
       {action && <div className="empty-state__action">{action}</div>}
     </div>

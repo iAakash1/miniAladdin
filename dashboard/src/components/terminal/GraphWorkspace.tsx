@@ -1,12 +1,12 @@
 'use client'
 
+import WorkBoot from '@/components/ui/WorkBoot'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import PageHeader from '@/components/ui/PageHeader'
 import EmptyState from '@/components/ui/EmptyState'
-import Skeleton from '@/components/ui/Skeleton'
 import { computeLayout, viewBoxFor, type LayoutNode } from '@/lib/graph/layout'
 import { EDGE_LABELS } from '@/lib/knowledge'
 import {
@@ -284,7 +284,11 @@ export default function GraphWorkspace() {
         {/* Graph */}
         <section aria-label="Graph" className="panel" style={{ padding: 14 }}>
           {loading ? (
-            <Skeleton height={460} />
+            <WorkBoot
+              compact
+              label="Building the graph"
+              hint="entities and relationships from SEC filings and Wikidata"
+            />
           ) : !layout || layout.nodes.length === 0 ? (
             <EmptyState
               title="No graph for those tickers"
@@ -303,9 +307,16 @@ export default function GraphWorkspace() {
                   <line
                     key={`${edge.source}-${edge.target}-${i}`}
                     x1={edge.x1} y1={edge.y1} x2={edge.x2} y2={edge.y2}
-                    stroke={active ? 'var(--accent)' : 'var(--line)'}
-                    strokeWidth={active ? 1.6 : 0.8}
-                    opacity={active ? 1 : 0.55}
+                    // `--line` is the hairline token for dividers sitting
+                    // against an adjacent surface; at 8% white, times a 0.55
+                    // opacity, an edge crossing open canvas came out around
+                    // 4% and was invisible. It only ever looked drawn because
+                    // the old layout packed every neighbour into a tight
+                    // starburst where the lines overlapped. Matches
+                    // GraphExplorer, which already used the stronger token.
+                    stroke={active ? 'var(--accent)' : 'var(--line-strong)'}
+                    strokeWidth={active ? 1.8 : 1}
+                    opacity={active ? 1 : 0.75}
                   />
                 )
               })}

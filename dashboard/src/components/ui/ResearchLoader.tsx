@@ -34,6 +34,27 @@
 
 import { useEffect, useState } from 'react'
 
+export type StageState = 'done' | 'active' | 'passed' | 'pending'
+
+/**
+ * Which of the four states a stage is in. Pure, and exported, because this
+ * is where the honesty rule actually lives — a comment cannot be run.
+ *
+ * Four states, not three. A stage the pipeline has moved past but has not
+ * *confirmed* finished is neither "done" nor "not reached", and collapsing
+ * it into `pending` produced a visibly incoherent list on the live company
+ * page: stage 1 ticked, stage 2 looking untouched, stage 3 pulsing away.
+ * `passed` says "no longer running" without claiming completion.
+ *
+ * The invariant that matters: `done` is returned only for stages the caller
+ * counted in `completed` — never inferred from `active`.
+ */
+export function stageState(index: number, completed: number, active: number): StageState {
+  if (index < completed) return 'done'
+  if (index === active) return 'active'
+  return index < active ? 'passed' : 'pending'
+}
+
 export interface LoaderStage {
   /** Imperative, present tense: "Fetching market data". */
   label: string
@@ -107,17 +128,18 @@ export default function ResearchLoader({
 
       <ol className="rl__stages">
         {stages.map((stage, index) => {
-          const state = index < completed ? 'done' : index === active ? 'active' : 'pending'
+          const state = stageState(index, completed, active)
           return (
             <li key={stage.label} className={`rl__stage is-${state}`}>
               <span className="rl__mark" aria-hidden>
-                {state === 'done' ? '✓' : state === 'active' ? '' : ''}
+                {state === 'done' ? '✓' : state === 'passed' ? '·' : ''}
               </span>
               <span className="rl__text">
                 <span className="rl__label">
                   {stage.label}
                   {state === 'active' && <span className="visually-hidden"> — in progress</span>}
                   {state === 'done' && <span className="visually-hidden"> — complete</span>}
+                  {state === 'passed' && <span className="visually-hidden"> — no longer running</span>}
                 </span>
                 <span className="rl__detail">
                   {state === 'active' && detail ? detail : stage.detail}

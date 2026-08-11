@@ -48,7 +48,21 @@ export function timeAgo(iso: string | null | undefined): string {
   if (h < 24) return `${h}h ago`
   const d = Math.floor(h / 24)
   if (d < 7) return `${d}d ago`
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  // Stays relative all the way out. The previous fallback returned
+  // `toLocaleDateString` with the same options as `fmtDate`, so the very
+  // common pairing `{fmtDate(t)} · {timeAgo(t)}` — used in the Vault table
+  // and the report header — rendered the date twice ("Jul 28 · Jul 28")
+  // for anything older than a week. Every call site phrases this as elapsed
+  // time ("saved …", "opened …", "Updated …"), so a bare date was never the
+  // right answer there either.
+  // Rounded, not truncated, past a week. Truncating splits a single calendar
+  // day across two buckets — two Vault rows both stamped "Jul 28" came out as
+  // "1w ago" and "2w ago" purely from the hour they were run, which reads as
+  // a bug even though the arithmetic is right. At week-and-coarser resolution
+  // the nearest unit is the honest one.
+  if (d < 32) return `${Math.round(d / 7)}w ago`
+  if (d < 330) return `${Math.round(d / 30)}mo ago`
+  return `${Math.round(d / 365)}y ago`
 }
 
 export function fmtDate(iso: string, opts?: Intl.DateTimeFormatOptions): string {

@@ -74,6 +74,7 @@ function AnalyzeLauncher({ shell }: { shell: TerminalShellContext }) {
 
       <EmptyState
         icon={<LogoMark size={36} />}
+        titleAs="h1"
         title="Analyze any US-listed equity"
         description="Type a ticker or pick one above. A full analysis reads price history, fundamentals, news sentiment and the macro regime — about ten seconds — and lands on a permanent page you can bookmark."
       />

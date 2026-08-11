@@ -7,6 +7,7 @@ import EmptyState from '@/components/ui/EmptyState'
 import Skeleton from '@/components/ui/Skeleton'
 import Tooltip from '@/components/ui/Tooltip'
 import { FACTOR_LABELS, diffSnapshots, useAllHistory } from '@/lib/history'
+import ConfirmButton from '@/components/ui/ConfirmButton'
 import { timeAgo } from '@/lib/format'
 import PositionsPanel from '@/components/terminal/PositionsPanel'
 import {
@@ -294,17 +295,17 @@ export default function PortfolioView() {
           </button>
         </form>
         {active && (
-          <button
-            type="button"
-            className="btn btn--ghost btn--sm"
-            style={{ marginLeft: 'auto', color: 'var(--neg)' }}
-            onClick={() => {
+          <ConfirmButton
+            className="btn btn--ghost btn--sm u-push"
+            description={`Delete the watchlist ${active.name} and all ${active.tickers.length} of its tickers`}
+            confirmLabel="Delete list?"
+            onConfirm={() => {
               deleteWatchlist(active.id)
               setActiveId(null)
             }}
           >
             Delete list
-          </button>
+          </ConfirmButton>
         )}
       </div>
 
@@ -453,15 +454,13 @@ export default function PortfolioView() {
                         >
                           Explain
                         </Link>
-                        <button
-                          type="button"
-                          className="btn btn--ghost btn--xs"
-                          aria-label={`Remove ${ticker} from ${active.name}`}
-                          onClick={() => removeTicker(active.id, ticker)}
-                          style={{ color: 'var(--faint)' }}
+                        <ConfirmButton
+                          description={`Remove ${ticker} from ${active.name}`}
+                          confirmLabel="Remove?"
+                          onConfirm={() => removeTicker(active.id, ticker)}
                         >
                           ✕
-                        </button>
+                        </ConfirmButton>
                       </td>
                     </tr>
                   ))}

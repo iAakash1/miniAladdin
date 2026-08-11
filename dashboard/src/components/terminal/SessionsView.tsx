@@ -36,6 +36,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import EmptyState from '@/components/ui/EmptyState'
 import PageHeader from '@/components/ui/PageHeader'
 import Skeleton from '@/components/ui/Skeleton'
+import ConfirmButton from '@/components/ui/ConfirmButton'
 import { timeAgo } from '@/lib/format'
 import {
   createSession,
@@ -354,11 +355,15 @@ export default function SessionsView() {
                           </Link>
                           <div className="ws-card__foot">
                             <span>{s.tags.length ? s.tags.join(' · ') : timeAgo(s.last_opened_at)}</span>
-                            <button type="button" className="btn btn--ghost btn--xs ws-card__delete"
-                                    aria-label={`Delete ${s.title}`}
-                                    onClick={async () => { if (await deleteSession(s.id)) refresh() }}>
+                            <ConfirmButton
+                              className="btn btn--ghost btn--xs ws-card__delete"
+                              description={`Delete investigation ${s.title}`}
+                              confirmLabel="Delete?"
+                              onConfirm={() => deleteSession(s.id)}
+                              onDone={refresh}
+                            >
                               Delete
-                            </button>
+                            </ConfirmButton>
                           </div>
                         </article>
                       )
