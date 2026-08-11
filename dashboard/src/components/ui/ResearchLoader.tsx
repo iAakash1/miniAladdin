@@ -49,6 +49,7 @@ export default function ResearchLoader({
   stages,
   completed = 0,
   active: reported,
+  detail,
   note,
 }: {
   /** What is being done — "Researching", "Building factor panel". */
@@ -61,6 +62,9 @@ export default function ResearchLoader({
   /** The stage the caller *knows* is running, when the work reports it.
    *  Overrides the timer entirely — a real signal always beats an estimate. */
   active?: number
+  /** Live sub-progress for the running stage, e.g. "12 / 30 symbols".
+   *  Only ever a real count — never a synthesised percentage. */
+  detail?: string
   note?: string
 }) {
   const [elapsed, setElapsed] = useState(0)
@@ -115,7 +119,9 @@ export default function ResearchLoader({
                   {state === 'active' && <span className="visually-hidden"> — in progress</span>}
                   {state === 'done' && <span className="visually-hidden"> — complete</span>}
                 </span>
-                <span className="rl__detail">{stage.detail}</span>
+                <span className="rl__detail">
+                  {state === 'active' && detail ? detail : stage.detail}
+                </span>
               </span>
             </li>
           )

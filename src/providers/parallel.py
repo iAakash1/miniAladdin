@@ -140,10 +140,19 @@ def map_concurrent(
         # across workers raises "context is already entered". The values
         # inside are shared by reference, which is what makes attribution
         # work and why `RequestProfile` is lock-guarded.
-        futures = {
-            pool.submit(contextvars.copy_context().run, _run_one, fn, item): index
-            for index, item in enumerate(items)
-        }
+        # Submitting can fail if the interpreter is shutting down while a
+        # background job is still running — the pool refuses new work and
+        # raises. That is a race, not an error: whatever was already
+        # submitted still resolves, and the rest are reported as failed
+        # outcomes like any other. Letting it propagate turns a clean exit
+        # into a stack trace in the test output.
+        futures: dict[concurrent.futures.Future, int] = {}
+        for index, item in enumerate(items):
+            try:
+                futures[pool.submit(contextvars.copy_context().run, _run_one, fn, item)] = index
+            except RuntimeError:
+                logger.info("%s: pool refused new work (interpreter shutting down)", label)
+                break
         try:
             for future in concurrent.futures.as_completed(futures, timeout=timeout):
                 # Already resolved, so this never blocks.

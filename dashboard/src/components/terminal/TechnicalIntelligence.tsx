@@ -44,7 +44,7 @@ export default function TechnicalIntelligence({ block }: { block: TechBlock | nu
     <section aria-label="Technical intelligence" className="panel" style={{ padding: 'clamp(18px, 3vw, 24px)' }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
         <h3 className="h-panel">Technical intelligence</h3>
-        <span className="num" style={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>
+ <span className="num u-meta" >
           {block.bars} sessions · as of {block.as_of}
         </span>
         <span style={{ marginLeft: 'auto', fontSize: '0.6875rem', color: 'var(--faint)' }}>

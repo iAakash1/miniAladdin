@@ -56,7 +56,7 @@ export default function CompanyEcosystem({ ticker }: { ticker: string }) {
     <section aria-label="Company ecosystem" className="panel" style={{ padding: 'clamp(18px, 3vw, 24px)' }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
         <h3 className="h-panel">Ecosystem</h3>
-        <span className="num" style={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>
+ <span className="num u-meta" >
           {data.graph.nodes} entities · {data.graph.edges} relationships
         </span>
         <span style={{ marginLeft: 'auto', fontSize: '0.6875rem', color: 'var(--faint)' }}>

@@ -19,7 +19,7 @@ export default function Headlines({ headlines, isPro, onUpgrade }: HeadlinesProp
   if (headlines.length === 0) return null
 
   return (
-    <section aria-label="Scored headlines" className="panel" style={{ padding: '20px 22px' }}>
+    <section aria-label="Scored headlines" className="panel panel--pad">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
         <h3 className="h-panel">What moved the score</h3>
         {!isPro && (
@@ -80,9 +80,9 @@ export default function Headlines({ headlines, isPro, onUpgrade }: HeadlinesProp
                     {h.score.toFixed(2)}
                   </span>
                 )}
-                <span style={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>{h.source}</span>
+                <span className="u-meta">{h.source}</span>
                 {h.publishedAt && (
-                  <span style={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>{timeAgo(h.publishedAt)}</span>
+                  <span className="u-meta">{timeAgo(h.publishedAt)}</span>
                 )}
               </div>
             </>

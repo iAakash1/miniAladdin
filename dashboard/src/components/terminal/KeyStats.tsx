@@ -26,7 +26,7 @@ function Row({ label, value, tone = 'neutral', note }: { label: string; value: s
 
 export default function KeyStats({ analysis: a }: { analysis: Analysis }) {
   return (
-    <section aria-label="Risk and momentum metrics" className="panel" style={{ padding: '20px 22px' }}>
+    <section aria-label="Risk and momentum metrics" className="panel panel--pad">
       <h3 className="h-panel" style={{ marginBottom: 10 }}>
         Risk &amp; momentum
       </h3>

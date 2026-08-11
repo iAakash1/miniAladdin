@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import EmptyState from '@/components/ui/EmptyState'
-import Skeleton from '@/components/ui/Skeleton'
 import BreadthHeatmap from './BreadthHeatmap'
 import EventsTimeline from './EventsTimeline'
 import MacroSections from './MacroSections'
@@ -10,12 +9,28 @@ import MarketHero from './MarketHero'
 import MarketWhatChanged from './MarketWhatChanged'
 import type { DashboardData } from '@/lib/dashboardInsights'
 
-function DashboardSkeleton() {
+/**
+ * Market boot.
+ *
+ * Three full-width skeleton blocks were the wrong shape for this: at 230px
+ * tall they dominate the viewport, they promise a layout the real dashboard
+ * does not match, and the collapse from grey slabs to content is a visible
+ * jolt rather than a transition.
+ *
+ * A small centred mark instead. It occupies almost nothing, it says the
+ * application is deliberately working rather than half-rendered, and it
+ * fades out as real content fades in — so the eye never has to re-anchor.
+ */
+function MarketBoot() {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }} aria-hidden="true">
-      <Skeleton height={230} />
-      <Skeleton height={260} />
-      <Skeleton height={180} />
+    <div className="mkt-boot" role="status" aria-live="polite">
+      <span className="mkt-boot__mark" aria-hidden>
+        <span className="mkt-boot__bar" />
+        <span className="mkt-boot__bar" />
+        <span className="mkt-boot__bar" />
+      </span>
+      <span className="mkt-boot__label">Loading market data</span>
+      <span className="mkt-boot__hint">macro series, sector breadth and upcoming events</span>
     </div>
   )
 }
@@ -68,7 +83,7 @@ export default function MarketDashboard() {
     )
   }
 
-  if (!data) return <DashboardSkeleton />
+  if (!data) return <MarketBoot />
 
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>

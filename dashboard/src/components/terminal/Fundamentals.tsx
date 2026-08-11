@@ -49,13 +49,13 @@ function RangeBar({ low, high, price, target }: { low: number; high: number; pri
         />
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
-        <span className="num" style={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>
+ <span className="num u-meta" >
           {fmtPrice(low)}
         </span>
         <span className="label" style={{ fontSize: '0.625rem' }}>
           52-week range
         </span>
-        <span className="num" style={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>
+ <span className="num u-meta" >
           {fmtPrice(high)}
         </span>
       </div>
@@ -68,7 +68,7 @@ export default function Fundamentals({ analysis: a }: { analysis: Analysis }) {
     a.analystTarget != null && a.price > 0 ? ((a.analystTarget - a.price) / a.price) * 100 : null
 
   return (
-    <section aria-label="Fundamentals" className="panel" style={{ padding: '20px 22px' }}>
+    <section aria-label="Fundamentals" className="panel panel--pad">
       <h3 className="h-panel" style={{ marginBottom: 10 }}>
         Fundamentals
       </h3>

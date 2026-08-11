@@ -7,7 +7,7 @@ export default function MacroPanel({ macro }: { macro: Macro }) {
   const elevated = macro.srm > 1.2
 
   return (
-    <section aria-label="Macro conditions" className="panel" style={{ padding: '20px 22px' }}>
+    <section aria-label="Macro conditions" className="panel panel--pad">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
         <h3 className="h-panel">Macro regime</h3>
         <span className={`badge ${elevated || macro.recessionWarning ? 'badge--warn' : 'badge--pos'}`}>

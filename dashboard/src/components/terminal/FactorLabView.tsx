@@ -126,6 +126,8 @@ interface BuildProgress {
   stage: string
   stage_index: number
   stages: string[]
+  progress_done: number
+  progress_total: number
   elapsed_seconds: number
 }
 
@@ -248,7 +250,7 @@ function AttributionPanel({ attribution }: { attribution: AttributionData }) {
     (x, y) => Math.abs(attribution.t_stats[y]) - Math.abs(attribution.t_stats[x]),
   )
   return (
-    <section className="panel" style={{ padding: '20px 22px' }} aria-label="Return attribution">
+    <section className="panel panel--pad" aria-label="Return attribution">
       <h2 className="h-panel">How much of what happened do the factors explain?</h2>
       <p className="body-copy" style={{ marginTop: 4, marginBottom: 12, maxWidth: '68ch' }}>
         Each date&rsquo;s cross-section of returns regressed on that date&rsquo;s
@@ -272,18 +274,18 @@ function AttributionPanel({ attribution }: { attribution: AttributionData }) {
         <thead>
           <tr>
             <th scope="col">Factor</th>
-            <th scope="col" style={{ textAlign: 'right' }}>Mean return per 1σ</th>
-            <th scope="col" style={{ textAlign: 'right' }}>t</th>
+            <th scope="col" className="num">Mean return per 1σ</th>
+            <th scope="col" className="num">t</th>
           </tr>
         </thead>
         <tbody>
           {ordered.map((factor) => (
             <tr key={factor}>
               <td>{label(factor)}</td>
-              <td className="num" style={{ textAlign: 'right' }}>
+              <td className="num">
                 {(attribution.factor_returns[factor] * 100).toFixed(3)}%
               </td>
-              <td className="num" style={{ textAlign: 'right' }}>
+              <td className="num">
                 {attribution.t_stats[factor].toFixed(2)}
               </td>
             </tr>
@@ -296,7 +298,7 @@ function AttributionPanel({ attribution }: { attribution: AttributionData }) {
         {attribution.names_median} names each. Raw R² is{' '}
         {(attribution.mean_r_squared * 100).toFixed(0)}%; the figure above is
         adjusted for {attribution.factors.length} predictors, which removes{' '}
-        {(attribution.overfit_gap * 100).toFixed(0)} points of fit that
+        {(attribution.overfit_gap * 100).toFixed(0)} points of fit that{' '}
         {attribution.factors.length} free parameters would produce on this many
         names by chance alone.
       </p>
@@ -313,7 +315,7 @@ function RedundancyPanel({ redundancy }: { redundancy: RedundancyData }) {
   const { factors, matrix } = redundancy
   const ratio = redundancy.effective_factors / factors.length
   return (
-    <section className="panel" style={{ padding: '20px 22px' }} aria-label="Factor redundancy">
+    <section className="panel panel--pad" aria-label="Factor redundancy">
       <h2 className="h-panel">{factors.length} factors, or fewer?</h2>
       <p className="body-copy" style={{ marginTop: 4, marginBottom: 12, maxWidth: '68ch' }}>
         The screen above averages every factor equally, which assumes each one
@@ -520,7 +522,7 @@ function ScreenTable({ rows, dispersion: spread }: {
           <tr>
             <th scope="col">#</th>
             <th scope="col">Symbol</th>
-            <th scope="col" style={{ textAlign: 'right' }}>Composite</th>
+            <th scope="col" className="num">Composite</th>
             <th scope="col">Factors</th>
             <th scope="col">Strongest</th>
             <th scope="col">Weakest</th>
@@ -531,7 +533,7 @@ function ScreenTable({ rows, dispersion: spread }: {
             <tr key={row.symbol}>
               <td className="num">{row.rank}</td>
               <td><a href={`/company/${row.symbol}`}>{row.symbol}</a></td>
-              <td className="num" style={{ textAlign: 'right' }}>{row.composite.toFixed(0)}</td>
+              <td className="num">{row.composite.toFixed(0)}</td>
               <td>
                 <span className={`badge ${CONVICTION_TONE[row.conviction]}`}
                       title={`Factor agreement ${(row.agreement * 100).toFixed(0)}% across ${row.factors_used} factors`}>
@@ -558,9 +560,9 @@ function CrossSection({ rows, horizon }: { rows: RankRow[]; horizon: number }) {
         <tr>
           <th scope="col">#</th>
           <th scope="col">Symbol</th>
-          <th scope="col" style={{ textAlign: 'right' }}>Score</th>
-          <th scope="col" style={{ textAlign: 'right' }}>Percentile</th>
-          <th scope="col" style={{ textAlign: 'right' }}>Next {horizon}d</th>
+          <th scope="col" className="num">Score</th>
+          <th scope="col" className="num">Percentile</th>
+          <th scope="col" className="num">Next {horizon}d</th>
         </tr>
       </thead>
       <tbody>
@@ -568,9 +570,9 @@ function CrossSection({ rows, horizon }: { rows: RankRow[]; horizon: number }) {
           <tr key={row.symbol}>
             <td className="num">{row.rank}</td>
             <td><a href={`/company/${row.symbol}`}>{row.symbol}</a></td>
-            <td className="num" style={{ textAlign: 'right' }}>{row.score.toFixed(3)}</td>
-            <td className="num" style={{ textAlign: 'right' }}>{row.percentile.toFixed(0)}</td>
-            <td className="num" style={{ textAlign: 'right' }}>
+            <td className="num">{row.score.toFixed(3)}</td>
+            <td className="num">{row.percentile.toFixed(0)}</td>
+            <td className="num">
               {row.forward_return === null
                 ? <span style={{ opacity: 0.5 }}>not yet known</span>
                 : `${(row.forward_return * 100).toFixed(2)}%`}
@@ -720,6 +722,14 @@ export default function FactorLabView() {
         stages={FACTOR_LAB_STAGES}
         completed={progress?.stage_index ?? 0}
         active={progress?.stage_index}
+        // Real counts from the builder: "12 / 30 symbols". A build is
+        // dominated by vendor round trips, so this is the only thing that
+        // visibly moves during the long stage.
+        detail={
+          progress && progress.progress_total > 0
+            ? `${progress.progress_done} / ${progress.progress_total} symbols`
+            : undefined
+        }
         note="first run fetches full history; later runs are instant for an hour"
       />
     )
@@ -768,7 +778,7 @@ export default function FactorLabView() {
           : 'No factor clears |t| 2.0 after correcting for overlapping windows. On this sample there is no statistical evidence that these rankings predict forward returns.'}
       </p>
 
-      <section className="panel" style={{ padding: '20px 22px' }} aria-label="Factor evidence">
+      <section className="panel panel--pad" aria-label="Factor evidence">
         <h2 className="h-panel">Evidence, factor by factor</h2>
         <p className="body-copy" style={{ marginTop: 4, marginBottom: 14, maxWidth: '68ch' }}>
           Rank IC is the correlation between a factor&rsquo;s ordering on a date and
@@ -835,7 +845,7 @@ export default function FactorLabView() {
       {data.attribution && <AttributionPanel attribution={data.attribution} />}
       {data.redundancy && <RedundancyPanel redundancy={data.redundancy} />}
 
-      <section className="panel" style={{ padding: '20px 22px' }} aria-label="Composite screen">
+      <section className="panel panel--pad" aria-label="Composite screen">
         <h2 className="h-panel">The universe today, ranked — and where the factors disagree</h2>
         <p className="body-copy" style={{ marginTop: 4, marginBottom: 12, maxWidth: '68ch' }}>
           Every name scored on the mean of its factor percentiles on{' '}
@@ -849,7 +859,7 @@ export default function FactorLabView() {
       </section>
 
       {selectedEvaluation && (
-        <section className="panel" style={{ padding: '20px 22px' }} aria-label="Latest cross-section">
+        <section className="panel panel--pad" aria-label="Latest cross-section">
           <h2 className="h-panel">
             {label(selectedEvaluation.factor)} — every name, ranked on {data.latest_cross_section.date}
           </h2>

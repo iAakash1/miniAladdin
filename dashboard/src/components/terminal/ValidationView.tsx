@@ -208,7 +208,7 @@ export default function ValidationView() {
         <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
           {/* Overall Model Health — the lead answer, always visible */}
-          <section aria-label="Overall model health" className="panel" style={{ padding: '18px 20px' }}>
+          <section aria-label="Overall model health" className="panel panel--pad">
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, marginBottom: 10 }}>
               <h3 className="h-panel">Overall model health</h3>
               <span className={`badge ${HEALTH_BADGE[health.tone]}`}>{health.label}</span>
@@ -235,7 +235,7 @@ export default function ValidationView() {
                 <p className="num" style={{ fontSize: '1.0625rem', fontWeight: 600, color: 'var(--muted)' }}>
                   {fmt(data.baseline_12_1_ic)}
                 </p>
-                <p style={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>Sign of 12-1 return, no engine — the bar the engine should clear.</p>
+                <p className="u-meta">Sign of 12-1 return, no engine — the bar the engine should clear.</p>
               </div>
               <MetricExplainer
                 entry={METRIC_GLOSSARY.rollingIc}
@@ -265,17 +265,17 @@ export default function ValidationView() {
               <thead>
                 <tr>
                   <th scope="col">vs.</th>
-                  <th scope="col" style={{ textAlign: 'right' }}>Return</th>
-                  <th scope="col" style={{ textAlign: 'right' }}>Sharpe</th>
-                  <th scope="col" style={{ textAlign: 'right' }}>Max drawdown</th>
+                  <th scope="col" className="num">Return</th>
+                  <th scope="col" className="num">Sharpe</th>
+                  <th scope="col" className="num">Max drawdown</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
                   <td style={{ fontWeight: 550 }}>Engine signal</td>
-                  <td className="num" style={{ textAlign: 'right' }}>{fmtSigned(data.strategy.return, 1)}%</td>
-                  <td className="num" style={{ textAlign: 'right' }}>{fmt(data.strategy.sharpe, 2)}</td>
-                  <td className="num" style={{ textAlign: 'right' }}>{fmt(data.strategy.max_drawdown, 1)}%</td>
+                  <td className="num">{fmtSigned(data.strategy.return, 1)}%</td>
+                  <td className="num">{fmt(data.strategy.sharpe, 2)}</td>
+                  <td className="num">{fmt(data.strategy.max_drawdown, 1)}%</td>
                 </tr>
                 <tr>
                   <td style={{ color: 'var(--muted)' }}>Buy &amp; hold</td>
@@ -306,7 +306,7 @@ export default function ValidationView() {
                     background: value > 0 ? 'var(--pos-wash)' : value < 0 ? 'var(--neg-wash)' : 'var(--surface-2)',
                     color: value > 0 ? 'var(--pos)' : value < 0 ? 'var(--neg)' : 'var(--faint)',
                   }}>
-                    {month} {value > 0 ? '+' : ''}{value}%
+                    {month} {value > 0 ? '+' : ''}{value.toFixed(2)}%
                   </span>
                 ))}
               </div>
@@ -330,7 +330,7 @@ export default function ValidationView() {
             </div>
             <table className="data-table">
               <thead>
-                <tr><th scope="col">Signal</th><th scope="col" style={{ textAlign: 'right' }}>Realized ▲</th><th scope="col" style={{ textAlign: 'right' }}>Realized ▼</th></tr>
+ <tr><th scope="col">Signal</th><th scope="col" className="num" >Realized ▲</th><th scope="col" >Realized ▼</th></tr>
               </thead>
               <tbody>
                 {(['long', 'flat', 'short'] as const).map((row) => (
@@ -420,16 +420,16 @@ export default function ValidationView() {
                   <thead>
                     <tr>
                       <th scope="col">Factor</th>
-                      <th scope="col" style={{ textAlign: 'right' }}>IC</th>
-                      <th scope="col" style={{ textAlign: 'right' }}>Sign stability</th>
-                      <th scope="col" style={{ textAlign: 'right' }}>Samples</th>
+                      <th scope="col" className="num">IC</th>
+                      <th scope="col" className="num">Sign stability</th>
+                      <th scope="col" className="num">Samples</th>
                     </tr>
                   </thead>
                   <tbody>
                     {sortedFactors.map(([name, diag]) => (
                       <tr key={name}>
                         <td>{FACTOR_LABELS[name] ?? name}</td>
-                        <td className="num" style={{ textAlign: 'right' }}>{fmtSigned(diag.ic, 3)}</td>
+                        <td className="num">{fmtSigned(diag.ic, 3)}</td>
                         <td className="num" style={{ textAlign: 'right', color: diag.sign_stability !== null && diag.sign_stability < 0.5 ? 'var(--neg)' : undefined }}>
                           {fmt(diag.sign_stability, 2)}
                         </td>
@@ -489,8 +489,13 @@ export default function ValidationView() {
 
           {/* Limitations */}
           <Section id="val-limitations" title="Limitations" defaultOpen>
-            <p style={{ fontSize: '0.8125rem', color: 'var(--text)', lineHeight: 1.65, maxWidth: '80ch' }}>
-              {data.scope_note}
+            {/* The scope note is deliberately not repeated here: it already sits
+                beside the verdict in the health card, where it qualifies the
+                number a reader acts on. Restating the same paragraph verbatim
+                reads as a copy-paste artefact rather than as emphasis. */}
+            <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', lineHeight: 1.65, maxWidth: '80ch' }}>
+              Beyond the scope constraint stated with the verdict above, these
+              bound what this page can tell you:
             </p>
             <ul style={{ listStyle: 'none', margin: '12px 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
               {[
@@ -551,9 +556,9 @@ export default function ValidationView() {
               ))}
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
-              <span className="num" style={{ fontSize: '0.625rem', color: 'var(--faint)' }}>−0.6</span>
-              <span className="num" style={{ fontSize: '0.625rem', color: 'var(--faint)' }}>0</span>
-              <span className="num" style={{ fontSize: '0.625rem', color: 'var(--faint)' }}>+0.6</span>
+ <span className="num u-meta" >−0.6</span>
+ <span className="num u-meta" >0</span>
+ <span className="num u-meta" >+0.6</span>
             </div>
             <p className="num" style={{ fontSize: '0.6875rem', color: 'var(--muted)', marginTop: 10 }}>
               Verdicts: {Object.entries(data.verdict_distribution).map(([verdict, count]) => `${verdict} ${count}`).join(' · ')}

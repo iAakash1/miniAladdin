@@ -259,7 +259,7 @@ function HistoryBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
 
       {!failed && page !== null && page.items.length > 0 && (
         <>
-          <p style={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>
+          <p className="u-meta">
             Select two runs to compare which factors moved. Reports open exactly as generated.
           </p>
           <div className="panel" style={{ overflowX: 'auto' }}>
@@ -272,8 +272,8 @@ function HistoryBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
                   <th scope="col">Ticker</th>
                   <th scope="col">Company</th>
                   <th scope="col">Verdict</th>
-                  <th scope="col" style={{ textAlign: 'right' }}>Confidence</th>
-                  <th scope="col" style={{ textAlign: 'right' }}>Composite</th>
+                  <th scope="col" className="num">Confidence</th>
+                  <th scope="col" className="num">Composite</th>
                   <th scope="col"><span className="visually-hidden">Actions</span></th>
                 </tr>
               </thead>
@@ -351,10 +351,10 @@ function HistoryRow({
           {item.verdict}
         </span>
       </td>
-      <td className="num" style={{ textAlign: 'right' }}>
+      <td className="num">
         {item.confidence !== null ? `${item.confidence}%` : '—'}
       </td>
-      <td className="num" style={{ textAlign: 'right' }}>
+      <td className="num">
         {item.composite_score !== null
           ? `${item.composite_score >= 0 ? '+' : ''}${item.composite_score.toFixed(3)}`
           : '—'}
@@ -444,7 +444,7 @@ function SavedBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
       {saved.map((report) => {
         const isEditing = editing?.id === report.id
         return (
-          <article key={report.id} className="panel" style={{ padding: '16px 18px' }}>
+          <article key={report.id} className="panel panel--pad">
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
               {report.analysis && (
                 <>
@@ -692,7 +692,7 @@ function CompareView({ a, b, onBack }: { a: string; b: string; onBack: () => voi
           )}
 
           {/* Verdict + confidence movement */}
-          <section aria-label="Verdict change" className="panel" style={{ padding: '18px 20px' }}>
+          <section aria-label="Verdict change" className="panel panel--pad">
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(20px, 5vw, 64px)' }}>
               {[result.before, result.after].map((run, index) => (
                 <div key={run.id}>
@@ -705,7 +705,7 @@ function CompareView({ a, b, onBack }: { a: string; b: string; onBack: () => voi
                     <span className="num" style={{ fontSize: '0.875rem', fontWeight: 600 }}>
                       {run.confidence !== null ? `${run.confidence}%` : '—'}
                     </span>
-                    <span className="num" style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+ <span className="num u-note" >
                       {run.composite_score !== null
                         ? `composite ${run.composite_score >= 0 ? '+' : ''}${run.composite_score.toFixed(3)}`
                         : ''}
@@ -728,7 +728,7 @@ function CompareView({ a, b, onBack }: { a: string; b: string; onBack: () => voi
           </section>
 
           {/* Family deltas */}
-          <section aria-label="Factor family deltas" className="panel" style={{ padding: '18px 20px' }}>
+          <section aria-label="Factor family deltas" className="panel panel--pad">
             <h4 className="h-panel" style={{ marginBottom: 4 }}>What moved</h4>
             <p style={{ fontSize: '0.75rem', color: 'var(--faint)', marginBottom: 14 }}>
               Contribution change per signal family, computed by the engine from both stored scorecards.
@@ -751,7 +751,7 @@ function CompareView({ a, b, onBack }: { a: string; b: string; onBack: () => voi
               {/* Macro + risk rows use the same layout */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', paddingTop: 8, borderTop: '1px solid var(--line)' }}>
                 <span style={{ width: 96, flexShrink: 0, fontSize: '0.75rem', color: 'var(--muted)' }}>Macro (SRM)</span>
-                <span className="num" style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+ <span className="num u-note" >
                   {result.macro.srm_before ?? '—'} → {result.macro.srm_after ?? '—'}
                   {result.macro.srm_delta !== null && (
                     <span style={{ color: result.macro.srm_delta > 0 ? 'var(--warn)' : 'var(--muted)' }}>
@@ -760,7 +760,7 @@ function CompareView({ a, b, onBack }: { a: string; b: string; onBack: () => voi
                   )}
                 </span>
                 <span style={{ width: 96, flexShrink: 0, fontSize: '0.75rem', color: 'var(--muted)', marginLeft: 24 }}>Risk score</span>
-                <span className="num" style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+ <span className="num u-note" >
                   {result.risk.score_before ?? '—'} → {result.risk.score_after ?? '—'}
                 </span>
               </div>
@@ -768,7 +768,7 @@ function CompareView({ a, b, onBack }: { a: string; b: string; onBack: () => voi
           </section>
 
           {/* Per-factor table */}
-          <section aria-label="Per-factor deltas" className="panel" style={{ padding: '18px 20px' }}>
+          <section aria-label="Per-factor deltas" className="panel panel--pad">
             <h4 className="h-panel" style={{ marginBottom: 12 }}>Factor detail</h4>
             <div style={{ overflowX: 'auto' }}>
               <table className="data-table" style={{ minWidth: 520 }}>
@@ -776,20 +776,20 @@ function CompareView({ a, b, onBack }: { a: string; b: string; onBack: () => voi
                   <tr>
                     <th scope="col">Factor</th>
                     <th scope="col">Family</th>
-                    <th scope="col" style={{ textAlign: 'right' }}>Before</th>
-                    <th scope="col" style={{ textAlign: 'right' }}>After</th>
-                    <th scope="col" style={{ textAlign: 'right' }}>Δ</th>
+                    <th scope="col" className="num">Before</th>
+                    <th scope="col" className="num">After</th>
+                    <th scope="col" className="num">Δ</th>
                   </tr>
                 </thead>
                 <tbody>
                   {result.factors.map((factor) => (
                     <tr key={factor.name} style={{ opacity: factor.changed ? 1 : 0.55 }}>
                       <td style={{ fontWeight: factor.changed ? 600 : 400 }}>{factor.name}</td>
-                      <td style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>{factor.family ?? '—'}</td>
-                      <td className="num" style={{ textAlign: 'right' }}>
+                      <td className="u-note">{factor.family ?? '—'}</td>
+                      <td className="num">
                         {factor.before !== null ? factor.before.toFixed(3) : '—'}
                       </td>
-                      <td className="num" style={{ textAlign: 'right' }}>
+                      <td className="num">
                         {factor.after !== null ? factor.after.toFixed(3) : '—'}
                       </td>
                       <td className="num" style={{ textAlign: 'right', fontWeight: 600, color: !factor.changed ? 'var(--faint)' : factor.delta >= 0 ? 'var(--pos)' : 'var(--neg)' }}>

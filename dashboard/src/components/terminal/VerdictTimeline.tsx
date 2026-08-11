@@ -21,10 +21,10 @@ export default function VerdictTimeline({ ticker }: { ticker: string }) {
   const entries = [...timeline].reverse() // newest first
 
   return (
-    <section aria-label={`${ticker} verdict history`} className="panel" style={{ padding: '20px 22px' }}>
+    <section aria-label={`${ticker} verdict history`} className="panel panel--pad">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
         <h3 className="h-panel">Verdict timeline</h3>
-        <span style={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>
+        <span className="u-meta">
           {timeline.length} runs stored in this browser
         </span>
       </div>
@@ -53,7 +53,7 @@ export default function VerdictTimeline({ ticker }: { ticker: string }) {
                 <span className={`badge ${verdictTone(entry.verdict)}`} style={{ height: 19, fontSize: '0.625rem' }}>
                   {entry.verdict}
                 </span>
-                <span className="num" style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+ <span className="num u-note" >
                   {entry.confidence}% conf
                 </span>
                 {diff?.verdictChanged && (

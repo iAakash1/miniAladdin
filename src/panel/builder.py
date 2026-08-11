@@ -74,17 +74,39 @@ BENCHMARK_SYMBOL = "SPY"
 #: different points in time and time-series comparisons are not
 #: apples-to-apples. A fixed trailing window makes the estimator stationary.
 #:
-#: 1260 matches the "5y" range `_provider_loader` requests, so a panel cell
-#: for today sees exactly what the live engine sees for today.
+#: **Raised from 1260 to 2520, with measurements.**
 #:
-#: It also bounds per-cell work, but do not oversell that: measured on a
-#: 3-symbol × 3200-day build, capping at 1260 bars versus leaving the window
-#: uncapped is worth ~5% (3124 vs 3275 µs/cell). Per-cell cost is dominated
-#: by pandas call overhead — roughly 20,000 Python-level calls per cell —
-#: not by window length. The real performance lever is computing each factor
-#: once per symbol as a vectorized rolling series rather than once per cell;
-#: that is Phase 6 work and is worth orders of magnitude, not percent.
-LOOKBACK_BARS = 1260
+#: The original 1260 was chosen to match a "5y" provider request. Vendors now
+#: return ~1830 bars for that same request, which put every symbol *past* the
+#: cap — and `is_exact_for` refuses the vectorized path once history exceeds
+#: the lookback, so all 30 symbols silently fell back to the scalar engine.
+#: A mega30 panel took 29.3 s instead of 1.9 s: a **15x** regression caused
+#: entirely by a constant drifting out of step with the data.
+#:
+#: Measured impact of the change on the factors themselves, same universe,
+#: 3,602 comparable cells:
+#:
+#:     factor          mean |Δ|   max |Δ|    corr
+#:     r12_1             0.0019    0.0329   0.9999
+#:     r63               0.0016    0.0375   0.9999
+#:     r21               0.0017    0.0363   0.9999
+#:     vol_confirm       0.0048    0.1033   0.9995
+#:     high52_prox       0.0000    0.0000   1.0000
+#:     rel21_vs_spy      0.0000    0.0000   1.0000
+#:     reversal          0.0024    0.3344   0.9998
+#:
+#: The stationarity argument above is weakened by a larger window, and that
+#: is stated rather than hidden. It is accepted because the alternative is
+#: worse on the metric that matters more: **the live engine receives the
+#: full frame with no truncation at all**, so a panel that caps below vendor
+#: depth diverges from the thing it exists to evaluate. Non-stationarity in
+#: the normalizer is a property of the engine; the panel should reproduce it,
+#: not quietly correct for it and then claim to be measuring production.
+#:
+#: 2520 (10 years) leaves headroom so ordinary vendor-depth growth does not
+#: silently re-trigger the scalar cliff. If history ever exceeds it, the
+#: build gets slow rather than wrong — `is_exact_for` still refuses.
+LOOKBACK_BARS = 2520
 
 
 class PanelBuilder:
@@ -97,6 +119,7 @@ class PanelBuilder:
         lookback: int = LOOKBACK_BARS,
         vectorized: bool = True,
         fundamentals: bool = True,
+        on_progress: Optional[Callable[[str, int, int], None]] = None,
     ) -> None:
         self._load_prices = load_prices or _provider_loader
         self._benchmark = benchmark
@@ -110,6 +133,11 @@ class PanelBuilder:
         # wasted network round trip.
         self._use_fundamentals = fundamentals
         self._facts: dict[str, PointInTimeFacts] = {}
+        # Reports real sub-progress: (stage, done, total). A build is
+        # dominated by vendor round trips, not computation, so a caller that
+        # only knows "building panel" has to sit through 40s of silence with
+        # nothing to show. This is the only honest signal available.
+        self._on_progress = on_progress
         self._vectorized_symbols = 0
         self._scalar_symbols = 0
 
@@ -150,9 +178,12 @@ class PanelBuilder:
         skipped: list[str] = []
 
         if self._use_fundamentals:
+            self._report("filings", 0, len(symbols))
             self._facts = _load_all_facts(symbols)
+            self._report("filings", len(symbols), len(symbols))
 
-        for symbol in symbols:
+        for position, symbol in enumerate(symbols):
+            self._report("prices", position, len(symbols))
             frame = self._safe_load(symbol)
             if frame is None or len(frame) < MIN_BARS:
                 skipped.append(symbol)
@@ -168,6 +199,7 @@ class PanelBuilder:
                 )
             )
 
+        self._report("prices", len(symbols), len(symbols))
         panel = _empty_panel() if not rows else pd.DataFrame(rows, columns=list(ALL_COLUMNS))
         panel = _coerce_dtypes(panel)
 
@@ -286,6 +318,13 @@ class PanelBuilder:
                 )
             )
         return out
+
+    def _report(self, stage: str, done: int, total: int) -> None:
+        if self._on_progress is not None:
+            try:
+                self._on_progress(stage, done, total)
+            except Exception:  # noqa: BLE001 — reporting never breaks a build
+                logger.exception("panel: progress callback failed")
 
     def _fundamental_factors(self, symbol: str, observed_on: Date) -> dict[str, Optional[float]]:
         """Point-in-time fundamentals for one cell.

@@ -31,7 +31,7 @@ export default function StreetIntelligence({ block }: { block: StreetBlock | nul
             <p className="num" style={{ fontSize: '1.0625rem', fontWeight: 600 }}>
               {recs.buy_ratio !== null ? `${Math.round(100 * recs.buy_ratio)}% buy` : '—'}
             </p>
-            <p className="num" style={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>
+ <p className="num u-meta" >
               {recs.strong_buy + recs.buy} buy · {recs.hold} hold · {recs.sell + recs.strong_sell} sell
               {' · '}
               <span style={{ color: recs.trend === 'improving' ? 'var(--pos)' : recs.trend === 'deteriorating' ? 'var(--neg)' : 'var(--faint)' }}>
@@ -46,7 +46,7 @@ export default function StreetIntelligence({ block }: { block: StreetBlock | nul
             <p className="num" style={{ fontSize: '1.0625rem', fontWeight: 600 }}>
               {surprises.beats}/{surprises.quarters} beats
             </p>
-            <p className="num" style={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>
+ <p className="num u-meta" >
               avg {surprises.avg_surprise_pct >= 0 ? '+' : ''}{surprises.avg_surprise_pct}% vs estimates
             </p>
           </div>
@@ -60,7 +60,7 @@ export default function StreetIntelligence({ block }: { block: StreetBlock | nul
             }}>
               {insider.read}
             </p>
-            <p className="num" style={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>MSPR {insider.mspr >= 0 ? '+' : ''}{insider.mspr} · 6 months</p>
+ <p className="num u-meta" >MSPR {insider.mspr >= 0 ? '+' : ''}{insider.mspr} · 6 months</p>
           </div>
         )}
       </div>
