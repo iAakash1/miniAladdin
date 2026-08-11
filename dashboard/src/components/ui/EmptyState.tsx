@@ -5,32 +5,29 @@ interface EmptyStateProps {
   icon?: React.ReactNode
 }
 
+/**
+ * The state a surface shows when it has nothing to show.
+ *
+ * Bounded by a dashed rule rather than a solid card: dashed reads as "space
+ * reserved for content that is not here yet", which is the actual message.
+ * A solid, shadowed card reads as a finished object and makes an empty
+ * screen look like a broken one.
+ *
+ * Styling moved out of inline objects and into `.empty-state` so every empty
+ * surface in the product shares one treatment — previously each caller
+ * inherited a copy of the same six style properties, which is how they drift.
+ */
 export default function EmptyState({ title, description, action, icon }: EmptyStateProps) {
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        textAlign: 'center',
-        gap: 10,
-        padding: '56px 24px',
-      }}
-    >
+    <div className="empty-state">
       {icon && (
-        <div style={{ color: 'var(--faint)', marginBottom: 4 }} aria-hidden="true">
+        <div className="empty-state__icon" aria-hidden="true">
           {icon}
         </div>
       )}
-      <p className="h-panel" style={{ color: 'var(--text)' }}>
-        {title}
-      </p>
-      {description && (
-        <p style={{ fontSize: '0.875rem', color: 'var(--muted)', maxWidth: 380, lineHeight: 1.6 }}>
-          {description}
-        </p>
-      )}
-      {action && <div style={{ marginTop: 10 }}>{action}</div>}
+      <p className="empty-state__title">{title}</p>
+      {description && <p className="empty-state__body">{description}</p>}
+      {action && <div className="empty-state__action">{action}</div>}
     </div>
   )
 }

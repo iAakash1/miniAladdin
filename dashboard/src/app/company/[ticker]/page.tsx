@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from 'react'
 import CompanyReport from '@/components/terminal/CompanyReport'
 import TerminalShell, { type TerminalShellContext } from '@/components/terminal/TerminalShell'
 import EmptyState from '@/components/ui/EmptyState'
-import Skeleton from '@/components/ui/Skeleton'
+import ResearchLoader, { ANALYSIS_STAGES } from '@/components/ui/ResearchLoader'
 import { fetchAnalysis, fetchChart, normalizeAnalysis, normalizeChart } from '@/lib/api'
 import { recordAnalysis } from '@/lib/history'
 import { FREE_DAILY_LIMIT, bumpTodayCount, readTodayCount } from '@/lib/usage'
@@ -15,22 +15,6 @@ import type { Analysis, PricePoint } from '@/lib/types'
 
 const TICKER_RE = /^[A-Z.^-]{1,8}$/
 
-function ReportSkeleton() {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }} aria-hidden="true">
-      <Skeleton height={148} />
-      <div className="terminal-grid-main">
-        <Skeleton height={330} />
-        <Skeleton height={330} />
-      </div>
-      <div className="terminal-grid-three">
-        <Skeleton height={260} />
-        <Skeleton height={260} />
-        <Skeleton height={260} />
-      </div>
-    </div>
-  )
-}
 
 /**
  * /company/{ticker} — the research report as a permanent URL. The URL is
@@ -59,6 +43,8 @@ function CompanyLoader({ shell }: { shell: TerminalShellContext }) {
     | { status: 'error'; message: string }
   >({ status: 'loading' })
   const ranFor = useRef<string | null>(null)
+  // Stages the pipeline has *confirmed* finished. Never guessed.
+  const [done, setDone] = useState(0)
 
   // Ticker validity is derived from the URL, not fetched, so it is computed
   // during render rather than written into state by an effect. The effect
@@ -72,6 +58,7 @@ function CompanyLoader({ shell }: { shell: TerminalShellContext }) {
     ranFor.current = ticker
 
     let cancelled = false
+    let delivered = false
 
     // Both of the synchronous writes that used to sit here are gone. The
     // quota check is deferred to a microtask and the `loading` reset is
@@ -80,15 +67,23 @@ function CompanyLoader({ shell }: { shell: TerminalShellContext }) {
     if (!isPro && readTodayCount() >= FREE_DAILY_LIMIT) {
       queueMicrotask(() => {
         if (cancelled) return
+        delivered = true
         setState({ status: 'limited' })
         requestUpgrade('limit')
       })
-      return () => { cancelled = true }
+      return () => { cancelled = true; release() }
     }
 
-    Promise.all([fetchAnalysis(ticker, fast), fetchChart(ticker, '3mo')])
+    // The chart resolves independently of the analysis, so its completion is
+    // a *real* signal — the only one this pipeline exposes. It is used to
+    // tick stage one and nothing else; the rest stay honest estimates.
+    const chart = fetchChart(ticker, '3mo')
+    chart.then(() => { if (!cancelled) setDone(1) }).catch(() => {})
+
+    Promise.all([fetchAnalysis(ticker, fast), chart])
       .then(([rawResearch, rawChart]) => {
         if (cancelled) return
+        delivered = true
         const analysis = normalizeAnalysis(rawResearch)
         setState({ status: 'ready', analysis, chart: normalizeChart(rawChart) })
         recordAnalysis(analysis)
@@ -96,6 +91,7 @@ function CompanyLoader({ shell }: { shell: TerminalShellContext }) {
       })
       .catch((e: unknown) => {
         if (!cancelled) {
+          delivered = true
           setState({
             status: 'error',
             message: e instanceof Error ? e.message : 'The analysis failed. Please try again.',
@@ -104,6 +100,22 @@ function CompanyLoader({ shell }: { shell: TerminalShellContext }) {
       })
     return () => {
       cancelled = true
+      release()
+    }
+
+    /* Release the once-per-ticker guard when a run is torn down before it
+     * delivered anything.
+     *
+     * Without this the page never loads in development. React StrictMode
+     * mounts, unmounts and remounts: the first run claims the guard and
+     * starts the fetch, the cleanup cancels it, and the second run sees the
+     * guard already claimed and returns without fetching. The in-flight
+     * response then arrives to a `cancelled` closure and is thrown away, so
+     * the loader spins forever against a request that succeeded. Freeing the
+     * ref on an undelivered teardown keeps the guard's intent — one fetch per
+     * ticker — while letting a genuine remount try again. */
+    function release() {
+      if (!delivered && ranFor.current === ticker) ranFor.current = null
     }
   }, [ticker, fast, isPro, invalid, requestUpgrade])
 
@@ -121,7 +133,17 @@ function CompanyLoader({ shell }: { shell: TerminalShellContext }) {
     )
   }
 
-  if (state.status === 'loading') return <ReportSkeleton />
+  if (state.status === 'loading') {
+    return (
+      <ResearchLoader
+        title="Researching"
+        subject={ticker}
+        stages={ANALYSIS_STAGES}
+        completed={done}
+        note={fast ? 'fast mode: sentiment and synthesis skipped' : undefined}
+      />
+    )
+  }
 
   if (state.status === 'limited') {
     return (

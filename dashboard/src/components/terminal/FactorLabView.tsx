@@ -22,6 +22,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import PageHeader from '@/components/ui/PageHeader'
+import ResearchLoader, { FACTOR_LAB_STAGES } from '@/components/ui/ResearchLoader'
 import Section from '@/components/ui/Section'
 import { FACTOR_LABELS } from '@/lib/history'
 
@@ -119,7 +120,17 @@ interface RedundancyData {
   assessment: string
 }
 
+/** While a build runs the endpoint answers with progress, not the payload. */
+interface BuildProgress {
+  status: 'building'
+  stage: string
+  stage_index: number
+  stages: string[]
+  elapsed_seconds: number
+}
+
 interface FactorLab {
+  status?: 'ready' | 'error'
   universe: { name: string; symbols: string[]; point_in_time_membership: boolean }
   window: {
     start: string; end: string; observation_dates: number
@@ -303,7 +314,7 @@ function RedundancyPanel({ redundancy }: { redundancy: RedundancyData }) {
   const ratio = redundancy.effective_factors / factors.length
   return (
     <section className="panel" style={{ padding: '20px 22px' }} aria-label="Factor redundancy">
-      <h2 className="h-panel">Seven factors, or fewer?</h2>
+      <h2 className="h-panel">{factors.length} factors, or fewer?</h2>
       <p className="body-copy" style={{ marginTop: 4, marginBottom: 12, maxWidth: '68ch' }}>
         The screen above averages every factor equally, which assumes each one
         contributes something new. Three of them are the same statistic over
@@ -586,85 +597,39 @@ interface Settled {
 
 /* ── loading and failure ──────────────────────────────────────────────────── */
 
-const BUILD_STEPS = [
-  ['Fetching price history', 'every symbol in the universe, through the provider fallback chain'],
-  ['Building the point-in-time panel', 'each factor recomputed from a window truncated at its own date'],
-  ['Loading SEC filings', 'point-in-time fundamentals, dated by when each figure was published'],
-  ['Measuring forward returns', 'what actually happened after each observation date'],
-  ['Running the estimators', 'rank IC, Newey\u2013West correction, portfolios, attribution'],
-] as const
-
 /**
- * A cold build genuinely takes 30-60 seconds, most of it waiting on vendors.
- * A bare spinner for that long reads as broken, so this narrates the actual
- * pipeline and advances through it on a timer calibrated to the measured
- * stage durations. The steps are real and in execution order; the timing is
- * an estimate, and the footer says so rather than implying live progress.
- */
-function BuildingPanel({ universe }: { universe: string }) {
-  const [step, setStep] = useState(0)
-  const [elapsed, setElapsed] = useState(0)
-
-  useEffect(() => {
-    const tick = setInterval(() => setElapsed((s) => s + 1), 1000)
-    return () => clearInterval(tick)
-  }, [])
-
-  useEffect(() => {
-    if (step >= BUILD_STEPS.length - 1) return
-    const advance = setTimeout(() => setStep((s) => s + 1), step === 0 ? 9000 : 7000)
-    return () => clearTimeout(advance)
-  }, [step])
-
-  return (
-    <div className="lab-state">
-      <span className="eyebrow">Factor Lab</span>
-      <h2 className="lab-state__title">Measuring every factor against what actually happened</h2>
-      <p className="lab-state__lede">
-        Building a point-in-time panel for <strong>{universe}</strong>, then testing each factor
-        across the whole cross-section. The first run fetches full price history &mdash; later
-        runs are instant for an hour.
-      </p>
-
-      <ol className="lab-steps">
-        {BUILD_STEPS.map(([title, detail], index) => (
-          <li key={title}
-              className={`lab-steps__item${index < step ? ' is-done' : ''}${index === step ? ' is-active' : ''}`}>
-            <span className="lab-steps__mark" aria-hidden>{index < step ? '\u2713' : ''}</span>
-            <span className="lab-steps__text">
-              <strong>{title}</strong>
-              <span>{detail}</span>
-            </span>
-          </li>
-        ))}
-      </ol>
-
-      <p className="lab-state__foot">
-        {elapsed}s elapsed &middot; typically 30&ndash;60s cold. Stage timings are estimated, not live.
-      </p>
-    </div>
-  )
-}
-
-/**
- * Failures here are usually one of three specific, explainable things.
- * A raw backend string tells a user nothing they can act on, so each known
- * cause gets its own explanation and its own next step.
+ * Failures here are a small set of specific, explainable things. A raw
+ * backend string tells a user nothing they can act on, so each cause gets
+ * its own explanation and its own next step.
+ *
+ * The 404 case is the one that actually bit: `/api/factors` is proxied to
+ * whichever backend `BACKEND_ORIGIN` names, and a deployment that predates
+ * this endpoint answers 404. That is not a computation failure and must not
+ * be described as one — the user needs to know the endpoint is missing from
+ * the backend they are connected to, not that their universe was too small.
  */
 function LabError({ message, universe, onRetry, onSwitch }: {
   message: string; universe: string
   onRetry: () => void; onSwitch: (u: string) => void
 }) {
+  const notDeployed = /^(404|405)$/.test(message.trim())
+  const unreachable = /^(50\d|failed to fetch|networkerror|load failed)/i.test(message.trim())
   const tooSmall = /at least \d+ names|symbols; cross-sectional/i.test(message)
   const noReturns = /forward returns/i.test(message)
   const noPanel = /no panel data/i.test(message)
 
-  const title = tooSmall ? 'This universe is too small to rank'
+  const title = notDeployed ? 'This endpoint is not on the connected backend'
+    : unreachable ? 'The research backend is not reachable'
+    : tooSmall ? 'This universe is too small to rank'
     : noReturns ? 'Not enough history has elapsed yet'
     : noPanel ? 'No price history could be assembled'
     : 'The factor evaluation could not complete'
 
-  const explanation = tooSmall
+  const explanation = notDeployed
+    ? `The Factor Lab calls /api/factors, and the backend answering right now returned 404 — it is running a build that predates this endpoint. Everything else on the site works because those endpoints have been deployed. Point BACKEND_ORIGIN at a backend that has it, or deploy the current build.`
+    : unreachable
+    ? 'The request to /api/factors did not complete. If you are running locally, the FastAPI process may not be up — the dashboard proxies to whatever BACKEND_ORIGIN names.'
+    : tooSmall
     ? `A rank correlation across ${universe} is noise rather than a ranking \u2014 cross-sectional evidence needs at least ten names on every date. Rather than show a number that would look real, the lab reports nothing.`
     : noReturns
     ? 'Every observation date needs a realised forward return to measure against, and none of the requested window has closed yet. A longer window will have some.'
@@ -697,27 +662,49 @@ function LabError({ message, universe, onRetry, onSwitch }: {
 export default function FactorLabView() {
   const [universe, setUniverse] = useState('mega30')
   const [settled, setSettled] = useState<Settled | null>(null)
+  const [progress, setProgress] = useState<BuildProgress | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
 
   const loading = settled === null || settled.universe !== universe
   const data = loading ? null : settled.data
   const error = loading ? null : settled.error
 
+  /* The endpoint never blocks: a cold build takes 30-60s, and holding an HTTP
+     request open that long is a broken endpoint rather than a slow one — the
+     dev proxy gives up first and a serverless function would time out. So this
+     polls, and the stage it renders is the one the server reports actually
+     running rather than a guess from a timer. */
   useEffect(() => {
     const controller = new AbortController()
-    fetch(`/api/factors?universe=${encodeURIComponent(universe)}`, { signal: controller.signal })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((json: FactorLab) => {
-        if (json.error) { setSettled({ universe, data: null, error: json.error }); return }
-        setSettled({ universe, data: json, error: null })
-        setSelected((current) => current ?? json.factors[0]?.factor ?? null)
-      })
-      .catch((e) => {
-        if (e.name !== 'AbortError') {
-          setSettled({ universe, data: null, error: String(e.message ?? e) })
-        }
-      })
-    return () => controller.abort()
+    let timer: ReturnType<typeof setTimeout> | undefined
+
+    const poll = () => {
+      fetch(`/api/factors?universe=${encodeURIComponent(universe)}`, { signal: controller.signal })
+        .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+        .then((json: FactorLab & Partial<BuildProgress>) => {
+          if (json.status === 'building') {
+            setProgress(json as BuildProgress)
+            timer = setTimeout(poll, 1500)
+            return
+          }
+          setProgress(null)
+          if (json.error) { setSettled({ universe, data: null, error: json.error }); return }
+          setSettled({ universe, data: json as FactorLab, error: null })
+          setSelected((current) => current ?? (json as FactorLab).factors[0]?.factor ?? null)
+        })
+        .catch((e) => {
+          if (e.name !== 'AbortError') {
+            setProgress(null)
+            setSettled({ universe, data: null, error: String(e.message ?? e) })
+          }
+        })
+    }
+    poll()
+
+    return () => {
+      controller.abort()
+      if (timer) clearTimeout(timer)
+    }
   }, [universe])
 
   const anySignificant = useMemo(
@@ -725,7 +712,18 @@ export default function FactorLabView() {
     [data],
   )
 
-  if (loading) return <BuildingPanel universe={universe} />
+  if (loading) {
+    return (
+      <ResearchLoader
+        title="Building factor panel"
+        subject={universe}
+        stages={FACTOR_LAB_STAGES}
+        completed={progress?.stage_index ?? 0}
+        active={progress?.stage_index}
+        note="first run fetches full history; later runs are instant for an hour"
+      />
+    )
+  }
 
   if (error) {
     return (
@@ -783,11 +781,7 @@ export default function FactorLabView() {
           {data.factors.map((evaluation) => (
             <article
               key={evaluation.factor}
-              className="card"
-              style={{
-                padding: '14px 16px', cursor: 'pointer',
-                outline: selected === evaluation.factor ? '2px solid var(--accent, #2f6feb)' : 'none',
-              }}
+              className={`lab-factor${selected === evaluation.factor ? ' is-selected' : ''}`}
               onClick={() => setSelected(evaluation.factor)}
               onKeyDown={(e) => { if (e.key === 'Enter') setSelected(evaluation.factor) }}
               tabIndex={0}

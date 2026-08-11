@@ -46,8 +46,11 @@ export const viewport: Viewport = {
 }
 
 /** Runs before paint: explicit choice from localStorage wins; otherwise the
-    site defaults light and the terminal defaults dark. */
-const THEME_SCRIPT = `(function(){try{var t=localStorage.getItem('omni-theme');if(t!=='dark'&&t!=='light'){t=location.pathname.indexOf('/terminal')===0?'dark':'light'}document.documentElement.dataset.theme=t}catch(e){document.documentElement.dataset.theme='light'}})()`
+    site defaults light and the terminal defaults dark. `/company/*` counts
+   as terminal: it renders terminal chrome and is where Research lands, so
+   matching `/terminal` alone flashed light on direct load. Kept in sync with
+   TERMINAL_ROUTES in ThemeSync. */
+const THEME_SCRIPT = `(function(){try{var t=localStorage.getItem('omni-theme');if(t!=='dark'&&t!=='light'){var p=location.pathname;t=(p.indexOf('/terminal')===0||p.indexOf('/company')===0)?'dark':'light'}document.documentElement.dataset.theme=t}catch(e){document.documentElement.dataset.theme='light'}})()`
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
