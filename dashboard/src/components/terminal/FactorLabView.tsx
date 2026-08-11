@@ -148,6 +148,9 @@ interface FactorLab {
     rows: ScreenRow[]
   }
   caveats: string[]
+  /** Estimators that raised. Present and empty on a clean build; a
+   *  non-empty list means the page is showing real but partial results. */
+  degraded?: Array<{ estimator: string; reason: string }>
   engine_version: string
   build_seconds: number
   cached: boolean
@@ -163,11 +166,130 @@ function icTone(value: number): string {
   return 'badge--neutral'
 }
 
-function Stat({ label: text, value, hint }: { label: string; value: string; hint?: string }) {
+export type EvidenceFilter = 'all' | 'significant' | 'inconclusive'
+
+interface FilterableFactor { significant: boolean }
+
+/** Split the evidence by what it actually concluded.
+ *
+ *  Eight factor cards read as eight equal claims, but they are not: some
+ *  cleared |t| 2.0 after the overlap correction and most did not. Filtering
+ *  is the fastest way to answer "what survived?" — and, deliberately, also
+ *  "what failed?", because a lab that can only show its winners is a
+ *  marketing page. Neither view is the default; `all` is, so nothing is
+ *  hidden until the reader chooses to narrow. */
+export function filterEvidence<T extends FilterableFactor>(
+  factors: T[], filter: EvidenceFilter,
+): T[] {
+  if (filter === 'all') return factors
+  const want = filter === 'significant'
+  return factors.filter((f) => f.significant === want)
+}
+
+/** Two factors, the same statistics, side by side.
+ *
+ *  Reading two factor cards means scrolling between them and holding eleven
+ *  numbers in your head. This pins the ones that decide whether a factor is
+ *  worth anything and puts them on one line each, so the comparison is
+ *  horizontal rather than remembered. Every value is the same figure the
+ *  card shows — nothing is recomputed here.
+ *
+ *  The winning side of each row is marked, but only where "better" is
+ *  actually defined: a higher |t| and a higher hit rate are better, while
+ *  more observation dates is context rather than merit.
+ */
+function FactorCompare({
+  factors, onClear,
+}: {
+  factors: FactorEvaluation[]
+  onClear: () => void
+}) {
+  const rows: Array<{ label: string; get: (f: FactorEvaluation) => string; better?: (f: FactorEvaluation) => number }> = [
+    { label: 'Mean rank IC', get: (f) => `${f.mean_ic >= 0 ? '+' : ''}${f.mean_ic.toFixed(4)}`, better: (f) => Math.abs(f.mean_ic) },
+    { label: 'Newey–West t', get: (f) => f.t_stat.toFixed(2), better: (f) => Math.abs(f.t_stat) },
+    { label: 'Uncorrected t', get: (f) => f.naive_t_stat.toFixed(2) },
+    { label: 'Overlap inflation', get: (f) => `${f.overlap_inflation.toFixed(2)}x` },
+    { label: 'Hit rate', get: (f) => `${(f.hit_rate * 100).toFixed(0)}%`, better: (f) => f.hit_rate },
+    { label: 'Observation dates', get: (f) => String(f.dates) },
+    { label: 'Clipped at bound', get: (f) => `${(f.saturation * 100).toFixed(0)}%`, better: (f) => -f.saturation },
+  ]
+
   return (
-    <div className="metric-row">
+    <section className="fcmp" aria-label="Factor comparison">
+      <div className="fcmp__head">
+        <span className="label">Comparing</span>
+        <button type="button" className="btn btn--ghost btn--xs" onClick={onClear}>Clear</button>
+      </div>
+      <table className="data-table fcmp__table">
+        <thead>
+          <tr>
+            <th scope="col" />
+            {factors.map((f) => (
+              <th key={f.factor} scope="col" className="num">{label(f.factor)}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => {
+            // Only mark a winner when two are present and they differ.
+            const scores = row.better ? factors.map(row.better) : []
+            const top = scores.length === 2 && scores[0] !== scores[1]
+              ? scores.indexOf(Math.max(...scores))
+              : -1
+            return (
+              <tr key={row.label}>
+                <th scope="row" className="fcmp__rowlabel">{row.label}</th>
+                {factors.map((f, i) => (
+                  <td key={f.factor} className={`num${i === top ? ' fcmp__win' : ''}`}>
+                    {row.get(f)}
+                  </td>
+                ))}
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+      {factors.length === 1 && (
+        <p className="u-note" style={{ padding: '0 14px 12px' }}>
+          Pick a second factor to compare against.
+        </p>
+      )}
+    </section>
+  )
+}
+
+let statSeq = 0
+
+/**
+ * A statistic that explains itself on demand.
+ *
+ * The hint used to be a `title` attribute — a native OS tooltip, which means
+ * roughly a second of delay, no styling, no keyboard access and nothing at
+ * all on touch. For a page whose entire purpose is making a number
+ * interrogable, that is the wrong mechanism: the explanation was technically
+ * present and practically unreachable.
+ *
+ * Now it is inline content that expands on hover *or* focus, so a keyboard
+ * user gets it by tabbing. `aria-describedby` ties it to the value so a
+ * screen reader reads the meaning with the number rather than after it.
+ */
+function Stat({ label: text, value, hint }: { label: string; value: string; hint?: string }) {
+  const [id] = useState(() => `stat-${(statSeq += 1)}`)
+  if (!hint) {
+    return (
+      <div className="metric-row">
+        <span className="label">{text}</span>
+        <span className="num">{value}</span>
+      </div>
+    )
+  }
+  return (
+    <div className="metric-row mreveal" tabIndex={0} aria-describedby={id}>
       <span className="label">{text}</span>
-      <span className="num" title={hint}>{value}</span>
+      <span className="num">{value}</span>
+      <span className="mreveal__body">
+        <span><span className="mreveal__note" id={id}>{hint}</span></span>
+      </span>
     </div>
   )
 }
@@ -500,16 +622,65 @@ const CONVICTION_TONE: Record<ScreenRow['conviction'], string> = {
  * every factor agreeing and the other is split down the middle. The mean
  * cannot tell them apart; this can.
  */
+/** Names whose factors agree at least this much.
+ *
+ *  Kept as a pure function so the threshold's effect is testable: the screen
+ *  is a ranked list and quietly dropping the wrong rows would be invisible
+ *  in the UI. Agreement is a 0-1 share, and the comparison is inclusive so
+ *  a threshold set exactly on a row's value keeps it. */
+export function aboveConviction<T extends { agreement: number }>(rows: T[], min: number): T[] {
+  return min <= 0 ? rows : rows.filter((row) => row.agreement >= min)
+}
+
 function ScreenTable({ rows, dispersion: spread }: {
   rows: ScreenRow[]
   dispersion: { composite_spread: number; mean_agreement: number }
 }) {
+  /* A continuous control rather than another set of buttons. Conviction is a
+     continuous quantity and the useful threshold is not knowable in advance —
+     it depends on the day's dispersion. Dragging and watching the list shrink
+     is how you find where the agreement actually falls off, which a fixed
+     "high/medium/low" segmentation would hide. */
+  const [minAgreement, setMinAgreement] = useState(0)
   if (!rows.length) {
     return <p className="body-copy">No names had enough factors to rank on this date.</p>
   }
+  const shown = aboveConviction(rows, minAgreement)
   const flat = spread.composite_spread < 20
   return (
     <>
+      <div className="thresh">
+        <label className="thresh__label" htmlFor="conviction">
+          Minimum factor agreement
+        </label>
+        <input
+          id="conviction"
+          className="thresh__range"
+          type="range"
+          min={0}
+          max={100}
+          step={5}
+          value={Math.round(minAgreement * 100)}
+          onChange={(event) => setMinAgreement(Number(event.target.value) / 100)}
+        />
+        <output className="thresh__value num" htmlFor="conviction">
+          {Math.round(minAgreement * 100)}%
+        </output>
+        <span className="thresh__count u-note">
+          {shown.length} of {rows.length} names
+        </span>
+        {minAgreement > 0 && (
+          <button type="button" className="btn btn--ghost btn--xs" onClick={() => setMinAgreement(0)}>
+            Reset
+          </button>
+        )}
+      </div>
+      {shown.length === 0 && (
+        <p className="body-copy">
+          No name on this date has {Math.round(minAgreement * 100)}% factor agreement. The
+          highest is {Math.round(Math.max(...rows.map((r) => r.agreement)) * 100)}%.
+        </p>
+      )}
       {flat && (
         <p className="body-copy" style={{ marginBottom: 10 }}>
           The universe is barely differentiated today — only{' '}
@@ -529,7 +700,7 @@ function ScreenTable({ rows, dispersion: spread }: {
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
+          {shown.map((row) => (
             <tr key={row.symbol}>
               <td className="num">{row.rank}</td>
               <td><a href={`/company/${row.symbol}`}>{row.symbol}</a></td>
@@ -614,20 +785,27 @@ function LabError({ message, universe, onRetry, onSwitch }: {
   message: string; universe: string
   onRetry: () => void; onSwitch: (u: string) => void
 }) {
+  // The backend reports a stalled build explicitly. It is the only error
+  // here that is known-transient, so it gets its own copy and leads with the
+  // retry rather than an explanation of what broke.
+  const stalled = /stalled in the/i.test(message)
   const notDeployed = /^(404|405)$/.test(message.trim())
   const unreachable = /^(50\d|failed to fetch|networkerror|load failed)/i.test(message.trim())
   const tooSmall = /at least \d+ names|symbols; cross-sectional/i.test(message)
   const noReturns = /forward returns/i.test(message)
   const noPanel = /no panel data/i.test(message)
 
-  const title = notDeployed ? 'This endpoint is not on the connected backend'
+  const title = stalled ? 'The build stopped responding and was cancelled'
+    : notDeployed ? 'This endpoint is not on the connected backend'
     : unreachable ? 'The research backend is not reachable'
     : tooSmall ? 'This universe is too small to rank'
     : noReturns ? 'Not enough history has elapsed yet'
     : noPanel ? 'No price history could be assembled'
     : 'The factor evaluation could not complete'
 
-  const explanation = notDeployed
+  const explanation = stalled
+    ? `${message} Nothing was lost — the panel is rebuilt from scratch on the next attempt.`
+    : notDeployed
     ? `The Factor Lab calls /api/factors, and the backend answering right now returned 404 — it is running a build that predates this endpoint. Everything else on the site works because those endpoints have been deployed. Point BACKEND_ORIGIN at a backend that has it, or deploy the current build.`
     : unreachable
     ? 'The request to /api/factors did not complete. If you are running locally, the FastAPI process may not be up — the dashboard proxies to whatever BACKEND_ORIGIN names.'
@@ -666,6 +844,17 @@ export default function FactorLabView() {
   const [settled, setSettled] = useState<Settled | null>(null)
   const [progress, setProgress] = useState<BuildProgress | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
+  const [evidence, setEvidence] = useState<EvidenceFilter>('all')
+  /* Factors held for side-by-side reading. Capped at two: the whole point is
+     a direct comparison, and three columns of eleven statistics is a table,
+     not a comparison. Adding a third replaces the older pick. */
+  const [compare, setCompare] = useState<string[]>([])
+  const toggleCompare = (factor: string) =>
+    setCompare((current) =>
+      current.includes(factor)
+        ? current.filter((f) => f !== factor)
+        : [...current.slice(-1), factor],
+    )
 
   const loading = settled === null || settled.universe !== universe
   const data = loading ? null : settled.data
@@ -725,6 +914,13 @@ export default function FactorLabView() {
         // Real counts from the builder: "12 / 30 symbols". A build is
         // dominated by vendor round trips, so this is the only thing that
         // visibly moves during the long stage.
+        // Real, server-counted progress — the only kind that gets a
+        // determinate rail. Stages with no countable unit get the sweep.
+        fraction={
+          progress && progress.progress_total > 0
+            ? progress.progress_done / progress.progress_total
+            : undefined
+        }
         detail={
           progress && progress.progress_total > 0
             ? `${progress.progress_done} / ${progress.progress_total} symbols`
@@ -772,6 +968,27 @@ export default function FactorLabView() {
         }
       />
 
+      {/* Partial results are still results. A cold build spends ~34 s of
+          vendor budget; discarding all of it because one estimator raised
+          would be the wrong trade. What is not acceptable is showing the
+          survivors without saying which sections are missing and why. */}
+      {data.degraded && data.degraded.length > 0 && (
+        <section className="lab-degraded" role="status">
+          <p className="lab-degraded__title">
+            {data.degraded.length === 1 ? 'One estimator' : `${data.degraded.length} estimators`} did
+            not complete. Everything below was computed normally.
+          </p>
+          <ul className="lab-degraded__list">
+            {data.degraded.map((entry) => (
+              <li key={entry.estimator}>
+                <span className="mono">{entry.estimator}</span>
+                <span className="u-meta">{entry.reason}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <p className="lab-headline">
         {anySignificant
           ? 'At least one factor clears |t| 2.0 after correcting for overlapping windows — read it against the multiple-comparison caveat below.'
@@ -779,7 +996,31 @@ export default function FactorLabView() {
       </p>
 
       <section className="panel panel--pad" aria-label="Factor evidence">
-        <h2 className="h-panel">Evidence, factor by factor</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+          <h2 className="h-panel">Evidence, factor by factor</h2>
+          <div className="seg" role="group" aria-label="Filter factor evidence">
+            {([
+              ['all', 'All'],
+              ['significant', 'Cleared |t| 2'],
+              ['inconclusive', 'Did not clear'],
+            ] as Array<[EvidenceFilter, string]>).map(([id, text]) => {
+              const count = filterEvidence(data.factors, id).length
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  className="seg__btn"
+                  aria-pressed={evidence === id}
+                  disabled={count === 0}
+                  onClick={() => setEvidence(id)}
+                  style={{ fontSize: '0.6875rem' }}
+                >
+                  {text} <span className="num" style={{ opacity: 0.6 }}>{count}</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
         <p className="body-copy" style={{ marginTop: 4, marginBottom: 14, maxWidth: '68ch' }}>
           Rank IC is the correlation between a factor&rsquo;s ordering on a date and
           what actually happened next. Both t-statistics are shown: the raw one, and
@@ -787,21 +1028,38 @@ export default function FactorLabView() {
           sampled every {data.window.step_days} days overlap heavily.
         </p>
 
+        {compare.length > 0 && (
+          <FactorCompare
+            factors={data.factors.filter((f) => compare.includes(f.factor))}
+            onClear={() => setCompare([])}
+          />
+        )}
+
         <div style={{ display: 'grid', gap: 14 }}>
-          {data.factors.map((evaluation) => (
+          {filterEvidence(data.factors, evidence).map((evaluation) => (
             <article
               key={evaluation.factor}
-              className={`lab-factor${selected === evaluation.factor ? ' is-selected' : ''}`}
+              className={`lab-factor rail${selected === evaluation.factor ? ' is-selected' : ''}`}
               onClick={() => setSelected(evaluation.factor)}
               onKeyDown={(e) => { if (e.key === 'Enter') setSelected(evaluation.factor) }}
               tabIndex={0}
               role="button"
               aria-pressed={selected === evaluation.factor}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
                 <strong>{label(evaluation.factor)}</strong>
-                <span className={`badge ${icTone(evaluation.mean_ic)}`}>
-                  IC {evaluation.mean_ic >= 0 ? '+' : ''}{evaluation.mean_ic.toFixed(4)}
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <button
+                    type="button"
+                    className={`btn btn--ghost btn--xs${compare.includes(evaluation.factor) ? ' is-on' : ''}`}
+                    aria-pressed={compare.includes(evaluation.factor)}
+                    onClick={(event) => { event.stopPropagation(); toggleCompare(evaluation.factor) }}
+                  >
+                    {compare.includes(evaluation.factor) ? 'Comparing' : 'Compare'}
+                  </button>
+                  <span className={`badge ${icTone(evaluation.mean_ic)}`}>
+                    IC {evaluation.mean_ic >= 0 ? '+' : ''}{evaluation.mean_ic.toFixed(4)}
+                  </span>
                 </span>
               </div>
 

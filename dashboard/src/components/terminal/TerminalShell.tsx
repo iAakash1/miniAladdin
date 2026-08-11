@@ -1,5 +1,6 @@
 'use client'
 
+import Toasts from '@/components/ui/Toasts'
 import WorkBoot from '@/components/ui/WorkBoot'
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useUser } from '@clerk/nextjs'
@@ -110,6 +111,7 @@ export default function TerminalShell({ loadingLabel, children }: TerminalShellP
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <Toasts />
       <TerminalHeader
         macro={macro}
         isPro={isPro}

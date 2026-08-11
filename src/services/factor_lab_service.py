@@ -82,23 +82,107 @@ _lock = threading.Lock()
 # shows are reported by the process doing the work rather than estimated from
 # a timer.
 
+#: In the order the build actually performs them, which is not the order this
+#: tuple used to claim. It read ("prices", "panel", "filings", ...), but
+#: `PanelBuilder.build` loads every symbol's SEC facts *before* it touches
+#: prices — so a real build reported "filings" and then "prices", and the
+#: client's stage index visibly ran backwards from 2 to 0 while the loader
+#: insisted filings came third. "panel" is gone because it was never
+#: separately observable: the builder emits panel rows inside the same
+#: per-symbol loop it reports "prices" from.
 STAGES: tuple[str, ...] = (
-    "prices", "panel", "filings", "returns", "estimators",
+    "filings", "prices", "returns", "estimators",
 )
+
+#: Wall-clock ceiling on a single build, after which the job is declared
+#: stalled and the caller is told so.
+#:
+#: This exists because of a real incident: /terminal/factors sat on "Running
+#: the estimators" for ~2920 seconds. Nothing was wrong with the loader — it
+#: was faithfully reporting that the job had not finished. The bug was that
+#: `run()` had no upper bound: a build thread that blocks (or dies in a way
+#: `except Exception` cannot observe) leaves `done=False` in the registry
+#: forever, and every subsequent poll answers `building` with the last stage
+#: it managed to set. There was no exit from that state.
+#:
+#: The value is set against measurement, not guessed. A cold mega30 build is
+#: 53.6 s end to end, of which 52.1 s is vendor I/O for the panel and 1.3 s
+#: is every estimator combined. 240 s is ~4.5x the observed cold build, so a
+#: merely slow vendor day still completes; anything past it is not slow, it
+#: is stuck.
+#:
+#: Note what this deliberately does *not* claim: Python cannot cancel a
+#: thread doing blocking work, so the stalled worker is abandoned rather than
+#: killed. It is a daemon, so it cannot hold the process open, and the job
+#: registry drops its entry so a retry starts clean. What is guaranteed here
+#: is that *the request terminates* — not that the orphan stops running.
+BUILD_DEADLINE_SECONDS = 240.0
+
+#: How long a failed build is remembered before a new request rebuilds.
+#:
+#: Without this the retry rule was "restart whenever the last attempt
+#: failed", which the polling client evaluates every 1.5 s. A build that
+#: fails deterministically — one vendor down, a universe whose data never
+#: arrives — therefore never reported its failure to anyone: each poll saw
+#: the failed job, started a *new* one, and answered `building`. The page
+#: loaded forever while the backend span up a fresh build thread twice a
+#: second. That is the same symptom as a stall and a far more likely cause
+#: of one.
+#:
+#: So a failure is now an answer with a short memory: every caller inside
+#: the window gets the real error, and a retry after it builds again.
+FAILED_RETRY_COOLDOWN_SECONDS = 30.0
 
 _jobs: dict[str, dict[str, Any]] = {}
 _jobs_lock = threading.Lock()
+#: Monotonic build id, so a worker can tell whether the job it was started
+#: for is still the current one for its key.
+_generation = 0
 
 
-def _set_stage(key: str, stage: str, done: int = 0, total: int = 0) -> None:
+def _set_stage(
+    handle: Optional[tuple[str, int]], stage: str, done: int = 0, total: int = 0
+) -> None:
+    """Record progress for the build identified by `handle`.
+
+    The handle carries the generation token, not just the key. Without it an
+    abandoned worker — one whose build blew the deadline and was replaced —
+    keeps calling this and rewrites the *replacement* job's stage, driving
+    the client's progress backwards through stages the new build has not
+    reached. The token check makes a stale writer a no-op.
+    """
+    if not handle:
+        return
+    key, token = handle
+    now = time.time()
     with _jobs_lock:
         job = _jobs.get(key)
-        if job is not None:
-            job["stage"] = stage
-            job["stage_index"] = STAGES.index(stage) if stage in STAGES else 0
-            job["done"] = job.get("done", False)
+        if job is None or job.get("token") != token:
+            return
+        previous = job.get("stage")
+        if previous and previous != stage:
+            # Close out the stage we are leaving. A stall report is only
+            # actionable if it can say which stages passed and how long they
+            # took — "stuck in estimators" alone does not distinguish a slow
+            # vendor from a wedged computation.
+            job.setdefault("timings", {})[previous] = round(
+                now - job.get("stage_started", now), 2
+            )
+            job["stage_started"] = now
+        index = STAGES.index(stage) if stage in STAGES else 0
+        # Monotonic by construction. The stage list above is now in true
+        # execution order, but a regression there would show as progress
+        # running backwards in the UI, and a loader that un-ticks a finished
+        # step is worse than one that is merely coarse.
+        if index < job.get("stage_index", 0):
             job["progress_done"] = done
             job["progress_total"] = total
+            return
+        job["stage"] = stage
+        job["stage_index"] = index
+        job["done"] = job.get("done", False)
+        job["progress_done"] = done
+        job["progress_total"] = total
 
 
 def available_universes() -> list[dict[str, Any]]:
@@ -142,20 +226,55 @@ def run(
         if entry and entry[0] > now:
             return {**entry[1], "status": "ready", "cached": True}
 
+    stalled: Optional[dict[str, Any]] = None
     with _jobs_lock:
         job = _jobs.get(key)
-        if job is None or (job["done"] and job.get("failed")):
+
+        # A job that blew its deadline is evicted, not reused. Leaving the
+        # record in place would make the stall permanent for this universe:
+        # every later request would keep polling the same dead job, which is
+        # the 2920-second behaviour one level up.
+        if job is not None and not job["done"] and now - job["started"] > BUILD_DEADLINE_SECONDS:
+            stalled = dict(job)
+            logger.error(
+                "factor lab build for %s stalled in stage %r after %.0fs; abandoning it",
+                universe_name, job.get("stage"), now - job["started"],
+            )
+            del _jobs[key]
+            job = None
+
+        # Rebuild when there is no job, or when a previous failure has aged
+        # out of its cooldown. Inside the cooldown the recorded error is the
+        # answer — see FAILED_RETRY_COOLDOWN_SECONDS.
+        expired_failure = (
+            job is not None
+            and job["done"]
+            and job.get("failed")
+            and now - job.get("finished", job["started"]) > FAILED_RETRY_COOLDOWN_SECONDS
+        )
+        if job is None or expired_failure:
+            # Each build gets its own token. An abandoned worker from a
+            # stalled build keeps running and still holds `key`; without a
+            # token it would eventually finish and stamp whatever *newer*
+            # job now occupies that key as done — reporting a fresh build
+            # complete using a previous build's outcome.
+            global _generation
+            _generation += 1
             job = {
                 "started": now, "stage": STAGES[0], "stage_index": 0,
-                "done": False, "failed": False,
+                "stage_started": now, "timings": {},
+                "done": False, "failed": False, "token": _generation,
             }
             _jobs[key] = job
             worker = threading.Thread(
-                target=_run_job, args=(key, universe_name, years, horizon),
+                target=_run_job, args=(key, universe_name, years, horizon, _generation),
                 name=f"factor-lab-{universe_name}", daemon=True,
             )
             worker.start()
         snapshot = dict(job)
+
+    if stalled is not None:
+        return _stalled_payload(stalled, universe_name, now)
 
     if not snapshot["done"]:
         return {
@@ -179,31 +298,116 @@ def run(
     return {"status": "error", "error": snapshot.get("error") or "the build produced no result"}
 
 
-def _run_job(key: str, universe_name: str, years: float, horizon: int) -> None:
+def _optional(name: str, compute, degraded: list[dict[str, str]]):
+    """Run one estimator; on failure record it and carry on.
+
+    Returns `None` both when the estimator legitimately has nothing to
+    report and when it raised — the caller renders both as absent, but only
+    the raise appends to `degraded`, which is what lets the UI say
+    "attribution unavailable" instead of silently dropping a section.
+    """
+    try:
+        return compute()
+    except Exception as exc:  # noqa: BLE001 — isolation is the whole point
+        logger.exception("factor lab estimator %r failed", name)
+        degraded.append({"estimator": name, "reason": f"{type(exc).__name__}: {exc}"})
+        return None
+
+
+def _stalled_payload(
+    job: dict[str, Any], universe_name: str, now: float
+) -> dict[str, Any]:
+    """What the caller gets when a build blew its deadline.
+
+    Says which stage it died in and how long the stages before it took, so
+    the answer distinguishes "a vendor is hanging" from "a computation is
+    wedged" without anyone having to read the server logs.
+    """
+    stage = job.get("stage") or STAGES[0]
+    elapsed = now - job["started"]
+    timings = dict(job.get("timings") or {})
+    timings[stage] = round(now - job.get("stage_started", job["started"]), 2)
+
+    done = job.get("progress_done") or 0
+    total = job.get("progress_total") or 0
+    detail = f" ({done}/{total} complete)" if total else ""
+
+    return {
+        "status": "error",
+        "error": (
+            f"the build stalled in the {stage!r} stage{detail} and was stopped "
+            f"after {elapsed:.0f}s. Stage timings so far: "
+            + ", ".join(f"{name} {seconds}s" for name, seconds in timings.items())
+            + ". This is usually a vendor that stopped responding; trying again "
+            "starts a fresh build."
+        ),
+        "stalled_stage": stage,
+        "stage_timings": timings,
+        "elapsed_seconds": round(elapsed, 1),
+        # The distinction the UI needs: an unknown universe is permanent, a
+        # stall is not, and the recovery action differs.
+        "retryable": True,
+        "universe": {"name": universe_name},
+    }
+
+
+def _run_job(
+    key: str, universe_name: str, years: float, horizon: int, token: int
+) -> None:
     """Background build. Records the outcome; never raises into the thread."""
     try:
-        payload = _build(universe_name, years, horizon, progress=key)
+        payload = _build(universe_name, years, horizon, progress=(key, token))
         with _lock:
             if "error" not in payload:
+                # Cached even if the job record is gone: a late finisher that
+                # beat the deadline by a hair still did the work, and the
+                # next request should get it rather than rebuild.
                 _cache[key] = (time.time() + CACHE_TTL_SECONDS, payload)
         with _jobs_lock:
-            _jobs[key].update(
-                done=True, failed="error" in payload, error=payload.get("error")
-            )
+            # `.get`, not `[key]` — the deadline may have evicted this job
+            # while the build was still running, and a KeyError here would
+            # take the worker down through the handler below and log a
+            # spurious failure for work that actually succeeded.
+            entry = _jobs.get(key)
+            if entry is not None and entry.get("token") == token:
+                entry.update(
+                    done=True, failed="error" in payload,
+                    error=payload.get("error"), finished=time.time(),
+                )
     except KeyError as exc:
         with _jobs_lock:
-            _jobs[key].update(done=True, failed=True, error=f"unknown universe: {exc}")
-    except Exception as exc:  # noqa: BLE001 — a research view must not 500 the app
+            entry = _jobs.get(key)
+            if entry is not None and entry.get("token") == token:
+                entry.update(
+                    done=True, failed=True,
+                    error=f"unknown universe: {exc}", finished=time.time(),
+                )
+    # BaseException, not Exception. `except Exception` cannot see SystemExit
+    # or KeyboardInterrupt, and a worker killed by one of those left
+    # `done=False` in the registry with no writer ever coming back to fix it
+    # — an unpollable job that answers "building" forever. The deadline in
+    # `run()` now catches that case too, but taking 240 s to report something
+    # already known is not a good answer. Re-raised after recording so
+    # interpreter shutdown still behaves normally.
+    except BaseException as exc:  # noqa: BLE001 — a research view must not 500 the app
         logger.exception("factor lab failed for %s", universe_name)
         with _jobs_lock:
-            _jobs[key].update(
-                done=True, failed=True,
-                error=f"factor evaluation failed: {type(exc).__name__}",
-            )
+            entry = _jobs.get(key)
+            if entry is not None and entry.get("token") == token:
+                entry.update(
+                    done=True, failed=True,
+                    error=f"factor evaluation failed: {type(exc).__name__}: {exc}",
+                    finished=time.time(),
+                )
+        # Not re-raised. This is a daemon worker; re-raising SystemExit here
+        # would only kill this thread — which is already ending — while
+        # producing an unhandled-thread-exception trace that looks like a
+        # crash. The outcome is recorded, which is the part that matters.
 
 
 def _build(
-    universe_name: str, years: float, horizon: int, progress: Optional[str] = None
+    universe_name: str, years: float, horizon: int,
+    progress: Optional[tuple[str, int]] = None,
 ) -> dict[str, Any]:
     started = time.perf_counter()
 
@@ -211,18 +415,17 @@ def _build(
         if progress:
             _set_stage(progress, name)
 
-    stage("prices")
+    stage("filings")
     universe = Universe.named(universe_name)
     end = Date.today()
     start = end - timedelta(days=int(years * 365))
 
-    stage("panel")
 
     def relay(sub_stage: str, done: int, total: int) -> None:
         # The builder knows which symbol it is on; map that onto the stage
         # names the client renders so the count lands on the right row.
         if progress:
-            _set_stage(progress, sub_stage if sub_stage in STAGES else "panel", done, total)
+            _set_stage(progress, sub_stage if sub_stage in STAGES else "prices", done, total)
 
     with timer("factor_lab.panel_build", universe=universe_name):
         panel, manifest = PanelBuilder(on_progress=relay).build(
@@ -273,6 +476,18 @@ def _build(
     )
 
     stage("estimators")
+
+    # Every estimator past the IC is optional. They are independent of one
+    # another, so a failure in redundancy says nothing about whether the
+    # portfolio simulation is trustworthy — and letting one exception abort
+    # the build discards ~50 s of vendor work to report nothing. Each is
+    # isolated and its failure recorded, so the response can show what was
+    # computed and name what was not.
+    #
+    # The IC itself is deliberately *not* isolated: it is the page's subject,
+    # and a Factor Lab with no factor evaluation has nothing to degrade to.
+    degraded: list[dict[str, str]] = []
+
     with timer("factor_lab.evaluate", universe=universe_name):
         factors = [
             _serialise(evaluation)
@@ -282,16 +497,19 @@ def _build(
             )) is not None
         ]
     with timer("factor_lab.portfolios", universe=universe_name):
-        portfolios = {
-            name: _serialise_portfolio(result)
-            for name in populated
-            if (result := simulate(tradeable, name)) is not None
-        }
+        portfolios = {}
+        for name in populated:
+            result = _optional(f"portfolio:{name}", lambda n=name: simulate(tradeable, n), degraded)
+            if result is not None:
+                portfolios[name] = _serialise_portfolio(result)
     for row in factors:
         row["portfolio"] = portfolios.get(row["factor"])
-        row["stability"] = _serialise_stability(
-            analyse(row["factor"], [(d, v) for d, v in row["ic_series"]])
+        stability = _optional(
+            f"stability:{row['factor']}",
+            lambda r=row: analyse(r["factor"], [(d, v) for d, v in r["ic_series"]]),
+            degraded,
         )
+        row["stability"] = _serialise_stability(stability) if stability is not None else None
 
     factors.sort(key=lambda row: -abs(row["t_stat"]))
 
@@ -328,9 +546,19 @@ def _build(
                 for name in populated
             },
         },
-        "screen": _screen_payload(rankable, latest, populated),
-        "redundancy": _redundancy_payload(panel, populated),
-        "attribution": _attribution_payload(evaluable, populated),
+        "screen": _optional(
+            "screen", lambda: _screen_payload(rankable, latest, populated), degraded
+        ),
+        "redundancy": _optional(
+            "redundancy", lambda: _redundancy_payload(panel, populated), degraded
+        ),
+        "attribution": _optional(
+            "attribution", lambda: _attribution_payload(evaluable, populated), degraded
+        ),
+        # Present and empty on a clean build. The UI distinguishes "this
+        # estimator returned nothing because there was nothing to say" from
+        # "this estimator failed", and only the second belongs here.
+        "degraded": degraded,
         "caveats": _caveats(len(factors), universe),
         "engine_version": manifest.engine_version,
         "build_seconds": round(time.perf_counter() - started, 2),

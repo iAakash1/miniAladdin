@@ -678,9 +678,27 @@ img { max-width: 100%; display: block; }
 }
 @media (max-width: 560px) {
   .terminal-grid-four { grid-template-columns: 1fr; }
+}
+
+/* Header breakpoints, set from measured content widths rather than round
+   numbers. The row needs nav 480px + logo 180px + controls 120px = 780px
+   before it can afford anything else; the search wants ~200px and the macro
+   readout is 316px.
+   These used to drop at 560px/640px, so between roughly 780px and 1240px the
+   header overflowed silently: the search input was squeezed to 52px and its
+   placeholder text rendered straight across the macro numbers. Secondary
+   context yields first — the macro strip is ambient and repeated in full on
+   the Market page, and the search has a command-palette shortcut. */
+/* Measured at 1280px, where the header still broke after the first fix:
+   logo 191 + nav 489 + search 167 + macro 317 + controls 125 + 4x16 gap
+   = 1353px required. The nav was the element that gave way — it carries
+   `overflow-x: auto`, so it silently clipped "Factor Lab" to "Facto" and
+   dropped "Learn" entirely while the rigid macro strip kept its full width.
+   Primary navigation must never be the thing that yields. */
+@media (max-width: 1360px) {
   .terminal-header-macro { display: none !important; }
 }
-@media (max-width: 640px) {
+@media (max-width: 1040px) {
   .terminal-header-search { display: none !important; }
 }
 
@@ -690,6 +708,11 @@ img { max-width: 100%; display: block; }
    pane, and the row already communicates its own overflow by clipping
    the last tab at the edge. */
 .terminal-tabs {
+  /* Never compresses. Scrolling is the *last* resort for a genuinely tiny
+     viewport, not something a wide desktop should ever hit — a clipped nav
+     label reads as a broken app, and it is the one row element a user needs
+     in full at every width. */
+  flex-shrink: 0;
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -2054,4 +2077,725 @@ select.input {
 }
 @media (prefers-reduced-motion: reduce) {
   .confirm { transition: none; }
+}
+
+/* ── Factor Lab: partial results ───────────────────────────────────────────
+   A build that lost an estimator still shows everything else. This has to
+   read as a qualification on otherwise-good results, not as a failure — so
+   it uses the warn hairline rather than the negative fill. */
+.lab-degraded {
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--warn);
+  border-radius: var(--r-sm);
+  padding: 12px 14px;
+  background: var(--surface-2);
+}
+.lab-degraded__title {
+  font-size: 0.8125rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+.lab-degraded__list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.lab-degraded__list li {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 0.75rem;
+}
+
+/* ── Pipeline progress rails ───────────────────────────────────────────────
+   Adapted from the Uiverse loader collection, where the recurring trick is a
+   clipped track with a travelling child driven by transform. Everything that
+   made those loaders read as demos — neumorphic shadows, saturated blues,
+   glow, 3D — is dropped; what survives is the mechanism: a 2px track, one
+   transform-only animation, no layout work per frame.
+
+   Two rails that must never be confused:
+
+     .rl__rail            determinate. Width is a real fraction the backend
+                          counted (symbols fetched). Grows only when the
+                          server says so.
+     .rl__rail--seeking   indeterminate. A sweep that asserts "running" and
+                          nothing more, for stages with no countable unit.
+
+   They look different deliberately. If both were bars, a user could not tell
+   a measured 40% from a decorative animation, and the honesty rule would be
+   invisible at exactly the moment it matters. */
+.rl__rail {
+  display: block;
+  position: relative;
+  height: 2px;
+  margin-top: 7px;
+  border-radius: 1px;
+  background: var(--line);
+  overflow: hidden;
+}
+.rl__rail__fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  transform-origin: left center;
+  border-radius: inherit;
+  background: var(--accent);
+  /* Transform-only, so advancing the bar never triggers layout. */
+  transition: transform 420ms var(--ease-out);
+}
+.rl__rail--seeking { background: transparent; }
+.rl__rail__sweep {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--line-strong) 40%,
+    var(--accent) 50%,
+    var(--line-strong) 60%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  animation: rl-seek 1.9s var(--ease-out) infinite;
+}
+@keyframes rl-seek {
+  to { transform: translateX(100%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* Still legible as "running", just not moving: a static hairline in the
+     accent rather than the line colour. */
+  .rl__rail__sweep {
+    animation: none;
+    transform: none;
+    background: var(--line-strong);
+  }
+  .rl__rail__fill { transition: none; }
+}
+
+/* ── Investigation card placeholder ────────────────────────────────────────
+   Shares `.ws-card` so padding, border and radius can never drift from the
+   real card. Only the inner bars are placeholder-specific. The shimmer is
+   one transform-driven sweep — the same mechanism as the pipeline rails —
+   rather than a background-position animation, which repaints the whole
+   element every frame. */
+.ws-card--skeleton { pointer-events: none; }
+.ws-skel {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--surface-2);
+}
+.ws-skel--title   { height: 13px; width: 58%; }
+.ws-skel--symbols { height: 10px; width: 40%; }
+.ws-skel--counts  { height: 10px; width: 72%; }
+.ws-skel--meta    { height: 9px;  width: 34%; }
+.ws-skel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--line-strong), transparent);
+  transform: translateX(-100%);
+  animation: ws-skel-sweep 1.6s var(--ease-out) infinite;
+}
+.ws-skel--symbols::after { animation-delay: 120ms; }
+.ws-skel--counts::after  { animation-delay: 240ms; }
+.ws-skel--meta::after    { animation-delay: 360ms; }
+@keyframes ws-skel-sweep {
+  to { transform: translateX(100%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ws-skel::after { animation: none; opacity: 0; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Interaction primitives — adapted from Uiverse
+   ══════════════════════════════════════════════════════════════════════════
+
+   Three mechanisms taken from the Uiverse collection, rebuilt in OmniSignal's
+   tokens. The decoration each arrived with (gold particles, bevelled 3D
+   borders, saturated fills) is gone; what survives is the interaction idea.
+
+   1. ONE VARIABLE DRIVES EVERY STATE  (cbolson/calm-wasp-75)
+      The original routes border colour and label colour through a single
+      `--_clr-current` that hover/focus/checked each reassign. Every state is
+      one declaration instead of a matrix of selectors, so states cannot drift
+      apart as the component grows.
+
+   2. GHOST PREVIEW ON HOVER  (same)
+      Hovering renders the *checked* mark at partial opacity — the control
+      shows what committing will do before you commit. In a table where
+      picking two rows starts a comparison, that removes a real "what does
+      this click do?" pause.
+
+   3. RADIAL CONFIRMATION  (Galahhad/mighty-warthog-42)
+      That one bursts eight gold particles out of a bookmark using a single
+      pseudo-element carrying eight offset box-shadows — no JS, no SVG. As
+      shipped it is pure game UI. The useful part is the cost: one element,
+      one transform, real "it worked" feedback. Reduced here to a single ring
+      that expands once and fades, because saving a report currently confirms
+      nothing at all and a toast would be far heavier than the action.
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* Expo-out. Fast departure, long settle — reads as precise rather than
+   springy, which is what a terminal wants from a state change. */
+:root { --ease-state: cubic-bezier(0.23, 1, 0.32, 1); }
+
+/* ── Selection checkbox ─────────────────────────────────────────────────── */
+.pick {
+  --pick-color: var(--line-strong);
+  appearance: none;
+  width: 15px;
+  height: 15px;
+  display: grid;
+  place-content: center;
+  border: 1px solid var(--pick-color);
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+  transition: border-color var(--t-fast) var(--ease-state);
+}
+.pick::after {
+  content: '✓';
+  font-size: 10px;
+  line-height: 1;
+  color: var(--pick-color);
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity var(--t-fast) var(--ease-state), transform var(--t-fast) var(--ease-state);
+}
+/* Hover and keyboard focus are the same state, so they read the same. */
+.pick:hover, .pick:focus-visible { --pick-color: var(--accent); }
+/* The preview: what checking would do, at half strength. */
+.pick:hover::after, .pick:focus-visible::after { opacity: 0.45; transform: scale(1); }
+.pick:checked { --pick-color: var(--accent); }
+.pick:checked::after { opacity: 1; transform: scale(1); }
+.pick:focus-visible { outline: none; box-shadow: var(--ring); }
+
+/* ── Radial confirmation ────────────────────────────────────────────────── */
+.confirmed { position: relative; }
+.confirmed::after {
+  content: '';
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+.confirmed.is-confirming::after { animation: confirm-ring 460ms var(--ease-state) 1; }
+@keyframes confirm-ring {
+  from { opacity: 0.9; transform: scale(0.4); }
+  to   { opacity: 0;   transform: scale(2.2); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pick, .pick::after { transition: none; }
+  .confirmed.is-confirming::after { animation: none; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Interaction vocabulary — Uiverse mechanisms, OmniSignal language
+   ══════════════════════════════════════════════════════════════════════════
+   One small set of behaviours reused across surfaces, so selection in Factor
+   Lab, Market and Portfolio all mean the same thing visually. Every rule
+   below is transform/opacity/colour only — no layout animation anywhere. */
+
+/* ── 5. SELECTION RAIL ─────────────────────────────────────────────────────
+   From the animated-tab indicators: rather than filling a row, a rail grows
+   from its centre along the leading edge. Reads as "this is the subject"
+   without the heavy background fill that makes dense tables noisy. */
+.rail { position: relative; }
+.rail::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 2px;
+  background: var(--accent);
+  transform: scaleY(0);
+  transform-origin: center;
+  transition: transform 200ms var(--ease-state);
+}
+.rail.is-selected::before,
+.rail.is-active::before,
+.rail[aria-selected='true']::before { transform: scaleY(1); }
+
+/* ── 6. ACTION REVEAL ──────────────────────────────────────────────────────
+   Secondary actions live in the row permanently but are invisible until the
+   row is hovered or *anything inside it* takes keyboard focus. Space is
+   reserved at all times, so revealing them never reflows the table — the
+   layout-shift failure that makes most hover-action tables feel cheap. */
+.reveal { opacity: 0; transition: opacity 140ms var(--ease-state); }
+tr:hover .reveal,
+tr:focus-within .reveal,
+.reveal:focus-within,
+.row-host:hover .reveal,
+.row-host:focus-within .reveal { opacity: 1; }
+/* Never hide a control from the keyboard. */
+.reveal:focus-visible, .reveal :focus-visible { opacity: 1; }
+
+/* ── 7. METRIC REVEAL ──────────────────────────────────────────────────────
+   Adapted from the hover-to-expand cards: a number carries its meaning in a
+   line that is clipped to zero height until hover/focus, then grows. Uses
+   grid-template-rows 0fr→1fr so there is no magic max-height to guess and
+   no clipping when the copy wraps. */
+/* Deliberately sets no `display`. Setting one here re-laid-out every host:
+   `.metric-row` is a horizontal label/value pair, and forcing a column on it
+   stacked exactly the stats that carried a hint while the ones without a hint
+   stayed inline — the same control rendering two different ways in one row.
+   The body claims a full basis instead, so in a flex host it wraps onto its
+   own line and the row above is untouched. */
+.mreveal { flex-wrap: wrap; }
+.mreveal__body {
+  flex-basis: 100%;
+  width: 100%;
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 220ms var(--ease-state), opacity 160ms var(--ease-state);
+  opacity: 0;
+}
+.mreveal__body > * { overflow: hidden; }
+.mreveal:hover .mreveal__body,
+.mreveal:focus-within .mreveal__body { grid-template-rows: 1fr; opacity: 1; }
+.mreveal__note {
+  font-size: 0.6875rem;
+  color: var(--faint);
+  line-height: 1.5;
+  padding-top: 3px;
+  max-width: 34ch;
+}
+
+/* ── 9. GRAPH FOCUS ────────────────────────────────────────────────────────
+   The signature interaction. Selecting a node dims everything not connected
+   to it, so a dense graph answers "what does this actually touch?" instantly
+   instead of forcing the eye to trace edges. Opacity only — positions never
+   move, so spatial memory survives the focus. */
+.gfocus__node, .gfocus__edge, .gfocus__label {
+  transition: opacity 200ms var(--ease-state);
+}
+.gfocus.is-focusing .gfocus__node,
+.gfocus.is-focusing .gfocus__edge,
+.gfocus.is-focusing .gfocus__label { opacity: 0.13; }
+.gfocus.is-focusing .is-related { opacity: 1; }
+
+/* ── 10. STATUS DOT ────────────────────────────────────────────────────────
+   From the status-indicator family. Colour alone cannot carry state, so the
+   shape differs too: fresh is solid, stale is a ring, unknown is a dash. */
+.sdot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--muted);
+  flex-shrink: 0;
+}
+.sdot--fresh { background: var(--pos); }
+.sdot--stale { background: transparent; box-shadow: inset 0 0 0 1px var(--warn); }
+.sdot--none  { background: transparent; box-shadow: inset 0 0 0 1px var(--line-strong); border-radius: 1px; height: 2px; width: 8px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rail::before, .reveal, .mreveal__body,
+  .gfocus__node, .gfocus__edge, .gfocus__label { transition: none; }
+}
+
+/* ── Reading position in the report nav ────────────────────────────────────
+   Adapted from the animated-tab indicators: instead of every link carrying
+   its own background, one underline sits beneath the current link and the
+   colour lifts. The report is ~4,700px of continuous content, so the nav
+   knowing *where you are* matters more than it knowing where you can go. */
+.section-nav__link { position: relative; transition: color 160ms var(--ease-state); }
+.section-nav__link.is-current { color: var(--text); }
+.section-nav__link::after {
+  content: '';
+  position: absolute;
+  left: 10px; right: 10px; bottom: 3px;
+  height: 1.5px;
+  border-radius: 1px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 200ms var(--ease-state);
+}
+.section-nav__link.is-current::after { transform: scaleX(1); }
+@media (prefers-reduced-motion: reduce) {
+  .section-nav__link, .section-nav__link::after { transition: none; }
+}
+
+/* Sortable column header. The caret occupies its space at all times so
+   activating a sort never nudges the other headers sideways. */
+.th-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.num .th-sort { flex-direction: row-reverse; }
+.th-sort:hover, .th-sort.is-active { color: var(--text); }
+.th-sort:focus-visible { outline: none; box-shadow: var(--ring); border-radius: 3px; }
+.th-sort__caret { font-size: 0.75em; opacity: 0.35; }
+.th-sort.is-active .th-sort__caret { opacity: 1; color: var(--accent); }
+
+/* ── Copy button ───────────────────────────────────────────────────────────
+   Both faces are stacked in the same grid cell, so the widest one fixes the
+   button's width and swapping them cannot reflow the row. Opacity only. */
+.copyb__stack { display: grid; }
+.copyb__face {
+  grid-area: 1 / 1;
+  transition: opacity 140ms var(--ease-state);
+  white-space: nowrap;
+}
+.copyb__face--done { opacity: 0; }
+.copyb[data-phase='copied'] .copyb__face--idle,
+.copyb[data-phase='failed'] .copyb__face--idle { opacity: 0; }
+.copyb[data-phase='copied'] .copyb__face--done,
+.copyb[data-phase='failed'] .copyb__face--done { opacity: 1; }
+.copyb[data-phase='copied'] { color: var(--pos); }
+.copyb[data-phase='failed'] { color: var(--warn); }
+@media (prefers-reduced-motion: reduce) { .copyb__face { transition: none; } }
+
+/* Sector disclosure: a single open row, indented to read as belonging to
+   the row above rather than as a new list item. */
+.mm-map__detail {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px 10px 34px;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.mm-map__verdict { color: var(--muted); }
+.mm-map__row.is-open { background: var(--surface-2); }
+.mm-map__row[role='button'] { cursor: pointer; }
+
+/* Interactive chart legend. Dimming rather than removing the label keeps the
+   series discoverable when it is hidden. */
+.chart-legend { display: flex; gap: 4px; }
+.chart-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: none;
+  font-size: 0.6875rem;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 140ms var(--ease-state), opacity 140ms var(--ease-state);
+}
+.chart-legend__item:hover { color: var(--text); }
+.chart-legend__item:focus-visible { outline: none; box-shadow: var(--ring); }
+.chart-legend__item.is-off { opacity: 0.4; }
+.chart-legend__item.is-off .chart-legend__swatch { background: var(--line-strong) !important; }
+.chart-legend__swatch { width: 8px; height: 2px; border-radius: 1px; }
+
+/* Context menu at the cursor. Fixed-positioned so it escapes the SVG's
+   coordinate space and any ancestor overflow. */
+.ctxmenu {
+  position: fixed;
+  z-index: 140;
+  min-width: 176px;
+  padding: 5px;
+  background: var(--surface-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-dialog);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.ctxmenu__head {
+  font-size: 0.625rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--faint);
+  padding: 5px 9px 6px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 3px;
+}
+.ctxmenu__item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 9px;
+  border: none;
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.8125rem;
+  text-decoration: none;
+  cursor: pointer;
+}
+.ctxmenu__item:hover:not([disabled]) { background: var(--surface-2); }
+.ctxmenu__item:focus-visible { outline: none; box-shadow: var(--ring); }
+.ctxmenu__item[disabled] { opacity: 0.4; cursor: not-allowed; }
+
+/* Factor comparison strip. Sticky so the pinned factors stay visible while
+   scrolling the evidence list they were picked from. */
+.fcmp {
+  position: sticky;
+  top: 8px;
+  z-index: 20;
+  margin-bottom: 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--surface-3);
+  box-shadow: var(--lift-1);
+}
+.fcmp__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line);
+}
+.fcmp__table { margin: 0; }
+.fcmp__table td, .fcmp__table th { padding: 5px 14px; }
+.fcmp__rowlabel {
+  font-weight: 400;
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-align: left;
+}
+/* The stronger reading, where "stronger" is actually defined. */
+.fcmp__win { color: var(--pos); font-weight: 600; }
+.btn.is-on { color: var(--accent); border-color: var(--accent); }
+
+/* Run scrubber: every stored run as one marker on a rail. Verdict is carried
+   by fill, selection by a ring — so colour is not the only signal. */
+.scrub {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 10px 4px 14px;
+  margin-bottom: 4px;
+}
+.scrub:focus-visible { outline: none; box-shadow: var(--ring); border-radius: var(--r-sm); }
+.scrub__rail {
+  position: absolute;
+  left: 6px; right: 6px; top: 50%;
+  height: 1px;
+  background: var(--line);
+  transform: translateY(-6px);
+}
+.scrub__pip {
+  position: relative;
+  width: 9px; height: 9px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  background: var(--muted);
+  transition: transform 140ms var(--ease-state), box-shadow 140ms var(--ease-state);
+}
+.scrub__pip--pos  { background: var(--pos); }
+.scrub__pip--neg  { background: var(--neg); }
+.scrub__pip--hold { background: var(--warn); }
+.scrub__pip:hover { transform: scale(1.25); }
+.scrub__pip.is-picked { box-shadow: 0 0 0 3px var(--surface), 0 0 0 4px var(--text); }
+.scrub__pip:focus-visible { outline: none; box-shadow: var(--ring); }
+@media (prefers-reduced-motion: reduce) { .scrub__pip { transition: none; } }
+
+/* Conviction threshold. A native range input restyled to the token system —
+   keyboard, arrow keys and screen-reader semantics come free, which a
+   div-based slider would have to rebuild badly. */
+.thresh {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 0 14px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 10px;
+}
+.thresh__label { font-size: 0.6875rem; color: var(--muted); }
+.thresh__range {
+  flex: 0 1 200px;
+  height: 2px;
+  appearance: none;
+  background: var(--line-strong);
+  border-radius: 1px;
+  cursor: pointer;
+}
+.thresh__range::-webkit-slider-thumb {
+  appearance: none;
+  width: 11px; height: 11px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+}
+.thresh__range::-moz-range-thumb {
+  width: 11px; height: 11px;
+  border: none;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+}
+.thresh__range:focus-visible { outline: none; box-shadow: var(--ring); }
+.thresh__value { font-size: 0.75rem; color: var(--text); min-width: 34px; }
+.thresh__count { white-space: nowrap; }
+
+/* Vault group header. A row that is a label, not data — flush with the table
+   but visually subordinate to the runs beneath it. */
+.vault-group th {
+  padding: 12px 10px 5px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+/* Transient feedback. Bottom-left so it never covers the header controls or
+   the right-hand inspector panels. */
+.toasts {
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+  z-index: 150;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 220px;
+  max-width: 360px;
+  padding: 9px 10px 9px 13px;
+  border: 1px solid var(--line-strong);
+  border-left-width: 2px;
+  border-radius: var(--r-md);
+  background: var(--surface-3);
+  box-shadow: var(--shadow-dialog);
+  font-size: 0.8125rem;
+  color: var(--text);
+  pointer-events: auto;
+  animation: toast-in 200ms var(--ease-state) both;
+}
+.toast--ok { border-left-color: var(--pos); }
+.toast--warn { border-left-color: var(--warn); }
+.toast__msg { flex: 1; }
+.toast__x {
+  border: none;
+  background: none;
+  color: var(--faint);
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 2px 4px;
+}
+.toast__x:hover { color: var(--text); }
+.toast__x:focus-visible { outline: none; box-shadow: var(--ring); border-radius: 3px; }
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
+
+/* Horizon switch. The thumb's position carries the state, so the control is
+   readable without reading the labels. Both labels stay legible — the thumb
+   sits behind them rather than covering one. */
+.mm-map__sortbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px 8px;
+}
+.hswitch {
+  position: relative;
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-2);
+  cursor: pointer;
+}
+.hswitch__opt {
+  position: relative;
+  z-index: 1;
+  padding: 2px 10px;
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  transition: color 160ms var(--ease-state);
+}
+.hswitch:not(.is-long) .hswitch__opt:first-of-type,
+.hswitch.is-long .hswitch__opt:last-of-type { color: var(--text); }
+.hswitch__thumb {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  width: calc(50% - 2px);
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: var(--edge-hi);
+  transition: transform 200ms var(--ease-state);
+}
+.hswitch.is-long .hswitch__thumb { transform: translateX(100%); }
+.hswitch:focus-visible { outline: none; box-shadow: var(--ring); }
+@media (prefers-reduced-motion: reduce) {
+  .hswitch__thumb, .hswitch__opt { transition: none; }
+}
+
+/* Stacked depth on the resume card. Layers are drawn behind the card and
+   inset, so the edge of each "page" shows below it. The count comes from
+   real captured snapshots — a fresh investigation is flat, and one with
+   work in it is visibly thicker. Hover fans them slightly. */
+.ws-resume { position: relative; }
+.ws-resume::before,
+.ws-resume::after {
+  content: '';
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 0;
+  height: 10px;
+  border: 1px solid var(--line);
+  border-top: none;
+  border-radius: 0 0 var(--r-md) var(--r-md);
+  background: var(--surface-2);
+  z-index: -1;
+  /* `display` rather than a transitioned opacity: the layers must be present
+     the moment the card renders, not one transition later. Only the hover
+     fan is animated. */
+  display: none;
+  transform-origin: bottom;
+  transform: translateY(5px);
+  transition: transform 200ms var(--ease-state);
+}
+.ws-resume[data-depth='1']::before,
+.ws-resume[data-depth='2']::before { display: block; }
+.ws-resume[data-depth='2']::after {
+  display: block;
+  left: 22px; right: 22px;
+  transform: translateY(10px);
+}
+.ws-resume[data-depth='1']:hover::before,
+.ws-resume[data-depth='2']:hover::before { transform: translateY(7px); }
+.ws-resume[data-depth='2']:hover::after { transform: translateY(14px); }
+@media (prefers-reduced-motion: reduce) {
+  .ws-resume::before, .ws-resume::after { transition: none; }
 }

@@ -1,8 +1,32 @@
 /* Formatting utilities — single source of truth for number/date rendering. */
 
+/** Everything that is not a finite number renders as "no value".
+ *
+ *  `Number.isNaN` alone missed two cases that reach these functions from real
+ *  data: a Sharpe ratio over zero realised volatility, and a return measured
+ *  from a zero base, both of which are `Infinity`. They rendered literally —
+ *  "+Infinity%" and "$∞" — which in a research terminal reads as a broken
+ *  page rather than as an undefined statistic. */
+function isMissing(v: number | null | undefined): boolean {
+  return v == null || !Number.isFinite(v)
+}
+
+/** Strips the sign from a value that rounds to zero.
+ *
+ *  `(-0.000001).toFixed(2)` is "-0.00", and `-0` formats as "-$0.00". Both
+ *  claim a direction the number does not have; a reader scanning a column of
+ *  returns sees a loss that is not there. */
+function unsignZero(text: string): string {
+  return /^-0(\.0*)?$/.test(text) ? text.slice(1) : text
+}
+
 export function fmtPrice(v: number | null | undefined): string {
-  if (v == null || Number.isNaN(v)) return '—'
-  return v.toLocaleString('en-US', {
+  if (isMissing(v)) return '—'
+  // Round to the displayed precision *before* formatting. Checking for -0
+  // alone is not enough: -0.0001 is not -0, but `toLocaleString` still
+  // renders it "-$0.00" once rounded to two places.
+  const rounded = Math.round((v as number) * 100) / 100
+  return (rounded === 0 ? 0 : rounded).toLocaleString('en-US', {
     style: 'currency',
     currency: 'USD',
     minimumFractionDigits: 2,
@@ -11,22 +35,29 @@ export function fmtPrice(v: number | null | undefined): string {
 }
 
 export function fmtNum(v: number | null | undefined, digits = 2): string {
-  if (v == null || Number.isNaN(v)) return '—'
-  return v.toFixed(digits)
+  if (isMissing(v)) return '—'
+  return unsignZero((v as number).toFixed(digits))
 }
 
 /** 0.0431 -> "+4.31%" */
 export function fmtPct(v: number | null | undefined, digits = 2, signed = true): string {
-  if (v == null || Number.isNaN(v)) return '—'
-  const pct = v * 100
-  const sign = signed && pct > 0 ? '+' : ''
-  return `${sign}${pct.toFixed(digits)}%`
+  if (isMissing(v)) return '—'
+  const pct = (v as number) * 100
+  const body = unsignZero(pct.toFixed(digits))
+  // The '+' is decided after rounding, so a value that rounds to zero gets
+  // neither sign rather than a '+' on a number that did not move.
+  const sign = signed && parseFloat(body) > 0 ? '+' : ''
+  return `${sign}${body}%`
 }
 
-/** 4.47 -> "4.47%" (already in percent units) */
-export function fmtPctRaw(v: number | null | undefined, digits = 2): string {
-  if (v == null || Number.isNaN(v)) return '—'
-  return `${v.toFixed(digits)}%`
+/** 4.47 -> "4.47%" (already in percent units). `signed` adds a leading '+'
+ *  for a real gain, decided after rounding like `fmtPct`. */
+export function fmtPctRaw(
+  v: number | null | undefined, digits = 2, signed = false,
+): string {
+  if (isMissing(v)) return '—'
+  const body = unsignZero((v as number).toFixed(digits))
+  return `${signed && parseFloat(body) > 0 ? '+' : ''}${body}%`
 }
 
 export function parsePercentString(v: string | number | null | undefined): number {

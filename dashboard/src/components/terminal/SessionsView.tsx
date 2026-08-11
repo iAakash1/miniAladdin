@@ -35,7 +35,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import EmptyState from '@/components/ui/EmptyState'
 import PageHeader from '@/components/ui/PageHeader'
-import Skeleton from '@/components/ui/Skeleton'
 import ConfirmButton from '@/components/ui/ConfirmButton'
 import { timeAgo } from '@/lib/format'
 import {
@@ -193,6 +192,29 @@ function Excerpt({ body, term }: { body: string; term: string }) {
 
 /* ── view ─────────────────────────────────────────────────────────────────── */
 
+/** A placeholder shaped like the card that replaces it.
+ *
+ *  Three featureless 150px rectangles were standing in for investigation
+ *  cards whose structure is entirely predictable — title, symbols, counts,
+ *  footer. A skeleton is a promise about layout, and it only pays off when
+ *  the real thing arrives in the same shape; a blank slab promises nothing
+ *  and the swap lands as a jump. This borrows the card's own classes so the
+ *  two stay in step by construction rather than by memory. */
+function InvestigationSkeleton() {
+  return (
+    <article className="ws-card ws-card--skeleton" aria-hidden="true">
+      <div className="ws-card__link">
+        <span className="ws-skel ws-skel--title" />
+        <span className="ws-skel ws-skel--symbols" />
+        <span className="ws-skel ws-skel--counts" />
+      </div>
+      <div className="ws-card__foot">
+        <span className="ws-skel ws-skel--meta" />
+      </div>
+    </article>
+  )
+}
+
 export default function SessionsView() {
   const [sessions, setSessions] = useState<SessionSummary[] | null>(null)
   const [detail, setDetail] = useState<Record<string, Substance>>({})
@@ -309,7 +331,9 @@ export default function SessionsView() {
               action={<button type="button" className="btn btn--secondary btn--sm" onClick={refresh}>Try again</button>}
             />
           ) : sessions === null ? (
-            <div className="ws-grid"><Skeleton height={150} /><Skeleton height={150} /><Skeleton height={150} /></div>
+            <div className="ws-grid" aria-busy="true">
+              {[0, 1, 2].map((i) => <InvestigationSkeleton key={i} />)}
+            </div>
           ) : sessions.length === 0 ? (
             <EmptyState
               title="No investigations yet"
@@ -323,7 +347,20 @@ export default function SessionsView() {
           ) : (
             <>
               {/* Continue where you left off — the dominant action, given room. */}
-              <Link href={`/terminal/graph?session=${resume.id}`} className="ws-resume">
+              <Link
+                href={`/terminal/graph?session=${resume.id}`}
+                className="ws-resume"
+                /* Physical depth carrying a real count. Adapted from the
+                   Uiverse stacked-card family, whose mechanism is two
+                   pseudo-element layers behind the card with
+                   `transform-origin: bottom`, fanning out on hover to imply
+                   a stack of pages. Here the number of layers is the number
+                   of captured snapshots (0, 1, or 2+), so the card looks as
+                   thick as the investigation actually is — accumulated work
+                   is visible before the card is read. Capped at two layers
+                   because a third is indistinguishable. */
+                data-depth={Math.min(2, resumeSubstance.snapshots.length)}
+              >
                 <span className="ws-resume__eyebrow">Continue where you left off</span>
                 <span className="ws-resume__title">{resume.title}</span>
                 {resume.description && <span className="ws-resume__desc">{resume.description}</span>}

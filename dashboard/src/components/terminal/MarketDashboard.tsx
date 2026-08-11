@@ -83,11 +83,21 @@ export default function MarketDashboard() {
 
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+      {/* Reading order is the order an analyst actually asks the questions:
+          what regime are we in, did anything change since I last looked, how
+          broad is participation and where is leadership, what is the macro
+          backdrop, and only then what is scheduled next.
+
+          The calendar used to sit third, directly under the hero. At 597px
+          it was the second-largest block on the page and pushed breadth —
+          the thing that answers "is this rally real?" — below 1100px, so the
+          question the page exists to answer lost its position to a list of
+          dates nobody needs before they know the market's state. */}
       <MarketHero data={data} />
       <MarketWhatChanged data={data} />
-      <EventsTimeline events={data.events} />
       <BreadthHeatmap breadth={data.breadth} sectors={data.sectors} />
       <MacroSections cards={data.macro.cards} />
+      <EventsTimeline events={data.events} />
       <p style={{ fontSize: '0.6875rem', color: 'var(--faint)', textAlign: 'center' }}>
         Data refreshes every 15 minutes · generated {new Date(data.generated_at).toLocaleTimeString()}
       </p>
