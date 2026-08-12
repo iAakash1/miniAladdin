@@ -441,6 +441,12 @@ export default function GraphWorkspace() {
             )
           })()}
           {data && (
+            <p className="u-note kbd-hint" style={{ marginTop: 8 }}>
+              Click a node to focus its relationships · <kbd>right-click</kbd> for actions ·
+              <kbd>↵</kbd> and <kbd>esc</kbd> work from the keyboard
+            </p>
+          )}
+          {data && (
             <p className="num" style={{ fontSize: '0.6875rem', color: 'var(--faint)', marginTop: 8 }}>
               {data.analytics.nodes} entities · {data.analytics.edges} relationships ·
               density {data.analytics.density} · avg confidence {data.analytics.avg_confidence}

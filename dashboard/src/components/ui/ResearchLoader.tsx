@@ -144,14 +144,14 @@ export default function ResearchLoader({
           return (
             <li key={stage.label} className={`rl__stage is-${state}`}>
               <span className="rl__mark" aria-hidden>
-                {state === 'done' ? '✓' : state === 'passed' ? '·' : ''}
+                {state === 'done' || state === 'passed' ? '✓' : ''}
               </span>
               <span className="rl__text">
                 <span className="rl__label">
                   {stage.label}
                   {state === 'active' && <span className="visually-hidden"> — in progress</span>}
                   {state === 'done' && <span className="visually-hidden"> — complete</span>}
-                  {state === 'passed' && <span className="visually-hidden"> — no longer running</span>}
+                  {state === 'passed' && <span className="visually-hidden"> — finished</span>}
                 </span>
                 <span className="rl__detail">
                   {state === 'active' && detail ? detail : stage.detail}

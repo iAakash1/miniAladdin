@@ -337,6 +337,29 @@ def _macro_assessment(multiplier: float, stats: dict[str, Any]) -> RiskAssessmen
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
+def _build_commit() -> str:
+    """The revision this process is running, or "unknown".
+
+    Hosts inject their own name for this; Render uses RENDER_GIT_COMMIT.
+    Falls back to asking git, which only works in a checkout — deliberately
+    returning "unknown" rather than raising, because a health endpoint that
+    can fail is worse than one that admits ignorance.
+    """
+    for name in ("RENDER_GIT_COMMIT", "VERCEL_GIT_COMMIT_SHA", "GIT_COMMIT", "SOURCE_VERSION"):
+        value = os.getenv(name)
+        if value:
+            return value[:12]
+    try:
+        import subprocess
+
+        return subprocess.run(
+            ["git", "rev-parse", "--short=12", "HEAD"],
+            capture_output=True, text=True, timeout=2, check=True,
+        ).stdout.strip() or "unknown"
+    except Exception:  # noqa: BLE001 — health must never fail
+        return "unknown"
+
+
 @app.get("/api/health")
 def health():
     """Health check — reports which API keys are configured."""
@@ -354,6 +377,28 @@ def health():
         "status":  "ok",
         "service": "OmniSignal API",
         "version": "5.0.0",
+        # ── Deploy identity ──────────────────────────────────────────────
+        # `version` is hand-maintained and was identical on a local tree and
+        # a production service running six-day-old code, which is exactly how
+        # a stale backend went unnoticed until the browser 404'd on
+        # /api/factors. These two fields make "is production running my
+        # code?" a single curl:
+        #
+        #   commit       the deployed revision. Render injects
+        #                RENDER_GIT_COMMIT; other hosts set their own, and
+        #                locally we fall back to reading git directly.
+        #   capabilities the route families this build actually serves, so a
+        #                client can ask what exists instead of discovering
+        #                absence through a 404.
+        "commit": _build_commit(),
+        "capabilities": sorted(
+            {
+                route.path.split("/")[2]
+                for route in app.routes
+                if getattr(route, "path", "").startswith("/api/")
+                and len(route.path.split("/")) > 2
+            }
+        ),
         "data_sources": {
             "fred":          bool(os.getenv("FRED_API_KEY")),
             "alpha_vantage": av_client.available,
