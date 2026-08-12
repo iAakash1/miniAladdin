@@ -197,7 +197,12 @@ function SectorMap({ sectors, active, onActive }: {
   return (
     <div className="mm-map">
       <div className="mm-map__sortbar">
-        <span className="u-note">Rank by</span>
+        {/* Keyboard affordance. The arrow-key walk existed but nothing
+            announced it, so it may as well not have. */}
+        <span className="u-note kbd-hint">
+          <kbd>↑</kbd><kbd>↓</kbd> walk · <kbd>↵</kbd> open
+        </span>
+        <span className="u-note" style={{ marginLeft: 'auto' }}>Rank by</span>
         {/* A two-position switch rather than two buttons: the thumb's
             position *is* the state, so the control reads at a glance from
             across the table. Adapted from the Uiverse switch family, whose

@@ -27,6 +27,21 @@ function RunScrubber({
   const oldestFirst = [...entries].reverse()
 
   return (
+    <div className="scrub-wrap">
+    {/* Endpoints labelled, so the row of markers reads as a timeline rather
+        than as decoration, and the picked run names itself. */}
+    <div className="scrub-wrap__ends u-note">
+      <span>{fmtDate(oldestFirst[0].ts)}</span>
+      <span className="scrub-wrap__picked">
+        {picked
+          ? (() => {
+              const entry = oldestFirst.find((e) => e.ts === picked)
+              return entry ? `${fmtDate(entry.ts)} · ${entry.verdict} · ${entry.confidence}%` : 'Pick a run'
+            })()
+          : `${oldestFirst.length} runs · click or use ←/→`}
+      </span>
+      <span>{fmtDate(oldestFirst[oldestFirst.length - 1].ts)}</span>
+    </div>
     <div
       className="scrub"
       role="listbox"
@@ -58,6 +73,7 @@ function RunScrubber({
           onClick={() => onPick(picked === entry.ts ? null : entry.ts)}
         />
       ))}
+    </div>
     </div>
   )
 }

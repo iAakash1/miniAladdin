@@ -359,7 +359,16 @@ export default function SessionsView() {
                    thick as the investigation actually is — accumulated work
                    is visible before the card is read. Capped at two layers
                    because a third is indistinguishable. */
-                data-depth={Math.min(2, resumeSubstance.snapshots.length)}
+                data-depth={Math.min(
+                  2,
+                  // Any captured substance counts, not snapshots alone. Keying
+                  // depth to snapshots meant a card with notes and pinned
+                  // entities still rendered dead flat, so the affordance was
+                  // invisible on every real investigation.
+                  resumeSubstance.snapshots.length
+                    + resumeSubstance.notes.length
+                    + resumeSubstance.entities.length,
+                )}
               >
                 <span className="ws-resume__eyebrow">Continue where you left off</span>
                 <span className="ws-resume__title">{resume.title}</span>

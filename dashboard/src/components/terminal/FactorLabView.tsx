@@ -285,7 +285,12 @@ function Stat({ label: text, value, hint }: { label: string; value: string; hint
   }
   return (
     <div className="metric-row mreveal" tabIndex={0} aria-describedby={id}>
-      <span className="label">{text}</span>
+      {/* A persistent marker on the label. Without it nothing on screen said
+          these numbers carried an explanation, so the reveal was a feature
+          you had to already know about. */}
+      <span className="label">
+        {text}<span className="mreveal__cue" aria-hidden>?</span>
+      </span>
       <span className="num">{value}</span>
       <span className="mreveal__body">
         <span><span className="mreveal__note" id={id}>{hint}</span></span>
@@ -1013,7 +1018,7 @@ export default function FactorLabView() {
                   aria-pressed={evidence === id}
                   disabled={count === 0}
                   onClick={() => setEvidence(id)}
-                  style={{ fontSize: '0.6875rem' }}
+                  style={{ fontSize: '0.75rem' }}
                 >
                   {text} <span className="num" style={{ opacity: 0.6 }}>{count}</span>
                 </button>
@@ -1051,11 +1056,11 @@ export default function FactorLabView() {
                 <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <button
                     type="button"
-                    className={`btn btn--ghost btn--xs${compare.includes(evaluation.factor) ? ' is-on' : ''}`}
+                    className={`btn btn--secondary btn--xs cmp-btn${compare.includes(evaluation.factor) ? ' is-on' : ''}`}
                     aria-pressed={compare.includes(evaluation.factor)}
                     onClick={(event) => { event.stopPropagation(); toggleCompare(evaluation.factor) }}
                   >
-                    {compare.includes(evaluation.factor) ? 'Comparing' : 'Compare'}
+                    {compare.includes(evaluation.factor) ? '✓ Comparing' : '+ Compare'}
                   </button>
                   <span className={`badge ${icTone(evaluation.mean_ic)}`}>
                     IC {evaluation.mean_ic >= 0 ? '+' : ''}{evaluation.mean_ic.toFixed(4)}

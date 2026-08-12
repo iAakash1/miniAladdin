@@ -31,7 +31,7 @@ export default function CopyButton({
   value,
   label,
   title,
-  className = 'btn btn--ghost btn--xs',
+  className = 'btn btn--secondary btn--sm',
 }: {
   /** The text placed on the clipboard. */
   value: string
@@ -76,9 +76,9 @@ export default function CopyButton({
           fixes the width and the swap cannot reflow the row. `aria-live`
           announces the outcome without moving focus. */}
       <span className="copyb__stack" aria-hidden>
-        <span className="copyb__face copyb__face--idle">{resting}</span>
+        <span className="copyb__face copyb__face--idle">⧉ {resting}</span>
         <span className="copyb__face copyb__face--done">
-          {phase === 'failed' ? 'Press ⌘C' : 'Copied'}
+          {phase === 'failed' ? 'Press ⌘C' : '✓ Copied'}
         </span>
       </span>
       <span className="visually-hidden" role="status">

@@ -138,6 +138,7 @@ export function RollingIcChart({ data }: { data: BacktestData }) {
         {/* Narrowing the window is how you separate "this never worked" from
             "this stopped working" — the two readings the full series blends
             together. Counts, not dates, because the series is per-signal. */}
+        <span className="u-note" style={{ marginLeft: 'auto', marginRight: 6 }}>Window</span>
         <div className="seg" role="group" aria-label="Rolling IC window">
           {IC_WINDOWS.map((w) => (
             <button
@@ -147,7 +148,7 @@ export function RollingIcChart({ data }: { data: BacktestData }) {
               aria-pressed={window === w.id}
               disabled={Number.isFinite(w.keep) && data.rolling_ic.length <= w.keep}
               onClick={() => setWindow(w.id)}
-              style={{ fontSize: '0.6875rem' }}
+              style={{ fontSize: '0.75rem' }}
             >
               {w.label}
             </button>

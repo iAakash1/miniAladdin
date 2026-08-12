@@ -49,3 +49,5 @@ research_vault/*
 
 # Panel snapshots (build artifacts — reproducible from the manifest)
 data/panel/
+.vercel
+.env*
