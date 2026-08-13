@@ -380,6 +380,11 @@ img { max-width: 100%; display: block; }
 }
 :is(.theme-dark, [data-theme='dark']) .input { background: var(--surface); }
 
+/* Fix iOS auto-zoom on inputs */
+@media screen and (max-width: 768px) {
+  .input, select.input { font-size: 1rem; }
+}
+
 /* ---------- Cards & panels ---------- */
 .card {
   background: var(--surface);
@@ -1137,15 +1142,9 @@ footer a:hover { color: var(--text) !important; }
 
 /* ---------- Reduced motion ---------- */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
   .reveal { opacity: 1; transform: none; }
   html { scroll-behavior: auto; }
 }
-
 
 /* ---------- Factor Lab: loading and failure ----------
    A cold build takes 30-60s, almost all of it waiting on vendors. A spinner
@@ -1224,15 +1223,10 @@ footer a:hover { color: var(--text) !important; }
   .lab-steps__item.is-active .lab-steps__mark { animation: none; border-top-color: var(--accent, #2f6feb); }
 }
 
-
 /* ---------- Workspace ----------
    Rebuilt around the work rather than around a list. Each card renders the
    session's actual substance — pins, notes, snapshots, symbols, last action —
    because a page that shows no evidence of work gives no reason to return. */
-
-
-
-
 
 .ws-input { height: 34px; font-size: 0.8125rem; min-width: 240px; }
 
@@ -1352,7 +1346,7 @@ footer a:hover { color: var(--text) !important; }
   background: var(--surface);
   transition: border-color var(--t-fast) var(--ease-out), transform var(--t-fast) var(--ease-out);
 }
-.ws-card:hover { border-color: var(--line-strong, var(--line)); transform: translateY(-1px); }
+.ws-card:hover, .ws-card:focus-within { border-color: var(--line-strong, var(--line)); transform: translateY(-1px); }
 .ws-card__link {
   display: flex;
   flex-direction: column;
@@ -1377,6 +1371,7 @@ footer a:hover { color: var(--text) !important; }
 }
 .ws-card__delete { color: var(--faint); opacity: 0; transition: opacity var(--t-fast) var(--ease-out); }
 .ws-card:hover .ws-card__delete,
+.ws-card:focus-within .ws-card__delete,
 .ws-card__delete:focus-visible { opacity: 1; }
 
 /* jump rail */
@@ -1408,7 +1403,6 @@ footer a:hover { color: var(--text) !important; }
   .ws-result { grid-template-columns: 1fr; gap: 4px; }
   .ws-card__delete { opacity: 1; }
 }
-
 
 /* ---------- Page header ----------
    One header treatment for every route. Replaces six hand-rolled variants
@@ -1482,7 +1476,6 @@ footer a:hover { color: var(--text) !important; }
   border-left: 2px solid var(--line-strong, var(--line));
   color: var(--text);
 }
-
 
 /* ---------- ResearchLoader ----------
    The pipeline while it runs. One pulse on the active row and nothing else:
@@ -1604,7 +1597,6 @@ footer a:hover { color: var(--text) !important; }
   }
 }
 
-
 /* ---------- Workspace: typed objects ----------
    A note looks like prose, an entity like a chip, a snapshot like a saved
    state, activity like a trail. Rendering all of them as identical cards is
@@ -1694,9 +1686,7 @@ footer a:hover { color: var(--text) !important; }
   .ws-trail__action { display: none; }
 }
 
-
 /* Shell boot: chrome is already up, only the content column is waiting. */
-
 
 /* ============================================================
    Polish pass — surfaces, motion, focus
@@ -1717,7 +1707,8 @@ footer a:hover { color: var(--text) !important; }
 /* Interactive cards only: a static panel that lifts on hover promises a
    click that does not exist. */
 a.card:hover, a.card:focus-visible,
-.ws-card:hover, .ws-resume:hover, .ws-resume:focus-visible,
+.ws-card:hover, .ws-card:focus-within,
+.ws-resume:hover, .ws-resume:focus-visible,
 article.card[role='button']:hover, article.card[tabindex]:hover {
   box-shadow: var(--edge-hi), var(--lift-2);
   transform: translateY(-1px);
@@ -1909,7 +1900,6 @@ select.input {
 }
 .empty-state__action { margin-top: 10px; }
 
-
 /* ---------- Factor Lab: factor cards ----------
    Selection is a left rule, not an outline. A 2px ring around a card of this
    size dominates the panel and fights the t-statistic bars for attention;
@@ -1937,7 +1927,7 @@ select.input {
               top var(--t-med) var(--ease-out),
               bottom var(--t-med) var(--ease-out);
 }
-.lab-factor:hover {
+.lab-factor:hover, .lab-factor:focus-within {
   border-color: var(--line-strong);
   box-shadow: var(--edge-hi), var(--lift-2);
   transform: translateY(-1px);
@@ -1952,7 +1942,6 @@ select.input {
 @media (prefers-reduced-motion: reduce) {
   .lab-factor:hover { transform: none; }
 }
-
 
 /* ---------- Market boot ----------
    Three bars settling to a baseline, one after another — the shape of a
@@ -2011,7 +2000,6 @@ select.input {
 /* Content arrives with the same fade the boot state left with, so the
    swap is a cross-dissolve rather than a jump. */
 .fade-in { animation: mkt-fade-in 260ms var(--ease-out) both; }
-
 
 /* ============================================================
    Utilities
@@ -2919,3 +2907,12 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
 /* Bigger markers — 9px dots were easy to read past. */
 .scrub__pip { width: 11px; height: 11px; }
 .scrub__pip.is-picked { box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--accent); }
+
+/* ── Windows High Contrast / Accessibility Overrides ── */
+@media (forced-colors: active) {
+  .btn, .input, .card, .panel, .badge { border: 1px solid CanvasText; }
+  .btn:focus-visible, .input:focus-visible, .card:focus-visible, .pick:focus-visible { outline: 2px solid CanvasText; outline-offset: 2px; }
+  .pick:checked::after { color: CanvasText; }
+  .lab-factor.is-selected { border-width: 2px; border-color: Highlight; }
+  .rl__stage.is-active::before { background: Highlight; }
+}
