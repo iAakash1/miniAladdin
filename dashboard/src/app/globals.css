@@ -2916,3 +2916,149 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
   .lab-factor.is-selected { border-width: 2px; border-color: Highlight; }
   .rl__stage.is-active::before { background: Highlight; }
 }
+/* ══════════════════════════════════════════════════════════════════════════
+   Interaction polish — Uiverse mechanisms in OmniSignal's own tokens
+   ══════════════════════════════════════════════════════════════════════════
+   Scoped to existing classes only. No new palette, type scale or spacing;
+   every value below resolves to a token already in this file. */
+
+/* ── Buttons: a light sweep on the leading edge ────────────────────────────
+   From the Uiverse "shine" button family, whose mechanism is a clipped
+   pseudo-element translated across the face on hover. Theirs is a wide white
+   gradient; this is a 1px top hairline that brightens left-to-right, so the
+   button reads as catching light rather than as an animation playing. */
+.btn::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent, var(--edge-hi-color, rgba(255,255,255,0.5)), transparent);
+  opacity: 0;
+  transition: opacity var(--t-fast) var(--ease-out);
+  pointer-events: none;
+}
+.btn--primary::before, .btn--accent::before { --edge-hi-color: rgba(255,255,255,0.45); }
+.btn:hover:not([disabled])::before { opacity: 1; }
+:is(.theme-dark, [data-theme='dark']) .btn::before { --edge-hi-color: rgba(255,255,255,0.18); }
+/* Secondary/ghost gain a firmer edge on hover rather than a fill. */
+.btn--secondary:hover:not([disabled]),
+.btn--ghost:hover:not([disabled]) { border-color: var(--line-strong); }
+
+/* ── Segmented controls: the active pill lifts fractionally ────────────────
+   Adapted from the animated-tab family. The indicator is the existing
+   background; only its elevation and the label weight change, so the
+   control keeps its current geometry. */
+.seg__btn[aria-pressed='true'], .seg__btn[aria-selected='true'] { font-weight: 600; }
+.seg__btn:hover:not([aria-pressed='true']):not([aria-selected='true']) { color: var(--text); }
+.seg__btn:active:not([disabled]) { transform: translateY(1px); }
+.seg__btn:focus-visible { outline: none; box-shadow: var(--ring); }
+.seg__btn[disabled] { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Inputs: focus grows from the centre of the lower edge ─────────────────
+   The Uiverse input pattern is an underline scaling from `transform: scaleX(0)`
+   on :focus-within. Kept as an accent hairline inside the existing recessed
+   field so the border treatment is unchanged. */
+.input { position: relative; }
+.input:hover:not(:focus):not([disabled]) { border-color: var(--line-strong); }
+.input-wrap { position: relative; display: block; }
+.input-wrap::after {
+  content: '';
+  position: absolute;
+  left: 10px; right: 10px; bottom: 0;
+  height: 1.5px;
+  border-radius: 1px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transition: transform 220ms var(--ease-state, var(--ease-out));
+  pointer-events: none;
+}
+.input-wrap:focus-within::after { transform: scaleX(1); }
+
+/* ── Panels: a hairline warms on hover for interactive cards only ──────────
+   `.panel` alone is untouched — most panels are containers, not controls. */
+a.panel, button.panel, .panel--interactive {
+  transition: border-color var(--t-med) var(--ease-out),
+              transform var(--t-fast) var(--ease-out);
+}
+a.panel:hover, button.panel:hover, .panel--interactive:hover {
+  border-color: var(--line-strong);
+  transform: translateY(-1px);
+}
+
+/* ── Table rows: a leading accent edge on hover ────────────────────────────
+   Box-shadow rather than a border, so nothing reflows and row height is
+   unchanged. */
+.data-table tbody tr {
+  transition: background var(--t-fast) var(--ease-out),
+              box-shadow var(--t-fast) var(--ease-out);
+}
+.data-table tbody tr:hover { box-shadow: inset 2px 0 0 var(--accent); }
+.data-table tbody tr:focus-within { box-shadow: inset 2px 0 0 var(--accent); }
+
+@media (prefers-reduced-motion: reduce) {
+  .btn::before, .input-wrap::after,
+  a.panel, button.panel, .panel--interactive,
+  .data-table tbody tr { transition: none; }
+  a.panel:hover, button.panel:hover, .panel--interactive:hover { transform: none; }
+}
+
+/* ── Search fields: clear affordance appears only with content ─────────────
+   The Uiverse search pattern reveals a reset control once the field is
+   non-empty. Sits inside the existing `.input` box, so the field's own
+   geometry and recessed treatment are unchanged. */
+.srch { position: relative; display: inline-block; }
+.srch__field { padding-right: 30px; }
+/* `search` inputs render a UA clear button in some engines; ours replaces it. */
+.srch__field::-webkit-search-cancel-button { appearance: none; }
+.srch__clear {
+  position: absolute;
+  top: 50%; right: 8px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px; height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--faint);
+  font-size: 0.625rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: color var(--t-fast) var(--ease-out), background var(--t-fast) var(--ease-out);
+}
+.srch__clear:hover { color: var(--text); background: var(--line); }
+.srch__clear:focus-visible { outline: none; box-shadow: var(--ring); }
+
+/* ── Command palette: three ticks while the registry is still answering ────
+   Honest indeterminate state — it appears only while `settled` is false and
+   says "working", never a proportion. */
+.palette-field { display: block; }
+.palette-field__busy {
+  position: absolute;
+  top: 50%; right: 14px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 10px;
+}
+.palette-field__busy span {
+  width: 2px;
+  border-radius: 1px;
+  background: var(--accent);
+  animation: palette-tick 1.1s var(--ease-out) infinite;
+}
+.palette-field__busy span:nth-child(1) { height: 5px; animation-delay: 0ms; }
+.palette-field__busy span:nth-child(2) { height: 9px; animation-delay: 130ms; }
+.palette-field__busy span:nth-child(3) { height: 7px; animation-delay: 260ms; }
+@keyframes palette-tick {
+  0%, 100% { transform: scaleY(0.4); opacity: 0.4; }
+  45%      { transform: scaleY(1);   opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .palette-field__busy span { animation: none; opacity: 0.8; }
+  .srch__clear { transition: none; }
+}

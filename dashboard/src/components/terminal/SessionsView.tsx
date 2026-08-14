@@ -289,9 +289,17 @@ export default function SessionsView() {
 
       <div className="ws-search">
         <label htmlFor="session-search" className="visually-hidden">Search investigations and notes</label>
-        <input id="session-search" className="input ws-input" type="search" value={query}
-               placeholder="Search everything you have written…"
-               onChange={(e) => setQuery(e.target.value)} />
+        <span className="input-wrap srch" style={{ display: 'block' }}>
+          <input id="session-search" className="input ws-input srch__field" type="search" value={query}
+                 placeholder="Search everything you have written…"
+                 onChange={(e) => setQuery(e.target.value)} />
+          {query && (
+            <button type="button" className="srch__clear" aria-label="Clear search"
+                    onClick={() => setQuery('')}>
+              ✕
+            </button>
+          )}
+        </span>
         {searching && (
           <span className="ws-search__count">
             {hits ? `${matchCount} match${matchCount === 1 ? '' : 'es'}` : 'searching…'}

@@ -219,15 +219,26 @@ function HistoryBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
       {/* Filter bar */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         <label htmlFor="vault-q" className="visually-hidden">Search ticker or company</label>
-        <input
-          id="vault-q"
-          type="search"
-          placeholder="Search ticker or company…"
-          className="input input--sm"
-          style={{ maxWidth: 240 }}
-          value={filters.q ?? ''}
-          onChange={(e) => patchFilters({ q: e.target.value.trim() || undefined })}
-        />
+        <span className="input-wrap srch" style={{ maxWidth: 240, flex: '0 1 240px' }}>
+          <input
+            id="vault-q"
+            type="search"
+            placeholder="Search ticker or company…"
+            className="input input--sm srch__field"
+            value={filters.q ?? ''}
+            onChange={(e) => patchFilters({ q: e.target.value.trim() || undefined })}
+          />
+          {filters.q && (
+            <button
+              type="button"
+              className="srch__clear"
+              aria-label="Clear search"
+              onClick={() => patchFilters({ q: undefined })}
+            >
+              ✕
+            </button>
+          )}
+        </span>
         <label htmlFor="vault-verdict" className="visually-hidden">Filter by verdict</label>
         <select
           id="vault-verdict"

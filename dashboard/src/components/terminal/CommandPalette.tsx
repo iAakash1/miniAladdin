@@ -168,6 +168,7 @@ export default function CommandPalette() {
           boxShadow: 'var(--shadow-dialog)', overflow: 'hidden',
         }}
       >
+        <span className="input-wrap palette-field">
         <input
           ref={inputRef}
           role="combobox"
@@ -181,6 +182,12 @@ export default function CommandPalette() {
           onKeyDown={onKeyDown}
           style={{ height: 48, border: 'none', borderBottom: '1px solid var(--line)', borderRadius: 0, background: 'transparent', fontSize: '0.9375rem' }}
         />
+        {query.trim() && !settled && (
+          <span className="palette-field__busy" aria-hidden>
+            <span /><span /><span />
+          </span>
+        )}
+        </span>
         <div id="palette-results" role="listbox" ref={listRef} style={{ maxHeight: '52vh', overflowY: 'auto', padding: 6 }}>
           {shown.length === 0 && (
             <p style={{ padding: '18px 14px', fontSize: '0.8125rem', color: 'var(--faint)' }}>
