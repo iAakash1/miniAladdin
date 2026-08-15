@@ -30,6 +30,7 @@
  * finding a note you half-remember is the whole reason to search notes.
  */
 
+import CompanyMark from '@/components/ui/CompanyMark'
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
@@ -114,7 +115,12 @@ function Symbols({ symbols }: { symbols: string[] }) {
   if (!symbols.length) return null
   return (
     <span className="ws-symbols">
-      {symbols.slice(0, 6).map((s) => <span key={s} className="ws-symbols__chip">{s}</span>)}
+      {symbols.slice(0, 6).map((s) => (
+        <span key={s} className="ws-symbols__chip">
+          <CompanyMark ticker={s} size={14} />
+          {s}
+        </span>
+      ))}
       {symbols.length > 6 && <span className="ws-symbols__more">+{symbols.length - 6}</span>}
     </span>
   )

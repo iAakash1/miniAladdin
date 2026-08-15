@@ -8,6 +8,8 @@ import Skeleton from '@/components/ui/Skeleton'
 import Tooltip from '@/components/ui/Tooltip'
 import { FACTOR_LABELS, diffSnapshots, useAllHistory } from '@/lib/history'
 import ConfirmButton from '@/components/ui/ConfirmButton'
+import CompanyMark from '@/components/ui/CompanyMark'
+import { ConfidenceBar } from '@/components/ui/DataMarks'
 import { notify } from '@/components/ui/Toasts'
 import { fmtPctRaw, timeAgo } from '@/lib/format'
 import PositionsPanel from '@/components/terminal/PositionsPanel'
@@ -501,6 +503,8 @@ export default function PortfolioView() {
                   {sortedRows.map(({ ticker, quote, latest, previous, diff }) => (
                     <tr key={ticker}>
                       <td>
+                        <span className="u-row" style={{ gap: 8, flexWrap: 'nowrap' }}>
+                        <CompanyMark ticker={ticker} />
                         <Link
                           href={`/company/${ticker}`}
                           className="mono"
@@ -508,6 +512,7 @@ export default function PortfolioView() {
                         >
                           {ticker}
                         </Link>
+                        </span>
                       </td>
                       <td className="num">
                         {loadingQuotes && !quote ? <Skeleton width={54} height={14} /> :
@@ -557,7 +562,7 @@ export default function PortfolioView() {
                         ) : null}
                       </td>
                       <td className="num">
-                        {latest ? `${latest.confidence}%` : '—'}
+                        <ConfidenceBar value={latest?.confidence} />
                       </td>
                       <td className="u-note">
                         {latest?.riskLevel?.toLowerCase() ?? '—'}

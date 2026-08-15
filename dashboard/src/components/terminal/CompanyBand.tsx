@@ -1,5 +1,6 @@
 'use client'
 
+import CompanyMark from '@/components/ui/CompanyMark'
 import CopyButton from '@/components/ui/CopyButton'
 import { useState } from 'react'
 import { fmtPrice } from '@/lib/format'
@@ -91,7 +92,8 @@ export default function CompanyBand({ analysis }: { analysis: Analysis }) {
         }}
       >
         <div style={{ minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 4 }}>
+            <CompanyMark ticker={analysis.ticker} size={34} />
             <h2 className="mono" style={{ fontSize: '1.25rem', fontWeight: 600, letterSpacing: '0.01em' }}>
               {analysis.ticker}
             </h2>

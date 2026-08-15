@@ -20,6 +20,7 @@
  * UI only looks good when the answer is favourable is a marketing tool.
  */
 
+import CompanyMark from '@/components/ui/CompanyMark'
 import { useEffect, useMemo, useState } from 'react'
 import PageHeader from '@/components/ui/PageHeader'
 import ResearchLoader, { FACTOR_LAB_STAGES } from '@/components/ui/ResearchLoader'
@@ -708,7 +709,12 @@ function ScreenTable({ rows, dispersion: spread }: {
           {shown.map((row) => (
             <tr key={row.symbol}>
               <td className="num">{row.rank}</td>
-              <td><a href={`/company/${row.symbol}`}>{row.symbol}</a></td>
+              <td>
+                <span className="u-row" style={{ gap: 7, flexWrap: 'nowrap' }}>
+                  <CompanyMark ticker={row.symbol} size={18} />
+                  <a href={`/company/${row.symbol}`}>{row.symbol}</a>
+                </span>
+              </td>
               <td className="num">{row.composite.toFixed(0)}</td>
               <td>
                 <span className={`badge ${CONVICTION_TONE[row.conviction]}`}
@@ -745,7 +751,12 @@ function CrossSection({ rows, horizon }: { rows: RankRow[]; horizon: number }) {
         {rows.map((row) => (
           <tr key={row.symbol}>
             <td className="num">{row.rank}</td>
-            <td><a href={`/company/${row.symbol}`}>{row.symbol}</a></td>
+            <td>
+                <span className="u-row" style={{ gap: 7, flexWrap: 'nowrap' }}>
+                  <CompanyMark ticker={row.symbol} size={18} />
+                  <a href={`/company/${row.symbol}`}>{row.symbol}</a>
+                </span>
+              </td>
             <td className="num">{row.score.toFixed(3)}</td>
             <td className="num">{row.percentile.toFixed(0)}</td>
             <td className="num">

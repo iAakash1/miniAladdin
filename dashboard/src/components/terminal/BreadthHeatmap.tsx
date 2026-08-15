@@ -32,6 +32,7 @@
  * trend, no placeholder series, no smoothing that invents shape.
  */
 
+import CompanyMark from '@/components/ui/CompanyMark'
 import Link from 'next/link'
 import { Fragment, useMemo, useState } from 'react'
 import Tooltip from '@/components/ui/Tooltip'
@@ -276,6 +277,7 @@ function SectorMap({ sectors, active, onActive }: {
             aria-label={`${s.name}, ${signed(s.strength_21d)} over 21 days, ${s.above_50d ? 'above' : 'below'} its 50-day average, verdict ${s.verdict}`}
           >
             <span className="mm-map__name">
+              <CompanyMark ticker={s.symbol} size={18} />
               <span className="mm-map__symbol">{s.symbol}</span>
               <span className="mm-map__label">{s.name}</span>
             </span>
@@ -302,8 +304,9 @@ function SectorMap({ sectors, active, onActive }: {
               <span className="mm-map__verdict">
                 Engine verdict on {s.symbol}: <strong>{s.verdict}</strong>
               </span>
-              <Link href={`/company/${s.symbol}`} className="btn btn--secondary btn--xs">
+              <Link href={`/company/${s.symbol}`} className="btn btn--secondary btn--xs btn--go">
                 Research {s.symbol}
+                <span className="go-arrow" aria-hidden />
               </Link>
             </div>
           )}

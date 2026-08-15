@@ -1,5 +1,6 @@
 'use client'
 
+import CompanyMark from '@/components/ui/CompanyMark'
 import ConfirmButton from '@/components/ui/ConfirmButton'
 import { useEffect, useState } from 'react'
 import EmptyState from '@/components/ui/EmptyState'
@@ -170,7 +171,12 @@ export default function PositionsPanel() {
                 const isEditing = editing?.id === position.id
                 return (
                   <tr key={position.id}>
-                    <td className="mono" style={{ fontWeight: 600 }}>{position.ticker}</td>
+                    <td className="mono" style={{ fontWeight: 600 }}>
+                      <span className="u-row" style={{ gap: 7, flexWrap: 'nowrap' }}>
+                        <CompanyMark ticker={position.ticker} size={18} />
+                        {position.ticker}
+                      </span>
+                    </td>
                     <td className="num">
                       {isEditing ? (
                         <input

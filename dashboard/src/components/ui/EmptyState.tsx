@@ -26,11 +26,12 @@ interface EmptyStateProps {
 export default function EmptyState({ title, titleAs: TitleTag = 'p', description, action, icon }: EmptyStateProps) {
   return (
     <div className="empty-state">
-      {icon && (
-        <div className="empty-state__icon" aria-hidden="true">
-          {icon}
-        </div>
-      )}
+      {/* A quiet grid glyph when the caller supplies no icon. An empty
+          surface with nothing in it reads as unfinished; a small mark reads
+          as "this is a place that holds things, and it is empty". */}
+      <div className="empty-state__icon" aria-hidden="true">
+        {icon ?? <span className="empty-glyph" />}
+      </div>
       <TitleTag className="empty-state__title">{title}</TitleTag>
       {description && <p className="empty-state__body">{description}</p>}
       {action && <div className="empty-state__action">{action}</div>}

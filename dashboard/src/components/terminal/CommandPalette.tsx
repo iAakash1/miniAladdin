@@ -1,5 +1,6 @@
 'use client'
 
+import CompanyMark from '@/components/ui/CompanyMark'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
@@ -216,11 +217,14 @@ export default function CommandPalette() {
                     onMouseEnter={() => setActive(index)}
                     onClick={() => openEntity(entity)}
                     style={{
-                      display: 'flex', alignItems: 'baseline', gap: 10, width: '100%',
+                      display: 'flex', alignItems: 'center', gap: 10, width: '100%',
                       padding: '8px 10px', border: 'none', background: 'transparent',
                       borderRadius: 'var(--r-md)', cursor: 'pointer', textAlign: 'left',
                     }}
                   >
+                    {entity.type === 'company' && (
+                      <CompanyMark ticker={entity.title} size={18} />
+                    )}
                     <span style={{ fontWeight: 550, fontSize: '0.8438rem', color: 'var(--text)', flexShrink: 0 }}>
                       {entity.title}
                     </span>

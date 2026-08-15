@@ -1,5 +1,6 @@
 'use client'
 
+import { SourceMark } from '@/components/ui/DataMarks'
 import { timeAgo } from '@/lib/format'
 import type { Headline } from '@/lib/types'
 
@@ -80,6 +81,7 @@ export default function Headlines({ headlines, isPro, onUpgrade }: HeadlinesProp
                     {h.score.toFixed(2)}
                   </span>
                 )}
+                <SourceMark url={h.url} name={h.source} />
                 <span className="u-meta">{h.source}</span>
                 {h.publishedAt && (
                   <span className="u-meta">{timeAgo(h.publishedAt)}</span>

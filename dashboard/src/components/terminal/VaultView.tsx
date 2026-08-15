@@ -11,6 +11,7 @@ import PageHeader from '@/components/ui/PageHeader'
 import Skeleton from '@/components/ui/Skeleton'
 import { normalizeAnalysis } from '@/lib/api'
 import ConfirmButton from '@/components/ui/ConfirmButton'
+import CompanyMark from '@/components/ui/CompanyMark'
 import { fmtDate, timeAgo } from '@/lib/format'
 import {
   type CompareResult,
@@ -342,8 +343,9 @@ function HistoryBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
             title="No analyses recorded yet"
             description="Run an analysis on the Research tab — every completed run is stored here automatically, with its full report and scorecard."
             action={
-              <Link href="/terminal/analyze" className="btn btn--secondary btn--sm">
+              <Link href="/terminal/analyze" className="btn btn--secondary btn--sm btn--go">
                 Go to Research
+                <span className="go-arrow" aria-hidden />
               </Link>
             }
           />
@@ -468,7 +470,7 @@ function HistoryRow({
       <td className="num" style={{ fontSize: '0.75rem', color: 'var(--muted)', whiteSpace: 'nowrap' }}>
         {fmtDate(item.created_at)} · {timeAgo(item.created_at)}
       </td>
-      <td className="mono" style={{ fontWeight: 600 }}>{item.ticker}</td>
+      <td className="mono" style={{ fontWeight: 600 }}><span className="u-row" style={{ gap: 8, flexWrap: 'nowrap' }}><CompanyMark ticker={item.ticker} size={20} />{item.ticker}</span></td>
       <td style={{ fontSize: '0.8125rem', color: 'var(--muted)' }}>{item.company_name ?? '—'}</td>
       <td>
         <span className={`badge ${verdictTone(item.verdict)}`} style={{ height: 19, fontSize: '0.625rem' }}>

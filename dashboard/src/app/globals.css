@@ -1957,27 +1957,6 @@ select.input {
   min-height: 46vh;
   animation: mkt-fade-in 240ms var(--ease-out) both;
 }
-.boot__mark {
-  display: flex;
-  align-items: flex-end;
-  gap: 3px;
-  height: 22px;
-}
-.boot__bar {
-  width: 3px;
-  border-radius: 1px;
-  background: var(--accent);
-  transform-origin: bottom;
-  animation: boot-bar 1.5s var(--ease-out) infinite;
-}
-.boot__bar:nth-child(1) { height: 10px; animation-delay: 0ms; }
-.boot__bar:nth-child(2) { height: 18px; animation-delay: 140ms; }
-.boot__bar:nth-child(3) { height: 14px; animation-delay: 280ms; }
-
-@keyframes boot-bar {
-  0%, 100% { transform: scaleY(0.34); opacity: 0.35; }
-  40%      { transform: scaleY(1);    opacity: 1; }
-}
 @keyframes mkt-fade-in { from { opacity: 0; } to { opacity: 1; } }
 
 .boot__label {
@@ -1994,7 +1973,6 @@ select.input {
 
 @media (prefers-reduced-motion: reduce) {
   .boot { animation: none; }
-  .boot__bar { animation: none; opacity: 0.7; }
 }
 
 /* Content arrives with the same fade the boot state left with, so the
@@ -3062,3 +3040,213 @@ a.panel:hover, button.panel:hover, .panel--interactive:hover {
   .palette-field__busy span { animation: none; opacity: 0.8; }
   .srch__clear { transition: none; }
 }
+
+/* ── Grid ripple ───────────────────────────────────────────────────────────
+   Uiverse `alexruix/fluffy-starfish-52`, adapted. Mechanism kept exactly: a
+   3x3 grid whose cells animate background-color from transparent to a colour
+   and back, staggered by delay so the fill travels diagonally. Changed for
+   OmniSignal: the nine-step rainbow becomes one accent at three alphas, the
+   52px cells become 5px, and the radius follows our token. Reads as a data
+   grid populating — which is literally what the boot state is waiting on. */
+.gridpulse {
+  display: grid;
+  grid-template-columns: repeat(3, 5px);
+  gap: 2px;
+}
+.gridpulse__cell {
+  width: 5px;
+  height: 5px;
+  border-radius: 1px;
+  background-color: transparent;
+  animation: gridpulse 1.5s ease infinite;
+}
+/* Anti-diagonal stagger: delay = row + column, so the wave crosses the grid. */
+.gridpulse__cell--d0 { animation-delay: 0ms; }
+.gridpulse__cell--d1 { animation-delay: 100ms; }
+.gridpulse__cell--d2 { animation-delay: 200ms; }
+.gridpulse__cell--d3 { animation-delay: 300ms; }
+.gridpulse__cell--d4 { animation-delay: 400ms; }
+@keyframes gridpulse {
+  0%   { background-color: transparent; }
+  30%  { background-color: var(--accent); }
+  60%  { background-color: transparent; }
+  100% { background-color: transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gridpulse__cell {
+    animation: none;
+    background-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+}
+
+/* ── Arrow-extend action ───────────────────────────────────────────────────
+   Uiverse `satyamchaudharydev/modern-sheep-10`, adapted. Its mechanism is a
+   chevron drawn from two borders rotated -45deg, sitting on a shaft that is
+   invisible at rest (painted the button's own colour) and becomes visible on
+   hover so the arrow appears to grow. Dropped: the 20px pill radius, the
+   indigo fill and the colour inversion. Kept: the chevron construction and
+   the shaft reveal, in currentColor — so it works on any button variant and
+   in both themes without new colours. Used on actions that navigate. */
+.btn--go .go-arrow {
+  position: relative;
+  display: inline-block;
+  width: 12px;
+  height: 1.5px;
+  margin-left: 2px;
+  background: transparent;          /* shaft hidden at rest */
+  transition: background 160ms var(--ease-out), transform 160ms var(--ease-out);
+}
+.btn--go .go-arrow::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  right: 0;
+  padding: 3px;
+  border: solid currentColor;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(-45deg);
+  transition: right 160ms var(--ease-out);
+}
+.btn--go:hover:not([disabled]) .go-arrow,
+.btn--go:focus-visible .go-arrow { background: currentColor; transform: translateX(2px); }
+@media (prefers-reduced-motion: reduce) {
+  .btn--go .go-arrow, .btn--go .go-arrow::before { transition: none; }
+}
+
+/* ── Company mark ──────────────────────────────────────────────────────────
+   Monogram underneath, logo on top. The monogram is always painted, so a
+   missing or slow logo degrades to a deliberate mark instead of a broken
+   glyph, and nothing reflows when the image resolves. Tints come from the
+   existing token palette, indexed by a hash of the ticker so a company keeps
+   the same colour everywhere it appears. */
+.cmark {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  user-select: none;
+}
+.cmark__mono { color: var(--cmark-ink, var(--muted)); }
+.cmark__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  /* Provider marks are mostly dark-on-transparent, so they need a light
+     plate to stay legible on our dark surface. Off-white rather than pure
+     white, and with an inset hairline, so a logo that is itself white (some
+     providers ship a knockout mark) still resolves as a bounded square
+     instead of vanishing into the plate. */
+  background: #f7f7f8;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+  padding: 2px;
+}
+.cmark--t0 { --cmark-ink: var(--accent); }
+.cmark--t1 { --cmark-ink: var(--pos); }
+.cmark--t2 { --cmark-ink: var(--warn); }
+.cmark--t3 { --cmark-ink: var(--muted); }
+.cmark--t4 { --cmark-ink: var(--neg); }
+.cmark--t5 { --cmark-ink: var(--text); }
+
+/* ── Source mark ───────────────────────────────────────────────────────────
+   A favicon for an evidence source. Same failure posture as the company
+   mark: the letter is the floor, the icon is the bonus. */
+.smark {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px; height: 14px;
+  flex-shrink: 0;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--faint);
+}
+.smark__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #fff; }
+
+/* ── Sparkline ─────────────────────────────────────────────────────────────
+   Drawn from values the row already carries. Never synthesised. */
+.spark-inline { display: block; overflow: visible; }
+.spark-inline__line { fill: none; stroke-width: 1.25; vector-effect: non-scaling-stroke; }
+.spark-inline__line--pos { stroke: var(--pos); }
+.spark-inline__line--neg { stroke: var(--neg); }
+
+/* ── Confidence bar ────────────────────────────────────────────────────────
+   A number the payload already reports, given a length so a column of them
+   can be compared without reading each value. */
+.confbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-variant-numeric: tabular-nums;
+}
+.confbar__track {
+  width: 42px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+  overflow: hidden;
+}
+.confbar__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transform-origin: left center;
+  background: var(--muted);
+  transition: transform 260ms var(--ease-state, var(--ease-out));
+}
+.confbar--high .confbar__fill { background: var(--pos); }
+.confbar--mid  .confbar__fill { background: var(--warn); }
+.confbar--low  .confbar__fill { background: var(--neg); }
+@media (prefers-reduced-motion: reduce) { .confbar__fill { transition: none; } }
+
+/* Empty-state glyph: a 3x3 dot grid with the centre missing — a container
+   with a gap in it. Same geometry as the loading ripple, at rest, so an
+   empty surface and a loading surface are visibly the same family. */
+.empty-glyph {
+  display: grid;
+  grid-template-columns: repeat(3, 4px);
+  gap: 3px;
+  opacity: 0.45;
+}
+.empty-glyph::before {
+  content: '';
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, 4px);
+  gap: 3px;
+}
+.empty-glyph {
+  --dot: var(--line-strong);
+  width: 18px; height: 18px;
+  background-image:
+    radial-gradient(circle 2px at 2px 2px, var(--dot) 99%, transparent 100%),
+    radial-gradient(circle 2px at 9px 2px, var(--dot) 99%, transparent 100%),
+    radial-gradient(circle 2px at 16px 2px, var(--dot) 99%, transparent 100%),
+    radial-gradient(circle 2px at 2px 9px, var(--dot) 99%, transparent 100%),
+    radial-gradient(circle 2px at 16px 9px, var(--dot) 99%, transparent 100%),
+    radial-gradient(circle 2px at 2px 16px, var(--dot) 99%, transparent 100%),
+    radial-gradient(circle 2px at 9px 16px, var(--dot) 99%, transparent 100%),
+    radial-gradient(circle 2px at 16px 16px, var(--dot) 99%, transparent 100%);
+  background-repeat: no-repeat;
+}
+.empty-glyph::before { content: none; }
+/* The sector mark needs the row's name cell to align on the centre line. */
+.mm-map__name { display: inline-flex; align-items: center; gap: 8px; }
+
+/* Entity chips carry a mark, so the chip aligns on the centre line. */
+.ws-symbols__chip { display: inline-flex; align-items: center; gap: 5px; }

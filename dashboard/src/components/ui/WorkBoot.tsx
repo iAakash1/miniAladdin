@@ -43,10 +43,17 @@ export default function WorkBoot({
 }) {
   return (
     <div className={`boot${compact ? ' boot--compact' : ''}`} role="status" aria-live="polite">
-      <span className="boot__mark" aria-hidden>
-        <span className="boot__bar" />
-        <span className="boot__bar" />
-        <span className="boot__bar" />
+      {/* 3x3 ripple, adapted from Uiverse `alexruix/fluffy-starfish-52`.
+          The original is a nine-cell grid where each cell animates
+          background-color transparent -> colour -> transparent, staggered by
+          delay classes so the fill sweeps diagonally. Its rainbow ramp
+          (#00FF87 -> #60EFFF) is replaced by a single accent at varying
+          alpha, and the 52px cells shrink to 5px — it reads as a data grid
+          filling rather than as a toy. */}
+      <span className="gridpulse" aria-hidden>
+        {Array.from({ length: 9 }, (_, i) => (
+          <span key={i} className={`gridpulse__cell gridpulse__cell--d${(Math.floor(i / 3) + (i % 3))}`} />
+        ))}
       </span>
       <span className="boot__label">{label}</span>
       {hint && <span className="boot__hint">{hint}</span>}
