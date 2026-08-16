@@ -43,8 +43,15 @@ export default function Tooltip({ label, children }: TooltipProps) {
       >
         ⓘ
       </button>
+      {/* No `fade-in` on the bubble any more. `.tooltip-bubble` now carries
+          its own entrance — it unfolds from the trigger's corner rather than
+          fading in place — and two `animation` declarations on one element
+          do not compose: the later one simply wins, so the generic fade was
+          silently replacing the specific one. (The comment sits above the
+          conditional because a JSX comment cannot be the first child of
+          `{cond && (…)}`.) */}
       {open && (
-        <span role="tooltip" id={id} className="tooltip-bubble panel fade-in">
+        <span role="tooltip" id={id} className="tooltip-bubble panel">
           {children}
         </span>
       )}

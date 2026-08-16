@@ -21,6 +21,8 @@
  */
 
 import CompanyMark from '@/components/ui/CompanyMark'
+import { StatusPill } from '@/components/ui/DataMarks'
+import { Threshold } from '@/components/ui/Controls'
 import { useEffect, useMemo, useState } from 'react'
 import PageHeader from '@/components/ui/PageHeader'
 import ResearchLoader, { FACTOR_LAB_STAGES } from '@/components/ui/ResearchLoader'
@@ -159,6 +161,44 @@ interface FactorLab {
 }
 
 const label = (name: string) => FACTOR_LABELS[name] ?? name
+
+/* ── factor identity ───────────────────────────────────────────────────────
+   Eighteen factors rendered as eighteen identical cards means the family a
+   factor belongs to — the thing that decides whether two of them are really
+   independent evidence — is only recoverable by reading its name and knowing
+   the literature. The family is not invented here: it is the standard
+   grouping these factors are constructed from, and the same grouping the
+   redundancy panel already reasons about.
+
+   A letter, not an icon. An icon for "value" would be a picture we made up;
+   a letter is a label, and the tooltip says the word in full. */
+type FactorFamily = 'momentum' | 'value' | 'quality' | 'sentiment' | 'technical'
+
+const FACTOR_FAMILY: Record<string, FactorFamily> = {
+  r12_1: 'momentum', r21: 'momentum', r63: 'momentum',
+  high52_prox: 'momentum', rel21_vs_spy: 'momentum', pead: 'momentum',
+  rsi_dev: 'technical', macd_hist: 'technical', rev5: 'technical',
+  reversal: 'technical', vol_confirm: 'technical',
+  target_upside: 'value', earnings_yield: 'value', pe_gap: 'value',
+  gross_profitability: 'quality', net_issuance: 'quality', asset_growth: 'quality',
+  sentiment: 'sentiment',
+}
+
+const FAMILY_INITIAL: Record<FactorFamily, string> = {
+  momentum: 'M', value: 'V', quality: 'Q', sentiment: 'S', technical: 'T',
+}
+
+/** The factor's family as a mark, or nothing when the factor is not one we
+ *  have classified — a guessed family is worse than an unclassified one. */
+function FactorMark({ factor }: { factor: string }) {
+  const family = FACTOR_FAMILY[factor]
+  if (!family) return null
+  return (
+    <span className={`fmark fmark--${family}`} title={`${family} factor`} aria-hidden>
+      {FAMILY_INITIAL[family]}
+    </span>
+  )
+}
 
 /** Colour states a fact about the data, never a mood: sign of the effect. */
 function icTone(value: number): string {
@@ -656,22 +696,18 @@ function ScreenTable({ rows, dispersion: spread }: {
   return (
     <>
       <div className="thresh">
-        <label className="thresh__label" htmlFor="conviction">
-          Minimum factor agreement
-        </label>
-        <input
-          id="conviction"
-          className="thresh__range"
-          type="range"
+        {/* The track now fills behind the handle, so how far the filter has
+            been pushed is legible without reading the output — see
+            ui/Controls `Threshold`, which is the Uiverse box-shadow fill. */}
+        <Threshold
+          label="Minimum factor agreement"
           min={0}
           max={100}
           step={5}
           value={Math.round(minAgreement * 100)}
-          onChange={(event) => setMinAgreement(Number(event.target.value) / 100)}
+          onChange={(next) => setMinAgreement(next / 100)}
+          format={(v) => `${v}%`}
         />
-        <output className="thresh__value num" htmlFor="conviction">
-          {Math.round(minAgreement * 100)}%
-        </output>
         <span className="thresh__count u-note">
           {shown.length} of {rows.length} names
         </span>
@@ -1063,7 +1099,17 @@ export default function FactorLabView() {
               aria-pressed={selected === evaluation.factor}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-                <strong>{label(evaluation.factor)}</strong>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
+                  <FactorMark factor={evaluation.factor} />
+                  <strong>{label(evaluation.factor)}</strong>
+                  {/* The verdict this whole page exists to deliver, stated on
+                      the card rather than only inferrable from the corrected
+                      t-statistic further down. */}
+                  <StatusPill
+                    tone={evaluation.significant ? 'pos' : 'muted'}
+                    label={evaluation.significant ? 'Cleared |t| 2' : 'Inconclusive'}
+                  />
+                </span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <button
                     type="button"

@@ -37,6 +37,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import EmptyState from '@/components/ui/EmptyState'
 import PageHeader from '@/components/ui/PageHeader'
 import ConfirmButton from '@/components/ui/ConfirmButton'
+import { StatusPill } from '@/components/ui/DataMarks'
 import { timeAgo } from '@/lib/format'
 import {
   createSession,
@@ -88,6 +89,21 @@ const EMPTY: Substance = {
 
 function isEmpty(s: Substance) {
   return s.entities.length + s.notes.length + s.snapshots.length + s.collections.length === 0
+}
+
+/**
+ * How far along an investigation is, from what it actually contains.
+ *
+ * Not a stored field and not a guess: an investigation with nothing in it is
+ * empty, one with entities but nothing written is a scan, and one carrying
+ * notes or snapshots is work in progress. The three states are exactly the
+ * three shapes the substance can take, so this reports the record rather
+ * than scoring it.
+ */
+function stage(s: Substance): { tone: 'muted' | 'accent' | 'pos'; label: string } {
+  if (isEmpty(s)) return { tone: 'muted', label: 'Empty' }
+  if (s.notes.length || s.snapshots.length) return { tone: 'pos', label: 'In progress' }
+  return { tone: 'accent', label: 'Scoped' }
 }
 
 /** Counts, but each one links to the kind of thing it counts. */
@@ -384,7 +400,10 @@ export default function SessionsView() {
                     + resumeSubstance.entities.length,
                 )}
               >
-                <span className="ws-resume__eyebrow">Continue where you left off</span>
+                <span className="ws-resume__eyebrow">
+                  Continue where you left off
+                  <StatusPill {...stage(resumeSubstance)} />
+                </span>
                 <span className="ws-resume__title">{resume.title}</span>
                 {resume.description && <span className="ws-resume__desc">{resume.description}</span>}
                 {resumeSubstance.thesis && <ThesisBlock thesis={resumeSubstance.thesis} />}
@@ -406,7 +425,10 @@ export default function SessionsView() {
                       return (
                         <article key={s.id} className="ws-card">
                           <Link href={`/terminal/graph?session=${s.id}`} className="ws-card__link">
-                            <span className="ws-card__title">{s.title}</span>
+                            <span className="ws-card__head">
+                              <span className="ws-card__title">{s.title}</span>
+                              <StatusPill {...stage(substance)} />
+                            </span>
                             {s.description && <span className="ws-card__desc">{s.description}</span>}
                             <Symbols symbols={substance.entities} />
                             {isEmpty(substance)

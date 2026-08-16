@@ -1,6 +1,6 @@
 'use client'
 
-import { SourceMark } from '@/components/ui/DataMarks'
+import SourceBadge from '@/components/ui/SourceBadge'
 import { timeAgo } from '@/lib/format'
 import type { Headline } from '@/lib/types'
 
@@ -16,6 +16,20 @@ const LABEL_TONE: Record<Headline['label'], string> = {
   Neutral: 'badge--warn',
 }
 
+/**
+ * Scored headlines — the evidence behind a sentiment reading.
+ *
+ * The metadata line now leads with the publisher's own mark rather than its
+ * name in the same grey as the timestamp. A reader deciding how much weight
+ * to give a headline is asking "who says?" first, and a favicon answers that
+ * before the sentence is read; the raw vendor string stays as the label,
+ * cleaned of the banner decoration RSS aggregators prepend.
+ *
+ * Row styling moved out of inline objects into `.hl-row` so hover, focus and
+ * the leading accent are defined once — and so a Pro row (a link) and a
+ * locked row (a div) can share exactly one treatment instead of two copies
+ * of the same six properties.
+ */
 export default function Headlines({ headlines, isPro, onUpgrade }: HeadlinesProps) {
   if (headlines.length === 0) return null
 
@@ -47,25 +61,14 @@ export default function Headlines({ headlines, isPro, onUpgrade }: HeadlinesProp
         {headlines.map((h, i) => {
           const inner = (
             <>
-              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                <p
-                  style={{
-                    flex: 1,
-                    fontSize: '0.875rem',
-                    lineHeight: 1.5,
-                    color: 'var(--text)',
-                    fontWeight: 480,
-                  }}
-                >
-                  {h.title}
-                </p>
+              <div className="hl-row__top">
+                <p className="hl-row__title">{h.title}</p>
                 {isPro && h.url && (
-                  <span aria-hidden="true" style={{ color: 'var(--faint)', fontSize: '0.8125rem', flexShrink: 0 }}>
-                    ↗
-                  </span>
+                  <span aria-hidden="true" className="hl-row__out">↗</span>
                 )}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 7, flexWrap: 'wrap' }}>
+              <div className="hl-row__meta">
+                <SourceBadge name={h.source} url={h.url} />
                 <span className={`badge ${LABEL_TONE[h.label]}`} style={{ height: 19, fontSize: '0.625rem' }}>
                   {h.label}
                 </span>
@@ -81,8 +84,6 @@ export default function Headlines({ headlines, isPro, onUpgrade }: HeadlinesProp
                     {h.score.toFixed(2)}
                   </span>
                 )}
-                <SourceMark url={h.url} name={h.source} />
-                <span className="u-meta">{h.source}</span>
                 {h.publishedAt && (
                   <span className="u-meta">{timeAgo(h.publishedAt)}</span>
                 )}
@@ -90,21 +91,17 @@ export default function Headlines({ headlines, isPro, onUpgrade }: HeadlinesProp
             </>
           )
 
-          const rowStyle: React.CSSProperties = {
-            display: 'block',
-            padding: '13px 0',
-            borderBottom: i < headlines.length - 1 ? '1px solid var(--line)' : 'none',
-            textDecoration: 'none',
-          }
-
           return (
-            <li key={`${h.title}-${i}`}>
+            <li
+              key={`${h.title}-${i}`}
+              style={{ borderBottom: i < headlines.length - 1 ? '1px solid var(--line)' : 'none' }}
+            >
               {isPro && h.url ? (
-                <a href={h.url} target="_blank" rel="noopener noreferrer" style={rowStyle}>
+                <a href={h.url} target="_blank" rel="noopener noreferrer" className="hl-row">
                   {inner}
                 </a>
               ) : (
-                <div style={rowStyle}>{inner}</div>
+                <div className="hl-row">{inner}</div>
               )}
             </li>
           )

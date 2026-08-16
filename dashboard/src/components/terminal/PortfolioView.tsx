@@ -9,7 +9,7 @@ import Tooltip from '@/components/ui/Tooltip'
 import { FACTOR_LABELS, diffSnapshots, useAllHistory } from '@/lib/history'
 import ConfirmButton from '@/components/ui/ConfirmButton'
 import CompanyMark from '@/components/ui/CompanyMark'
-import { ConfidenceBar } from '@/components/ui/DataMarks'
+import { ConfidenceBar, StatusPill, TrendMark } from '@/components/ui/DataMarks'
 import { notify } from '@/components/ui/Toasts'
 import { fmtPctRaw, timeAgo } from '@/lib/format'
 import PositionsPanel from '@/components/terminal/PositionsPanel'
@@ -59,8 +59,16 @@ function ChangeCell({ value }: { value: number | null | undefined }) {
   // the 1D and 1W columns of the same row disagreed about decimals — "-1.62%"
   // next to "+1.6%" — and a change that rounds to zero kept its minus sign.
   const text = fmtPctRaw(value, 2, true)
-  const tone = parseFloat(text) > 0 ? 'var(--pos)' : parseFloat(text) < 0 ? 'var(--neg)' : 'var(--muted)'
-  return <span className="num" style={{ color: tone }}>{text}</span>
+  const signed = parseFloat(text)
+  const tone = signed > 0 ? 'var(--pos)' : signed < 0 ? 'var(--neg)' : 'var(--muted)'
+  // The mark is keyed to the *rounded* figure, not the raw one, so a move
+  // that displays as 0.00% cannot show an arrow contradicting its own text.
+  return (
+    <span className="u-row" style={{ gap: 6, justifyContent: 'flex-end', flexWrap: 'nowrap' }}>
+      <TrendMark value={signed} />
+      <span className="num" style={{ color: tone }}>{text}</span>
+    </span>
+  )
 }
 
 interface StorageRow {
@@ -310,8 +318,19 @@ export default function PortfolioView() {
               onClick={() => void createWatchlist(suggestion.name, suggestion.tickers)}
               style={{ padding: '16px 18px', textAlign: 'left', cursor: 'pointer', background: 'var(--surface)' }}
             >
-              <p className="h-panel" style={{ marginBottom: 6 }}>{suggestion.name}</p>
-              <p className="num" style={{ fontSize: '0.6875rem', color: 'var(--muted)' }}>
+              <p className="h-panel" style={{ marginBottom: 8 }}>{suggestion.name}</p>
+              {/* The names themselves, not a comma-joined string of them. A
+                  suggestion is chosen on what is *in* it, and a row of real
+                  marks answers that faster than eight tickers in a line. */}
+              <span className="sugg-marks">
+                {suggestion.tickers.slice(0, 6).map((symbol) => (
+                  <CompanyMark key={symbol} ticker={symbol} size={20} />
+                ))}
+                {suggestion.tickers.length > 6 && (
+                  <span className="sugg-marks__more num">+{suggestion.tickers.length - 6}</span>
+                )}
+              </span>
+              <p className="num" style={{ fontSize: '0.6875rem', color: 'var(--muted)', marginTop: 8 }}>
                 {suggestion.tickers.join(' · ')}
               </p>
             </button>
@@ -457,11 +476,15 @@ export default function PortfolioView() {
               Add to {active.name}
             </button>
             <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
-              {quotesFetchedAt && !loadingQuotes && (
+              {/* Feed state as a state, not as prose. The pulse is bound to
+                  an actual in-flight fetch, so it stops when the work does. */}
+              {loadingQuotes ? (
+                <StatusPill tone="accent" label="Fetching quotes" pulse />
+              ) : quotesFetchedAt ? (
                 <span className="u-meta">
                   Quotes updated {timeAgo(quotesFetchedAt)}
                 </span>
-              )}
+              ) : null}
               <button
                 type="button"
                 className="btn btn--ghost btn--sm"

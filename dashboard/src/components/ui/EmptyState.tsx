@@ -25,7 +25,13 @@ interface EmptyStateProps {
  */
 export default function EmptyState({ title, titleAs: TitleTag = 'p', description, action, icon }: EmptyStateProps) {
   return (
-    <div className="empty-state">
+    /* `gridfield` rules the empty area faintly and fades the ruling out
+       before it reaches the text — adapted from Uiverse `kencode7/
+       perfect-puma-86`, whose mechanism is a repeating line gradient under a
+       mask that dissolves it. An empty surface with nothing at all in it
+       reads as a rendering failure; ruled space reads as space, which is
+       what an empty state is actually reporting. */
+    <div className="empty-state gridfield">
       {/* A quiet grid glyph when the caller supplies no icon. An empty
           surface with nothing in it reads as unfinished; a small mark reads
           as "this is a place that holds things, and it is empty". */}

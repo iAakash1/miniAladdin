@@ -5,6 +5,7 @@ import ConfirmButton from '@/components/ui/ConfirmButton'
 import { useEffect, useState } from 'react'
 import EmptyState from '@/components/ui/EmptyState'
 import Skeleton from '@/components/ui/Skeleton'
+import { AllocBar } from '@/components/ui/DataMarks'
 import {
   type Position,
   deletePosition,
@@ -79,6 +80,13 @@ export default function PositionsPanel() {
   }
 
   const totalCost = positions.reduce((sum, p) => sum + p.shares * p.average_price, 0)
+  // The biggest weight sets the scale for every bar in the column, so the
+  // bars compare holdings against each other rather than against a 100%
+  // ceiling no single position in a real book ever approaches.
+  const largestWeight = positions.reduce(
+    (top, p) => Math.max(top, (p.shares * p.average_price * 100) / (totalCost || 1)),
+    0,
+  )
 
   return (
     <section aria-labelledby="positions-h" className="panel panel--pad">
@@ -148,10 +156,13 @@ export default function PositionsPanel() {
         />
       )}
 
+      {/* Was a lone grey sentence, which reads as a caption on a panel that
+          lost its table rather than as a state the panel is in. */}
       {status === 'ready' && positions.length === 0 && (
-        <p style={{ fontSize: '0.8125rem', color: 'var(--faint)' }}>
-          No positions yet. Add a holding above to track shares and average cost across devices.
-        </p>
+        <EmptyState
+          title="No positions yet"
+          description="Add a holding above to track shares and average cost. Positions sync to your account, so they follow you across devices."
+        />
       )}
 
       {status === 'ready' && positions.length > 0 && (
@@ -163,6 +174,7 @@ export default function PositionsPanel() {
                 <th scope="col" className="num">Shares</th>
                 <th scope="col" className="num">Avg price</th>
                 <th scope="col" className="num">Cost basis</th>
+                <th scope="col">Weight</th>
                 <th scope="col"><span className="visually-hidden">Actions</span></th>
               </tr>
             </thead>
@@ -209,6 +221,17 @@ export default function PositionsPanel() {
                     </td>
                     <td className="num">
                       ${fmtNum(position.shares * position.average_price, 2)}
+                    </td>
+                    <td>
+                      {/* Share of cost basis, computed from the figures in
+                          this table and nothing else. Scaled to the largest
+                          holding rather than to 100%, so a diversified book
+                          still produces bars that can be compared instead of
+                          eight stubs in the first tenth of the track. */}
+                      <AllocBar
+                        value={(position.shares * position.average_price * 100) / (totalCost || 1)}
+                        max={largestWeight}
+                      />
                     </td>
                     <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                       {isEditing ? (

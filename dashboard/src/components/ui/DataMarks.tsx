@@ -12,6 +12,8 @@
 
 import { useState } from 'react'
 
+import { faviconFor, sourceDomain } from '@/lib/identity'
+
 /* ── Source favicon ─────────────────────────────────────────────────────── */
 
 /** Recognisable mark for an evidence source, from its own domain.
@@ -22,12 +24,9 @@ import { useState } from 'react'
  *  reads as an attributed source. */
 export function SourceMark({ url, name }: { url?: string | null; name?: string | null }) {
   const [failed, setFailed] = useState(false)
-  let host = ''
-  try {
-    if (url) host = new URL(url).hostname.replace(/^www\./, '')
-  } catch {
-    host = ''
-  }
+  // Shared with SourceBadge and the macro cards, so a source that resolves
+  // on one surface resolves identically on every other.
+  const host = sourceDomain(name, url)
   const letter = (name ?? host ?? '?').trim().charAt(0).toUpperCase() || '?'
 
   return (
@@ -41,10 +40,11 @@ export function SourceMark({ url, name }: { url?: string | null; name?: string |
         // eslint-disable-next-line @next/next/no-img-element
         <img
           className="smark__img"
-          src={`https://www.google.com/s2/favicons?sz=32&domain=${encodeURIComponent(host)}`}
+          src={faviconFor(host, 32)}
           alt=""
           loading="lazy"
           decoding="async"
+          referrerPolicy="no-referrer"
           onError={() => setFailed(true)}
         />
       )}
@@ -118,6 +118,76 @@ export function ConfidenceBar({ value }: { value: number | null | undefined }) {
         <span className="confbar__fill" style={{ transform: `scaleX(${pct / 100})` }} />
       </span>
       <span className="num">{Math.round(pct)}%</span>
+    </span>
+  )
+}
+
+/* ── Trend ──────────────────────────────────────────────────────────────── */
+
+/** Direction as a glyph, so a column of moves is legible before any digit
+ *  is read. Zero is a bar rather than an arrow: a flat reading is a fact,
+ *  and rounding it up to "rose" or "fell" would be an assertion. */
+export function TrendMark({ value }: { value: number | null | undefined }) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return null
+  const dir = value > 0 ? 'up' : value < 0 ? 'down' : 'flat'
+  const word = dir === 'up' ? 'rising' : dir === 'down' ? 'falling' : 'unchanged'
+  return <span className={`trendmark trendmark--${dir}`} role="img" aria-label={word} />
+}
+
+/* ── Allocation ─────────────────────────────────────────────────────────── */
+
+/** A share of a whole, drawn against the largest share present.
+ *
+ *  Scaled to `max` rather than to 100% because portfolio weights are rarely
+ *  near 100 and a bar that never leaves its first tenth conveys nothing.
+ *  The number stays alongside, so the bar adds comparison without becoming
+ *  the only reading of the value. */
+export function AllocBar({
+  value,
+  max,
+}: {
+  value: number | null | undefined
+  max: number
+}) {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return <span className="u-note">—</span>
+  }
+  const ceiling = Number.isFinite(max) && max > 0 ? max : 1
+  const ratio = Math.min(1, Math.max(0, value / ceiling))
+  return (
+    <span className="allocbar">
+      <span className="allocbar__track" role="img" aria-label={`${value.toFixed(1)} percent of portfolio`}>
+        <span className="allocbar__fill" style={{ transform: `scaleX(${ratio})` }} />
+      </span>
+      <span className="num allocbar__num">{value.toFixed(1)}%</span>
+    </span>
+  )
+}
+
+/* ── Status ─────────────────────────────────────────────────────────────── */
+
+export type StatusTone = 'pos' | 'neg' | 'warn' | 'muted' | 'accent'
+
+/** A state as a dot plus a word.
+ *
+ *  The dot carries a ring rather than a fill for pending states, so the two
+ *  read apart in a monochrome screenshot and under forced colours — colour
+ *  is the second signal here, never the only one. */
+export function StatusPill({
+  tone,
+  label,
+  pulse = false,
+}: {
+  tone: StatusTone
+  label: string
+  /** Only for states that are genuinely still moving. A pulse on a settled
+   *  state is a claim that something is happening when nothing is. */
+  pulse?: boolean
+}) {
+  return (
+    <span className={`spill spill--${tone}${pulse ? ' spill--live' : ''}`}>
+      <span className="spill__dot" aria-hidden />
+      {label}
     </span>
   )
 }

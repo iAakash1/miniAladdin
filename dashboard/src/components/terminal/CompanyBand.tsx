@@ -4,6 +4,7 @@ import CompanyMark from '@/components/ui/CompanyMark'
 import CopyButton from '@/components/ui/CopyButton'
 import { useState } from 'react'
 import { fmtPrice } from '@/lib/format'
+import { sectorProxy } from '@/lib/identity'
 import { saveReport } from '@/lib/persistence'
 import type { Analysis, Verdict } from '@/lib/types'
 
@@ -93,7 +94,7 @@ export default function CompanyBand({ analysis }: { analysis: Analysis }) {
       >
         <div style={{ minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 4 }}>
-            <CompanyMark ticker={analysis.ticker} size={34} />
+            <CompanyMark ticker={analysis.ticker} name={analysis.companyName} size={40} />
             <h2 className="mono" style={{ fontSize: '1.25rem', fontWeight: 600, letterSpacing: '0.01em' }}>
               {analysis.ticker}
             </h2>
@@ -105,7 +106,15 @@ export default function CompanyBand({ analysis }: { analysis: Analysis }) {
               {analysis.companyName}
             </span>
           </div>
-          <p style={{ fontSize: '0.8125rem', color: 'var(--faint)' }}>
+          {/* The sector gets a mark too — the sector-SPDR ETF that stands for
+              it is a real listed instrument with a real logo, and the same
+              symbol the breadth map on Market already trades on, so the two
+              surfaces name the sector the same way. A sector with no proxy
+              simply renders as text. */}
+          <p style={{ fontSize: '0.8125rem', color: 'var(--faint)', display: 'flex', alignItems: 'center', gap: 7 }}>
+            {sectorProxy(analysis.sector) && (
+              <CompanyMark ticker={sectorProxy(analysis.sector)} name={`${analysis.sector} sector`} size={16} />
+            )}
             {[analysis.sector, analysis.marketCap ? `${analysis.marketCap} market cap` : null]
               .filter(Boolean)
               .join(' · ') || '—'}

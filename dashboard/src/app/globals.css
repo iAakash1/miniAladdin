@@ -748,6 +748,22 @@ img { max-width: 100%; display: block; }
 .dash-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-2); border-color: var(--line-strong); }
 
 .dash-card:hover .sparkline-line { animation: sparkline-draw var(--t-med) var(--ease-out); }
+
+/* Provenance foot: previous value on the left, publisher and observation
+   date on the right. Separated by a hairline so it reads as metadata about
+   the card rather than as one more figure on it. */
+.dash-card__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid var(--line);
+  font-size: 0.625rem;
+  color: var(--faint);
+}
+.dash-card__prov { display: inline-flex; align-items: center; gap: 6px; }
 @keyframes sparkline-draw {
   from { stroke-dashoffset: 80; stroke-dasharray: 80; }
   to   { stroke-dashoffset: 0; stroke-dasharray: 80; }
@@ -767,7 +783,12 @@ img { max-width: 100%; display: block; }
   border-radius: var(--r-sm);
   transition: color var(--t-fast) var(--ease-out);
 }
-.info-trigger:hover, .info-trigger:focus-visible { color: var(--accent-strong); }
+/* The trigger firms up rather than only changing colour: a 15px glyph that
+   only shifts hue is easy to miss as an affordance at all. */
+.info-trigger:hover, .info-trigger:focus-visible {
+  color: var(--accent-strong);
+  background: var(--accent-wash);
+}
 .tooltip-bubble {
   position: absolute;
   top: calc(100% + 6px);
@@ -784,7 +805,33 @@ img { max-width: 100%; display: block; }
   text-transform: none;
   letter-spacing: normal;
   box-shadow: var(--shadow-2);
+  /* Grows out of the trigger rather than appearing at full size.
+     Uiverse `gharsh11032000/spotty-zebra-83`: the bubble scales from
+     `transform-origin: 0 0` on a decelerating curve, so it reads as
+     unfolding from the thing you pointed at instead of as a panel that
+     blinked into existence beside it. Their 0.4s is halved — this opens on
+     hover and has to keep up with a moving cursor. */
+  transform-origin: 0 0;
+  animation: tip-unfold 200ms cubic-bezier(0.23, 1, 0.32, 1);
 }
+/* A pointer joining the bubble to its trigger. Without one the bubble is
+   just a floating box; the notch is what makes it belong to the ⓘ. */
+.tooltip-bubble::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 9px;
+  width: 8px; height: 8px;
+  background: inherit;
+  border-left: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  transform: rotate(45deg);
+}
+@keyframes tip-unfold {
+  from { opacity: 0; transform: scale(0.92) translateY(-3px); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .tooltip-bubble { animation: none; } }
 
 /* ---------- Expandable dashboard sections ---------- */
 .dash-section {
@@ -1231,7 +1278,13 @@ footer a:hover { color: var(--text) !important; }
 .ws-input { height: 34px; font-size: 0.8125rem; min-width: 240px; }
 
 .ws-search { display: flex; align-items: center; gap: 10px; }
-.ws-search .ws-input { flex: 1 1 auto; max-width: 520px; }
+/* The search field is the primary way back into written work, so it takes
+   the width it is given rather than sitting at its 240px minimum with two
+   thirds of the row empty beside it. `.srch` is inline-block by default,
+   which was capping the wrapper at its content width and stranding the
+   field on the left. */
+.ws-search .srch { flex: 1 1 auto; max-width: 520px; display: block; }
+.ws-search .ws-input { width: 100%; max-width: none; }
 .ws-search__count { font-size: 0.6875rem; color: var(--faint); }
 
 /* search results */
@@ -1280,11 +1333,18 @@ footer a:hover { color: var(--text) !important; }
   transform: translateY(-1px);
 }
 .ws-resume__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-size: 0.5625rem;
   letter-spacing: 0.11em;
   text-transform: uppercase;
   color: var(--faint);
 }
+/* The state pill sets its own type; it must not inherit the eyebrow's
+   uppercase tracking or it reads as a second label rather than a state. */
+.ws-resume__eyebrow .spill,
+.ws-card__head .spill { text-transform: none; letter-spacing: -0.005em; }
 .ws-resume__title {
   font-size: clamp(1.125rem, 2.2vw, 1.375rem);
   font-weight: 600;
@@ -1355,6 +1415,12 @@ footer a:hover { color: var(--text) !important; }
   text-decoration: none;
   color: inherit;
   flex: 1;
+}
+.ws-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 .ws-card__title { font-size: 0.9375rem; font-weight: 600; letter-spacing: -0.012em; }
 .ws-card__desc { font-size: 0.75rem; color: var(--muted); line-height: 1.55; }
@@ -1451,12 +1517,22 @@ footer a:hover { color: var(--text) !important; }
   color: var(--faint);
   font-variant-numeric: tabular-nums;
 }
+/* A field and its submit are one control and belong on one line.
+   `flex-wrap: wrap` here let the field claim the row and pushed the button
+   underneath it, so "Name a new investigation… / Start" read as two
+   unrelated things stacked in the corner. `nowrap` keeps them together; the
+   *parent* still wraps, so on a narrow viewport the whole pair moves to its
+   own line intact rather than coming apart. */
 .page-head__actions {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  flex: 0 0 auto;
+  justify-content: flex-end;
 }
+.page-head__actions > * { min-width: 0; }
+.page-head__actions .ws-input { flex: 0 1 240px; min-width: 140px; }
 
 /* Consistent vertical rhythm for every terminal route. */
 .page-stack { display: flex; flex-direction: column; gap: clamp(20px, 3vw, 30px); }
@@ -1884,7 +1960,12 @@ select.input {
   border-radius: var(--r-lg);
   background: color-mix(in srgb, var(--surface-2) 55%, transparent);
   box-shadow: none;
+  /* The ruled field is drawn inside the dashed boundary. */
+  overflow: hidden;
 }
+/* Quieter than the default ruling: an empty state is already a low-contrast
+   surface and full-strength rules would out-weigh its own title. */
+.empty-state.gridfield::before { opacity: 0.32; }
 .empty-state__icon { color: var(--faint); margin-bottom: 4px; }
 .empty-state__title {
   font-size: 0.9375rem;
@@ -2633,46 +2714,16 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
   border-bottom: 1px solid var(--line);
   margin-bottom: 10px;
 }
-.thresh__label { font-size: 0.75rem; color: var(--text); font-weight: 550; }
-/* A 2px track with an 11px thumb read as a hairline, not a control. The
-   track is now thick enough to see, the thumb is ringed so it reads as
-   grabbable, and the portion below the threshold is filled in the accent so
-   the current setting is legible without reading the number. */
-.thresh__range {
-  flex: 0 1 260px;
-  height: 6px;
-  appearance: none;
-  background: var(--surface-2);
-  border: 1px solid var(--line-strong);
-  border-radius: 999px;
-  cursor: pointer;
-}
-.thresh__range::-webkit-slider-thumb {
-  appearance: none;
-  width: 16px; height: 16px;
-  margin-top: -6px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 0 3px var(--surface), 0 0 0 4px var(--accent);
-  cursor: grab;
-}
-.thresh__range:active::-webkit-slider-thumb { cursor: grabbing; }
-.thresh__range::-moz-range-thumb {
-  width: 16px; height: 16px;
-  border: none;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 0 3px var(--surface), 0 0 0 4px var(--accent);
-  cursor: grab;
-}
-.thresh__range:focus-visible { outline: none; box-shadow: var(--ring); }
-/* The live value, sized so it reads as the slider's output. */
-.thresh__value {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: var(--accent);
-  min-width: 46px;
-}
+/* The Factor Lab threshold is now the shared `uthresh` control (see
+   ui/Controls) rather than a second, differently-styled range input. The
+   per-page copy that lived here — a 6px track, a ringed 16px thumb and an
+   accent output — has been folded into that one definition, so the
+   conviction filter and every future threshold behave identically. Only the
+   page-level sizing stays local. */
+.thresh .uthresh { flex: 0 1 340px; }
+.thresh .uthresh__input { flex: 1; width: auto; min-width: 160px; }
+.thresh .uthresh__label { font-size: 0.75rem; color: var(--text); font-weight: 550; }
+.thresh .uthresh__value { font-size: 0.9375rem; font-weight: 600; color: var(--accent); min-width: 46px; }
 .thresh__count {
   white-space: nowrap;
   padding: 2px 8px;
@@ -2690,7 +2741,9 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
   font-weight: 600;
   font-size: 0.8125rem;
   display: flex;
-  align-items: baseline;
+  /* Centre, not baseline: the row now leads with a 20px mark, and a mark
+     sitting on the text baseline hangs below the rule. */
+  align-items: center;
   gap: 10px;
 }
 
@@ -3134,21 +3187,65 @@ a.panel:hover, button.panel:hover, .panel--interactive:hover {
   line-height: 1;
   user-select: none;
 }
-.cmark__mono { color: var(--cmark-ink, var(--muted)); }
+.cmark__mono {
+  color: var(--cmark-ink, var(--muted));
+  transition: opacity 140ms var(--ease-out);
+}
+/* ── The plate, and why it lives on the parent ──────────────────────────────
+   Provider marks are transparent PNGs and mostly dark ink, so they need a
+   light plate to survive the terminal's near-black surface. But a *white
+   logo* on a white plate disappears, and that is not a hypothetical: of the
+   eleven sector ETFs on the Market map, XLK's mark is 88% near-white and
+   XLE's is 93% transparent, so both rendered as blank squares.
+
+   The fix is to trace the ink. `filter: drop-shadow` follows an element's
+   alpha channel, so a hairline shadow outlines a white logo and is hidden
+   behind a dark one — one rule that resolves both cases. That only works if
+   the image itself is transparent, which is why the plate moved to the
+   parent: with `background` on the <img>, drop-shadow would trace the
+   square rather than the mark inside it. */
+.cmark[data-state='ready'] {
+  background: #f7f7f8;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.10);
+}
+/* With the plate painted, the monogram beneath would show through the
+   logo's transparent regions as a ghost. */
+.cmark[data-state='ready'] .cmark__mono { opacity: 0; }
 .cmark__img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: contain;
-  /* Provider marks are mostly dark-on-transparent, so they need a light
-     plate to stay legible on our dark surface. Off-white rather than pure
-     white, and with an inset hairline, so a logo that is itself white (some
-     providers ship a knockout mark) still resolves as a bounded square
-     instead of vanishing into the plate. */
-  background: #f7f7f8;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
   padding: 2px;
+  filter: drop-shadow(0 0 0.6px rgba(0, 0, 0, 0.6));
+  /* Hidden until it has pixels. An <img> whose src is still in flight — or
+     is about to 404 into the next provider — would otherwise paint as a bare
+     square, which is precisely what a broken mark looks like. `data-state`
+     flips to `ready` on load. */
+  opacity: 0;
+  transition: opacity 140ms var(--ease-out);
+}
+.cmark[data-state='ready'] .cmark__img { opacity: 1; }
+/* While a provider is being tried, the monogram breathes once per cycle so
+   a wall of marks does not read as finished-and-empty. Adapted from the
+   Uiverse skeleton family: the mechanism there is a shimmer sweeping a
+   placeholder; reduced here to an opacity cycle on text that is already
+   correct, because the monogram is real content and not a placeholder. */
+.cmark[data-state='loading'] .cmark__mono { animation: cmark-wait 1.6s ease-in-out infinite; }
+@keyframes cmark-wait {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.55; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cmark__img, .cmark__mono { transition: none; }
+  .cmark[data-state='loading'] .cmark__mono { animation: none; }
+}
+/* Forced colours discard both the plate and the shadow, so the monogram has
+   to come back — otherwise the identity column goes blank. */
+@media (forced-colors: active) {
+  .cmark[data-state='ready'] .cmark__mono { opacity: 1; }
+  .cmark__img { display: none; }
 }
 .cmark--t0 { --cmark-ink: var(--accent); }
 .cmark--t1 { --cmark-ink: var(--pos); }
@@ -3246,7 +3343,621 @@ a.panel:hover, button.panel:hover, .panel--interactive:hover {
 }
 .empty-glyph::before { content: none; }
 /* The sector mark needs the row's name cell to align on the centre line. */
-.mm-map__name { display: inline-flex; align-items: center; gap: 8px; }
+/* Sector rows carry a mark beside a two-line name (ticker over sector), so
+   the cell is a two-row grid with the mark spanning both. This replaced an
+   `inline-flex` override that never took: the base rule sets
+   `flex-direction: column`, which the override did not reset, so the mark
+   stacked *above* the ticker and every one of the eleven rows was a
+   centred three-line column instead of a mark beside a label. */
+.mm-map__name {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 9px;
+  align-items: center;
+  min-width: 0;
+}
+.mm-map__name .cmark { grid-row: 1 / span 2; }
+.mm-map__symbol, .mm-map__label { grid-column: 2; }
 
 /* Entity chips carry a mark, so the chip aligns on the centre line. */
 .ws-symbols__chip { display: inline-flex; align-items: center; gap: 5px; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   IDENTITY & CONTROLS
+   Marks that say who, and controls that say which. Every value below
+   resolves to a token already defined at the top of this file; nothing here
+   introduces a colour, a radius or a type size.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Source badge ──────────────────────────────────────────────────────────
+   Attribution as a recognisable object rather than grey text. The letter is
+   the floor and the favicon is the bonus, same posture as every other mark
+   in the product: a blocked or missing icon still reads as an attributed
+   source rather than as a hole. */
+.sbadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 0.6875rem;
+  color: var(--muted);
+}
+.sbadge__mark {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px; height: 15px;
+  flex-shrink: 0;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--faint);
+}
+/* Same plate-on-the-parent construction as the company mark, and for the
+   same reason: favicons are drawn for a light browser chrome, are often
+   transparent, and are sometimes white — a plate on the image itself would
+   make drop-shadow trace the square instead of the icon. The plate arrives
+   only once an icon has actually loaded, so a letter-only fallback keeps the
+   dark chip it is legible on. */
+.sbadge__mark[data-state='ready'] { background: #f7f7f8; color: transparent; }
+.sbadge__img {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  object-fit: contain;
+  padding: 1px;
+  filter: drop-shadow(0 0 0.5px rgba(0, 0, 0, 0.5));
+  opacity: 0;
+  transition: opacity 140ms var(--ease-out);
+}
+.sbadge__mark[data-state='ready'] .sbadge__img { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .sbadge__img { transition: none; } }
+@media (forced-colors: active) {
+  .sbadge__mark[data-state='ready'] { color: currentColor; }
+  .sbadge__img { display: none; }
+}
+.sbadge__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sbadge:hover .sbadge__name { color: var(--text); }
+
+/* ── Factor family mark ───────────────────────────────────────────────────
+   One letter, tinted by family, so eighteen factor cards stop reading as
+   eighteen interchangeable blocks. A letter rather than a pictogram: there
+   is no honest icon for "quality", and the title attribute says the word. */
+.fmark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px; height: 20px;
+  flex-shrink: 0;
+  border-radius: var(--r-sm);
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  cursor: help;
+}
+.fmark--momentum  { color: var(--accent); background: var(--accent-wash); }
+.fmark--value     { color: var(--pos);    background: var(--pos-wash); }
+.fmark--quality   { color: var(--warn);   background: var(--warn-wash); }
+.fmark--sentiment { color: var(--neg);    background: var(--neg-wash); }
+.fmark--technical { color: var(--muted);  background: var(--surface-2); }
+
+/* ── Trend mark ────────────────────────────────────────────────────────────
+   A triangle for direction, a bar for no change. Drawn with borders rather
+   than a glyph so it inherits colour and needs no font support, and so the
+   flat case is unmistakably a different shape and not a smaller arrow. */
+.trendmark {
+  display: inline-block;
+  width: 0; height: 0;
+  flex-shrink: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+}
+.trendmark--up   { border-bottom: 5px solid var(--pos); }
+.trendmark--down { border-top: 5px solid var(--neg); }
+.trendmark--flat {
+  width: 8px; height: 0;
+  border: none;
+  border-top: 2px solid var(--faint);
+  transform: translateY(-1px);
+}
+
+/* ── Allocation bar ────────────────────────────────────────────────────────
+   Same construction as the confidence bar so a reader learns one shape, but
+   scaled against the largest weight in the table rather than against 100%. */
+.allocbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.allocbar__track {
+  width: 46px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+  overflow: hidden;
+}
+.allocbar__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transform-origin: left center;
+  background: var(--accent);
+  transition: transform 260ms var(--ease-out);
+}
+.allocbar__num { font-size: 0.75rem; }
+@media (prefers-reduced-motion: reduce) { .allocbar__fill { transition: none; } }
+
+/* ── Status pill ───────────────────────────────────────────────────────────
+   A dot plus a word. The word is what carries the meaning — the dot is a
+   second, faster channel, which is why it is never the only one. */
+.spill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 20px;
+  padding: 0 8px 0 7px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-size: 0.6875rem;
+  font-weight: 550;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  color: var(--muted);
+}
+.spill__dot {
+  width: 6px; height: 6px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: currentColor;
+}
+.spill--pos    { color: var(--pos);    background: var(--pos-wash); }
+.spill--neg    { color: var(--neg);    background: var(--neg-wash); }
+.spill--warn   { color: var(--warn);   background: var(--warn-wash); }
+.spill--accent { color: var(--accent); background: var(--accent-wash); }
+.spill--muted  { color: var(--muted); }
+/* Only for work genuinely still in flight. The ring expands outward and
+   fades — adapted from the Uiverse notification-indicator family, whose
+   mechanism is a `box-shadow` spread animated to transparent. Restrained to
+   a single 2px ring so a live row does not out-shout the data in it. */
+.spill--live .spill__dot { animation: spill-ping 1.8s var(--ease-out) infinite; }
+@keyframes spill-ping {
+  0%   { box-shadow: 0 0 0 0 currentColor; }
+  70%  { box-shadow: 0 0 0 4px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+@media (prefers-reduced-motion: reduce) { .spill--live .spill__dot { animation: none; } }
+
+/* ── Switch ────────────────────────────────────────────────────────────────
+   Uiverse `alexruix/silent-otter-72`. The check glyph slides out from behind
+   the knob as the state turns on, so position and meaning arrive together
+   rather than the position alone having to be interpreted. */
+.uswitch-row { display: inline-flex; align-items: center; gap: 9px; }
+.uswitch {
+  position: relative;
+  display: inline-block;
+  width: 34px; height: 20px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.uswitch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.uswitch__track {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  transition: background var(--t-med) var(--ease-out),
+              box-shadow var(--t-med) var(--ease-out);
+}
+.uswitch__knob {
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--lift-1);
+  transition: transform 200ms var(--ease-out), background var(--t-med) var(--ease-out);
+}
+.uswitch__check {
+  position: absolute;
+  top: 50%;
+  right: 60%;
+  width: 9px; height: 9px;
+  transform: translateY(-50%);
+  stroke: currentColor;
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  color: var(--accent);
+  opacity: 0;
+  transition: right 200ms var(--ease-out), opacity 130ms var(--ease-out);
+}
+.uswitch input:checked + .uswitch__track {
+  background: var(--accent-wash);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.uswitch input:checked + .uswitch__track .uswitch__knob { transform: translateX(14px); }
+.uswitch input:checked + .uswitch__track .uswitch__check { right: 20%; opacity: 1; }
+.uswitch input:focus-visible + .uswitch__track { box-shadow: var(--ring); }
+.uswitch__label {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 0.8125rem;
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+}
+.uswitch__hint { font-size: 0.6875rem; color: var(--faint); }
+@media (prefers-reduced-motion: reduce) {
+  .uswitch__track, .uswitch__knob, .uswitch__check { transition: none; }
+}
+
+/* ── Segmented control with a sliding indicator ────────────────────────────
+   Uiverse `zanina-yassine/curly-shrimp-52` / `ssweb_8300/sour-lionfish-41`.
+   One indicator moves between positions instead of each option lighting up
+   independently, so the selection has continuity. Their offsets are written
+   per option in CSS and only fit a fixed count; ours comes from the index as
+   a percentage of the indicator's own width, so any number of options works
+   from the same rule. */
+.useg {
+  position: relative;
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  padding: 2px;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.useg__indicator {
+  position: absolute;
+  top: 2px; bottom: 2px; left: 2px;
+  width: calc((100% - 4px) / var(--useg-count, 2));
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  box-shadow: var(--edge-hi), var(--lift-1);
+  transition: transform 220ms var(--ease-out);
+  pointer-events: none;
+}
+:is(.theme-dark, [data-theme='dark']) .useg__indicator {
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+.useg__opt {
+  position: relative;
+  z-index: 1;
+  height: 26px;
+  padding: 0 12px;
+  border: none;
+  background: transparent;
+  border-radius: var(--r-sm);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 550;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--t-fast) var(--ease-out);
+}
+.useg__opt:hover { color: var(--text); }
+.useg__opt[aria-checked='true'] { color: var(--text); font-weight: 600; }
+.useg__opt:focus-visible { outline: none; box-shadow: var(--ring); }
+@media (prefers-reduced-motion: reduce) {
+  .useg__indicator, .useg__opt { transition: none; }
+}
+
+/* ── Threshold slider ──────────────────────────────────────────────────────
+   Uiverse `Galahhad/happy-dodo-17`. The filled portion of the track is the
+   thumb's own one-sided box-shadow, clipped by `overflow: hidden` on the
+   track — no second element and no JavaScript keeps it in sync, because it
+   *is* the thumb. The Uiverse original hides the thumb entirely; ours keeps
+   a visible 12px knob so the control is still grabbable with a mouse. */
+.uthresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.uthresh__label { font-size: 0.6875rem; color: var(--muted); white-space: nowrap; }
+.uthresh__value {
+  font-size: 0.75rem;
+  color: var(--text);
+  min-width: 3.5ch;
+  text-align: right;
+}
+.uthresh__input {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 108px;
+  /* 6px, not the 4px a hairline suggests: below about 5px a track stops
+     reading as a control you can grab and starts reading as a rule. */
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+  /* The clip that turns the thumb's shadow into a fill. */
+  overflow: hidden;
+  cursor: pointer;
+}
+.uthresh__input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--surface);
+  /* The fill *is* this shadow, clipped by the track's overflow. */
+  box-shadow: -160px 0 0 155px var(--accent), var(--lift-1);
+  cursor: grab;
+}
+.uthresh__input::-webkit-slider-thumb:active { cursor: grabbing; }
+/* Firefox exposes a real progress element, so it needs no shadow trick. */
+.uthresh__input::-moz-range-progress {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--accent);
+}
+.uthresh__input::-moz-range-thumb {
+  width: 14px; height: 14px;
+  border: none;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--lift-1);
+  cursor: grab;
+}
+.uthresh__input:focus-visible { outline: none; box-shadow: var(--ring), inset 0 0 0 1px var(--line); }
+
+/* ── Technical grid pattern ────────────────────────────────────────────────
+   Uiverse `kencode7/perfect-puma-86`. Vertical rules at a fixed pitch,
+   faded out by a `mask-image` gradient so the pattern has a horizon instead
+   of a hard edge. Theirs is 50px on a cyan/violet wash; this is a token
+   hairline at 44px over nothing, so it reads as instrument ruling behind
+   the content rather than as a decorated background. Applied only to
+   surfaces that would otherwise be blank — empty states and page headers. */
+.gridfield { position: relative; }
+.gridfield::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image:
+    linear-gradient(90deg, var(--line) 1px, transparent 1px),
+    linear-gradient(var(--line) 1px, transparent 1px);
+  background-size: 44px 100%, 100% 44px;
+  opacity: 0.55;
+  mask-image: radial-gradient(120% 100% at 50% 0%, #000 0%, transparent 72%);
+  -webkit-mask-image: radial-gradient(120% 100% at 50% 0%, #000 0%, transparent 72%);
+  pointer-events: none;
+}
+.gridfield > * { position: relative; }
+
+/* ── Nav rail: the active destination carries a leading rule ───────────────
+   Uiverse `reglobby/red-mayfly-78`. Its list marks the focused row with a
+   rounded bar just outside the left edge, faded in rather than moved, so the
+   row itself never shifts. Adopted for the workspace jump list, where the
+   previous hover state was a background change that read as noise across
+   four adjacent tiles. */
+.ws-jump__item { position: relative; }
+.ws-jump__item::before {
+  content: '';
+  position: absolute;
+  top: 12px; bottom: 12px; left: -1px;
+  width: 3px;
+  border-radius: 999px;
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity var(--t-fast) var(--ease-out);
+}
+.ws-jump__item:hover::before,
+.ws-jump__item:focus-visible::before { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .ws-jump__item::before { transition: none; } }
+
+/* ── Buttons: the press has depth ──────────────────────────────────────────
+   Uiverse `satyamchaudharydev/purple-rat-85` and `adamgiebl/giant-donkey-36`
+   arrive at the same mechanism from opposite styles: the resting button
+   floats on an offset shadow, hover *raises* it by growing that offset, and
+   :active drops the element by exactly the amount the shadow shrinks — so
+   the travel and the shadow agree and the button appears to be pushed into
+   the surface rather than merely translated down the page.
+
+   The existing rule had the press but not the lift, and it killed the
+   shadow outright on :active, which also removed the top-edge highlight
+   that gives a dark-theme button its edge — the button lost its outline at
+   the moment of contact. Both halves are now symmetric. */
+.btn--primary:hover:not([disabled]),
+.btn--accent:hover:not([disabled]),
+.btn--secondary:hover:not([disabled]) { transform: translateY(-1px); }
+.btn:active:not([disabled]) {
+  transform: translateY(1px);
+  box-shadow: var(--edge-hi), 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn--primary:hover:not([disabled]),
+  .btn--accent:hover:not([disabled]),
+  .btn--secondary:hover:not([disabled]),
+  .btn:active:not([disabled]) { transform: none; }
+}
+
+/* ── Data tables: a header that stays put and reads as a header ────────────
+   Column headings scrolled away with the rows in every long table in the
+   product — the archive, the screen, the watchlist — so by row twenty the
+   figures had no labels. Sticky headings, on the table's own surface so
+   rows pass behind rather than through them. */
+.data-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--surface);
+  /* A border on a sticky cell scrolls away with its own box; a shadow does
+     not, so the rule under the heading survives the scroll. */
+  box-shadow: inset 0 -1px 0 var(--line);
+}
+:is(.theme-dark, [data-theme='dark']) .data-table thead th { background: var(--surface); }
+/* Numeric columns line up on the decimal, which is the entire reason a
+   terminal uses tabular figures. */
+.data-table td.num, .data-table th.num { font-variant-numeric: tabular-nums; }
+
+/* ── Command palette ───────────────────────────────────────────────────────
+   The one surface reached from every route, so it carries the most weight
+   per pixel of anything in the product. */
+
+/* A search mark inside the field, so the control identifies itself. */
+.palette-field__icon {
+  position: absolute;
+  top: 24px; left: 14px;
+  width: 15px; height: 15px;
+  transform: translateY(-50%);
+  fill: none;
+  stroke: var(--faint);
+  stroke-width: 2;
+  stroke-linecap: round;
+  pointer-events: none;
+  transition: stroke var(--t-fast) var(--ease-out);
+}
+.palette-field:focus-within .palette-field__icon { stroke: var(--accent); }
+
+/* Typed glyph for non-company results, in the same plate a logo occupies so
+   the identity column stays flush whatever kind of thing a row is. */
+.pkind {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px; height: 18px;
+  flex-shrink: 0;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-size: 9px;
+  line-height: 1;
+  color: var(--faint);
+}
+.pkind--answer { color: var(--accent); }
+.pkind--route  { color: var(--muted); }
+.screen-hit--active .pkind { color: var(--accent); box-shadow: inset 0 0 0 1px var(--line-strong); }
+
+/* Keycaps. Adapted from the Uiverse keyboard-key family: the mechanism is a
+   pair of insets — a light top edge and a dark bottom lip — that make a flat
+   rectangle read as a physical key. Reduced to token hairlines at 10px. */
+.pkey {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line-strong), inset 0 -1px 0 rgba(0, 0, 0, 0.14);
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
+  line-height: 1;
+  color: var(--muted);
+}
+/* On a result row the cap is the answer to "what does Enter do", so it is
+   shown only on the row Enter would actually open. */
+.screen-hit .pkey {
+  margin-left: 8px;
+  opacity: 0;
+  transition: opacity var(--t-fast) var(--ease-out);
+}
+.screen-hit--active .pkey { opacity: 1; color: var(--accent); }
+
+.pempty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 30px 20px 34px;
+  text-align: center;
+}
+.pempty__line { font-size: 0.8125rem; color: var(--text); }
+.pempty__hint { font-size: 0.75rem; color: var(--faint); }
+
+.pfoot {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 12px;
+  font-size: 0.625rem;
+  color: var(--faint);
+}
+.pfoot__pair { display: inline-flex; align-items: center; gap: 4px; }
+.pfoot__count { margin-left: auto; }
+@media (prefers-reduced-motion: reduce) {
+  .palette-field__icon, .screen-hit .pkey { transition: none; }
+}
+
+/* ── Watchlist suggestions ─────────────────────────────────────────────────
+   A suggested list is chosen on what is in it, so the constituents are shown
+   as marks rather than only as a comma-joined string of tickers. Marks
+   overlap slightly, which reads as one set rather than six separate items
+   and keeps a six-name list inside the card at any width. */
+.sugg-marks { display: flex; align-items: center; }
+.sugg-marks .cmark {
+  margin-right: -5px;
+  box-shadow: 0 0 0 2px var(--surface);
+  transition: transform var(--t-fast) var(--ease-out);
+}
+.panel:hover .sugg-marks .cmark { transform: translateY(-1px); }
+.sugg-marks__more {
+  margin-left: 10px;
+  font-size: 0.6875rem;
+  color: var(--faint);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sugg-marks .cmark { transition: none; }
+  .panel:hover .sugg-marks .cmark { transform: none; }
+}
+
+/* ── Headline rows ─────────────────────────────────────────────────────────
+   A scored headline is an evidence row: who said it, about what, how it was
+   scored. The metadata line now leads with the source's mark, so provenance
+   is the first thing scanned rather than the last thing read. */
+.hl-row {
+  display: block;
+  padding: 12px 10px 12px 12px;
+  margin: 0 -10px 0 -12px;
+  border-radius: var(--r-md);
+  text-decoration: none;
+  transition: background var(--t-fast) var(--ease-out),
+              box-shadow var(--t-fast) var(--ease-out);
+}
+a.hl-row:hover { background: var(--surface-2); box-shadow: inset 2px 0 0 var(--accent); }
+a.hl-row:focus-visible { outline: none; box-shadow: var(--ring); }
+.hl-row__top { display: flex; gap: 10px; align-items: flex-start; }
+.hl-row__title {
+  flex: 1;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--text);
+  font-weight: 480;
+}
+.hl-row__out {
+  flex-shrink: 0;
+  color: var(--faint);
+  font-size: 0.8125rem;
+  transition: transform var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
+}
+a.hl-row:hover .hl-row__out { color: var(--accent); transform: translate(1px, -1px); }
+.hl-row__meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 7px;
+  flex-wrap: wrap;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hl-row, .hl-row__out { transition: none; }
+  a.hl-row:hover .hl-row__out { transform: none; }
+}

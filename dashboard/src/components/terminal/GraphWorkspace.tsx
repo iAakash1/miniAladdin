@@ -1,5 +1,6 @@
 'use client'
 
+import CompanyMark from '@/components/ui/CompanyMark'
 import WorkBoot from '@/components/ui/WorkBoot'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -7,7 +8,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import PageHeader from '@/components/ui/PageHeader'
 import EmptyState from '@/components/ui/EmptyState'
+import { Segmented } from '@/components/ui/Controls'
 import { computeLayout, viewBoxFor, type LayoutNode } from '@/lib/graph/layout'
+import { logoSources } from '@/lib/identity'
 import { EDGE_LABELS } from '@/lib/knowledge'
 import {
   addNote,
@@ -42,6 +45,21 @@ const TYPE_COLOR: Record<string, string> = {
   country: 'var(--faint)', exchange: 'var(--faint)',
 }
 const color = (type: string) => TYPE_COLOR[type] ?? 'var(--muted)'
+
+/** The logo for a company node, or '' for everything a logo would be a lie
+ *  about. Node ids are `type:key`, and for companies the key is the ticker —
+ *  so this reads an identity the graph already carries rather than joining
+ *  against anything. */
+function logoHref(node: LayoutNode): string {
+  if (node.type !== 'company') return ''
+  const ticker = node.id.split(':')[1]
+  if (!ticker) return ''
+  return logoSources(ticker)[0] ?? ''
+}
+
+/** A node id reduced to something legal in an SVG id attribute. Ids contain
+ *  a colon, which is valid in HTML5 but breaks `url(#…)` selector parsing. */
+const slug = (id: string) => id.replace(/[^a-zA-Z0-9_-]/g, '-')
 
 /**
  * Knowledge Graph Workspace — the graph as the primary interface.
@@ -284,22 +302,32 @@ export default function GraphWorkspace() {
             if (e.key === 'Enter') setParam('symbols', (e.target as HTMLInputElement).value.toUpperCase())
           }}
         />
-        <div className="seg" role="group" aria-label="Graph depth">
-          {[1, 2, 3].map((h) => (
-            <button key={h} type="button" className="seg__btn num" aria-pressed={hops === h}
-                    onClick={() => setParam('hops', String(h))}>
-              {h} hop{h > 1 ? 's' : ''}
-            </button>
-          ))}
-        </div>
-        <div className="seg" role="group" aria-label="Filter by entity type">
-          {[['', 'All'], ['company', 'Companies'], ['person', 'People'], ['product', 'Products']].map(([value, label]) => (
-            <button key={value} type="button" className="seg__btn" aria-pressed={typeFilter === value}
-                    onClick={() => setParam('types', value)}>
-              {label}
-            </button>
-          ))}
-        </div>
+        {/* Depth and entity type are both one-of-N over equal-width options,
+            so the indicator slides — see ui/Controls `Segmented`. Traversal
+            depth in particular reads as a scale, and a marker moving along
+            it says "further out" in a way three independent pressed states
+            never did. */}
+        <Segmented
+          label="Graph depth"
+          value={String(hops)}
+          onChange={(next) => setParam('hops', next)}
+          options={[
+            { value: '1', label: '1 hop' },
+            { value: '2', label: '2 hops' },
+            { value: '3', label: '3 hops' },
+          ]}
+        />
+        <Segmented
+          label="Filter by entity type"
+          value={typeFilter}
+          onChange={(next) => setParam('types', next)}
+          options={[
+            { value: '', label: 'All' },
+            { value: 'company', label: 'Companies' },
+            { value: 'person', label: 'People' },
+            { value: 'product', label: 'Products' },
+          ]}
+        />
         {/* Filters by when OmniSignal OBSERVED a relationship, not when the
             relationship began — Wikidata edges carry no start date, so this
             cannot reconstruct history. Labelled for what it actually does. */}
@@ -396,6 +424,35 @@ export default function GraphWorkspace() {
                     <circle r={radius} fill={color(node.type)}
                             opacity={isSelected ? 1 : 0.85}
                             stroke={isSelected ? 'var(--text)' : 'none'} strokeWidth={1.5} />
+                    {/* Company nodes carry their real logo, clipped to the
+                        node circle. Deliberately restricted to the nodes big
+                        enough to resolve one — roots, the selection, and the
+                        well-connected — because a logo at r=3 is a smudge,
+                        and painting every node would be exactly the noise
+                        the graph cannot afford. The coloured circle stays
+                        beneath: an <image> whose href 404s simply does not
+                        paint, so a missing logo leaves the node it already
+                        had rather than a hole. */}
+                    {logoHref(node) && radius >= 6 && (isRoot || isSelected || node.degree > 3) && (
+                      <>
+                        <clipPath id={`clip-${slug(node.id)}`}>
+                          <circle r={radius - 0.5} />
+                        </clipPath>
+                        {/* A light disc under the mark. Provider logos are
+                            transparent PNGs in the brand's own colour, and
+                            NVIDIA's green over the accent-green node circle
+                            was literally invisible — the logo was painting
+                            onto its own colour. */}
+                        <circle r={radius - 0.5} fill="#f7f7f8" />
+                        <image
+                          href={logoHref(node)}
+                          x={-(radius - 0.5)} y={-(radius - 0.5)}
+                          width={(radius - 0.5) * 2} height={(radius - 0.5) * 2}
+                          clipPath={`url(#clip-${slug(node.id)})`}
+                          preserveAspectRatio="xMidYMid meet"
+                        />
+                      </>
+                    )}
                     {(isRoot || isSelected || node.degree > 3 || node.depth <= 1) && (
                       <text y={-radius - 5} textAnchor="middle"
                             style={{ fontSize: isRoot ? 11 : 9,
@@ -460,7 +517,20 @@ export default function GraphWorkspace() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
                 <p className="label" style={{ fontSize: '0.625rem', marginBottom: 4 }}>{selectedNode.type}</p>
-                <p style={{ fontSize: '1rem', fontWeight: 600 }}>{selectedNode.label}</p>
+                {/* The inspector is where an entity gets read rather than
+                    scanned, and it is the one place in this view with room
+                    for a mark at a size that resolves — a node circle is
+                    four screen pixels across. */}
+                <p style={{ fontSize: '1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 9 }}>
+                  {selectedNode.type === 'company' && selectedNode.id.split(':')[1] && (
+                    <CompanyMark
+                      ticker={selectedNode.id.split(':')[1]}
+                      name={selectedNode.label}
+                      size={26}
+                    />
+                  )}
+                  {selectedNode.label}
+                </p>
                 {selectedNode.description && (
                   <p style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: 4 }}>{selectedNode.description}</p>
                 )}

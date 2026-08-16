@@ -1,6 +1,7 @@
 'use client'
 
 import CompanyMark from '@/components/ui/CompanyMark'
+import { StatusPill } from '@/components/ui/DataMarks'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
@@ -29,6 +30,30 @@ import { queryIntelligence, readRecents, recordRecent } from '@/lib/intelligence
  * Derived rather than accumulated in a counter during render: a mutable
  * counter yields different values when React restarts a render mid-tree.
  */
+/**
+ * One glyph per non-company entity kind.
+ *
+ * A palette that shows eleven kinds of thing with one uniform bullet makes
+ * the reader parse the trailing type label on every row. These are typed
+ * marks, not decoration: each is a character that already means the thing
+ * (a document for a saved analysis, a list rule for a watchlist), drawn in
+ * the same plate as a company mark so the column stays flush.
+ *
+ * Companies are absent on purpose — they have real logos.
+ */
+const KIND_GLYPH: Partial<Record<Entity['type'], string>> = {
+  answer: '✦',
+  route: '→',
+  vault: '▤',
+  watchlist: '≡',
+  holding: '◧',
+  glossary: '?',
+  indicator: '∿',
+  metric: '#',
+  macro: '⌁',
+  news: '❋',
+}
+
 export function optionIndex(
   groups: Array<{ items: unknown[] }>, groupIndex: number, itemIndex: number,
 ): number {
@@ -170,6 +195,15 @@ export default function CommandPalette() {
         }}
       >
         <span className="input-wrap palette-field">
+        {/* A search mark inside the field. The field previously opened as a
+            bare line of placeholder text with no affordance identifying it
+            as the search box — the one control the whole surface exists
+            for. Drawn, not a font glyph, so it inherits colour and stays
+            crisp at 15px. */}
+        <svg className="palette-field__icon" viewBox="0 0 24 24" aria-hidden>
+          <circle cx="11" cy="11" r="6.5" />
+          <path d="M16 16l4.5 4.5" />
+        </svg>
         <input
           ref={inputRef}
           role="combobox"
@@ -181,7 +215,7 @@ export default function CommandPalette() {
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           onKeyDown={onKeyDown}
-          style={{ height: 48, border: 'none', borderBottom: '1px solid var(--line)', borderRadius: 0, background: 'transparent', fontSize: '0.9375rem' }}
+          style={{ height: 48, padding: '0 12px 0 38px', border: 'none', borderBottom: '1px solid var(--line)', borderRadius: 0, background: 'transparent', fontSize: '0.9375rem' }}
         />
         {query.trim() && !settled && (
           <span className="palette-field__busy" aria-hidden>
@@ -190,12 +224,30 @@ export default function CommandPalette() {
         )}
         </span>
         <div id="palette-results" role="listbox" ref={listRef} style={{ maxHeight: '52vh', overflowY: 'auto', padding: 6 }}>
+          {/* Three genuinely different states, previously one grey sentence.
+              An empty query is an invitation, an unsettled query is work in
+              progress, and a settled query with nothing in it is a result —
+              and only the last of those should suggest changing the term. */}
           {shown.length === 0 && (
-            <p style={{ padding: '18px 14px', fontSize: '0.8125rem', color: 'var(--faint)' }}>
-              {query.trim()
-                ? settled ? 'Nothing matches — try a ticker, a page, or a concept.' : 'Searching…'
-                : 'Type to search. Recent destinations appear here as you use the terminal.'}
-            </p>
+            <div className="pempty">
+              {query.trim() && !settled ? (
+                <StatusPill tone="accent" label="Searching" pulse />
+              ) : (
+                <>
+                  <span className="empty-glyph" aria-hidden />
+                  <p className="pempty__line">
+                    {query.trim()
+                      ? `Nothing matches “${query.trim()}”.`
+                      : 'Search companies, saved research, watchlists and concepts.'}
+                  </p>
+                  <p className="pempty__hint">
+                    {query.trim()
+                      ? 'Try a ticker, a page name, or a concept.'
+                      : 'Recent destinations appear here as you use the terminal.'}
+                  </p>
+                </>
+              )}
+            </div>
           )}
           {groups.map((group, groupIndex) => (
             <div key={group.type}>
@@ -222,8 +274,15 @@ export default function CommandPalette() {
                       borderRadius: 'var(--r-md)', cursor: 'pointer', textAlign: 'left',
                     }}
                   >
-                    {entity.type === 'company' && (
-                      <CompanyMark ticker={entity.title} size={18} />
+                    {/* Companies get their real mark; everything else gets a
+                        typed glyph rather than the same generic dot, so the
+                        kind of thing a row is can be read before the label. */}
+                    {entity.type === 'company' ? (
+                      <CompanyMark ticker={entity.title} name={entity.subtitle} size={18} />
+                    ) : (
+                      <span className={`pkind pkind--${entity.type}`} aria-hidden>
+                        {KIND_GLYPH[entity.type] ?? '·'}
+                      </span>
                     )}
                     <span style={{ fontWeight: 550, fontSize: '0.8438rem', color: 'var(--text)', flexShrink: 0 }}>
                       {entity.title}
@@ -236,6 +295,12 @@ export default function CommandPalette() {
                     <span className="label" style={{ marginLeft: 'auto', fontSize: '0.5625rem', color: 'var(--faint)', flexShrink: 0 }}>
                       {TYPE_LABELS[entity.type]}
                     </span>
+                    {/* The return key, shown on the row it would actually
+                        open. Adapted from the Uiverse keycap family — an
+                        inset-shadow cap rather than a flat glyph — and bound
+                        to the highlight, so it is a statement about what
+                        Enter does now and not decoration on every row. */}
+                    <kbd className="pkey" aria-hidden>↵</kbd>
                   </button>
                 )
               })}
@@ -245,8 +310,16 @@ export default function CommandPalette() {
             <p style={{ padding: '6px 10px', fontSize: '0.6875rem', color: 'var(--faint)' }}>Searching…</p>
           )}
         </div>
-        <p className="hairline-top" style={{ padding: '7px 12px', fontSize: '0.625rem', color: 'var(--faint)', display: 'flex', gap: 14 }}>
-          <span>↑↓ navigate</span><span>↵ open</span><span>esc close</span>
+        {/* Keycaps rather than run-together glyphs. The old footer read as
+            one grey string ("↑↓ navigate ↵ open esc close"); capping the
+            keys separates what you press from what it does. */}
+        <p className="hairline-top pfoot">
+          <span className="pfoot__pair"><kbd className="pkey">↑</kbd><kbd className="pkey">↓</kbd> navigate</span>
+          <span className="pfoot__pair"><kbd className="pkey">↵</kbd> open</span>
+          <span className="pfoot__pair"><kbd className="pkey">esc</kbd> close</span>
+          {shown.length > 0 && (
+            <span className="pfoot__count num">{shown.length} result{shown.length === 1 ? '' : 's'}</span>
+          )}
         </p>
       </div>
     </div>

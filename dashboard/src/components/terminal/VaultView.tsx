@@ -12,6 +12,7 @@ import Skeleton from '@/components/ui/Skeleton'
 import { normalizeAnalysis } from '@/lib/api'
 import ConfirmButton from '@/components/ui/ConfirmButton'
 import CompanyMark from '@/components/ui/CompanyMark'
+import { Segmented, Switch } from '@/components/ui/Controls'
 import { fmtDate, timeAgo } from '@/lib/format'
 import {
   type CompareResult,
@@ -133,24 +134,20 @@ export default function VaultView() {
 
       {(mode.view === 'history' || mode.view === 'saved') && (
         <>
-          <div className="seg" role="group" aria-label="Vault section" style={{ alignSelf: 'flex-start' }}>
-            <button
-              type="button"
-              className="seg__btn"
-              aria-pressed={mode.view === 'history'}
-              onClick={() => setMode({ view: 'history' })}
-            >
-              All analyses
-            </button>
-            <button
-              type="button"
-              className="seg__btn"
-              aria-pressed={mode.view === 'saved'}
-              onClick={() => setMode({ view: 'saved' })}
-            >
-              Saved reports
-            </button>
-          </div>
+          {/* Two mutually exclusive views of the same archive, so the
+              indicator slides between them rather than each button lighting
+              up on its own — see ui/Controls `Segmented`. */}
+          <span style={{ alignSelf: 'flex-start' }}>
+            <Segmented
+              label="Vault section"
+              value={mode.view}
+              onChange={(view) => setMode({ view })}
+              options={[
+                { value: 'history', label: 'All analyses' },
+                { value: 'saved', label: 'Saved reports' },
+              ]}
+            />
+          </span>
           {mode.view === 'history' ? <HistoryBrowser onOpen={setMode} /> : <SavedBrowser onOpen={setMode} />}
         </>
       )}
@@ -271,14 +268,15 @@ function HistoryBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
           value={filters.to ?? ''}
           onChange={(e) => patchFilters({ to: e.target.value || undefined })}
         />
-        <button
-          type="button"
-          className={`btn btn--ghost btn--sm${grouped ? ' is-on' : ''}`}
-          aria-pressed={grouped}
-          onClick={() => setGrouped((current) => !current)}
-        >
-          Group by ticker
-        </button>
+        {/* A boolean rendered as a boolean. As a ghost button with `.is-on`
+            it was indistinguishable at rest from the actions beside it, so
+            whether grouping was active could only be learned by reading the
+            table. See ui/Controls `Switch`. */}
+        <Switch
+          checked={grouped}
+          onChange={setGrouped}
+          label="Group by ticker"
+        />
         <label htmlFor="vault-sort" className="visually-hidden">Sort</label>
         <select
           id="vault-sort"
@@ -378,6 +376,11 @@ function HistoryBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
                       <Fragment key={group.ticker}>
                         <tr className="vault-group">
                           <th scope="rowgroup" colSpan={8}>
+                            {/* The group header is the one row in the archive
+                                that names a company rather than a run, so it
+                                carries the company's mark at the size a
+                                heading warrants. */}
+                            <CompanyMark ticker={group.ticker} size={20} />
                             <span className="mono">{group.ticker}</span>
                             <span className="u-note">
                               {group.runs.length} run{group.runs.length === 1 ? '' : 's'}

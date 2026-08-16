@@ -1,4 +1,5 @@
 import Sparkline from './Sparkline'
+import SourceBadge from './SourceBadge'
 import Tooltip from './Tooltip'
 import type { Tone } from '@/lib/dashboardInsights'
 
@@ -14,6 +15,12 @@ interface CardProps {
    * inline, so the default card stays scannable (progressive disclosure). */
   explain?: string
   tone?: Tone
+  /** Publisher of the series, when the payload names one. */
+  source?: string | null
+  /** The observation date the value carries — not the fetch time. Macro
+   *  series are published on a lag, and a reader deciding whether a CPI
+   *  print is current needs the print's own date, not ours. */
+  updated?: string | null
 }
 
 const CHANGE_COLOR: Record<Tone, string> = {
@@ -33,6 +40,7 @@ const CHANGE_COLOR: Record<Tone, string> = {
  */
 export default function Card({
   title, value, unit, previous, change, direction = 'flat', trend, explain, tone,
+  source, updated,
 }: CardProps) {
   const changeTone: Tone = tone ?? (direction === 'up' ? 'pos' : direction === 'down' ? 'neg' : 'neutral')
 
@@ -54,8 +62,20 @@ export default function Card({
           <span className="num" style={{ fontSize: '0.6875rem', color: CHANGE_COLOR[changeTone] }}>{change}</span>
         )}
       </div>
-      {previous && (
-        <p className="num" style={{ fontSize: '0.625rem', color: 'var(--faint)', marginTop: 6 }}>prev {previous}</p>
+      {/* Provenance line. A macro card is a claim about the economy, and
+          until now the only thing distinguishing it from a number we made
+          up was the reader's trust in the page. The publisher's mark and
+          the observation date are both already in the payload. */}
+      {(previous || source || updated) && (
+        <div className="dash-card__foot">
+          {previous && <span className="num">prev {previous}</span>}
+          {(source || updated) && (
+            <span className="dash-card__prov">
+              {source && <SourceBadge name={source} compact />}
+              {updated && <span className="num">{updated}</span>}
+            </span>
+          )}
+        </div>
       )}
     </article>
   )

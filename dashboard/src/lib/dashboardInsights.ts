@@ -24,6 +24,11 @@ export interface MacroCard {
   trend: number[]
   updated: string
   explain: string
+  /** Vendor that published the series — `fred` for every card the backend
+   *  currently emits. Optional because it is additive: a payload from an
+   *  older backend simply carries no attribution, and the card renders
+   *  without a source mark rather than claiming one. */
+  source?: string | null
 }
 
 export interface Regime {

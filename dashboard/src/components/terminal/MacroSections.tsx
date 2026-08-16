@@ -21,6 +21,8 @@ function CardGrid({ cards }: { cards: MacroCard[] }) {
           trend={card.trend}
           explain={card.explain}
           previous={card.previous !== null ? fmtNum(card.previous, 2) : null}
+          source={card.source}
+          updated={card.updated}
         />
       ))}
     </div>
