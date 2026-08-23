@@ -133,6 +133,57 @@ class AnalysisRepository:
             "page_size": page_size,
         }
 
+    def latest_by_ticker(
+        self, clerk_user_id: str, tickers: list[str]
+    ) -> dict[str, dict[str, Any]]:
+        """Most recent stored analysis per ticker, reduced to the fields the
+        portfolio view needs.
+
+        One query for the whole set rather than one per ticker: a book of
+        twenty names would otherwise be twenty round trips on every page
+        load. Rows come back newest-first and the first sighting of a ticker
+        wins, so no sort per group is needed.
+
+        `risk_score` and `sector` are not columns — they live inside the
+        stored `quant_payload`, which is the complete research response. They
+        are read out of it here rather than denormalised into new columns,
+        because the payload is already the system of record and a second copy
+        could drift from it.
+        """
+        symbols = [t.strip().upper() for t in tickers if t and t.strip()]
+        if not symbols:
+            return {}
+        rows = (
+            self._c.table("analysis_history")
+            .select("ticker,company_name,verdict,confidence,risk_level,composite_score,created_at,quant_payload")
+            .eq("clerk_user_id", clerk_user_id)
+            .in_("ticker", symbols)
+            .order("created_at", desc=True)
+            .execute()
+            .data
+        ) or []
+
+        latest: dict[str, dict[str, Any]] = {}
+        for row in rows:
+            ticker = str(row.get("ticker") or "").upper()
+            if not ticker or ticker in latest:
+                continue
+            payload = row.get("quant_payload") or {}
+            quant = (payload.get("quant") or {}) if isinstance(payload, dict) else {}
+            technicals = (payload.get("technicals") or {}) if isinstance(payload, dict) else {}
+            latest[ticker] = {
+                "ticker": ticker,
+                "company_name": row.get("company_name"),
+                "verdict": row.get("verdict"),
+                "confidence": row.get("confidence"),
+                "risk_level": row.get("risk_level"),
+                "composite_score": row.get("composite_score"),
+                "risk_score": quant.get("risk_score"),
+                "sector": technicals.get("sector"),
+                "analysed_at": row.get("created_at"),
+            }
+        return latest
+
     # ── saved reports (bookmarks over history rows) ──────────────────────────
     def list_saved(self, clerk_user_id: str) -> list[dict[str, Any]]:
         saved = (

@@ -17,6 +17,23 @@ import { fmtNum } from '@/lib/format'
 
 type Status = 'loading' | 'ready' | 'error'
 
+/** Broadcast that the book changed.
+ *
+ *  Portfolio Intelligence is a sibling of this panel, not a child, and it
+ *  values the same holdings server-side. Without a signal it kept showing the
+ *  valuation of the previous book after an add or a delete — the table said
+ *  four positions and the summary said three.
+ *
+ *  A window event rather than lifted state or a store: the two panels share
+ *  no data, only a *fact* ("the book changed"), and the product already uses
+ *  this exact pattern for the command palette. Adding a state container to
+ *  carry one boolean edge would be the larger change. */
+export const POSITIONS_CHANGED = 'omni-positions-changed'
+
+function announceChange() {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(POSITIONS_CHANGED))
+}
+
 /**
  * Portfolio positions — cloud-persisted holdings (ticker, shares, average
  * cost). Deliberately simple: an add form, a table, inline edit on the two
@@ -59,6 +76,7 @@ export default function PositionsPanel() {
       setShares('')
       setPrice('')
       reload()
+      announceChange()
     }
   }
 
@@ -71,12 +89,16 @@ export default function PositionsPanel() {
     if (Number.isFinite(nPrice) && nPrice >= 0) fields.average_price = nPrice
     const updated = await patchPosition(editing.id, fields)
     setEditing(null)
-    if (updated) setPositions((rows) => rows.map((r) => (r.id === updated.id ? updated : r)))
+    if (updated) {
+      setPositions((rows) => rows.map((r) => (r.id === updated.id ? updated : r)))
+      announceChange()
+    }
   }
 
   const remove = async (id: string) => {
     setPositions((rows) => rows.filter((r) => r.id !== id))
     if (!(await deletePosition(id))) reload()
+    announceChange()
   }
 
   const totalCost = positions.reduce((sum, p) => sum + p.shares * p.average_price, 0)
@@ -174,7 +196,12 @@ export default function PositionsPanel() {
                 <th scope="col" className="num">Shares</th>
                 <th scope="col" className="num">Avg price</th>
                 <th scope="col" className="num">Cost basis</th>
-                <th scope="col">Weight</th>
+                {/* "Cost weight", not "Weight": Portfolio Intelligence below
+                    shows weights of *current market value*, and two columns
+                    on one page both labelled "Weight" and disagreeing is
+                    worse than either label alone. This table is the record of
+                    what was paid; that panel is the valuation. */}
+                <th scope="col" title="Share of total cost basis">Cost weight</th>
                 <th scope="col"><span className="visually-hidden">Actions</span></th>
               </tr>
             </thead>
@@ -223,11 +250,14 @@ export default function PositionsPanel() {
                       ${fmtNum(position.shares * position.average_price, 2)}
                     </td>
                     <td>
-                      {/* Share of cost basis, computed from the figures in
-                          this table and nothing else. Scaled to the largest
-                          holding rather than to 100%, so a diversified book
-                          still produces bars that can be compared instead of
-                          eight stubs in the first tenth of the track. */}
+                      {/* Share of *cost basis*, computed from the figures in
+                          this table and nothing else — deliberately not the
+                          market-value weight shown in Portfolio Intelligence,
+                          which needs a live quote this table does not fetch.
+                          Scaled to the largest holding rather than to 100%,
+                          so a diversified book still produces bars that can
+                          be compared instead of eight stubs in the first
+                          tenth of the track. */}
                       <AllocBar
                         value={(position.shares * position.average_price * 100) / (totalCost || 1)}
                         max={largestWeight}

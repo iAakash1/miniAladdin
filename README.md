@@ -144,6 +144,66 @@ returns, per-factor IC and sign stability, factor correlations, and prediction
 drift (PSI). The Validation tab renders all of it live for any ticker, with
 each metric's definition and interpretation attached.
 
+### Decision provenance (v5 — `src/services/provenance.py`)
+
+Every input a verdict was computed from arrives through a fallback chain:
+prices from whichever of Polygon / TwelveData / FMP / MarketStack / yfinance
+answered first, news from whichever of NewsAPI / GNews / Yahoo / Tavily did,
+fundamentals from Alpha Vantage / Finnhub / FMP. Each of those calls returns a
+`ProviderResult` that already knows which vendor answered, which were tried,
+whether the answer came from cache, whether the cache was stale, and how
+confident the orchestrator is in it.
+
+Until v5 all of that went to a log line. A run built on fresh Polygon bars and
+twelve fresh headlines and a run built on a four-day-old stale cache produced
+the *same shaped* response — and those are not the same claim.
+
+`GET /api/research/{ticker}` now carries a `provenance` block assembled from
+the same `ProviderResult` objects the analysis consumed, so it cannot drift
+from the analysis it describes. Per input: the vendor that answered, the
+vendors tried, the age, whether it was degraded and **why**, and which parts of
+the decision consumed it. Inputs the engine wanted and did not get are recorded
+as explicitly missing — an absent quality factor and a quality factor that
+scored neutral look identical in a decomposition, and only one of them means
+"we did not know".
+
+It reports; it does not grade. The engine already prices these degradations
+into its confidence (`ScoreCard.confidence_losses`, shown verbatim in the same
+panel), and a second opinion here would be a competing judgement dressed as a
+fact. Rendered on the research report under **Provenance**.
+
+### Portfolio intelligence & valuation (v5 — `src/services/portfolio_intelligence.py`)
+
+Book-level arithmetic over stored positions and stored analyses, served by
+`GET /api/portfolio/intelligence`:
+
+- **Valuation** — shares × current price against shares × average cost, per
+  holding and in total, plus the day's move in money. Prices come through the
+  *same* `market_data.get_series(symbol, "3mo")` call the watchlist quotes
+  endpoint makes, out of the same cache — no second market-data path.
+- **Historical value curve** — `Σ shares × that day's real close` across the
+  holdings' overlapping sessions. Only dates every plotted holding has a close
+  for are used; forward-filling a gap would invent a price. It holds *today's*
+  share counts fixed across the window, so it answers "what would this book
+  have been worth" and not "what did I make" — that assumption ships in the
+  payload and is printed under the chart.
+- **Concentration and exposure** — Herfindahl against the published 1500/2500
+  thresholds, top-N capital share, sector exposure, verdict mix weighted by
+  capital, and risk concentration. Weights follow current market value when
+  prices are available and fall back to cost basis when they are not; the
+  denominator in use is stated in the payload and on screen.
+
+Two honesty constraints are enforced by tests
+(`tests/test_portfolio_intelligence.py`, 31 cases):
+
+- **A missing price is never replaced by the buy price.** Doing so reports a
+  holding as exactly break-even — a specific claim, and a false one. Unpriced
+  holdings are carried through as unpriced, excluded from the totals, and
+  counted so the UI can say how much of the book the totals cover.
+- **No covariance is estimated anywhere**, so nothing is labelled "portfolio
+  volatility". What is computed is a weighted mean of per-name engine risk
+  scores, and the output says so in the same breath as the number.
+
 ### Persistence layer (v3.5)
 
 Supabase PostgreSQL, accessed **only** by the FastAPI backend through the
@@ -285,6 +345,7 @@ Opt-in live smoke tests: `OMNISIGNAL_LIVE_TESTS=1 python -m pytest tests/test_li
 | `GET /api/providers/health` | Vendor success %, latency, cooldowns, cache + dedupe stats |
 | `GET/POST/PATCH/DELETE /api/watchlists…` | Cloud watchlists + items (Clerk-authenticated) |
 | `GET/POST/PATCH/DELETE /api/portfolio…` | Portfolio positions |
+| `GET /api/portfolio/intelligence` | Book valuation, historical value curve, concentration, sector exposure, risk concentration |
 | `GET/DELETE /api/history…` | Paginated analysis history with ticker/verdict/date/search filters |
 | `GET /api/history/compare?a=&b=` | Deterministic factor-level comparison of two stored runs |
 | `GET/POST/PATCH/DELETE /api/saved-reports…` | Bookmarked reports with notes |
@@ -297,7 +358,9 @@ Terminal pages: `/terminal` (market dashboard), `/terminal/analyze`,
 
 Contract note: `verdict`, `macro`, `technicals`, `sentiment` are stable;
 `confidence`, `confidence_breakdown`, `risk_level`, `rationale`, `ai`,
-`disclaimer` were added additively in v1.1.
+`disclaimer` were added additively in v1.1; `technical_intelligence` and
+`street_intelligence` in v4.5; `provenance` in v5. Every addition is additive —
+a client that ignores the new keys behaves exactly as before.
 
 ### LLM narration layer
 

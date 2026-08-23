@@ -15,7 +15,9 @@ from typing import Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from src import providers
 from src.services import database
+from src.services import portfolio_intelligence
 from src.services.clerk_auth import require_clerk_user
 from src.services.database.repositories import (
     AnalysisRepository,
@@ -404,3 +406,87 @@ def delete_note(note_id: str, user: str = Depends(require_clerk_user)):
     if not SessionsRepository(_client()).delete_note(user, note_id):
         raise HTTPException(status_code=404, detail="Note not found.")
     return {"ok": True}
+
+
+def _price_history(tickers: list[str]) -> tuple[dict[str, Any], dict[str, list]]:
+    """Current quotes and daily closes for the held tickers, in one pass.
+
+    Deliberately the *same* provider call the watchlist quotes endpoint makes
+    — ``market_data.get_series(symbol, "3mo")`` — rather than a second
+    market-data path. That call already returns the full series and
+    ``/api/quotes`` throws away everything but the last close; here the whole
+    series is kept, so the historical curve costs nothing beyond the quote
+    the page needed anyway. Both come out of the same cache, so a portfolio
+    page opened after a watchlist page makes no vendor calls at all.
+
+    Per-symbol failures are per-symbol: one unreachable ticker returns an
+    error entry and the rest of the book still values.
+    """
+    quotes: dict[str, Any] = {}
+    closes: dict[str, list] = {}
+    for symbol in tickers[:25]:
+        try:
+            result = providers.market_data.get_series(symbol, "3mo")
+            if not result.ok or len(result.data.bars) < 2:
+                quotes[symbol] = {"error": "no market data"}
+                continue
+            bars = result.data.bars
+            series = [(str(bar.date), float(bar.close)) for bar in bars if bar.close]
+            closes[symbol] = series
+            last = series[-1][1]
+            prev = series[-2][1] if len(series) >= 2 else None
+            quotes[symbol] = {
+                "price": round(last, 2),
+                "change_1d": round((last / prev - 1) * 100, 2) if prev else None,
+                "source": result.source,
+                "stale": result.stale,
+            }
+        except Exception:  # noqa: BLE001 — one bad symbol never fails the book
+            logger.exception("portfolio quote failed for %s", symbol)
+            quotes[symbol] = {"error": "unavailable"}
+    return quotes, closes
+
+
+@router.get("/portfolio/intelligence")
+def portfolio_intelligence_report(user: str = Depends(require_clerk_user)):
+    """Valuation, concentration, exposure and risk over the caller's book.
+
+    Three things are assembled here, all from data the product already has:
+
+    * **Valuation** — shares × current price against shares × average cost,
+      per holding and in total. Prices come through the existing market-data
+      provider chain; a holding whose price is unreachable is reported as
+      unpriced and excluded from the totals rather than valued at its own
+      cost, which would report it as exactly break-even.
+    * **A historical value curve** — today's share counts marked against the
+      real daily closes the same provider call already returned. Not a track
+      record, and the payload says so.
+    * **Concentration, exposure and risk** — the arithmetic in
+      ``src.services.portfolio_intelligence``, now weighted by current market
+      value when prices are available and by cost basis when they are not.
+    """
+    client = _client()
+    positions = PortfolioRepository(client).list(user)
+    tickers = sorted({str(p.get("ticker") or "").upper() for p in positions if p.get("ticker")})
+
+    quotes, closes = _price_history(tickers) if tickers else ({}, {})
+    valuation = portfolio_intelligence.value_positions(positions, quotes)
+    curve = portfolio_intelligence.value_curve(positions, closes)
+
+    market_values = {
+        row["ticker"]: row["current_value"]
+        for row in valuation["rows"]
+        if row.get("priced") and row.get("current_value")
+    }
+
+    analyses = AnalysisRepository(client).latest_by_ticker(user, tickers) if tickers else {}
+    report = portfolio_intelligence.analyse(positions, analyses, market_values or None)
+    report["headlines"] = portfolio_intelligence.headlines(report)
+    report["analysed"] = analyses
+    report["valuation"] = valuation
+    report["curve"] = curve
+    # The product prices US equities through USD-denominated vendors; stating
+    # it lets the UI format without guessing, and makes the assumption
+    # visible if a non-USD venue is ever added.
+    report["currency"] = "USD"
+    return report

@@ -13,6 +13,7 @@ import { ConfidenceBar, StatusPill, TrendMark } from '@/components/ui/DataMarks'
 import { notify } from '@/components/ui/Toasts'
 import { fmtPctRaw, timeAgo } from '@/lib/format'
 import PositionsPanel from '@/components/terminal/PositionsPanel'
+import PortfolioIntelligence from '@/components/terminal/PortfolioIntelligence'
 import {
   SUGGESTED_LISTS,
   type Watchlist,
@@ -629,6 +630,11 @@ export default function PortfolioView() {
           </p>
 
           <PositionsPanel />
+
+          {/* Book-level figures sit under the positions they are computed
+              from, so the reader has already seen the holdings the
+              concentration is about. */}
+          <PortfolioIntelligence />
 
           <StorageStatus />
         </>

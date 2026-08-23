@@ -60,6 +60,7 @@ from src.services import (
 from src.services.backtest_service import peek_cached as peek_backtest
 from src.services.clerk_auth import optional_clerk_user
 from src.services.database.repositories import AnalysisRepository
+from src.services.provenance import Ledger
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 # Railway captures stdout; structured single-line records with timestamps.
@@ -453,6 +454,12 @@ def research_ticker(
     if not ticker or len(ticker) > 10:
         raise HTTPException(status_code=400, detail="Invalid ticker symbol")
 
+    # Chain of custody for this run. Every provider call below already returns
+    # which vendor answered, which were tried, and how degraded the answer
+    # was; until this ledger existed all of it went to a log line and the
+    # response carried the conclusion without the evidence behind it.
+    ledger = Ledger(ticker)
+
     # ── Step 0: warm the seven independent upstreams concurrently. ──────────
     # Purely a latency measure. Every fetch below is cache-first and
     # single-flight wrapped, so a warmed key returns instantly and a call
@@ -511,10 +518,11 @@ def research_ticker(
         # Slow inputs for the v2.1 quality/PEAD sleeves (6h-cached, optional)
         quality_inputs = fundamentals_data.get_quality_inputs(ticker)
         pead_inputs = fundamentals_data.get_pead_inputs(ticker)
-        return (prediction_result, full_frame, series_result.confidence,
+        return (prediction_result, full_frame, series_result,
                 _days_to_earnings(), quality_inputs, pead_inputs)
 
     scoring_frame = None
+    series_result = None
     series_confidence = 1.0
     days_to_earnings: Optional[int] = None
     quality_inputs: dict[str, Any] = {}
@@ -524,12 +532,31 @@ def research_ticker(
         macro_future = pool.submit(_fetch_macro_safe)
         tech_future = pool.submit(_run_technicals)
         multiplier, macro_stats = macro_future.result()
+        ledger.note(
+            f"Macro regime gate applied at SRM {multiplier:.2f}"
+            if isinstance(multiplier, (int, float)) else "Macro regime gate applied"
+        )
         try:
-            (prediction, scoring_frame, series_confidence,
+            (prediction, scoring_frame, series_result,
              days_to_earnings, quality_inputs, pead_inputs) = tech_future.result()
+            series_confidence = series_result.confidence
+            bars = len(scoring_frame) if scoring_frame is not None else 0
+            ledger.record(
+                label="Daily price history",
+                kind="market",
+                result=series_result,
+                detail=f"{bars} daily bars, 1y window",
+                used_for=["momentum factors", "volatility", "technical intelligence",
+                          "risk score"],
+            )
         except Exception:
             logger.exception("Technical analysis failed for %s", ticker)
             tech_error = "Technical analysis failed — check that the ticker symbol is valid"
+            ledger.record(
+                label="Daily price history", kind="market",
+                missing_reason="every price vendor failed for this symbol",
+                used_for=["momentum factors", "volatility", "risk score"],
+            )
 
     if prediction is not None:
         risk_adjusted = RiskAwarePredictionAgent.apply_dampening(
@@ -576,6 +603,13 @@ def research_ticker(
     if prediction is not None and technicals.get("company_name") is None:
         try:
             company_result = providers.fundamentals.get_company(ticker)
+            ledger.record(
+                label="Company profile",
+                kind="fundamental",
+                result=company_result,
+                detail="name, sector, market cap",
+                used_for=["sector identity", "news query"],
+            )
             if company_result.ok:
                 profile = company_result.data
                 technicals["company_name"] = technicals.get("company_name") or profile.name or None
@@ -587,6 +621,13 @@ def research_ticker(
     if prediction is not None and technicals.get("pe_ratio") is None:
         try:
             fund_result = providers.fundamentals.get_fundamentals(ticker)
+            ledger.record(
+                label="Valuation fundamentals",
+                kind="fundamental",
+                result=fund_result,
+                detail="P/E, forward P/E, EPS, beta, 52-week range",
+                used_for=["value factors", "analyst-target upside", "beta risk"],
+            )
             if fund_result.ok:
                 fund = fund_result.data
                 for field, value in (
@@ -602,12 +643,26 @@ def research_ticker(
     # ── Step 3: Sentiment (after technicals — reuses the resolved company name)
     sentiment_data: Optional[dict[str, Any]] = None
     sentiment_obj = AggregateSentiment()
+    if fast:
+        ledger.record(
+            label="News & headlines", kind="evidence",
+            missing_reason="fast mode — evidence gathering and the narrative layer are skipped",
+            used_for=["news factor", "evidence weighting", "sentiment"],
+        )
     if not fast:
         company_name = technicals.get("company_name", "") or ""
         try:
             # Headlines through the NewsProvider chain (NewsAPI → GNews →
             # Yahoo RSS → Tavily → stale cache); the keyword scorer is unchanged.
             news_result = providers.news.get_news(ticker, company_name, limit=12)
+            ledger.record(
+                label="News & headlines",
+                kind="evidence",
+                result=news_result,
+                detail=(f"{len(news_result.data)} headlines"
+                        if news_result.ok and news_result.data else "no headlines returned"),
+                used_for=["news factor", "evidence weighting", "sentiment"],
+            )
             if news_result.ok and news_result.data:
                 headline_dicts = [
                     {
@@ -644,6 +699,11 @@ def research_ticker(
             }
         except Exception:
             logger.exception("Sentiment analysis failed for %s", ticker)
+            ledger.record(
+                label="News & headlines", kind="evidence",
+                missing_reason="every news vendor failed",
+                used_for=["news factor", "evidence weighting", "sentiment"],
+            )
             sentiment_data = {
                 "error":          "Sentiment sources unavailable",
                 "headline_count": 0,
@@ -690,6 +750,13 @@ def research_ticker(
     if prediction is not None:
         try:
             street_result = providers.fundamentals.get_street(ticker)
+            ledger.record(
+                label="Street & insider activity",
+                kind="fundamental",
+                result=street_result,
+                detail="analyst ratings, price targets, insider transactions",
+                used_for=["presentation only — never a scoring input"],
+            )
             if street_result.ok:
                 street_intel = street_intelligence.build(street_result.data)
         except Exception:  # noqa: BLE001 — additive block, never fatal
@@ -699,6 +766,13 @@ def research_ticker(
     if prediction is not None and scoring_frame is not None:
         try:
             spy_result = providers.market_data.get_series("SPY", "1y")
+            ledger.record(
+                label="SPY benchmark series",
+                kind="market",
+                result=spy_result,
+                detail="1y daily bars",
+                used_for=["relative strength vs benchmark"],
+            )
             spy_frame = (
                 _series_to_dataframe(spy_result.data)
                 if spy_result.ok and spy_result.data.bars else None
@@ -864,6 +938,22 @@ def research_ticker(
             logger.exception("LLM layer raised unexpectedly for %s", ticker)
             ai = None
 
+    # Inputs the engine wanted but did not get. Recorded as explicitly absent
+    # rather than left out, because a factor that is missing and a factor that
+    # scored neutral look identical in a decomposition otherwise.
+    if not quality_inputs:
+        ledger.record(
+            label="Quality fundamentals", kind="fundamental",
+            missing_reason="gross profitability / issuance / asset growth unavailable for this symbol",
+            used_for=["quality factors"],
+        )
+    if not pead_inputs:
+        ledger.record(
+            label="Earnings surprise history", kind="fundamental",
+            missing_reason="no recent reported surprise available",
+            used_for=["post-earnings-drift factor"],
+        )
+
     elapsed = round(time.time() - start, 2)
     logger.info(
         "research %s: verdict=%s confidence=%d risk=%s ai=%s mode=%s elapsed=%.2fs",
@@ -892,6 +982,21 @@ def research_ticker(
         "disclaimer":  DISCLAIMER,
         "elapsed_seconds": elapsed,
         "mode":  "fast" if fast else "full",
+        # Chain of custody: every input this verdict was computed from, which
+        # vendor answered, how degraded it was and what it fed. Assembled from
+        # the same ProviderResults the analysis consumed, so it cannot drift
+        # from the analysis it describes.
+        "provenance": ledger.build(
+            engine_version=(scorecard.model_version if scorecard is not None else None),
+            elapsed_seconds=elapsed,
+            confidence_losses=(
+                [{"component": loss.component, "points": loss.points}
+                 for loss in scorecard.confidence_losses]
+                if scorecard is not None else []
+            ),
+            ai_generated=(ai or {}).get("generated"),
+            ai_model=(ai or {}).get("model"),
+        ),
     }
 
     # ── Automatic history persistence (v3.5, additive) ───────────────────────

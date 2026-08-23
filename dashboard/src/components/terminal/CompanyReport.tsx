@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useHistory } from '@/lib/history'
 import AiPanel from '@/components/terminal/AiPanel'
 import CompanyBand from '@/components/terminal/CompanyBand'
+import DecisionProvenance from '@/components/terminal/DecisionProvenance'
 import CompanyCrossLinks from '@/components/terminal/CompanyCrossLinks'
 import CompanyEcosystem from '@/components/terminal/CompanyEcosystem'
 import Fundamentals from '@/components/terminal/Fundamentals'
@@ -58,6 +59,7 @@ const SECTIONS: Array<{
   { id: 'street', label: 'Street', present: (a) => a.streetIntelligence !== null },
   { id: 'fundamentals', label: 'Fundamentals', present: () => true },
   { id: 'news', label: 'News', present: (a) => a.headlines.length > 0 },
+  { id: 'provenance', label: 'Provenance', present: (a) => a.provenance !== null },
   { id: 'ecosystem', label: 'Ecosystem', present: () => true },
   // Was hardcoded `true`, while `VerdictTimeline` returns null below two
   // snapshots — the common case for a ticker analysed once. The nav
@@ -299,6 +301,16 @@ export default function CompanyReport({ analysis, initialChart, isPro, requestUp
           onUpgrade={() => requestUpgrade('feature')}
         />
       </div>
+
+      {/* Placed after the evidence it describes and before the history that
+          follows from it: a reader who has just read the news and the factor
+          decomposition is exactly the reader asking "where did this come
+          from". */}
+      {analysis.provenance && (
+        <div id="provenance" className="report-section">
+          <DecisionProvenance provenance={analysis.provenance} />
+        </div>
+      )}
 
       <div id="ecosystem" className="report-section">
         <CompanyEcosystem ticker={analysis.ticker} />

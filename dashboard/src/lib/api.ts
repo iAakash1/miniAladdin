@@ -208,6 +208,7 @@ export function normalizeAnalysis(raw: RawResearchResponse): Analysis {
     mode: raw.mode ?? 'full',
     technicalIntelligence: raw.technical_intelligence ?? null,
     streetIntelligence: raw.street_intelligence ?? null,
+    provenance: raw.provenance ?? null,
   }
 }
 

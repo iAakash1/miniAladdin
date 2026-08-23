@@ -272,7 +272,60 @@ export interface RawResearchResponse {
   // v4.5 additive: deterministic technical read (null on thin history).
   technical_intelligence?: TechnicalIntelligence | null
   street_intelligence?: StreetIntelligence | null
+  /** v5 additive: chain of custody for this run (see src/services/provenance.py). */
+  provenance?: Provenance | null
   detail?: string
+}
+
+/* ---------- Decision provenance ---------- */
+
+/** How an input fared. `ok` means a live source answered; `degraded` means it
+ *  answered from a stale cache, a fallback vendor, or with vendors
+ *  disagreeing; `missing` means nothing answered at all. */
+export type InputHealth = 'ok' | 'degraded' | 'missing'
+
+export interface ProvenanceInput {
+  /** What the input is, in the reader's language — "Daily price history". */
+  label: string
+  /** Which stage of the pipeline it belongs to. */
+  kind: 'market' | 'fundamental' | 'evidence' | string
+  detail: string | null
+  /** Which parts of the decision consumed it. */
+  used_for: string[]
+  health: InputHealth
+  /** Vendor that actually answered. Null when nothing did. */
+  source: string | null
+  sources_consulted: string[]
+  confidence: number | null
+  cached: boolean
+  stale: boolean
+  /** Coarse relative age — "just now", "4h ago". */
+  age: string | null
+  /** Why the input is degraded or missing. Null when it is neither. */
+  note: string | null
+}
+
+export interface Provenance {
+  ticker: string
+  generated_at: string
+  engine_version: string | null
+  elapsed_seconds: number | null
+  inputs: ProvenanceInput[]
+  summary: {
+    total: number
+    ok: number
+    degraded: number
+    missing: number
+    sources: string[]
+  }
+  /** Verbatim from the scorecard — what the engine itself docked for. */
+  confidence_losses: Array<{ component: string; points: number }>
+  ai: {
+    generated: boolean | null
+    model: string | null
+    role: string
+  }
+  notes: string[]
 }
 
 /** Raw shape of GET /api/chart/{ticker} */
@@ -400,6 +453,9 @@ export interface Analysis {
   mode: string
   technicalIntelligence: TechnicalIntelligence | null
   streetIntelligence: StreetIntelligence | null
+  /** Chain of custody. Null for payloads produced before v5 or by a backend
+   *  that does not emit it — the panel simply does not render. */
+  provenance: Provenance | null
 }
 
 /* ---------- News (our own /api/news aggregation) ---------- */

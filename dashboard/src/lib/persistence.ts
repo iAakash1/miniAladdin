@@ -236,6 +236,107 @@ export async function deletePosition(id: string): Promise<boolean> {
   return res.ok
 }
 
+/* ── portfolio intelligence ───────────────────────────────────────────────
+   Concentration, exposure and risk over the whole book. Computed server-side
+   from stored positions and stored analyses — see
+   src/services/portfolio_intelligence.py — so the numbers on this screen
+   come from one implementation that has tests against hand-worked values,
+   rather than from arithmetic reproduced in the client. */
+
+export interface PortfolioIntel {
+  covered: boolean
+  reason?: string
+  positions: number
+  total_basis?: number
+  weight_basis?: string
+  concentration?: {
+    hhi: number
+    band: 'diversified' | 'moderate' | 'concentrated'
+    top_three_pct: number
+    top_three: Array<{ ticker: string; weight_pct: number }>
+    largest: { ticker: string; weight_pct: number }
+  }
+  coverage?: {
+    scored: number
+    unscored: number
+    covered_pct: number
+    unscored_tickers: string[]
+  }
+  risk?: {
+    weighted_score: number | null
+    basis: string
+    top_contributors: Array<{
+      ticker: string; weight_pct: number; risk_score: number; risk_share_pct: number
+    }>
+    top_three_share_pct: number
+  }
+  sectors?: { rows: Array<{ sector: string; weight_pct: number }>; unknown_pct: number }
+  verdict_mix?: { bullish: number; neutral: number; bearish: number }
+  headlines?: Array<{ tone: string; text: string }>
+  /** ISO-4217 code the figures are denominated in, from the server rather
+   *  than assumed — the UI must not hardcode a symbol. */
+  currency?: string
+  valuation?: PortfolioValuation
+  /** Null when too few holdings have enough overlapping history to plot. */
+  curve?: PortfolioCurve | null
+}
+
+/** One holding, valued. `priced: false` means no current price could be
+ *  fetched — the value fields are null rather than falling back to cost,
+ *  which would report the holding as exactly break-even. */
+export interface HoldingValuation {
+  ticker: string
+  shares: number
+  avg_price: number
+  invested: number
+  current_price: number | null
+  current_value: number | null
+  pnl: number | null
+  pnl_pct: number | null
+  day_change_pct: number | null
+  priced: boolean
+  price_note: string | null
+  stale?: boolean
+  source?: string | null
+}
+
+export interface PortfolioValuation {
+  rows: HoldingValuation[]
+  totals: {
+    /** Cost of the whole book — known even when no price is reachable. */
+    invested: number
+    /** Cost of only the holdings that could be priced. Every figure below
+     *  covers this subset, not the whole book. */
+    priced_invested: number
+    current_value: number | null
+    pnl: number | null
+    pnl_pct: number | null
+    day_pnl: number | null
+    day_pnl_pct: number | null
+  }
+  coverage: {
+    priced: number
+    unpriced: number
+    unpriced_tickers: string[]
+    priced_pct: number
+  }
+}
+
+export interface PortfolioCurve {
+  points: Array<{ date: string; value: number }>
+  invested_baseline: number
+  tickers: string[]
+  excluded_tickers: string[]
+  /** What the curve does and does not claim — rendered, not paraphrased. */
+  assumption: string
+}
+
+export async function fetchPortfolioIntel(): Promise<PortfolioIntel> {
+  const res = await authFetch('/api/portfolio/intelligence')
+  if (!res.ok) throw new Error(String(res.status))
+  return res.json()
+}
+
 // ── profile ──────────────────────────────────────────────────────────────────
 
 export async function syncProfile(fields: {
