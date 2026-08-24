@@ -156,6 +156,34 @@ class FundamentalsProvider:
         return [self.alpha_vantage, self.finnhub, self.fmp, self.tiingo,
                 self.polygon, self.yfinance]
 
+    def ownership_evidence(self, symbol: str) -> list[Evidence]:
+        """Share count, float, holdings and short interest.
+
+        Only yfinance supplies this today, which is precisely why it is worth
+        having: it is keyless, so this is one of the few capabilities that
+        answers in every environment including CI. Routed through the fabric
+        rather than called directly so that adding a second ownership vendor
+        later needs no change here.
+        """
+        symbol = symbol.upper()
+        return fabric.collect(
+            "ownership", symbol, self.vendors, lambda v: v.get_ownership(symbol),
+        )
+
+    def analyst_evidence(self, symbol: str) -> list[Evidence]:
+        """Price targets and rating distributions, one entry per vendor.
+
+        Deliberately *not* reconciled into a single consensus. Each vendor
+        polls a different set of analysts, so a median across vendors would
+        be a consensus of no actual group of people. The readings are kept
+        side by side and the UI shows them that way.
+        """
+        symbol = symbol.upper()
+        return fabric.collect(
+            "analyst_consensus", symbol, self.vendors,
+            lambda v: v.get_analyst_consensus(symbol),
+        )
+
     def profile_evidence(self, symbol: str) -> list[Evidence]:
         """Every profile-capable vendor, concurrently.
 

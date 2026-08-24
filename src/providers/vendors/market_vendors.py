@@ -22,6 +22,8 @@ from src.providers.schemas import (
     PriceSeries,
     RecommendationMonth,
     StreetData,
+    AnalystConsensus,
+    OwnershipData,
 )
 
 PERIOD_DAYS = {"1mo": 31, "3mo": 92, "6mo": 184, "1y": 366, "5y": 1830}
@@ -593,6 +595,152 @@ class YFinanceVendor(VendorClient):
             employees=int(employees) if isinstance(employees, (int, float)) else None,
             country=str(info.get("country") or ""),
             beta=_safe_float(info.get("beta")),
+        )
+
+    def get_fundamentals(self, symbol: str) -> Optional[FundamentalsData]:
+        """Valuation, margins, returns and leverage from the info payload.
+
+        `.info` returns roughly 185 fields; the adapter was using twelve of
+        them for a profile and ignoring the rest. Because yfinance is
+        **keyless**, this is the only fundamentals source in the system that
+        answers in every environment — including local development and CI,
+        where every authenticated vendor reports `not_configured`.
+
+        Yahoo reports margins and returns as fractions (0.4865) where Finnhub
+        reports percentages (48.65). They are converted here rather than at
+        the edge, so a reconciler comparing the two vendors is comparing the
+        same unit — mixing the conventions would show a 100x "disagreement"
+        between two vendors that actually agree.
+        """
+        import yfinance as yf
+
+        info = self.timed_call(lambda: yf.Ticker(symbol).info, operation="fundamentals")
+        if not isinstance(info, dict) or not info:
+            return None
+
+        def pct(key):
+            """Fraction → percent, preserving None."""
+            value = _safe_float(info.get(key))
+            return round(value * 100, 4) if value is not None else None
+
+        data = FundamentalsData(
+            symbol=symbol,
+            pe_ratio=_safe_float(info.get("trailingPE")),
+            forward_pe=_safe_float(info.get("forwardPE")),
+            eps=_safe_float(info.get("trailingEps")),
+            beta=_safe_float(info.get("beta")),
+            week_52_high=_safe_float(info.get("fiftyTwoWeekHigh")),
+            week_52_low=_safe_float(info.get("fiftyTwoWeekLow")),
+            dividend_yield=pct("dividendYield"),
+            profit_margin=pct("profitMargins"),
+
+            price_to_sales=_safe_float(info.get("priceToSalesTrailing12Months")),
+            price_to_book=_safe_float(info.get("priceToBook")),
+            ev_to_ebitda=_safe_float(info.get("enterpriseToEbitda")),
+            ev_to_revenue=_safe_float(info.get("enterpriseToRevenue")),
+
+            gross_margin_ttm=pct("grossMargins"),
+            operating_margin_ttm=pct("operatingMargins"),
+            net_margin_ttm=pct("profitMargins"),
+
+            roe_ttm=pct("returnOnEquity"),
+            roa_ttm=pct("returnOnAssets"),
+
+            revenue_growth_ttm_yoy=pct("revenueGrowth"),
+            eps_growth_ttm_yoy=pct("earningsGrowth"),
+
+            current_ratio=_safe_float(info.get("currentRatio")),
+            quick_ratio=_safe_float(info.get("quickRatio")),
+            # Yahoo reports debt/equity as a percentage (78.4), Finnhub as a
+            # ratio (0.784). Normalised to the ratio so the two are comparable.
+            debt_to_equity=(
+                round(_safe_float(info.get("debtToEquity")) / 100, 4)
+                if _safe_float(info.get("debtToEquity")) is not None else None
+            ),
+            vendor_metrics={
+                k: v for k, v in {
+                    "enterprise_value": _safe_float(info.get("enterpriseValue")),
+                    "total_revenue": _safe_float(info.get("totalRevenue")),
+                    "ebitda": _safe_float(info.get("ebitda")),
+                    "free_cash_flow": _safe_float(info.get("freeCashflow")),
+                    "operating_cash_flow": _safe_float(info.get("operatingCashflow")),
+                    "total_cash": _safe_float(info.get("totalCash")),
+                    "total_debt": _safe_float(info.get("totalDebt")),
+                    "book_value": _safe_float(info.get("bookValue")),
+                    "peg_ratio": _safe_float(info.get("trailingPegRatio")),
+                    "ebitda_margins": pct("ebitdaMargins"),
+                }.items() if v is not None
+            },
+        )
+        # A payload with no usable figure at all is an absence, not a company
+        # whose every ratio is zero.
+        if data.pe_ratio is None and data.net_margin_ttm is None and not data.vendor_metrics:
+            return None
+        return data
+
+    def get_ownership(self, symbol: str) -> Optional[OwnershipData]:
+        """Share count, float, insider/institutional holdings and short interest.
+
+        Keyless, and nothing else in the system supplies it. Short interest in
+        particular carries its own settlement date because exchanges publish
+        it twice a month — a short figure without that date is close to
+        meaningless, so the date travels with it or the figure is not shown.
+        """
+        import yfinance as yf
+        from datetime import datetime, timezone as _tz
+
+        info = self.timed_call(lambda: yf.Ticker(symbol).info, operation="ownership")
+        if not isinstance(info, dict):
+            return None
+
+        short_date = None
+        stamp = _safe_float(info.get("dateShortInterest"))
+        if stamp:
+            try:
+                short_date = datetime.fromtimestamp(stamp, tz=_tz.utc).date().isoformat()
+            except (OSError, ValueError, OverflowError):
+                short_date = None
+
+        data = OwnershipData(
+            symbol=symbol,
+            shares_outstanding=_safe_float(info.get("sharesOutstanding")),
+            float_shares=_safe_float(info.get("floatShares")),
+            held_percent_insiders=_safe_float(info.get("heldPercentInsiders")),
+            held_percent_institutions=_safe_float(info.get("heldPercentInstitutions")),
+            shares_short=_safe_float(info.get("sharesShort")),
+            short_percent_of_float=_safe_float(info.get("shortPercentOfFloat")),
+            short_ratio=_safe_float(info.get("shortRatio")),
+            short_interest_date=short_date,
+            source=self.NAME,
+        )
+        if all(getattr(data, f) is None for f in (
+            "shares_outstanding", "float_shares", "held_percent_institutions", "shares_short",
+        )):
+            return None
+        return data
+
+    def get_analyst_consensus(self, symbol: str) -> Optional[AnalystConsensus]:
+        """Price targets and the rating distribution, kept as a distribution."""
+        import yfinance as yf
+
+        info = self.timed_call(lambda: yf.Ticker(symbol).info, operation="analyst")
+        if not isinstance(info, dict):
+            return None
+        target = _safe_float(info.get("targetMeanPrice"))
+        if target is None:
+            return None
+        return AnalystConsensus(
+            symbol=symbol,
+            target_mean=target,
+            target_high=_safe_float(info.get("targetHighPrice")),
+            target_low=_safe_float(info.get("targetLowPrice")),
+            analyst_count=(
+                int(_safe_float(info.get("numberOfAnalystOpinions")))
+                if _safe_float(info.get("numberOfAnalystOpinions")) else None
+            ),
+            recommendation=str(info.get("recommendationKey") or "") or None,
+            recommendation_mean=_safe_float(info.get("recommendationMean")),
+            source=self.NAME,
         )
 
     def search_symbols(self, query: str, limit: int = 8) -> Optional[list[dict]]:

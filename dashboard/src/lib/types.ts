@@ -286,6 +286,8 @@ export interface RawResearchResponse {
   profile?: CompanyProfile | null
   filings?: FilingsBlock | null
   ratios?: RatiosBlock | null
+  ownership?: OwnershipBlock | null
+  analyst?: AnalystBlock | null
   detail?: string
 }
 
@@ -441,6 +443,44 @@ export interface RatiosBlock {
    *  one vendor's consistently-computed family, and mixing definitions
    *  between vendors is precisely what produces meaningless ratios. */
   source?: string
+}
+
+/** Who holds the shares, and how many are sold short.
+ *
+ *  Positions, not performance — which is why this is its own block rather
+ *  than more fields on the ratios object. Percentages arrive as fractions
+ *  (0.664, not 66.4) and are formatted at the edge. */
+export interface OwnershipBlock {
+  symbol: string
+  shares_outstanding: number | null
+  float_shares: number | null
+  held_percent_insiders: number | null
+  held_percent_institutions: number | null
+  shares_short: number | null
+  short_percent_of_float: number | null
+  short_ratio: number | null
+  /** Settlement date. Exchanges publish short interest twice a month, so a
+   *  figure without this date is close to meaningless. */
+  short_interest_date: string | null
+  source: string
+}
+
+export interface AnalystReading {
+  target_mean: number | null
+  target_high: number | null
+  target_low: number | null
+  analyst_count: number | null
+  recommendation: string | null
+  recommendation_mean: number | null
+  source: string
+}
+
+/** One entry per vendor, deliberately not reduced to a single consensus:
+ *  each vendor polls a different analyst set, so a median across them would
+ *  be a consensus of no actual group of people. */
+export interface AnalystBlock {
+  readings: AnalystReading[]
+  vendor_count: number
 }
 
 export interface FilingsBlock {
@@ -652,6 +692,8 @@ export interface Analysis {
   profile: CompanyProfile | null
   filings: FilingsBlock | null
   ratios: RatiosBlock | null
+  ownership: OwnershipBlock | null
+  analyst: AnalystBlock | null
 }
 
 /* ---------- News (our own /api/news aggregation) ---------- */

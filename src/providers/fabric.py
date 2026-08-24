@@ -80,6 +80,14 @@ CAPABILITY_METHODS: dict[str, str] = {
     # cheaper copy of the same kind, so it gets its own capabilities.
     "filings": "get_filings",
     "xbrl_facts": "get_xbrl_facts",
+    # Positions rather than performance: who holds the shares and how many
+    # are sold short. Kept apart from `fundamentals` so a settlement-lagged
+    # short figure is never read as being as current as a trailing margin.
+    "ownership": "get_ownership",
+    # Sell-side targets and the rating distribution. Explicitly not
+    # reconciled across vendors — each covers a different analyst set, so a
+    # median of two vendors' consensus figures is a consensus of nothing.
+    "analyst_consensus": "get_analyst_consensus",
 }
 
 # Human labels for the diagnostics surface. A capability with no label is
@@ -97,6 +105,8 @@ CAPABILITY_LABELS: dict[str, str] = {
     "image_search": "Editorial imagery",
     "filings": "SEC filings",
     "xbrl_facts": "XBRL reported facts",
+    "ownership": "Ownership & short interest",
+    "analyst_consensus": "Analyst targets",
 }
 
 

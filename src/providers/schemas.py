@@ -279,6 +279,62 @@ class FundamentalsData(BaseModel):
     vendor_metrics: dict[str, Any] = Field(default_factory=dict)
 
 
+class OwnershipData(BaseModel):
+    """Who holds the shares, and how many are sold short.
+
+    A separate model from `FundamentalsData` because these are *positions*,
+    not performance: insider and institutional holdings and short interest
+    answer "who is on the other side of this" rather than "how did the
+    business do". Merging them would put a settlement-lagged short figure
+    next to a trailing margin and invite them to be read as equally current.
+
+    Percentages are stored as the fractions the vendor supplies (0.664, not
+    66.4) and formatted at the edge — one convention, converted once.
+    """
+    symbol: str
+    shares_outstanding: Optional[float] = None
+    float_shares: Optional[float] = None
+    held_percent_insiders: Optional[float] = None
+    held_percent_institutions: Optional[float] = None
+
+    #: Short interest. `as_of` matters more here than anywhere else in the
+    #: system: exchanges publish this twice a month, so a figure without its
+    #: settlement date is close to meaningless.
+    shares_short: Optional[float] = None
+    short_percent_of_float: Optional[float] = None
+    short_ratio: Optional[float] = None          # days to cover
+    short_interest_date: Optional[str] = None
+
+    source: str = ""
+
+
+class AnalystConsensus(BaseModel):
+    """Sell-side price targets and the rating distribution.
+
+    The distribution is kept whole rather than collapsed into one score. A
+    mean of 2.18 on a five-point scale hides whether that is forty analysts
+    clustered on "buy" or a split between "strong buy" and "sell", and those
+    are opposite situations for anyone sizing a position.
+
+    `target_mean` is the vendor's own consensus of *their* contributing
+    analysts — not something this system computes, and explicitly not
+    something to reconcile across vendors, since each covers a different
+    analyst set.
+    """
+    symbol: str
+    target_mean: Optional[float] = None
+    target_high: Optional[float] = None
+    target_low: Optional[float] = None
+    analyst_count: Optional[int] = None
+    #: Vendor's own label ("buy", "hold"). Kept verbatim — normalising it
+    #: across vendors would imply a shared scale that does not exist.
+    recommendation: Optional[str] = None
+    #: Vendor's mean on its own scale. Meaningless without the scale, so the
+    #: label above travels with it.
+    recommendation_mean: Optional[float] = None
+    source: str = ""
+
+
 class AnalystTargets(BaseModel):
     symbol: str
     target_mean: Optional[float] = None

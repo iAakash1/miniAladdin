@@ -8,6 +8,7 @@ import AiPanel from '@/components/terminal/AiPanel'
 import CompanyBand from '@/components/terminal/CompanyBand'
 import CompanySnapshot from '@/components/terminal/CompanySnapshot'
 import DecisionProvenance from '@/components/terminal/DecisionProvenance'
+import OwnershipPanel from '@/components/terminal/OwnershipPanel'
 import RatioPanel from '@/components/terminal/RatioPanel'
 import SecFilings from '@/components/terminal/SecFilings'
 import StatementUnionPanel from '@/components/terminal/StatementUnionPanel'
@@ -64,6 +65,7 @@ const SECTIONS: Array<{
   { id: 'company', label: 'Company', present: (a) => a.profile !== null },
   { id: 'statements', label: 'Statements', present: (a) => (a.statements?.providers.length ?? 0) > 0 },
   { id: 'ratios', label: 'Ratios', present: (a) => a.ratios !== null },
+  { id: 'ownership', label: 'Ownership', present: (a) => a.ownership !== null || a.analyst !== null },
   { id: 'filings', label: 'Filings', present: (a) => (a.filings?.filings.length ?? 0) > 0 },
   { id: 'fundamentals', label: 'Fundamentals', present: () => true },
   { id: 'news', label: 'News', present: (a) => a.headlines.length > 0 },
@@ -311,6 +313,12 @@ export default function CompanyReport({ analysis, initialChart, isPro, requestUp
       {analysis.ratios && (
         <div id="ratios" className="report-section">
           <RatioPanel ratios={analysis.ratios} />
+        </div>
+      )}
+
+      {(analysis.ownership || analysis.analyst) && (
+        <div id="ownership" className="report-section">
+          <OwnershipPanel ownership={analysis.ownership} analyst={analysis.analyst} />
         </div>
       )}
 

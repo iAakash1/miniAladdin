@@ -277,3 +277,107 @@ def test_alpha_vantage_fields_reach_the_normalized_fundamentals_object(monkeypat
     assert data.profile.industry == "ELECTRONIC COMPUTERS"
     assert data.profile.country == "USA"
     assert data.profile.description.startswith("Apple Inc.")
+
+
+# ── yfinance: 185 fields, twelve were used ────────────────────────────────
+
+_INFO = {
+    "longName": "Apple Inc.", "sector": "Technology", "industry": "Consumer Electronics",
+    "website": "https://www.apple.com", "marketCap": 4.5e12, "currency": "USD",
+    "exchange": "NMS", "country": "United States", "beta": 1.086,
+    "longBusinessSummary": "Apple designs consumer electronics.",
+    "fullTimeEmployees": 150000,
+    # Everything below was arriving and being dropped.
+    "trailingPE": 35.48, "forwardPE": 30.1, "trailingEps": 9.6,
+    "fiftyTwoWeekHigh": 344.57, "fiftyTwoWeekLow": 223.78,
+    "priceToSalesTrailing12Months": 9.49, "priceToBook": 42.03,
+    "enterpriseToEbitda": 27.01, "enterpriseToRevenue": 9.718,
+    "grossMargins": 0.48653, "operatingMargins": 0.32623, "profitMargins": 0.2762,
+    "returnOnEquity": 1.4875, "returnOnAssets": 0.27082,
+    "revenueGrowth": 0.164, "earningsGrowth": 0.287,
+    "currentRatio": 1.003, "quickRatio": 0.812, "debtToEquity": 78.445,
+    "dividendYield": 0.0035, "enterpriseValue": 4.5e12, "totalRevenue": 4.66e11,
+    "ebitda": 1.67e11, "freeCashflow": 1.07e11, "operatingCashflow": 1.46e11,
+    "totalCash": 6.2e10, "totalDebt": 8.4e10, "bookValue": 7.36,
+    "trailingPegRatio": 2.4944, "ebitdaMargins": 0.35979,
+    "sharesOutstanding": 14594180000, "floatShares": 14569223952,
+    "heldPercentInsiders": 0.01648, "heldPercentInstitutions": 0.66417,
+    "sharesShort": 141606163, "shortPercentOfFloat": 0.0097, "shortRatio": 2.58,
+    "dateShortInterest": 1785456000,
+    "targetMeanPrice": 324.45, "targetHighPrice": 400.0, "targetLowPrice": 215.0,
+    "numberOfAnalystOpinions": 39, "recommendationKey": "buy",
+    "recommendationMean": 2.18,
+}
+
+
+def _yf(monkeypatch):
+    from src.providers.vendors.market_vendors import YFinanceVendor
+    monkeypatch.setattr(YFinanceVendor, "timed_call", lambda self, fn, **kw: _INFO)
+    return YFinanceVendor()
+
+
+def test_yfinance_units_are_normalised_so_agreement_is_real(monkeypatch):
+    """Yahoo reports margins as fractions and debt/equity as a percentage;
+    Finnhub does the opposite of each. Left unconverted, two vendors that
+    agree exactly would look like they disagree by 100x."""
+    f = _yf(monkeypatch).get_fundamentals("AAPL")
+    assert f.gross_margin_ttm == 48.653      # 0.48653 -> percent
+    assert f.roe_ttm == 148.75               # 1.4875  -> percent
+    assert f.debt_to_equity == 0.7844        # 78.445  -> ratio
+    # And this matches the Finnhub fixture's value for the same field.
+    assert f.debt_to_equity == _METRIC["metric"]["totalDebt/totalEquityQuarterly"]
+
+
+def test_yfinance_contributes_to_fundamentals_at_all(monkeypatch):
+    """It is the only keyless fundamentals source, so it is the one that
+    answers when every authenticated vendor is unconfigured — which is the
+    normal state in local development and CI."""
+    f = _yf(monkeypatch).get_fundamentals("AAPL")
+    assert f.pe_ratio == 35.48
+    assert f.ev_to_ebitda == 27.01
+    assert f.vendor_metrics["free_cash_flow"] == 1.07e11
+    assert f.vendor_metrics["enterprise_value"] == 4.5e12
+
+
+def test_ownership_and_short_interest_are_recovered(monkeypatch):
+    o = _yf(monkeypatch).get_ownership("AAPL")
+    assert o.held_percent_institutions == 0.66417
+    assert o.short_percent_of_float == 0.0097
+    assert o.float_shares == 14569223952
+    assert o.source == "yfinance"
+
+
+def test_short_interest_always_carries_its_settlement_date(monkeypatch):
+    """Exchanges publish this twice a month. A short figure read as current
+    is wrong by up to two weeks of trading, so the date is not optional."""
+    o = _yf(monkeypatch).get_ownership("AAPL")
+    assert o.short_interest_date is not None
+    assert o.short_interest_date.count("-") == 2
+
+
+def test_a_nonsense_short_timestamp_drops_the_date_not_the_block(monkeypatch):
+    from src.providers.vendors.market_vendors import YFinanceVendor
+    broken = {**_INFO, "dateShortInterest": 9.9e18}
+    monkeypatch.setattr(YFinanceVendor, "timed_call", lambda self, fn, **kw: broken)
+    o = YFinanceVendor().get_ownership("AAPL")
+    assert o is not None
+    assert o.short_interest_date is None
+
+
+def test_the_analyst_rating_keeps_its_scale_with_it(monkeypatch):
+    """A mean of 2.18 is meaningless without knowing whose scale it is on."""
+    a = _yf(monkeypatch).get_analyst_consensus("AAPL")
+    assert a.target_mean == 324.45
+    assert (a.target_low, a.target_high) == (215.0, 400.0)
+    assert a.recommendation == "buy"
+    assert a.recommendation_mean == 2.18
+    assert a.source == "yfinance"
+
+
+def test_an_empty_info_payload_yields_nothing_rather_than_zeroed_objects(monkeypatch):
+    from src.providers.vendors.market_vendors import YFinanceVendor
+    monkeypatch.setattr(YFinanceVendor, "timed_call", lambda self, fn, **kw: {})
+    v = YFinanceVendor()
+    assert v.get_fundamentals("ZZZZ") is None
+    assert v.get_ownership("ZZZZ") is None
+    assert v.get_analyst_consensus("ZZZZ") is None

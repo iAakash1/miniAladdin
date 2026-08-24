@@ -221,6 +221,8 @@ export function normalizeAnalysis(raw: RawResearchResponse): Analysis {
     profile: raw.profile ?? null,
     filings: raw.filings ?? null,
     ratios: raw.ratios ?? null,
+    ownership: raw.ownership ?? null,
+    analyst: raw.analyst ?? null,
   }
 }
 

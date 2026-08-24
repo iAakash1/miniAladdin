@@ -792,6 +792,53 @@ def research_ticker(
         except Exception:  # noqa: BLE001
             logger.exception("statement union failed for %s", ticker)
 
+    # ── Step 2c-bis: ownership and sell-side positioning ────────────────────
+    # Both keyless, both previously unreachable. Ownership answers "who is on
+    # the other side of this" and the analyst block answers "what does the
+    # street expect" — neither is performance data, which is why they are
+    # separate blocks rather than more fields on the fundamentals object.
+    ownership_block = None
+    analyst_block = None
+    if prediction is not None:
+        try:
+            own_ev = providers.fundamentals.ownership_evidence(ticker)
+            row = next((e.data for e in own_ev if e.ok and e.data), None)
+            if row is not None:
+                ownership_block = row.model_dump()
+            if own_ev:
+                ledger.record_fabric(
+                    label="Ownership & short interest",
+                    kind="fundamental",
+                    evidence=own_ev,
+                    detail=(f"short interest as of {ownership_block['short_interest_date']}"
+                            if ownership_block and ownership_block.get("short_interest_date")
+                            else "float, holdings and short interest"),
+                    used_for=["presentation only — never a scoring input"],
+                )
+        except Exception:  # noqa: BLE001 — additive, never fatal
+            logger.exception("ownership lookup failed for %s", ticker)
+
+        try:
+            analyst_ev = providers.fundamentals.analyst_evidence(ticker)
+            readings = [e.data.model_dump() for e in analyst_ev if e.ok and e.data]
+            if readings:
+                # Every vendor's reading, side by side. Deliberately not
+                # reduced to one number: each polls a different analyst set,
+                # so a median across vendors is a consensus of no actual
+                # group of people.
+                analyst_block = {"readings": readings, "vendor_count": len(readings)}
+            if analyst_ev:
+                ledger.record_fabric(
+                    label="Analyst targets",
+                    kind="fundamental",
+                    evidence=analyst_ev,
+                    detail=(f"{len(readings)} vendor consensus reading"
+                            f"{'' if len(readings) == 1 else 's'}"),
+                    used_for=["presentation only — not reconciled across vendors"],
+                )
+        except Exception:  # noqa: BLE001
+            logger.exception("analyst lookup failed for %s", ticker)
+
     # ── Step 2d: primary-source regulatory evidence ─────────────────────────
     # SEC EDGAR is keyless and is not another vendor's reading of a filing —
     # it is the filing, with the date it was actually filed. That makes it a
@@ -1195,6 +1242,8 @@ def research_ticker(
         "profile": profile_block,
         "filings": filings_block,
         "ratios": ratios_block,
+        "ownership": ownership_block,
+        "analyst": analyst_block,
         "consensus_price": consensus,
         "statements": statements,
         "news_stream": {

@@ -4780,3 +4780,69 @@ a.hl-row:hover .hl-row__out { color: var(--accent); transform: translate(1px, -1
   .stmt__row { grid-template-columns: minmax(0, 1fr) 8ch; }
   .stmt__src { grid-column: 1 / -1; }
 }
+
+/* ── Ownership & positioning ───────────────────────────────────────────────
+   Positions, not performance. Bars here scale to a full 100% because these
+   genuinely are shares of a fixed total — unlike the portfolio bars, which
+   scale to the largest row because no holding approaches 100%. */
+.own { display: flex; flex-direction: column; gap: 14px; }
+.own__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.own__lede { margin-top: 5px; font-size: 0.8125rem; line-height: 1.6; color: var(--muted); max-width: 70ch; }
+.own__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.own__block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 13px 15px;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.own__block-title {
+  font-size: 0.625rem;
+  font-weight: 650;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.own__rows { display: grid; gap: 6px; }
+.own__row {
+  display: grid;
+  grid-template-columns: 9ch minmax(0, 1fr) 6ch;
+  align-items: center;
+  gap: 9px;
+  font-size: 0.75rem;
+}
+.own__row dt { color: var(--muted); white-space: nowrap; }
+.own__row dd { margin: 0; color: var(--text); }
+.own__row dd:last-child { text-align: right; font-weight: 550; }
+
+.own-bar {
+  display: block;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  overflow: hidden;
+}
+.own-bar__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transform-origin: left center;
+  background: var(--accent);
+  transition: transform 300ms var(--ease-out);
+}
+.own-bar--warn .own-bar__fill { background: var(--warn); }
+.own-bar--neg .own-bar__fill { background: var(--neg); }
+@media (prefers-reduced-motion: reduce) { .own-bar__fill { transition: none; } }
+
+.own__analyst { display: flex; flex-direction: column; gap: 3px; }
+.own__metric { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.own__metric-value { font-size: 1.375rem; font-weight: 600; letter-spacing: -0.02em; }
+.own__metric-unit { font-size: 0.625rem; color: var(--faint); }
+.own__range { font-size: 0.75rem; color: var(--muted); }
+.own__rec { font-size: 0.75rem; }
+.own__rec-label { text-transform: capitalize; font-weight: 600; color: var(--accent); }
+.own__src { font-size: 0.625rem; color: var(--faint); }
+.own__note { font-size: 0.6875rem; line-height: 1.55; color: var(--faint); }
