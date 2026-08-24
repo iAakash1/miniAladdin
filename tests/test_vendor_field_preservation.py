@@ -381,3 +381,82 @@ def test_an_empty_info_payload_yields_nothing_rather_than_zeroed_objects(monkeyp
     assert v.get_fundamentals("ZZZZ") is None
     assert v.get_ownership("ZZZZ") is None
     assert v.get_analyst_consensus("ZZZZ") is None
+
+
+# ── quote adapters: session context ───────────────────────────────────────
+
+def test_polygon_keeps_the_whole_session_aggregate():
+    """The /prev aggregate carried open, high, low, volume, VWAP and the
+    trade count; the adapter kept the close. VWAP in particular is a
+    statistic nothing else here supplies — the average a share actually
+    traded at, as opposed to the last print."""
+    from src.providers.vendors.market_vendors import PolygonVendor
+    payload = {"results": [{
+        "o": 312.05, "h": 312.38, "l": 307.01, "c": 309.35,
+        "v": 46768100, "vw": 309.7018, "n": 673330, "t": 1787428800000,
+    }]}
+    with patch.object(PolygonVendor, "_get_json", lambda self, *a, **k: payload):
+        q = PolygonVendor().get_price("AAPL")
+    assert (q.day_open, q.day_high, q.day_low) == (312.05, 312.38, 307.01)
+    assert q.vwap == 309.7018
+    assert q.trade_count == 673330
+    assert q.as_of is not None
+    # This endpoint is the previous session's aggregate, not a live tick, and
+    # says so — a consumer must not read it as current.
+    assert q.price_basis == "previous session close"
+
+
+def test_finnhub_keeps_the_vendors_own_session_move():
+    """`d`/`dp` are kept rather than derived from price - previous_close: a
+    vendor computing against its own official close is more authoritative
+    than our subtraction across possibly-different sources."""
+    from src.providers.vendors.market_vendors import FinnhubVendor
+    payload = {"c": 309.35, "d": -1.95, "dp": -0.6264, "o": 312.05,
+               "h": 312.38, "l": 307.01, "pc": 311.30, "t": 1787428800}
+    with patch.object(FinnhubVendor, "_get_json", lambda self, *a, **k: payload):
+        q = FinnhubVendor().get_price("AAPL")
+    assert (q.change, q.change_pct) == (-1.95, -0.6264)
+    assert q.previous_close == 311.30
+    assert q.as_of.startswith("2026-")
+
+
+def test_fmp_quote_keeps_its_twenty_five_field_response():
+    from src.providers.vendors.market_vendors import FMPVendor
+    payload = [{
+        "price": 309.35, "change": -1.95, "changesPercentage": -0.6264,
+        "open": 312.05, "dayHigh": 312.38, "dayLow": 307.01,
+        "previousClose": 311.30, "volume": 46768100, "avgVolume": 52000000,
+        "yearHigh": 344.57, "yearLow": 223.78,
+        "priceAvg50": 300.12, "priceAvg200": 285.44,
+        "marketCap": 4.5e12, "exchange": "NASDAQ", "timestamp": 1787428800,
+    }]
+    with patch.object(FMPVendor, "_get_json", lambda self, *a, **k: payload):
+        q = FMPVendor().get_price("AAPL")
+    assert q.ma_50 == 300.12 and q.ma_200 == 285.44
+    assert q.avg_volume == 52000000
+    assert q.market_cap == 4.5e12
+    assert q.exchange == "NASDAQ"
+    assert q.week_52_high == 344.57
+
+
+def test_adjusted_closes_are_preferred_wherever_a_vendor_offers_them():
+    """An unadjusted series renders a 4-for-1 split as a 75% crash. Every
+    series vendor here now returns adjusted values, so a raw-close vendor
+    would manufacture a cross-vendor conflict at every historical split."""
+    from src.providers.vendors.market_vendors import FMPVendor, MarketStackVendor
+
+    fmp_payload = {"historical": [
+        {"date": "2026-08-21", "open": 1.0, "high": 1.0, "low": 1.0,
+         "close": 400.0, "adjClose": 100.0, "volume": 10},
+    ]}
+    with patch.object(FMPVendor, "_get_json", lambda self, *a, **k: fmp_payload):
+        assert FMPVendor().get_series("AAPL", "1mo").bars[0].close == 100.0
+
+    ms_payload = {"data": [
+        {"date": "2026-08-21", "open": 1.0, "high": 1.0, "low": 1.0,
+         "close": 400.0, "adj_close": 100.0, "volume": 10, "adj_volume": 40},
+    ]}
+    with patch.object(MarketStackVendor, "_get_json", lambda self, *a, **k: ms_payload):
+        bar = MarketStackVendor().get_series("AAPL", "1mo").bars[0]
+    assert bar.close == 100.0
+    assert bar.volume == 40

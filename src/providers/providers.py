@@ -1,7 +1,34 @@
 """
-The five provider facades. Each exposes one clean, vendor-agnostic
-interface; chain order, fallback, caching, dedupe, confidence and health
-all live below this line. Callers never learn which vendor answered.
+## Why FallbackChain and the evidence fabric both exist
+
+Every provider below keeps *both* a chain and a fan-out, and an audit that
+sees `FallbackChain` and assumes it is a leftover is reading it wrong. They
+serve different questions:
+
+* The **chain** serves a value. One answer, fast, cached, single-flighted,
+  with a defined degradation path. The scoring engine, the quotes endpoint
+  and the portfolio series loader all need exactly this — a price, now, not a
+  study of who agrees about it. Running a six-vendor fan-out on the batch
+  quote path would multiply a watchlist refresh by six for no gain, because
+  the caller wants one number.
+* The **fabric** builds evidence. Every capable vendor is asked, all answers
+  are kept, failures are retained and classified, and the interesting output
+  is the agreement rather than the value. Research surfaces and the
+  provenance ledger use this.
+
+So the rule is not "fan-out everywhere". It is: fan out where the *question*
+is about corroboration, and chain where the question is about a value. Both
+draw on the same vendor objects, the same rate limiters and the same cache,
+so a fan-out that follows a chain for the same symbol is largely free.
+
+Single-link chains are deliberate too where they remain: they exist so a
+second vendor can be added at one line without changing any call site, and
+the corresponding capability is still fanned out for the evidence path.
+
+The provider facades. Each exposes one clean, vendor-agnostic interface;
+chain order, fallback, caching, dedupe, confidence and health all live below
+this line. Callers of the chain never learn which vendor answered; callers of
+the fabric are told exactly who did.
 """
 
 from __future__ import annotations

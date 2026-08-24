@@ -78,10 +78,33 @@ class PolygonVendor(VendorClient):
         results = data.get("results") or []
         if not results:
             return None
-        close = _safe_float(results[0].get("c"))
+        row = results[0]
+        close = _safe_float(row.get("c"))
         if close is None:
             return None
-        return PriceQuote(symbol=symbol, price=close)
+        # The aggregate already carried the whole session — open, high, low,
+        # volume, VWAP and the trade count — and the adapter kept the close.
+        # `vw` in particular is a statistic nothing else here supplies: the
+        # average a share actually traded at, as opposed to the last print.
+        stamp = _safe_float(row.get("t"))
+        return PriceQuote(
+            symbol=symbol,
+            price=close,
+            day_open=_safe_float(row.get("o")),
+            day_high=_safe_float(row.get("h")),
+            day_low=_safe_float(row.get("l")),
+            volume=_safe_float(row.get("v")),
+            vwap=_safe_float(row.get("vw")),
+            trade_count=int(row["n"]) if isinstance(row.get("n"), (int, float)) else None,
+            # Polygon stamps in epoch milliseconds.
+            as_of=(
+                datetime.fromtimestamp(stamp / 1000, tz=timezone.utc).isoformat()
+                if stamp else None
+            ),
+            # This endpoint is the *previous* session's aggregate, not a live
+            # tick. Saying so keeps a consumer from reading it as current.
+            price_basis="previous session close",
+        )
 
     def get_company(self, symbol: str) -> Optional[CompanyProfile]:
         """Reference data for a ticker.
@@ -155,7 +178,26 @@ class FinnhubVendor(VendorClient):
         price = _safe_float(data.get("c"))
         if not price:  # Finnhub returns 0 for unknown symbols
             return None
-        return PriceQuote(symbol=symbol, price=price)
+        # The session move and the previous close were both in this response.
+        # The vendor's own `d`/`dp` are kept rather than derived from
+        # `price - previous_close`: a vendor computing against its own
+        # official close is more authoritative than our subtraction.
+        stamp = _safe_float(data.get("t"))
+        return PriceQuote(
+            symbol=symbol,
+            price=price,
+            change=_safe_float(data.get("d")),
+            change_pct=_safe_float(data.get("dp")),
+            day_open=_safe_float(data.get("o")),
+            day_high=_safe_float(data.get("h")),
+            day_low=_safe_float(data.get("l")),
+            previous_close=_safe_float(data.get("pc")),
+            as_of=(
+                datetime.fromtimestamp(stamp, tz=timezone.utc).isoformat()
+                if stamp else None
+            ),
+            price_basis="last sale",
+        )
 
     def get_company(self, symbol: str) -> Optional[CompanyProfile]:
         """Company profile.
@@ -401,8 +443,39 @@ class FMPVendor(VendorClient):
         data = self._get_json(f"{self.BASE}/quote/{symbol}", params={"apikey": self.api_key})
         if not isinstance(data, list) or not data:
             return None
-        price = _safe_float(data[0].get("price"))
-        return PriceQuote(symbol=symbol, price=price) if price else None
+        row = data[0]
+        price = _safe_float(row.get("price"))
+        if not price:
+            return None
+        # FMP's quote is the richest in the set — roughly twenty-five fields,
+        # of which one was being kept. The moving averages are the vendor's
+        # own; recomputing them from our series would be cheap but would use
+        # our adjustment conventions rather than theirs, so both can differ
+        # legitimately and the vendor's value is what belongs on its quote.
+        stamp = _safe_float(row.get("timestamp"))
+        return PriceQuote(
+            symbol=symbol,
+            price=price,
+            change=_safe_float(row.get("change")),
+            change_pct=_safe_float(row.get("changesPercentage")),
+            day_open=_safe_float(row.get("open")),
+            day_high=_safe_float(row.get("dayHigh")),
+            day_low=_safe_float(row.get("dayLow")),
+            previous_close=_safe_float(row.get("previousClose")),
+            volume=_safe_float(row.get("volume")),
+            avg_volume=_safe_float(row.get("avgVolume")),
+            week_52_high=_safe_float(row.get("yearHigh")),
+            week_52_low=_safe_float(row.get("yearLow")),
+            ma_50=_safe_float(row.get("priceAvg50")),
+            ma_200=_safe_float(row.get("priceAvg200")),
+            market_cap=_safe_float(row.get("marketCap")),
+            exchange=str(row.get("exchange") or ""),
+            as_of=(
+                datetime.fromtimestamp(stamp, tz=timezone.utc).isoformat()
+                if stamp else None
+            ),
+            price_basis="last sale",
+        )
 
     def get_series(self, symbol: str, period: str) -> Optional[PriceSeries]:
         data = self._get_json(
@@ -410,16 +483,23 @@ class FMPVendor(VendorClient):
             params={"timeseries": _period_to_days(period), "apikey": self.api_key},
         )
         history = data.get("historical") or []
-        bars = [
-            OHLCVBar(
+        bars = []
+        for item in reversed(history):  # FMP returns newest first
+            # `adjClose` over `close`. This was using the raw close, which
+            # renders a 4-for-1 split as a 75% single-day crash — and every
+            # other series vendor here already returns adjusted values, so an
+            # unadjusted FMP series would manufacture a cross-vendor conflict
+            # at each historical split and put a false drawdown into any
+            # portfolio curve drawn from it.
+            close = _safe_float(item.get("adjClose")) or _safe_float(item.get("close"))
+            if close is None:
+                continue
+            bars.append(OHLCVBar(
                 date=item.get("date", ""),
                 open=_safe_float(item.get("open")), high=_safe_float(item.get("high")),
-                low=_safe_float(item.get("low")), close=_safe_float(item.get("close")) or 0.0,
+                low=_safe_float(item.get("low")), close=close,
                 volume=int(item["volume"]) if item.get("volume") else None,
-            )
-            for item in reversed(history)  # FMP returns newest first
-            if _safe_float(item.get("close")) is not None
-        ]
+            ))
         return PriceSeries(symbol=symbol, bars=bars) if bars else None
 
     def search_symbols(self, query: str, limit: int = 8) -> Optional[list[dict]]:
@@ -510,16 +590,27 @@ class MarketStackVendor(VendorClient):
             },
         )
         rows = data.get("data") or []
-        bars = [
-            OHLCVBar(
+        bars = []
+        for item in rows:
+            # Adjusted values where the vendor supplies them, raw otherwise.
+            # This is not cosmetic: an unadjusted series renders a 4-for-1
+            # split as a 75% single-day crash, and a portfolio value curve
+            # built on one reports a loss that never happened. Every other
+            # series vendor here already returns adjusted closes, so mixing
+            # an unadjusted Marketstack series into the same consensus would
+            # manufacture disagreement at every historical split.
+            close = _safe_float(item.get("adj_close")) or _safe_float(item.get("close"))
+            if close is None:
+                continue
+            volume = _safe_float(item.get("adj_volume")) or _safe_float(item.get("volume"))
+            bars.append(OHLCVBar(
                 date=str(item.get("date", ""))[:10],
-                open=_safe_float(item.get("open")), high=_safe_float(item.get("high")),
-                low=_safe_float(item.get("low")), close=_safe_float(item.get("close")) or 0.0,
-                volume=int(item["volume"]) if item.get("volume") else None,
-            )
-            for item in rows
-            if _safe_float(item.get("close")) is not None
-        ]
+                open=_safe_float(item.get("adj_open")) or _safe_float(item.get("open")),
+                high=_safe_float(item.get("adj_high")) or _safe_float(item.get("high")),
+                low=_safe_float(item.get("adj_low")) or _safe_float(item.get("low")),
+                close=close,
+                volume=int(volume) if volume else None,
+            ))
         return PriceSeries(symbol=symbol, bars=bars) if bars else None
 
     def get_price(self, symbol: str) -> Optional[PriceQuote]:

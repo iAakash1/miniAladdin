@@ -86,6 +86,36 @@ class PriceQuote(BaseModel):
     #: with the quote's timestamp, not a fundamentals snapshot.
     week_52_high: Optional[float] = None
     week_52_low: Optional[float] = None
+
+    # ── Session context (v5.4) ───────────────────────────────────────────────
+    # Three quote adapters were returning the close and discarding everything
+    # else in a response the request had already paid for. These are all
+    # observations from the same quote tick, so they share its timestamp and
+    # must not be mixed with figures from a fundamentals snapshot.
+    #: Absolute and percentage move on the session, as the *vendor* computed
+    #: them. Kept rather than derived from `price - previous_close` because a
+    #: vendor computing against its own official close is more authoritative
+    #: than our subtraction across two possibly-different sources.
+    change: Optional[float] = None
+    change_pct: Optional[float] = None
+    #: Volume-weighted average price for the session, where the vendor has it.
+    #: A different statistic from `price` — the average a share actually
+    #: traded at, not the last print.
+    vwap: Optional[float] = None
+    #: Trades executed in the session. Liquidity context, not a price.
+    trade_count: Optional[int] = None
+    #: Average daily volume over the vendor's own window. The window differs
+    #: per vendor, which is why it is never compared across them.
+    avg_volume: Optional[float] = None
+    #: Moving averages the vendor already computed. Recomputing these locally
+    #: from our own series would be cheap, but the vendor's values carry the
+    #: vendor's own adjustment and calendar conventions.
+    ma_50: Optional[float] = None
+    ma_200: Optional[float] = None
+    #: Market capitalisation as of this quote. Distinct from the profile's
+    #: market cap, which is a slower-moving reference figure.
+    market_cap: Optional[float] = None
+    exchange: str = ""
     # Which field `price` actually came from — "last sale", "bid/ask mid",
     # "previous close". A mid and a stale previous close are not the same
     # claim, and a consumer that cannot tell them apart will treat them alike.

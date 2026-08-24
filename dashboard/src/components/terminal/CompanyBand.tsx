@@ -113,6 +113,43 @@ function ConsensusStrip({ consensus }: { consensus: ConsensusPrice }) {
   )
 }
 
+/** Session context from the same quote fan-out, attributed per field.
+ *
+ *  Every value names the vendor that supplied it because none of these are
+ *  reconciled: a session high belongs to one venue's tape, an average volume
+ *  uses a window that vendor chose, and a moving average carries that
+ *  vendor's adjustment conventions. Presenting them as a single unattributed
+ *  row would imply a consensus that was never computed.
+ */
+function SessionStrip({ session }: { session: NonNullable<ConsensusPrice['session']> }) {
+  const ORDER: Array<[string, string, (v: number) => string]> = [
+    ['day_open', 'Open', (v) => v.toFixed(2)],
+    ['day_high', 'High', (v) => v.toFixed(2)],
+    ['day_low', 'Low', (v) => v.toFixed(2)],
+    ['previous_close', 'Prev close', (v) => v.toFixed(2)],
+    ['change_pct', 'Change', (v) => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`],
+    ['vwap', 'VWAP', (v) => v.toFixed(2)],
+    ['ma_50', '50d MA', (v) => v.toFixed(2)],
+    ['ma_200', '200d MA', (v) => v.toFixed(2)],
+    ['trade_count', 'Trades', (v) => v.toLocaleString()],
+    ['avg_volume', 'Avg vol', (v) => `${(v / 1e6).toFixed(1)}M`],
+  ]
+  const rows = ORDER.filter(([key]) => session[key] !== undefined)
+  if (rows.length === 0) return null
+
+  return (
+    <div className="sess">
+      {rows.map(([key, label, format]) => (
+        <span key={key} className="sess__cell" title={`via ${session[key].provider}`}>
+          <span className="sess__label">{label}</span>
+          <span className="num sess__value">{format(session[key].value)}</span>
+          <span className="sess__src">{session[key].provider}</span>
+        </span>
+      ))}
+    </div>
+  )
+}
+
 export default function CompanyBand({ analysis }: { analysis: Analysis }) {
   const wasDampened = analysis.verdict !== analysis.riskAdjusted
 
@@ -173,6 +210,11 @@ export default function CompanyBand({ analysis }: { analysis: Analysis }) {
               vendor can never say this. */}
           {analysis.consensusPrice && analysis.consensusPrice.provider_count > 1 && (
             <ConsensusStrip consensus={analysis.consensusPrice} />
+          )}
+          {/* Session context from the same fan-out. Attributed per field
+              because none of it is reconciled across vendors. */}
+          {analysis.consensusPrice?.session && (
+            <SessionStrip session={analysis.consensusPrice.session} />
           )}
         </div>
 

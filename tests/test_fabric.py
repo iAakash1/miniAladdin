@@ -484,3 +484,36 @@ def test_a_gap_year_is_not_labelled_year_over_year():
         {"fiscal_year": 2025, "value": 400.0, "unit": "USD", "form": "10-K", "filed": "a"},
         {"fiscal_year": 2023, "value": 350.0, "unit": "USD", "form": "10-K", "filed": "b"},
     ]}) == []
+
+
+def test_brand_mark_is_deliberately_outside_the_fan_out():
+    """Pins a decision an audit will otherwise rediscover as a false positive.
+
+    `brand_mark` is registered so an operator can see whether the logo
+    provider is configured, but it is never run through `collect`: it is pure
+    URL construction with no network call, so a fan-out would add a thread
+    handoff and an evidence record for something that cannot fail, time out,
+    or be rate-limited. Everything else registered *is* collected, and this
+    test fails if that stops being true in either direction.
+    """
+    import pathlib
+    import re
+
+    sources = "\n".join(
+        p.read_text()
+        for p in [
+            *pathlib.Path("src/providers").rglob("*.py"),
+            *pathlib.Path("src/services").rglob("*.py"),
+            pathlib.Path("api/index.py"),
+        ]
+    )
+    collected = set(re.findall(r'collect\(\s*\n?\s*"([a-z_]+)"', sources))
+    uncollected = {c for c in fabric.CAPABILITY_METHODS if c not in collected}
+
+    assert uncollected == {"brand_mark"}, (
+        f"capability wiring changed: {uncollected} are registered but never "
+        "collected. Either wire them into the fabric or document why not."
+    )
+    # And the reasoning lives next to the registration, not only here.
+    registry = pathlib.Path("src/providers/fabric.py").read_text()
+    assert "pure URL construction" in registry

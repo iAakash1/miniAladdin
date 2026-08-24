@@ -320,6 +320,14 @@ def reconcile_price(evidence: list[Evidence]) -> Optional[dict[str, Any]]:
             "volume": getattr(e.data, "volume", None),
             "as_of": getattr(e.data, "as_of", None),
             "latency_ms": e.latency_ms,
+            # Session fields, carried per reading so the reconciler can
+            # attribute each one to the vendor that supplied it.
+            **{
+                field: getattr(e.data, field, None)
+                for field in ("day_open", "day_high", "day_low", "previous_close",
+                              "change", "change_pct", "vwap", "trade_count",
+                              "avg_volume", "ma_50", "ma_200", "market_cap")
+            },
         }
         for e in evidence
         if e.ok and getattr(e.data, "price", None)
@@ -340,6 +348,28 @@ def reconcile_price(evidence: list[Evidence]) -> Optional[dict[str, Any]]:
     # it is not averaged, because a spread is a property of one venue.
     quoted = next((r for r in readings if r["bid"] is not None and r["ask"] is not None), None)
 
+    # Session context, from whichever vendor supplied each field. Deliberately
+    # *not* reconciled across vendors: a session high is a fact about one
+    # venue's tape, an average volume is computed over a window each vendor
+    # chooses for itself, and a moving average carries its vendor's own
+    # adjustment conventions. Taking a median of any of them would produce a
+    # number describing no actual venue. The contributing vendor is named so
+    # the reader knows whose session they are looking at.
+    def _first(field: str) -> tuple[Optional[float], Optional[str]]:
+        for r in readings:
+            value = r.get(field)
+            if value is not None:
+                return value, r["provider"]
+        return None, None
+
+    session: dict[str, Any] = {}
+    for field in ("day_open", "day_high", "day_low", "previous_close",
+                  "change", "change_pct", "vwap", "trade_count",
+                  "avg_volume", "ma_50", "ma_200", "market_cap"):
+        value, provider = _first(field)
+        if value is not None:
+            session[field] = {"value": value, "provider": provider}
+
     return {
         "consensus": round(consensus, 4),
         "low": round(low, 4),
@@ -357,6 +387,8 @@ def reconcile_price(evidence: list[Evidence]) -> Optional[dict[str, Any]]:
         "spread_bps": quoted["spread_bps"] if quoted else None,
         "spread_source": quoted["provider"] if quoted else None,
         "volume": next((r["volume"] for r in readings if r["volume"]), None),
+        # Per-field, per-vendor session context — never a cross-vendor median.
+        "session": session or None,
     }
 
 

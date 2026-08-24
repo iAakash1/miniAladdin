@@ -360,6 +360,12 @@ export interface ConsensusPrice {
   spread_bps: number | null
   spread_source: string | null
   volume: number | null
+  /** Session context, each field attributed to the vendor that supplied it.
+   *  Deliberately not reconciled: a session high is a fact about one venue's
+   *  tape, an average volume uses a window each vendor picks for itself, and
+   *  a moving average carries its vendor's adjustment conventions. A median
+   *  of any of them would describe no actual venue. */
+  session: Record<string, { value: number; provider: string }> | null
 }
 
 /** Union of reported statement figures across every entitled vendor. */
