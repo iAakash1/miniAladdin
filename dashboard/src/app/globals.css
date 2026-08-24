@@ -4463,3 +4463,157 @@ a.hl-row:hover .hl-row__out { color: var(--accent); transform: translate(1px, -1
 
 /* A correlation pair has no mark and needs the ticker columns merged. */
 .pf__row--pair .pf__row-name { grid-column: 1 / 3; white-space: nowrap; }
+
+/* ── Company snapshot ──────────────────────────────────────────────────────
+   Identity and narrative from the profile the research call already had.
+   Facts as a definition list rather than cards: seven short label/value pairs
+   are a table, and seven cards would be seven boxes of whitespace. */
+.csnap { display: flex; flex-direction: column; gap: 12px; }
+.csnap__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.csnap__domain {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.6875rem;
+  color: var(--muted);
+  text-decoration: none;
+}
+.csnap__domain:hover { color: var(--accent); }
+.csnap__desc {
+  font-size: 0.8125rem;
+  line-height: 1.7;
+  color: var(--muted);
+  max-width: 78ch;
+}
+.csnap__facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.csnap__fact {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  background: var(--surface-2);
+}
+.csnap__fact dt {
+  font-size: 0.5938rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.csnap__fact dd {
+  font-size: 0.8125rem;
+  font-weight: 550;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── News fan-out summary ──────────────────────────────────────────────────
+   What several vendors together produced. A single-vendor feed can state
+   none of this, which is why it is worth a line of its own. */
+.hl-stream {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 8px 11px;
+  margin-bottom: 8px;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-size: 0.6875rem;
+  color: var(--muted);
+}
+.hl-stream__stat strong { color: var(--text); }
+.hl-stream__stat--corrob strong { color: var(--accent); }
+
+/* Deterministic event categories, as counts. An article can hit several —
+   an earnings beat that triggers an upgrade genuinely is both — so these
+   sum to more than the article total and are labelled as counts. */
+.hl-cats { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
+.hl-cat {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-size: 0.625rem;
+  color: var(--muted);
+}
+.hl-cat__n { color: var(--text); font-weight: 600; }
+
+/* The publisher's own photograph. Small and fixed-size: a news thumbnail in
+   a research terminal is an identifier, not the content. */
+.hl-row__thumb {
+  flex-shrink: 0;
+  width: 64px;
+  height: 44px;
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.hl-row__thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.hl-corrob {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--accent-wash);
+  color: var(--accent);
+  font-size: 0.625rem;
+  font-weight: 600;
+}
+.hl-sent { font-size: 0.625rem; font-weight: 600; text-transform: capitalize; }
+.hl-sent--pos { color: var(--pos); }
+.hl-sent--neg { color: var(--neg); }
+.hl-sent--neutral { color: var(--muted); }
+
+/* ── Editorial context imagery ─────────────────────────────────────────────
+   Deliberately restrained: a wide, short strip, not a hero. This is a
+   financial terminal, the numbers are the content, and the photograph is
+   there to give a page a sense of place. The aspect ratio is reserved before
+   the image loads so arrival cannot shift the sections beneath it. */
+.cmedia { display: flex; flex-direction: column; gap: 6px; }
+.cmedia__frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 5;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.cmedia__frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  /* Photographs are brighter than this surface; a slight desaturation keeps
+     the strip from pulling the eye off the data around it. */
+  filter: saturate(0.88) brightness(0.92);
+}
+.cmedia__cap {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 0.625rem;
+  color: var(--faint);
+}
+/* Says what the image is. Without this line a reader could reasonably take a
+   stock photograph for a picture of the company. */
+.cmedia__kind { text-transform: uppercase; letter-spacing: 0.06em; }
+.cmedia__credit a { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
+.cmedia__credit a:hover { color: var(--accent); }

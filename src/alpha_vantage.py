@@ -95,6 +95,16 @@ class AlphaVantageClient:
             logger.warning("Alpha Vantage request failed: %s", e)
             return None
 
+    def call(self, **params) -> Optional[dict]:
+        """Raw call for endpoints beyond the fundamentals overview.
+
+        Public because the vendor adapter needs NEWS_SENTIMENT and it is the
+        same key, same session, same rate-limit handling as everything else
+        here — a second client would give the free tier's 25 daily calls two
+        independent budgets that each believed they had the whole allowance.
+        """
+        return self._get(dict(params))
+
     def get_fundamentals(self, ticker: str) -> FundamentalData:
         """
         Fetch company overview. One call, lots of data.

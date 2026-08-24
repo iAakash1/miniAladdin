@@ -153,3 +153,129 @@ def test_disagreeing_fundamentals_are_surfaced_not_averaged_away():
 def test_nothing_answering_yields_no_consensus_rather_than_zero():
     assert fabric.reconcile_price([Evidence("a", "quote", "X", False)]) is None
     assert fabric.merge_fundamentals([Evidence("a", "fundamentals", "X", False)]) is None
+
+
+# ── capability matrix ─────────────────────────────────────────────────────
+
+def test_the_matrix_is_discovered_from_methods_not_from_a_hand_kept_table():
+    """A table drifts the first time someone adds a method and forgets to
+    register it — and the question it answers wrongly is exactly the one the
+    orchestrator asks on every request."""
+    class Quoter:
+        NAME, healthy, available, KEY_ENV = "q", True, True, "Q_KEY"
+        def get_price(self, s): return None
+
+    class Newsy:
+        NAME, healthy, available, KEY_ENV = "n", False, False, "N_KEY"
+        def get_news(self, s, c="", limit=12): return None
+        def get_news_sentiment(self, s, limit=20): return None
+
+    m = fabric.capability_matrix({"market": [Quoter()], "news": [Newsy()]})
+    caps = {e["provider"]: e["capabilities"] for e in m["providers"]}
+    assert caps["q"] == ["quote"]
+    assert caps["n"] == ["news", "news_sentiment"]
+
+
+def test_configured_and_healthy_are_reported_separately():
+    """They fail for different reasons and are fixed by different people: a
+    missing key is a deploy problem, a tripped circuit is an outage."""
+    class Cooling:
+        NAME, healthy, available, KEY_ENV = "c", False, True, "C_KEY"
+        def get_price(self, s): return None
+
+    class Unset:
+        NAME, healthy, available, KEY_ENV = "u", False, False, "U_KEY"
+        def get_price(self, s): return None
+
+    m = fabric.capability_matrix({"market": [Cooling(), Unset()]})
+    quote = m["by_capability"]["quote"]
+    assert quote["implemented_by"] == ["c", "u"]
+    assert quote["live"] == []                 # neither will be asked
+    assert quote["unconfigured"] == ["u"]      # but only one lacks a key
+    assert m["totals"]["configured"] == 1
+
+
+def test_the_matrix_never_exposes_a_credential_value(monkeypatch):
+    monkeypatch.setenv("Q_KEY", "super-secret-value")
+
+    class Quoter:
+        NAME, healthy, available, KEY_ENV = "q", True, True, "Q_KEY"
+        def get_price(self, s): return None
+
+    import json
+    blob = json.dumps(fabric.capability_matrix({"market": [Quoter()]}))
+    assert "super-secret-value" not in blob
+    assert "Q_KEY" in blob   # the variable's name is useful; its value is not
+
+
+def test_a_vendor_in_two_groups_appears_once_with_both_groups():
+    class Both:
+        NAME, healthy, available, KEY_ENV = "b", True, True, None
+        def get_price(self, s): return None
+        def get_fundamentals(self, s): return None
+
+    v = Both()
+    m = fabric.capability_matrix({"market": [v], "fundamentals": [v]})
+    assert len(m["providers"]) == 1
+    assert sorted(m["providers"][0]["groups"]) == ["fundamentals", "market"]
+
+
+def test_the_merge_carries_the_richest_copy_of_a_shared_story():
+    """One vendor has the summary, another the publisher's image, a third the
+    sentiment score. The union is strictly better than any single copy, and
+    that is the whole reason to fan out."""
+    url = "https://example.com/story"
+    ev = [
+        Evidence("v1", "news", "X", True, [
+            NewsHeadline(title="Big news", url=url, summary="the detail"),
+        ]),
+        Evidence("v2", "news", "X", True, [
+            NewsHeadline(title="Big news", url=url, image_url="https://img/x.jpg"),
+        ]),
+        Evidence("v3", "news_sentiment", "X", True, [
+            NewsHeadline(title="Big news", url=url, sentiment_score=0.42,
+                         sentiment_label="Bullish", sentiment_source="v3"),
+        ]),
+    ]
+    merged = fabric.merge_news(ev)
+    story = merged["headlines"][0]
+    assert story.summary == "the detail"
+    assert story.image_url == "https://img/x.jpg"
+    assert story.sentiment_score == 0.42
+    assert sorted(story.corroborated_by) == ["v1", "v2", "v3"]
+
+
+def test_a_publishers_image_is_never_overwritten_by_a_later_vendors_copy():
+    url = "https://example.com/s"
+    merged = fabric.merge_news([
+        Evidence("v1", "news", "X", True, [NewsHeadline(title="T", url=url, image_url="https://first.jpg")]),
+        Evidence("v2", "news", "X", True, [NewsHeadline(title="T", url=url, image_url="https://second.jpg")]),
+    ])
+    assert merged["headlines"][0].image_url == "https://first.jpg"
+
+
+def test_unscored_articles_are_reported_as_unscored_not_as_neutral():
+    """"Not measured" and "measured as neutral" are different facts; merging
+    them would let a stream with two scored articles look as well-evidenced
+    as one with twenty."""
+    merged = fabric.merge_news([
+        Evidence("v1", "news", "X", True, [
+            NewsHeadline(title="A", url="https://a"),
+            NewsHeadline(title="B", url="https://b"),
+        ]),
+        Evidence("v2", "news_sentiment", "X", True, [
+            NewsHeadline(title="C", url="https://c", sentiment_score=0.8,
+                         sentiment_label="Bullish", sentiment_source="v2"),
+        ]),
+    ])
+    s = merged["sentiment"]
+    assert s["scored"] == 1 and s["unscored"] == 2
+    assert s["positive"] == 1
+    assert s["source"] == "v2"
+
+
+def test_a_stream_nobody_scored_reports_no_sentiment_at_all():
+    merged = fabric.merge_news([
+        Evidence("v1", "news", "X", True, [NewsHeadline(title="A", url="https://a")]),
+    ])
+    assert merged["sentiment"] is None

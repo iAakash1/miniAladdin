@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useHistory } from '@/lib/history'
 import AiPanel from '@/components/terminal/AiPanel'
 import CompanyBand from '@/components/terminal/CompanyBand'
+import CompanySnapshot from '@/components/terminal/CompanySnapshot'
 import DecisionProvenance from '@/components/terminal/DecisionProvenance'
 import CompanyCrossLinks from '@/components/terminal/CompanyCrossLinks'
 import CompanyEcosystem from '@/components/terminal/CompanyEcosystem'
@@ -57,6 +58,7 @@ const SECTIONS: Array<{
   { id: 'price', label: 'Price', present: () => true },
   { id: 'technical', label: 'Technical', present: (a) => a.technicalIntelligence !== null },
   { id: 'street', label: 'Street', present: (a) => a.streetIntelligence !== null },
+  { id: 'company', label: 'Company', present: (a) => a.profile !== null },
   { id: 'fundamentals', label: 'Fundamentals', present: () => true },
   { id: 'news', label: 'News', present: (a) => a.headlines.length > 0 },
   { id: 'provenance', label: 'Provenance', present: (a) => a.provenance !== null },
@@ -288,6 +290,12 @@ export default function CompanyReport({ analysis, initialChart, isPro, requestUp
         <StreetIntelligence block={analysis.streetIntelligence} />
       </div>
 
+      {analysis.profile && (
+        <div id="company" className="report-section">
+          <CompanySnapshot profile={analysis.profile} />
+        </div>
+      )}
+
       <div id="fundamentals" className="report-section terminal-grid-three">
         <Fundamentals analysis={analysis} />
         <MacroPanel macro={analysis.macro} />
@@ -299,6 +307,7 @@ export default function CompanyReport({ analysis, initialChart, isPro, requestUp
           headlines={analysis.headlines}
           isPro={isPro}
           onUpgrade={() => requestUpgrade('feature')}
+          stream={analysis.newsStream}
         />
       </div>
 

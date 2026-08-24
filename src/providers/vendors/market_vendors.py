@@ -41,6 +41,26 @@ def _safe_float(value) -> Optional[float]:
 
 # ── Polygon ───────────────────────────────────────────────────────────────────
 
+def _registrable_domain(website: str) -> str:
+    """The bare domain a logo provider can be keyed on.
+
+    Vendors return "https://www.apple.com/", "apple.com" and
+    "http://investor.apple.com" for the same company. Only the host matters,
+    and `www.` is never part of a brand's identity — leaving it in would make
+    two spellings of one company miss each other in the logo cache.
+    """
+    if not website:
+        return ""
+    host = website.strip().lower()
+    for prefix in ("https://", "http://"):
+        if host.startswith(prefix):
+            host = host[len(prefix):]
+    host = host.split("/")[0].split("?")[0].strip()
+    if host.startswith("www."):
+        host = host[4:]
+    return host if "." in host else ""
+
+
 class PolygonVendor(VendorClient):
     NAME = "polygon"
     KEY_ENV = "POLYGON_API_KEY"
@@ -101,10 +121,18 @@ class FinnhubVendor(VendorClient):
         return PriceQuote(symbol=symbol, price=price)
 
     def get_company(self, symbol: str) -> Optional[CompanyProfile]:
+        """Company profile.
+
+        `weburl`, `ipo` and `logo` were all in this response and all dropped.
+        The URL is the one that mattered most: it is the only source of a
+        registrable domain on this key, and the logo provider is keyed on
+        domain when a ticker lookup misses.
+        """
         data = self._get_json(f"{self.BASE}/stock/profile2", params=self._params(symbol=symbol))
         if not data or not data.get("name"):
             return None
         market_cap = _safe_float(data.get("marketCapitalization"))
+        website = str(data.get("weburl") or "")
         return CompanyProfile(
             symbol=symbol,
             name=data.get("name", ""),
@@ -113,6 +141,11 @@ class FinnhubVendor(VendorClient):
             market_cap=market_cap * 1e6 if market_cap else None,  # reported in millions
             currency=data.get("currency", "USD"),
             exchange=data.get("exchange", ""),
+            website=website,
+            domain=_registrable_domain(website),
+            ipo_date=str(data.get("ipo") or ""),
+            vendor_image=str(data.get("logo") or ""),
+            country=str(data.get("country") or ""),
         )
 
     def search_symbols(self, query: str, limit: int = 8) -> Optional[list[dict]]:
@@ -306,10 +339,24 @@ class FMPVendor(VendorClient):
         return out[:limit] or None
 
     def get_company(self, symbol: str) -> Optional[CompanyProfile]:
+        """Full company profile.
+
+        The response already carried description, website, CEO, headcount,
+        country, IPO date and beta on every call — the adapter kept six fields
+        and dropped the rest, so the product had no business description and
+        no domain to key a logo on while paying for a request that contained
+        both.
+        """
         data = self._get_json(f"{self.BASE}/profile/{symbol}", params={"apikey": self.api_key})
         if not isinstance(data, list) or not data:
             return None
         item = data[0]
+        website = str(item.get("website") or "")
+        employees = item.get("fullTimeEmployees")
+        try:
+            headcount = int(str(employees).replace(",", "")) if employees else None
+        except (TypeError, ValueError):
+            headcount = None
         return CompanyProfile(
             symbol=symbol,
             name=item.get("companyName", ""),
@@ -318,6 +365,15 @@ class FMPVendor(VendorClient):
             market_cap=_safe_float(item.get("mktCap")),
             currency=item.get("currency", "USD"),
             exchange=item.get("exchangeShortName", ""),
+            website=website,
+            domain=_registrable_domain(website),
+            description=str(item.get("description") or "")[:1200],
+            ceo=str(item.get("ceo") or ""),
+            employees=headcount,
+            country=str(item.get("country") or ""),
+            ipo_date=str(item.get("ipoDate") or ""),
+            beta=_safe_float(item.get("beta")),
+            vendor_image=str(item.get("image") or ""),
         )
 
     def get_fundamentals(self, symbol: str) -> Optional[FundamentalsData]:
@@ -335,6 +391,8 @@ class FMPVendor(VendorClient):
 
 
 # ── MarketStack ───────────────────────────────────────────────────────────────
+
+
 
 class MarketStackVendor(VendorClient):
     NAME = "marketstack"

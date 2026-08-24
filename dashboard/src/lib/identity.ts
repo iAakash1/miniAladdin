@@ -24,7 +24,30 @@
    No third-party key is involved, which is why these two and not the
    better-known logo APIs: Clearbit's endpoint no longer resolves at all,
    and logo.dev answers 401 without a publishable token. */
+/** Logo.dev publishable key, when the deployment supplies one.
+ *
+ *  The *publishable* key only — Logo.dev documents it as safe for
+ *  browser-side image URLs, which is exactly this use. The secret key
+ *  authenticates server-side lookup APIs, is read only by the backend, and
+ *  must never reach a `NEXT_PUBLIC_*` variable or a client bundle.
+ *
+ *  Read through a guarded property access rather than destructured at module
+ *  scope so a build without the variable produces an empty string instead of
+ *  a crash, and so the chain below simply skips the provider. */
+const LOGO_DEV_KEY =
+  typeof process !== 'undefined' ? (process.env.NEXT_PUBLIC_LOGO_DEV_KEY ?? '') : ''
+
 export const LOGO_PROVIDERS: ReadonlyArray<(symbol: string) => string> = [
+  // Logo.dev first when configured: it is a dedicated brand-mark service
+  // indexed by ticker, where the two below are side-effects of a market-data
+  // product and a broker product respectively. `fallback=404` makes a miss a
+  // clean error the <img> onError handler advances past, rather than a grey
+  // placeholder that would look like a real logo and stop the chain.
+  ...(LOGO_DEV_KEY
+    ? [(s: string) =>
+        `https://img.logo.dev/ticker/${encodeURIComponent(s)}` +
+        `?token=${encodeURIComponent(LOGO_DEV_KEY)}&size=128&format=png&fallback=404`]
+    : []),
   (s) => `https://financialmodelingprep.com/image-stock/${encodeURIComponent(s)}.png`,
   (s) => `https://assets.parqet.com/logos/symbol/${encodeURIComponent(s)}`,
 ]

@@ -13,7 +13,23 @@ from src.providers.schemas import (
     CompanyProfile,
     FundamentalsData,
     MacroSnapshot,
+    NewsHeadline,
 )
+
+
+def _av_float(value) -> Optional[float]:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _av_time(raw: str) -> str:
+    """Alpha Vantage stamps news as `YYYYMMDDTHHMMSS`; everything downstream
+    expects ISO-8601, and a mixed-format timestamp column sorts wrongly."""
+    if len(raw) == 15 and raw[8] == "T":
+        return f"{raw[0:4]}-{raw[4:6]}-{raw[6:8]}T{raw[9:11]}:{raw[11:13]}:{raw[13:15]}Z"
+    return raw
 
 
 class AlphaVantageVendor(VendorClient):
@@ -56,6 +72,84 @@ class AlphaVantageVendor(VendorClient):
         if raw.error or raw.analyst_target is None:
             return None
         return AnalystTargets(symbol=symbol, target_mean=raw.analyst_target)
+
+    # ── NEWS_SENTIMENT ───────────────────────────────────────────────────────
+    # The one capability in this codebase that no other news vendor has: a
+    # per-article, per-ticker sentiment score with a relevance weight and a
+    # topic taxonomy, produced by the vendor rather than by us. It was
+    # entirely unused — Alpha Vantage was wired only for fundamentals — so
+    # every research run was paying for a key whose most distinctive endpoint
+    # was never called.
+    #
+    # Deliberately exposed as its own capability rather than folded into
+    # `get_news`: the fabric asks vendors only for what they implement, and a
+    # vendor that returns headlines without sentiment must not be asked for
+    # sentiment it cannot produce.
+
+    def get_news_sentiment(self, symbol: str, limit: int = 20) -> Optional[list[NewsHeadline]]:
+        """Scored articles for one ticker.
+
+        The ticker-specific score is used, not the article-level one: an
+        article about the whole semiconductor sector can be broadly positive
+        while being specifically negative about one name in it, and the
+        overall figure would attribute the sector's tone to the company.
+        """
+        data = self.timed_call(
+            lambda: self._client.call(
+                function="NEWS_SENTIMENT", tickers=symbol,
+                limit=str(min(limit, 50)), sort="LATEST",
+            ),
+            operation="news_sentiment",
+        )
+        if not isinstance(data, dict):
+            return None
+        feed = data.get("feed")
+        if not isinstance(feed, list):
+            return None
+
+        out: list[NewsHeadline] = []
+        for item in feed:
+            if not isinstance(item, dict):
+                continue
+            title = str(item.get("title") or "").strip()
+            if not title:
+                continue
+
+            # Per-ticker sentiment, matched to the symbol we asked about.
+            score = label = relevance = None
+            for row in item.get("ticker_sentiment") or []:
+                if not isinstance(row, dict):
+                    continue
+                if str(row.get("ticker") or "").upper() == symbol.upper():
+                    score = _av_float(row.get("ticker_sentiment_score"))
+                    label = str(row.get("ticker_sentiment_label") or "") or None
+                    relevance = _av_float(row.get("relevance_score"))
+                    break
+
+            out.append(NewsHeadline(
+                title=title,
+                source=str(item.get("source") or "alpha_vantage"),
+                url=str(item.get("url") or ""),
+                published_at=_av_time(str(item.get("time_published") or "")),
+                summary=str(item.get("summary") or "")[:400],
+                tags=[
+                    str(t.get("topic")) for t in (item.get("topics") or [])
+                    if isinstance(t, dict) and t.get("topic")
+                ][:6],
+                tickers=[
+                    str(t.get("ticker")).upper() for t in (item.get("ticker_sentiment") or [])
+                    if isinstance(t, dict) and t.get("ticker")
+                ][:8],
+                image_url=str(item.get("banner_image") or ""),
+                # Vendor-scored, and labelled as such — this is evidence about
+                # tone, not a prediction, and nothing downstream may treat it
+                # as a signal.
+                sentiment_score=score,
+                sentiment_label=label,
+                sentiment_relevance=relevance,
+                sentiment_source=self.NAME,
+            ))
+        return out or None
 
 
 class FredVendor(VendorClient):

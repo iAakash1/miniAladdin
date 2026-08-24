@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import threading
 import time
 from typing import Any, Optional
@@ -29,6 +30,33 @@ from src.observability import metrics as _metrics
 logger = logging.getLogger(__name__)
 
 TRANSIENT_STATUS = {429, 500, 502, 503, 504}
+
+# Query parameters that carry credentials. Several vendors only accept auth in
+# the query string, so these values reach `requests`, which then embeds the
+# full URL in the text of any HTTPError it raises. That string is recorded as
+# the vendor's error, travels into `Evidence.error`, and from there into the
+# provenance payload the API returns — so an ordinary 403 from one vendor was
+# enough to publish that vendor's API key to the browser. Redaction happens at
+# the point the message is built rather than at the point it is displayed,
+# because there is no way to know every place an error string will end up.
+_SECRET_PARAMS = (
+    "apikey", "api_key", "apiKey", "token", "access_key", "access_token",
+    "key", "auth", "client_id", "client_secret",
+)
+_SECRET_RE = re.compile(
+    r"(?i)\b(" + "|".join(re.escape(p) for p in _SECRET_PARAMS) + r")=[^&\s\"']+"
+)
+
+
+def redact(text: str) -> str:
+    """Replace credential query values with a marker.
+
+    Deliberately operates on the message rather than on the URL: by the time
+    `requests` has raised, the key is already inside a formatted string, and
+    reconstructing the URL to re-encode it would be both fragile and easy to
+    forget at the next call site.
+    """
+    return _SECRET_RE.sub(lambda m: f"{m.group(1)}=<redacted>", text or "")
 
 
 def _observe(vendor: str, operation: str, outcome: str, latency_ms: float) -> None:
@@ -244,10 +272,12 @@ class VendorClient:
                 last_error = VendorError("timeout", transient=True)
             except requests.RequestException as exc:
                 latency = (time.perf_counter() - started) * 1000
-                last_error = VendorError(str(exc), transient=True)
+                # `requests` puts the full request URL in the message, which
+                # for query-string-authenticated vendors contains the key.
+                last_error = VendorError(redact(str(exc)), transient=True)
             except ValueError as exc:  # JSON decode
                 latency = (time.perf_counter() - started) * 1000
-                last_error = VendorError(f"invalid JSON: {exc}", transient=False)
+                last_error = VendorError(redact(f"invalid JSON: {exc}"), transient=False)
 
             self.stats.record(False, latency, str(last_error))
             if last_error.transient and attempt < self.MAX_RETRIES:

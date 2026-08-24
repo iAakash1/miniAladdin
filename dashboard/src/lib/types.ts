@@ -64,6 +64,10 @@ export interface RawHeadline {
   source?: string
   url?: string
   published_at?: string
+  corroborated_by?: string[]
+  image_url?: string
+  sentiment_score?: number | null
+  sentiment_label?: string | null
 }
 
 export interface RawSentiment {
@@ -279,6 +283,7 @@ export interface RawResearchResponse {
   consensus_price?: ConsensusPrice | null
   statements?: StatementUnion | null
   news_stream?: NewsStream | null
+  profile?: CompanyProfile | null
   detail?: string
 }
 
@@ -374,6 +379,42 @@ export interface NewsStream {
   providers: string[]
   corroborated: number
   categories: Record<string, number>
+  with_image?: number
+  /** Vendor-scored tone, over the articles that actually carry a score.
+   *  Null when no vendor in the fan-out scores its feed — which is
+   *  different from a neutral reading. */
+  sentiment?: {
+    scored: number
+    unscored: number
+    positive: number
+    negative: number
+    neutral: number
+    mean: number
+    source: string | null
+  } | null
+}
+
+/** Company identity and narrative, assembled from whichever vendor answered.
+ *  Every field optional: vendors differ in what they carry, and an absent
+ *  headcount is an absence rather than zero employees. */
+export interface CompanyProfile {
+  symbol: string
+  name: string
+  sector: string
+  industry: string
+  market_cap: number | null
+  currency: string
+  exchange: string
+  website: string
+  /** Registrable domain — what the logo provider is keyed on. */
+  domain: string
+  description: string
+  ceo: string
+  employees: number | null
+  country: string
+  ipo_date: string
+  beta: number | null
+  vendor_image: string
 }
 
 export interface Provenance {
@@ -424,6 +465,16 @@ export interface Headline {
   source: string
   url: string
   publishedAt: string
+  /** Vendors that independently carried this same story. More than one is
+   *  corroboration — the closest thing a headline feed has to verification. */
+  corroboratedBy: string[]
+  /** The publisher's own photograph. Never a stock image: editorial context
+   *  imagery is a separate field on a separate endpoint. */
+  imageUrl: string
+  /** Vendor-scored tone for this ticker. Null when nobody scored it, which
+   *  is not the same as a neutral score. */
+  sentimentScore: number | null
+  sentimentLabel: string | null
 }
 
 export interface PricePoint {
@@ -530,6 +581,7 @@ export interface Analysis {
   consensusPrice: ConsensusPrice | null
   statements: StatementUnion | null
   newsStream: NewsStream | null
+  profile: CompanyProfile | null
 }
 
 /* ---------- News (our own /api/news aggregation) ---------- */

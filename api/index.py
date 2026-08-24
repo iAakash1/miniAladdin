@@ -62,6 +62,7 @@ from src.services.backtest_service import peek_cached as peek_backtest
 from src.services.clerk_auth import optional_clerk_user
 from src.services.database.repositories import AnalysisRepository
 from src.services.provenance import Ledger
+from src.services import visual_intelligence
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 # Railway captures stdout; structured single-line records with timestamps.
@@ -526,6 +527,10 @@ def research_ticker(
 
     news_stream: Optional[dict[str, Any]] = None
     news_categories: dict[str, int] = {}
+    # Company identity & narrative, from whichever vendor answered. Fetched
+    # for the news query anyway; previously six of its fields were used and
+    # the description, domain, headcount and IPO date were thrown away.
+    profile_block: Optional[dict[str, Any]] = None
 
     # ── Step 0: warm the seven independent upstreams concurrently. ──────────
     # Purely a latency measure. Every fetch below is cache-first and
@@ -667,9 +672,15 @@ def research_ticker(
     # ── Step 2b: fill fundamentals gaps through the FundamentalsProvider chain
     # (Alpha Vantage → Finnhub → FMP). Only missing fields are filled; the
     # agent's own enrichment always wins when present.
-    if prediction is not None and technicals.get("company_name") is None:
+    # Unconditional now. It was gated on a missing company name, so a ticker
+    # whose name arrived from the price vendor never fetched a profile — and
+    # therefore never got a sector, a domain, or a description, all of which
+    # ride in the same response.
+    if prediction is not None:
         try:
             company_result = providers.fundamentals.get_company(ticker)
+            if company_result.ok and company_result.data:
+                profile_block = company_result.data.model_dump()
             ledger.record(
                 label="Company profile",
                 kind="fundamental",
@@ -847,6 +858,25 @@ def research_ticker(
                 for row, scored in zip(sentiment_data.get("headlines", []), news_evidence.headlines):
                     row["event_type"] = scored.event_type
                     row["evidence_weight"] = scored.weight
+
+            # Re-attach what the fan-out learned that the keyword scorer does
+            # not model: which vendors independently carried each story, the
+            # publisher's own image, and any vendor-scored sentiment. The
+            # scorer consumes only title/score/source, so without this the
+            # merge's whole advantage would be discarded at serialisation.
+            if news_stream and sentiment_data:
+                by_title = {
+                    (h.title or "").strip().lower(): h
+                    for h in news_stream["headlines"]
+                }
+                for row in sentiment_data.get("headlines", []):
+                    merged = by_title.get((row.get("title") or "").strip().lower())
+                    if not merged:
+                        continue
+                    row["corroborated_by"] = merged.corroborated_by
+                    row["image_url"] = merged.image_url
+                    row["sentiment_score"] = merged.sentiment_score
+                    row["sentiment_label"] = merged.sentiment_label
         except Exception:  # noqa: BLE001 — methodology layer must never break research
             logger.exception("News scoring failed for %s", ticker)
 
@@ -1095,6 +1125,7 @@ def research_ticker(
         # Multi-source blocks (v5.1). Additive and presentation-only: the
         # scoring engine is untouched by them, so a vendor outage here costs
         # a panel and never a verdict.
+        "profile": profile_block,
         "consensus_price": consensus,
         "statements": statements,
         "news_stream": {
@@ -1102,6 +1133,8 @@ def research_ticker(
             "unique": news_stream["unique"],
             "providers": news_stream["providers"],
             "corroborated": news_stream["corroborated"],
+            "with_image": news_stream.get("with_image", 0),
+            "sentiment": news_stream.get("sentiment"),
             "categories": news_categories,
         } if news_stream else None,
         "technical_intelligence": tech_intel,
@@ -1265,6 +1298,70 @@ def get_factor_lab(
 @app.get("/api/factors/universes", tags=["research"])
 def get_factor_universes():
     return {"universes": factor_lab_service.available_universes()}
+
+
+@app.get("/api/providers/capabilities", tags=["ops"])
+def provider_capabilities():
+    """What every provider can do, and which are live right now.
+
+    Introspection-driven (see `fabric.capability_matrix`), so a newly added
+    vendor appears here without anyone updating a list. Answers the question
+    the orchestrator asks on every request — "who can contribute to this" —
+    and the one a deploy engineer asks — "is the key actually configured".
+
+    Reports `configured` and `healthy` separately because they fail for
+    different reasons: a missing key is a deploy problem, a tripped circuit is
+    an outage. Only the *name* of the environment variable is exposed, never
+    its value.
+    """
+    matrix = fabric.capability_matrix({
+        "market": providers.market_data.vendors,
+        "fundamentals": providers.fundamentals.vendors,
+        "news": providers.news.vendors,
+        "macro": providers.macro.vendors,
+        "visual": visual_intelligence.IMAGE_VENDORS,
+    })
+    matrix["visual"] = visual_intelligence.diagnostics()
+    return matrix
+
+
+@app.get("/api/company/{ticker}/media", tags=["research"])
+def company_media(ticker: str, sector: str = "", industry: str = "", name: str = ""):
+    """Brand mark and editorial imagery for one company.
+
+    A separate endpoint from `/api/research` on purpose: imagery must never
+    sit on the critical path of a price. The research payload renders first,
+    and the page asks for this afterwards — a slow stock-photo API can then
+    only delay a photograph.
+
+    Identity and context are returned in separate fields and never merged: a
+    logo is a factual claim about a company, a stock photograph is a claim
+    about an industry.
+    """
+    symbol = ticker.upper().strip()
+    if not symbol or len(symbol) > 10:
+        raise HTTPException(status_code=400, detail="Invalid ticker symbol")
+
+    domain = ""
+    resolved_name, resolved_sector, resolved_industry = name, sector, industry
+    try:
+        profile = providers.fundamentals.get_company(symbol)
+        if profile.ok and profile.data:
+            domain = profile.data.domain or ""
+            resolved_name = resolved_name or profile.data.name
+            resolved_sector = resolved_sector or profile.data.sector
+            resolved_industry = resolved_industry or profile.data.industry
+    except Exception:  # noqa: BLE001 — media is never fatal
+        logger.exception("profile lookup failed for %s", symbol)
+
+    return {
+        "ticker": symbol,
+        "identity": visual_intelligence.identity(symbol, domain),
+        "context": visual_intelligence.hero_for_company(
+            symbol, name=resolved_name, sector=resolved_sector, industry=resolved_industry,
+        ),
+        "domain": domain,
+    }
 
 
 @app.get("/api/metrics", tags=["ops"])

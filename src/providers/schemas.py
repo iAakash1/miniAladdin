@@ -200,6 +200,25 @@ class CompanyProfile(BaseModel):
     currency: str = "USD"
     exchange: str = ""
 
+    # ── Additive identity & narrative (v5.2) ─────────────────────────────────
+    # FMP's /profile already returned every field below on every call; the
+    # adapter kept six and discarded the rest, so the product had no company
+    # description, no domain to resolve a logo from, and no headcount — all of
+    # which were arriving in the same response the market cap came from.
+    website: str = ""
+    # The registrable domain, derived from `website`. This is what the logo
+    # provider is keyed on, so it is stored rather than re-parsed at each use.
+    domain: str = ""
+    description: str = ""
+    ceo: str = ""
+    employees: Optional[int] = None
+    country: str = ""
+    ipo_date: str = ""
+    beta: Optional[float] = None
+    # Vendor-hosted logo, when the vendor has one. A second opinion to the
+    # dedicated logo provider, never a replacement for it.
+    vendor_image: str = ""
+
 
 class FundamentalsData(BaseModel):
     symbol: str
@@ -260,12 +279,79 @@ class NewsHeadline(BaseModel):
     # vendors that do not, which is different from "no tags apply".
     tags: list[str] = Field(default_factory=list)
     tickers: list[str] = Field(default_factory=list)
+    #: The publisher's own image for this article. Preserved because it is
+    #: the article's actual photograph — editorial imagery from a stock
+    #: library is a different thing and must never overwrite it.
+    image_url: str = ""
+
+    # ── Vendor-scored sentiment (v5.2) ───────────────────────────────────────
+    # Only some vendors score their feed. These stay None elsewhere, which is
+    # meaningfully different from a score of 0.0 — "not measured" is not
+    # "neutral". `sentiment_source` names who scored it, so nothing downstream
+    # can present a vendor's tone estimate as the product's own judgement.
+    sentiment_score: Optional[float] = None
+    sentiment_label: Optional[str] = None
+    #: How much this article is *about* the ticker asked for, per the vendor.
+    sentiment_relevance: Optional[float] = None
+    sentiment_source: Optional[str] = None
     # Set by the aggregator, not by a vendor: which vendors independently
     # carried this same story. One source is a report; four is corroboration.
     corroborated_by: list[str] = Field(default_factory=list)
 
 
 # ── Macro ─────────────────────────────────────────────────────────────────────
+
+# ── Visual identity & imagery ─────────────────────────────────────────────────
+
+class BrandMark(BaseModel):
+    """A company's actual logo. Identity, never decoration.
+
+    Kept structurally separate from `VisualAsset` on purpose: a brand mark is
+    a claim about *who a company is*, and a stock photograph is a claim about
+    what an industry looks like. Merging them into one type is what would
+    eventually let a photo of an orchard render where Apple's logo belongs.
+    """
+    symbol: str
+    domain: str = ""
+    logo_url: str = ""
+    #: Second URL to try when the first 404s — usually domain when the primary
+    #: was resolved by ticker. Handed to the client so a miss costs no round trip.
+    alternate_url: str = ""
+    resolved_by: str = ""                   # "ticker" | "domain"
+    provider: str = ""
+
+
+class VisualAsset(BaseModel):
+    """One editorial photograph. Context, never identity.
+
+    Carries its own attribution because both libraries require credit, and a
+    renderer that had to remember which provider needs it would eventually
+    forget. `provider_metadata` keeps whatever is vendor-specific — Unsplash's
+    download-tracking endpoint, Pexels' average colour — rather than dropping
+    fields that do not fit a shared shape.
+    """
+    provider: str
+    provider_asset_id: str = ""
+
+    image_url: str
+    thumbnail_url: str = ""
+    source_url: str = ""                    # the photo's page on the provider
+
+    width: Optional[int] = None
+    height: Optional[int] = None
+    aspect_ratio: Optional[float] = None
+
+    alt_text: str = ""
+    photographer: str = ""
+    photographer_url: str = ""
+
+    query: str = ""
+    #: Deterministic, explainable score — see visual_intelligence.rank().
+    relevance: float = 0.0
+    attribution_required: bool = True
+
+    provider_metadata: dict[str, Any] = Field(default_factory=dict)
+
 
 class MacroSnapshot(BaseModel):
     yield_spread: Optional[float] = None    # 10Y − 2Y, percent

@@ -210,11 +210,17 @@ class NewsProvider:
         # Tiingo carries tags and a ticker list the other news vendors do not,
         # which the categoriser downstream uses as a prior.
         self.tiingo = TiingoVendor()
+        # Alpha Vantage contributes *scored* articles — per-ticker sentiment
+        # with a relevance weight, which no other news vendor here produces.
+        # It joins the fan-out through `get_news_sentiment`, a separate
+        # capability, so vendors without sentiment are never asked for it.
+        self.alpha_vantage = AlphaVantageVendor()
         self._chain = FallbackChain[list[NewsHeadline]]("news.headlines", cache, flight, self.TTL)
 
     @property
     def vendors(self):
-        return [self.newsapi, self.gnews, self.yahoo_rss, self.tavily, self.tiingo]
+        return [self.newsapi, self.gnews, self.yahoo_rss, self.tavily,
+                self.tiingo, self.alpha_vantage]
 
     def news_evidence(self, symbol: str, company_name: str = "", limit: int = 12) -> list[Evidence]:
         """Every news vendor, concurrently — this one genuinely must not fall back.
@@ -234,7 +240,16 @@ class NewsProvider:
                 return vendor.get_news(symbol, limit)
             return vendor.get_news(symbol, company_name, limit)
 
-        return fabric.collect("news", symbol, self.vendors, fetch)
+        headlines = fabric.collect("news", symbol, self.vendors, fetch)
+        # Scored articles are a *separate* capability, collected in the same
+        # pass. Alpha Vantage is the only vendor here that implements it, so
+        # capability discovery asks it and nobody else — and its articles
+        # merge into the same stream, carrying sentiment the others lack.
+        scored = fabric.collect(
+            "news_sentiment", symbol, self.vendors,
+            lambda v: v.get_news_sentiment(symbol, limit),
+        )
+        return headlines + scored
 
     def get_news(self, symbol: str, company_name: str = "", limit: int = 12) -> ProviderResult[list[NewsHeadline]]:
         symbol = symbol.upper()

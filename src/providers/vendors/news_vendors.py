@@ -51,6 +51,19 @@ class GNewsVendor(VendorClient):
     BASE = "https://gnews.io/api/v4"
 
     def get_news(self, query: str, company_name: str = "", limit: int = 12) -> Optional[list[NewsHeadline]]:
+        """Ticker + company-name search.
+
+        Both terms rather than the ticker alone: three-letter tickers collide
+        with ordinary words ("V", "ALL", "IT"), and searching the ticker on
+        its own returns articles about visas and everything else. Kept to one
+        request with an OR rather than fanning out over several phrasings —
+        the free tier is 100 calls a day, and a second query would halve the
+        number of companies a user can research.
+
+        `image` and `content` were both in the response and both discarded;
+        the image is the publisher's own photograph for the story, which is
+        the one image the product must never replace with a stock photo.
+        """
         term = f'"{query}" OR "{company_name}"' if company_name else f'"{query}" stock'
         data = self._get_json(
             f"{self.BASE}/search",
@@ -69,6 +82,7 @@ class GNewsVendor(VendorClient):
                 url=article.get("url", ""),
                 published_at=article.get("publishedAt", ""),
                 summary=(article.get("description") or "")[:280],
+                image_url=str(article.get("image") or ""),
             )
             for article in articles
             if article.get("title")

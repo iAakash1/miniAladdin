@@ -202,6 +202,12 @@ export function normalizeAnalysis(raw: RawResearchResponse): Analysis {
       source: h.source ?? '',
       url: h.url ?? '',
       publishedAt: h.published_at ?? '',
+      corroboratedBy: h.corroborated_by ?? [],
+      imageUrl: h.image_url ?? '',
+      // `?? null` and not `|| null`: a score of exactly 0 is a measurement
+      // of neutral tone, and `||` would erase it into "unscored".
+      sentimentScore: h.sentiment_score ?? null,
+      sentimentLabel: h.sentiment_label ?? null,
     })),
 
     macro: normalizeMacro(raw.macro),
@@ -212,6 +218,7 @@ export function normalizeAnalysis(raw: RawResearchResponse): Analysis {
     consensusPrice: raw.consensus_price ?? null,
     statements: raw.statements ?? null,
     newsStream: raw.news_stream ?? null,
+    profile: raw.profile ?? null,
   }
 }
 

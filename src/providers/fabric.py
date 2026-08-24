@@ -64,7 +64,102 @@ CAPABILITY_METHODS: dict[str, str] = {
     "fundamentals": "get_fundamentals",
     "street": "get_street",
     "analyst_targets": "get_analyst_targets",
+    # Visual capabilities. Deliberately two entries and not one: a brand mark
+    # is a company's identity and a stock photograph is industry context, and
+    # a single "image" capability would let a provider that can only do one
+    # be asked for the other.
+    "brand_mark": "get_brand",
+    "image_search": "search_images",
+    # Structured news sentiment — a capability only some news vendors have.
+    # Kept separate from `news` so a vendor that returns headlines without
+    # sentiment is not asked for something it cannot supply.
+    "news_sentiment": "get_news_sentiment",
 }
+
+# Human labels for the diagnostics surface. A capability with no label is
+# still discoverable; this only controls how it reads.
+CAPABILITY_LABELS: dict[str, str] = {
+    "quote": "Real-time quote",
+    "series": "Daily price history",
+    "news": "Headlines",
+    "news_sentiment": "Scored news sentiment",
+    "company": "Company profile",
+    "fundamentals": "Reported fundamentals",
+    "street": "Analyst & insider activity",
+    "analyst_targets": "Price targets",
+    "brand_mark": "Company logo",
+    "image_search": "Editorial imagery",
+}
+
+
+def capability_matrix(groups: dict[str, Sequence[Any]]) -> dict[str, Any]:
+    """What every provider in the system can do, right now.
+
+    Introspection-driven rather than a hand-kept table: a table drifts the
+    first time someone adds a method and forgets to register it, and the
+    thing this exists to answer — "who can contribute to this request" — is
+    exactly the question a stale table answers wrongly.
+
+    Reports configuration and health separately because they fail for
+    different reasons and are fixed by different people: `configured` is
+    false when an API key is absent (a deploy concern), `healthy` is false
+    when the circuit has tripped after repeated failures (an outage). A
+    provider that is configured but unhealthy is a very different situation
+    from one that was never set up.
+    """
+    seen: dict[str, dict[str, Any]] = {}
+    for group, vendors in groups.items():
+        for vendor in vendors:
+            name = getattr(vendor, "NAME", "unknown")
+            entry = seen.setdefault(name, {
+                "provider": name,
+                "groups": [],
+                "configured": bool(getattr(vendor, "available", False)),
+                "healthy": bool(getattr(vendor, "healthy", False)),
+                "capabilities": [],
+                "key_env": getattr(vendor, "KEY_ENV", None),
+                "rpm": getattr(getattr(vendor, "rate_limiter", None), "capacity", None),
+            })
+            if group not in entry["groups"]:
+                entry["groups"].append(group)
+            for capability, method in CAPABILITY_METHODS.items():
+                if hasattr(vendor, method) and capability not in entry["capabilities"]:
+                    entry["capabilities"].append(capability)
+
+    providers = sorted(seen.values(), key=lambda e: e["provider"])
+    for entry in providers:
+        entry["capabilities"].sort()
+
+    # Inverted view: the question the orchestrator actually asks.
+    by_capability: dict[str, dict[str, list[str]]] = {}
+    for capability in CAPABILITY_METHODS:
+        contributors = [e["provider"] for e in providers if capability in e["capabilities"]]
+        if not contributors:
+            continue
+        by_capability[capability] = {
+            "label": CAPABILITY_LABELS.get(capability, capability),
+            "implemented_by": contributors,
+            # Only these will actually be asked on the next fan-out.
+            "live": [
+                e["provider"] for e in providers
+                if capability in e["capabilities"] and e["healthy"]
+            ],
+            "unconfigured": [
+                e["provider"] for e in providers
+                if capability in e["capabilities"] and not e["configured"]
+            ],
+        }
+
+    return {
+        "providers": providers,
+        "by_capability": by_capability,
+        "totals": {
+            "providers": len(providers),
+            "configured": sum(1 for e in providers if e["configured"]),
+            "healthy": sum(1 for e in providers if e["healthy"]),
+            "capabilities": len(by_capability),
+        },
+    }
 
 # Prices within this fraction of the consensus are "agreeing". Half a percent
 # is wider than a bid-ask spread on a liquid name and narrower than the gap
@@ -283,14 +378,32 @@ def merge_news(evidence: list[Evidence]) -> dict[str, Any]:
                 existing = by_key[key]
                 if ev.provider not in existing.corroborated_by:
                     existing.corroborated_by.append(ev.provider)
-                # Keep the richest copy: a summary from one vendor and a
-                # timestamp from another together beat either alone.
+                # Merge toward the *richest* record rather than keeping
+                # whichever vendor happened to answer first. One vendor has
+                # the summary, another the publisher's image, a third the
+                # sentiment score — the union is strictly better than any
+                # single copy, and this is the whole reason to fan out.
                 if not existing.summary and getattr(item, "summary", ""):
                     existing.summary = item.summary
                 if not existing.published_at and getattr(item, "published_at", ""):
                     existing.published_at = item.published_at
                 if not existing.tags and getattr(item, "tags", None):
                     existing.tags = list(item.tags)
+                if not existing.tickers and getattr(item, "tickers", None):
+                    existing.tickers = list(item.tickers)
+                # The publisher's own photograph. Never overwritten once set:
+                # a second vendor's copy of the same story is not a better
+                # source for the image than the first.
+                if not existing.image_url and getattr(item, "image_url", ""):
+                    existing.image_url = item.image_url
+                # Only one vendor scores sentiment, so this fills in rather
+                # than competing. `is None` and not falsy: a score of 0.0 is a
+                # measurement of neutral, not an absence.
+                if existing.sentiment_score is None and getattr(item, "sentiment_score", None) is not None:
+                    existing.sentiment_score = item.sentiment_score
+                    existing.sentiment_label = item.sentiment_label
+                    existing.sentiment_relevance = item.sentiment_relevance
+                    existing.sentiment_source = item.sentiment_source
                 continue
             item.corroborated_by = [ev.provider]
             by_key[key] = item
@@ -298,6 +411,27 @@ def merge_news(evidence: list[Evidence]) -> dict[str, Any]:
 
     unique = [by_key[k] for k in order]
     contributing = sorted({e.provider for e in evidence if e.ok})
+
+    # Vendor-scored tone, summarised only over the articles that actually
+    # carry a score. Articles nobody scored are reported as unscored rather
+    # than counted as neutral — "not measured" and "measured as neutral" are
+    # different facts, and merging them would let a stream with two scored
+    # articles look as well-evidenced as one with twenty.
+    scored = [h for h in unique if h.sentiment_score is not None]
+    sentiment = None
+    if scored:
+        positive = sum(1 for h in scored if (h.sentiment_score or 0) > 0.15)
+        negative = sum(1 for h in scored if (h.sentiment_score or 0) < -0.15)
+        sentiment = {
+            "scored": len(scored),
+            "unscored": len(unique) - len(scored),
+            "positive": positive,
+            "negative": negative,
+            "neutral": len(scored) - positive - negative,
+            "mean": round(sum(h.sentiment_score or 0 for h in scored) / len(scored), 3),
+            "source": scored[0].sentiment_source,
+        }
+
     return {
         "headlines": unique,
         "collected": total,
@@ -306,6 +440,8 @@ def merge_news(evidence: list[Evidence]) -> dict[str, Any]:
         # Stories more than one vendor carried independently. The strongest
         # signal a headline stream offers about whether an event is real.
         "corroborated": sum(1 for h in unique if len(h.corroborated_by) > 1),
+        "with_image": sum(1 for h in unique if h.image_url),
+        "sentiment": sentiment,
     }
 
 
