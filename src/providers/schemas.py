@@ -385,6 +385,9 @@ class NewsHeadline(BaseModel):
     #: the article's actual photograph — editorial imagery from a stock
     #: library is a different thing and must never overwrite it.
     image_url: str = ""
+    #: Byline, where the vendor supplies one. Empty from vendors that do not,
+    #: which is different from an unattributed article.
+    author: str = ""
 
     # ── Vendor-scored sentiment (v5.2) ───────────────────────────────────────
     # Only some vendors score their feed. These stay None elsewhere, which is
@@ -393,9 +396,19 @@ class NewsHeadline(BaseModel):
     # can present a vendor's tone estimate as the product's own judgement.
     sentiment_score: Optional[float] = None
     sentiment_label: Optional[str] = None
-    #: How much this article is *about* the ticker asked for, per the vendor.
+    #: How much this article is *about* the ticker asked for, per the vendor
+    #: that scored its sentiment.
     sentiment_relevance: Optional[float] = None
     sentiment_source: Optional[str] = None
+
+    #: Topical relevance from a search vendor. Deliberately a separate field
+    #: from `sentiment_relevance`: one is a search engine's match score for a
+    #: query and the other is a sentiment model's judgement of how much an
+    #: article concerns a ticker. They answer similar-sounding questions on
+    #: incomparable scales, and merging them would let a search rank be read
+    #: as an analytical weight.
+    relevance: Optional[float] = None
+    relevance_source: Optional[str] = None
     # Set by the aggregator, not by a vendor: which vendors independently
     # carried this same story. One source is a report; four is corroboration.
     corroborated_by: list[str] = Field(default_factory=list)

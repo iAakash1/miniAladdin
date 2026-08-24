@@ -4878,3 +4878,12 @@ a.hl-row:hover .hl-row__out { color: var(--accent); transform: translate(1px, -1
   .sec__trend { grid-template-columns: minmax(0, 1fr) 7ch; }
   .sec__trend-years, .sec__trend-src { display: none; }
 }
+
+/* Sentiment attribution. The vendor's name rides on the badge because a
+   tone estimate is one vendor's judgement, never the product's. */
+.hl-sent__src {
+  font-weight: 400;
+  opacity: 0.7;
+  font-size: 0.5625rem;
+  text-transform: none;
+}

@@ -170,6 +170,35 @@ class FundamentalsProvider:
             "ownership", symbol, self.vendors, lambda v: v.get_ownership(symbol),
         )
 
+    def street_evidence(self, symbol: str) -> list[Evidence]:
+        """Recommendation trends, EPS surprises and insider sentiment.
+
+        Only Finnhub implements this today, and it was reached through a
+        one-link FallbackChain — which is a chain in name only and, more to
+        the point, made the capability invisible to the fabric. Routed here
+        so it appears in the provenance roster like every other input, and so
+        a second vendor needs no change at this call site.
+        """
+        symbol = symbol.upper()
+        return fabric.collect(
+            "street", symbol, self.vendors, lambda v: v.get_street(symbol),
+        )
+
+    def target_evidence(self, symbol: str) -> list[Evidence]:
+        """Analyst price targets from every vendor that publishes them.
+
+        Distinct from `analyst_evidence`, which returns a whole consensus
+        object including the rating distribution; this is the bare target and
+        is supplied by vendors that do not carry the distribution. Both are
+        kept per-vendor rather than merged — each polls a different analyst
+        set, so a median across them is a consensus of no actual group.
+        """
+        symbol = symbol.upper()
+        return fabric.collect(
+            "analyst_targets", symbol, self.vendors,
+            lambda v: v.get_analyst_targets(symbol),
+        )
+
     def analyst_evidence(self, symbol: str) -> list[Evidence]:
         """Price targets and rating distributions, one entry per vendor.
 

@@ -112,11 +112,17 @@ export default function Headlines({ headlines, isPro, onUpgrade, stream }: Headl
               <strong className="num">{stream.corroborated}</strong> corroborated
             </span>
           )}
+          {/* The scoring vendor is named on screen, not tucked into a
+              tooltip. Only one vendor in the fan-out scores sentiment, and a
+              reader who cannot see that will reasonably assume all of them
+              independently agreed on the tone. */}
           {stream.sentiment && (
-            <span className="hl-stream__stat" title={`Scored by ${stream.sentiment.source ?? 'a vendor'}`}>
+            <span className="hl-stream__stat">
               {stream.sentiment.positive}↑ {stream.sentiment.negative}↓
               <span className="u-note">
-                {' '}scored ({stream.sentiment.scored} of {stream.sentiment.scored + stream.sentiment.unscored})
+                {' '}sentiment via {stream.sentiment.source ?? 'a vendor'} ·{' '}
+                {stream.sentiment.scored} of{' '}
+                {stream.sentiment.scored + stream.sentiment.unscored} scored
               </span>
             </span>
           )}
@@ -176,6 +182,7 @@ export default function Headlines({ headlines, isPro, onUpgrade, stream }: Headl
                 )}
                 {/* Vendor-scored tone, attributed to the vendor rather than
                     presented as the product's own judgement. */}
+                {h.author && <span className="u-meta">by {h.author}</span>}
                 {h.sentimentScore !== null && (
                   <span
                     className={`hl-sent hl-sent--${
@@ -184,6 +191,11 @@ export default function Headlines({ headlines, isPro, onUpgrade, stream }: Headl
                     title="Vendor-scored article sentiment — evidence about tone, not a prediction"
                   >
                     {h.sentimentLabel ?? h.sentimentScore.toFixed(2)}
+                    {/* Attribution on the badge itself: one vendor's tone
+                        estimate, never the product's own judgement. */}
+                    {h.sentimentSource && (
+                      <span className="hl-sent__src"> {h.sentimentSource}</span>
+                    )}
                   </span>
                 )}
               </div>

@@ -445,3 +445,42 @@ def test_every_trend_names_the_document_it_came_from():
     assert trend["form"] == "10-K"
     assert trend["filed"] == "2025-10-31"
     assert trend["unit"] == "USD"
+
+
+def test_a_quarter_is_never_compared_against_a_full_year():
+    """The SEC adapter filters to annual 10-K rows today, so this cannot fire
+    yet. It exists because the alternative is a silent wrong answer: relax
+    that filter and an unguarded trend reports a ~75% 'decline' that is
+    purely a period mismatch."""
+    from api.index import _xbrl_trends
+    assert _xbrl_trends({"Revenue": [
+        {"fiscal_year": 2025, "value": 100.0, "unit": "USD", "form": "10-Q", "filed": "a"},
+        {"fiscal_year": 2024, "value": 400.0, "unit": "USD", "form": "10-K", "filed": "b"},
+    ]}) == []
+
+
+def test_two_different_units_are_never_compared():
+    from api.index import _xbrl_trends
+    assert _xbrl_trends({"Revenue": [
+        {"fiscal_year": 2025, "value": 400.0, "unit": "EUR", "form": "10-K", "filed": "a"},
+        {"fiscal_year": 2024, "value": 350.0, "unit": "USD", "form": "10-K", "filed": "b"},
+    ]}) == []
+
+
+def test_a_restatement_of_one_year_is_not_reported_as_growth():
+    """The same fiscal year republished under a later filing date is a
+    correction, not a change."""
+    from api.index import _xbrl_trends
+    assert _xbrl_trends({"Revenue": [
+        {"fiscal_year": 2025, "value": 402.0, "unit": "USD", "form": "10-K", "filed": "2026-02-01"},
+        {"fiscal_year": 2025, "value": 400.0, "unit": "USD", "form": "10-K", "filed": "2025-10-31"},
+    ]}) == []
+
+
+def test_a_gap_year_is_not_labelled_year_over_year():
+    """A two-year jump is a reporting hole, not a YoY change."""
+    from api.index import _xbrl_trends
+    assert _xbrl_trends({"Revenue": [
+        {"fiscal_year": 2025, "value": 400.0, "unit": "USD", "form": "10-K", "filed": "a"},
+        {"fiscal_year": 2023, "value": 350.0, "unit": "USD", "form": "10-K", "filed": "b"},
+    ]}) == []

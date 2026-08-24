@@ -69,6 +69,12 @@ class TavilyVendor(VendorClient):
             NewsHeadline(
                 title=row.title, source="Tavily", url=row.url,
                 published_at=row.published_at, summary=row.snippet[:280],
+                # Tavily's own match score for the query. Attributed rather
+                # than folded into the sentiment relevance field — a search
+                # rank and a sentiment model's ticker-relevance judgement are
+                # incomparable scales that happen to share a name.
+                relevance=row.score,
+                relevance_source=self.NAME,
             )
             for row in results
         ]

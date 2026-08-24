@@ -68,6 +68,13 @@ CAPABILITY_METHODS: dict[str, str] = {
     # is a company's identity and a stock photograph is industry context, and
     # a single "image" capability would let a provider that can only do one
     # be asked for the other.
+    #
+    # `brand_mark` is registered for *discovery* but is deliberately never
+    # run through `collect`: it is pure URL construction with no network call,
+    # so a fan-out would add a thread handoff and an evidence record for
+    # something that cannot fail, time out, or rate-limit. It appears in the
+    # capability matrix because an operator still needs to see whether the
+    # logo provider is configured.
     "brand_mark": "get_brand",
     "image_search": "search_images",
     # Structured news sentiment — a capability only some news vendors have.
@@ -422,6 +429,14 @@ def merge_news(evidence: list[Evidence]) -> dict[str, Any]:
                     existing.sentiment_label = item.sentiment_label
                     existing.sentiment_relevance = item.sentiment_relevance
                     existing.sentiment_source = item.sentiment_source
+                # Search relevance and byline: same fill-if-absent rule. Each
+                # comes from a vendor the others cannot supply, so the merged
+                # record is strictly richer than any single copy.
+                if existing.relevance is None and getattr(item, "relevance", None) is not None:
+                    existing.relevance = item.relevance
+                    existing.relevance_source = item.relevance_source
+                if not existing.author and getattr(item, "author", ""):
+                    existing.author = item.author
                 continue
             item.corroborated_by = [ev.provider]
             by_key[key] = item

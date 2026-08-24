@@ -208,6 +208,9 @@ export function normalizeAnalysis(raw: RawResearchResponse): Analysis {
       // of neutral tone, and `||` would erase it into "unscored".
       sentimentScore: h.sentiment_score ?? null,
       sentimentLabel: h.sentiment_label ?? null,
+      sentimentSource: h.sentiment_source ?? null,
+      relevance: h.relevance ?? null,
+      author: h.author ?? '',
     })),
 
     macro: normalizeMacro(raw.macro),

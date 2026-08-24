@@ -68,6 +68,9 @@ export interface RawHeadline {
   image_url?: string
   sentiment_score?: number | null
   sentiment_label?: string | null
+  sentiment_source?: string | null
+  relevance?: number | null
+  author?: string
 }
 
 export interface RawSentiment {
@@ -610,6 +613,13 @@ export interface Headline {
    *  is not the same as a neutral score. */
   sentimentScore: number | null
   sentimentLabel: string | null
+  /** Which vendor scored the tone. Rendered, not hidden in a tooltip: the
+   *  reader must not infer that every vendor independently agreed. */
+  sentimentSource: string | null
+  /** Search-engine match score, from a search vendor. A different scale from
+   *  sentiment relevance and attributed separately. */
+  relevance: number | null
+  author: string
 }
 
 export interface PricePoint {

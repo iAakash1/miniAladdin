@@ -37,6 +37,12 @@ class NewsApiVendor(VendorClient):
                 source=row.get("source", "NewsAPI"),
                 url=row.get("url", ""),
                 published_at=row.get("published", ""),
+                summary=row.get("summary", ""),
+                # The publisher's own photograph. Carried through the client's
+                # dict shape rather than dropped at the adapter boundary,
+                # which is where it was being lost.
+                image_url=row.get("image", ""),
+                author=row.get("author", ""),
             )
             for row in rows
             if row.get("title")

@@ -478,6 +478,31 @@ def _xbrl_trends(facts: dict[str, list[dict[str, Any]]]) -> list[dict[str, Any]]
         if len(usable) < 2:
             continue
         latest, prior = usable[0], usable[1]
+
+        # ── comparability guards ─────────────────────────────────────────
+        # The SEC adapter currently filters to annual 10-K/FY rows, so these
+        # should never fire today. They exist because the alternative is a
+        # silent wrong answer: if that filter is ever relaxed, an unguarded
+        # trend would happily compare a quarter against a full year and
+        # report a ~75% "decline" that is purely a period mismatch.
+        if latest.get("form") != prior.get("form"):
+            continue
+        if latest.get("unit") != prior.get("unit"):
+            continue
+
+        # Fiscal years must be distinct and ordered. A restatement republishes
+        # the same year under a later filing date; comparing a year against
+        # itself would report a restatement as growth.
+        latest_fy, prior_fy = latest.get("fiscal_year"), prior.get("fiscal_year")
+        if not isinstance(latest_fy, int) or not isinstance(prior_fy, int):
+            continue
+        if latest_fy <= prior_fy:
+            continue
+        # A gap wider than one year is a reporting hole, not a year-over-year
+        # change, and labelling it "YoY" would be wrong.
+        if latest_fy - prior_fy != 1:
+            continue
+
         # Guard the ratio: a prior year of zero has no defined growth rate,
         # and a sign flip makes the percentage meaningless rather than large.
         if not prior["value"] or (latest["value"] < 0) != (prior["value"] < 0):
@@ -836,6 +861,7 @@ def research_ticker(
     # separate blocks rather than more fields on the fundamentals object.
     ownership_block = None
     analyst_block = None
+    targets_block = None
     if prediction is not None:
         try:
             own_ev = providers.fundamentals.ownership_evidence(ticker)
@@ -856,14 +882,62 @@ def research_ticker(
             logger.exception("ownership lookup failed for %s", ticker)
 
         try:
+            # Bare price targets, from vendors that publish a target without
+            # a rating distribution. Kept per-vendor for the same reason as
+            # the consensus block.
+            target_ev = providers.fundamentals.target_evidence(ticker)
+            target_rows = [
+                {**e.data.model_dump(), "source": e.provider}
+                for e in target_ev if e.ok and e.data
+            ]
+            if target_rows:
+                # Normalised onto the same shape as the consensus readings so
+                # the UI renders one row per vendor rather than two competing
+                # panels. Vendors that publish only a target and no rating
+                # distribution simply leave those fields null.
+                targets_block = [
+                    {
+                        "target_mean": row.get("target_mean"),
+                        "target_high": row.get("target_high"),
+                        "target_low": row.get("target_low"),
+                        "analyst_count": row.get("analyst_count"),
+                        "recommendation": None,
+                        "recommendation_mean": None,
+                        "source": row.get("source"),
+                    }
+                    for row in target_rows
+                ]
+            if target_ev:
+                ledger.record_fabric(
+                    label="Price targets",
+                    kind="fundamental",
+                    evidence=target_ev,
+                    detail=f"{len(target_rows)} vendor target"
+                           f"{'' if len(target_rows) == 1 else 's'}",
+                    used_for=["presentation only — not reconciled across vendors"],
+                )
+        except Exception:  # noqa: BLE001
+            logger.exception("target lookup failed for %s", ticker)
+
+        try:
             analyst_ev = providers.fundamentals.analyst_evidence(ticker)
             readings = [e.data.model_dump() for e in analyst_ev if e.ok and e.data]
-            if readings:
-                # Every vendor's reading, side by side. Deliberately not
-                # reduced to one number: each polls a different analyst set,
-                # so a median across vendors is a consensus of no actual
-                # group of people.
-                analyst_block = {"readings": readings, "vendor_count": len(readings)}
+            # Every vendor's reading, side by side — the consensus objects
+            # and the bare-target vendors together. Deliberately not reduced
+            # to one number: each polls a different analyst set, so a median
+            # across vendors is a consensus of no actual group of people.
+            combined = readings + (targets_block or [])
+            # A vendor appearing in both lists would be double-counted.
+            seen_sources: set[str] = set()
+            deduped = []
+            for row in combined:
+                source = str(row.get("source") or "")
+                if source in seen_sources:
+                    continue
+                seen_sources.add(source)
+                deduped.append(row)
+            if deduped:
+                analyst_block = {"readings": deduped, "vendor_count": len(deduped)}
             if analyst_ev:
                 ledger.record_fabric(
                     label="Analyst targets",
@@ -1078,12 +1152,16 @@ def research_ticker(
     street_intel = None
     if prediction is not None:
         try:
+            # Fanned out rather than chained: it was a one-link
+            # FallbackChain, which made the capability invisible to the
+            # fabric and left it out of the provenance roster.
+            street_ev = providers.fundamentals.street_evidence(ticker)
             street_result = providers.fundamentals.get_street(ticker)
-            ledger.record(
+            ledger.record_fabric(
                 label="Street & insider activity",
                 kind="fundamental",
-                result=street_result,
-                detail="analyst ratings, price targets, insider transactions",
+                evidence=street_ev,
+                detail="analyst ratings, EPS surprises, insider sentiment",
                 used_for=["presentation only — never a scoring input"],
             )
             if street_result.ok:

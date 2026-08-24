@@ -108,12 +108,20 @@ class NewsAPIClient:
                     if not source or source == "NewsAPI":
                         source = parts[1].strip()
 
+                # `urlToImage`, `description` and `author` were all in this
+                # response and all dropped. The image is the publisher's own
+                # photograph for the story — the one image the product must
+                # never substitute a stock library for — and NewsAPI was the
+                # last news vendor still discarding it.
                 results.append({
                     "title":      title,
                     "source":     source,
                     "is_breaking": False,   # NewsAPI doesn't flag breaking; sentiment scorer handles it
                     "url":        article.get("url", ""),
                     "published":  article.get("publishedAt", ""),
+                    "image":      article.get("urlToImage") or "",
+                    "summary":    (article.get("description") or "")[:280],
+                    "author":     article.get("author") or "",
                 })
 
             return results
