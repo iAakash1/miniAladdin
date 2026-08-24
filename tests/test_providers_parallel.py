@@ -219,18 +219,37 @@ def test_single_flight_coalesces_duplicates_across_threads():
     flight = SingleFlight()
     fetches = 0
     lock = threading.Lock()
+    # The first fetch is held open until every caller has arrived, rather
+    # than for a fixed 50ms. Coalescing only applies to callers that are
+    # genuinely concurrent — a thread arriving after the first fetch has
+    # completed gets a fresh fetch, and that is correct. Timing the window
+    # with a sleep made the test a race against the scheduler, and it lost
+    # roughly whenever the machine was busy enough to run the other 761
+    # tests alongside it. Gating on arrivals pins the real property exactly.
+    ARRIVALS = 8
+    all_arrived = threading.Event()
+    arrived = 0
 
     def fetch(_item):
         nonlocal fetches
+
         def work():
             nonlocal fetches
-            time.sleep(0.05)
+            # Held until the last caller is inside `do`, so every one of them
+            # is unambiguously concurrent with this fetch.
+            assert all_arrived.wait(5.0), "callers never converged"
             with lock:
                 fetches += 1
             return "payload"
+
+        nonlocal arrived
+        with lock:
+            arrived += 1
+            if arrived == ARRIVALS:
+                all_arrived.set()
         return flight.do("same-key", work)
 
-    outcomes = map_concurrent(fetch, list(range(8)), workers=8)
+    outcomes = map_concurrent(fetch, list(range(ARRIVALS)), workers=ARRIVALS)
     assert all(o.ok and o.value == "payload" for o in outcomes)
     assert fetches == 1, f"expected coalescing to a single fetch, got {fetches}"
 

@@ -415,6 +415,16 @@ export interface CompanyProfile {
   ipo_date: string
   beta: number | null
   vendor_image: string
+  /** Vendors that contributed at least one field. */
+  providers?: string[]
+  /** Fields where vendors materially disagreed — surfaced, never averaged. */
+  conflicts?: Array<{
+    field: string
+    observations: Array<{ provider: string; value: number }>
+    spread_pct: number
+  }>
+  /** Which vendors supplied each field, so any value can be traced. */
+  field_sources?: Record<string, string[]>
 }
 
 export interface Provenance {

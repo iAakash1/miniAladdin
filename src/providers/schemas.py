@@ -81,6 +81,11 @@ class PriceQuote(BaseModel):
     day_low: Optional[float] = None
     previous_close: Optional[float] = None
     volume: Optional[float] = None
+    #: 52-week range, when the quote endpoint carries it. Distinct from the
+    #: same figures on FundamentalsData: this one is a *quote* observation
+    #: with the quote's timestamp, not a fundamentals snapshot.
+    week_52_high: Optional[float] = None
+    week_52_low: Optional[float] = None
     # Which field `price` actually came from — "last sale", "bid/ask mid",
     # "previous close". A mid and a stale previous close are not the same
     # claim, and a consumer that cannot tell them apart will treat them alike.

@@ -26,7 +26,7 @@ from src.providers.schemas import (
     StreetData,
 )
 from src.providers.vendors.data_vendors import AlphaVantageVendor, FredVendor
-from src.providers.vendors.market_vendors import (
+from src.providers.vendors.market_vendors import (  # noqa: F401 — PolygonVendor/YFinanceVendor used standalone
     FinnhubVendor,
     FMPVendor,
     MarketStackVendor,
@@ -139,6 +139,12 @@ class FundamentalsProvider:
         # bucket — a second instance would give two buckets over one quota and
         # the vendor would 429 while both believed they had headroom.
         self.tiingo = market.tiingo if market else TiingoVendor()
+        # Three more profile sources the fabric had no idea existed: Polygon's
+        # reference endpoint, yfinance's info payload (keyless, so it answers
+        # when every authenticated vendor is rate-limited) and Tiingo's meta.
+        # All reused from the market provider so each keeps one token bucket.
+        self.polygon = market.polygon if market else PolygonVendor()
+        self.yfinance = market.yfinance if market else YFinanceVendor()
         self._company_chain = FallbackChain[CompanyProfile]("fund.company", cache, flight, self.TTL)
         self._fund_chain = FallbackChain[FundamentalsData]("fund.metrics", cache, flight, self.TTL)
         self._target_chain = FallbackChain[AnalystTargets]("fund.targets", cache, flight, self.TTL)
@@ -146,7 +152,22 @@ class FundamentalsProvider:
 
     @property
     def vendors(self):
-        return [self.alpha_vantage, self.finnhub, self.fmp, self.tiingo]
+        return [self.alpha_vantage, self.finnhub, self.fmp, self.tiingo,
+                self.polygon, self.yfinance]
+
+    def profile_evidence(self, symbol: str) -> list[Evidence]:
+        """Every profile-capable vendor, concurrently.
+
+        A union rather than a choice, for the same reason as fundamentals: no
+        single vendor carries every field. Finnhub has the domain and IPO
+        date, Polygon the SIC description and headcount, yfinance the GICS
+        sector and the business summary. Picking the "best" vendor would
+        discard whichever fields the others uniquely hold.
+        """
+        symbol = symbol.upper()
+        return fabric.collect(
+            "company", symbol, self.vendors, lambda v: v.get_company(symbol),
+        )
 
     def statement_evidence(self, symbol: str) -> list[Evidence]:
         """Reported statement figures from every vendor that has them.
@@ -165,6 +186,8 @@ class FundamentalsProvider:
         symbol = symbol.upper()
         links = [
             ChainLink(self.finnhub, lambda: self.finnhub.get_company(symbol)),
+            ChainLink(self.polygon, lambda: self.polygon.get_company(symbol)),
+            ChainLink(self.yfinance, lambda: self.yfinance.get_company(symbol)),
             ChainLink(self.fmp, lambda: self.fmp.get_company(symbol)),
             ChainLink(self.alpha_vantage,
                       lambda: (self.alpha_vantage.get_fundamentals(symbol) or FundamentalsData(symbol=symbol)).profile),

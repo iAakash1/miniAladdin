@@ -4617,3 +4617,27 @@ a.hl-row:hover .hl-row__out { color: var(--accent); transform: translate(1px, -1
 .cmedia__kind { text-transform: uppercase; letter-spacing: 0.06em; }
 .cmedia__credit a { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
 .cmedia__credit a:hover { color: var(--accent); }
+
+/* Multi-vendor profile: contributor count, and disagreements shown rather
+   than averaged away. */
+.csnap__srcs { font-size: 0.625rem; color: var(--faint); }
+.csnap__srcs .num { color: var(--text); font-weight: 600; }
+.csnap__conflicts { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.csnap__conflict {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 7px 11px;
+  border-radius: var(--r-md);
+  background: var(--warn-wash);
+  box-shadow: inset 3px 0 0 var(--warn);
+  font-size: 0.6875rem;
+  color: var(--muted);
+}
+.csnap__conflict-field {
+  text-transform: capitalize;
+  font-weight: 600;
+  color: var(--warn);
+}
+.csnap__conflict-obs { color: var(--text); }

@@ -279,3 +279,90 @@ def test_a_stream_nobody_scored_reports_no_sentiment_at_all():
         Evidence("v1", "news", "X", True, [NewsHeadline(title="A", url="https://a")]),
     ])
     assert merged["sentiment"] is None
+
+
+# ── profile union ─────────────────────────────────────────────────────────
+
+class _Profile:
+    """Minimal stand-in with the fields merge_profile reads."""
+    def __init__(self, **kw):
+        for f in fabric._PROFILE_TEXT:
+            setattr(self, f, kw.get(f, ""))
+        for f in fabric._PROFILE_NUMERIC:
+            setattr(self, f, kw.get(f))
+
+
+def test_a_profile_is_a_union_so_fields_only_one_vendor_has_survive():
+    """No vendor here carries a complete profile: one has the domain, another
+    the headcount, a third the business summary. Choosing one would discard
+    whatever the others uniquely hold."""
+    merged = fabric.merge_profile([
+        Evidence("finnhub", "company", "X", True,
+                 _Profile(name="Acme Inc", domain="acme.com", ipo_date="1980-12-12")),
+        Evidence("polygon", "company", "X", True,
+                 _Profile(name="Acme Inc", employees=166000, description="Acme makes things.")),
+        Evidence("yfinance", "company", "X", True,
+                 _Profile(name="Acme Inc", sector="Technology", industry="Consumer Electronics")),
+    ])
+    resolved = merged["resolved"]
+    assert resolved["domain"] == "acme.com"          # only finnhub had it
+    assert resolved["employees"] == 166000           # only polygon had it
+    assert resolved["sector"] == "Technology"        # only yfinance had it
+    assert resolved["description"] == "Acme makes things."
+    assert merged["providers"] == ["finnhub", "polygon", "yfinance"]
+
+
+def test_a_gics_industry_is_preferred_over_a_shouty_sic_description():
+    """Length alone picked "ELECTRONIC COMPUTERS" over "Consumer
+    Electronics". SIC is a 1930s taxonomy; GICS is what a company page should
+    show and what an industry image query should be built from."""
+    merged = fabric.merge_profile([
+        Evidence("polygon", "company", "X", True, _Profile(industry="ELECTRONIC COMPUTERS")),
+        Evidence("yfinance", "company", "X", True, _Profile(industry="Consumer Electronics")),
+    ])
+    assert merged["resolved"]["industry"] == "Consumer Electronics"
+    assert merged["fields"]["industry"]["chosen_from"] == "yfinance"
+    # And the discarded value is still visible, not deleted.
+    values = {o["value"] for o in merged["fields"]["industry"]["observations"]}
+    assert "ELECTRONIC COMPUTERS" in values
+
+
+def test_disagreeing_headcounts_are_flagged_rather_than_averaged():
+    merged = fabric.merge_profile([
+        Evidence("polygon", "company", "X", True, _Profile(employees=166000)),
+        Evidence("yfinance", "company", "X", True, _Profile(employees=150000)),
+    ])
+    conflict = merged["conflicts"][0]
+    assert conflict["field"] == "employees"
+    assert conflict["spread_pct"] > 5
+    assert merged["fields"]["employees"]["agrees"] is False
+
+
+def test_market_cap_gets_a_wider_tolerance_because_it_moves_with_the_price():
+    """Two vendors quoting a market cap minutes apart are not in conflict —
+    it is the same number measured at different moments."""
+    merged = fabric.merge_profile([
+        Evidence("a", "company", "X", True, _Profile(market_cap=1_000_000_000)),
+        Evidence("b", "company", "X", True, _Profile(market_cap=1_020_000_000)),
+    ])
+    assert merged["fields"]["market_cap"]["agrees"] is True
+    assert merged["conflicts"] == []
+    # The same 2% spread on headcount *is* a conflict.
+    head = fabric.merge_profile([
+        Evidence("a", "company", "X", True, _Profile(employees=1_000_000)),
+        Evidence("b", "company", "X", True, _Profile(employees=1_020_000)),
+    ])
+    assert head["fields"]["employees"]["agrees"] is False
+
+
+def test_agreeing_text_records_no_observations_to_review():
+    merged = fabric.merge_profile([
+        Evidence("a", "company", "X", True, _Profile(name="Acme Inc")),
+        Evidence("b", "company", "X", True, _Profile(name="Acme Inc")),
+    ])
+    assert merged["fields"]["name"]["agrees"] is True
+    assert merged["fields"]["name"]["observations"] is None
+
+
+def test_nobody_answering_yields_no_profile_rather_than_an_empty_one():
+    assert fabric.merge_profile([Evidence("a", "company", "X", False)]) is None

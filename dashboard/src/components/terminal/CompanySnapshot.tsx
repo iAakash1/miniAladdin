@@ -48,6 +48,14 @@ export default function CompanySnapshot({ profile }: { profile: CompanyProfile }
     <section className="panel panel--pad csnap" aria-labelledby="csnap-h">
       <div className="csnap__head">
         <h2 id="csnap-h" className="h-panel">Company</h2>
+        {/* No single vendor carries a complete profile, so this is a union.
+            Saying how many contributed is the difference between "a company
+            description" and "a company description three sources agree on". */}
+        {profile.providers && profile.providers.length > 0 && (
+          <span className="csnap__srcs" title={profile.providers.join(', ')}>
+            <span className="num">{profile.providers.length}</span> sources
+          </span>
+        )}
         {profile.domain && (
           <a
             className="csnap__domain"
@@ -73,6 +81,24 @@ export default function CompanySnapshot({ profile }: { profile: CompanyProfile }
         industry={profile.industry}
         name={profile.name}
       />
+
+      {/* Disagreement is shown, never smoothed into an average. Two vendors
+          reporting different headcounts are reporting different headcounts. */}
+      {profile.conflicts && profile.conflicts.length > 0 && (
+        <ul className="csnap__conflicts">
+          {profile.conflicts.map((c) => (
+            <li key={c.field} className="csnap__conflict">
+              <span className="csnap__conflict-field">{c.field.replace(/_/g, ' ')}</span>
+              {c.observations.map((o) => (
+                <span key={o.provider} className="csnap__conflict-obs">
+                  {o.provider} <span className="num">{o.value.toLocaleString()}</span>
+                </span>
+              ))}
+              <span className="u-note">{c.spread_pct.toFixed(1)}% apart — not averaged</span>
+            </li>
+          ))}
+        </ul>
+      )}
 
       {rows.length > 0 && (
         <dl className="csnap__facts">

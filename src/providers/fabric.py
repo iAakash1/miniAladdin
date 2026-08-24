@@ -455,6 +455,117 @@ _COMPARABLE_FUNDAMENTALS = (
 )
 
 
+# Identity fields where the *most complete* answer wins rather than the first.
+# These are strings and integers, not measurements, so there is no median to
+# take — but there is a defensible tie-break, and "longest description" /
+# "most specific sector" is it.
+_PROFILE_TEXT = (
+    "name", "sector", "industry", "exchange", "website", "domain",
+    "description", "ceo", "country", "ipo_date", "currency", "vendor_image",
+)
+_PROFILE_NUMERIC = ("market_cap", "employees", "beta")
+
+def _text_rank(field: str, value: str) -> tuple[int, int]:
+    """Tie-break for identity strings: (preference, length).
+
+    Length alone was picking "ELECTRONIC COMPUTERS" — Polygon's SIC
+    description — over yfinance's "Consumer Electronics", because SIC
+    descriptions are long and shouty. SIC is a 1930s government taxonomy;
+    GICS is what a company page should show and what an industry image query
+    should be built from. All-caps is a reliable marker of the former, so it
+    sorts below anything cased normally, and length only breaks ties inside
+    a preference band.
+    """
+    if field in ("sector", "industry") and value.isupper() and len(value) > 3:
+        return (0, len(value))
+    return (1, len(value))
+
+
+# Two vendors' market caps within this fraction are the same number measured
+# at different moments, not a disagreement. Market cap moves with the price
+# all day, so the tolerance is wider than a fundamentals figure would get.
+_CAP_TOLERANCE = 0.05
+
+
+def merge_profile(evidence: list[Evidence]) -> Optional[dict[str, Any]]:
+    """Company identity as a union across every vendor that answered.
+
+    No single vendor here carries a complete profile: Finnhub has the domain
+    and the IPO date, Polygon the SIC description and headcount, yfinance the
+    GICS sector and the business summary. Choosing one would throw away
+    whatever the others uniquely hold, which is precisely the loss the fabric
+    exists to prevent.
+
+    Text fields resolve to the *longest* non-empty answer, which is a
+    deliberate and narrow rule: between "Technology" and "Consumer
+    Electronics" the longer string is the more specific classification, and
+    between a truncated description and a full one it is the complete one.
+    It is not a quality judgement — it is a tie-break that happens to
+    correlate with completeness, and every contributing value is retained
+    alongside it so a reader can see what was chosen over what.
+
+    Numeric fields keep the median and flag disagreement, except market cap,
+    which gets a wider tolerance because it moves with the price all day and
+    two vendors quoting it minutes apart are not in conflict.
+    """
+    sources = [(e.provider, e.data) for e in evidence if e.ok and e.data is not None]
+    if not sources:
+        return None
+
+    fields: dict[str, Any] = {}
+    conflicts: list[dict[str, Any]] = []
+
+    for name in _PROFILE_TEXT:
+        observations = [
+            {"provider": provider, "value": str(getattr(data, name, "") or "").strip()}
+            for provider, data in sources
+            if str(getattr(data, name, "") or "").strip()
+        ]
+        if not observations:
+            continue
+        best = max(observations, key=lambda o: _text_rank(name, o["value"]))
+        distinct = {o["value"].lower() for o in observations}
+        fields[name] = {
+            "value": best["value"],
+            "chosen_from": best["provider"],
+            "providers": [o["provider"] for o in observations],
+            "observations": observations if len(distinct) > 1 else None,
+            "agrees": len(distinct) == 1,
+        }
+
+    for name in _PROFILE_NUMERIC:
+        observations = [
+            {"provider": provider, "value": float(getattr(data, name))}
+            for provider, data in sources
+            if isinstance(getattr(data, name, None), (int, float))
+        ]
+        if not observations:
+            continue
+        values = [o["value"] for o in observations]
+        value = statistics.median(values)
+        spread = (max(values) - min(values)) / abs(value) if value else 0.0
+        tolerance = _CAP_TOLERANCE if name == "market_cap" else 0.01
+        agrees = len(observations) == 1 or spread <= tolerance
+        fields[name] = {
+            "value": value,
+            "providers": [o["provider"] for o in observations],
+            "observations": observations if len(observations) > 1 else None,
+            "agrees": agrees,
+        }
+        if not agrees:
+            conflicts.append({"field": name, "observations": observations,
+                              "spread_pct": round(spread * 100, 2)})
+
+    return {
+        "fields": fields,
+        "providers": sorted({p for p, _ in sources}),
+        "conflicts": conflicts,
+        # Flattened view for consumers that just want the profile. The
+        # per-field provenance above is what makes the flat view auditable.
+        "resolved": {name: entry["value"] for name, entry in fields.items()},
+    }
+
+
 def merge_fundamentals(evidence: list[Evidence]) -> Optional[dict[str, Any]]:
     """Union of every vendor's statement figures, with disagreement kept.
 

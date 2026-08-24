@@ -678,16 +678,38 @@ def research_ticker(
     # ride in the same response.
     if prediction is not None:
         try:
-            company_result = providers.fundamentals.get_company(ticker)
-            if company_result.ok and company_result.data:
-                profile_block = company_result.data.model_dump()
-            ledger.record(
+            # Every profile-capable vendor, in parallel. No single vendor
+            # carries a complete profile — Finnhub has the domain and IPO
+            # date, Polygon the headcount and SIC description, yfinance the
+            # GICS sector and business summary — so this is a union, and the
+            # per-field provenance records which vendor each value came from.
+            profile_ev = providers.fundamentals.profile_evidence(ticker)
+            merged_profile = fabric.merge_profile(profile_ev)
+            if merged_profile:
+                profile_block = {
+                    **merged_profile["resolved"],
+                    "symbol": ticker,
+                    "providers": merged_profile["providers"],
+                    "conflicts": merged_profile["conflicts"],
+                    "field_sources": {
+                        name: entry.get("providers", [])
+                        for name, entry in merged_profile["fields"].items()
+                    },
+                }
+            ledger.record_fabric(
                 label="Company profile",
                 kind="fundamental",
-                result=company_result,
-                detail="name, sector, market cap",
-                used_for=["sector identity", "news query"],
+                evidence=profile_ev,
+                detail=(f"{len(merged_profile['fields'])} fields from "
+                        f"{len(merged_profile['providers'])} vendors"
+                        + (f" · {len(merged_profile['conflicts'])} disputed"
+                           if merged_profile["conflicts"] else "")
+                        if merged_profile else "no vendor answered"),
+                used_for=["sector identity", "news query", "logo domain"],
             )
+            # The chain result still feeds the legacy enrichment below, which
+            # expects a single profile object rather than a union.
+            company_result = providers.fundamentals.get_company(ticker)
             if company_result.ok:
                 profile = company_result.data
                 technicals["company_name"] = technicals.get("company_name") or profile.name or None

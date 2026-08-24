@@ -119,10 +119,30 @@ class YahooRssVendor(VendorClient):
                 continue
             link_tag = item.find("link")
             date_tag = item.find("pubDate")
+            # Yahoo's feed carries `media:content` and `description` on most
+            # items; both were being dropped. The image is the publisher's own
+            # photograph for the story — the one image that must never be
+            # replaced by a stock library, and until now the only news vendor
+            # supplying one was GNews.
+            media = item.find("media:content") or item.find("content")
+            image = ""
+            if media is not None:
+                candidate = media.get("url") or ""
+                # Feeds occasionally point `media:content` at a video or an
+                # audio enclosure; only take it when it is declared an image
+                # or has an image extension.
+                declared = (media.get("medium") or media.get("type") or "").lower()
+                if candidate and ("image" in declared or candidate.lower().split("?")[0].endswith(
+                    (".jpg", ".jpeg", ".png", ".webp", ".gif")
+                )):
+                    image = candidate
+            desc_tag = item.find("description")
             headlines.append(NewsHeadline(
                 title=title_tag.text.strip(),
                 source="Yahoo Finance",
                 url=(link_tag.text.strip() if link_tag and link_tag.text else ""),
                 published_at=(date_tag.text.strip() if date_tag and date_tag.text else ""),
+                summary=(desc_tag.text.strip()[:280] if desc_tag and desc_tag.text else ""),
+                image_url=image,
             ))
         return headlines or None

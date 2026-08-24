@@ -81,6 +81,41 @@ class PolygonVendor(VendorClient):
             return None
         return PriceQuote(symbol=symbol, price=close)
 
+    def get_company(self, symbol: str) -> Optional[CompanyProfile]:
+        """Reference data for a ticker.
+
+        Polygon was wired only for prices, but its reference endpoint carries
+        a full business description, the company homepage, headcount and the
+        listing exchange — a company-identity source the fabric had no idea
+        existed. The homepage is what yields a registrable domain, which is
+        what the logo provider is keyed on.
+        """
+        data = self._get_json(
+            f"{self.BASE}/v3/reference/tickers/{symbol}",
+            params={"apiKey": self.api_key}, operation="company",
+        )
+        result = (data or {}).get("results")
+        if not isinstance(result, dict) or not result.get("name"):
+            return None
+        website = str(result.get("homepage_url") or "")
+        employees = result.get("total_employees")
+        return CompanyProfile(
+            symbol=symbol,
+            name=str(result.get("name") or ""),
+            # Polygon classifies by SIC, which is a description rather than a
+            # GICS sector; it lands in `industry` because that is what it is.
+            industry=str(result.get("sic_description") or ""),
+            market_cap=_safe_float(result.get("market_cap")),
+            currency=str(result.get("currency_name") or "USD").upper(),
+            exchange=str(result.get("primary_exchange") or ""),
+            website=website,
+            domain=_registrable_domain(website),
+            description=str(result.get("description") or "")[:1200],
+            employees=int(employees) if isinstance(employees, (int, float)) else None,
+            country=str(result.get("locale") or "").upper(),
+            ipo_date=str(result.get("list_date") or ""),
+        )
+
     def get_series(self, symbol: str, period: str) -> Optional[PriceSeries]:
         end = datetime.now(timezone.utc).date()
         start = end - timedelta(days=_period_to_days(period))
@@ -259,9 +294,35 @@ class TwelveDataVendor(VendorClient):
     BASE = "https://api.twelvedata.com"
 
     def get_price(self, symbol: str) -> Optional[PriceQuote]:
-        data = self._get_json(f"{self.BASE}/price", params={"symbol": symbol, "apikey": self.api_key})
-        price = _safe_float(data.get("price"))
-        return PriceQuote(symbol=symbol, price=price) if price else None
+        """Full quote, not the bare `/price` endpoint.
+
+        `/price` returns one number. `/quote` costs the same one request
+        against the same 8/minute budget and returns the session's open,
+        high, low, previous close, volume and 52-week range as well — so the
+        old call was paying full price for a tenth of the payload.
+        """
+        data = self._get_json(
+            f"{self.BASE}/quote", params={"symbol": symbol, "apikey": self.api_key},
+        )
+        if not isinstance(data, dict) or data.get("status") == "error":
+            return None
+        price = _safe_float(data.get("close")) or _safe_float(data.get("price"))
+        if not price:
+            return None
+        fifty_two = data.get("fifty_two_week") if isinstance(data.get("fifty_two_week"), dict) else {}
+        return PriceQuote(
+            symbol=symbol,
+            price=price,
+            as_of=str(data.get("datetime") or "") or None,
+            day_open=_safe_float(data.get("open")),
+            day_high=_safe_float(data.get("high")),
+            day_low=_safe_float(data.get("low")),
+            previous_close=_safe_float(data.get("previous_close")),
+            volume=_safe_float(data.get("volume")),
+            price_basis="last sale",
+            week_52_high=_safe_float(fifty_two.get("high")),
+            week_52_low=_safe_float(fifty_two.get("low")),
+        )
 
     def get_series(self, symbol: str, period: str) -> Optional[PriceSeries]:
         data = self._get_json(
@@ -464,6 +525,38 @@ class YFinanceVendor(VendorClient):
         if series and series.bars:
             return PriceQuote(symbol=symbol, price=series.bars[-1].close)
         return None
+
+    def get_company(self, symbol: str) -> Optional[CompanyProfile]:
+        """Company profile from Yahoo's info payload.
+
+        Worth having despite yfinance being an unofficial scrape: it is the
+        only *keyless* profile source in the system, so it answers for every
+        symbol even when every authenticated vendor is rate-limited or
+        unentitled — which is exactly the situation the free tiers produce.
+        Its provenance names it, so a reader can weigh it accordingly.
+        """
+        import yfinance as yf
+
+        info = self.timed_call(lambda: yf.Ticker(symbol).info, operation="company")
+        if not isinstance(info, dict) or not info.get("longName") and not info.get("shortName"):
+            return None
+        website = str(info.get("website") or "")
+        employees = info.get("fullTimeEmployees")
+        return CompanyProfile(
+            symbol=symbol,
+            name=str(info.get("longName") or info.get("shortName") or ""),
+            sector=str(info.get("sector") or ""),
+            industry=str(info.get("industry") or ""),
+            market_cap=_safe_float(info.get("marketCap")),
+            currency=str(info.get("currency") or "USD").upper(),
+            exchange=str(info.get("exchange") or ""),
+            website=website,
+            domain=_registrable_domain(website),
+            description=str(info.get("longBusinessSummary") or "")[:1200],
+            employees=int(employees) if isinstance(employees, (int, float)) else None,
+            country=str(info.get("country") or ""),
+            beta=_safe_float(info.get("beta")),
+        )
 
     def search_symbols(self, query: str, limit: int = 8) -> Optional[list[dict]]:
         """Yahoo's own autocomplete search — keyless and fuzzy-tolerant, so
