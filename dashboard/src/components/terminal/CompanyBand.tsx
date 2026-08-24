@@ -6,7 +6,7 @@ import { useState } from 'react'
 import { fmtPrice } from '@/lib/format'
 import { sectorProxy } from '@/lib/identity'
 import { saveReport } from '@/lib/persistence'
-import type { Analysis, Verdict } from '@/lib/types'
+import type { Analysis, ConsensusPrice, Verdict } from '@/lib/types'
 
 const VERDICT_TONE: Record<Verdict, 'pos' | 'warn' | 'neg'> = {
   'Strong Buy': 'pos',
@@ -74,6 +74,45 @@ function SaveReportButton({ historyId }: { historyId: string }) {
   )
 }
 
+/** Price agreement across every vendor that answered.
+ *
+ *  Deliberately compact — one line, not a panel. The reader's question is
+ *  "can I trust this number", and the answer is a count and a spread, not a
+ *  table. The individual readings sit behind the title attribute for anyone
+ *  who wants them, and in full in the provenance section below.
+ */
+function ConsensusStrip({ consensus }: { consensus: ConsensusPrice }) {
+  const spread = consensus.dispersion_pct
+  return (
+    <div className={`cons${consensus.conflict ? ' cons--conflict' : ''}`}>
+      <span className="cons__agree">
+        <span className="cons__bar" aria-hidden>
+          {Array.from({ length: consensus.provider_count }, (_, i) => (
+            <span key={i} className={i < consensus.agreeing ? 'cons__tick is-on' : 'cons__tick'} />
+          ))}
+        </span>
+        <strong className="num">{consensus.agreement}</strong> sources agree
+      </span>
+      <span
+        className="cons__range num"
+        title={consensus.readings.map((r) => `${r.provider} ${r.price}`).join(' · ')}
+      >
+        {fmtPrice(consensus.low)}–{fmtPrice(consensus.high)}
+        <span className="u-note"> · {spread.toFixed(3)}% spread</span>
+      </span>
+      {consensus.spread_bps !== null && (
+        <span className="cons__book num">
+          bid/ask {consensus.spread_bps.toFixed(1)}bps
+          <span className="u-note"> via {consensus.spread_source}</span>
+        </span>
+      )}
+      {consensus.conflict && (
+        <span className="cons__flag">sources disagree materially</span>
+      )}
+    </div>
+  )
+}
+
 export default function CompanyBand({ analysis }: { analysis: Analysis }) {
   const wasDampened = analysis.verdict !== analysis.riskAdjusted
 
@@ -126,6 +165,15 @@ export default function CompanyBand({ analysis }: { analysis: Analysis }) {
             </span>
             <span style={{ fontSize: '0.8125rem', color: 'var(--faint)' }}>last close</span>
           </div>
+
+          {/* Cross-vendor agreement. Every vendor that could quote this
+              symbol was asked in parallel and none was discarded, so the
+              useful statement is not the price — it is how many independent
+              sources landed on it and how far apart they were. A single
+              vendor can never say this. */}
+          {analysis.consensusPrice && analysis.consensusPrice.provider_count > 1 && (
+            <ConsensusStrip consensus={analysis.consensusPrice} />
+          )}
         </div>
 
         <div style={{ textAlign: 'right', flexShrink: 0 }}>

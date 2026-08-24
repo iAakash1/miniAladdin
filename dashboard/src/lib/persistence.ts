@@ -265,6 +265,12 @@ export interface PortfolioIntel {
   risk?: {
     weighted_score: number | null
     basis: string
+    /** Annualised stdev of the portfolio value's daily returns. Null below
+     *  the observation floor — an annualised figure from six days is
+     *  arithmetic, not a measurement. */
+    volatility_pct?: number | null
+    max_drawdown?: DrawdownReport | null
+    holding_drawdowns?: Array<{ ticker: string } & Partial<DrawdownReport>>
     top_contributors: Array<{
       ticker: string; weight_pct: number; risk_score: number; risk_share_pct: number
     }>
@@ -279,6 +285,55 @@ export interface PortfolioIntel {
   valuation?: PortfolioValuation
   /** Null when too few holdings have enough overlapping history to plot. */
   curve?: PortfolioCurve | null
+  /** Null when the benchmark and the book share too few sessions. */
+  benchmark?: PortfolioBenchmark | null
+  correlation?: CorrelationReport | null
+  contributions?: HoldingContribution[]
+  range?: string
+  ranges?: string[]
+  benchmarks?: Array<{ symbol: string; label: string }>
+}
+
+export interface PortfolioBenchmark {
+  symbol: string
+  label: string
+  portfolio_return_pct: number
+  benchmark_return_pct: number
+  outperformance_pct: number
+  /** Why this is a return difference and not alpha — rendered, not paraphrased. */
+  basis: string
+  sessions: number
+  from: string
+  to: string
+  /** Both series rebased to 100 at the first shared date. */
+  points: Array<{ date: string; portfolio: number; benchmark: number }>
+}
+
+export interface CorrelationReport {
+  pairs: Array<{ a: string; b: string; rho: number; sessions: number }>
+  highest: { a: string; b: string; rho: number; sessions: number }
+  lowest: { a: string; b: string; rho: number; sessions: number }
+  high_count: number
+  mean_rho: number
+  tickers: string[]
+}
+
+export interface HoldingContribution {
+  ticker: string
+  pnl: number
+  pnl_pct: number | null
+  /** Null when the book's winners and losers roughly cancel — a share of a
+   *  near-zero net is arithmetically true and useless. */
+  contribution_pct: number | null
+  share_of_movement_pct: number | null
+}
+
+export interface DrawdownReport {
+  pct: number
+  peak: number
+  trough: number
+  peak_index: number
+  trough_index: number
 }
 
 /** One holding, valued. `priced: false` means no current price could be
@@ -331,8 +386,14 @@ export interface PortfolioCurve {
   assumption: string
 }
 
-export async function fetchPortfolioIntel(): Promise<PortfolioIntel> {
-  const res = await authFetch('/api/portfolio/intelligence')
+export async function fetchPortfolioIntel(
+  opts: { range?: string; benchmark?: string } = {},
+): Promise<PortfolioIntel> {
+  const query = new URLSearchParams()
+  if (opts.range) query.set('range', opts.range)
+  if (opts.benchmark) query.set('benchmark', opts.benchmark)
+  const suffix = query.toString() ? `?${query}` : ''
+  const res = await authFetch(`/api/portfolio/intelligence${suffix}`)
   if (!res.ok) throw new Error(String(res.status))
   return res.json()
 }

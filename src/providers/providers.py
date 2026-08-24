@@ -10,6 +10,8 @@ from typing import Optional
 
 from src.providers.cache import CacheBackend
 from src.providers.dedupe import SingleFlight
+from src.providers import fabric
+from src.providers.fabric import Evidence
 from src.providers.orchestrator import ChainLink, FallbackChain
 from src.providers.schemas import (
     AnalystTargets,
@@ -34,6 +36,7 @@ from src.providers.vendors.market_vendors import (
 )
 from src.providers.vendors.news_vendors import GNewsVendor, NewsApiVendor, YahooRssVendor
 from src.providers.vendors.search_vendors import ExaVendor, TavilyVendor
+from src.providers.vendors.tiingo_vendor import TiingoVendor
 
 
 class MarketDataProvider:
@@ -49,16 +52,23 @@ class MarketDataProvider:
         self.fmp = FMPVendor()
         self.marketstack = MarketStackVendor()
         self.yfinance = YFinanceVendor()
+        # Tiingo is the only vendor here with a real quote — bid, ask, mid and
+        # size, not just a close — so it leads the price chain. It is also a
+        # split/dividend-adjusted daily source, which matters for the
+        # portfolio value curve.
+        self.tiingo = TiingoVendor()
         self._price_chain = FallbackChain[PriceQuote]("market.price", cache, flight, self.PRICE_TTL)
         self._series_chain = FallbackChain[PriceSeries]("market.series", cache, flight, self.SERIES_TTL)
 
     @property
     def vendors(self):
-        return [self.polygon, self.finnhub, self.twelvedata, self.fmp, self.marketstack, self.yfinance]
+        return [self.tiingo, self.polygon, self.finnhub, self.twelvedata,
+                self.fmp, self.marketstack, self.yfinance]
 
     def get_price(self, symbol: str, validate: bool = True) -> ProviderResult[PriceQuote]:
         symbol = symbol.upper()
         links = [
+            ChainLink(self.tiingo, lambda: self.tiingo.get_price(symbol)),
             ChainLink(self.polygon, lambda: self.polygon.get_price(symbol)),
             ChainLink(self.finnhub, lambda: self.finnhub.get_price(symbol)),
             ChainLink(self.twelvedata, lambda: self.twelvedata.get_price(symbol)),
@@ -80,6 +90,7 @@ class MarketDataProvider:
     def get_series(self, symbol: str, period: str = "3mo") -> ProviderResult[PriceSeries]:
         symbol = symbol.upper()
         links = [
+            ChainLink(self.tiingo, lambda: self.tiingo.get_series(symbol, period)),
             ChainLink(self.polygon, lambda: self.polygon.get_series(symbol, period)),
             ChainLink(self.twelvedata, lambda: self.twelvedata.get_series(symbol, period)),
             ChainLink(self.fmp, lambda: self.fmp.get_series(symbol, period)),
@@ -87,6 +98,30 @@ class MarketDataProvider:
             ChainLink(self.yfinance, lambda: self.yfinance.get_series(symbol, period)),
         ]
         return self._series_chain.execute(f"series:{symbol}:{period}", links)
+
+    # ── multi-source ─────────────────────────────────────────────────────────
+
+    def quote_evidence(self, symbol: str) -> list[Evidence]:
+        """Ask **every** quote-capable vendor, concurrently, and keep them all.
+
+        Distinct from `get_price`, which stops at the first answer. Here the
+        interesting output is not the price but the agreement: five vendors
+        within a cent of each other is a materially different claim from two
+        vendors 3% apart, and the chain cannot express the difference because
+        it never asks the other four.
+        """
+        symbol = symbol.upper()
+        return fabric.collect(
+            "quote", symbol, self.vendors, lambda v: v.get_price(symbol),
+        )
+
+    def series_evidence(self, symbol: str, period: str = "1y") -> list[Evidence]:
+        """Every history-capable vendor's series for one symbol."""
+        symbol = symbol.upper()
+        return fabric.collect(
+            "series", symbol, self.vendors, lambda v: v.get_series(symbol, period),
+            timeout=20.0,
+        )
 
 
 class FundamentalsProvider:
@@ -100,6 +135,10 @@ class FundamentalsProvider:
         self.alpha_vantage = AlphaVantageVendor()
         self.finnhub = market.finnhub if market else FinnhubVendor()
         self.fmp = market.fmp if market else FMPVendor()
+        # Reused from the market provider so one Tiingo key means one token
+        # bucket — a second instance would give two buckets over one quota and
+        # the vendor would 429 while both believed they had headroom.
+        self.tiingo = market.tiingo if market else TiingoVendor()
         self._company_chain = FallbackChain[CompanyProfile]("fund.company", cache, flight, self.TTL)
         self._fund_chain = FallbackChain[FundamentalsData]("fund.metrics", cache, flight, self.TTL)
         self._target_chain = FallbackChain[AnalystTargets]("fund.targets", cache, flight, self.TTL)
@@ -107,7 +146,20 @@ class FundamentalsProvider:
 
     @property
     def vendors(self):
-        return [self.alpha_vantage, self.finnhub, self.fmp]
+        return [self.alpha_vantage, self.finnhub, self.fmp, self.tiingo]
+
+    def statement_evidence(self, symbol: str) -> list[Evidence]:
+        """Reported statement figures from every vendor that has them.
+
+        A union, not a choice: no single vendor here covers every line, so
+        picking one discards fields only the others have. Tiingo's
+        fundamentals are an add-on and answer 403 for unentitled symbols,
+        which the fabric records as `not_entitled` rather than as an outage.
+        """
+        symbol = symbol.upper()
+        return fabric.collect(
+            "fundamentals", symbol, self.vendors, lambda v: v.get_fundamentals(symbol),
+        )
 
     def get_company(self, symbol: str) -> ProviderResult[CompanyProfile]:
         symbol = symbol.upper()
@@ -155,11 +207,34 @@ class NewsProvider:
         self.gnews = GNewsVendor()
         self.yahoo_rss = YahooRssVendor()
         self.tavily = TavilyVendor()
+        # Tiingo carries tags and a ticker list the other news vendors do not,
+        # which the categoriser downstream uses as a prior.
+        self.tiingo = TiingoVendor()
         self._chain = FallbackChain[list[NewsHeadline]]("news.headlines", cache, flight, self.TTL)
 
     @property
     def vendors(self):
-        return [self.newsapi, self.gnews, self.yahoo_rss, self.tavily]
+        return [self.newsapi, self.gnews, self.yahoo_rss, self.tavily, self.tiingo]
+
+    def news_evidence(self, symbol: str, company_name: str = "", limit: int = 12) -> list[Evidence]:
+        """Every news vendor, concurrently — this one genuinely must not fall back.
+
+        News is the clearest case against a fallback chain: five vendors do
+        not carry the same stories, so stopping at the first success does not
+        get you a faster answer to the same question, it gets you a *smaller*
+        answer to a different one. Fanning out and merging is what makes the
+        stream complete, and corroboration across vendors is the only
+        verification signal a headline feed offers.
+        """
+        symbol = symbol.upper()
+
+        def fetch(vendor):
+            # Tiingo's news is ticker-indexed and takes no company name.
+            if getattr(vendor, "NAME", "") == "tiingo":
+                return vendor.get_news(symbol, limit)
+            return vendor.get_news(symbol, company_name, limit)
+
+        return fabric.collect("news", symbol, self.vendors, fetch)
 
     def get_news(self, symbol: str, company_name: str = "", limit: int = 12) -> ProviderResult[list[NewsHeadline]]:
         symbol = symbol.upper()
@@ -168,6 +243,7 @@ class NewsProvider:
             ChainLink(self.gnews, lambda: self.gnews.get_news(symbol, company_name, limit)),
             ChainLink(self.yahoo_rss, lambda: self.yahoo_rss.get_news(symbol, company_name, limit)),
             ChainLink(self.tavily, lambda: self.tavily.get_news(symbol, company_name, limit)),
+            ChainLink(self.tiingo, lambda: self.tiingo.get_news(symbol, limit)),
         ]
         result = self._chain.execute(f"news:{symbol}:{limit}", links)
         if result.data:

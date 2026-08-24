@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Generic, Optional, TypeVar
+from typing import Any, Generic, Optional, TypeVar
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -65,6 +65,69 @@ class PriceQuote(BaseModel):
     price: float
     currency: str = "USD"
     as_of: Optional[str] = None            # ISO timestamp when vendor supplies it
+
+    # ── Additive market microstructure (v5.1) ────────────────────────────────
+    # Most vendors here return a bare close and leave every field below None,
+    # which is the correct answer for them — they genuinely do not know the
+    # spread. Only quote-capable vendors populate these, so a null means "this
+    # source cannot say", never "the value is zero".
+    bid: Optional[float] = None
+    ask: Optional[float] = None
+    mid: Optional[float] = None
+    bid_size: Optional[float] = None
+    ask_size: Optional[float] = None
+    day_open: Optional[float] = None
+    day_high: Optional[float] = None
+    day_low: Optional[float] = None
+    previous_close: Optional[float] = None
+    volume: Optional[float] = None
+    # Which field `price` actually came from — "last sale", "bid/ask mid",
+    # "previous close". A mid and a stale previous close are not the same
+    # claim, and a consumer that cannot tell them apart will treat them alike.
+    price_basis: Optional[str] = None
+
+    @property
+    def spread_bps(self) -> Optional[float]:
+        """Bid-ask spread in basis points of the mid, when both sides exist."""
+        if self.bid is None or self.ask is None or not self.mid:
+            return None
+        return round((self.ask - self.bid) / self.mid * 10_000, 2)
+
+
+class Fundamentals(BaseModel):
+    """Reported statement figures for one period, plus prior periods.
+
+    Every field is Optional and nothing is derived here: a ratio computed
+    from two nulls is not zero, and a schema that defaulted to zero would let
+    a missing revenue line render as a company with no sales. Ratios are
+    computed downstream, only where both inputs are actually present.
+    """
+    symbol: str
+    period: str = ""                        # YYYY-MM-DD of the report
+    quarter: Optional[int] = None
+    year: Optional[int] = None
+
+    revenue: Optional[float] = None
+    gross_profit: Optional[float] = None
+    operating_income: Optional[float] = None
+    net_income: Optional[float] = None
+    ebitda: Optional[float] = None
+    eps: Optional[float] = None
+    shares_diluted: Optional[float] = None
+
+    total_assets: Optional[float] = None
+    total_liabilities: Optional[float] = None
+    equity: Optional[float] = None
+    cash: Optional[float] = None
+    debt: Optional[float] = None
+
+    free_cash_flow: Optional[float] = None
+    operating_cash_flow: Optional[float] = None
+
+    # Prior periods, newest first, carrying only the fields trend detection
+    # reads. Travels with the latest statement so a trend needs no second
+    # round trip against a tight rate limit.
+    history: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class OHLCVBar(BaseModel):
@@ -193,6 +256,13 @@ class NewsHeadline(BaseModel):
     url: str = ""
     published_at: str = ""                  # ISO or vendor string, best effort
     summary: str = ""
+    # Additive (v5.1): vendors that classify their own feed. Empty from
+    # vendors that do not, which is different from "no tags apply".
+    tags: list[str] = Field(default_factory=list)
+    tickers: list[str] = Field(default_factory=list)
+    # Set by the aggregator, not by a vendor: which vendors independently
+    # carried this same story. One source is a report; four is corroboration.
+    corroborated_by: list[str] = Field(default_factory=list)
 
 
 # ── Macro ─────────────────────────────────────────────────────────────────────

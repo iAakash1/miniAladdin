@@ -4358,3 +4358,108 @@ a.hl-row:hover .hl-row__out { color: var(--accent); transform: translate(1px, -1
 /* An unpriced holding is dimmed, not hidden: the book is not smaller because
    a vendor was unreachable, and the reader needs to see which name is out. */
 .pf-table__row--unpriced { opacity: 0.62; }
+
+/* ── Cross-vendor consensus ────────────────────────────────────────────────
+   One line under the price, not a panel. The reader's question is "can I
+   trust this number", and the answer is a count and a spread. */
+.cons {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding: 7px 11px;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-size: 0.6875rem;
+  color: var(--muted);
+}
+.cons--conflict { box-shadow: inset 0 0 0 1px var(--warn); }
+.cons__agree { display: inline-flex; align-items: center; gap: 7px; }
+/* One tick per vendor asked, filled for each that agreed. A count of four
+   is read faster as four marks than as the string "4/4". */
+.cons__bar { display: inline-flex; gap: 2px; }
+.cons__tick {
+  width: 4px; height: 11px;
+  border-radius: 1px;
+  background: var(--line-strong);
+}
+.cons__tick.is-on { background: var(--pos); }
+.cons--conflict .cons__tick.is-on { background: var(--warn); }
+.cons__range, .cons__book { color: var(--text); }
+.cons__flag { color: var(--warn); font-weight: 600; }
+
+/* ── Provenance: the fan-out roster ────────────────────────────────────────
+   Every vendor asked and what it said. A fallback chain has nothing to put
+   here, because it stopped at the first success. */
+.prov-row__fanout { display: inline-flex; align-items: baseline; gap: 2px; font-size: 0.6875rem; }
+.prov-fan { list-style: none; margin: 0 0 4px; padding: 0; display: grid; gap: 3px; }
+.prov-fan__row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 6ch;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.6875rem;
+}
+.prov-fan__row--ok .prov-fan__status { color: var(--pos); }
+.prov-fan__row--off .prov-fan__status { color: var(--faint); }
+.prov-fan__ms { text-align: right; color: var(--faint); }
+
+/* ── Portfolio: chart controls, benchmark row, measured risk ───────────────*/
+.pf__chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.pf__chart-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* Three figures on one rule: what the book did, what the index did, and the
+   gap. Hairline-separated rather than carded — this is a comparison, and
+   three boxes would read as three unrelated facts. */
+.pf__bench {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin-top: 4px;
+  background: var(--line);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.pf__bench-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 9px 12px;
+  background: var(--surface-2);
+}
+.pf__bench-label {
+  font-size: 0.5938rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.pf__bench-val { font-size: 0.9375rem; font-weight: 600; color: var(--text); }
+.pf__bench-val--pos { color: var(--pos); }
+.pf__bench-val--neg { color: var(--neg); }
+.pf__bench-val--neutral { color: var(--muted); }
+
+.pf__stat-row { display: flex; gap: 22px; flex-wrap: wrap; }
+.pf__stat { display: flex; flex-direction: column; gap: 1px; }
+.pf__stat-label {
+  font-size: 0.5938rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.pf__stat-value { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.02em; }
+.pf__stat-value--neg { color: var(--neg); }
+.pf__stat-sub { font-size: 0.625rem; color: var(--faint); }
+
+/* A correlation pair has no mark and needs the ticker columns merged. */
+.pf__row--pair .pf__row-name { grid-column: 1 / 3; white-space: nowrap; }

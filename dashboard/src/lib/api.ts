@@ -209,6 +209,9 @@ export function normalizeAnalysis(raw: RawResearchResponse): Analysis {
     technicalIntelligence: raw.technical_intelligence ?? null,
     streetIntelligence: raw.street_intelligence ?? null,
     provenance: raw.provenance ?? null,
+    consensusPrice: raw.consensus_price ?? null,
+    statements: raw.statements ?? null,
+    newsStream: raw.news_stream ?? null,
   }
 }
 

@@ -274,6 +274,11 @@ export interface RawResearchResponse {
   street_intelligence?: StreetIntelligence | null
   /** v5 additive: chain of custody for this run (see src/services/provenance.py). */
   provenance?: Provenance | null
+  /** v5.1 additive: parallel multi-vendor blocks. Null when no vendor
+   *  contributed — never a fabricated stand-in. */
+  consensus_price?: ConsensusPrice | null
+  statements?: StatementUnion | null
+  news_stream?: NewsStream | null
   detail?: string
 }
 
@@ -303,6 +308,72 @@ export interface ProvenanceInput {
   age: string | null
   /** Why the input is degraded or missing. Null when it is neither. */
   note: string | null
+  /** True when this input came from a parallel fan-out over every capable
+   *  vendor rather than from a first-answer-wins chain. */
+  parallel?: boolean
+  /** Per-vendor outcome, present only on parallel inputs. */
+  contributors?: Array<{
+    provider: string
+    ok: boolean
+    status: string
+    latency_ms: number
+    error: string | null
+  }>
+}
+
+/** Cross-vendor price agreement. Every vendor that could quote the symbol was
+ *  asked; none was discarded. */
+export interface ConsensusPrice {
+  consensus: number
+  low: number
+  high: number
+  dispersion_pct: number
+  provider_count: number
+  agreeing: number
+  agreement: string
+  conflict: boolean
+  readings: Array<{
+    provider: string
+    price: number
+    basis: string | null
+    bid: number | null
+    ask: number | null
+    spread_bps: number | null
+    volume: number | null
+    as_of: string | null
+    latency_ms: number
+  }>
+  bid: number | null
+  ask: number | null
+  spread_bps: number | null
+  spread_source: string | null
+  volume: number | null
+}
+
+/** Union of reported statement figures across every entitled vendor. */
+export interface StatementUnion {
+  period: string
+  providers: string[]
+  fields: Record<string, {
+    value: number
+    providers: string[]
+    observations: Array<{ provider: string; value: number }> | null
+    agrees: boolean
+  }>
+  conflicts: Array<{
+    field: string
+    observations: Array<{ provider: string; value: number }>
+    spread_pct: number
+  }>
+  history: Array<Record<string, number | string>>
+}
+
+export interface NewsStream {
+  collected: number
+  unique: number
+  providers: string[]
+  corroborated: number
+  categories: Record<string, number>
 }
 
 export interface Provenance {
@@ -456,6 +527,9 @@ export interface Analysis {
   /** Chain of custody. Null for payloads produced before v5 or by a backend
    *  that does not emit it — the panel simply does not render. */
   provenance: Provenance | null
+  consensusPrice: ConsensusPrice | null
+  statements: StatementUnion | null
+  newsStream: NewsStream | null
 }
 
 /* ---------- News (our own /api/news aggregation) ---------- */

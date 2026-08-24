@@ -40,7 +40,7 @@ import {
 } from 'recharts'
 
 import { fmtDate } from '@/lib/format'
-import type { PortfolioCurve } from '@/lib/persistence'
+import type { PortfolioBenchmark, PortfolioCurve } from '@/lib/persistence'
 
 interface Point {
   date: string
@@ -79,6 +79,87 @@ function moneyExact(value: number, currency: string): string {
   }
 }
 
+/** Portfolio against a benchmark, both rebased to 100 at the first shared
+ *  session.
+ *
+ *  Rebasing is not cosmetic. The two series live on incomparable scales, and
+ *  rebasing each to *its own* first date rather than to a shared one would
+ *  compare different windows and manufacture outperformance out of a
+ *  calendar mismatch — which is why the shared start comes from the server,
+ *  computed on the intersection of the two date axes. */
+function RebasedChart({ benchmark }: { benchmark: PortfolioBenchmark }) {
+  const data = benchmark.points.map((p) => ({ ...p, dateLabel: fmtDate(p.date) }))
+  const ahead = benchmark.outperformance_pct >= 0
+  const values = data.flatMap((d) => [d.portfolio, d.benchmark])
+  const low = Math.min(...values)
+  const high = Math.max(...values)
+  const pad = (high - low || 1) * 0.08
+
+  return (
+    <div className="pfchart">
+      <div className="pfchart__frame">
+        <ResponsiveContainer width="100%" height={200}>
+          <AreaChart data={data} margin={{ top: 6, right: 4, bottom: 0, left: 4 }}>
+            <CartesianGrid stroke="var(--line)" strokeDasharray="2 4" vertical={false} />
+            <XAxis dataKey="dateLabel" tick={{ fill: 'var(--faint)', fontSize: 10 }}
+                   tickLine={false} axisLine={{ stroke: 'var(--line)' }} minTickGap={44} />
+            <YAxis domain={[low - pad, high + pad]} width={44}
+                   tick={{ fill: 'var(--faint)', fontSize: 10 }} tickLine={false} axisLine={false}
+                   tickFormatter={(v: number) => v.toFixed(0)} />
+            <Tooltip content={<RebasedTooltip label={benchmark.label} />}
+                     cursor={{ stroke: 'var(--line-strong)', strokeWidth: 1 }} />
+            {/* 100 is the shared starting point, so the reference line is
+                literally "where both began". */}
+            <ReferenceLine y={100} stroke="var(--muted)" strokeDasharray="4 4" />
+            {/* The benchmark is drawn first and unfilled: it is the yardstick,
+                not the subject, and a filled index would compete with the
+                portfolio for the eye. */}
+            <Area type="monotone" dataKey="benchmark" stroke="var(--muted)" strokeWidth={1.25}
+                  fill="none" strokeDasharray="3 3" dot={false} isAnimationActive={false} />
+            <Area type="monotone" dataKey="portfolio"
+                  stroke={ahead ? 'var(--pos)' : 'var(--neg)'} strokeWidth={1.75}
+                  fill="none" dot={false} isAnimationActive={false}
+                  activeDot={{ r: 3, fill: ahead ? 'var(--pos)' : 'var(--neg)',
+                               stroke: 'var(--surface)', strokeWidth: 2 }} />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+      <p className="pfchart__note">
+        Both rebased to 100 on {fmtDate(benchmark.from)} · {benchmark.sessions} shared sessions.
+        Portfolio {benchmark.portfolio_return_pct >= 0 ? '+' : '−'}
+        {Math.abs(benchmark.portfolio_return_pct).toFixed(2)}% vs {benchmark.label}{' '}
+        {benchmark.benchmark_return_pct >= 0 ? '+' : '−'}
+        {Math.abs(benchmark.benchmark_return_pct).toFixed(2)}%. {benchmark.basis}.
+      </p>
+    </div>
+  )
+}
+
+function RebasedTooltip({
+  active, payload, label,
+}: {
+  active?: boolean
+  payload?: Array<{ payload: { dateLabel: string; portfolio: number; benchmark: number } }>
+  label: string
+}) {
+  if (!active || !payload?.length) return null
+  const p = payload[0].payload
+  const gap = p.portfolio - p.benchmark
+  return (
+    <div className="pfchart__tip">
+      <div className="pfchart__tip-date">{p.dateLabel}</div>
+      <div className="num pfchart__tip-value">Portfolio {p.portfolio.toFixed(1)}</div>
+      <div className="num pfchart__tip-delta" style={{ color: 'var(--muted)' }}>
+        {label} {p.benchmark.toFixed(1)}
+      </div>
+      <div className="num pfchart__tip-delta"
+           style={{ color: gap >= 0 ? 'var(--pos)' : 'var(--neg)' }}>
+        {gap >= 0 ? '+' : '−'}{Math.abs(gap).toFixed(1)} pts
+      </div>
+    </div>
+  )
+}
+
 function ChartTooltip({
   active,
   payload,
@@ -106,9 +187,14 @@ function ChartTooltip({
 export default function PortfolioPerformanceChart({
   curve,
   currency,
+  benchmark,
 }: {
   curve: PortfolioCurve
   currency: string
+  /** When present the chart switches to a rebased comparison: both series
+   *  start at 100 on the first shared session, because a portfolio worth
+   *  $52k and an index at 6,300 cannot share a money axis. */
+  benchmark?: PortfolioBenchmark | null
 }) {
   const baseline = curve.invested_baseline
   const data: Point[] = curve.points.map((p) => ({
@@ -116,6 +202,10 @@ export default function PortfolioPerformanceChart({
     dateLabel: fmtDate(p.date),
     delta: p.value - baseline,
   }))
+
+  if (benchmark && benchmark.points.length > 1) {
+    return <RebasedChart benchmark={benchmark} />
+  }
 
   const last = data[data.length - 1]
   const up = last.delta >= 0

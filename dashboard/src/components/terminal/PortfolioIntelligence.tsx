@@ -40,6 +40,7 @@ import CompanyMark from '@/components/ui/CompanyMark'
 import EmptyState from '@/components/ui/EmptyState'
 import PortfolioPerformanceChart from '@/components/terminal/PortfolioPerformanceChart'
 import { POSITIONS_CHANGED } from '@/components/terminal/PositionsPanel'
+import { Segmented } from '@/components/ui/Controls'
 import Skeleton from '@/components/ui/Skeleton'
 import { StatusPill, TrendMark, type StatusTone } from '@/components/ui/DataMarks'
 import {
@@ -207,10 +208,15 @@ export default function PortfolioIntelligence() {
   // back to skeletons on every refresh would make the one action a holder
   // takes repeatedly feel like a page reload.
   const [refreshing, setRefreshing] = useState(false)
+  // Range and benchmark are server-side query params, not client filters: the
+  // server decides how much history to fetch, so slicing here would show a
+  // 1Y window trimmed from a 3M fetch.
+  const [range, setRange] = useState('3M')
+  const [benchmark, setBenchmark] = useState('SPY')
 
-  const load = useCallback((quiet = false) => {
+  const load = useCallback((quiet = false, opts: { range?: string; benchmark?: string } = {}) => {
     queueMicrotask(() => (quiet ? setRefreshing(true) : setStatus('loading')))
-    fetchPortfolioIntel()
+    fetchPortfolioIntel({ range: opts.range ?? range, benchmark: opts.benchmark ?? benchmark })
       .then((report) => {
         setData(report)
         setStatus('ready')
@@ -221,7 +227,7 @@ export default function PortfolioIntelligence() {
         if (!quiet) setStatus('error')
       })
       .finally(() => setRefreshing(false))
-  }, [])
+  }, [range, benchmark])
 
   useEffect(() => { load() }, [load])
 
@@ -353,8 +359,63 @@ export default function PortfolioIntelligence() {
           the holdings do not share enough price history to plot. */}
       {data.curve && data.curve.points.length > 1 ? (
         <div className="pf__block pf__block--chart">
-          <h3 className="pf__block-title">Value vs cost</h3>
-          <PortfolioPerformanceChart curve={data.curve} currency={currency} />
+          <div className="pf__chart-head">
+            <h3 className="pf__block-title">
+              {data.benchmark ? `Portfolio vs ${data.benchmark.label}` : 'Value vs cost'}
+            </h3>
+            <div className="pf__chart-controls">
+              {data.benchmarks && data.benchmarks.length > 0 && (
+                <Segmented
+                  label="Benchmark"
+                  value={benchmark}
+                  onChange={(next) => { setBenchmark(next); load(true, { benchmark: next }) }}
+                  options={[
+                    { value: 'none', label: 'Cost', title: 'Compare against what you paid' },
+                    ...data.benchmarks.map((b) => ({
+                      value: b.symbol, label: b.symbol, title: b.label,
+                    })),
+                  ]}
+                />
+              )}
+              {data.ranges && (
+                <Segmented
+                  label="Range"
+                  value={range}
+                  onChange={(next) => { setRange(next); load(true, { range: next }) }}
+                  options={data.ranges.map((r) => ({ value: r, label: r }))}
+                />
+              )}
+            </div>
+          </div>
+          {/* Benchmark mode rebases both series to 100; cost mode plots money
+              against the cost line. Two different questions, two axes. */}
+          <PortfolioPerformanceChart
+            curve={data.curve}
+            currency={currency}
+            benchmark={benchmark === 'none' ? null : data.benchmark}
+          />
+          {data.benchmark && benchmark !== 'none' && (
+            <div className="pf__bench">
+              <span className="pf__bench-cell">
+                <span className="pf__bench-label">Portfolio</span>
+                <span className={`num pf__bench-val pf__bench-val--${toneOf(data.benchmark.portfolio_return_pct)}`}>
+                  {signedPct(data.benchmark.portfolio_return_pct)}
+                </span>
+              </span>
+              <span className="pf__bench-cell">
+                <span className="pf__bench-label">{data.benchmark.label}</span>
+                <span className={`num pf__bench-val pf__bench-val--${toneOf(data.benchmark.benchmark_return_pct)}`}>
+                  {signedPct(data.benchmark.benchmark_return_pct)}
+                </span>
+              </span>
+              <span className="pf__bench-cell">
+                <span className="pf__bench-label">Difference</span>
+                <span className={`num pf__bench-val pf__bench-val--${toneOf(data.benchmark.outperformance_pct)}`}>
+                  {signedPct(data.benchmark.outperformance_pct)}
+                </span>
+              </span>
+            </div>
+          )}
         </div>
       ) : val && val.rows.length > 0 ? (
         <p className="pf__block-note">
@@ -426,6 +487,120 @@ export default function PortfolioIntelligence() {
                 </li>
               ))}
             </ul>
+          </div>
+        )}
+
+        {/* ── measured risk ────────────────────────────────────────────
+            From the same daily closes the curve is drawn from. Each figure
+            is named for what it is: annualised stdev is called volatility,
+            not "risk", and there is no Sharpe because there is no defensible
+            risk-free series here to subtract. */}
+        {risk && (risk.volatility_pct != null || risk.max_drawdown) && (
+          <div className="pf__block">
+            <h3 className="pf__block-title">Measured risk</h3>
+            <div className="pf__stat-row">
+              <span className="pf__stat">
+                <span className="pf__stat-label">Volatility</span>
+                <span className="num pf__stat-value">
+                  {risk.volatility_pct != null ? `${risk.volatility_pct.toFixed(1)}%` : '—'}
+                </span>
+                <span className="pf__stat-sub">annualised</span>
+              </span>
+              <span className="pf__stat">
+                <span className="pf__stat-label">Max drawdown</span>
+                <span className="num pf__stat-value pf__stat-value--neg">
+                  {risk.max_drawdown ? `${risk.max_drawdown.pct.toFixed(1)}%` : '—'}
+                </span>
+                {risk.max_drawdown && risk.max_drawdown.pct !== 0 && (
+                  <span className="pf__stat-sub num">
+                    {money(risk.max_drawdown.peak, currency, 0)} → {money(risk.max_drawdown.trough, currency, 0)}
+                  </span>
+                )}
+              </span>
+            </div>
+            {risk.volatility_pct == null && (
+              <p className="pf__block-note">
+                Too few sessions in this range to annualise a standard deviation. Widen the
+                range rather than reading a figure from a handful of days.
+              </p>
+            )}
+            {risk.holding_drawdowns && risk.holding_drawdowns.length > 0 && (
+              <ul className="pf__rows">
+                {risk.holding_drawdowns.slice(0, 3).map((d) => (
+                  <li key={d.ticker} className="pf__row">
+                    <CompanyMark ticker={d.ticker} size={18} />
+                    <span className="mono pf__row-name">{d.ticker}</span>
+                    <WeightBar
+                      pct={Math.abs(d.pct ?? 0)}
+                      max={Math.abs(risk.holding_drawdowns?.[0]?.pct ?? 1)}
+                      tone="neg"
+                    />
+                    <span className="num pf__row-val">{(d.pct ?? 0).toFixed(1)}%</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
+        {/* ── correlation ──────────────────────────────────────────────
+            Computed on returns, never on price levels: two stocks that both
+            drift upward correlate at ~0.99 on levels regardless of whether
+            their daily moves are related, which is the classic way to make a
+            concentrated book look diversified. */}
+        {data.correlation && data.correlation.pairs.length > 0 && (
+          <div className="pf__block">
+            <h3 className="pf__block-title">Diversification</h3>
+            <p className="pf__metric">
+              <span className="num pf__metric-value">{data.correlation.mean_rho.toFixed(2)}</span>
+              <span className="pf__metric-unit">mean pairwise correlation</span>
+            </p>
+            <p className="pf__block-note">
+              {data.correlation.high_count > 0
+                ? `${data.correlation.high_count} pair${data.correlation.high_count === 1 ? '' : 's'} above 0.70 — those holdings move together, so they diversify each other less than their separate weights suggest.`
+                : 'No pair above 0.70 in this window.'}
+            </p>
+            <ul className="pf__rows">
+              {data.correlation.pairs.slice(0, 4).map((pair) => (
+                <li key={`${pair.a}-${pair.b}`} className="pf__row pf__row--pair">
+                  <span className="mono pf__row-name">{pair.a} ↔ {pair.b}</span>
+                  <WeightBar pct={Math.max(0, pair.rho) * 100} max={100}
+                             tone={pair.rho >= 0.7 ? 'neg' : 'accent'} />
+                  <span className="num pf__row-val">{pair.rho.toFixed(2)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* ── contribution ─────────────────────────────────────────────
+            Share of the book's P&L in money, not weight × return: money adds
+            up once positions have moved and the weighted-return identity
+            does not. */}
+        {data.contributions && data.contributions.length > 0 && (
+          <div className="pf__block">
+            <h3 className="pf__block-title">P&amp;L contribution</h3>
+            <ul className="pf__rows">
+              {data.contributions.slice(0, 5).map((c) => (
+                <li key={c.ticker} className="pf__row">
+                  <CompanyMark ticker={c.ticker} size={18} />
+                  <span className="mono pf__row-name">{c.ticker}</span>
+                  <WeightBar
+                    pct={c.share_of_movement_pct ?? 0}
+                    max={data.contributions?.[0]?.share_of_movement_pct ?? 100}
+                    tone={c.pnl >= 0 ? 'accent' : 'neg'}
+                  />
+                  <span className={`num pf__row-val pf__bench-val--${toneOf(c.pnl)}`}>
+                    {signedMoney(c.pnl, currency)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="pf__block-note">
+              {data.contributions.some((c) => c.contribution_pct === null)
+                ? 'Winners and losers roughly cancel, so shares of the net P&L are undefined — bars show share of total movement instead.'
+                : `${data.contributions[0].ticker} accounts for ${Math.abs(data.contributions[0].contribution_pct ?? 0).toFixed(0)}% of the book's net P&L.`}
+            </p>
           </div>
         )}
 

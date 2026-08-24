@@ -33,7 +33,7 @@ is never left to assume it is mark-to-market.
 
 from __future__ import annotations
 
-from typing import Any, Iterable, Optional
+from typing import Any, Iterable, Optional, Sequence
 
 # Herfindahl thresholds. These are the conventional competition-policy
 # boundaries (1500 / 2500 on a 0–10 000 scale), reused because they are a
@@ -563,3 +563,246 @@ def value_curve(
             "today's holdings would have been worth, not a record of past positions."
         ),
     }
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# RISK & ATTRIBUTION — descriptive statistics over real price history
+#
+# Everything below is computed from the same daily closes the value curve is
+# drawn from. Each figure is named for what it actually is: `volatility` is
+# the annualised standard deviation of daily log returns and is called that,
+# not "risk"; there is no Sharpe ratio because there is no defensible
+# risk-free series in this system to subtract, and a Sharpe computed against
+# an assumed zero would be a different statistic wearing the name.
+# ══════════════════════════════════════════════════════════════════════════
+
+import math
+
+# Below this many observations a standard deviation is noise. 20 sessions is
+# roughly a trading month — the shortest window where an annualised figure is
+# worth printing rather than caveating into meaninglessness.
+MIN_RETURN_OBSERVATIONS = 20
+TRADING_DAYS = 252
+
+
+def _returns(values: Sequence[float]) -> list[float]:
+    """Simple period returns. Non-positive prices break the ratio and are
+    skipped rather than allowed to produce an infinity."""
+    out: list[float] = []
+    for prev, curr in zip(values, values[1:]):
+        if prev and prev > 0 and curr > 0:
+            out.append(curr / prev - 1.0)
+    return out
+
+
+def volatility(values: Sequence[float]) -> Optional[float]:
+    """Annualised standard deviation of daily returns, in percent.
+
+    Returns None rather than a number below the observation floor: an
+    annualised vol from six days is arithmetic, not a measurement.
+    """
+    rets = _returns(values)
+    if len(rets) < MIN_RETURN_OBSERVATIONS:
+        return None
+    mean = sum(rets) / len(rets)
+    var = sum((r - mean) ** 2 for r in rets) / (len(rets) - 1)
+    return round(math.sqrt(var) * math.sqrt(TRADING_DAYS) * 100, 2)
+
+
+def max_drawdown(values: Sequence[float]) -> Optional[dict[str, Any]]:
+    """Deepest peak-to-trough decline over the window.
+
+    Reports the peak and trough values as well as the percentage, because
+    "−14.7%" is a statistic and "from $71,500 down to $61,000" is a fact
+    somebody can recognise.
+    """
+    if len(values) < 2:
+        return None
+    peak = values[0]
+    worst = 0.0
+    peak_at = trough_at = 0
+    best_peak = best_trough = values[0]
+    for i, value in enumerate(values):
+        if value > peak:
+            peak = value
+            peak_at = i
+        if peak > 0:
+            decline = value / peak - 1.0
+            if decline < worst:
+                worst = decline
+                trough_at = i
+                best_peak, best_trough = peak, value
+    if worst == 0.0:
+        # A series that only ever rose has no drawdown — that is a real
+        # answer, not a missing one.
+        return {"pct": 0.0, "peak": round(values[0], 2), "trough": round(values[0], 2),
+                "peak_index": 0, "trough_index": 0}
+    return {
+        "pct": round(worst * 100, 2),
+        "peak": round(best_peak, 2),
+        "trough": round(best_trough, 2),
+        "peak_index": peak_at,
+        "trough_index": trough_at,
+    }
+
+
+def correlation(a: Sequence[float], b: Sequence[float]) -> Optional[float]:
+    """Pearson correlation of two return series.
+
+    Computed on *returns*, never on price levels: two stocks that both drift
+    upward correlate at ~0.99 on levels regardless of whether their daily
+    moves have anything to do with each other, which is the classic way to
+    make a concentrated book look diversified.
+    """
+    ra, rb = _returns(a), _returns(b)
+    n = min(len(ra), len(rb))
+    if n < MIN_RETURN_OBSERVATIONS:
+        return None
+    ra, rb = ra[-n:], rb[-n:]
+    ma, mb = sum(ra) / n, sum(rb) / n
+    cov = sum((x - ma) * (y - mb) for x, y in zip(ra, rb))
+    va = sum((x - ma) ** 2 for x in ra)
+    vb = sum((y - mb) ** 2 for y in rb)
+    if va <= 0 or vb <= 0:
+        return None
+    return round(cov / math.sqrt(va * vb), 3)
+
+
+def correlation_matrix(
+    closes_by_ticker: dict[str, list[tuple[str, float]]],
+) -> Optional[dict[str, Any]]:
+    """Pairwise correlations across holdings, on the overlapping date axis.
+
+    Only pairs with enough shared history are computed; a pair that does not
+    clear the floor is omitted rather than reported as uncorrelated, because
+    "we could not measure it" and "they move independently" are opposite
+    conclusions.
+    """
+    aligned = {t: dict(series) for t, series in closes_by_ticker.items() if series}
+    tickers = sorted(aligned)
+    if len(tickers) < 2:
+        return None
+
+    pairs: list[dict[str, Any]] = []
+    for i, a in enumerate(tickers):
+        for b in tickers[i + 1:]:
+            common = sorted(set(aligned[a]) & set(aligned[b]))
+            if len(common) < MIN_RETURN_OBSERVATIONS + 1:
+                continue
+            rho = correlation([aligned[a][d] for d in common],
+                              [aligned[b][d] for d in common])
+            if rho is None:
+                continue
+            pairs.append({"a": a, "b": b, "rho": rho, "sessions": len(common)})
+
+    if not pairs:
+        return None
+    pairs.sort(key=lambda p: p["rho"], reverse=True)
+    high = [p for p in pairs if p["rho"] >= 0.7]
+    return {
+        "pairs": pairs,
+        "highest": pairs[0],
+        "lowest": pairs[-1],
+        "high_count": len(high),
+        # The mean pairwise correlation is the single most useful summary of
+        # whether a book is diversified in the way its holder thinks it is.
+        "mean_rho": round(sum(p["rho"] for p in pairs) / len(pairs), 3),
+        "tickers": tickers,
+    }
+
+
+def benchmark_comparison(
+    portfolio_points: list[dict[str, Any]],
+    benchmark_closes: list[tuple[str, float]],
+    *,
+    symbol: str,
+    label: str,
+) -> Optional[dict[str, Any]]:
+    """Portfolio return against a benchmark over the same sessions.
+
+    Both series are rebased to their first *common* date so the comparison is
+    like-for-like; rebasing to their own first dates would compare different
+    windows and manufacture outperformance out of a calendar mismatch.
+
+    The difference is reported as `outperformance` — a plain return
+    difference. It is explicitly **not** alpha: no beta is estimated, no
+    risk-free rate is subtracted, and calling it alpha would claim a
+    risk-adjusted result this system does not compute.
+    """
+    if not portfolio_points or not benchmark_closes:
+        return None
+    bench = dict(benchmark_closes)
+    common = [p for p in portfolio_points if p["date"] in bench]
+    if len(common) < 2:
+        return None
+
+    p_start, p_end = common[0]["value"], common[-1]["value"]
+    b_start, b_end = bench[common[0]["date"]], bench[common[-1]["date"]]
+    if p_start <= 0 or b_start <= 0:
+        return None
+
+    p_ret = (p_end / p_start - 1.0) * 100
+    b_ret = (b_end / b_start - 1.0) * 100
+
+    return {
+        "symbol": symbol,
+        "label": label,
+        "portfolio_return_pct": round(p_ret, 2),
+        "benchmark_return_pct": round(b_ret, 2),
+        "outperformance_pct": round(p_ret - b_ret, 2),
+        # Named so the UI cannot accidentally present it as a risk-adjusted
+        # figure, and so the caveat travels with the number.
+        "basis": "simple return difference over the same sessions — not alpha; "
+                 "no beta is estimated and no risk-free rate is subtracted",
+        "sessions": len(common),
+        "from": common[0]["date"],
+        "to": common[-1]["date"],
+        # Rebased to 100 at the common start so both lines share one axis.
+        "points": [
+            {"date": p["date"],
+             "portfolio": round(p["value"] / p_start * 100, 3),
+             "benchmark": round(bench[p["date"]] / b_start * 100, 3)}
+            for p in common
+        ],
+    }
+
+
+def contributions(
+    valuation_rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Each holding's share of the book's total gain or loss.
+
+    Contribution is in *money*, then expressed as a share of the total P&L —
+    not `weight × return`, which is only equal to it when weights are taken at
+    the start of the period, and these weights are current. Money always adds
+    up; the weighted-return identity does not once positions have moved.
+
+    When the totals net to roughly zero the share is undefined rather than
+    enormous: a +$500 and a −$490 book has a $10 net, and reporting the winner
+    as "+5000% of P&L" would be arithmetically true and completely useless.
+    """
+    priced = [r for r in valuation_rows if r.get("priced") and r.get("pnl") is not None]
+    if not priced:
+        return []
+    total_pnl = sum(r["pnl"] for r in priced)
+    gross = sum(abs(r["pnl"]) for r in priced)
+    # Net near zero relative to the gross means the book's winners and losers
+    # cancel; shares of that net are meaningless.
+    meaningful = gross > 0 and abs(total_pnl) > gross * 0.05
+
+    out = [
+        {
+            "ticker": r["ticker"],
+            "pnl": r["pnl"],
+            "pnl_pct": r.get("pnl_pct"),
+            "contribution_pct": (
+                round(r["pnl"] / total_pnl * 100, 1) if meaningful else None
+            ),
+            # Always defined: share of total movement regardless of sign,
+            # which answers "who moved the needle" even in a netting book.
+            "share_of_movement_pct": round(abs(r["pnl"]) / gross * 100, 1) if gross else None,
+        }
+        for r in priced
+    ]
+    out.sort(key=lambda r: abs(r["pnl"]), reverse=True)
+    return out

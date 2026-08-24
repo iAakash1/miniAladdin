@@ -16,6 +16,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from src import providers
+from src.providers.parallel import map_concurrent
 from src.services import database
 from src.services import portfolio_intelligence
 from src.services.clerk_auth import require_clerk_user
@@ -408,47 +409,93 @@ def delete_note(note_id: str, user: str = Depends(require_clerk_user)):
     return {"ok": True}
 
 
-def _price_history(tickers: list[str]) -> tuple[dict[str, Any], dict[str, list]]:
-    """Current quotes and daily closes for the held tickers, in one pass.
+# Benchmarks a portfolio can be measured against. Symbols rather than
+# hardcoded UI logic, so adding one is a line here and nothing in the client.
+BENCHMARKS: dict[str, str] = {
+    "SPY": "S&P 500",
+    "QQQ": "Nasdaq 100",
+    "IWM": "Russell 2000",
+}
+DEFAULT_BENCHMARK = "SPY"
 
-    Deliberately the *same* provider call the watchlist quotes endpoint makes
-    — ``market_data.get_series(symbol, "3mo")`` — rather than a second
-    market-data path. That call already returns the full series and
-    ``/api/quotes`` throws away everything but the last close; here the whole
-    series is kept, so the historical curve costs nothing beyond the quote
-    the page needed anyway. Both come out of the same cache, so a portfolio
-    page opened after a watchlist page makes no vendor calls at all.
+# How much history each range needs. `max` asks for five years and takes
+# whatever the vendors actually have — the curve reports its own span.
+RANGE_PERIODS: dict[str, str] = {
+    "1W": "1mo", "1M": "3mo", "3M": "3mo",
+    "6M": "6mo", "1Y": "1y", "MAX": "5y",
+}
+# Trading sessions to keep for a range, after fetching a period wide enough
+# to cover it. Trimming client-side beats a second vendor call per range.
+RANGE_SESSIONS: dict[str, Optional[int]] = {
+    "1W": 5, "1M": 22, "3M": 64, "6M": 128, "1Y": 253, "MAX": None,
+}
 
-    Per-symbol failures are per-symbol: one unreachable ticker returns an
+
+def _price_history(
+    tickers: list[str], period: str = "3mo",
+) -> tuple[dict[str, Any], dict[str, list]]:
+    """Current quotes and daily closes for every held ticker, fetched in parallel.
+
+    Two things this does not do. It does not open a second market-data path:
+    the call is `market_data.get_series`, the same one `/api/quotes` makes,
+    out of the same cache — so a portfolio page opened after a watchlist page
+    costs nothing. And it no longer walks the symbols in sequence: a
+    twenty-name book was twenty round trips end to end, which on a cold cache
+    was the whole page load. `map_concurrent` bounds the fan-out so vendor
+    token buckets are paced rather than burst through.
+
+    Per-symbol failures stay per-symbol: one unreachable ticker returns an
     error entry and the rest of the book still values.
     """
-    quotes: dict[str, Any] = {}
-    closes: dict[str, list] = {}
-    for symbol in tickers[:25]:
+    symbols = tickers[:25]
+    if not symbols:
+        return {}, {}
+
+    def fetch(symbol: str) -> tuple[str, dict[str, Any], Optional[list]]:
         try:
-            result = providers.market_data.get_series(symbol, "3mo")
+            result = providers.market_data.get_series(symbol, period)
             if not result.ok or len(result.data.bars) < 2:
-                quotes[symbol] = {"error": "no market data"}
-                continue
-            bars = result.data.bars
-            series = [(str(bar.date), float(bar.close)) for bar in bars if bar.close]
-            closes[symbol] = series
-            last = series[-1][1]
-            prev = series[-2][1] if len(series) >= 2 else None
-            quotes[symbol] = {
+                return symbol, {"error": "no market data"}, None
+            series = [(str(bar.date), float(bar.close)) for bar in result.data.bars if bar.close]
+            if len(series) < 2:
+                return symbol, {"error": "no market data"}, None
+            last, prev = series[-1][1], series[-2][1]
+            return symbol, {
                 "price": round(last, 2),
                 "change_1d": round((last / prev - 1) * 100, 2) if prev else None,
                 "source": result.source,
                 "stale": result.stale,
-            }
-        except Exception:  # noqa: BLE001 — one bad symbol never fails the book
-            logger.exception("portfolio quote failed for %s", symbol)
-            quotes[symbol] = {"error": "unavailable"}
+            }, series
+        except Exception as exc:  # noqa: BLE001 — one bad symbol never fails the book
+            logger.warning("portfolio quote failed for %s: %s", symbol, exc)
+            return symbol, {"error": "unavailable"}, None
+
+    quotes: dict[str, Any] = {}
+    closes: dict[str, list] = {}
+    for outcome in map_concurrent(fetch, symbols, timeout=25.0, label="portfolio.prices"):
+        if not outcome.ok or outcome.value is None:
+            continue
+        symbol, quote, series = outcome.value
+        quotes[symbol] = quote
+        if series:
+            closes[symbol] = series
+    # A symbol the fan-out lost entirely still needs an entry, or the holding
+    # would silently vanish from the coverage count.
+    for symbol in symbols:
+        quotes.setdefault(symbol, {"error": "unavailable"})
     return quotes, closes
 
 
+def _trim(series: list[tuple[str, float]], sessions: Optional[int]) -> list[tuple[str, float]]:
+    return series[-sessions:] if sessions and len(series) > sessions else series
+
+
 @router.get("/portfolio/intelligence")
-def portfolio_intelligence_report(user: str = Depends(require_clerk_user)):
+def portfolio_intelligence_report(
+    user: str = Depends(require_clerk_user),
+    range: str = Query("3M", description="1W · 1M · 3M · 6M · 1Y · MAX"),
+    benchmark: str = Query(DEFAULT_BENCHMARK, description="Benchmark symbol"),
+):
     """Valuation, concentration, exposure and risk over the caller's book.
 
     Three things are assembled here, all from data the product already has:
@@ -469,9 +516,20 @@ def portfolio_intelligence_report(user: str = Depends(require_clerk_user)):
     positions = PortfolioRepository(client).list(user)
     tickers = sorted({str(p.get("ticker") or "").upper() for p in positions if p.get("ticker")})
 
-    quotes, closes = _price_history(tickers) if tickers else ({}, {})
+    window = range.upper() if range.upper() in RANGE_PERIODS else "3M"
+    period = RANGE_PERIODS[window]
+    bench_symbol = benchmark.upper() if benchmark.upper() in BENCHMARKS else DEFAULT_BENCHMARK
+
+    # The benchmark rides the same fan-out as the holdings rather than being
+    # a separate sequential call after them — it is one more symbol, and
+    # fetching it apart would add a full round trip to every page load.
+    quotes, closes = _price_history(tickers + [bench_symbol], period) if tickers else ({}, {})
+    bench_series = closes.pop(bench_symbol, None) if bench_symbol not in tickers else closes.get(bench_symbol)
+    quotes.pop(bench_symbol, None) if bench_symbol not in tickers else None
+
+    trimmed = {t: _trim(series, RANGE_SESSIONS[window]) for t, series in closes.items()}
     valuation = portfolio_intelligence.value_positions(positions, quotes)
-    curve = portfolio_intelligence.value_curve(positions, closes)
+    curve = portfolio_intelligence.value_curve(positions, trimmed)
 
     market_values = {
         row["ticker"]: row["current_value"]
@@ -485,6 +543,33 @@ def portfolio_intelligence_report(user: str = Depends(require_clerk_user)):
     report["analysed"] = analyses
     report["valuation"] = valuation
     report["curve"] = curve
+
+    # ── analytics over the same history the curve is drawn from ─────────────
+    # All descriptive, all named for what they are: no Sharpe (no defensible
+    # risk-free series exists here), no portfolio volatility from per-name
+    # scores, and the benchmark difference is a return difference and says so.
+    values = [p["value"] for p in curve["points"]] if curve else []
+    report["risk"]["volatility_pct"] = portfolio_intelligence.volatility(values)
+    report["risk"]["max_drawdown"] = portfolio_intelligence.max_drawdown(values)
+    report["risk"]["holding_drawdowns"] = sorted(
+        (
+            {"ticker": t, **(portfolio_intelligence.max_drawdown([c for _, c in series]) or {})}
+            for t, series in trimmed.items() if len(series) > 1
+        ),
+        key=lambda r: r.get("pct", 0.0),
+    )[:5]
+    report["correlation"] = portfolio_intelligence.correlation_matrix(trimmed)
+    report["contributions"] = portfolio_intelligence.contributions(valuation["rows"])
+    report["benchmark"] = (
+        portfolio_intelligence.benchmark_comparison(
+            curve["points"], _trim(bench_series, RANGE_SESSIONS[window]),
+            symbol=bench_symbol, label=BENCHMARKS[bench_symbol],
+        )
+        if curve and bench_series else None
+    )
+    report["range"] = window
+    report["ranges"] = list(RANGE_PERIODS)
+    report["benchmarks"] = [{"symbol": s, "label": l} for s, l in BENCHMARKS.items()]
     # The product prices US equities through USD-denominated vendors; stating
     # it lets the UI format without guessing, and makes the assumption
     # visible if a non-USD venue is ever added.

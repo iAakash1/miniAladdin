@@ -50,6 +50,7 @@ from src.alpha_vantage import AlphaVantageClient
 from src.news_api import NewsAPIClient
 from src.models import MacroIndicators
 from src import observability, providers
+from src.providers import fabric
 from src.providers.schemas import PriceSeries
 from src.scoring import score_ticker
 from src.scoring import technical_intelligence
@@ -434,6 +435,69 @@ def get_macro():
     )
 
 
+# Deterministic event taxonomy. Keyword matching over the headline and its
+# summary — not a second model. The existing LLM layer already receives the
+# headlines and narrates them; classifying them here gives it structure to
+# reason over and gives the UI counts that do not depend on a model being up.
+NEWS_CATEGORIES: dict[str, tuple[str, ...]] = {
+    "Earnings": ("earnings", "eps", "quarterly result", "q1 ", "q2 ", "q3 ", "q4 ",
+                 "beats estimate", "misses estimate", "guidance", "revenue"),
+    "M&A": ("acquisition", "acquires", "merger", "takeover", "buyout", "stake in",
+            "divest", "spin-off", "spinoff"),
+    "Product": ("launch", "unveil", "announce", "release", "new model", "rollout",
+                "next-generation", "update"),
+    "Regulatory": ("regulator", "antitrust", "sec ", "ftc", "doj", "probe",
+                   "investigation", "compliance", "fine", "sanction"),
+    "Management": ("ceo", "cfo", "chief executive", "resign", "appoint", "steps down",
+                   "board of directors", "succession"),
+    "Analyst": ("upgrade", "downgrade", "price target", "initiates coverage",
+                "outperform", "underperform", "reiterates", "rating"),
+    "Legal": ("lawsuit", "sues", "settlement", "court", "litigation", "patent"),
+    "Supply chain": ("supply chain", "shortage", "factory", "production", "supplier",
+                     "capacity", "fab "),
+    "Macro": ("fed ", "inflation", "rate cut", "rate hike", "tariff", "recession",
+              "jobs report", "gdp"),
+}
+
+
+def _categorise_news(headlines: list) -> dict[str, int]:
+    """Counts per event type, deterministically.
+
+    A headline can hit several categories — an earnings beat that triggers an
+    upgrade is genuinely both — so counts sum to more than the article total.
+    That is reported as counts per category rather than as a partition, since
+    forcing a single label would discard the second fact.
+    """
+    counts: dict[str, int] = {}
+    for item in headlines:
+        text = f"{getattr(item, 'title', '')} {getattr(item, 'summary', '')}".lower()
+        matched = False
+        for label, keywords in NEWS_CATEGORIES.items():
+            if any(k in text for k in keywords):
+                counts[label] = counts.get(label, 0) + 1
+                matched = True
+        if not matched:
+            counts["Other"] = counts.get("Other", 0) + 1
+    return dict(sorted(counts.items(), key=lambda kv: kv[1], reverse=True))
+
+
+def _as_result(headlines: list, providers_used: list[str]):
+    """Wrap merged headlines in the envelope the rest of the handler expects.
+
+    The sentiment path downstream consumes a `ProviderResult`; the fabric
+    returns a plain merge. Adapting here keeps that path untouched rather
+    than rewriting a working scorer around a new shape.
+    """
+    from src.providers.schemas import ProviderResult
+    return ProviderResult(
+        data=headlines or None,
+        source=", ".join(providers_used),
+        sources_consulted=list(providers_used),
+        confidence=0.85 if headlines else 0.0,
+        error=None if headlines else "no vendor returned headlines",
+    )
+
+
 @app.get("/api/research/{ticker}")
 def research_ticker(
     ticker: str,
@@ -459,6 +523,9 @@ def research_ticker(
     # was; until this ledger existed all of it went to a log line and the
     # response carried the conclusion without the evidence behind it.
     ledger = Ledger(ticker)
+
+    news_stream: Optional[dict[str, Any]] = None
+    news_categories: dict[str, int] = {}
 
     # ── Step 0: warm the seven independent upstreams concurrently. ──────────
     # Purely a latency measure. Every fetch below is cache-first and
@@ -640,6 +707,46 @@ def research_ticker(
         except Exception:  # noqa: BLE001
             logger.exception("Fundamentals metrics enrichment failed for %s", ticker)
 
+    # ── Step 2c: multi-source consensus quote and statement union ───────────
+    # Both are parallel fan-outs over every capable vendor, not fallback
+    # chains: the useful output is not the value but the *agreement*, and a
+    # chain that stops at the first answer can never report it. Additive —
+    # neither feeds the scoring engine, so a total failure here costs the
+    # response two presentation blocks and nothing else.
+    consensus = None
+    statements = None
+    if prediction is not None:
+        try:
+            quote_ev = providers.market_data.quote_evidence(ticker)
+            consensus = fabric.reconcile_price(quote_ev)
+            ledger.record_fabric(
+                label="Consensus quote",
+                kind="market",
+                evidence=quote_ev,
+                detail=(f"{consensus['agreement']} vendors agree · "
+                        f"{consensus['dispersion_pct']:.3f}% spread"
+                        if consensus else "no vendor quoted this symbol"),
+                used_for=["price consensus", "cross-vendor agreement"],
+            )
+        except Exception:  # noqa: BLE001 — additive block, never fatal
+            logger.exception("consensus quote failed for %s", ticker)
+
+        try:
+            stmt_ev = providers.fundamentals.statement_evidence(ticker)
+            statements = fabric.merge_fundamentals(stmt_ev)
+            if stmt_ev:
+                ledger.record_fabric(
+                    label="Reported statements",
+                    kind="fundamental",
+                    evidence=stmt_ev,
+                    detail=(f"{len(statements['fields'])} line items from "
+                            f"{len(statements['providers'])} vendors"
+                            if statements else "no vendor is entitled for this symbol"),
+                    used_for=["valuation ratios", "fundamental trend"],
+                )
+        except Exception:  # noqa: BLE001
+            logger.exception("statement union failed for %s", ticker)
+
     # ── Step 3: Sentiment (after technicals — reuses the resolved company name)
     sentiment_data: Optional[dict[str, Any]] = None
     sentiment_obj = AggregateSentiment()
@@ -654,15 +761,24 @@ def research_ticker(
         try:
             # Headlines through the NewsProvider chain (NewsAPI → GNews →
             # Yahoo RSS → Tavily → stale cache); the keyword scorer is unchanged.
-            news_result = providers.news.get_news(ticker, company_name, limit=12)
-            ledger.record(
+            # Every news vendor, concurrently. News is the clearest case
+            # against a fallback chain: vendors do not carry the same
+            # stories, so stopping at the first success returns a *smaller*
+            # answer rather than a faster one. Merged by URL then canonical
+            # title, with corroboration recorded.
+            news_ev = providers.news.news_evidence(ticker, company_name, limit=12)
+            merged_news = fabric.merge_news(news_ev)
+            news_stream = merged_news
+            ledger.record_fabric(
                 label="News & headlines",
                 kind="evidence",
-                result=news_result,
-                detail=(f"{len(news_result.data)} headlines"
-                        if news_result.ok and news_result.data else "no headlines returned"),
+                evidence=news_ev,
+                detail=(f"{merged_news['unique']} unique of {merged_news['collected']} collected · "
+                        f"{merged_news['corroborated']} corroborated"),
                 used_for=["news factor", "evidence weighting", "sentiment"],
             )
+            news_categories = _categorise_news(merged_news["headlines"])
+            news_result = _as_result(merged_news["headlines"], merged_news["providers"])
             if news_result.ok and news_result.data:
                 headline_dicts = [
                     {
@@ -976,6 +1092,18 @@ def research_ticker(
         # v4.5 additive: deterministic technical read of the same OHLCV frame
         # the engine scored. Presentation intelligence only — never a scoring
         # input, never fatal, absent when history is too thin.
+        # Multi-source blocks (v5.1). Additive and presentation-only: the
+        # scoring engine is untouched by them, so a vendor outage here costs
+        # a panel and never a verdict.
+        "consensus_price": consensus,
+        "statements": statements,
+        "news_stream": {
+            "collected": news_stream["collected"],
+            "unique": news_stream["unique"],
+            "providers": news_stream["providers"],
+            "corroborated": news_stream["corroborated"],
+            "categories": news_categories,
+        } if news_stream else None,
         "technical_intelligence": tech_intel,
         "street_intelligence": street_intel,
         "ai":          ai,

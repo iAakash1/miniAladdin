@@ -173,6 +173,78 @@ class Ledger:
         except Exception:  # noqa: BLE001 — a recorder must never break its subject
             pass
 
+    def record_fabric(
+        self,
+        *,
+        label: str,
+        kind: str,
+        evidence: list,
+        detail: Optional[str] = None,
+        used_for: Iterable[str] = (),
+    ) -> None:
+        """Record a *parallel* multi-vendor collection as one entry.
+
+        The single-vendor `record` above answers "who told us this". This
+        answers a different and stronger question: "who did we ask, who
+        answered, and did they agree" — which only exists because the fabric
+        asks every capable vendor rather than stopping at the first.
+
+        A collection is `ok` when anyone answered, `degraded` when some
+        vendors failed or the answers conflict, and `missing` only when every
+        vendor came back empty. A partial result is a real result.
+        """
+        try:
+            answered = [e for e in evidence if getattr(e, "ok", False)]
+            failed = [e for e in evidence if not getattr(e, "ok", False)]
+
+            if not evidence:
+                health = "missing"
+                note = "no configured vendor can answer this"
+            elif not answered:
+                health = "missing"
+                note = "; ".join(
+                    f"{e.provider}: {e.status}" for e in failed[:4]
+                ) or "every vendor failed"
+            elif failed:
+                health = "degraded"
+                note = "; ".join(f"{e.provider}: {e.status}" for e in failed[:4])
+            else:
+                health = "ok"
+                note = None
+
+            self._entries.append({
+                "label": label,
+                "kind": kind,
+                "detail": detail,
+                "used_for": list(used_for),
+                "health": health,
+                # The vendor list *is* the source here — there is no single
+                # winner to name, which is the whole point of the fan-out.
+                "source": ", ".join(sorted(e.provider for e in answered)) or None,
+                "sources_consulted": sorted(getattr(e, "provider", "?") for e in evidence),
+                # Answered / asked, so the reader sees the denominator.
+                "confidence": round(len(answered) / len(evidence), 2) if evidence else None,
+                "cached": False,
+                "stale": False,
+                "age": "just now" if answered else None,
+                "note": note,
+                # Per-vendor detail, so a degraded row can be opened rather
+                # than merely coloured.
+                "contributors": [
+                    {
+                        "provider": e.provider,
+                        "ok": bool(e.ok),
+                        "status": e.status,
+                        "latency_ms": e.latency_ms,
+                        "error": e.error,
+                    }
+                    for e in sorted(evidence, key=lambda x: (not x.ok, x.provider))
+                ],
+                "parallel": True,
+            })
+        except Exception:  # noqa: BLE001 — a recorder must never break its subject
+            pass
+
     def note(self, text: str) -> None:
         """A fact about the run that is not tied to one input."""
         if text:

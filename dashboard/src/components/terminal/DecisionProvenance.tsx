@@ -87,7 +87,9 @@ const HEALTH_LABEL: Record<ProvenanceInput['health'], string> = {
 function InputRow({ input }: { input: ProvenanceInput }) {
   const [open, setOpen] = useState(false)
   // Only worth expanding when there is more than the one line already shown.
-  const expandable = input.sources_consulted.length > 1 || input.used_for.length > 0
+  const expandable =
+    input.sources_consulted.length > 1 || input.used_for.length > 0 ||
+    (input.contributors?.length ?? 0) > 0
 
   return (
     <li className={`prov-row prov-row--${input.health}`}>
@@ -104,7 +106,18 @@ function InputRow({ input }: { input: ProvenanceInput }) {
         </span>
 
         <span className="prov-row__source">
-          {input.source ? (
+          {/* A parallel row has no single winner to name — several vendors
+              answered — so it shows the count and defers the roster to the
+              expansion. Naming one of four would misrepresent the fan-out
+              as a chain. */}
+          {input.parallel && input.contributors ? (
+            <span className="prov-row__fanout">
+              <span className="num">
+                {input.contributors.filter((c) => c.ok).length}/{input.contributors.length}
+              </span>
+              <span className="u-note"> vendors</span>
+            </span>
+          ) : input.source ? (
             <SourceBadge name={input.source} />
           ) : (
             <span className="u-note">no source answered</span>
@@ -124,7 +137,22 @@ function InputRow({ input }: { input: ProvenanceInput }) {
 
       {open && (
         <div className="prov-row__body">
-          {input.sources_consulted.length > 1 && (
+          {/* Every vendor asked, with what it answered and how long it took.
+              This is the row that makes the parallel architecture visible:
+              a fallback chain has nothing to put here, because it stopped
+              at the first success. */}
+          {input.contributors && input.contributors.length > 0 && (
+            <ul className="prov-fan">
+              {input.contributors.map((c) => (
+                <li key={c.provider} className={`prov-fan__row prov-fan__row--${c.ok ? 'ok' : 'off'}`}>
+                  <SourceBadge name={c.provider} />
+                  <span className="prov-fan__status">{c.ok ? 'answered' : c.status.replace(/_/g, ' ')}</span>
+                  <span className="num prov-fan__ms">{Math.round(c.latency_ms)}ms</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {input.sources_consulted.length > 1 && !input.parallel && (
             <p className="prov-row__chain">
               <span className="label">Chain</span>
               {input.sources_consulted.map((vendor, i) => (
