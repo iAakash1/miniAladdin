@@ -384,3 +384,64 @@ def test_sec_is_discoverable_as_its_own_capability_not_as_a_fundamentals_vendor(
     # Keyless, so it is live in every environment including CI.
     assert m["by_capability"]["filings"]["live"] == ["sec"]
     assert m["by_capability"]["filings"]["unconfigured"] == []
+
+
+# ── XBRL trend derivation ─────────────────────────────────────────────────
+
+def test_xbrl_trends_never_cross_two_different_concepts():
+    """The failure this guards: comparing this year's revenue against last
+    year's net income would produce an impressive and meaningless number."""
+    from api.index import _xbrl_trends
+
+    trends = _xbrl_trends({
+        "Revenue": [
+            {"fiscal_year": 2025, "value": 400.0, "unit": "USD", "form": "10-K", "filed": "2025-10-31"},
+            {"fiscal_year": 2024, "value": 350.0, "unit": "USD", "form": "10-K", "filed": "2024-11-01"},
+        ],
+        "Net income": [
+            {"fiscal_year": 2025, "value": 100.0, "unit": "USD", "form": "10-K", "filed": "2025-10-31"},
+            {"fiscal_year": 2024, "value": 90.0, "unit": "USD", "form": "10-K", "filed": "2024-11-01"},
+        ],
+    })
+    by_concept = {t["concept"]: t for t in trends}
+    assert by_concept["Revenue"]["change_pct"] == pytest.approx(14.29, abs=0.01)
+    assert by_concept["Net income"]["change_pct"] == pytest.approx(11.11, abs=0.01)
+    # The prior value travels with the percentage so the arithmetic is
+    # checkable against the rows rendered beside it.
+    assert by_concept["Revenue"]["prior_value"] == 350.0
+    assert by_concept["Revenue"]["prior_year"] == 2024
+
+
+def test_a_single_year_yields_no_trend_rather_than_zero():
+    """One observation is not a direction."""
+    from api.index import _xbrl_trends
+    assert _xbrl_trends({"Revenue": [
+        {"fiscal_year": 2025, "value": 400.0, "unit": "USD", "form": "10-K", "filed": "2025-10-31"},
+    ]}) == []
+
+
+def test_a_zero_or_sign_flipped_prior_year_produces_no_percentage():
+    """A prior year of zero has no defined growth rate, and a swing from
+    negative to positive makes the percentage meaningless rather than large."""
+    from api.index import _xbrl_trends
+    assert _xbrl_trends({"Net income": [
+        {"fiscal_year": 2025, "value": 100.0, "unit": "USD", "form": "10-K", "filed": "x"},
+        {"fiscal_year": 2024, "value": 0.0, "unit": "USD", "form": "10-K", "filed": "y"},
+    ]}) == []
+    assert _xbrl_trends({"Net income": [
+        {"fiscal_year": 2025, "value": 100.0, "unit": "USD", "form": "10-K", "filed": "x"},
+        {"fiscal_year": 2024, "value": -50.0, "unit": "USD", "form": "10-K", "filed": "y"},
+    ]}) == []
+
+
+def test_every_trend_names_the_document_it_came_from():
+    """Primary-source evidence whose document is not named is just another
+    number — the form and filing date are the point."""
+    from api.index import _xbrl_trends
+    trend = _xbrl_trends({"Revenue": [
+        {"fiscal_year": 2025, "value": 400.0, "unit": "USD", "form": "10-K", "filed": "2025-10-31"},
+        {"fiscal_year": 2024, "value": 350.0, "unit": "USD", "form": "10-K", "filed": "2024-11-01"},
+    ]})[0]
+    assert trend["form"] == "10-K"
+    assert trend["filed"] == "2025-10-31"
+    assert trend["unit"] == "USD"

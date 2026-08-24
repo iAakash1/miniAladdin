@@ -69,6 +69,40 @@ export default function SecFilings({ block }: { block: FilingsBlock }) {
         ))}
       </div>
 
+      {/* The company's own tagged figures, and the year-over-year change
+          between consecutive fiscal years of the same concept. This is the
+          only place in the product where a number traces to a specific
+          document rather than to a vendor's extraction of one — so the form
+          and filing date are shown, not hidden behind a tooltip. */}
+      {block.xbrl_trend && block.xbrl_trend.length > 0 && (
+        <div className="sec__xbrl">
+          <h3 className="sec__xbrl-title">Reported year over year</h3>
+          <ul className="sec__trends">
+            {block.xbrl_trend.slice(0, 6).map((t) => (
+              <li key={t.concept} className="sec__trend">
+                <span className="sec__trend-name">{t.concept}</span>
+                <span className="num sec__trend-years">
+                  {t.prior_year}→{t.latest_year}
+                </span>
+                <span className={`num sec__trend-pct sec__trend-pct--${
+                  t.change_pct > 0 ? 'pos' : t.change_pct < 0 ? 'neg' : 'flat'
+                }`}>
+                  {t.change_pct > 0 ? '+' : ''}{t.change_pct.toFixed(1)}%
+                </span>
+                <span className="sec__trend-src">
+                  {t.form} · {t.filed}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="sec__xbrl-note">
+            Computed from consecutive fiscal years of the same tagged concept — never
+            across different line items. A concept with one year of data shows no trend
+            rather than a zero.
+          </p>
+        </div>
+      )}
+
       <ul className="sec__list">
         {block.filings.slice(0, 8).map((filing) => (
           <li key={filing.accession} className="sec__row">

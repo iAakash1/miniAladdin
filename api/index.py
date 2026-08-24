@@ -461,6 +461,43 @@ NEWS_CATEGORIES: dict[str, tuple[str, ...]] = {
 }
 
 
+def _xbrl_trends(facts: dict[str, list[dict[str, Any]]]) -> list[dict[str, Any]]:
+    """Year-over-year change per concept, from the company's own tagged figures.
+
+    Only consecutive fiscal years of the *same* concept are compared, so no
+    two periods are ever crossed between different line items. A concept with
+    one year of data yields no trend rather than a zero — a single
+    observation is not a direction.
+
+    The prior year's value travels with the percentage so the arithmetic is
+    checkable against the rows rendered beside it.
+    """
+    out: list[dict[str, Any]] = []
+    for concept, series in facts.items():
+        usable = [row for row in series if isinstance(row.get("value"), (int, float))]
+        if len(usable) < 2:
+            continue
+        latest, prior = usable[0], usable[1]
+        # Guard the ratio: a prior year of zero has no defined growth rate,
+        # and a sign flip makes the percentage meaningless rather than large.
+        if not prior["value"] or (latest["value"] < 0) != (prior["value"] < 0):
+            continue
+        change = (latest["value"] / prior["value"] - 1) * 100
+        out.append({
+            "concept": concept,
+            "latest_year": latest.get("fiscal_year"),
+            "latest_value": latest["value"],
+            "prior_year": prior.get("fiscal_year"),
+            "prior_value": prior["value"],
+            "change_pct": round(change, 2),
+            "unit": latest.get("unit"),
+            "form": latest.get("form"),
+            "filed": latest.get("filed"),
+        })
+    out.sort(key=lambda r: abs(r["change_pct"]), reverse=True)
+    return out
+
+
 def _categorise_news(headlines: list) -> dict[str, int]:
     """Counts per event type, deterministically.
 
@@ -869,6 +906,38 @@ def research_ticker(
                 detail=(f"{len(rows)} recent filings" if rows else "no filings resolved"),
                 used_for=["primary-source evidence", "filing recency"],
             )
+
+            # XBRL company facts: the numbers as the company itself tagged
+            # them, with the fiscal year, the unit, the form and the filing
+            # date attached. This is the one place in the product where a
+            # figure can be traced to a specific document rather than to a
+            # vendor's extraction of one — which is exactly what makes it
+            # worth a separate capability from `statements`.
+            facts_ev = providers.filings.facts_evidence(ticker)
+            facts = next((e.data for e in facts_ev if e.ok and e.data), None)
+            if facts:
+                # Trimmed to the most recent years per concept. The full
+                # history is available from the same call, but a research
+                # page wants a trend, not a decade of rows.
+                filings_block = filings_block or {"source": "SEC EDGAR"}
+                filings_block["xbrl"] = {
+                    concept: series[:6]
+                    for concept, series in facts.items() if series
+                }
+                # A trend the reader can check against the rows beside it —
+                # computed from consecutive fiscal years of the *same*
+                # concept, so no two periods are ever compared across
+                # different line items.
+                filings_block["xbrl_trend"] = _xbrl_trends(facts)
+            if facts_ev:
+                ledger.record_fabric(
+                    label="XBRL reported facts",
+                    kind="fundamental",
+                    evidence=facts_ev,
+                    detail=(f"{len(facts)} tagged concepts" if facts
+                            else "no XBRL facts for this filer"),
+                    used_for=["primary-source figures", "multi-year trend"],
+                )
         except Exception:  # noqa: BLE001 — additive block, never fatal
             logger.exception("filings lookup failed for %s", ticker)
 

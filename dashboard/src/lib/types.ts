@@ -483,8 +483,35 @@ export interface AnalystBlock {
   vendor_count: number
 }
 
+/** One value as the company itself tagged it, with the document it came from. */
+export interface XbrlFact {
+  fiscal_year: number
+  value: number
+  unit: string
+  form: string
+  filed: string
+}
+
+/** Year-over-year change from consecutive fiscal years of the same concept.
+ *  The prior value travels with the percentage so the arithmetic is checkable
+ *  against the facts rendered beside it. */
+export interface XbrlTrend {
+  concept: string
+  latest_year: number
+  latest_value: number
+  prior_year: number
+  prior_value: number
+  change_pct: number
+  unit: string
+  form: string
+  filed: string
+}
+
 export interface FilingsBlock {
   filings: SecFiling[]
+  /** Tagged concepts, newest first. Absent for filers with no XBRL. */
+  xbrl?: Record<string, XbrlFact[]>
+  xbrl_trend?: XbrlTrend[]
   /** Counts per form, so the shape of recent activity reads before any
    *  single row does. */
   by_form: Record<string, number>

@@ -4846,3 +4846,35 @@ a.hl-row:hover .hl-row__out { color: var(--accent); transform: translate(1px, -1
 .own__rec-label { text-transform: capitalize; font-weight: 600; color: var(--accent); }
 .own__src { font-size: 0.625rem; color: var(--faint); }
 .own__note { font-size: 0.6875rem; line-height: 1.55; color: var(--faint); }
+
+/* XBRL trend rows. The form and filing date sit on the row rather than in a
+   tooltip: the point of primary-source evidence is that the document is
+   named, and hiding it defeats the purpose. */
+.sec__xbrl { display: flex; flex-direction: column; gap: 7px; padding-top: 4px; }
+.sec__xbrl-title {
+  font-size: 0.625rem;
+  font-weight: 650;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.sec__trends { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.sec__trend {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 11ch 7ch minmax(0, 14ch);
+  align-items: baseline;
+  gap: 10px;
+  font-size: 0.75rem;
+}
+.sec__trend-name { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sec__trend-years { color: var(--faint); font-size: 0.6875rem; }
+.sec__trend-pct { text-align: right; font-weight: 600; }
+.sec__trend-pct--pos { color: var(--pos); }
+.sec__trend-pct--neg { color: var(--neg); }
+.sec__trend-pct--flat { color: var(--muted); }
+.sec__trend-src { font-size: 0.625rem; color: var(--faint); text-align: right; }
+.sec__xbrl-note { font-size: 0.6875rem; line-height: 1.55; color: var(--faint); }
+@media (max-width: 640px) {
+  .sec__trend { grid-template-columns: minmax(0, 1fr) 7ch; }
+  .sec__trend-years, .sec__trend-src { display: none; }
+}
