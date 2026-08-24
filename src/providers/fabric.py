@@ -74,6 +74,12 @@ CAPABILITY_METHODS: dict[str, str] = {
     # Kept separate from `news` so a vendor that returns headlines without
     # sentiment is not asked for something it cannot supply.
     "news_sentiment": "get_news_sentiment",
+    # Primary-source regulatory evidence. SEC EDGAR is keyless and is the
+    # only source here that is not a vendor's interpretation of a filing but
+    # the filing itself — which is a different *kind* of evidence, not a
+    # cheaper copy of the same kind, so it gets its own capabilities.
+    "filings": "get_filings",
+    "xbrl_facts": "get_xbrl_facts",
 }
 
 # Human labels for the diagnostics surface. A capability with no label is
@@ -89,6 +95,8 @@ CAPABILITY_LABELS: dict[str, str] = {
     "analyst_targets": "Price targets",
     "brand_mark": "Company logo",
     "image_search": "Editorial imagery",
+    "filings": "SEC filings",
+    "xbrl_facts": "XBRL reported facts",
 }
 
 

@@ -284,6 +284,8 @@ export interface RawResearchResponse {
   statements?: StatementUnion | null
   news_stream?: NewsStream | null
   profile?: CompanyProfile | null
+  filings?: FilingsBlock | null
+  ratios?: RatiosBlock | null
   detail?: string
 }
 
@@ -392,6 +394,62 @@ export interface NewsStream {
     mean: number
     source: string | null
   } | null
+}
+
+/** One SEC filing, from EDGAR. Primary-source evidence: this is the document
+ *  itself, not a vendor's reading of it. */
+export interface SecFiling {
+  form: string
+  meaning: string
+  filed_at: string
+  report_date: string | null
+  accession: string
+  url: string
+  items: string | null
+}
+
+/** Valuation, margin, return, growth and leverage ratios.
+ *
+ *  Every key carries its own period — `_ttm`, `_3y`, `_5y`, `_yoy` — because
+ *  that is what makes them comparable. A schema that called both a trailing
+ *  margin and a five-year average `margin` would invite exactly the kind of
+ *  averaging this system refuses to do. */
+export interface RatiosBlock {
+  pe_ratio?: number
+  price_to_sales?: number
+  price_to_book?: number
+  ev_to_ebitda?: number
+  ev_to_revenue?: number
+  gross_margin_ttm?: number
+  operating_margin_ttm?: number
+  net_margin_ttm?: number
+  net_margin_5y?: number
+  roe_ttm?: number
+  roa_ttm?: number
+  roi_ttm?: number
+  revenue_growth_ttm_yoy?: number
+  revenue_growth_3y?: number
+  eps_growth_ttm_yoy?: number
+  eps_growth_3y?: number
+  current_ratio?: number
+  quick_ratio?: number
+  debt_to_equity?: number
+  long_term_debt_to_equity?: number
+  payout_ratio_ttm?: number
+  dividend_yield?: number
+  /** Which vendor supplied the set. Not reconciled across vendors: these are
+   *  one vendor's consistently-computed family, and mixing definitions
+   *  between vendors is precisely what produces meaningless ratios. */
+  source?: string
+}
+
+export interface FilingsBlock {
+  filings: SecFiling[]
+  /** Counts per form, so the shape of recent activity reads before any
+   *  single row does. */
+  by_form: Record<string, number>
+  latest: SecFiling | null
+  source: string
 }
 
 /** Company identity and narrative, assembled from whichever vendor answered.
@@ -592,6 +650,8 @@ export interface Analysis {
   statements: StatementUnion | null
   newsStream: NewsStream | null
   profile: CompanyProfile | null
+  filings: FilingsBlock | null
+  ratios: RatiosBlock | null
 }
 
 /* ---------- News (our own /api/news aggregation) ---------- */

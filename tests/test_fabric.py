@@ -366,3 +366,21 @@ def test_agreeing_text_records_no_observations_to_review():
 
 def test_nobody_answering_yields_no_profile_rather_than_an_empty_one():
     assert fabric.merge_profile([Evidence("a", "company", "X", False)]) is None
+
+
+def test_sec_is_discoverable_as_its_own_capability_not_as_a_fundamentals_vendor():
+    """EDGAR is the filing itself, not a vendor's reading of one. Merging it
+    into the fundamentals union would make the primary source a fourth
+    opinion to median against."""
+    class Sec:
+        NAME, healthy, available, KEY_ENV = "sec", True, True, None
+        def get_filings(self, s, limit=20): return []
+        def get_xbrl_facts(self, s): return {}
+
+    m = fabric.capability_matrix({"filings": [Sec()]})
+    caps = m["providers"][0]["capabilities"]
+    assert caps == ["filings", "xbrl_facts"]
+    assert "fundamentals" not in caps
+    # Keyless, so it is live in every environment including CI.
+    assert m["by_capability"]["filings"]["live"] == ["sec"]
+    assert m["by_capability"]["filings"]["unconfigured"] == []

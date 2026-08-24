@@ -210,3 +210,70 @@ def test_vendor_errors_never_carry_a_credential():
     assert "apikey=<redacted>" in redact(leaked)
     for param in ("token", "access_key", "api_key", "client_secret"):
         assert "SEKRIT" not in redact(f"https://x.com?{param}=SEKRIT&a=1")
+
+
+# ── credential-leak regression ────────────────────────────────────────────
+#
+# The failure this guards against actually happened: vendors that
+# authenticate by query string made `requests` embed the key in every
+# HTTPError message, which travelled into Evidence.error and out through the
+# provenance payload. A single 403 was enough to publish a key to the browser.
+
+import json as _json
+
+import pytest as _pytest
+
+from src.providers.base import VendorError, redact
+from src.providers.fabric import Evidence, collect
+from src.services.provenance import Ledger
+
+
+_FAKE_SECRETS = [
+    "FMP_TEST_SECRET_123",
+    "ALPHA_SECRET_456",
+    "BEARER_SECRET_789",
+    "sk_logo_dev_SECRET_000",
+]
+
+
+@_pytest.mark.parametrize("secret", _FAKE_SECRETS)
+@_pytest.mark.parametrize("template", [
+    "403 Client Error: Forbidden for url: https://v.com/api?apikey={s}",
+    "401 for https://v.com/x?token={s}&sym=AAPL",
+    "connection failed: https://v.com/y?access_key={s}",
+    "https://v.com/z?api_key={s}",
+    "https://v.com/w?client_secret={s}&id=1",
+])
+def test_no_credential_shape_survives_redaction(secret, template):
+    cleaned = redact(template.format(s=secret))
+    assert secret not in cleaned
+
+
+def test_a_vendor_exception_carrying_a_key_never_reaches_provenance():
+    """End-to-end: an exploding vendor -> Evidence -> ledger -> JSON payload.
+    This is the exact path the leak took."""
+    class Leaky:
+        NAME, healthy, available = "leaky", True, True
+
+        def get_price(self, symbol):
+            raise VendorError(redact(
+                "403 Client Error: Forbidden for url: "
+                "https://v.com/api/v3/quote/AAPL?apikey=FMP_TEST_SECRET_123"
+            ))
+
+    evidence = collect("quote", "AAPL", [Leaky()], lambda v: v.get_price("AAPL"))
+    ledger = Ledger("AAPL")
+    ledger.record_fabric(label="Consensus quote", kind="market", evidence=evidence)
+    payload = _json.dumps(ledger.build())
+
+    assert "FMP_TEST_SECRET_123" not in payload
+    # And the failure is still reported — redaction must not swallow evidence.
+    assert "leaky" in payload
+    assert "403" in payload
+
+
+def test_redaction_leaves_non_credential_text_intact():
+    """Over-redaction is its own failure: an error nobody can read is not
+    safer, it is just useless."""
+    message = "503 Service Unavailable for url: https://v.com/api/v3/quote/AAPL"
+    assert redact(message) == message

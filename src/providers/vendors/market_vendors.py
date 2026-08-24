@@ -201,6 +201,11 @@ class FinnhubVendor(VendorClient):
         metric = data.get("metric") or {}
         if not metric:
             return None
+        # 133 figures come back for this one request; the adapter kept seven.
+        # Period is encoded in the destination field name because that is what
+        # makes these comparable at all — a TTM margin and a 5-year average
+        # are different measurements, and flattening both to "margin" would
+        # invite a reconciler to average them.
         return FundamentalsData(
             symbol=symbol,
             pe_ratio=_safe_float(metric.get("peTTM")),
@@ -210,6 +215,38 @@ class FinnhubVendor(VendorClient):
             week_52_low=_safe_float(metric.get("52WeekLow")),
             dividend_yield=_safe_float(metric.get("currentDividendYieldTTM")),
             profit_margin=_safe_float(metric.get("netProfitMarginTTM")),
+
+            price_to_sales=_safe_float(metric.get("psTTM")),
+            price_to_book=_safe_float(metric.get("pbQuarterly") or metric.get("pb")),
+            ev_to_ebitda=_safe_float(metric.get("evEbitdaTTM")),
+            ev_to_revenue=_safe_float(metric.get("evRevenueTTM")),
+
+            gross_margin_ttm=_safe_float(metric.get("grossMarginTTM")),
+            operating_margin_ttm=_safe_float(metric.get("operatingMarginTTM")),
+            net_margin_ttm=_safe_float(metric.get("netProfitMarginTTM")),
+            net_margin_5y=_safe_float(metric.get("netProfitMargin5Y")),
+
+            roe_ttm=_safe_float(metric.get("roeTTM")),
+            roa_ttm=_safe_float(metric.get("roaTTM")),
+            roi_ttm=_safe_float(metric.get("roiTTM")),
+
+            revenue_growth_ttm_yoy=_safe_float(metric.get("revenueGrowthTTMYoy")),
+            revenue_growth_3y=_safe_float(metric.get("revenueGrowth3Y")),
+            eps_growth_ttm_yoy=_safe_float(metric.get("epsGrowthTTMYoy")),
+            eps_growth_3y=_safe_float(metric.get("epsGrowth3Y")),
+
+            current_ratio=_safe_float(metric.get("currentRatioQuarterly")),
+            quick_ratio=_safe_float(metric.get("quickRatioQuarterly")),
+            debt_to_equity=_safe_float(metric.get("totalDebt/totalEquityQuarterly")),
+            long_term_debt_to_equity=_safe_float(metric.get("longTermDebt/equityQuarterly")),
+
+            payout_ratio_ttm=_safe_float(metric.get("payoutRatioTTM")),
+            # Whatever else the vendor sent. Kept so a later feature can use a
+            # figure this response already contained without a new round trip.
+            vendor_metrics={
+                k: v for k, v in metric.items()
+                if isinstance(v, (int, float)) and v == v
+            },
         )
 
     def get_analyst_targets(self, symbol: str) -> Optional[AnalystTargets]:

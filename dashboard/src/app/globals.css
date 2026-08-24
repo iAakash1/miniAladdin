@@ -4641,3 +4641,142 @@ a.hl-row:hover .hl-row__out { color: var(--accent); transform: translate(1px, -1
   color: var(--warn);
 }
 .csnap__conflict-obs { color: var(--text); }
+
+/* ── SEC filings ───────────────────────────────────────────────────────────
+   Primary-source evidence. Compact by design: a filings list is a recency and
+   cadence signal, not a reading surface, so the form mix leads and the rows
+   are links rather than content. */
+.sec { display: flex; flex-direction: column; gap: 12px; }
+.sec__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.sec__lede { margin-top: 5px; font-size: 0.8125rem; line-height: 1.6; color: var(--muted); max-width: 66ch; }
+.sec__recency { font-size: 0.6875rem; color: var(--faint); white-space: nowrap; }
+.sec__recency strong { color: var(--text); }
+
+.sec__forms { display: flex; gap: 6px; flex-wrap: wrap; }
+.sec__form {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-size: 0.6875rem;
+  color: var(--muted);
+}
+/* Only forms whose appearance is itself newsworthy get a tone, so the
+   exceptions are what catches the eye rather than every row. */
+.sec__form--warn   { color: var(--warn);   background: var(--warn-wash); }
+.sec__form--accent { color: var(--accent); background: var(--accent-wash); }
+.sec__form-n { color: var(--text); font-weight: 600; }
+
+.sec__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.sec__link {
+  display: grid;
+  grid-template-columns: 7ch minmax(0, 1fr) 10ch auto;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 10px;
+  border-radius: var(--r-sm);
+  text-decoration: none;
+  color: inherit;
+  font-size: 0.75rem;
+  transition: background var(--t-fast) var(--ease-out);
+}
+.sec__link:hover { background: var(--surface-2); }
+.sec__link:focus-visible { outline: none; box-shadow: var(--ring); }
+.sec__row-form { font-weight: 600; padding: 1px 5px; border-radius: 3px; }
+.sec__row-meaning { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sec__row-date { color: var(--faint); text-align: right; }
+.sec__row-out { color: var(--faint); }
+.sec__link:hover .sec__row-out { color: var(--accent); }
+@media (prefers-reduced-motion: reduce) { .sec__link { transition: none; } }
+@media (max-width: 640px) {
+  .sec__link { grid-template-columns: 7ch minmax(0, 1fr) auto; }
+  .sec__row-date { grid-column: 1 / -1; text-align: left; }
+}
+
+/* ── Ratio panel ───────────────────────────────────────────────────────────
+   Four grouped families, dense definition lists rather than cards. A ratio
+   sheet is a scanning surface: the reader is comparing figures within a
+   family, so the families need boundaries and the rows need alignment. */
+.ratios { display: flex; flex-direction: column; gap: 14px; }
+.ratios__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.ratios__lede { margin-top: 5px; font-size: 0.8125rem; line-height: 1.6; color: var(--muted); max-width: 68ch; }
+.ratios__src { font-size: 0.6875rem; color: var(--faint); white-space: nowrap; }
+.ratios__src strong { color: var(--text); }
+.ratios__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+.ratios__group {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.ratios__group-title {
+  font-size: 0.625rem;
+  font-weight: 650;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.ratios__rows { display: grid; gap: 4px; }
+.ratios__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.75rem;
+}
+.ratios__row dt { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ratios__row dd { color: var(--text); font-weight: 550; white-space: nowrap; }
+
+/* ── Statement union ───────────────────────────────────────────────────────
+   A union across vendors, with disagreements rendered as disagreements. The
+   conflict rail is the point of the panel: a disputed line must not look
+   like a settled one. */
+.stmt { display: flex; flex-direction: column; gap: 12px; }
+.stmt__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.stmt__lede { margin-top: 5px; font-size: 0.8125rem; line-height: 1.6; color: var(--muted); max-width: 70ch; }
+.stmt__meta { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex-shrink: 0; }
+.stmt__period {
+  font-size: 0.6875rem;
+  color: var(--text);
+  padding: 1px 8px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.stmt__vendors { font-size: 0.625rem; color: var(--faint); }
+
+.stmt__rows { display: grid; gap: 2px; }
+.stmt__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) 8ch minmax(0, 1fr);
+  align-items: baseline;
+  gap: 12px;
+  padding: 7px 10px 7px 12px;
+  border-radius: var(--r-sm);
+  font-size: 0.75rem;
+}
+.stmt__row:nth-child(odd) { background: color-mix(in srgb, var(--surface-2) 60%, transparent); }
+/* A disputed line must not read as a settled one. */
+.stmt__row--conflict { box-shadow: inset 3px 0 0 var(--warn); background: var(--warn-wash); }
+.stmt__label { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stmt__value { color: var(--text); font-weight: 600; text-align: right; }
+.stmt__src { font-size: 0.625rem; color: var(--faint); overflow: hidden; text-overflow: ellipsis; }
+.stmt__obs { display: inline-flex; gap: 10px; flex-wrap: wrap; }
+.stmt__ob { color: var(--warn); }
+.stmt__ob .num { color: var(--text); }
+.stmt__note {
+  font-size: 0.6875rem;
+  line-height: 1.55;
+  color: var(--faint);
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+@media (max-width: 640px) {
+  .stmt__row { grid-template-columns: minmax(0, 1fr) 8ch; }
+  .stmt__src { grid-column: 1 / -1; }
+}

@@ -59,11 +59,48 @@ class AlphaVantageVendor(VendorClient):
             week_52_low=raw.week_52_low,
             dividend_yield=raw.dividend_yield,
             profit_margin=raw.profit_margin,
+            # The ratio surface OVERVIEW already returned. Alpha Vantage and
+            # Finnhub compute several of these differently, which is exactly
+            # why they are kept per-vendor and reconciled by the fabric's
+            # union rather than averaged into one number.
+            price_to_sales=raw.price_to_sales_ttm,
+            price_to_book=raw.price_to_book,
+            ev_to_ebitda=raw.ev_to_ebitda,
+            ev_to_revenue=raw.ev_to_revenue,
+            operating_margin_ttm=raw.operating_margin_ttm,
+            net_margin_ttm=raw.profit_margin,
+            roe_ttm=raw.return_on_equity_ttm,
+            roa_ttm=raw.return_on_assets_ttm,
+            revenue_growth_ttm_yoy=raw.quarterly_revenue_growth_yoy,
+            eps_growth_ttm_yoy=raw.quarterly_earnings_growth_yoy,
+            vendor_metrics={
+                k: v for k, v in {
+                    "ebitda": raw.ebitda,
+                    "revenue_ttm": raw.revenue_ttm,
+                    "gross_profit_ttm": raw.gross_profit_ttm,
+                    "diluted_eps_ttm": raw.diluted_eps_ttm,
+                    "book_value": raw.book_value,
+                    "shares_outstanding": raw.shares_outstanding,
+                    "peg_ratio": raw.peg_ratio,
+                    "dividend_per_share": raw.dividend_per_share,
+                    "analyst_strong_buy": raw.analyst_strong_buy,
+                    "analyst_buy": raw.analyst_buy,
+                    "analyst_hold": raw.analyst_hold,
+                    "analyst_sell": raw.analyst_sell,
+                    "analyst_strong_sell": raw.analyst_strong_sell,
+                }.items() if v is not None
+            },
             profile=CompanyProfile(
                 symbol=symbol,
                 name=raw.name or "",
                 sector=raw.sector or "",
+                industry=raw.industry or "",
                 market_cap=raw.market_cap,
+                currency=raw.currency or "USD",
+                exchange=raw.exchange or "",
+                country=raw.country or "",
+                description=raw.description or "",
+                beta=raw.beta,
             ),
         )
 

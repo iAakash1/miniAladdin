@@ -218,13 +218,53 @@ def _dedupe(assets: list[VisualAsset]) -> list[VisualAsset]:
 
 # ── public API ─────────────────────────────────────────────────────────────
 
-def identity(symbol: str, domain: str = "") -> Optional[dict[str, Any]]:
+def resolve_domain(symbol: str, name: str = "") -> str:
+    """Recover a company domain when no profile vendor supplied one.
+
+    Uses Logo.dev's authenticated brand search — the one capability here that
+    needs the *secret* key, which is why it lives server-side and is never
+    reachable from a URL builder. Only called when the profile fan-out came
+    back without a website, so a company whose vendors all carry one costs
+    nothing extra.
+
+    Returns "" rather than a guess: a wrong domain resolves to another
+    company's logo, which is a worse failure than no logo at all.
+    """
+    if not name.strip() or not _logo.secret:
+        return ""
+    cache_key = f"domain|{symbol.upper()}|{name.strip().lower()}"
+    cached = _identity_cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    domain = ""
+    try:
+        results = _logo.search_brand(name.strip()) or []
+        for row in results:
+            if isinstance(row, dict) and row.get("domain"):
+                domain = str(row["domain"]).lower()
+                break
+    except Exception:  # noqa: BLE001 — identity enrichment is never fatal
+        logger.debug("brand search failed for %s", symbol)
+        return ""
+
+    _identity_cache.put(cache_key, domain, IDENTITY_TTL_SECONDS)
+    return domain
+
+
+def identity(symbol: str, domain: str = "", name: str = "") -> Optional[dict[str, Any]]:
     """A company's brand mark, or None when Logo.dev is not configured.
 
     Returns None rather than a placeholder: the UI already draws a monogram
     for an unresolved company, and a stand-in URL here would replace a
     deliberate fallback with a broken image.
     """
+    # A domain from the profile fan-out is authoritative and free. Brand
+    # search is the recovery path for the companies whose vendors carried no
+    # website at all.
+    if not domain and name:
+        domain = resolve_domain(symbol, name)
+
     key = f"{symbol.upper()}|{domain}"
     cached = _identity_cache.get(key)
     if cached is not None:

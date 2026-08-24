@@ -41,6 +41,56 @@ class FundamentalData:
     beta: Optional[float] = None
     dividend_yield: Optional[float] = None   # as decimal e.g. 0.005
     profit_margin: Optional[float] = None
+
+    # ── Additive (v5.3) ──────────────────────────────────────────────────────
+    # OVERVIEW returns roughly sixty fields for one call against a free tier
+    # that allows twenty-five calls a day. Keeping twelve of them meant most
+    # of the day's most expensive request was discarded on arrival.
+    #
+    # Period is in the field name wherever the vendor's own key carries one,
+    # for the same reason as elsewhere: a TTM figure and a quarterly figure
+    # are different measurements and must not be namable as the same thing.
+    industry: str = ""
+    exchange: str = ""
+    currency: str = ""
+    country: str = ""
+    description: str = ""
+    fiscal_year_end: str = ""
+    latest_quarter: str = ""
+
+    ebitda: Optional[float] = None
+    revenue_ttm: Optional[float] = None
+    gross_profit_ttm: Optional[float] = None
+    diluted_eps_ttm: Optional[float] = None
+    revenue_per_share_ttm: Optional[float] = None
+    book_value: Optional[float] = None
+    shares_outstanding: Optional[float] = None
+
+    peg_ratio: Optional[float] = None
+    price_to_sales_ttm: Optional[float] = None
+    price_to_book: Optional[float] = None
+    ev_to_revenue: Optional[float] = None
+    ev_to_ebitda: Optional[float] = None
+    return_on_assets_ttm: Optional[float] = None
+    return_on_equity_ttm: Optional[float] = None
+    operating_margin_ttm: Optional[float] = None
+
+    quarterly_revenue_growth_yoy: Optional[float] = None
+    quarterly_earnings_growth_yoy: Optional[float] = None
+
+    dividend_per_share: Optional[float] = None
+    dividend_date: str = ""
+    ex_dividend_date: str = ""
+
+    #: Consensus analyst rating distribution, when the vendor supplies it.
+    #: A distribution, never collapsed to a single "rating" — the spread
+    #: between strong-buy and hold counts is the informative part.
+    analyst_strong_buy: Optional[int] = None
+    analyst_buy: Optional[int] = None
+    analyst_hold: Optional[int] = None
+    analyst_sell: Optional[int] = None
+    analyst_strong_sell: Optional[int] = None
+
     error: Optional[str] = None
 
 
@@ -137,6 +187,54 @@ class AlphaVantageClient:
         # Market cap in billions
         mc = _safe_float(data.get("MarketCapitalization"))
         result.market_cap = mc  # raw USD
+
+        # Everything below arrived in the same response and was previously
+        # dropped. On a free tier of 25 calls/day this was the single most
+        # wasteful discard in the codebase.
+        result.industry        = data.get("Industry", "") or ""
+        result.exchange        = data.get("Exchange", "") or ""
+        result.currency        = data.get("Currency", "") or ""
+        result.country         = data.get("Country", "") or ""
+        result.description     = (data.get("Description", "") or "")[:1200]
+        result.fiscal_year_end = data.get("FiscalYearEnd", "") or ""
+        result.latest_quarter  = data.get("LatestQuarter", "") or ""
+
+        result.ebitda                = _safe_float(data.get("EBITDA"))
+        result.revenue_ttm           = _safe_float(data.get("RevenueTTM"))
+        result.gross_profit_ttm      = _safe_float(data.get("GrossProfitTTM"))
+        result.diluted_eps_ttm       = _safe_float(data.get("DilutedEPSTTM"))
+        result.revenue_per_share_ttm = _safe_float(data.get("RevenuePerShareTTM"))
+        result.book_value            = _safe_float(data.get("BookValue"))
+        result.shares_outstanding    = _safe_float(data.get("SharesOutstanding"))
+
+        result.peg_ratio            = _safe_float(data.get("PEGRatio"))
+        result.price_to_sales_ttm   = _safe_float(data.get("PriceToSalesRatioTTM"))
+        result.price_to_book        = _safe_float(data.get("PriceToBookRatio"))
+        result.ev_to_revenue        = _safe_float(data.get("EVToRevenue"))
+        result.ev_to_ebitda         = _safe_float(data.get("EVToEBITDA"))
+        result.return_on_assets_ttm = _safe_float(data.get("ReturnOnAssetsTTM"))
+        result.return_on_equity_ttm = _safe_float(data.get("ReturnOnEquityTTM"))
+        result.operating_margin_ttm = _safe_float(data.get("OperatingMarginTTM"))
+
+        result.quarterly_revenue_growth_yoy  = _safe_float(data.get("QuarterlyRevenueGrowthYOY"))
+        result.quarterly_earnings_growth_yoy = _safe_float(data.get("QuarterlyEarningsGrowthYOY"))
+
+        result.dividend_per_share = _safe_float(data.get("DividendPerShare"))
+        result.dividend_date      = data.get("DividendDate", "") or ""
+        result.ex_dividend_date   = data.get("ExDividendDate", "") or ""
+
+        # A distribution, never collapsed into one "rating": the spread
+        # between strong-buy and hold counts is the informative part, and a
+        # single averaged score would erase it.
+        def _int(key):
+            value = _safe_float(data.get(key))
+            return int(value) if value is not None else None
+
+        result.analyst_strong_buy  = _int("AnalystRatingStrongBuy")
+        result.analyst_buy         = _int("AnalystRatingBuy")
+        result.analyst_hold        = _int("AnalystRatingHold")
+        result.analyst_sell        = _int("AnalystRatingSell")
+        result.analyst_strong_sell = _int("AnalystRatingStrongSell")
 
         return result
 

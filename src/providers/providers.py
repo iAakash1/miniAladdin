@@ -36,6 +36,7 @@ from src.providers.vendors.market_vendors import (  # noqa: F401 — PolygonVend
 )
 from src.providers.vendors.news_vendors import GNewsVendor, NewsApiVendor, YahooRssVendor
 from src.providers.vendors.search_vendors import ExaVendor, TavilyVendor
+from src.providers.vendors.sec_vendor import SECVendor
 from src.providers.vendors.tiingo_vendor import TiingoVendor
 
 
@@ -218,6 +219,45 @@ class FundamentalsProvider:
         symbol = symbol.upper()
         links = [ChainLink(self.finnhub, lambda: self.finnhub.get_street(symbol))]
         return self._street_chain.execute(f"street:{symbol}", links)
+
+
+class FilingsProvider:
+    """SEC EDGAR — primary-source regulatory evidence.
+
+    Deliberately its own provider rather than a fourth fundamentals vendor.
+    Everything in `FundamentalsProvider` is a vendor's *interpretation* of a
+    filing — parsed, relabelled, sometimes restated. This is the filing, from
+    the regulator, with the date it was actually filed. When a vendor's
+    revenue disagrees with the 10-K, the 10-K is not a fourth opinion to
+    median against; it is the document the others are describing.
+
+    Keyless, so it is available in every environment including local
+    development and CI — which makes it the one fundamentals-adjacent source
+    that never answers `not_configured`.
+    """
+
+    TTL = 21600.0  # filings appear on a daily cadence at best
+
+    def __init__(self, cache: CacheBackend, flight: SingleFlight):
+        self.sec = SECVendor()
+
+    @property
+    def vendors(self):
+        return [self.sec]
+
+    def filings_evidence(self, symbol: str, limit: int = 12) -> list[Evidence]:
+        symbol = symbol.upper()
+        return fabric.collect(
+            "filings", symbol, self.vendors, lambda v: v.get_filings(symbol, limit) or None,
+            timeout=15.0,
+        )
+
+    def facts_evidence(self, symbol: str) -> list[Evidence]:
+        symbol = symbol.upper()
+        return fabric.collect(
+            "xbrl_facts", symbol, self.vendors, lambda v: v.get_xbrl_facts(symbol) or None,
+            timeout=20.0,
+        )
 
 
 class NewsProvider:

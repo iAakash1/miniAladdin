@@ -121,3 +121,159 @@ def test_every_spelling_of_a_website_reduces_to_one_domain():
         assert _registrable_domain(raw) == "apple.com"
     assert _registrable_domain("") == ""
     assert _registrable_domain("not a url") == ""
+
+
+# ── Finnhub: the ratio surface ────────────────────────────────────────────
+
+_METRIC = {"metric": {
+    "peTTM": 32.1, "epsTTM": 9.6, "beta": 1.09,
+    "52WeekHigh": 344.57, "52WeekLow": 223.78,
+    "currentDividendYieldTTM": 0.35, "netProfitMarginTTM": 27.62,
+    "psTTM": 9.49, "pbQuarterly": 38.49, "evEbitdaTTM": 26.64, "evRevenueTTM": 9.59,
+    "grossMarginTTM": 48.65, "operatingMarginTTM": 33.17, "netProfitMargin5Y": 25.48,
+    "roeTTM": 137.18, "roaTTM": 34.55, "roiTTM": 70.25,
+    "revenueGrowthTTMYoy": 14.24, "revenueGrowth3Y": 1.81,
+    "epsGrowthTTMYoy": 32.61, "epsGrowth3Y": 6.89,
+    "currentRatioQuarterly": 1.0033, "quickRatioQuarterly": 0.929,
+    "totalDebt/totalEquityQuarterly": 0.7844, "longTermDebt/equityQuarterly": 0.6635,
+    "payoutRatioTTM": 12.13,
+    "someUnmappedVendorFigure": 42.0,
+}}
+
+
+def test_finnhub_keeps_the_ratio_surface_it_was_already_paying_for():
+    """One request returns 133 figures; the adapter kept seven. Margins,
+    returns, growth and leverage are exactly what a fundamentals panel is
+    for, and they were being fetched and discarded on every research run."""
+    from src.providers.vendors.market_vendors import FinnhubVendor
+    with patch.object(FinnhubVendor, "_get_json", lambda self, *a, **k: _METRIC):
+        f = FinnhubVendor().get_fundamentals("AAPL")
+    assert f.roe_ttm == 137.18
+    assert f.gross_margin_ttm == 48.65
+    assert f.ev_to_ebitda == 26.64
+    assert f.revenue_growth_ttm_yoy == 14.24
+    assert f.debt_to_equity == 0.7844
+    assert f.current_ratio == 1.0033
+
+
+def test_periods_are_kept_apart_so_nothing_can_average_them():
+    """A trailing margin and a five-year average are different measurements.
+    Separate fields make that structural rather than a naming convention."""
+    from src.providers.vendors.market_vendors import FinnhubVendor
+    with patch.object(FinnhubVendor, "_get_json", lambda self, *a, **k: _METRIC):
+        f = FinnhubVendor().get_fundamentals("AAPL")
+    assert f.net_margin_ttm == 27.62
+    assert f.net_margin_5y == 25.48
+    assert f.net_margin_ttm != f.net_margin_5y
+
+
+def test_unmapped_vendor_figures_survive_rather_than_being_dropped():
+    """A later feature should not need a new round trip to recover a number
+    this response already contained."""
+    from src.providers.vendors.market_vendors import FinnhubVendor
+    with patch.object(FinnhubVendor, "_get_json", lambda self, *a, **k: _METRIC):
+        f = FinnhubVendor().get_fundamentals("AAPL")
+    assert f.vendor_metrics["someUnmappedVendorFigure"] == 42.0
+    # Non-numeric junk is excluded so the bag stays a numeric surface.
+    assert all(isinstance(v, (int, float)) for v in f.vendor_metrics.values())
+
+
+def test_an_empty_metric_block_yields_no_fundamentals_rather_than_zeros():
+    from src.providers.vendors.market_vendors import FinnhubVendor
+    with patch.object(FinnhubVendor, "_get_json", lambda self, *a, **k: {"metric": {}}):
+        assert FinnhubVendor().get_fundamentals("ZZZZ") is None
+
+
+# ── Alpha Vantage OVERVIEW ────────────────────────────────────────────────
+#
+# DOCUMENTATION-VERIFIED, NOT LIVE-VERIFIED. ALPHA_VANTAGE_KEY exists only on
+# Render, so this payload is built from the documented OVERVIEW contract and
+# these tests assert our parsing, not the vendor's behaviour.
+
+_OVERVIEW = {
+    "Symbol": "AAPL", "Name": "Apple Inc", "Sector": "TECHNOLOGY",
+    "Industry": "ELECTRONIC COMPUTERS", "Exchange": "NASDAQ", "Currency": "USD",
+    "Country": "USA", "Description": "Apple Inc. designs consumer electronics.",
+    "FiscalYearEnd": "September", "LatestQuarter": "2026-06-30",
+    "MarketCapitalization": "4514709504000", "EBITDA": "142000000000",
+    "PERatio": "32.1", "PEGRatio": "2.4", "BookValue": "4.38",
+    "DividendPerShare": "1.04", "DividendYield": "0.0035", "EPS": "9.6",
+    "RevenuePerShareTTM": "26.4", "ProfitMargin": "0.2762",
+    "OperatingMarginTTM": "0.3317", "ReturnOnAssetsTTM": "0.2455",
+    "ReturnOnEquityTTM": "1.3718", "RevenueTTM": "408000000000",
+    "GrossProfitTTM": "198000000000", "DilutedEPSTTM": "9.55",
+    "QuarterlyEarningsGrowthYOY": "0.326", "QuarterlyRevenueGrowthYOY": "0.1424",
+    "AnalystTargetPrice": "340.0", "AnalystRatingStrongBuy": "12",
+    "AnalystRatingBuy": "20", "AnalystRatingHold": "8",
+    "AnalystRatingSell": "1", "AnalystRatingStrongSell": "0",
+    "TrailingPE": "32.1", "ForwardPE": "29.4",
+    "PriceToSalesRatioTTM": "9.49", "PriceToBookRatio": "38.49",
+    "EVToRevenue": "9.59", "EVToEBITDA": "26.64", "Beta": "1.09",
+    "52WeekHigh": "344.57", "52WeekLow": "223.78",
+    "SharesOutstanding": "14840000000",
+    "DividendDate": "2026-08-14", "ExDividendDate": "2026-08-08",
+}
+
+
+def test_alpha_vantage_overview_keeps_what_it_was_already_returning():
+    """Roughly sixty fields for one call against a 25-calls-per-day tier, and
+    twelve were being kept. Documentation-verified: the key is Render-only."""
+    from src.alpha_vantage import AlphaVantageClient
+    client = AlphaVantageClient(api_key="fixture-key-not-real")
+    with patch.object(AlphaVantageClient, "_get", lambda self, p, timeout=10: _OVERVIEW):
+        f = client.get_fundamentals("AAPL")
+    assert f.error is None
+    assert f.revenue_ttm == 408_000_000_000
+    assert f.ebitda == 142_000_000_000
+    assert f.return_on_equity_ttm == 1.3718
+    assert f.peg_ratio == 2.4
+    assert f.shares_outstanding == 14_840_000_000
+    assert f.industry == "ELECTRONIC COMPUTERS"
+    assert f.fiscal_year_end == "September"
+    assert f.latest_quarter == "2026-06-30"
+
+
+def test_the_analyst_rating_is_kept_as_a_distribution_not_a_score():
+    """The spread between strong-buy and hold counts is the informative part;
+    a single averaged 'rating' would erase it."""
+    from src.alpha_vantage import AlphaVantageClient
+    client = AlphaVantageClient(api_key="fixture-key-not-real")
+    with patch.object(AlphaVantageClient, "_get", lambda self, p, timeout=10: _OVERVIEW):
+        f = client.get_fundamentals("AAPL")
+    assert (f.analyst_strong_buy, f.analyst_buy, f.analyst_hold) == (12, 20, 8)
+    assert (f.analyst_sell, f.analyst_strong_sell) == (1, 0)
+
+
+def test_a_missing_overview_reports_an_error_rather_than_empty_fundamentals():
+    from src.alpha_vantage import AlphaVantageClient
+    client = AlphaVantageClient(api_key="fixture-key-not-real")
+    with patch.object(AlphaVantageClient, "_get", lambda self, p, timeout=10: {}):
+        f = client.get_fundamentals("ZZZZ")
+    assert f.error
+    assert f.revenue_ttm is None
+
+
+def test_alpha_vantage_fields_reach_the_normalized_fundamentals_object(monkeypatch):
+    """A field recovered in the client that never crosses the adapter is
+    still a discarded field.
+
+    The key is set for this test only so the vendor constructs an enabled
+    client — the HTTP layer is patched out, so no request is made and the
+    value is never used for anything but the `available` check."""
+    monkeypatch.setenv("ALPHA_VANTAGE_KEY", "fixture-key-not-real")
+    from src.alpha_vantage import AlphaVantageClient
+    from src.providers.vendors.data_vendors import AlphaVantageVendor
+
+    vendor = AlphaVantageVendor()
+    with patch.object(AlphaVantageClient, "_get", lambda self, p, timeout=10: _OVERVIEW):
+        with patch.object(AlphaVantageVendor, "timed_call",
+                          lambda self, fn, **kw: fn()):
+            data = vendor.get_fundamentals("AAPL")
+    assert data.roe_ttm == 1.3718
+    assert data.ev_to_ebitda == 26.64
+    assert data.vendor_metrics["revenue_ttm"] == 408_000_000_000
+    assert data.vendor_metrics["analyst_strong_buy"] == 12
+    # And the profile the same response carried.
+    assert data.profile.industry == "ELECTRONIC COMPUTERS"
+    assert data.profile.country == "USA"
+    assert data.profile.description.startswith("Apple Inc.")

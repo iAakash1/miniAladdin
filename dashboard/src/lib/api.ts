@@ -219,6 +219,8 @@ export function normalizeAnalysis(raw: RawResearchResponse): Analysis {
     statements: raw.statements ?? null,
     newsStream: raw.news_stream ?? null,
     profile: raw.profile ?? null,
+    filings: raw.filings ?? null,
+    ratios: raw.ratios ?? null,
   }
 }
 

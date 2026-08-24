@@ -531,6 +531,9 @@ def research_ticker(
     # for the news query anyway; previously six of its fields were used and
     # the description, domain, headcount and IPO date were thrown away.
     profile_block: Optional[dict[str, Any]] = None
+    # Valuation, margin, return, growth and leverage ratios. 133 figures come
+    # back from one vendor request; seven were being kept.
+    ratios_block: Optional[dict[str, Any]] = None
 
     # ── Step 0: warm the seven independent upstreams concurrently. ──────────
     # Purely a latency measure. Every fetch below is cache-first and
@@ -721,6 +724,15 @@ def research_ticker(
     if prediction is not None and technicals.get("pe_ratio") is None:
         try:
             fund_result = providers.fundamentals.get_fundamentals(ticker)
+            if fund_result.ok and fund_result.data:
+                # The ratio surface the vendor already returned. Named with
+                # their periods intact so nothing downstream can average a
+                # TTM figure against a 5-year average.
+                ratios_block = {
+                    k: v for k, v in fund_result.data.model_dump().items()
+                    if k not in ("symbol", "profile", "vendor_metrics") and v is not None
+                }
+                ratios_block["source"] = fund_result.source
             ledger.record(
                 label="Valuation fundamentals",
                 kind="fundamental",
@@ -779,6 +791,39 @@ def research_ticker(
                 )
         except Exception:  # noqa: BLE001
             logger.exception("statement union failed for %s", ticker)
+
+    # ── Step 2d: primary-source regulatory evidence ─────────────────────────
+    # SEC EDGAR is keyless and is not another vendor's reading of a filing —
+    # it is the filing, with the date it was actually filed. That makes it a
+    # different *kind* of evidence rather than a cheaper copy of the same
+    # kind, which is why it is recorded as its own input and never merged
+    # into the fundamentals union.
+    filings_block = None
+    if prediction is not None:
+        try:
+            filings_ev = providers.filings.filings_evidence(ticker, limit=10)
+            rows = next((e.data for e in filings_ev if e.ok and e.data), None)
+            if rows:
+                filings_block = {
+                    "filings": rows,
+                    # Counts by form, so a reader sees the shape of recent
+                    # activity before reading any single row.
+                    "by_form": {
+                        form: sum(1 for r in rows if r["form"] == form)
+                        for form in sorted({r["form"] for r in rows})
+                    },
+                    "latest": rows[0] if rows else None,
+                    "source": "SEC EDGAR",
+                }
+            ledger.record_fabric(
+                label="SEC filings",
+                kind="fundamental",
+                evidence=filings_ev,
+                detail=(f"{len(rows)} recent filings" if rows else "no filings resolved"),
+                used_for=["primary-source evidence", "filing recency"],
+            )
+        except Exception:  # noqa: BLE001 — additive block, never fatal
+            logger.exception("filings lookup failed for %s", ticker)
 
     # ── Step 3: Sentiment (after technicals — reuses the resolved company name)
     sentiment_data: Optional[dict[str, Any]] = None
@@ -1148,6 +1193,8 @@ def research_ticker(
         # scoring engine is untouched by them, so a vendor outage here costs
         # a panel and never a verdict.
         "profile": profile_block,
+        "filings": filings_block,
+        "ratios": ratios_block,
         "consensus_price": consensus,
         "statements": statements,
         "news_stream": {
@@ -1378,7 +1425,7 @@ def company_media(ticker: str, sector: str = "", industry: str = "", name: str =
 
     return {
         "ticker": symbol,
-        "identity": visual_intelligence.identity(symbol, domain),
+        "identity": visual_intelligence.identity(symbol, domain, resolved_name),
         "context": visual_intelligence.hero_for_company(
             symbol, name=resolved_name, sector=resolved_sector, industry=resolved_industry,
         ),

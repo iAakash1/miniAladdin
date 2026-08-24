@@ -8,6 +8,9 @@ import AiPanel from '@/components/terminal/AiPanel'
 import CompanyBand from '@/components/terminal/CompanyBand'
 import CompanySnapshot from '@/components/terminal/CompanySnapshot'
 import DecisionProvenance from '@/components/terminal/DecisionProvenance'
+import RatioPanel from '@/components/terminal/RatioPanel'
+import SecFilings from '@/components/terminal/SecFilings'
+import StatementUnionPanel from '@/components/terminal/StatementUnionPanel'
 import CompanyCrossLinks from '@/components/terminal/CompanyCrossLinks'
 import CompanyEcosystem from '@/components/terminal/CompanyEcosystem'
 import Fundamentals from '@/components/terminal/Fundamentals'
@@ -59,6 +62,9 @@ const SECTIONS: Array<{
   { id: 'technical', label: 'Technical', present: (a) => a.technicalIntelligence !== null },
   { id: 'street', label: 'Street', present: (a) => a.streetIntelligence !== null },
   { id: 'company', label: 'Company', present: (a) => a.profile !== null },
+  { id: 'statements', label: 'Statements', present: (a) => (a.statements?.providers.length ?? 0) > 0 },
+  { id: 'ratios', label: 'Ratios', present: (a) => a.ratios !== null },
+  { id: 'filings', label: 'Filings', present: (a) => (a.filings?.filings.length ?? 0) > 0 },
   { id: 'fundamentals', label: 'Fundamentals', present: () => true },
   { id: 'news', label: 'News', present: (a) => a.headlines.length > 0 },
   { id: 'provenance', label: 'Provenance', present: (a) => a.provenance !== null },
@@ -293,6 +299,24 @@ export default function CompanyReport({ analysis, initialChart, isPro, requestUp
       {analysis.profile && (
         <div id="company" className="report-section">
           <CompanySnapshot profile={analysis.profile} />
+        </div>
+      )}
+
+      {analysis.statements && analysis.statements.providers.length > 0 && (
+        <div id="statements" className="report-section">
+          <StatementUnionPanel statements={analysis.statements} />
+        </div>
+      )}
+
+      {analysis.ratios && (
+        <div id="ratios" className="report-section">
+          <RatioPanel ratios={analysis.ratios} />
+        </div>
+      )}
+
+      {analysis.filings && analysis.filings.filings.length > 0 && (
+        <div id="filings" className="report-section">
+          <SecFilings block={analysis.filings} />
         </div>
       )}
 

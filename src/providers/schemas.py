@@ -237,6 +237,47 @@ class FundamentalsData(BaseModel):
     profit_margin: Optional[float] = None
     profile: Optional[CompanyProfile] = None
 
+    # ── Additive ratio surface (v5.3) ────────────────────────────────────────
+    # Finnhub's /stock/metric returns 133 figures for one request; the adapter
+    # kept seven. The rest were not redundant — margins, returns, leverage and
+    # growth are exactly what a fundamentals panel is for, and they were being
+    # fetched and thrown away on every research run.
+    #
+    # Every field below carries its period in its NAME, because that is the
+    # only thing that makes these comparable: a TTM margin and a 5-year
+    # average margin are different measurements, and a schema that called
+    # both `margin` would invite a reconciler to average them.
+    price_to_sales: Optional[float] = None
+    price_to_book: Optional[float] = None
+    ev_to_ebitda: Optional[float] = None
+    ev_to_revenue: Optional[float] = None
+
+    gross_margin_ttm: Optional[float] = None
+    operating_margin_ttm: Optional[float] = None
+    net_margin_ttm: Optional[float] = None
+    net_margin_5y: Optional[float] = None
+
+    roe_ttm: Optional[float] = None
+    roa_ttm: Optional[float] = None
+    roi_ttm: Optional[float] = None
+
+    revenue_growth_ttm_yoy: Optional[float] = None
+    revenue_growth_3y: Optional[float] = None
+    eps_growth_ttm_yoy: Optional[float] = None
+    eps_growth_3y: Optional[float] = None
+
+    current_ratio: Optional[float] = None
+    quick_ratio: Optional[float] = None
+    debt_to_equity: Optional[float] = None
+    long_term_debt_to_equity: Optional[float] = None
+
+    payout_ratio_ttm: Optional[float] = None
+
+    #: Vendor-native figures that do not map onto the named fields above.
+    #: Preserved rather than dropped so a later feature does not need a new
+    #: round trip to recover something the response already contained.
+    vendor_metrics: dict[str, Any] = Field(default_factory=dict)
+
 
 class AnalystTargets(BaseModel):
     symbol: str

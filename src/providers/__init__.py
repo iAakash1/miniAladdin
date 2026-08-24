@@ -15,6 +15,7 @@ from typing import Any
 from src.providers.cache import InMemoryCache
 from src.providers.dedupe import SingleFlight
 from src.providers.providers import (
+    FilingsProvider,
     FundamentalsProvider,
     MacroProvider,
     MarketDataProvider,
@@ -30,6 +31,7 @@ fundamentals = FundamentalsProvider(cache, _flight, market=market_data)
 news = NewsProvider(cache, _flight)
 macro = MacroProvider(cache, _flight)
 search = SearchProvider(cache, _flight, news=news)
+filings = FilingsProvider(cache, _flight)
 
 _ALL = {
     "market_data": market_data,
@@ -37,6 +39,7 @@ _ALL = {
     "news": news,
     "macro": macro,
     "search": search,
+    "filings": filings,
 }
 
 
