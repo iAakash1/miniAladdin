@@ -1812,12 +1812,21 @@ def company_media(ticker: str, sector: str = "", industry: str = "", name: str =
     domain = ""
     resolved_name, resolved_sector, resolved_industry = name, sector, industry
     try:
-        profile = providers.fundamentals.get_company(symbol)
-        if profile.ok and profile.data:
-            domain = profile.data.domain or ""
-            resolved_name = resolved_name or profile.data.name
-            resolved_sector = resolved_sector or profile.data.sector
-            resolved_industry = resolved_industry or profile.data.industry
+        # The *union*, not the chain. `get_company` returns whichever single
+        # vendor answered first, and that vendor's industry label is often the
+        # coarser one: measured against production, the chain gave Apple
+        # `industry="Technology"` (Finnhub's own taxonomy) while the union
+        # resolves `"Consumer Electronics"` through the GICS-over-SIC rule in
+        # `merge_profile`. A visual query is only as specific as the industry
+        # it is built from, so the coarse label was producing generic stock
+        # imagery where a specific one was available for the same cost.
+        merged = fabric.merge_profile(providers.fundamentals.profile_evidence(symbol))
+        if merged:
+            resolved = merged["resolved"]
+            domain = resolved.get("domain") or ""
+            resolved_name = resolved_name or resolved.get("name", "")
+            resolved_sector = resolved_sector or resolved.get("sector", "")
+            resolved_industry = resolved_industry or resolved.get("industry", "")
     except Exception:  # noqa: BLE001 — media is never fatal
         logger.exception("profile lookup failed for %s", symbol)
 
