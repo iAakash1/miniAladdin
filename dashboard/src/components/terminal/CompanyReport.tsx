@@ -8,6 +8,7 @@ import AiPanel from '@/components/terminal/AiPanel'
 import CompanyBand from '@/components/terminal/CompanyBand'
 import CompanySnapshot from '@/components/terminal/CompanySnapshot'
 import DecisionProvenance from '@/components/terminal/DecisionProvenance'
+import MacroContextPanel from '@/components/terminal/MacroContextPanel'
 import OwnershipPanel from '@/components/terminal/OwnershipPanel'
 import RatioPanel from '@/components/terminal/RatioPanel'
 import SecFilings from '@/components/terminal/SecFilings'
@@ -66,6 +67,7 @@ const SECTIONS: Array<{
   { id: 'statements', label: 'Statements', present: (a) => (a.statements?.providers.length ?? 0) > 0 },
   { id: 'ratios', label: 'Ratios', present: (a) => a.ratios !== null },
   { id: 'ownership', label: 'Ownership', present: (a) => a.ownership !== null || a.analyst !== null },
+  { id: 'macro', label: 'Macro', present: (a) => a.macroContext !== null },
   { id: 'filings', label: 'Filings', present: (a) => (a.filings?.filings.length ?? 0) > 0 },
   { id: 'fundamentals', label: 'Fundamentals', present: () => true },
   { id: 'news', label: 'News', present: (a) => a.headlines.length > 0 },
@@ -313,6 +315,12 @@ export default function CompanyReport({ analysis, initialChart, isPro, requestUp
       {analysis.ratios && (
         <div id="ratios" className="report-section">
           <RatioPanel ratios={analysis.ratios} />
+        </div>
+      )}
+
+      {analysis.macroContext && (
+        <div id="macro" className="report-section">
+          <MacroContextPanel macro={analysis.macroContext} />
         </div>
       )}
 

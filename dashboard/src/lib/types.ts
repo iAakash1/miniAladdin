@@ -289,6 +289,7 @@ export interface RawResearchResponse {
   profile?: CompanyProfile | null
   filings?: FilingsBlock | null
   ratios?: RatiosBlock | null
+  macro_context?: MacroContext | null
   ownership?: OwnershipBlock | null
   analyst?: AnalystBlock | null
   detail?: string
@@ -535,6 +536,43 @@ export interface Restatement {
   revisions: number
 }
 
+/** One macro observation, carrying its own publication date.
+ *
+ *  The date is per-row on purpose: macro series publish on different
+ *  cadences — the policy rate monthly, Treasury yields daily — so a single
+ *  "as of" for the block would be wrong for most of it. */
+export interface MacroRate {
+  series_id: string
+  label: string
+  unit: string
+  /** What this changes about a valuation, not what the series is. */
+  why: string
+  value: number
+  as_of: string
+  prior: number | null
+  change: number | null
+  source: string
+}
+
+export interface MacroStress {
+  key: string
+  label: string
+  value: number
+  note: string
+  /** Whether the vendor supplied it or we computed it — a distinction the
+   *  reader is entitled to. */
+  source: string
+}
+
+/** The rate and stress environment a valuation sits in. The stress figures
+ *  gate the engine's verdict; without them a reader is told a verdict was
+ *  gated but not by what. */
+export interface MacroContext {
+  rates: MacroRate[]
+  stress: MacroStress[]
+  note: string
+}
+
 export interface FilingsBlock {
   filings: SecFiling[]
   /** Present only where a later filing genuinely revised an earlier one. */
@@ -756,6 +794,7 @@ export interface Analysis {
   profile: CompanyProfile | null
   filings: FilingsBlock | null
   ratios: RatiosBlock | null
+  macroContext: MacroContext | null
   ownership: OwnershipBlock | null
   analyst: AnalystBlock | null
 }

@@ -612,3 +612,79 @@ def test_instant_and_flow_concepts_are_never_mixed():
         _fact("Cash", "2024-01-01", "2024-12-31", 90.0, "2025-01-01"),
     ])
     assert found == []
+
+
+# ── macro context ─────────────────────────────────────────────────────────
+
+def test_every_macro_observation_carries_its_own_publication_date():
+    """Macro series publish on different cadences — the policy rate monthly,
+    Treasury yields daily. One 'as of' for the block would be wrong for most
+    of it, and a monthly series read today is still last month's number."""
+    from unittest.mock import patch
+
+    from api.index import _macro_context
+    from src.providers.schemas import ProviderResult
+
+    def fake(series_id, count=8):
+        dates = {"FEDFUNDS": "2026-07-01", "DGS10": "2026-08-21",
+                 "T10Y2Y": "2026-08-24", "DFII10": "2026-08-21"}
+        return ProviderResult(data=[(dates[series_id], 4.0), (dates[series_id], 4.5)],
+                              source="fred", confidence=0.85)
+
+    with patch("src.providers.macro.get_series_snapshot", side_effect=fake):
+        ctx = _macro_context({})
+
+    assert {r["as_of"] for r in ctx["rates"]} == {
+        "2026-07-01", "2026-08-21", "2026-08-24",
+    }
+    # And each row says what it changes about a valuation, not what it is.
+    assert all(r["why"] for r in ctx["rates"])
+    assert all(r["source"] == "FRED" for r in ctx["rates"])
+
+
+def test_the_stress_inputs_that_gate_the_verdict_are_surfaced():
+    """These four series gate the engine's verdict. Fetching them, scoring
+    with them and discarding them meant a reader could be shown a dampened
+    verdict with no way to see what dampened it."""
+    from unittest.mock import patch
+
+    from api.index import _macro_context
+    from src.providers.schemas import ProviderResult
+
+    stress = {"nfci": -0.559, "credit_spread_z": -0.674,
+              "vix_percentile": 0.178, "term_spread": 0.46}
+    with patch("src.providers.macro.get_series_snapshot",
+               return_value=ProviderResult(data=None, error="x")):
+        ctx = _macro_context(stress)
+
+    keys = {row["key"] for row in ctx["stress"]}
+    assert keys == set(stress)
+    # Vendor-supplied versus computed here is a distinction the reader gets.
+    by_key = {row["key"]: row for row in ctx["stress"]}
+    assert "computed locally" in by_key["vix_percentile"]["source"]
+    assert by_key["nfci"]["source"] == "FRED"
+
+
+def test_a_missing_stress_input_is_omitted_rather_than_shown_as_zero():
+    """A financial-conditions index of zero means 'exactly average', which is
+    a specific and wrong claim about an input we simply do not have."""
+    from unittest.mock import patch
+
+    from api.index import _macro_context
+    from src.providers.schemas import ProviderResult
+
+    with patch("src.providers.macro.get_series_snapshot",
+               return_value=ProviderResult(data=None, error="x")):
+        ctx = _macro_context({"nfci": None, "vix_percentile": 0.5})
+    assert {row["key"] for row in ctx["stress"]} == {"vix_percentile"}
+
+
+def test_no_macro_data_at_all_yields_nothing_rather_than_an_empty_panel():
+    from unittest.mock import patch
+
+    from api.index import _macro_context
+    from src.providers.schemas import ProviderResult
+
+    with patch("src.providers.macro.get_series_snapshot",
+               return_value=ProviderResult(data=None, error="x")):
+        assert _macro_context({}) is None

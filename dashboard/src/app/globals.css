@@ -4949,3 +4949,71 @@ a.hl-row:hover .hl-row__out { color: var(--accent); transform: translate(1px, -1
   .sec__restate-row { grid-template-columns: minmax(0, 1fr) 7ch; }
   .sec__restate-period, .sec__restate-values { display: none; }
 }
+
+/* ── Macro environment ─────────────────────────────────────────────────────
+   The rates that set the discount rate, and the stress figures that gate the
+   verdict. Each rate carries its own publication date because macro series
+   publish on different cadences and one "as of" would be wrong for most. */
+.macro { display: flex; flex-direction: column; gap: 14px; }
+.macro__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.macro__lede { margin-top: 5px; font-size: 0.8125rem; line-height: 1.6; color: var(--muted); max-width: 72ch; }
+
+.macro__rates {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.macro__rate {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 11px 14px;
+  background: var(--surface-2);
+  cursor: help;
+}
+.macro__rate-label {
+  font-size: 0.5938rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.macro__rate-value { font-size: 1.125rem; font-weight: 600; letter-spacing: -0.02em; color: var(--text); }
+.macro__rate-unit { font-size: 0.6875rem; color: var(--faint); font-weight: 400; }
+.macro__rate-foot { display: flex; align-items: baseline; gap: 8px; }
+.macro__rate-chg { font-size: 0.6875rem; }
+.macro__rate-chg--up { color: var(--warn); }
+.macro__rate-chg--down { color: var(--muted); }
+.macro__rate-date { font-size: 0.5938rem; color: var(--faint); }
+
+.macro__stress { display: flex; flex-direction: column; gap: 7px; }
+.macro__stress-title {
+  font-size: 0.625rem;
+  font-weight: 650;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.macro__stress-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.macro__stress-row {
+  display: grid;
+  grid-template-columns: minmax(0, 16ch) 7ch minmax(0, 1fr) minmax(0, 16ch);
+  align-items: baseline;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  font-size: 0.75rem;
+}
+.macro__stress-label { color: var(--text); font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.macro__stress-value { text-align: right; color: var(--text); font-weight: 600; }
+.macro__stress-note { font-size: 0.6875rem; color: var(--faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.macro__stress-src { font-size: 0.625rem; color: var(--faint); text-align: right; }
+@media (max-width: 720px) {
+  .macro__stress-row { grid-template-columns: minmax(0, 1fr) 7ch; }
+  .macro__stress-note, .macro__stress-src { display: none; }
+}

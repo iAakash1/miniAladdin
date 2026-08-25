@@ -261,6 +261,102 @@ STRESS_CACHE_TTL = 900.0
 _stress_cache: dict[str, tuple[float, dict[str, Any]]] = {}
 
 
+#: Series that describe the *environment a company is being valued in*, as
+#: opposed to the company. Deliberately a short list: a company page is not a
+#: macro dashboard, and the full 14-indicator board already exists on Market.
+#: Each entry is (series id, label, unit, what it changes about a valuation).
+MACRO_CONTEXT_SERIES: list[tuple[str, str, str, str]] = [
+    ("FEDFUNDS", "Policy rate", "%",
+     "The anchor for every discount rate applied to these cash flows."),
+    ("DGS10", "10-year Treasury", "%",
+     "The long-end yield a terminal value is discounted against."),
+    ("T10Y2Y", "Curve slope (10y−2y)", "%",
+     "Negative has preceded recessions; a compressing curve tightens credit."),
+    ("DFII10", "10-year real yield", "%",
+     "Inflation-adjusted cost of capital — the one that moves multiples."),
+]
+
+
+def _macro_context(stress: dict[str, Any]) -> Optional[dict[str, Any]]:
+    """The rate and stress environment this company is being valued in.
+
+    Two things are joined here, both already paid for:
+
+    * The **stress inputs** the scoring engine consumes — NFCI, the credit
+      spread z-score, the VIX percentile and the term spread. These gate the
+      verdict, and a reader who cannot see them is told a verdict was gated
+      without being told by what.
+    * A short list of **rate series** that bear directly on a valuation.
+      Fetched through `get_series_snapshot`, which is cached and already warm
+      from the Market dashboard's own board, so this costs no vendor call in
+      the common case.
+
+    Deliberately not the full fourteen-indicator board. A company page is not
+    a macro dashboard; these four are the ones that change what a multiple
+    should be, and the rest already have a home on Market.
+
+    Every observation carries its own date. Macro series publish on different
+    cadences — the policy rate monthly, Treasury yields daily — so a single
+    "as of" for the block would be wrong for most of it.
+    """
+    rows: list[dict[str, Any]] = []
+    for series_id, label, unit, why in MACRO_CONTEXT_SERIES:
+        try:
+            result = providers.macro.get_series_snapshot(series_id, count=8)
+            if not result.ok or not result.data:
+                continue
+            observations = result.data
+            date, value = observations[-1]
+            prior = observations[-2][1] if len(observations) >= 2 else None
+            rows.append({
+                "series_id": series_id,
+                "label": label,
+                "unit": unit,
+                "why": why,
+                "value": round(float(value), 4),
+                # The observation's own date, not the fetch time. A monthly
+                # series read today is still last month's number.
+                "as_of": str(date),
+                "prior": round(float(prior), 4) if prior is not None else None,
+                "change": round(float(value) - float(prior), 4) if prior is not None else None,
+                "source": "FRED",
+            })
+        except Exception:  # noqa: BLE001 — context is never fatal
+            logger.exception("macro context fetch failed for %s", series_id)
+
+    stress_rows = [
+        {
+            "key": key, "label": label, "value": stress.get(key), "note": note,
+            "source": source,
+        }
+        for key, label, note, source in (
+            ("nfci", "Financial conditions (NFCI)",
+             "Standardised at source: zero is average, positive is tighter than average.",
+             "FRED"),
+            ("credit_spread_z", "Credit spread (BAA−10y), z",
+             "Robust z-score over one year, computed here from the FRED series.",
+             "FRED, computed locally"),
+            ("vix_percentile", "VIX percentile (1y)",
+             "Share of the last year's closes at or below today's. Computed here.",
+             "market data, computed locally"),
+            ("term_spread", "Term spread (10y−2y)",
+             "The same series as the curve slope above, as the engine consumes it.",
+             "FRED"),
+        )
+        if stress.get(key) is not None
+    ]
+
+    if not rows and not stress_rows:
+        return None
+    return {
+        "rates": rows,
+        "stress": stress_rows,
+        "note": "The environment this valuation sits in. The stress figures below "
+                "gate the engine's verdict; the rates above set the discount rate "
+                "every multiple on this page implies.",
+    }
+
+
 def _stress_inputs() -> dict[str, Any]:
     now = time.time()
     with _macro_lock:
@@ -672,6 +768,9 @@ def research_ticker(
     # Valuation, margin, return, growth and leverage ratios. 133 figures come
     # back from one vendor request; seven were being kept.
     ratios_block: Optional[dict[str, Any]] = None
+    #: Rate and stress environment. Populated only on the scoring path, since
+    #: that is where the stress inputs are already in hand.
+    macro_context: Optional[dict[str, Any]] = None
 
     # ── Step 0: warm the seven independent upstreams concurrently. ──────────
     # Purely a latency measure. Every fetch below is cache-first and
@@ -1282,6 +1381,11 @@ def research_ticker(
                 if spy_result.ok and spy_result.data.bars else None
             )
             stress = _stress_inputs()
+            # Surfaced as well as scored. These four series gate the verdict
+            # through the engine's stress model, and until now the reader saw
+            # a gated verdict with no way to see what gated it — the inputs
+            # were fetched, consumed and discarded on every run.
+            macro_context = _macro_context(stress)
             backtest_recent = (peek_backtest(ticker) or {}).get("recent", {})
             last_bar_age_days = max(
                 0.0,
@@ -1486,6 +1590,7 @@ def research_ticker(
         "profile": profile_block,
         "filings": filings_block,
         "ratios": ratios_block,
+        "macro_context": macro_context,
         "ownership": ownership_block,
         "analyst": analyst_block,
         "consensus_price": consensus,

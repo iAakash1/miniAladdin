@@ -224,6 +224,7 @@ export function normalizeAnalysis(raw: RawResearchResponse): Analysis {
     profile: raw.profile ?? null,
     filings: raw.filings ?? null,
     ratios: raw.ratios ?? null,
+    macroContext: raw.macro_context ?? null,
     ownership: raw.ownership ?? null,
     analyst: raw.analyst ?? null,
   }
