@@ -10,6 +10,7 @@ import CompanySnapshot from '@/components/terminal/CompanySnapshot'
 import DecisionProvenance from '@/components/terminal/DecisionProvenance'
 import MacroContextPanel from '@/components/terminal/MacroContextPanel'
 import OwnershipPanel from '@/components/terminal/OwnershipPanel'
+import SeriesIntegrityPanel from '@/components/terminal/SeriesIntegrityPanel'
 import RatioPanel from '@/components/terminal/RatioPanel'
 import SecFilings from '@/components/terminal/SecFilings'
 import StatementUnionPanel from '@/components/terminal/StatementUnionPanel'
@@ -61,6 +62,10 @@ const SECTIONS: Array<{
   { id: 'report', label: 'Report', present: (a) => a.ai !== null },
   { id: 'scorecard', label: 'Scorecard', present: (a) => a.quant !== null },
   { id: 'price', label: 'Price', present: () => true },
+  // Present only when at least two vendors returned history — below that
+  // there is no agreement to report, and a nav entry leading to an empty
+  // section is worse than no entry.
+  { id: 'history', label: 'History', present: (a) => (a.seriesIntegrity?.providers.length ?? 0) > 1 },
   { id: 'technical', label: 'Technical', present: (a) => a.technicalIntelligence !== null },
   { id: 'street', label: 'Street', present: (a) => a.streetIntelligence !== null },
   { id: 'company', label: 'Company', present: (a) => a.profile !== null },
@@ -291,6 +296,15 @@ export default function CompanyReport({ analysis, initialChart, isPro, requestUp
 
         <KeyStats analysis={analysis} />
       </div>
+
+      {/* Directly under the chart, because it is a statement *about* the
+          chart: whether the vendors that also hold this history drew the
+          same one. */}
+      {analysis.seriesIntegrity && (
+        <div id="history" className="report-section">
+          <SeriesIntegrityPanel integrity={analysis.seriesIntegrity} />
+        </div>
+      )}
 
       <div id="technical" className="report-section">
         <TechnicalIntelligence block={analysis.technicalIntelligence} />

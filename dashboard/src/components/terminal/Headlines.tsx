@@ -24,9 +24,18 @@ interface HeadlinesProps {
  *  article with no image renders without one. */
 function ArticleThumb({ src, title }: { src: string; title: string }) {
   const [failed, setFailed] = useState(false)
+  // The frame stays invisible until the image has actually decoded.
+  //
+  // It previously carried its surface and inset border from first paint, so
+  // every row whose image had not loaded yet rendered as an empty grey
+  // rectangle — and because these are lazy, that is *every* row below the
+  // fold. Production screenshots showed six broken-looking boxes in a column
+  // of otherwise clean headlines. `onError` alone could not fix it: a
+  // pending image has not errored, it simply is not there yet.
+  const [loaded, setLoaded] = useState(false)
   if (!src || failed) return null
   return (
-    <span className="hl-row__thumb">
+    <span className={loaded ? 'hl-row__thumb is-loaded' : 'hl-row__thumb'}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={src}
@@ -34,6 +43,7 @@ function ArticleThumb({ src, title }: { src: string; title: string }) {
         loading="lazy"
         decoding="async"
         referrerPolicy="no-referrer"
+        onLoad={() => setLoaded(true)}
         onError={() => setFailed(true)}
         title={title}
       />

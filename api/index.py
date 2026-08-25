@@ -50,7 +50,7 @@ from src.alpha_vantage import AlphaVantageClient
 from src.news_api import NewsAPIClient
 from src.models import MacroIndicators
 from src import observability, providers
-from src.providers import fabric
+from src.providers import capabilities, fabric
 from src.providers.schemas import PriceSeries
 from src.scoring import score_ticker
 from src.scoring import technical_intelligence
@@ -275,6 +275,18 @@ MACRO_CONTEXT_SERIES: list[tuple[str, str, str, str]] = [
     ("DFII10", "10-year real yield", "%",
      "Inflation-adjusted cost of capital — the one that moves multiples."),
 ]
+
+
+def _plural(count: int, noun: str, plural: Optional[str] = None) -> str:
+    """`3 vendors`, but also `1 vendor`.
+
+    These strings are read directly by users in the provenance ledger, where
+    "1 line items from 1 vendors" was appearing verbatim in production. A
+    ledger whose whole purpose is to look carefully assembled should not be
+    the place a reader finds sloppy grammar.
+    """
+    word = noun if count == 1 else (plural or f"{noun}s")
+    return f"{count} {word}"
 
 
 def _macro_context(stress: dict[str, Any]) -> Optional[dict[str, Any]]:
@@ -940,8 +952,8 @@ def research_ticker(
                 label="Company profile",
                 kind="fundamental",
                 evidence=profile_ev,
-                detail=(f"{len(merged_profile['fields'])} fields from "
-                        f"{len(merged_profile['providers'])} vendors"
+                detail=(f"{_plural(len(merged_profile['fields']), 'field')} from "
+                        f"{_plural(len(merged_profile['providers']), 'vendor')}"
                         + (f" · {len(merged_profile['conflicts'])} disputed"
                            if merged_profile["conflicts"] else "")
                         if merged_profile else "no vendor answered"),
@@ -997,6 +1009,7 @@ def research_ticker(
     # response two presentation blocks and nothing else.
     consensus = None
     statements = None
+    series_integrity = None
     if prediction is not None:
         try:
             quote_ev = providers.market_data.quote_evidence(ticker)
@@ -1021,13 +1034,44 @@ def research_ticker(
                     label="Reported statements",
                     kind="fundamental",
                     evidence=stmt_ev,
-                    detail=(f"{len(statements['fields'])} line items from "
-                            f"{len(statements['providers'])} vendors"
+                    detail=(f"{_plural(len(statements['fields']), 'line item')} from "
+                            f"{_plural(len(statements['providers']), 'vendor')}"
                             if statements else "no vendor is entitled for this symbol"),
                     used_for=["valuation ratios", "fundamental trend"],
                 )
         except Exception:  # noqa: BLE001
             logger.exception("statement union failed for %s", ticker)
+
+        try:
+            # Cross-vendor check on the daily closes. The chart itself is
+            # served by the fallback chain — one vendor, fast, which is the
+            # right shape for *drawing a line*. This is the other question:
+            # do the vendors that also have this history agree with the one
+            # we drew? A single series cannot answer it, and the specific
+            # error it catches is a raw close mixed in among adjusted ones,
+            # which is invisible in isolation and silently corrupts every
+            # technical reading taken from it.
+            #
+            # A short window deliberately: the failure is systematic, so a
+            # quarter shows it as clearly as a decade at a fraction of the
+            # payload.
+            series_ev = providers.market_data.series_evidence(ticker, "3mo")
+            series_integrity = fabric.reconcile_series(series_ev)
+            if series_ev:
+                ledger.record_fabric(
+                    label="Series integrity",
+                    kind="market",
+                    evidence=series_ev,
+                    detail=(
+                        f"{series_integrity['agreement_pct']:.1f}% close agreement "
+                        f"over {series_integrity['shared_sessions']} shared sessions"
+                        if series_integrity
+                        else "only one vendor returned history — nothing to check against"
+                    ),
+                    used_for=["cross-vendor history validation"],
+                )
+        except Exception:  # noqa: BLE001
+            logger.exception("series reconciliation failed for %s", ticker)
 
     # ── Step 2c-bis: ownership and sell-side positioning ────────────────────
     # Both keyless, both previously unreachable. Ownership answers "who is on
@@ -1152,7 +1196,7 @@ def research_ticker(
                 label="SEC filings",
                 kind="fundamental",
                 evidence=filings_ev,
-                detail=(f"{len(rows)} recent filings" if rows else "no filings resolved"),
+                detail=(f"{_plural(len(rows), 'recent filing')}" if rows else "no filings resolved"),
                 used_for=["primary-source evidence", "filing recency"],
             )
 
@@ -1594,6 +1638,7 @@ def research_ticker(
         "ownership": ownership_block,
         "analyst": analyst_block,
         "consensus_price": consensus,
+        "series_integrity": series_integrity,
         "statements": statements,
         "news_stream": {
             "collected": news_stream["collected"],
@@ -1789,6 +1834,15 @@ def provider_capabilities():
         "visual": visual_intelligence.IMAGE_VENDORS,
     })
     matrix["visual"] = visual_intelligence.diagnostics()
+    # The registry itself, not just who implements it. The matrix above
+    # answers "which vendors can answer this question"; this answers "what
+    # is the question, how are several answers combined, and which failures
+    # are expected" — which is the part a reader otherwise has to infer from
+    # source. Declared once in `capabilities.py` and emitted verbatim, so
+    # this cannot drift from the behaviour it describes.
+    matrix["registry"] = capabilities.describe()
+    matrix["reconciliation_strategies"] = list(capabilities.RECONCILIATION_STRATEGIES)
+    matrix["failure_modes"] = list(capabilities.FAILURE_MODES)
     return matrix
 
 

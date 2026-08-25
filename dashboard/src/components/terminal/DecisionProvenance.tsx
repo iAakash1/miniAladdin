@@ -270,7 +270,7 @@ export default function DecisionProvenance({ provenance }: { provenance: Provena
           <ul className="prov__losses">
             {losses.map((loss) => (
               <li key={loss.component} className="prov__loss">
-                <span className="prov__loss-name">{loss.component}</span>
+                <span className="prov__loss-name" title={loss.component}>{loss.component}</span>
                 <span
                   className="prov__loss-bar"
                   aria-hidden

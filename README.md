@@ -29,6 +29,71 @@ The design premise here is that **the evidence is the product**:
 | What is revenue? | Which vendor, for which fiscal period, under which definition — and does the 10-K it was extracted from still say that? |
 | What is the sentiment? | Which vendor scored it, on what scale, over how many articles, and did anyone independently corroborate the story? |
 
+## The product
+
+Every image below is the **live production deployment** at
+[mini-aladding.vercel.app](https://mini-aladding.vercel.app), captured against
+AAPL on 2026-08-25. Nothing here is a mockup. Full capture metadata, including
+which panels production does *not* yet have, is in
+[docs/screenshots/README.md](docs/screenshots/README.md).
+
+### Company overview
+
+Identity from Logo.dev, last close, and — the part a single-vendor dashboard
+cannot print — how many independent vendors agreed and how far apart they were.
+
+![Company overview](docs/screenshots/01-company-overview.png)
+
+### Price and risk
+
+Split- and dividend-adjusted history, with the risk measures computed from the
+same frame the scoring engine consumed.
+
+![Price and consensus](docs/screenshots/02-price-and-consensus.png)
+
+### The evidence ledger
+
+This is the one to read closely. Every input behind the verdict, the vendor
+that answered it, its latency, its status, and the confidence the engine
+deducted for measured shortfalls. Four distinct failure modes are visible on
+real vendors — `rate_limited`, `not_entitled`, `unavailable`, and a fallback
+disclosure — and the run still produced a verdict.
+
+![Decision provenance](docs/screenshots/11-provenance.png)
+
+### News intelligence
+
+Sixteen unique articles from two vendors, deterministically categorised, each
+with its publisher, its timestamp and its sentiment **attributed to the vendor
+that scored it** rather than presented as the product's own judgement.
+
+![News intelligence](docs/screenshots/08-news-intelligence.png)
+
+### Primary-source filings
+
+Straight from EDGAR. Not a vendor's reading of a filing — the filing index
+itself.
+
+![SEC filings](docs/screenshots/07-sec-filings.png)
+
+### Reconciled company profile
+
+The union of every vendor that answered, with conflicts recorded rather than
+silently resolved: 14 fields from 3 vendors, 1 disputed.
+
+![Company profile](docs/screenshots/04-company-profile.png)
+
+<details>
+<summary>Further panels — scorecard, statements, ratios, street, technical, ecosystem</summary>
+
+| | |
+|---|---|
+| ![Scorecard](docs/screenshots/03-quant-scorecard.png) | ![Statements](docs/screenshots/05-statement-union.png) |
+| ![Ratios](docs/screenshots/06-ratios.png) | ![Street](docs/screenshots/09-street-intelligence.png) |
+| ![Technical](docs/screenshots/10-technical.png) | ![Ecosystem](docs/screenshots/12-ecosystem.png) |
+
+</details>
+
 ## Design principles
 
 **Evidence over values.** A provider response becomes an `Evidence` object
@@ -128,6 +193,49 @@ The fabric serves research and provenance, where the interesting output is the
 agreement rather than the value. Both use the same vendor objects, rate
 limiters and cache, so a fan-out following a chain for the same symbol is
 largely free.
+
+## The capability registry
+
+The registry is the architectural source of truth. Every question the system
+can ask a vendor is declared exactly once in
+[`src/providers/capabilities.py`](src/providers/capabilities.py), with the
+method that answers it, how several answers are combined, whether it costs a
+network call, whether it participates in the fan-out, and which failures it can
+genuinely produce.
+
+```mermaid
+flowchart LR
+  R["capabilities.REGISTRY<br/>15 Capability records"] --> M["CAPABILITY_METHODS<br/>(derived)"]
+  R --> L["CAPABILITY_LABELS<br/>(derived)"]
+  R --> F["FABRIC_CAPABILITIES<br/>(derived)"]
+  M --> D["fabric.capable()<br/>hasattr introspection"]
+  D --> C["fabric.collect()<br/>parallel fan-out"]
+  R --> A["/api/providers/capabilities"]
+```
+
+Two things follow from it being one typed record rather than several parallel
+dicts:
+
+**Nothing can be half-registered.** A `Capability` cannot be constructed
+without a method, a label and a description, so the old failure of a
+capability with a method and no label — a blank row in the diagnostics
+surface — is no longer expressible.
+
+**No exclusion can be silent.** A capability outside the fan-out must carry
+`excluded_because`, and the dataclass *refuses to construct* without it. One
+capability is excluded today:
+
+| Capability | Why it is outside the fan-out |
+|---|---|
+| `brand_mark` | Pure URL construction with no network call. A fan-out would add a thread handoff and an evidence record for something that cannot fail, time out or rate-limit. It stays registered so the capability matrix still shows whether the logo provider is configured. |
+
+Vendor support is never declared. It is discovered by introspection at call
+time — `hasattr(vendor, capability.method)` — because a hand-kept vendor list
+drifts the moment an adapter gains a method. The registry declares the
+*question*; vendors answer for themselves whether they can respond.
+
+The whole registry is served at `/api/providers/capabilities`, so the
+architecture is inspectable at runtime rather than only readable in source.
 
 ## Evidence fabric
 
@@ -301,27 +409,18 @@ research result, and the three that did not are visible in the ledger.
 
 ## Design decisions
 
-Each of these was a fork with a cheaper option on the other side. The cheaper
-option is named so the trade is legible.
+Twenty-four decisions are recorded in **[docs/design-decisions.md](docs/design-decisions.md)**,
+each stating the problem, the decision, the alternative rejected and the
+reason. The ones that came from a measured failure rather than a preference:
 
-| # | Decision | Rejected alternative | Why |
-|---|---|---|---|
-| 1 | Fan out to every capable vendor concurrently | Primary provider with fallbacks | A fallback chain throws away every answer after the first. Agreement between vendors is the only evidence of correctness the system can obtain, and a chain destroys it by construction. |
-| 2 | Keep `FallbackChain` *alongside* the fabric | Delete it once the fabric existed | They answer different questions. The chain serves one value fast for a single field; the fabric builds evidence from all of them. Deleting the chain would have made every cheap lookup pay fan-out cost. |
-| 3 | Discover capabilities by method introspection | A hand-maintained registry | A registry drifts silently the moment an adapter gains a method. `hasattr` against `CAPABILITY_METHODS` cannot drift — the capability *is* the method. |
-| 4 | Reconcile prices by median | Mean | One vendor quoting a stale or wrong tape moves a mean and cannot move a median past the other four. |
-| 5 | Reconcile profile and fundamentals by union | Highest-priority vendor wins | Vendors have non-overlapping coverage. A union takes the field from whoever has it; a priority rule discards a real value because a higher-ranked vendor returned `null`. |
-| 6 | Attribute session fields per vendor, never merge | One unattributed row | A session high belongs to one venue's tape and a 50-day average uses that vendor's adjustment conventions. Merging them would assert a consensus that was never computed. |
-| 7 | Classify failures instead of dropping them | Catch and continue | `rate_limited`, `not_entitled`, `timeout` and `not_configured` demand four different responses from a reader. Collapsing them into "no data" throws away the only actionable part. |
-| 8 | Group XBRL facts by full period, not period end | Group by `period_end` | Grouping by end date compared FY revenue against Q4 revenue filed the same day and produced **106 false restatements** for AAPL. Plumbing `period_start` through reduced it to 9 — all genuine ASU 2009-13 adjustments. |
-| 9 | Store point-in-time facts, not collapsed ones | Latest value per concept | A restatement is only visible if both the original and the revision survive. Collapsing erases exactly the thing worth detecting. |
-| 10 | Reconcile the profile *before* building a visual query | Use `get_company`'s single winner | The chain returned Apple's industry as `Technology`; the union resolves `Consumer Electronics` via the GICS-over-SIC rule. A query is only as specific as the label it is built from — the coarse one produced generic imagery at identical cost. |
-| 11 | Separate brand identity from context imagery | One "image" concept | Logo.dev returns *what the company is*; Pexels and Unsplash return *what the subject looks like*. Presenting a stock photograph as a company's mark, or as an article's own picture, is a small repeated lie. |
-| 12 | Redact credentials at error-construction time | Sanitise at the logging boundary | A vendor URL carrying a key in its query string reaches exception text, provenance and API responses through paths no log filter covers. Redacting where the error is built covers all of them at once. |
-| 13 | Publishable Logo.dev key in the browser, secret server-only | One key for both | The `pk_` token is documented as browser-safe and is required for `<img>` URLs. The `sk_` token authenticates lookup APIs and never enters a `NEXT_PUBLIC_*` variable or a client bundle. |
-| 14 | Call it a "return difference", not alpha | Label it alpha | Alpha requires a beta estimate against the benchmark. No covariance model exists here, so the honest name for the quantity actually computed is the difference of two returns. |
-| 15 | Normalise units at the adapter boundary | Normalise at render | One vendor's `0.2287` and another's `22.87` are the same margin. Fixing it at the edge means every downstream consumer — reconciliation, ratios, UI — sees one convention instead of each guessing. |
-| 16 | Dedupe news on URL *and* canonical title | URL only | Syndicated wire copy appears under many URLs. URL-only dedupe reports the same story five times and inflates the corroboration count that is supposed to measure independence. |
+| Decision | What forced it |
+|---|---|
+| Group XBRL facts by full period, not period end | Grouping by end date compared FY revenue against Q4 revenue filed the same day — **106 false restatements** for AAPL, reduced to 9 genuine ones |
+| Reconcile the profile *before* building a visual query | The single-vendor chain returned Apple's industry as `Technology`; the union resolves `Consumer Electronics`, and a query is only as specific as the label behind it |
+| Measure series agreement against the median of **all** vendors | Excluding the vendor under test put the reference between a correct pair, making both correct vendors read as wrong |
+| Count session gaps only inside the shared window | Twelve Data returned 92 sessions where Polygon returned 63 for the same request; differencing against the union reported Polygon as "missing 29" |
+| Hide the article thumbnail until it decodes | Six empty grey boxes in a production screenshot of an otherwise clean headline column |
+| Redact credentials where the error is built | A vendor URL carrying a key in its query string reaches exception text, provenance and API responses through paths no log filter covers |
 
 ## Documentation
 

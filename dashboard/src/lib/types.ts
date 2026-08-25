@@ -284,6 +284,7 @@ export interface RawResearchResponse {
   /** v5.1 additive: parallel multi-vendor blocks. Null when no vendor
    *  contributed — never a fabricated stand-in. */
   consensus_price?: ConsensusPrice | null
+  series_integrity?: SeriesIntegrity | null
   statements?: StatementUnion | null
   news_stream?: NewsStream | null
   profile?: CompanyProfile | null
@@ -336,6 +337,46 @@ export interface ProvenanceInput {
 
 /** Cross-vendor price agreement. Every vendor that could quote the symbol was
  *  asked; none was discarded. */
+/** Cross-vendor agreement on the daily close series.
+ *
+ *  Separate from `ConsensusPrice` because it answers a different question.
+ *  The consensus strip asks whether vendors agree on *the price now*; this
+ *  asks whether they agree on *the history* — and the specific failure it
+ *  exists to expose is a vendor returning raw closes where the others return
+ *  split-adjusted ones, which is invisible in any single series and corrupts
+ *  every technical reading taken from it.
+ */
+export interface SeriesIntegrity {
+  providers: string[]
+  /** Bars each vendor returned, by vendor. */
+  coverage: Record<string, number>
+  /** Sessions at least two vendors both covered — where comparison is possible. */
+  shared_sessions: number
+  union_sessions: number
+  agreeing_sessions: number
+  agreement_pct: number
+  max_divergence_pct: number
+  tolerance_pct: number
+  conflict_count: number
+  conflicts: Array<{
+    date: string
+    divergence_pct: number
+    readings: Record<string, number>
+  }>
+  /** A vendor whose closes sit at a stable multiple of the others: an
+   *  adjustment-policy difference, not a bad print. `likely_split` is named
+   *  only when the ratio is unmistakably a plain split. */
+  adjustment_mismatch: Array<{
+    provider: string
+    ratio: number
+    stability: number
+    sessions: number
+    likely_split: string | null
+  }>
+  /** Sessions a vendor is missing relative to the union. Absent when none. */
+  session_gaps: Record<string, number>
+}
+
 export interface ConsensusPrice {
   consensus: number
   low: number
@@ -789,6 +830,7 @@ export interface Analysis {
    *  that does not emit it — the panel simply does not render. */
   provenance: Provenance | null
   consensusPrice: ConsensusPrice | null
+  seriesIntegrity: SeriesIntegrity | null
   statements: StatementUnion | null
   newsStream: NewsStream | null
   profile: CompanyProfile | null

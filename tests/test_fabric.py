@@ -514,9 +514,72 @@ def test_brand_mark_is_deliberately_outside_the_fan_out():
         f"capability wiring changed: {uncollected} are registered but never "
         "collected. Either wire them into the fabric or document why not."
     )
-    # And the reasoning lives next to the registration, not only here.
-    registry = pathlib.Path("src/providers/fabric.py").read_text()
-    assert "pure URL construction" in registry
+    # And the reasoning lives *in the registry*, as structured data rather
+    # than a comment someone can delete without failing anything. Every
+    # capability outside the fan-out must carry its own justification —
+    # `Capability.__post_init__` refuses to construct one that does not.
+    from src.providers import capabilities
+
+    for name in uncollected:
+        cap = capabilities.REGISTRY[name]
+        assert cap.fabric is False, (
+            f"{name} is not collected but is still declared fabric=True"
+        )
+        assert cap.excluded_because, f"{name} has no recorded justification"
+    reason = capabilities.REGISTRY["brand_mark"].excluded_because.lower()
+    assert "pure url construction" in reason and "no network call" in reason
+
+
+def test_registry_refuses_an_unexplained_fabric_exclusion():
+    """The invariant above is enforced at construction, not just asserted here.
+
+    A capability taken out of the fan-out without a reason is precisely the
+    dead capability this registry exists to make impossible, so the dataclass
+    rejects it rather than trusting a later audit to notice.
+    """
+    from src.providers.capabilities import Capability
+
+    with pytest.raises(ValueError, match="excluded_because"):
+        Capability(
+            name="ghost", method="get_ghost", label="Ghost",
+            description="", reconciliation="none", fabric=False,
+        )
+
+
+def test_registry_rejects_unknown_reconciliation_and_failure_modes():
+    """Both free-text fields are constrained, because both are load-bearing.
+
+    `reconciliation` tells a reader how vendor disagreement is handled, and
+    `failure_modes` tells an operator which statuses are expected. A typo in
+    either reads as a real answer while meaning nothing.
+    """
+    from src.providers.capabilities import Capability
+
+    with pytest.raises(ValueError, match="unknown reconciliation"):
+        Capability(name="x", method="m", label="L", description="",
+                   reconciliation="average")
+
+    with pytest.raises(ValueError, match="unknown failure modes"):
+        Capability(name="x", method="m", label="L", description="",
+                   reconciliation="none", failure_modes=("exploded",))
+
+
+def test_every_capability_declares_a_label_and_a_method():
+    """The drift the registry was built to eliminate.
+
+    Previously two parallel dicts carried methods and labels, and nothing
+    forced them to agree: a capability could have a method and no label (a
+    blank row in the diagnostics surface) or a label and no method (a fan-out
+    that silently collects nothing). Neither is expressible now, and this
+    pins that the derived views stay in step.
+    """
+    from src.providers import capabilities
+
+    assert set(capabilities.CAPABILITY_METHODS) == set(capabilities.CAPABILITY_LABELS)
+    assert set(capabilities.CAPABILITY_METHODS) == set(capabilities.REGISTRY)
+    for name, cap in capabilities.REGISTRY.items():
+        assert cap.method and cap.label and cap.description, name
+        assert cap.name == name
 
 
 # ── restatement detection ─────────────────────────────────────────────────

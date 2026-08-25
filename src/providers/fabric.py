@@ -49,77 +49,23 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Callable, Iterable, Optional, Sequence
 
+from . import capabilities
+
 from src.providers.parallel import map_concurrent
 
 logger = logging.getLogger(__name__)
 
-# What a vendor can be asked for. Membership is decided by whether the
-# adapter actually implements the method, not by a hand-kept table — a table
-# drifts the first time someone adds a method and forgets to register it.
-CAPABILITY_METHODS: dict[str, str] = {
-    "quote": "get_price",
-    "series": "get_series",
-    "news": "get_news",
-    "company": "get_company",
-    "fundamentals": "get_fundamentals",
-    "street": "get_street",
-    "analyst_targets": "get_analyst_targets",
-    # Visual capabilities. Deliberately two entries and not one: a brand mark
-    # is a company's identity and a stock photograph is industry context, and
-    # a single "image" capability would let a provider that can only do one
-    # be asked for the other.
-    #
-    # `brand_mark` is registered for *discovery* but is deliberately never
-    # run through `collect`: it is pure URL construction with no network call,
-    # so a fan-out would add a thread handoff and an evidence record for
-    # something that cannot fail, time out, or rate-limit. It appears in the
-    # capability matrix because an operator still needs to see whether the
-    # logo provider is configured.
-    "brand_mark": "get_brand",
-    "image_search": "search_images",
-    # Structured news sentiment — a capability only some news vendors have.
-    # Kept separate from `news` so a vendor that returns headlines without
-    # sentiment is not asked for something it cannot supply.
-    "news_sentiment": "get_news_sentiment",
-    # Primary-source regulatory evidence. SEC EDGAR is keyless and is the
-    # only source here that is not a vendor's interpretation of a filing but
-    # the filing itself — which is a different *kind* of evidence, not a
-    # cheaper copy of the same kind, so it gets its own capabilities.
-    "filings": "get_filings",
-    "xbrl_facts": "get_xbrl_facts",
-    # Point-in-time filings, restatements preserved. The only capability that
-    # can answer "what did the filing say at the time" rather than "what does
-    # the record say now".
-    "xbrl_timeline": "get_xbrl_timeline",
-    # Positions rather than performance: who holds the shares and how many
-    # are sold short. Kept apart from `fundamentals` so a settlement-lagged
-    # short figure is never read as being as current as a trailing margin.
-    "ownership": "get_ownership",
-    # Sell-side targets and the rating distribution. Explicitly not
-    # reconciled across vendors — each covers a different analyst set, so a
-    # median of two vendors' consensus figures is a consensus of nothing.
-    "analyst_consensus": "get_analyst_consensus",
-}
+# What a vendor can be asked for.
+#
+# Both views are *derived* from the capability registry rather than written
+# here. Membership is still decided by whether the adapter actually implements
+# the method — introspection, not a hand-kept table — but the question itself
+# is now declared exactly once, in `capabilities.py`, together with its
+# reconciliation strategy and failure modes. Keeping a second copy here is how
+# a capability ends up with a method and no label, or the reverse.
+CAPABILITY_METHODS = capabilities.CAPABILITY_METHODS
+CAPABILITY_LABELS = capabilities.CAPABILITY_LABELS
 
-# Human labels for the diagnostics surface. A capability with no label is
-# still discoverable; this only controls how it reads.
-CAPABILITY_LABELS: dict[str, str] = {
-    "quote": "Real-time quote",
-    "series": "Daily price history",
-    "news": "Headlines",
-    "news_sentiment": "Scored news sentiment",
-    "company": "Company profile",
-    "fundamentals": "Reported fundamentals",
-    "street": "Analyst & insider activity",
-    "analyst_targets": "Price targets",
-    "brand_mark": "Company logo",
-    "image_search": "Editorial imagery",
-    "filings": "SEC filings",
-    "xbrl_facts": "XBRL reported facts",
-    "xbrl_timeline": "Point-in-time filings",
-    "ownership": "Ownership & short interest",
-    "analyst_consensus": "Analyst targets",
-}
 
 
 def capability_matrix(groups: dict[str, Sequence[Any]]) -> dict[str, Any]:
@@ -694,3 +640,164 @@ def merge_fundamentals(evidence: list[Evidence]) -> Optional[dict[str, Any]]:
         "conflicts": conflicts,
         "history": history,
     }
+
+
+def reconcile_series(evidence: list[Evidence], tolerance_pct: float = 0.5) -> Optional[dict[str, Any]]:
+    """Cross-vendor agreement on a daily close series.
+
+    A single vendor's history cannot be checked against anything. Asking every
+    history-capable vendor and comparing them on the sessions they share turns
+    the series from an assertion into a measurement, and catches the one error
+    that is invisible in a single series and ruinous downstream: **a raw close
+    mixed in among adjusted ones**.
+
+    That distinction is the reason this does not simply report a disagreement
+    percentage. A vendor returning unadjusted closes for a stock that split
+    4-for-1 disagrees with the others by 300% on every session before the
+    split and by nothing after it — which is not noise, it is a systematic
+    factor. Noise is small and varies by date; an adjustment mismatch is large
+    and *nearly constant*. Separating them by the variance of the per-date
+    ratio means a real split mismatch is reported as what it is rather than
+    being averaged into a meaningless "sources disagree" figure, and a vendor
+    quoting a different venue's close is not accused of a split error.
+
+    Session coverage is reported separately from price agreement because the
+    two have different causes and different fixes: a missing session is a
+    vendor's calendar or backfill, a diverging close is its adjustment policy
+    or its venue.
+    """
+    ok = [e for e in evidence if e.ok and e.data is not None]
+    if len(ok) < 2:
+        return None
+
+    # date -> provider -> close
+    by_date: dict[str, dict[str, float]] = {}
+    coverage: dict[str, int] = {}
+    for ev in ok:
+        bars = getattr(ev.data, "bars", None) or []
+        coverage[ev.provider] = len(bars)
+        for bar in bars:
+            close = getattr(bar, "close", None)
+            date = getattr(bar, "date", None)
+            if close is None or not date or close <= 0:
+                continue
+            by_date.setdefault(date, {})[ev.provider] = float(close)
+
+    shared = {d: v for d, v in by_date.items() if len(v) >= 2}
+    if not shared:
+        return None
+
+    providers = sorted(coverage)
+    # Per-date dispersion, measured against the median so one bad vendor
+    # cannot drag the reference the way a mean would.
+    divergences: list[tuple[str, float]] = []
+    conflicts: list[dict[str, Any]] = []
+    for date in sorted(shared):
+        closes = shared[date]
+        mid = statistics.median(closes.values())
+        if mid <= 0:
+            continue
+        worst = max(abs(c - mid) / mid * 100.0 for c in closes.values())
+        divergences.append((date, worst))
+        if worst > tolerance_pct:
+            conflicts.append({
+                "date": date,
+                "divergence_pct": round(worst, 3),
+                "readings": {p: round(c, 4) for p, c in sorted(closes.items())},
+            })
+
+    # Systematic adjustment mismatch: a vendor whose ratio to the cross-vendor
+    # median is consistently off. `stdev/mean` rather than a raw spread so the
+    # test is scale-free — a 0.2% wobble around 4.0 is still a clean 4:1.
+    mismatches: list[dict[str, Any]] = []
+    for provider in providers:
+        ratios = []
+        for date, closes in shared.items():
+            if provider not in closes or len(closes) < 2:
+                continue
+            # Reference is the median of *all* vendors, this one included.
+            # Excluding it looks more independent and is worse: with three
+            # vendors it makes the median of the remaining two land between a
+            # correct pair, and both correct vendors then read as mismatched
+            # against a reference neither of them reported.
+            mid = statistics.median(closes.values())
+            if mid > 0:
+                ratios.append(closes[provider] / mid)
+        if len(ratios) < 5:
+            continue
+        mean_ratio = statistics.fmean(ratios)
+        spread = statistics.pstdev(ratios) / mean_ratio if mean_ratio else 1.0
+        # Off by more than the noise tolerance, but *stable* — the signature
+        # of an adjustment policy difference rather than a wrong print.
+        if abs(mean_ratio - 1.0) * 100 > tolerance_pct and spread < 0.02:
+            mismatches.append({
+                "provider": provider,
+                "ratio": round(mean_ratio, 4),
+                "stability": round(1.0 - spread, 4),
+                "sessions": len(ratios),
+                # Named only when it is close to a plain split ratio. A
+                # suggestion, never a correction: nothing here rewrites the
+                # series, because guessing at an adjustment is how a chart
+                # becomes confidently wrong.
+                "likely_split": _nearest_split(mean_ratio),
+            })
+
+    worst_overall = max((d for _, d in divergences), default=0.0)
+    agreeing = sum(1 for _, d in divergences if d <= tolerance_pct)
+    union_dates = set(by_date)
+    # Gaps are counted only inside the window every vendor actually covers.
+    #
+    # Measured against the union this was actively misleading: vendors read
+    # a period like "3mo" differently, and against live data Twelve Data
+    # returned 92 sessions where Polygon returned 63. Differencing against
+    # the union then reported Polygon as "missing 29 sessions" when it had
+    # simply been asked for, and returned, a shorter window — a vendor
+    # penalised for someone else's generosity. Restricting to the overlap
+    # means a reported gap is a session the vendor genuinely lacks while
+    # others have it, which is the only version of this number that supports
+    # the conclusion a reader will draw from it.
+    spans = {}
+    for ev in ok:
+        dates = [getattr(b, "date", None) for b in (getattr(ev.data, "bars", None) or [])]
+        dates = [d for d in dates if d]
+        if dates:
+            spans[ev.provider] = (min(dates), max(dates))
+    gaps: dict[str, int] = {}
+    if spans:
+        lo = max(s for s, _ in spans.values())
+        hi = min(e for _, e in spans.values())
+        window = {d for d in union_dates if lo <= d <= hi}
+        gaps = {
+            p: len(window) - sum(1 for d in window if p in by_date[d])
+            for p in providers
+        }
+    return {
+        "providers": providers,
+        "coverage": coverage,
+        "shared_sessions": len(shared),
+        "union_sessions": len(union_dates),
+        "agreeing_sessions": agreeing,
+        "agreement_pct": round(agreeing / len(divergences) * 100, 2) if divergences else 0.0,
+        "max_divergence_pct": round(worst_overall, 3),
+        "tolerance_pct": tolerance_pct,
+        # Only the worst few: a reader needs to see that conflicts exist and
+        # what they look like, not every session of a disputed year.
+        "conflicts": sorted(conflicts, key=lambda c: -c["divergence_pct"])[:8],
+        "conflict_count": len(conflicts),
+        "adjustment_mismatch": mismatches,
+        "session_gaps": {p: n for p, n in gaps.items() if n},
+    }
+
+
+#: Plain share splits, largest first. Only used to *name* an observed ratio.
+_SPLITS = (10.0, 7.0, 5.0, 4.0, 3.0, 2.0, 1.5)
+
+
+def _nearest_split(ratio: float) -> Optional[str]:
+    """Name a ratio as a split when it is unmistakably one, else None."""
+    for s in _SPLITS:
+        if abs(ratio - s) / s < 0.02:
+            return f"{int(s) if s.is_integer() else s}:1"
+        if abs(ratio - 1.0 / s) * s < 0.02:
+            return f"1:{int(s) if s.is_integer() else s}"
+    return None
