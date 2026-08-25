@@ -461,6 +461,82 @@ NEWS_CATEGORIES: dict[str, tuple[str, ...]] = {
 }
 
 
+
+def _restatements(timeline: list[dict[str, Any]], *, min_pct: float = 0.5) -> list[dict[str, Any]]:
+    """Figures a company later reported differently for the same period.
+
+    A restatement is the single most under-surfaced fact in company research.
+    Every ratio panel in this product shows the *current* record; none of them
+    can say that the current record is not what was originally filed. This
+    reads the point-in-time timeline and reports where a later filing gave a
+    different value for the same concept and the same period end.
+
+    Guards, because the raw XBRL timeline is noisy:
+
+    * Grouped by the **full period** — concept, start *and* end — never by end
+      alone. A 10-K carries both the fiscal-year figure and the fourth quarter
+      that shares its end date, and grouping on the end date alone compares
+      annual revenue against quarterly revenue. Measured on Apple, that single
+      omission produced 106 "restatements", the largest a fictitious -77%,
+      with both values filed on the same day. Instant concepts (balance-sheet
+      lines) carry no start, which is exactly what separates them from flow
+      concepts and keeps the two from being compared.
+    * Units must match. A concept reported in USD and later in USD/share is a
+      different measurement, not a correction.
+    * Same form family. A 10-Q figure superseded by a 10-K is ordinary
+      year-end adjustment rather than a restatement of the same disclosure.
+    * A floor of `min_pct`, because XBRL carries rounding-level differences
+      that are noise rather than news.
+    * Both filing dates are kept, so a reader can open the original and the
+      revision and check the claim.
+    """
+    grouped: dict[tuple, list[dict[str, Any]]] = {}
+    for row in timeline:
+        end = row.get("period_end")
+        concept = row.get("concept")
+        if not end or not concept or row.get("value") is None:
+            continue
+        grouped.setdefault(
+            (concept, row.get("period_start"), end, row.get("unit"), row.get("form")),
+            [],
+        ).append(row)
+
+    out: list[dict[str, Any]] = []
+    for (concept, start, end, unit, form), rows in grouped.items():
+        rows.sort(key=lambda r: str(r.get("filed") or ""))
+        # Distinct values only: the same figure repeated across filings is a
+        # confirmation, not a change.
+        distinct: list[dict[str, Any]] = []
+        for row in rows:
+            if not distinct or row["value"] != distinct[-1]["value"]:
+                distinct.append(row)
+        if len(distinct) < 2:
+            continue
+        first, last = distinct[0], distinct[-1]
+        if not first["value"]:
+            continue
+        change = (last["value"] - first["value"]) / abs(first["value"]) * 100
+        if abs(change) < min_pct:
+            continue
+        out.append({
+            "label": last.get("label") or concept,
+            "concept": concept,
+            "period_start": start,
+            "period_end": end,
+            "unit": unit,
+            "form": form,
+            "original_value": first["value"],
+            "original_filed": first.get("filed"),
+            "revised_value": last["value"],
+            "revised_filed": last.get("filed"),
+            "change_pct": round(change, 2),
+            "revisions": len(distinct),
+        })
+    # Largest revisions first — the ones worth a reader's attention.
+    out.sort(key=lambda r: abs(r["change_pct"]), reverse=True)
+    return out
+
+
 def _xbrl_trends(facts: dict[str, list[dict[str, Any]]]) -> list[dict[str, Any]]:
     """Year-over-year change per concept, from the company's own tagged figures.
 
@@ -987,6 +1063,27 @@ def research_ticker(
             # figure can be traced to a specific document rather than to a
             # vendor's extraction of one — which is exactly what makes it
             # worth a separate capability from `statements`.
+            # Point-in-time timeline: what each filing said when it was
+            # filed, restatements preserved. The trends above read the current
+            # record; this is the only thing that can say the current record
+            # differs from what was originally reported.
+            timeline_ev = providers.filings.timeline_evidence(ticker)
+            timeline = next((e.data for e in timeline_ev if e.ok and e.data), None)
+            if timeline:
+                revisions = _restatements(timeline)
+                if revisions:
+                    filings_block = filings_block or {"source": "SEC EDGAR"}
+                    filings_block["restatements"] = revisions[:8]
+            if timeline_ev:
+                ledger.record_fabric(
+                    label="Point-in-time filings",
+                    kind="fundamental",
+                    evidence=timeline_ev,
+                    detail=(f"{len(timeline)} filed observations"
+                            if timeline else "no point-in-time record"),
+                    used_for=["restatement detection", "look-ahead-free reads"],
+                )
+
             facts_ev = providers.filings.facts_evidence(ticker)
             facts = next((e.data for e in facts_ev if e.ok and e.data), None)
             if facts:

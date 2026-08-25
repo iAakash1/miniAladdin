@@ -239,6 +239,14 @@ class SECVendor(VendorClient):
                         "label": label,
                         "fiscal_year": row.get("fy"),
                         "fiscal_period": row.get("fp"),
+                        # `start` is what actually distinguishes a fiscal-year
+                        # figure from the fourth quarter that shares its end
+                        # date. Without it, a 10-K's FY revenue and its Q4
+                        # revenue look like the same period reported twice —
+                        # and a naive comparison calls that a 77% restatement.
+                        # Instant concepts (balance-sheet lines) have no start,
+                        # which is itself the distinction from flow concepts.
+                        "period_start": row.get("start"),
                         "period_end": row.get("end"),
                         "value": float(row["val"]),
                         "unit": unit,

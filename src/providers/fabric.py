@@ -87,6 +87,10 @@ CAPABILITY_METHODS: dict[str, str] = {
     # cheaper copy of the same kind, so it gets its own capabilities.
     "filings": "get_filings",
     "xbrl_facts": "get_xbrl_facts",
+    # Point-in-time filings, restatements preserved. The only capability that
+    # can answer "what did the filing say at the time" rather than "what does
+    # the record say now".
+    "xbrl_timeline": "get_xbrl_timeline",
     # Positions rather than performance: who holds the shares and how many
     # are sold short. Kept apart from `fundamentals` so a settlement-lagged
     # short figure is never read as being as current as a trailing margin.
@@ -112,6 +116,7 @@ CAPABILITY_LABELS: dict[str, str] = {
     "image_search": "Editorial imagery",
     "filings": "SEC filings",
     "xbrl_facts": "XBRL reported facts",
+    "xbrl_timeline": "Point-in-time filings",
     "ownership": "Ownership & short interest",
     "analyst_consensus": "Analyst targets",
 }

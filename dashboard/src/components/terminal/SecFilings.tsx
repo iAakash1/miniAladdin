@@ -69,6 +69,46 @@ export default function SecFilings({ block }: { block: FilingsBlock }) {
         ))}
       </div>
 
+      {/* Figures the company later reported differently for the same period.
+          Every ratio panel in this product shows the *current* record; this
+          is the only place that can say the current record is not what was
+          originally filed. Both filing dates are shown because the claim is
+          checkable — a reader can open each document. */}
+      {block.restatements && block.restatements.length > 0 && (
+        <div className="sec__restate">
+          <h3 className="sec__xbrl-title">Restated after first filing</h3>
+          <ul className="sec__restates">
+            {block.restatements.slice(0, 5).map((r) => (
+              <li key={`${r.concept}-${r.period_end}`} className="sec__restate-row">
+                <span className="sec__restate-name">{r.label}</span>
+                <span className="num sec__restate-period">
+                  {r.period_start ? `${r.period_start} → ${r.period_end}` : r.period_end}
+                </span>
+                <span className="num sec__restate-values">
+                  {r.original_value.toLocaleString(undefined, { notation: 'compact' })}
+                  {' → '}
+                  {r.revised_value.toLocaleString(undefined, { notation: 'compact' })}
+                </span>
+                <span className={`num sec__restate-pct sec__restate-pct--${
+                  r.change_pct > 0 ? 'pos' : 'neg'
+                }`}>
+                  {r.change_pct > 0 ? '+' : ''}{r.change_pct.toFixed(1)}%
+                </span>
+                <span className="sec__restate-filed">
+                  filed {r.original_filed}, revised {r.revised_filed}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="sec__xbrl-note">
+            Compared within one concept and one exact period — a fiscal year is never
+            measured against the fourth quarter that shares its end date, and a 10-Q
+            figure superseded by a 10-K is ordinary year-end adjustment rather than a
+            revision.
+          </p>
+        </div>
+      )}
+
       {/* The company's own tagged figures, and the year-over-year change
           between consecutive fiscal years of the same concept. This is the
           only place in the product where a number traces to a specific

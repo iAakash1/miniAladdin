@@ -516,8 +516,29 @@ export interface XbrlTrend {
   filed: string
 }
 
+/** A figure the company later reported differently for the same period.
+ *
+ *  Both filing dates survive so a reader can open the original and the
+ *  revision and check the claim. */
+export interface Restatement {
+  label: string
+  concept: string
+  period_start: string | null
+  period_end: string
+  unit: string
+  form: string
+  original_value: number
+  original_filed: string
+  revised_value: number
+  revised_filed: string
+  change_pct: number
+  revisions: number
+}
+
 export interface FilingsBlock {
   filings: SecFiling[]
+  /** Present only where a later filing genuinely revised an earlier one. */
+  restatements?: Restatement[]
   /** Tagged concepts, newest first. Absent for filers with no XBRL. */
   xbrl?: Record<string, XbrlFact[]>
   xbrl_trend?: XbrlTrend[]

@@ -336,6 +336,26 @@ class FilingsProvider:
             timeout=15.0,
         )
 
+    def timeline_evidence(self, symbol: str) -> list[Evidence]:
+        """Every reported value with the date it was filed — restatements kept.
+
+        Distinct from `facts_evidence`, which collapses each fiscal year to
+        its most recently filed value. That collapse is right for a display
+        panel and wrong for research: keeping only the restated figure means a
+        2020 backtest reads a number published in 2023, which is look-ahead
+        bias of the purest kind.
+
+        This is the only source in the system that can answer "what did the
+        filing say *at the time*" as opposed to "what does the record say
+        now", which is what makes restatement detection possible at all.
+        """
+        symbol = symbol.upper()
+        return fabric.collect(
+            "xbrl_timeline", symbol, self.vendors,
+            lambda v: v.get_xbrl_timeline(symbol) or None,
+            timeout=25.0,
+        )
+
     def facts_evidence(self, symbol: str) -> list[Evidence]:
         symbol = symbol.upper()
         return fabric.collect(

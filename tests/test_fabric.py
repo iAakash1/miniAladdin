@@ -517,3 +517,98 @@ def test_brand_mark_is_deliberately_outside_the_fan_out():
     # And the reasoning lives next to the registration, not only here.
     registry = pathlib.Path("src/providers/fabric.py").read_text()
     assert "pure URL construction" in registry
+
+
+# ── restatement detection ─────────────────────────────────────────────────
+
+def _fact(concept, start, end, value, filed, form="10-K", unit="USD", label=None):
+    return {
+        "concept": concept, "label": label or concept, "period_start": start,
+        "period_end": end, "value": value, "filed": filed, "form": form,
+        "unit": unit, "fiscal_year": None, "fiscal_period": None,
+    }
+
+
+def test_an_annual_figure_is_never_compared_against_its_own_fourth_quarter():
+    """The bug this exists for, caught against live EDGAR data before it
+    shipped: a 10-K carries both the fiscal-year figure and the Q4 that shares
+    its end date. Grouping on the end date alone compared annual revenue with
+    quarterly revenue and produced 106 fictitious 'restatements' for Apple,
+    the largest a -77% swing with both values filed the same day."""
+    from api.index import _restatements
+
+    timeline = [
+        # FY2018 revenue and Q4-2018 revenue: same end date, same filing.
+        _fact("Revenue", "2017-10-01", "2018-09-29", 265_595_000_000, "2018-11-05"),
+        _fact("Revenue", "2018-07-01", "2018-09-29", 62_900_000_000, "2018-11-05"),
+    ]
+    assert _restatements(timeline) == []
+
+
+def test_a_genuine_revision_of_the_same_period_is_reported():
+    """Apple's 2009 retrospective adoption of ASU 2009-13 really did restate
+    FY2009 net income upward — the same period, refiled a year later."""
+    from api.index import _restatements
+
+    timeline = [
+        _fact("NetIncomeLoss", "2008-09-28", "2009-09-26", 5_704_000_000, "2009-10-27",
+              label="Net income"),
+        _fact("NetIncomeLoss", "2008-09-28", "2009-09-26", 8_235_000_000, "2010-10-27",
+              label="Net income"),
+    ]
+    found = _restatements(timeline)
+    assert len(found) == 1
+    assert found[0]["original_value"] == 5_704_000_000
+    assert found[0]["revised_value"] == 8_235_000_000
+    assert found[0]["change_pct"] == pytest.approx(44.4, abs=0.1)
+    # Both filing dates survive so a reader can open each document and check.
+    assert found[0]["original_filed"] == "2009-10-27"
+    assert found[0]["revised_filed"] == "2010-10-27"
+
+
+def test_a_unit_change_is_not_a_restatement():
+    """A concept reported in USD and later per-share is a different
+    measurement, not a correction."""
+    from api.index import _restatements
+    assert _restatements([
+        _fact("EPS", "2024-01-01", "2024-12-31", 6_000_000_000, "2025-01-01", unit="USD"),
+        _fact("EPS", "2024-01-01", "2024-12-31", 6.1, "2025-06-01", unit="USD/shares"),
+    ]) == []
+
+
+def test_a_quarterly_figure_superseded_by_an_annual_filing_is_not_a_restatement():
+    """Ordinary year-end adjustment, not a revision of the same disclosure."""
+    from api.index import _restatements
+    assert _restatements([
+        _fact("Revenue", "2024-01-01", "2024-03-31", 100.0, "2024-04-01", form="10-Q"),
+        _fact("Revenue", "2024-01-01", "2024-03-31", 110.0, "2025-01-01", form="10-K"),
+    ]) == []
+
+
+def test_repeating_the_same_figure_is_confirmation_not_a_change():
+    from api.index import _restatements
+    assert _restatements([
+        _fact("Revenue", "2024-01-01", "2024-12-31", 100.0, "2025-01-01"),
+        _fact("Revenue", "2024-01-01", "2024-12-31", 100.0, "2025-06-01"),
+        _fact("Revenue", "2024-01-01", "2024-12-31", 100.0, "2025-09-01"),
+    ]) == []
+
+
+def test_rounding_level_differences_stay_below_the_floor():
+    """XBRL carries sub-percent differences that are noise, not news."""
+    from api.index import _restatements
+    assert _restatements([
+        _fact("Revenue", "2024-01-01", "2024-12-31", 100_000.0, "2025-01-01"),
+        _fact("Revenue", "2024-01-01", "2024-12-31", 100_200.0, "2025-06-01"),
+    ]) == []
+
+
+def test_instant_and_flow_concepts_are_never_mixed():
+    """Balance-sheet lines carry no start date; that absence is exactly what
+    separates them from flow concepts and must not collapse them together."""
+    from api.index import _restatements
+    found = _restatements([
+        _fact("Cash", None, "2024-12-31", 50.0, "2025-01-01"),
+        _fact("Cash", "2024-01-01", "2024-12-31", 90.0, "2025-01-01"),
+    ])
+    assert found == []
