@@ -5098,3 +5098,169 @@ a.hl-row:hover .hl-row__out { color: var(--accent); transform: translate(1px, -1
   white-space: nowrap;
 }
 .sint__table tr:last-child td { border-bottom: none; }
+
+/* ── Model Intelligence ─────────────────────────────────────────────────────
+ *
+ * The page's job is to make an unfavourable result as legible as a favourable
+ * one, so the treatment is deliberately flat: no gradient on the winning row,
+ * no success green on a leaderboard, no chart that grows with performance.
+ * The only colour that carries meaning is the significance pill, and it is
+ * paired with a dot so it survives a monochrome screenshot — the same rule
+ * `.spill` already follows.
+ */
+
+.ml-verdicts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(clamp(240px, 30vw, 320px), 1fr));
+  gap: var(--sp-3, 12px);
+  margin-bottom: var(--sp-5, 20px);
+}
+
+/* A button, not a div: selecting a label changes what the page shows, which
+   is an action, and the keyboard has to be able to reach it. */
+.ml-verdict {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-2, 8px);
+  cursor: pointer;
+  transition: border-color var(--t-fast, 120ms) var(--ease-out, ease),
+              background-color var(--t-fast, 120ms) var(--ease-out, ease);
+}
+
+.ml-verdict:hover { border-color: var(--line-strong, var(--accent)); }
+.ml-verdict:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Selection is a left rule plus a surface shift. Not a colour fill: the card
+   contains a verdict that may be negative, and tinting it would editorialise. */
+.ml-verdict--active {
+  border-color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent);
+  background: var(--surface-2);
+}
+
+.ml-verdict__head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.ml-verdict__label { font-family: var(--font-mono, monospace); font-size: 0.875rem; font-weight: 600; }
+.ml-verdict__best { font-size: 0.8125rem; color: var(--muted); }
+.ml-verdict__best strong { color: var(--text); font-family: var(--font-mono, monospace); }
+
+.ml-verdict__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.ml-verdict__stats strong { color: var(--text); }
+
+.ml-verdict__text { display: flex; flex-direction: column; gap: 6px; margin-top: 2px; }
+.ml-verdict__text p { font-size: 0.75rem; line-height: 1.45; color: var(--muted); margin: 0; }
+
+/* Wide analytical tables scroll inside their own box. The page body must
+   never scroll horizontally — a leaderboard that pushes the layout sideways
+   makes the columns on the right, which are the discounting ones, easy to
+   never see. */
+.ml-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.ml-table { min-width: 780px; }
+
+.ml-model { font-family: var(--font-mono, monospace); font-size: 0.8125rem; }
+
+/* Baselines are marked, not moved. A baseline in its own section is a
+   rhetorical baseline; the point is to read it adjacent to the model that
+   failed to beat it. */
+.ml-row--baseline td { background: color-mix(in srgb, var(--surface-2) 55%, transparent); }
+
+.ml-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 6px;
+  font-size: 0.6875rem;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+}
+
+.ml-neg { color: var(--neg, #c0392b); }
+
+.ml-note {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-left: 2px solid var(--line-strong, var(--line));
+  background: var(--surface-2);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.ml-command {
+  display: block;
+  padding: 8px 12px;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.8125rem;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-1, 4px);
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.ml-regime-block { margin-bottom: 20px; }
+.ml-regime-block:last-child { margin-bottom: 0; }
+
+.ml-explain { padding: 14px 0; border-bottom: 1px solid var(--line); }
+.ml-explain:last-child { border-bottom: none; }
+.ml-explain__head { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; }
+
+.ml-explain__bars { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 4px; }
+.ml-explain__bars li {
+  display: grid;
+  grid-template-columns: minmax(120px, 180px) 1fr auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.75rem;
+}
+.ml-explain__name { font-family: var(--font-mono, monospace); color: var(--muted); }
+
+/* A bar, not a diverging chart. Direction is carried by the printed signed
+   number beside it; the bar is magnitude only, because a split-axis chart of
+   coefficients invites reading the left side as "bad". */
+.ml-explain__bar {
+  height: 6px;
+  min-width: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+  opacity: 0.75;
+}
+.ml-explain__bar--neg { background: var(--muted); }
+
+/* The caveat is not fine print. It is the sentence that stops an importance
+   bar being read as a causal ranking, so it sits at body size. */
+.ml-caveat {
+  margin: 10px 0 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--muted);
+  border-left: 2px solid var(--line);
+  padding-left: 10px;
+}
+
+.ml-prov { display: grid; grid-template-columns: minmax(120px, 180px) 1fr; gap: 8px 16px; margin: 0; }
+.ml-prov dt { font-size: 0.8125rem; color: var(--muted); font-weight: 600; }
+.ml-prov dd { margin: 0; font-size: 0.8125rem; line-height: 1.55; }
+.ml-prov ul { margin: 0; padding-left: 18px; }
+
+.ml-guards { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ml-guards li { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+@media (max-width: 640px) {
+  .ml-prov { grid-template-columns: 1fr; gap: 4px 0; }
+  .ml-prov dt { margin-top: 8px; }
+  .ml-explain__bars li { grid-template-columns: 1fr auto; }
+  .ml-explain__bar { display: none; }
+}

@@ -13,19 +13,18 @@ peeking is not a mistake one can make. `test_panel_builder` proves the
 property directly: build a panel, append future data, rebuild, and assert
 the historical rows are byte-identical.
 
-Scope of this milestone, stated plainly: **price-derived factors only.**
-Momentum, reversal and relative strength are computable point-in-time from
-OHLCV alone. Fundamental, quality and news factors require filing-date and
-publication-date stamps that are not yet wired, so those columns are
-written NULL — which the schema defines as "absent", never zero. The
-columns exist now so that adding them later is a builder change, not a
-migration.
+Price factors are derived from truncated OHLCV windows. Fundamental quality
+factors use SEC facts only after their filing date; unsupported current-only
+vendor fundamentals and news remain absent rather than being backfilled.
 """
 
 from __future__ import annotations
 
 import logging
 import math
+import hashlib
+import os
+import subprocess
 import time
 from datetime import date as Date
 from typing import Callable, Optional
@@ -119,6 +118,7 @@ class PanelBuilder:
         lookback: int = LOOKBACK_BARS,
         vectorized: bool = True,
         fundamentals: bool = True,
+        source_versions: Optional[dict[str, str]] = None,
         on_progress: Optional[Callable[[str, int, int], None]] = None,
     ) -> None:
         self._load_prices = load_prices or _provider_loader
@@ -132,6 +132,10 @@ class PanelBuilder:
         # since those symbols have no filings and every lookup would be a
         # wasted network round trip.
         self._use_fundamentals = fundamentals
+        self._source_versions = dict(source_versions or {"market_data": "runtime-resolved"})
+        if fundamentals:
+            self._source_versions.setdefault("fundamentals", "sec-companyfacts-live")
+        self._raw_data_hashes: dict[str, str] = {}
         self._facts: dict[str, PointInTimeFacts] = {}
         # Reports real sub-progress: (stage, done, total). A build is
         # dominated by vendor round trips, not computation, so a caller that
@@ -140,6 +144,7 @@ class PanelBuilder:
         self._on_progress = on_progress
         self._vectorized_symbols = 0
         self._scalar_symbols = 0
+        self._raw_data_hashes = {}
 
     # ── public ───────────────────────────────────────────────────────────
 
@@ -203,15 +208,30 @@ class PanelBuilder:
         panel = _empty_panel() if not rows else pd.DataFrame(rows, columns=list(ALL_COLUMNS))
         panel = _coerce_dtypes(panel)
 
+        commit = _git_commit()
+        snapshot_inputs = dict(
+            step=step,
+            lookback=self._lookback,
+            benchmark=self._benchmark,
+            fundamentals=self._use_fundamentals,
+            vectorized=self._use_vectorized,
+            git_commit=commit,
+            source_versions=self._source_versions,
+            raw_data_hashes=self._raw_data_hashes,
+        )
         manifest = SnapshotManifest(
             snapshot_id=compute_snapshot_id(
-                universe.name, symbols, start, end, engine_version()
+                universe.name, symbols, start, end, engine_version(), **snapshot_inputs
             ),
             universe=universe.name,
             symbols=symbols,
             start=start,
             end=end,
             engine_version=engine_version(),
+            **snapshot_inputs,
+            reproducibility_status=(
+                "partial: raw hashes retained but raw observations are not archived"
+            ),
             rows=len(panel),
             symbols_built=len(symbols) - len(skipped),
             symbols_skipped=skipped,
@@ -220,8 +240,8 @@ class PanelBuilder:
             notes=(
                 f"step={step}d; lookback={self._lookback}; "
                 f"engine=vectorized:{self._vectorized_symbols}/scalar:{self._scalar_symbols}; "
-                f"price-derived factors only "
-                f"(fundamental/quality/news columns NULL pending point-in-time inputs)"
+                f"SEC point-in-time fundamentals={'on' if self._use_fundamentals else 'off'}; "
+                "current-only vendor fundamentals/news remain NULL"
             ),
         )
         logger.info(
@@ -400,7 +420,10 @@ class PanelBuilder:
 
     def _safe_load(self, symbol: str) -> Optional[pd.DataFrame]:
         try:
-            return self._load_prices(symbol)
+            frame = self._load_prices(symbol)
+            if frame is not None:
+                self._raw_data_hashes[f"price:{symbol}"] = _frame_hash(frame)
+            return frame
         except Exception:  # noqa: BLE001 — one bad symbol never fails a build
             logger.exception("panel: price load failed for %s", symbol)
             return None
@@ -433,6 +456,33 @@ def _load_all_facts(symbols: list[str]) -> dict[str, PointInTimeFacts]:
     }
     logger.info("panel: SEC facts loaded for %d/%d symbols", len(loaded), len(symbols))
     return loaded
+
+
+def _frame_hash(frame: pd.DataFrame) -> str:
+    """Stable hash of the exact normalized frame handed to the factor engine."""
+
+    normalized = frame.sort_index().sort_index(axis=1)
+    hashed = pd.util.hash_pandas_object(normalized, index=True).values.tobytes()
+    return hashlib.sha256(hashed).hexdigest()
+
+
+def _git_commit() -> str:
+    """Best available code identifier without making builds depend on Git."""
+
+    for name in ("RENDER_GIT_COMMIT", "VERCEL_GIT_COMMIT_SHA", "GITHUB_SHA"):
+        value = os.getenv(name)
+        if value:
+            return value[:40]
+    try:
+        return subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=2,
+        ).stdout.strip()[:40] or "unknown"
+    except (OSError, subprocess.SubprocessError):
+        return "unknown"
 
 
 def _pit_window(

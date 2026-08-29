@@ -140,6 +140,7 @@ flowchart TB
         PORT["Portfolio intelligence"]
         VIS["Visual intelligence"]
         PROV["Provenance ledger"]
+        ML["ML read layer<br/>/api/ml/*"]
 
         subgraph FABRIC["Evidence fabric"]
             CAPS["Capability registry"]
@@ -152,11 +153,14 @@ flowchart TB
         CACHE["Cache + SingleFlight"]
     end
 
+    RAW[("data/research<br/>immutable partitions")]
+    PIT["point-in-time dataset"]
+    STUDY["study + registry"]
     SUPA[("Supabase Postgres")]
     EXT{{"17 external APIs"}}
 
     U --> NEXT -->|"/api/* rewrite"| API
-    API --> RESEARCH & PORT
+    API --> RESEARCH & PORT & ML
     RESEARCH --> FABRIC & CHAIN & VIS & PROV
     PORT --> CHAIN
     FABRIC --> ADAPT
@@ -165,6 +169,29 @@ flowchart TB
     ADAPT <--> EXT
     FABRIC --> PROV
     API <--> SUPA
+    ML --> RAW
+    RAW --> PIT --> STUDY
+```
+
+The research layer added on top runs **offline**, and the separation is
+deliberate: a page load must never be able to start a walk-forward.
+
+```mermaid
+flowchart LR
+    subgraph BATCH["Offline (minutes)"]
+        direction TB
+        ING["backfill<br/>date-partitioned ingestion"]
+        RAWS["immutable Parquet<br/>checksummed, resumable"]
+        DSB["point-in-time dataset<br/>+ leakage guards"]
+        STD["study<br/>walk-forward · costs · attribution"]
+        ING --> RAWS --> DSB --> STD
+    end
+    subgraph ONLINE["Request path (milliseconds)"]
+        SVC["ml_service<br/>read-only"]
+        UIM["/terminal/models"]
+        SVC --> UIM
+    end
+    STD -->|"study.json + registry.json"| SVC
 ```
 
 No queue, no broker, no worker, no container orchestration. Vercel serves the
@@ -376,6 +403,135 @@ photograph of that brand's products.
 > GICS-over-SIC rule. Same cost, materially better query — the fix was to read
 > the reconciled profile instead of the first answer.
 
+## Quantitative research and machine learning
+
+`docs/PANEL.md` named the two constraints that bounded every backtest in this
+repository, and correctly declined to fake solutions for them:
+
+> **§5.1** `Universe` returns **current** membership... textbook **survivorship
+> bias** — it silently inflates every backtest statistic computed over it.
+> Fixing this requires point-in-time index membership, which has no free source.
+
+> **§5.2** The provider chain's free tiers cap daily history at roughly **501
+> bars (~2 years)**... usable panel depth today is roughly **one year**, not five.
+
+Both are now removed by the same source, and the verification that mattered was
+not the row count:
+
+```
+SIVB  2023-03-08  close 267.83   volume    835,185
+SIVB  2023-03-09  close 106.04   volume 38,746,481   (-60.4%)
+SIVB  2023-03-10  (no bar — trading halted)
+```
+
+Silicon Valley Bank is in the data, with its collapse, and then it stops. Its
+security-master row reads `financial_status = 'Bankrupt'`. **15.6 years** of
+daily bars from 2011-01-03, 3,844 symbols on the first day and 12,470 on the
+last, with delistings dated.
+
+### What the layer answers, and what it actually found
+
+Given only what was knowable at time T, can a model rank the cross-section
+better than a factor published in 1993 — and does the answer survive
+transaction costs, regime changes, and the number of models we tried?
+
+**17 configurations, 2 targets, 8 expanding walk-forward folds over 506,374
+point-in-time observations. The answer is no, and the reason is specific.**
+
+| Target | Best model | rank IC | NW t | gross SR | net SR | turnover | alpha t |
+|---|---|---|---|---|---|---|---|
+| `fwd_ret_21` | gradient_boosting | +0.0218 | **+2.26** | +0.18 | **−0.27** | 18.0×/yr | −0.50 |
+| `fwd_rank_21` | gradient_boosting | +0.0295 | **+2.70** | +0.36 | **+0.03** | 20.7×/yr | +0.44 |
+
+The tree ensembles *do* produce a rank IC distinguishable from zero after a
+Newey-West correction, and they *do* beat every free baseline — momentum
+(+0.0158), low-volatility (+0.0209), reversal, earnings surprise, IV premium.
+That is a real measurement.
+
+It is also not tradeable. Harvesting it needs ~20× annual turnover, and at a
+5 bp half-spread **transaction costs consume 254% and 91% of the gross return**
+respectively. The six-factor intercept is not distinguishable from zero, so
+what remains is a return difference, not alpha. And the deflated Sharpe —
+which accounts for having tried 17 configurations — rejects both.
+
+**No model was promoted. Nothing is deployed.** The registry refused, on
+evidence, and that refusal is the system working.
+
+Two more findings worth stating because they were not assumed in advance:
+
+* **The cross-sectional rank target is more learnable than the absolute return
+  target.** Every linear model has a *negative* IC on `fwd_ret_21` and a
+  positive one on `fwd_rank_21`. Predicting a name's absolute return means
+  predicting the market's return plus its relative move, and the first term
+  dominates the variance while being nearly unpredictable.
+* **The overfitting diagnostic works.** The deliberately over-parameterised
+  control reached a train IC of **+0.75** against a validation IC of +0.027 —
+  a gap of 0.72. Every tree model shows the same pattern in miniature, which is
+  why `train_ic_gap` sits in the leaderboard next to the IC it discounts.
+
+Full report: [`docs/research-report.md`](docs/research-report.md), generated
+from the study artifact rather than transcribed.
+
+### Point-in-time by construction, not by discipline
+
+The panel makes look-ahead structurally impossible for its factors by handing
+the engine a truncated window. This layer extends the same argument:
+
+**Returns, not adjusted prices.** A back-adjusted price series cannot be
+point-in-time — the value it shows for 2015 depends on a split that happened in
+2020, and rebuilding it changes every historical number. So corporate actions
+are applied *on the ex-date only*:
+
+```
+r_t = (close_t · k_t + d_t) / close_{t-1} − 1
+```
+
+Every term is dated `t`. Nothing after `t` appears anywhere in it, so there is
+no adjustment to invalidate. A 4:1 split reads as **0%**, not −75%; without the
+split record it reads as −75%, and both are asserted in tests.
+
+**A universe selected from the past, not filtered by the present.** Membership
+is ranked from each month's *whole-market* cross-section, so names that later
+failed are present in the months they were liquid. Over 184 monthly rebalances,
+**793 of 998 names ever eligible are absent from the final snapshot** — a
+survivors-only universe would have exactly 250.
+
+**Guards that can fail.** Perturb the source *after* a cutoff, rebuild, and
+assert every pre-cutoff value is bit-identical — *and* assert the perturbation
+was felt, because a guard that passes on a builder ignoring its input proves
+nothing. A centred rolling mean and a `shift(-1)` feature must both fail, and
+`tests/quant/test_leakage.py` asserts they do.
+
+### One word, held to the repository's standard
+
+`src/services/backtest_service.py` already declines to call a benchmark
+difference alpha. This layer computes the quantity instead: net strategy
+returns regressed on Fama-French 5 factors plus momentum, with a Newey-West
+t-statistic. The intercept is the only number in this codebase permitted to be
+called alpha, and `backtest/attribution.py` is the only place it is produced.
+
+Its verdict when a signal turns out to be a factor in disguise:
+
+> Intercept is not distinguishable from zero (t = −0.64). The return series is
+> explained by its factor exposures — largest loading mom at +0.80. **This is a
+> return difference, not alpha.**
+
+### Reproducing it
+
+```bash
+dolt clone post-no-preference/stocks datasets/stocks   # and options, earnings, rates
+python -m scripts.quant.local_backfill --stage all     # 116M option rows -> 1.9M aggregates
+python -m scripts.quant.backfill --stage universe --universe-size 250
+python -m scripts.quant.study --start 2014-04-01 --all-labels --seed 0
+python -m scripts.quant.report --out docs/research-report.md
+```
+
+Both write immutable, checksummed artifacts. Results render at
+`/terminal/models`; the findings are in
+[`docs/research-report.md`](docs/research-report.md).
+
+---
+
 ## Security
 
 Credentials are backend-only with one deliberate exception: Logo.dev's
@@ -431,6 +587,32 @@ reason. The ones that came from a measured failure rather than a preference:
 - [`docs/verification.md`](docs/verification.md) — what is live-verified versus
   fixture-only, per provider
 - [`docs/SCORING.md`](docs/SCORING.md) — the quantitative framework
+- [`docs/PANEL.md`](docs/PANEL.md) — the point-in-time factor panel
+- [`docs/ml-architecture.md`](docs/ml-architecture.md) — the machine-learning
+  layer: pipeline, leakage control, CRC cards
+- [`docs/dataset-catalog.md`](docs/dataset-catalog.md) — every research dataset,
+  measured; what was rejected and why
+- [`docs/research-data.md`](docs/research-data.md) — ingestion, immutable
+  storage, the survivorship-free universe
+- [`docs/modeling-methodology.md`](docs/modeling-methodology.md) — features,
+  labels, models, validation, defences against data mining
+- [`docs/backtesting.md`](docs/backtesting.md) — transaction costs, factor
+  attribution, significance
+- [`docs/model-registry.md`](docs/model-registry.md) — gated promotion
+- [`docs/research-report.md`](docs/research-report.md) — the findings, including
+  the negative ones (generated from the study artifact, not transcribed)
+- [`docs/quant-leakage-prevention.md`](docs/quant-leakage-prevention.md) — every
+  leak, its mechanism, and the test that would fail without it
+- [`docs/quant-experiments.md`](docs/quant-experiments.md) — the experiment
+  ledger and why hyperparameters were not tuned
+- [`docs/quant/data-model.md`](docs/quant/data-model.md) — sources, keys, joins,
+  temporal semantics per field
+- [`docs/quant/validation.md`](docs/quant/validation.md) — walk-forward geometry
+  and what a result has to clear
+- [`docs/quant/model-card.md`](docs/quant/model-card.md) — intended use,
+  limitations, what must not be claimed
+- [`docs/quant/deployment.md`](docs/quant/deployment.md) — the inference
+  contract, and the gates nothing has passed
 
 ---
 
@@ -499,6 +681,17 @@ Opt-in live smoke tests: `OMNISIGNAL_LIVE_TESTS=1 python -m pytest tests/test_li
 │   ├── decision.py       Shared verdict/confidence/risk synthesis
 │   ├── risk_analysis.py  FRED → Systemic Risk Multiplier
 │   ├── sentiment_edge.py Multi-source headline sentiment
+│   ├── panel/            Point-in-time factor panel (immutable snapshots)
+│   ├── research/         Cross-sectional factor evaluation
+│   ├── quant/            Research + ML layer (see docs/ml-architecture.md)
+│   │   ├── datasets/     Local Dolt + HTTP + French ingestion, RawStore, catalog
+│   │   ├── pit/          PIT returns, survivorship-free universe, leakage guards
+│   │   ├── features/     Registry; price · macro · options · earnings · cross-sectional
+│   │   ├── labels/       Forward returns, volatility, excursion, rank
+│   │   ├── models/       Baselines, linear, trees, gated registry
+│   │   ├── validation/   Walk-forward, metrics, significance
+│   │   ├── backtest/     Cost model, engine, factor attribution
+│   │   └── regime/       Rule-based + unsupervised regime labelling
 │   ├── providers/        Vendor-agnostic data facades + fallback chains
 │   └── services/         Backtest, dashboard, screen, memo, news scoring,
 │       │                 LLM narration, in-process metrics
@@ -509,7 +702,11 @@ Opt-in live smoke tests: `OMNISIGNAL_LIVE_TESTS=1 python -m pytest tests/test_li
 ├── api/persistence.py    Persistence REST router (Clerk-scoped CRUD)
 ├── dashboard/            Next.js 16 app (see dashboard/README.md)
 ├── supabase/migrations/  CLI-managed schema (see Migration workflow)
-├── tests/                Pytest suite (215 tests) + opt-in live smoke tests
+├── scripts/quant/        backfill.py (HTTP) · local_backfill.py (clones)
+│                         study.py (the tournament) · report.py (the findings)
+├── datasets/             Dolt clones — 14 GB, gitignored, see docs/research-data.md
+├── tests/                Pytest suite + opt-in live smoke tests
+│   └── quant/            Leakage, dataset, model, backtest, validation, pipeline
 ├── docs/                 Scoring framework, audits, design system, QA log
 └── research_vault/       Generated reports (gitignored; one example kept)
 ```
@@ -528,6 +725,13 @@ Opt-in live smoke tests: `OMNISIGNAL_LIVE_TESTS=1 python -m pytest tests/test_li
 | `GET /api/memo/{ticker}` | Evidence-cited investment memo on top of research |
 | `GET /api/backtest/{ticker}` | Walk-forward validation (see Validation above) |
 | `GET /api/providers/health` | Vendor success %, latency, cooldowns, cache + dedupe stats |
+| `GET /api/ml/capabilities` | What the ML layer can answer, with a reason and a remediation when it cannot |
+| `GET /api/ml/datasets` | Research dataset catalog, including sources deliberately excluded and why |
+| `GET /api/ml/features` | Every feature and label definition with lookback, availability lag, PIT status |
+| `GET /api/ml/overview` | Study headline: dataset, universe, regime, per-label verdicts |
+| `GET /api/ml/labels/{label}` | Every model evaluated against one label — losers included |
+| `GET /api/ml/registry` | Registered models, status, and the evidence each still lacks |
+| `GET /api/ml/provenance/{label}/{model}` | Vendor observation → model output, stage by stage |
 | `GET/POST/PATCH/DELETE /api/watchlists…` | Cloud watchlists + items (Clerk-authenticated) |
 | `GET/POST/PATCH/DELETE /api/portfolio…` | Portfolio positions |
 | `GET /api/portfolio/intelligence` | Book valuation, historical value curve, concentration, sector exposure, risk concentration |
@@ -538,8 +742,16 @@ Opt-in live smoke tests: `OMNISIGNAL_LIVE_TESTS=1 python -m pytest tests/test_li
 
 Terminal pages: `/terminal` (market dashboard), `/terminal/analyze`,
 `/terminal/portfolio` (cloud watchlists + positions), `/terminal/vault`
-(research history, saved reports, run comparison), `/terminal/validation`,
-`/terminal/methodology`.
+(research history, saved reports, run comparison), `/terminal/factors`
+(cross-sectional factor evidence), `/terminal/models` (model intelligence),
+`/terminal/validation`, `/terminal/methodology`.
+
+The `/api/ml/*` endpoints are **read-only over offline artifacts**. They never
+train, backtest or ingest: a page load must not be able to start a walk-forward,
+for the same reason `backtest_service.peek_cached` exists. When no study has
+been run they report `unavailable` with the command that would produce one,
+rather than computing a cheap approximation — a placeholder rendered where a
+walk-forward result belongs cannot be told apart from the real thing.
 
 Contract note: `verdict`, `macro`, `technicals`, `sentiment` are stable;
 `confidence`, `confidence_breakdown`, `risk_level`, `rationale`, `ai`,

@@ -20,6 +20,7 @@ const TABS = [
   { href: '/terminal/portfolio', label: 'Portfolio', match: (p: string) => p.startsWith('/terminal/portfolio') },
   { href: '/terminal/sessions', label: 'Workspace', match: (p: string) => p.startsWith('/terminal/sessions') || p.startsWith('/terminal/graph') || p.startsWith('/terminal/vault') },
   { href: '/terminal/factors', label: 'Factor Lab', match: (p: string) => p.startsWith('/terminal/factors') },
+  { href: '/terminal/models', label: 'Models', match: (p: string) => p.startsWith('/terminal/models') },
   { href: '/learn', label: 'Learn', match: (p: string) => p.startsWith('/learn') || p.startsWith('/terminal/methodology') || p.startsWith('/terminal/validation') },
 ]
 import { fmtNum, fmtPctRaw } from '@/lib/format'

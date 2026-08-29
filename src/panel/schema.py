@@ -35,7 +35,7 @@ from pydantic import BaseModel, Field
 # Bump when the physical layout changes incompatibly. Snapshots record the
 # version that wrote them, so a reader can refuse a layout it cannot parse
 # rather than silently misinterpreting columns.
-PANEL_SCHEMA_VERSION = 1
+PANEL_SCHEMA_VERSION = 2
 
 # Factor columns, in engine order. This tuple IS the contract: adding a
 # factor to the engine without adding it here means the panel silently drops
@@ -112,6 +112,15 @@ class SnapshotManifest(BaseModel):
     start: Date
     end: Date
     engine_version: str
+    step: int = Field(default=1, ge=1)
+    lookback: int = Field(default=2520, ge=1)
+    benchmark: str = "SPY"
+    fundamentals: bool = True
+    vectorized: bool = True
+    git_commit: str = "unknown"
+    source_versions: dict[str, str] = Field(default_factory=dict)
+    raw_data_hashes: dict[str, str] = Field(default_factory=dict)
+    reproducibility_status: str = "partial"
 
     # Outputs — what the build produced.
     rows: int
@@ -137,6 +146,15 @@ class SnapshotManifest(BaseModel):
             "start": self.start.isoformat(),
             "end": self.end.isoformat(),
             "engine_version": self.engine_version,
+            "step": self.step,
+            "lookback": self.lookback,
+            "benchmark": self.benchmark,
+            "fundamentals": self.fundamentals,
+            "vectorized": self.vectorized,
+            "git_commit": self.git_commit,
+            "source_versions": self.source_versions,
+            "raw_data_hashes": self.raw_data_hashes,
+            "reproducibility_status": self.reproducibility_status,
             "schema_version": self.schema_version,
             "factors": list(FACTOR_COLUMNS),
         }
@@ -149,6 +167,15 @@ def compute_snapshot_id(
     start: Date,
     end: Date,
     engine_version: str,
+    *,
+    step: int = 1,
+    lookback: int = 2520,
+    benchmark: str = "SPY",
+    fundamentals: bool = True,
+    vectorized: bool = True,
+    git_commit: str = "unknown",
+    source_versions: Optional[dict[str, str]] = None,
+    raw_data_hashes: Optional[dict[str, str]] = None,
 ) -> str:
     """Deterministic, content-addressed identifier for a build.
 
@@ -162,6 +189,14 @@ def compute_snapshot_id(
         "start": start.isoformat(),
         "end": end.isoformat(),
         "engine_version": engine_version,
+        "step": step,
+        "lookback": lookback,
+        "benchmark": benchmark,
+        "fundamentals": fundamentals,
+        "vectorized": vectorized,
+        "git_commit": git_commit,
+        "source_versions": source_versions or {},
+        "raw_data_hashes": raw_data_hashes or {},
         "schema_version": PANEL_SCHEMA_VERSION,
         "factors": list(FACTOR_COLUMNS),
     }

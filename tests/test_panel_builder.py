@@ -536,7 +536,30 @@ def test_manifest_records_reproducible_inputs(universe: Universe, market):
     assert manifest.start == date(2023, 2, 1)
     assert manifest.end == date(2023, 2, 28)
     assert manifest.engine_version.startswith("scoring-")
+    assert manifest.step == 1
+    assert manifest.lookback > 0
+    assert manifest.benchmark == "SPY"
+    assert manifest.fundamentals is False
+    assert manifest.vectorized is True
+    assert manifest.git_commit != ""
+    assert set(manifest.raw_data_hashes) == {"price:AAPL", "price:MSFT", "price:SPY"}
+    assert "raw observations are not archived" in manifest.reproducibility_status
     assert manifest.build_seconds > 0
+
+
+def test_manifest_id_changes_with_stride_and_engine_path(universe: Universe, market):
+    daily = PanelBuilder(fundamentals=False, load_prices=_loader(market)).build(
+        universe, date(2023, 2, 1), date(2023, 2, 28), step=1
+    )[1]
+    weekly = PanelBuilder(fundamentals=False, load_prices=_loader(market)).build(
+        universe, date(2023, 2, 1), date(2023, 2, 28), step=5
+    )[1]
+    scalar = PanelBuilder(
+        fundamentals=False, load_prices=_loader(market), vectorized=False
+    ).build(universe, date(2023, 2, 1), date(2023, 2, 28), step=1)[1]
+
+    assert daily.snapshot_id != weekly.snapshot_id
+    assert daily.snapshot_id != scalar.snapshot_id
 
 
 def test_manifest_id_is_stable_across_rebuilds(universe: Universe, market):

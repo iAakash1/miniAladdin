@@ -51,3 +51,29 @@ research_vault/*
 data/panel/
 .vercel
 .env*
+
+# ── Research data: acquired, never committed ────────────────────────────────
+#
+# `datasets/` holds Dolt clones measured at 14 GB (stocks 4.4G, options 8.0G,
+# earnings 1.7G, rates 13M). `data/research/` holds the derived partitions,
+# universe, model registry and study reports.
+#
+# Neither is committed, and neither needs to be: both are reproducible from
+# recorded provenance. Every raw manifest records the clone's resolved COMMIT
+# HASH (e.g. stocks@h4k31feneele009f7t15a022qjtn2970), not a branch name, so a
+# rebuild can be pinned to the same bytes. Acquisition is documented in
+# docs/research-data.md and docs/dataset-catalog.md.
+#
+#   dolt clone post-no-preference/stocks datasets/stocks
+#   python -m scripts.quant.local_backfill --stage all
+#
+# LEADING SLASH IS LOAD-BEARING. An unanchored `datasets/` matches a directory
+# of that name at ANY depth, which silently excluded `src/quant/datasets/` —
+# the entire ingestion package — from a commit. Anchored to the repository root
+# it means only the clones.
+/datasets/
+/data/research/
+/data/panel/
+
+# Training and ingestion logs — reproducible output, often large.
+/logs/

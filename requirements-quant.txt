@@ -1,0 +1,34 @@
+# Quantitative research / ML dependencies.
+#
+# Deliberately SEPARATE from requirements.txt. The FastAPI process that serves
+# research pages does not import any of these, so a deployment that only serves
+# the product does not carry scipy. `/api/ml/capabilities` reports
+# `learned_models: unavailable` where they are absent rather than failing at
+# import — the same explicit-degradation pattern the provider fabric uses.
+#
+# Install only where a study runs:
+#     pip install -r requirements-quant.txt
+-r requirements.txt
+
+# BSD-3-Clause. Linear models, tree ensembles, k-means regimes.
+scikit-learn==1.7.2
+# BSD-3-Clause. A scikit-learn dependency; not imported directly.
+scipy==1.18.1
+# BSD-3-Clause. Process-level parallelism for the model tournament.
+joblib==1.5.3
+
+# NOT added, and the reasons:
+#   xgboost / lightgbm  — the sklearn ensembles already cover the tree rung of
+#                         the ladder, and no tree model has beaten a free factor
+#                         baseline here. A third boosting library would add
+#                         install weight to a rung that is not the bottleneck.
+#   shap                — permutation importance out-of-sample answers the same
+#                         question without a heavyweight dependency, and
+#                         split-gain importances are already surfaced with their
+#                         caveat.
+#   torch               — no result so far suggests the dataset supports a
+#                         sequence model. Adding one before the linear rung is
+#                         beaten would be adding capacity to fit noise.
+#   duckdb / polars     — the local Dolt CLI aggregates 116M rows server-side and
+#                         pandas handles what crosses the boundary. Neither is
+#                         currently a bottleneck; see docs/quant/experiments.md.

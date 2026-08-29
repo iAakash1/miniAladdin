@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query
+from fastapi import Path as FastPath
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -58,6 +59,7 @@ from src.services import (
     analyst_store, database, factor_lab_service, fundamentals_data,
     news_scoring, research_prefetch, street_intelligence,
 )
+from src.services import ml_service
 from src.services.backtest_service import peek_cached as peek_backtest
 from src.services.clerk_auth import optional_clerk_user
 from src.services.database.repositories import AnalysisRepository
@@ -1892,6 +1894,88 @@ def company_media(ticker: str, sector: str = "", industry: str = "", name: str =
         ),
         "domain": domain,
     }
+
+
+@app.get("/api/ml/capabilities", tags=["ml"])
+def ml_capabilities():
+    """What the machine-learning layer can answer right now, and why not when it cannot.
+
+    Mirrors `/api/providers/capabilities`: every capability reports
+    `available` or `unavailable` with a named reason and the command that
+    would fix it. A page therefore learns the layer is empty by asking, rather
+    than by rendering nothing — and nothing here computes a cheap substitute to
+    have something to show.
+    """
+    return ml_service.capabilities()
+
+
+@app.get("/api/ml/datasets", tags=["ml"])
+def ml_datasets():
+    """The research dataset catalog, including what is deliberately excluded.
+
+    Each entry carries its measured coverage, its point-in-time classification
+    and its survivorship classification. `excluded` lists sources the
+    point-in-time builder refuses as feature inputs, with the reason — a
+    limitation that is enforced rather than merely documented.
+    """
+    return ml_service.dataset_catalog()
+
+
+@app.get("/api/ml/features", tags=["ml"])
+def ml_features():
+    """Every feature and label definition, with rationale and lookback.
+
+    The point-in-time contract is data here, not prose: `lookback_sessions`,
+    `availability_lag_sessions` and `point_in_time_safe` are what the dataset
+    builder enforces and what the leakage guards test.
+    """
+    return ml_service.feature_catalog()
+
+
+@app.get("/api/ml/overview", tags=["ml"])
+def ml_overview():
+    """Headline study state: dataset, universe, regime and per-label verdicts.
+
+    The verdict string is deliberately ordered worst-finding-first — a model
+    that clears the significance bar but loses to transaction costs is reported
+    as losing to costs, not as clearing the bar.
+    """
+    return ml_service.overview()
+
+
+@app.get("/api/ml/labels/{label}", tags=["ml"])
+def ml_label(label: str = FastPath(..., max_length=64, pattern=r"^[a-z0-9_]+$")):
+    """Every model evaluated against one label — losers included.
+
+    The leaderboard is sorted, but nothing is filtered: the experiment
+    distribution accompanies it so the best result can be read against the
+    population it was selected from.
+    """
+    return ml_service.label_report(label)
+
+
+@app.get("/api/ml/registry", tags=["ml"])
+def ml_registry():
+    """Registered models, their status, and the evidence each still lacks.
+
+    `promotion_gates` is emitted verbatim from the registry, so what the UI
+    shows as a requirement is exactly what the code enforces.
+    """
+    return ml_service.registry()
+
+
+@app.get("/api/ml/provenance/{label}/{model_id}", tags=["ml"])
+def ml_provenance(
+    label: str = FastPath(..., max_length=64, pattern=r"^[a-z0-9_]+$"),
+    model_id: str = FastPath(..., max_length=80, pattern=r"^[a-z0-9_]+$"),
+):
+    """The chain from vendor observation to model output.
+
+    Each stage is tagged OBSERVED, DERIVED or MODEL_PREDICTED. It names the
+    inputs behind a prediction; it does not claim a causal account of it, which
+    is a claim the architecture cannot support and therefore does not make.
+    """
+    return ml_service.provenance(label, model_id)
 
 
 @app.get("/api/metrics", tags=["ops"])

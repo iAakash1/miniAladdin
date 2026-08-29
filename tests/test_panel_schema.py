@@ -189,6 +189,24 @@ def test_snapshot_id_is_short_and_hex():
     assert all(character in "0123456789abcdef" for character in value)
 
 
+@pytest.mark.parametrize(
+    "changed",
+    [
+        {"step": 5},
+        {"lookback": 1260},
+        {"benchmark": "QQQ"},
+        {"fundamentals": False},
+        {"vectorized": False},
+        {"git_commit": "abc123"},
+        {"source_versions": {"market_data": "vendor-v2"}},
+        {"raw_data_hashes": {"price:AAPL": "deadbeef"}},
+    ],
+)
+def test_snapshot_id_tracks_quant_build_inputs(changed):
+    args = ("dev", ["AAPL"], date(2024, 1, 1), date(2024, 6, 30), "v1")
+    assert compute_snapshot_id(*args, **changed) != compute_snapshot_id(*args)
+
+
 # ── manifest ─────────────────────────────────────────────────────────────────
 
 def _manifest(**overrides) -> SnapshotManifest:
@@ -230,6 +248,21 @@ def test_input_hash_ignores_outputs():
 
 def test_input_hash_tracks_inputs():
     assert _manifest().input_hash() != _manifest(engine_version="scoring-v3.0").input_hash()
+
+
+def test_input_hash_tracks_source_and_build_configuration():
+    base = _manifest()
+    for changed in (
+        {"step": 5},
+        {"lookback": 1260},
+        {"benchmark": "QQQ"},
+        {"fundamentals": False},
+        {"vectorized": False},
+        {"git_commit": "abc123"},
+        {"source_versions": {"prices": "v2"}},
+        {"raw_data_hashes": {"price:AAPL": "deadbeef"}},
+    ):
+        assert base.input_hash() != _manifest(**changed).input_hash()
 
 
 def test_engine_version_is_read_from_the_engine():
