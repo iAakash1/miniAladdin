@@ -229,6 +229,11 @@ def overview(root: Path | str = DEFAULT_ROOT) -> dict[str, Any]:
                 "mean_ic": best.get("mean_ic"),
                 "ic_t_stat": best.get("ic_t_stat"),
                 "fold_ic_positive_rate": best.get("fold_ic_positive_rate"),
+                # The overfitting diagnostic travels with the headline, not
+                # only in the detail table: a card showing IC without the gap
+                # invites reading a memorised training fold as a result.
+                "train_mean_ic": best.get("train_mean_ic"),
+                "train_ic_gap": best.get("train_ic_gap"),
                 "experiments": report.get("experiment_distribution", {}).get("experiments"),
                 "median_ic": report.get("experiment_distribution", {}).get("median"),
                 "net_sharpe": (
