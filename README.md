@@ -429,48 +429,101 @@ security-master row reads `financial_status = 'Bankrupt'`. **15.6 years** of
 daily bars from 2011-01-03, 3,844 symbols on the first day and 12,470 on the
 last, with delistings dated.
 
-### What the layer answers, and what it actually found
+### What the layer answers, and where it currently stands
 
 Given only what was knowable at time T, can a model rank the cross-section
 better than a factor published in 1993 — and does the answer survive
-transaction costs, regime changes, and the number of models we tried?
+transaction costs, regime changes, and the number of models tried?
 
-**17 configurations, 2 targets, 8 expanding walk-forward folds over 506,374
-point-in-time observations. The answer is no, and the reason is specific.**
+**Not yet measured.** A study ran — 17 configurations, 2 targets, 8 expanding
+walk-forward folds over 506,374 point-in-time observations — and produced a
+headline result of IC +0.0295 at t +2.70. A subsequent pre-holdout audit
+**invalidated it**, and the invalidation is the more useful finding.
 
-| Target | Best model | rank IC | NW t | gross SR | net SR | turnover | alpha t |
-|---|---|---|---|---|---|---|---|
-| `fwd_ret_21` | gradient_boosting | +0.0218 | **+2.26** | +0.18 | **−0.27** | 18.0×/yr | −0.50 |
-| `fwd_rank_21` | gradient_boosting | +0.0295 | **+2.70** | +0.36 | **+0.03** | 20.7×/yr | +0.44 |
+#### The defect
 
-The tree ensembles *do* produce a rank IC distinguishable from zero after a
-Newey-West correction, and they *do* beat every free baseline — momentum
-(+0.0158), low-volatility (+0.0209), reversal, earnings surprise, IV premium.
-That is a real measurement.
+`pandas.merge_asof` discards the left frame's index and returns a fresh
+`RangeIndex`. Both as-of joins relied on `sort_index()` to restore row order
+afterwards — which is a no-op on an index that has been replaced. Values were
+written back **positionally into a differently-ordered frame**:
 
-It is also not tradeable. Harvesting it needs ~20× annual turnover, and at a
-5 bp half-spread **transaction costs consume 254% and 91% of the gross return**
-respectively. The six-factor intercept is not distinguishable from zero, so
-what remains is a return difference, not alpha. And the deflated Sharpe —
-which accounts for having tried 17 configurations — rejects both.
+| symbol | should receive | actually received |
+|---|---|---|
+| AAA | `[0.10]` | `[0.10, 0.50, 0.90]` |
+| BBB | `[0.50]` | `[0.90, 0.10, 0.50]` |
 
-**No model was promoted. Nothing is deployed.** The registry refused, on
-evidence, and that refusal is the system working.
+12 of 39 features were affected. The panel is symbol-major, so sorting by date
+permutes it globally and a 2014 row could receive a 2026 value: **future
+information travelling backwards**, not merely noise.
 
-Two more findings worth stating because they were not assumed in advance:
+Every learned-model result is void. The three single-feature baselines survive
+and remain the bar: low-volatility **+0.0209**, momentum **+0.0158**, neither
+significant.
 
-* **The cross-sectional rank target is more learnable than the absolute return
-  target.** Every linear model has a *negative* IC on `fwd_ret_21` and a
-  positive one on `fwd_rank_21`. Predicting a name's absolute return means
-  predicting the market's return plus its relative move, and the first term
-  dominates the variance while being nearly unpredictable.
-* **The overfitting diagnostic works.** The deliberately over-parameterised
-  control reached a train IC of **+0.75** against a validation IC of +0.027 —
-  a gap of 0.72. Every tree model shows the same pattern in miniature, which is
-  why `train_ic_gap` sits in the leaderboard next to the IC it discounts.
+#### How it was found, and why the tests missed it
 
-Full report: [`docs/research-report.md`](docs/research-report.md), generated
-from the study artifact rather than transcribed.
+Not by reading the code. By building the point-in-time dataset twice — once
+over the full range, once truncated strictly before the holdout — and comparing
+every pre-holdout row:
+
+```
+BEFORE FIX  24 of 67 features had different NULL patterns
+AFTER FIX   465,090 rows, all 67 features identical
+```
+
+The existing tests passed against the broken code because they used
+**single-symbol frames already in date order**, where sorting by date is the
+identity. The fixture was the weakness, not the assertion. Three regression
+tests now use multi-symbol, symbol-major and shuffled panels, and all three
+fail against the old implementation.
+
+The probe is now a standing gate, not a one-off investigation.
+
+#### The second finding
+
+The backtest formed positions from a signal computed on date *t*'s close and
+earned from *t* onward — trading at the close it had just observed, which is not
+achievable. `execution_lag_periods` now defaults to 1: the signal from period
+*t* is acted on in period *t+1*. At a 5-session stride that is a full week,
+deliberately more conservative than a realistic close-to-next-open fill.
+
+Full account: [`docs/PRE_HOLDOUT_AUDIT.md`](docs/PRE_HOLDOUT_AUDIT.md).
+
+### The scientific method this repository follows
+
+The point of the apparatus is to be *able to return a negative*, and to make
+that negative trustworthy. Five commitments do the work:
+
+**A single-use holdout, pre-registered.** 252 sessions (2025-08-28 →
+2026-08-28) carved off before any fold was generated, returned by no iterator,
+evaluated by nothing. [`docs/HOLDOUT_CONTRACT.md`](docs/HOLDOUT_CONTRACT.md)
+names one primary candidate, one primary metric, and what counts as success,
+failure and **inconclusive** — before the data is seen.
+`python -m src.quant.study.holdout --preflight` runs every gate and refuses on
+any blocking failure. There is no `--force`; the absence is deliberate.
+
+**An append-only research ledger.** Every experiment records whether it was
+allowed to influence model selection.
+[`docs/RESEARCH_LEDGER.md`](docs/RESEARCH_LEDGER.md) currently totals **46
+evaluations** across three entries — and any future significance claim must be
+discounted against that cumulative count, not against one study's 17.
+
+**Promotion on evidence, then on numbers.** The registry enforces two separate
+refusals: whether the required evidence *exists*, and what it *says*. Using the
+void study's own figures, a model with complete evidence is still refused —
+`cost_share_of_gross` 0.91 above the 0.75 ceiling, deflated Sharpe 0.0121 below
+the 0.95 floor. **37 entries, zero in production.**
+
+**Leaks caught by construction where possible, by probe where not.** Returns
+rather than back-adjusted prices; earnings gated on the announcement date with
+the before-open/after-close rule; every fitted transform scoped to a fold or a
+date. Where structure cannot guarantee it, a probe perturbs the future and
+asserts the past is bit-identical — *and* asserts the perturbation was felt, so
+a builder ignoring its input cannot pass.
+
+**UNKNOWN is a permitted answer.** Four claims in the audit are marked UNKNOWN —
+restatement detectability, pre-2017 delisting dates, vendor IV methodology, and
+when a reporting date was first published. None is replaced by an assumption.
 
 ### Point-in-time by construction, not by discipline
 
@@ -599,8 +652,17 @@ reason. The ones that came from a measured failure rather than a preference:
 - [`docs/backtesting.md`](docs/backtesting.md) — transaction costs, factor
   attribution, significance
 - [`docs/model-registry.md`](docs/model-registry.md) — gated promotion
+- [`docs/PRE_HOLDOUT_AUDIT.md`](docs/PRE_HOLDOUT_AUDIT.md) — the audit that
+  invalidated the study, what it found and what was fixed
+- [`docs/HOLDOUT_CONTRACT.md`](docs/HOLDOUT_CONTRACT.md) — the pre-registration
+  the holdout runner enforces
+- [`docs/RESEARCH_LEDGER.md`](docs/RESEARCH_LEDGER.md) — every experiment and its
+  cumulative multiple-testing exposure
+- [`docs/feature_audit.json`](docs/feature_audit.json) — per-feature provenance,
+  lookback, availability lag, fit scope and leakage test
 - [`docs/research-report.md`](docs/research-report.md) — the findings, including
-  the negative ones (generated from the study artifact, not transcribed)
+  the negative ones (generated from the study artifact, not transcribed).
+  **Superseded by the audit: its learned-model results are void**
 - [`docs/quant-leakage-prevention.md`](docs/quant-leakage-prevention.md) — every
   leak, its mechanism, and the test that would fail without it
 - [`docs/quant-experiments.md`](docs/quant-experiments.md) — the experiment

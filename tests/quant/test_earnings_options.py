@@ -265,3 +265,98 @@ def test_option_features_do_not_depend_on_future_snapshots(volatility_history):
         panel, build_option_features(extended, None)
     )["opt_iv"].iloc[0]
     assert before == pytest.approx(after)
+
+
+# ── as-of alignment regression ──────────────────────────────────────────────
+#
+# These exist because the original tests above PASSED while the join was
+# broken. They used a single symbol whose rows were already in date order, so a
+# date-sort was the identity and the misalignment was invisible. The panel the
+# builder actually produces is SYMBOL-MAJOR and multi-symbol, where sorting by
+# date permutes every row.
+
+
+def _interleaved_panel() -> pd.DataFrame:
+    """Symbol-major, multi-symbol — the shape the builder really emits."""
+    rows = []
+    for symbol in ("AAA", "BBB", "CCC"):
+        for offset in range(8):
+            rows.append({"date": Date(2024, 1, 5) + timedelta(days=7 * offset), "symbol": symbol})
+    return pd.DataFrame(rows)
+
+
+def test_asof_option_join_aligns_to_the_original_row_order():
+    """Each row must receive ITS OWN symbol's snapshot, not a positional neighbour.
+
+    `pandas.merge_asof` discards the left index and returns a fresh RangeIndex,
+    so `sort_index()` on the result is a no-op and `to_numpy()` writes
+    date-sorted values into a symbol-major frame. Every value lands on the
+    wrong row, and because the permutation is global a later observation can be
+    written onto an earlier row.
+    """
+    panel = _interleaved_panel()
+    # A distinct, constant IV per symbol makes any cross-symbol bleed obvious.
+    marker = {"AAA": 0.10, "BBB": 0.50, "CCC": 0.90}
+    volatility = pd.DataFrame(
+        [
+            {
+                "date": Date(2024, 1, 5), "symbol": symbol,
+                "iv_current": value, "hv_current": 0.25,
+                "iv_year_high": 1.0, "iv_year_low": 0.05, "iv_month_ago": value,
+            }
+            for symbol, value in marker.items()
+        ]
+    )
+    attached = attach_option_features(panel, build_option_features(volatility, None))
+    for symbol, expected in marker.items():
+        got = attached.loc[attached["symbol"] == symbol, "opt_iv"].dropna().unique()
+        assert list(got) == pytest.approx([expected]), (
+            f"{symbol} received {got}, expected {expected} — rows are misaligned"
+        )
+
+
+def test_asof_earnings_join_aligns_to_the_original_row_order():
+    # Panel dates must run past the announcement for the join to attach anything.
+    panel = _interleaved_panel()
+    marker = {"AAA": 1.0, "BBB": 2.0, "CCC": 4.0}
+    history = pd.DataFrame(
+        [
+            {"symbol": s, "period_end_date": Date(2023, 12, 31),
+             "reported": 1.0 + v, "estimate": 1.0}
+            for s, v in marker.items()
+        ]
+    )
+    # 28-day reporting lag: inside [MIN_REPORT_LAG_DAYS, MAX_REPORT_LAG_DAYS],
+    # so the period matches an announcement rather than being dropped.
+    calendar = pd.DataFrame(
+        [{"symbol": s, "date": Date(2024, 1, 28), "when": "Before market open"}
+         for s in marker]
+    )
+    events = build_earnings_events(history, calendar)
+    attached = attach_earnings_features(panel, events)
+    for symbol, expected in marker.items():
+        got = attached.loc[attached["symbol"] == symbol, "earn_surprise_pct"].dropna().unique()
+        assert list(got) == pytest.approx([expected]), (
+            f"{symbol} received {got}, expected {expected} — rows are misaligned"
+        )
+
+
+def test_asof_join_is_invariant_to_input_row_order():
+    """Shuffling the panel must not change any row's attached value."""
+    panel = _interleaved_panel()
+    volatility = pd.DataFrame(
+        [
+            {"date": Date(2024, 1, 5), "symbol": s, "iv_current": v, "hv_current": 0.25,
+             "iv_year_high": 1.0, "iv_year_low": 0.05, "iv_month_ago": v}
+            for s, v in {"AAA": 0.10, "BBB": 0.50, "CCC": 0.90}.items()
+        ]
+    )
+    features = build_option_features(volatility, None)
+
+    ordered = attach_option_features(panel, features).set_index(["symbol", "date"])["opt_iv"]
+    shuffled_panel = panel.sample(frac=1.0, random_state=7).reset_index(drop=True)
+    shuffled = attach_option_features(shuffled_panel, features).set_index(["symbol", "date"])["opt_iv"]
+
+    pd.testing.assert_series_equal(
+        ordered.sort_index(), shuffled.sort_index(), check_names=False
+    )

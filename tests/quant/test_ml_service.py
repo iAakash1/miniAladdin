@@ -198,3 +198,72 @@ def test_label_path_rejects_an_injection_shaped_value(client):
 def test_no_endpoint_leaks_a_filesystem_path_outside_the_research_root(client):
     payload = client.get("/api/ml/capabilities").json()
     assert payload["root"].startswith("data/research")
+
+
+# ── invalidated studies ─────────────────────────────────────────────────────
+#
+# A void result must never render as a finding. The artifact is deliberately
+# retained rather than deleted — removing it would erase the multiple-testing
+# exposure it created — so every surface that reads it has to carry the
+# retraction.
+
+
+def test_the_audited_study_is_marked_invalid():
+    from src.services.ml_service import INVALIDATED_STUDIES, study_validity
+
+    assert "ds-e691b48ca49deb16" in INVALIDATED_STUDIES
+    verdict = study_validity("ds-e691b48ca49deb16")
+    assert verdict["valid"] is False
+    assert "merge_asof" in verdict["reason"]
+    assert verdict["audit"].endswith("PRE_HOLDOUT_AUDIT.md")
+
+
+def test_an_unknown_study_version_is_treated_as_valid():
+    from src.services.ml_service import study_validity
+
+    assert study_validity("ds-something-else")["valid"] is True
+    assert study_validity(None)["valid"] is True
+
+
+def test_void_studies_lead_with_the_retraction(tmp_path):
+    """The retraction outranks every other verdict clause."""
+    from src.services import ml_service
+
+    path = _study_fixture(tmp_path)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["dataset"]["dataset_version"] = "ds-e691b48ca49deb16"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    ml_service.reset_for_tests()
+
+    result = ml_service.overview(tmp_path)
+    assert result["validity"]["valid"] is False
+    for headline in result["labels"]:
+        assert headline["verdict"].startswith("RESULT VOID")
+
+
+def test_surviving_baselines_are_not_marked_void(tmp_path):
+    """Single-feature passthroughs were unaffected and must say so."""
+    from src.services.ml_service import _verdict, study_validity
+
+    validity = study_validity("ds-e691b48ca49deb16")
+    report = {
+        "leaderboard": [
+            {"model_id": "baseline_momentum", "mean_ic": 0.0158, "ic_t_stat": 0.88},
+        ],
+        "backtests": {}, "factor_attribution": {}, "significance": {},
+    }
+    verdict = _verdict(report, "baseline_momentum", validity=validity)
+    assert verdict.startswith("RESULT VALID")
+    assert "not significant" in verdict
+
+
+def test_label_report_carries_validity(tmp_path):
+    from src.services import ml_service
+
+    path = _study_fixture(tmp_path)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["dataset"]["dataset_version"] = "ds-e691b48ca49deb16"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    ml_service.reset_for_tests()
+
+    assert ml_service.label_report("fwd_ret_21", tmp_path)["validity"]["valid"] is False

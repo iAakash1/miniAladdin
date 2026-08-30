@@ -43,6 +43,40 @@ logger = logging.getLogger("omnisignal.services.ml")
 DEFAULT_ROOT = Path("data/research")
 REPORT_NAME = "study.json"
 
+#: Study artifacts whose results a later audit invalidated.
+#:
+#: Keyed by dataset version, because that is what identifies the run. The study
+#: file is deliberately NOT deleted: removing it would erase the
+#: multiple-testing exposure it created, which docs/RESEARCH_LEDGER.md has to
+#: account for. Instead every surface that renders it says so, so a reader
+#: cannot encounter the numbers without the retraction attached.
+INVALIDATED_STUDIES: dict[str, dict[str, Any]] = {
+    "ds-e691b48ca49deb16": {
+        "reason": (
+            "pandas.merge_asof discards the left index, so both as-of joins wrote "
+            "values back positionally into a differently-ordered frame. 12 of the "
+            "39 features carried other rows' values, some from later dates."
+        ),
+        "audit": "docs/PRE_HOLDOUT_AUDIT.md",
+        "void_models": "every model consuming the full feature set",
+        "surviving_models": [
+            "baseline_momentum", "baseline_reversal", "baseline_low_volatility",
+        ],
+        "surviving_note": (
+            "Single-feature passthroughs of correctly-aligned price columns. "
+            "Neither is significant at |t| > 2."
+        ),
+    },
+}
+
+
+def study_validity(dataset_version: Optional[str]) -> dict[str, Any]:
+    """Whether a study's results may be presented as findings."""
+    record = INVALIDATED_STUDIES.get(dataset_version or "")
+    if record is None:
+        return {"valid": True}
+    return {"valid": False, "dataset_version": dataset_version, **record}
+
 #: Study artifacts are immutable outputs of a batch job, so a long TTL is
 #: correct: re-reading a 2 MB JSON per request would spend I/O to produce an
 #: identical answer. Invalidated by mtime, so a fresh study is picked up.
@@ -213,6 +247,7 @@ def overview(root: Path | str = DEFAULT_ROOT) -> dict[str, Any]:
     except MLUnavailable as error:
         return _unavailable(error)
 
+    validity = study_validity(study.get("dataset", {}).get("dataset_version"))
     labels = study.get("labels", {})
     headline: list[dict[str, Any]] = []
     for label, report in labels.items():
@@ -247,7 +282,7 @@ def overview(root: Path | str = DEFAULT_ROOT) -> dict[str, Any]:
                     .get("deflated_sharpe", {}).get("deflated_probability")
                 ),
                 "pbo": report.get("probability_of_backtest_overfitting", {}).get("pbo"),
-                "verdict": _verdict(report, model_id),
+                "verdict": _verdict(report, model_id, validity=validity),
             }
         )
 
@@ -255,6 +290,7 @@ def overview(root: Path | str = DEFAULT_ROOT) -> dict[str, Any]:
     rules = regimes.get("rules", {})
     return {
         "status": "available",
+        "validity": validity,
         "generated_at": study.get("generated_at"),
         "git_commit": study.get("git_commit"),
         "runtime_seconds": study.get("runtime_seconds"),
@@ -310,6 +346,7 @@ def label_report(label: str, root: Path | str = DEFAULT_ROOT) -> dict[str, Any]:
 
     return {
         "status": "available",
+        "validity": study_validity(study.get("dataset", {}).get("dataset_version")),
         "label": label,
         "horizon_sessions": report.get("horizon_sessions"),
         "walk_forward": report.get("walk_forward_plan", {}),
@@ -448,7 +485,12 @@ def _current_regime(study: dict[str, Any]) -> Optional[str]:
     return max(distribution, key=distribution.get) if distribution else None
 
 
-def _verdict(report: dict[str, Any], model_id: Optional[str]) -> str:
+def _verdict(
+    report: dict[str, Any],
+    model_id: Optional[str],
+    *,
+    validity: Optional[dict[str, Any]] = None,
+) -> str:
     """A one-line reading that cannot overstate what was measured.
 
     Deliberately conservative and ordered by severity: the strongest available
@@ -457,6 +499,22 @@ def _verdict(report: dict[str, Any], model_id: Optional[str]) -> str:
     """
     if not model_id:
         return "No model produced predictions."
+
+    # A retraction outranks every other finding. Rendering "survives every test"
+    # for a model fitted on a corrupted matrix would be the worst possible
+    # failure of this surface.
+    if validity and not validity.get("valid", True):
+        surviving = set(validity.get("surviving_models", []))
+        if model_id in surviving:
+            return (
+                f"RESULT VALID but not significant. {model_id} is a single-feature "
+                "passthrough unaffected by the join defect that voided this study; "
+                f"see {validity.get('audit')}."
+            )
+        return (
+            f"RESULT VOID — this study was invalidated by a later audit. "
+            f"{validity.get('reason')} See {validity.get('audit')}."
+        )
 
     leaderboard = {row["model_id"]: row for row in report.get("leaderboard", [])}
     row = leaderboard.get(model_id, {})

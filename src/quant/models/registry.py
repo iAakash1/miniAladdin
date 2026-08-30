@@ -84,7 +84,50 @@ PROMOTION_GATES: dict[str, list[tuple[str, str]]] = {
         ("factor_attribution", "a factor-model attribution of its returns"),
         ("holdout_metrics", "metrics on the untouched holdout period"),
         ("regime_stability", "performance broken out by market regime"),
+        ("multiple_testing", "a trial-count-adjusted significance test"),
+        ("leakage_evidence", "a passing contamination probe for this dataset version"),
+        ("stability_evidence", "fold-level dispersion and feature-importance stability"),
+        ("turnover_evidence", "turnover and cost share of gross return"),
+        ("reproducibility", "seed, dataset hash, git commit and dependency versions"),
     ],
+}
+
+#: Numeric bars a `production` promotion must clear, on the HOLDOUT.
+#:
+#: Separate from `PROMOTION_GATES` because those check that evidence *exists*
+#: while these check what the evidence *says*. A model can supply every required
+#: artifact and still fail here, which is the common case and the point.
+PRODUCTION_THRESHOLDS: dict[str, dict[str, Any]] = {
+    "holdout_ic_t_stat": {
+        "minimum": 2.0, "absolute": True,
+        "why": "Newey-West corrected for label overlap; below this the IC is not "
+               "distinguishable from zero.",
+    },
+    "holdout_net_sharpe": {
+        "minimum": 0.0,
+        "why": "At a 10 bp half-spread with a one-period execution lag. A signal "
+               "that only survives 1 bp is a signal about the cost assumption.",
+    },
+    "beats_best_baseline": {
+        "minimum": True,
+        "why": "Measured on the same holdout. A learned model that loses to a 1993 "
+               "factor has rediscovered it expensively.",
+    },
+    "sign_matches_validation": {
+        "minimum": True,
+        "why": "An equal-and-opposite holdout result is not a success at any "
+               "magnitude; it is evidence the validation result was noise.",
+    },
+    "cost_share_of_gross": {
+        "maximum": 0.75,
+        "why": "Above this the strategy is a transaction-cost bet. EXP-002's "
+               "candidates sat at 0.91 and 2.54.",
+    },
+    "deflated_sharpe_probability": {
+        "minimum": 0.95,
+        "why": "Against the CUMULATIVE trial count in docs/RESEARCH_LEDGER.md, "
+               "not the count from a single study.",
+    },
 }
 
 
@@ -119,6 +162,17 @@ class ModelEntry:
     factor_attribution: dict[str, Any] = field(default_factory=dict)
     holdout_metrics: dict[str, Any] = field(default_factory=dict)
     regime_stability: dict[str, Any] = field(default_factory=dict)
+    #: Trial-count-adjusted significance. The count must come from the CUMULATIVE
+    #: ledger total, not from one study — see docs/RESEARCH_LEDGER.md.
+    multiple_testing: dict[str, Any] = field(default_factory=dict)
+    #: A passing contamination probe for this dataset version.
+    leakage_evidence: dict[str, Any] = field(default_factory=dict)
+    #: Fold-level dispersion and feature-importance stability.
+    stability_evidence: dict[str, Any] = field(default_factory=dict)
+    #: Turnover and cost share of gross return.
+    turnover_evidence: dict[str, Any] = field(default_factory=dict)
+    #: Seed, dataset hash, git commit, dependency versions.
+    reproducibility: dict[str, Any] = field(default_factory=dict)
 
     experiments_run: int = 0
     git_commit: str = ""
@@ -148,6 +202,31 @@ class ModelEntry:
             if not getattr(self, attribute, None)
         ]
 
+    def thresholds_not_met(self) -> dict[str, Any]:
+        """Production thresholds this entry's recorded numbers fail.
+
+        A threshold with no recorded value counts as unmet: absent evidence is
+        not passing evidence, and treating it as such is exactly how an
+        unmeasured model reaches production.
+        """
+        unmet: dict[str, Any] = {}
+        for name, rule in PRODUCTION_THRESHOLDS.items():
+            value = self.holdout_metrics.get(name)
+            if value is None:
+                unmet[name] = "not recorded"
+                continue
+            if "minimum" in rule:
+                bound = rule["minimum"]
+                observed = abs(value) if rule.get("absolute") and isinstance(value, (int, float)) else value
+                if isinstance(bound, bool):
+                    if observed is not True:
+                        unmet[name] = observed
+                elif observed < bound:
+                    unmet[name] = observed
+            if "maximum" in rule and isinstance(value, (int, float)) and value > rule["maximum"]:
+                unmet[name] = value
+        return unmet
+
     def as_dict(self) -> dict[str, Any]:
         return {
             "key": self.key,
@@ -171,6 +250,12 @@ class ModelEntry:
             "factor_attribution": dict(self.factor_attribution),
             "holdout_metrics": dict(self.holdout_metrics),
             "regime_stability": dict(self.regime_stability),
+            "multiple_testing": dict(self.multiple_testing),
+            "leakage_evidence": dict(self.leakage_evidence),
+            "stability_evidence": dict(self.stability_evidence),
+            "turnover_evidence": dict(self.turnover_evidence),
+            "reproducibility": dict(self.reproducibility),
+            "thresholds_not_met": self.thresholds_not_met(),
             "experiments_run": self.experiments_run,
             "git_commit": self.git_commit,
             "dependency_versions": dict(self.dependency_versions),
@@ -187,7 +272,12 @@ class ModelEntry:
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> "ModelEntry":
-        data = {k: v for k, v in payload.items() if k not in {"key", "eligible_for"}}
+        # `key`, `eligible_for` and `thresholds_not_met` are DERIVED — they are
+        # emitted for readers and recomputed on load. Feeding them back to the
+        # constructor would both fail and, worse, let a stale computed value
+        # persist across a round trip.
+        derived = {"key", "eligible_for", "thresholds_not_met"}
+        data = {k: v for k, v in payload.items() if k not in derived}
         return cls(**data)
 
 
@@ -256,7 +346,12 @@ class ModelRegistry:
         return [entry for entry in self._entries.values() if entry.status == status]
 
     def promote(self, key: str, status: str, *, reason: str = "") -> ModelEntry:
-        """Change a model's status, refusing when the evidence is not there."""
+        """Change a model's status, refusing when the evidence is not there.
+
+        Two distinct refusals. `PROMOTION_GATES` asks whether the required
+        evidence *exists*; `PRODUCTION_THRESHOLDS` asks what it *says*. A model
+        can satisfy the first and fail the second, which is the ordinary case.
+        """
         if status not in STATUSES:
             raise ValueError(f"unknown status {status!r}")
         entry = self.get(key)
@@ -267,6 +362,18 @@ class ModelRegistry:
                 raise PromotionRefused(
                     f"{key} cannot become {status}: missing {', '.join(missing)}. "
                     "A model is promoted on evidence, not on the best backtest number."
+                )
+
+        if status == "production":
+            unmet = entry.thresholds_not_met()
+            if unmet:
+                lines = "; ".join(
+                    f"{name} = {value} ({PRODUCTION_THRESHOLDS[name]['why']})"
+                    for name, value in unmet.items()
+                )
+                raise PromotionRefused(
+                    f"{key} supplies the required evidence but does not clear the "
+                    f"production thresholds: {lines}"
                 )
 
         previous = entry.status

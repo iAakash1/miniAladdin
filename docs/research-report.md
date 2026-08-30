@@ -1,5 +1,19 @@
 # Research Report — Cross-Sectional Return Prediction
 
+> **SUPERSEDED — the learned-model results below are VOID.**
+>
+> A pre-holdout audit found that `pandas.merge_asof` discards the left index,
+> so both as-of joins wrote values back positionally into a differently-ordered
+> frame. 12 of the 39 features used here carried other rows' values, some from
+> later dates. Every model that consumed the full feature set is invalidated;
+> the three single-feature baselines (`baseline_momentum`,
+> `baseline_reversal`, `baseline_low_volatility`) are unaffected and remain
+> valid. See [`PRE_HOLDOUT_AUDIT.md`](PRE_HOLDOUT_AUDIT.md).
+>
+> This document is retained unedited. Deleting it would erase the
+> multiple-testing exposure it created, which is recorded in
+> [`RESEARCH_LEDGER.md`](RESEARCH_LEDGER.md).
+
 > Generated from `data/research/reports/study.json` by
 > `scripts/quant/report.py`. Every figure is read from the artifact; none
 > is transcribed. A report whose numbers are retyped drifts from the run

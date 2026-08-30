@@ -72,6 +72,25 @@ class BacktestConfig:
     max_weight: float = 0.10
     min_names: int = MIN_NAMES
 
+    #: Rebalance periods between observing a signal and acting on it.
+    #:
+    #: 0 means the position is formed at the close of the session the signal was
+    #: computed from — the signal uses that close, and trades at it. That is the
+    #: common convention and it is not achievable: the close is not knowable
+    #: until the session ends, and an order placed on it is an order placed in
+    #: the past.
+    #:
+    #: 1 means the signal from period `t` is acted on in period `t + 1`. At the
+    #: default 5-session stride that is a full trading week of delay, which is
+    #: *more* conservative than reality (a close-to-next-open fill is one
+    #: session), and deliberately so: it is the pessimistic bound, and a signal
+    #: that survives it survives any realistic fill.
+    #:
+    #: Both are reported. `docs/HOLDOUT_CONTRACT.md` pre-registers 1 as the
+    #: primary and 0 as a diagnostic, so the more flattering number can never be
+    #: the one chosen after the fact.
+    execution_lag_periods: int = 1
+
     def as_dict(self) -> dict[str, Any]:
         return {
             "quantiles": self.quantiles,
@@ -80,6 +99,11 @@ class BacktestConfig:
             "rebalance_step_sessions": self.rebalance_step_sessions,
             "max_weight": self.max_weight,
             "min_names": self.min_names,
+            "execution_lag_periods": self.execution_lag_periods,
+            "execution_lag_note": (
+                "0 = trade at the close the signal was computed from (not achievable); "
+                "1 = act one full rebalance period later (pessimistic bound)."
+            ),
             "costs": self.cost_model.assumptions(),
         }
 
@@ -140,6 +164,12 @@ def run_backtest(
     merge_columns = [date_column, symbol_column, forward_column]
     if "dollar_volume" in returns_panel.columns:
         merge_columns.append("dollar_volume")
+
+    predictions = _apply_execution_lag(
+        predictions, config.execution_lag_periods,
+        prediction_column=prediction_column,
+        date_column=date_column, symbol_column=symbol_column,
+    )
     frame = predictions.merge(
         returns_panel[merge_columns], on=[date_column, symbol_column], how="inner"
     )
@@ -221,6 +251,36 @@ def run_backtest(
     return BacktestResult(
         periods=periods, metrics=metrics, config=config.as_dict(), warnings=warnings
     )
+
+
+def _apply_execution_lag(
+    predictions: pd.DataFrame,
+    periods: int,
+    *,
+    prediction_column: str,
+    date_column: str,
+    symbol_column: str,
+) -> pd.DataFrame:
+    """Carry each symbol's prediction forward by `periods` rebalance dates.
+
+    The prediction attached to date `d` becomes the prediction that was made
+    `periods` rebalances earlier, so the book acts on information it demonstrably
+    already had. Shifting per symbol rather than globally matters: symbols enter
+    and leave the universe, and a global shift would hand one name's signal to
+    another.
+
+    The first `periods` observations of each symbol have no prior signal and are
+    dropped rather than filled — a forward-filled first signal would be an
+    invented view.
+    """
+    if periods <= 0:
+        return predictions
+
+    frame = predictions.sort_values([symbol_column, date_column], kind="mergesort").copy()
+    frame[prediction_column] = frame.groupby(symbol_column, sort=False)[
+        prediction_column
+    ].shift(periods)
+    return frame.dropna(subset=[prediction_column]).reset_index(drop=True)
 
 
 def _quantile_weights(

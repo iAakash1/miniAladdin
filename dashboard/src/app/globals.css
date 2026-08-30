@@ -5264,3 +5264,34 @@ a.hl-row:hover .hl-row__out { color: var(--accent); transform: translate(1px, -1
   .ml-explain__bars li { grid-template-columns: 1fr auto; }
   .ml-explain__bar { display: none; }
 }
+
+/* A retraction banner, not a toast.
+ *
+ * It sits above the page header and stays: a dismissible notice on a void
+ * result is a notice that will be dismissed, and the numbers underneath it
+ * read as findings the moment it is gone. */
+.ml-retraction {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  margin-bottom: var(--sp-4, 16px);
+  border: 1px solid var(--neg, #c0392b);
+  border-left-width: 3px;
+  border-radius: var(--r-2, 8px);
+  background: color-mix(in srgb, var(--neg, #c0392b) 7%, var(--surface));
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+.ml-retraction code {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.75rem;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: var(--surface-2);
+}
+
+/* Void results stay legible but visibly demoted — they are evidence about a
+   process, not about a market. */
+.ml-void { opacity: 0.62; filter: saturate(0.5); }

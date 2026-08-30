@@ -39,8 +39,17 @@ const API = process.env.NEXT_PUBLIC_API_URL ?? ''
 
 // ── contracts ────────────────────────────────────────────────────────────────
 
+interface Validity {
+  valid: boolean
+  reason?: string
+  audit?: string
+  surviving_models?: string[]
+  surviving_note?: string
+}
+
 interface Overview {
   status: string
+  validity?: Validity
   reason?: string
   remediation?: string
   generated_at?: string
@@ -154,6 +163,7 @@ interface ModelRow {
 
 interface LabelReport {
   status: string
+  validity?: Validity
   reason?: string
   label?: string
   horizon_sessions?: number
@@ -299,6 +309,28 @@ export default function ModelIntelligenceView() {
 
   return (
     <>
+      {overview.validity && !overview.validity.valid && (
+        <div className="ml-retraction" role="alert">
+          <StatusPill tone="neg" label="results void" />
+          <div>
+            <strong>This study was invalidated by a later audit.</strong>{' '}
+            {overview.validity.reason}
+            {overview.validity.surviving_models?.length ? (
+              <>
+                {' '}Unaffected and still valid:{' '}
+                {overview.validity.surviving_models.map((m) => (
+                  <code key={m}>{m}</code>
+                ))}
+                . {overview.validity.surviving_note}
+              </>
+            ) : null}{' '}
+            The artifact is retained rather than deleted, because removing it would
+            erase the multiple-testing exposure it created. See{' '}
+            <code>{overview.validity.audit}</code>.
+          </div>
+        </div>
+      )}
+
       <PageHeader
         eyebrow="Research"
         title="Model Intelligence"
@@ -382,7 +414,7 @@ export default function ModelIntelligenceView() {
             share of folds with a positive IC; a model at 0.05 in every fold is a
             different proposition from one averaging 0.05 out of +0.20 and −0.10.
           </p>
-          <div className="ml-scroll">
+          <div className={`ml-scroll${report.validity && !report.validity.valid ? ' ml-void' : ''}`}>
             <table className="data-table ml-table">
               <thead>
                 <tr>

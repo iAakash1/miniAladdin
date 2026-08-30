@@ -311,3 +311,94 @@ def test_a_universe_with_exits_passes():
         _FakeSnapshot(Date(2020, 3, 31), ["C", "D"]),
     ])
     assert_universe_is_point_in_time(realistic).raise_for_status()
+
+
+# ── holdout contamination ───────────────────────────────────────────────────
+#
+# The probe that found the as-of join defect. It makes no assumption about how
+# a feature is computed: any path from a holdout observation to a pre-holdout
+# value changes a number here. Kept as a standing test rather than a one-off
+# investigation, on synthetic data so it runs without the ingested corpus.
+
+
+def test_a_builder_whose_output_depends_on_the_range_is_caught():
+    """A transform fitted over the whole sample must fail the contamination probe.
+
+    This is the shape of the real defect: a value computed for an early row
+    that changes when later rows are appended. Detected by comparing a
+    truncated build against a full one, not by inspecting the code.
+    """
+    source = _series(400)
+    cutoff = source["date"].iloc[300]
+
+    def globally_scaled(frame: pd.DataFrame) -> pd.DataFrame:
+        out = frame.copy()
+        # Standardised against the WHOLE frame — the classic normalisation leak.
+        values = pd.to_numeric(frame["total_return"], errors="coerce")
+        out["value"] = (values - values.mean()) / values.std(ddof=1)
+        return out
+
+    full = globally_scaled(source)
+    truncated = globally_scaled(source[source["date"] <= cutoff])
+
+    a = full[full["date"] <= cutoff]["value"].to_numpy()
+    b = truncated["value"].to_numpy()
+    assert not np.allclose(a, b), (
+        "the probe must detect a globally-fitted transform; if this passes the "
+        "probe cannot detect the very defect it exists for"
+    )
+
+
+def test_a_backward_only_builder_survives_truncation():
+    """The clean counterpart: a rolling window is unchanged by later rows."""
+    source = _series(400)
+    cutoff = source["date"].iloc[300]
+
+    def rolling_only(frame: pd.DataFrame) -> pd.DataFrame:
+        out = frame.copy()
+        out["value"] = frame["total_return"].rolling(21, min_periods=21).mean()
+        return out
+
+    full = rolling_only(source)
+    truncated = rolling_only(source[source["date"] <= cutoff])
+    a = full[full["date"] <= cutoff]["value"].to_numpy()
+    b = truncated["value"].to_numpy()
+    assert np.array_equal(np.isnan(a), np.isnan(b))
+    both = ~np.isnan(a)
+    assert np.allclose(a[both], b[both])
+
+
+def test_execution_lag_prevents_trading_on_the_observed_close():
+    """A position must not be formed from the close it was computed from."""
+    from src.quant.backtest.engine import _apply_execution_lag
+
+    dates = [Date(2024, 1, 5) + timedelta(days=7 * i) for i in range(5)]
+    frame = pd.DataFrame(
+        [{"date": d, "symbol": s, "prediction": float(i)}
+         for s in ("A", "B") for i, d in enumerate(dates)]
+    )
+    lagged = _apply_execution_lag(
+        frame, 1, prediction_column="prediction",
+        date_column="date", symbol_column="symbol",
+    )
+    for symbol in ("A", "B"):
+        rows = lagged[lagged["symbol"] == symbol].sort_values("date")
+        # The signal attached to date d is the one from the previous rebalance.
+        assert rows["prediction"].tolist() == [0.0, 1.0, 2.0, 3.0]
+        assert rows["date"].tolist() == dates[1:]
+
+
+def test_execution_lag_does_not_borrow_another_symbols_signal():
+    from src.quant.backtest.engine import _apply_execution_lag
+
+    dates = [Date(2024, 1, 5) + timedelta(days=7 * i) for i in range(3)]
+    frame = pd.DataFrame(
+        [{"date": d, "symbol": "A", "prediction": 1.0} for d in dates]
+        + [{"date": d, "symbol": "B", "prediction": 99.0} for d in dates]
+    )
+    lagged = _apply_execution_lag(
+        frame, 1, prediction_column="prediction",
+        date_column="date", symbol_column="symbol",
+    )
+    assert set(lagged[lagged["symbol"] == "A"]["prediction"]) == {1.0}
+    assert set(lagged[lagged["symbol"] == "B"]["prediction"]) == {99.0}

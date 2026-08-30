@@ -42,7 +42,7 @@ option market, not a directional forecast, and is included on that basis.
 from __future__ import annotations
 
 import logging
-from typing import Optional
+from typing import Optional, Sequence
 
 import numpy as np
 import pandas as pd
@@ -144,6 +144,63 @@ def build_option_features(
     return merged.sort_values(["date", "symbol"]).reset_index(drop=True)
 
 
+def _asof_aligned(
+    left: pd.DataFrame,
+    right: pd.DataFrame,
+    *,
+    left_on: str,
+    right_on: str,
+    by: str,
+    columns: Sequence[str],
+) -> pd.DataFrame:
+    """Backward as-of merge that returns values aligned to `left`'s ORIGINAL index.
+
+    `pandas.merge_asof` requires its left frame sorted by the merge key and
+    returns a result carrying a fresh `RangeIndex` — the original index is
+    discarded, not preserved. That makes the natural-looking
+
+        merged = pd.merge_asof(left.sort_values(key), right, ...)
+        out[name] = merged[name].sort_index().to_numpy()
+
+    silently wrong: `sort_index()` sorts a RangeIndex that is already ordered,
+    so the values are written back in DATE-SORTED order into a frame that is in
+    SYMBOL-MAJOR order. Every value lands on the wrong row.
+
+    This is not merely noise. The panel arrives symbol-major, so sorting by date
+    permutes it globally, and a 2026 observation can be written onto a 2014 row —
+    future information travelling backwards. It was found by
+    `tests/quant/test_leakage.py::test_asof_joins_align_to_the_original_index`
+    and by building the dataset with and without the holdout period and finding
+    24 features whose NULL patterns differed.
+
+    The fix carries the original index through the merge as an explicit column
+    and reindexes on the way out, so alignment is by label rather than by
+    position.
+    """
+    marker = "__origin_index__"
+    staged = left.copy()
+    staged[marker] = np.arange(len(staged))
+    staged = staged.sort_values(left_on, kind="mergesort")
+
+    merged = pd.merge_asof(
+        staged,
+        right,
+        left_on=left_on,
+        right_on=right_on,
+        left_by=by,
+        right_by=by,
+        direction="backward",
+    )
+    # Restore the caller's row order by the marker, not by a reset RangeIndex.
+    merged = merged.sort_values(marker, kind="mergesort").reset_index(drop=True)
+    if len(merged) != len(left):
+        raise ValueError(
+            f"as-of merge changed the row count ({len(left)} -> {len(merged)}); "
+            "a duplicate key on the right side would silently fan out rows"
+        )
+    return merged
+
+
 def _match_key_dtype(left: pd.DataFrame, right: pd.DataFrame, column: str) -> None:
     """Force both merge keys to plain object dtype, in place.
 
@@ -185,26 +242,22 @@ def attach_option_features(
     # NULLs we started with.
     left = out.drop(columns=[c for c in feature_names if c in out.columns], errors="ignore").copy()
     left["_date"] = pd.to_datetime(left[date_column])
-    left = left.sort_values("_date", kind="mergesort")
 
     right = option_features.copy()
     right["_opt_date"] = pd.to_datetime(right["date"])
     right = right.sort_values("_opt_date", kind="mergesort")
     _match_key_dtype(left, right, symbol_column)
     _match_key_dtype(left, right, "symbol")
+    if symbol_column != "symbol":
+        left = left.rename(columns={symbol_column: "symbol"})
 
-    merged = pd.merge_asof(
+    merged = _asof_aligned(
         left,
         right[["symbol", "_opt_date", *feature_names]],
-        left_on="_date",
-        right_on="_opt_date",
-        left_by=symbol_column,
-        right_by="symbol",
-        direction="backward",
+        left_on="_date", right_on="_opt_date", by="symbol", columns=feature_names,
     )
     staleness = (merged["_date"] - merged["_opt_date"]).dt.days
     fresh = staleness <= max_staleness_days
-    merged = merged.sort_index()
 
     for name in feature_names:
         out[name] = merged[name].where(fresh).to_numpy()

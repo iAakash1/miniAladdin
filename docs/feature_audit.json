@@ -1,0 +1,3343 @@
+{
+  "schema_version": 1,
+  "feature_count": 67,
+  "declared_unsafe": [],
+  "requires_fitting": [
+    "acceleration_xs",
+    "amihud_21_xs",
+    "dist_52w_high_xs",
+    "downside_vol_63_xs",
+    "earn_days_since_xs",
+    "earn_sue_xs",
+    "earn_surprise_pct_xs",
+    "earn_surprise_sign_xs",
+    "log_dollar_volume_21_xs",
+    "ma_gap_xs",
+    "max_drawdown_252_xs",
+    "mom_21_xs",
+    "mom_252_21_xs",
+    "mom_63_xs",
+    "opt_expirations_xs",
+    "opt_iv_xs",
+    "opt_iv_change_21_xs",
+    "opt_iv_minus_hv_xs",
+    "opt_iv_rank_xs",
+    "opt_rel_spread_xs",
+    "opt_skew_25d_xs",
+    "opt_term_slope_xs",
+    "reversal_5_xs",
+    "trend_strength_63_xs",
+    "vol_21_xs",
+    "vol_63_xs",
+    "vol_ratio_xs",
+    "volume_shock_xs"
+  ],
+  "fit_scopes": [
+    "per_date_within_point_in_time_universe"
+  ],
+  "groups": {
+    "price": 5,
+    "volume": 3,
+    "structure": 3,
+    "volatility": 5,
+    "cross_sectional": 28,
+    "macro": 11,
+    "options": 8,
+    "fundamental": 4
+  },
+  "features": [
+    {
+      "feature": "acceleration",
+      "base_feature": null,
+      "group": "price",
+      "description": "Trailing-month return minus the quarter-return ending a month ago.",
+      "rationale": "Separates a strengthening trend from a decaying one at equal total return.",
+      "formula": "r_21(T) - r_63(T - 21)",
+      "raw_fields": [
+        "total_return"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_split",
+          "repository": "stocks",
+          "table": "split",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_dividend",
+          "repository": "stocks",
+          "table": "dividend",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 84,
+      "earliest_required_observation_sessions_before": 84,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "A centred window, a negative shift, or min_periods below the full window would let a later bar reach an earlier row.",
+      "leakage_test": "tests/quant/test_leakage.py::test_no_registered_feature_depends_on_the_future",
+      "direction_hypothesis": "two_sided",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": false
+    },
+    {
+      "feature": "amihud_21",
+      "base_feature": null,
+      "group": "volume",
+      "description": "Log Amihud illiquidity over 21 sessions.",
+      "rationale": "Price impact per dollar traded; the standard illiquidity premium proxy.",
+      "formula": "log(mean(|r| / dollar_volume * 1e6, 21))",
+      "raw_fields": [
+        "total_return",
+        "dollar_volume"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 21,
+      "earliest_required_observation_sessions_before": 21,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "As price. Note amihud_21 is a RATIO of two perturbed inputs, so a uniform-scale leakage probe cancels inside it and proves nothing; the probe uses distinct per-column factors.",
+      "leakage_test": "tests/quant/test_leakage.py::test_no_registered_feature_depends_on_the_future",
+      "direction_hypothesis": "positive",
+      "citation": "Amihud (2002)",
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": false
+    },
+    {
+      "feature": "dist_52w_high",
+      "base_feature": null,
+      "group": "structure",
+      "description": "Fractional distance below the trailing-year high (<= 0).",
+      "rationale": "Carries information beyond momentum; anchoring to a salient level.",
+      "formula": "index_T / max(index over 252) - 1",
+      "raw_fields": [
+        "total_return"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_split",
+          "repository": "stocks",
+          "table": "split",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_dividend",
+          "repository": "stocks",
+          "table": "dividend",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 252,
+      "earliest_required_observation_sessions_before": 252,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "As price.",
+      "leakage_test": "tests/quant/test_leakage.py::test_no_registered_feature_depends_on_the_future",
+      "direction_hypothesis": "positive",
+      "citation": "George & Hwang (2004)",
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": false
+    },
+    {
+      "feature": "downside_vol_63",
+      "base_feature": null,
+      "group": "volatility",
+      "description": "Downside deviation over 63 sessions, annualised.",
+      "rationale": "Investors do not experience upside and downside variance alike.",
+      "formula": "sqrt(mean(min(r, 0)^2, 63)) * sqrt(252)",
+      "raw_fields": [
+        "total_return"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_split",
+          "repository": "stocks",
+          "table": "split",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_dividend",
+          "repository": "stocks",
+          "table": "dividend",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 63,
+      "earliest_required_observation_sessions_before": 63,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "As price: a forward-looking window.",
+      "leakage_test": "tests/quant/test_leakage.py::test_no_registered_feature_depends_on_the_future",
+      "direction_hypothesis": "negative",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": false
+    },
+    {
+      "feature": "earn_days_since",
+      "base_feature": null,
+      "group": "fundamental",
+      "description": "Approximate trading sessions since the latest available print.",
+      "rationale": "Drift decays. A surprise 5 sessions old and one 55 sessions old are different signals and the model should be able to tell them apart.",
+      "formula": "(observation date - availability date) in calendar days x 5/7",
+      "raw_fields": [
+        "reported"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 1,
+      "earliest_required_observation_sessions_before": 2,
+      "availability_lag_sessions": 1,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "The largest in the corpus. eps_history is keyed by period end with no announcement date; used raw it inserts a quarter's result ~30 days before it was public (measured on AAPL). Closed by joining to earnings_calendar and honouring the before-open / after-close session rule. Also subject to the merge_asof alignment defect above.",
+      "leakage_test": "tests/quant/test_earnings_options.py::test_attached_features_never_precede_availability",
+      "direction_hypothesis": "negative",
+      "citation": null,
+      "version": "1.0",
+      "notes": [
+        "Calendar-to-session conversion is approximate and used only as a staleness cut-off."
+      ],
+      "used_in_study": false
+    },
+    {
+      "feature": "earn_sue",
+      "base_feature": null,
+      "group": "fundamental",
+      "description": "Standardised unexpected earnings: surprise over its own trailing dispersion.",
+      "rationale": "Scales the surprise by the firm's own history of surprises, so a 2-cent beat is read against how tightly that company usually lands.",
+      "formula": "(reported - estimate) / std(prior surprises, expanding, >= 4 observations)",
+      "raw_fields": [
+        "reported",
+        "estimate"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 1,
+      "earliest_required_observation_sessions_before": 2,
+      "availability_lag_sessions": 1,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "The largest in the corpus. eps_history is keyed by period end with no announcement date; used raw it inserts a quarter's result ~30 days before it was public (measured on AAPL). Closed by joining to earnings_calendar and honouring the before-open / after-close session rule. Also subject to the merge_asof alignment defect above.",
+      "leakage_test": "tests/quant/test_earnings_options.py::test_attached_features_never_precede_availability",
+      "direction_hypothesis": "positive",
+      "citation": "Foster, Olsen & Shevlin (1984)",
+      "version": "1.0",
+      "notes": [
+        "The denominator uses PRIOR surprises only \u2014 shift(1) before the expanding window."
+      ],
+      "used_in_study": false
+    },
+    {
+      "feature": "earn_surprise_pct",
+      "base_feature": null,
+      "group": "fundamental",
+      "description": "Latest EPS surprise as a fraction of |estimate|, available from the print.",
+      "rationale": "Post-earnings-announcement drift: prices continue in the direction of the surprise for weeks after the print. One of the most replicated cross-sectional effects there is.",
+      "formula": "(reported - estimate) / |estimate|, attached from the announcement's availability date",
+      "raw_fields": [
+        "reported",
+        "estimate"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 1,
+      "earliest_required_observation_sessions_before": 2,
+      "availability_lag_sessions": 1,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "The largest in the corpus. eps_history is keyed by period end with no announcement date; used raw it inserts a quarter's result ~30 days before it was public (measured on AAPL). Closed by joining to earnings_calendar and honouring the before-open / after-close session rule. Also subject to the merge_asof alignment defect above.",
+      "leakage_test": "tests/quant/test_earnings_options.py::test_attached_features_never_precede_availability",
+      "direction_hypothesis": "positive",
+      "citation": "Ball & Brown (1968); Bernard & Thomas (1989)",
+      "version": "1.0",
+      "notes": [
+        "NULL when |estimate| <= 0.01 \u2014 a ratio to a near-zero denominator is not a surprise.",
+        "NULL beyond 63 sessions after the print; drift is a quarter-horizon effect."
+      ],
+      "used_in_study": false
+    },
+    {
+      "feature": "earn_surprise_sign",
+      "base_feature": null,
+      "group": "fundamental",
+      "description": "Sign of the latest available surprise (-1, 0, +1).",
+      "rationale": "Separates direction from magnitude. Part of the drift literature finds the sign carries most of the effect and the magnitude adds little.",
+      "formula": "sign(surprise_pct)",
+      "raw_fields": [
+        "reported",
+        "estimate"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 1,
+      "earliest_required_observation_sessions_before": 2,
+      "availability_lag_sessions": 1,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "The largest in the corpus. eps_history is keyed by period end with no announcement date; used raw it inserts a quarter's result ~30 days before it was public (measured on AAPL). Closed by joining to earnings_calendar and honouring the before-open / after-close session rule. Also subject to the merge_asof alignment defect above.",
+      "leakage_test": "tests/quant/test_earnings_options.py::test_attached_features_never_precede_availability",
+      "direction_hypothesis": "positive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": false
+    },
+    {
+      "feature": "log_dollar_volume_21",
+      "base_feature": null,
+      "group": "volume",
+      "description": "Log of mean daily dollar volume over 21 sessions.",
+      "rationale": "Liquidity and size control; split-invariant by construction.",
+      "formula": "log(mean(close * volume, 21))",
+      "raw_fields": [
+        "dollar_volume"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 21,
+      "earliest_required_observation_sessions_before": 21,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "As price. Note amihud_21 is a RATIO of two perturbed inputs, so a uniform-scale leakage probe cancels inside it and proves nothing; the probe uses distinct per-column factors.",
+      "leakage_test": "tests/quant/test_leakage.py::test_no_registered_feature_depends_on_the_future",
+      "direction_hypothesis": "descriptive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": false
+    },
+    {
+      "feature": "ma_gap",
+      "base_feature": null,
+      "group": "structure",
+      "description": "Log-index 21-session mean minus 126-session mean.",
+      "rationale": "Trend state as a level rather than a crossing event.",
+      "formula": "mean(log_index, 21) - mean(log_index, 126)",
+      "raw_fields": [
+        "total_return"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_split",
+          "repository": "stocks",
+          "table": "split",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_dividend",
+          "repository": "stocks",
+          "table": "dividend",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 126,
+      "earliest_required_observation_sessions_before": 126,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "As price.",
+      "leakage_test": "tests/quant/test_leakage.py::test_no_registered_feature_depends_on_the_future",
+      "direction_hypothesis": "positive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": false
+    },
+    {
+      "feature": "market_drawdown",
+      "base_feature": null,
+      "group": "macro",
+      "description": "Market drawdown from its trailing-year peak, positive.",
+      "rationale": "Stress state; distinguishes a fall from a low-return period.",
+      "formula": "1 - index / max(index over 252)",
+      "raw_fields": [
+        "total_return"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_rates_us_treasury",
+          "repository": "rates",
+          "table": "us_treasury",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 252,
+      "earliest_required_observation_sessions_before": 252,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "The Treasury curve is published after the close of the day it describes, so a same-day read is a one-session leak. Applied once in lagged_macro_frame. Market-regime features are rolling windows over the daily cross-sectional mean and must be computed BEFORE the observation stride \u2014 computing them after would make a 252-row window span 1,260 sessions.",
+      "leakage_test": "tests/quant/test_leakage.py::test_no_registered_feature_depends_on_the_future",
+      "direction_hypothesis": "descriptive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": true
+    },
+    {
+      "feature": "market_mom_21",
+      "base_feature": null,
+      "group": "macro",
+      "description": "Equal-weighted universe return over 21 sessions.",
+      "rationale": "Market state; the same move means different things in a rally and a fall.",
+      "formula": "compounded cross-sectional mean return over 21 sessions",
+      "raw_fields": [
+        "total_return"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_rates_us_treasury",
+          "repository": "rates",
+          "table": "us_treasury",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 21,
+      "earliest_required_observation_sessions_before": 21,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "The Treasury curve is published after the close of the day it describes, so a same-day read is a one-session leak. Applied once in lagged_macro_frame. Market-regime features are rolling windows over the daily cross-sectional mean and must be computed BEFORE the observation stride \u2014 computing them after would make a 252-row window span 1,260 sessions.",
+      "leakage_test": "tests/quant/test_leakage.py::test_no_registered_feature_depends_on_the_future",
+      "direction_hypothesis": "descriptive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": true
+    },
+    {
+      "feature": "market_mom_252",
+      "base_feature": null,
+      "group": "macro",
+      "description": "Equal-weighted universe return over 252 sessions.",
+      "rationale": "Bull/bear state at the horizon regimes are usually defined over.",
+      "formula": "compounded cross-sectional mean return over 252 sessions",
+      "raw_fields": [
+        "total_return"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_rates_us_treasury",
+          "repository": "rates",
+          "table": "us_treasury",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 252,
+      "earliest_required_observation_sessions_before": 252,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "The Treasury curve is published after the close of the day it describes, so a same-day read is a one-session leak. Applied once in lagged_macro_frame. Market-regime features are rolling windows over the daily cross-sectional mean and must be computed BEFORE the observation stride \u2014 computing them after would make a 252-row window span 1,260 sessions.",
+      "leakage_test": "tests/quant/test_leakage.py::test_no_registered_feature_depends_on_the_future",
+      "direction_hypothesis": "descriptive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": true
+    },
+    {
+      "feature": "market_vol_21",
+      "base_feature": null,
+      "group": "macro",
+      "description": "Annualised volatility of the equal-weighted universe return, 21 sessions.",
+      "rationale": "The volatility regime, measured from the survivorship-free cross-section.",
+      "formula": "std(market return, 21) * sqrt(252)",
+      "raw_fields": [
+        "total_return"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_rates_us_treasury",
+          "repository": "rates",
+          "table": "us_treasury",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 21,
+      "earliest_required_observation_sessions_before": 21,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "The Treasury curve is published after the close of the day it describes, so a same-day read is a one-session leak. Applied once in lagged_macro_frame. Market-regime features are rolling windows over the daily cross-sectional mean and must be computed BEFORE the observation stride \u2014 computing them after would make a 252-row window span 1,260 sessions.",
+      "leakage_test": "tests/quant/test_leakage.py::test_no_registered_feature_depends_on_the_future",
+      "direction_hypothesis": "descriptive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": true
+    },
+    {
+      "feature": "market_vol_63",
+      "base_feature": null,
+      "group": "macro",
+      "description": "Annualised market volatility over 63 sessions.",
+      "rationale": "Slower volatility state, for regime persistence.",
+      "formula": "std(market return, 63) * sqrt(252)",
+      "raw_fields": [
+        "total_return"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_rates_us_treasury",
+          "repository": "rates",
+          "table": "us_treasury",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 63,
+      "earliest_required_observation_sessions_before": 63,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "The Treasury curve is published after the close of the day it describes, so a same-day read is a one-session leak. Applied once in lagged_macro_frame. Market-regime features are rolling windows over the daily cross-sectional mean and must be computed BEFORE the observation stride \u2014 computing them after would make a 252-row window span 1,260 sessions.",
+      "leakage_test": "tests/quant/test_leakage.py::test_no_registered_feature_depends_on_the_future",
+      "direction_hypothesis": "descriptive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": true
+    },
+    {
+      "feature": "market_vol_percentile",
+      "base_feature": null,
+      "group": "macro",
+      "description": "Rank of current market volatility in its trailing 2-year distribution.",
+      "rationale": "A percentile rather than a level, so 'high volatility' means the same thing across eras with different absolute volatility.",
+      "formula": "rolling(504).rank(pct=True) of market_vol_21",
+      "raw_fields": [
+        "total_return"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_rates_us_treasury",
+          "repository": "rates",
+          "table": "us_treasury",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 504,
+      "earliest_required_observation_sessions_before": 504,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "The Treasury curve is published after the close of the day it describes, so a same-day read is a one-session leak. Applied once in lagged_macro_frame. Market-regime features are rolling windows over the daily cross-sectional mean and must be computed BEFORE the observation stride \u2014 computing them after would make a 252-row window span 1,260 sessions.",
+      "leakage_test": "tests/quant/test_leakage.py::test_no_registered_feature_depends_on_the_future",
+      "direction_hypothesis": "descriptive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": true
+    },
+    {
+      "feature": "max_drawdown_252",
+      "base_feature": null,
+      "group": "volatility",
+      "description": "Deepest peak-to-trough decline in the trailing year, positive.",
+      "rationale": "Path risk that neither volatility nor total return expresses.",
+      "formula": "max over the window of (peak - value) / peak",
+      "raw_fields": [
+        "total_return"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_split",
+          "repository": "stocks",
+          "table": "split",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_dividend",
+          "repository": "stocks",
+          "table": "dividend",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 252,
+      "earliest_required_observation_sessions_before": 252,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "As price: a forward-looking window.",
+      "leakage_test": "tests/quant/test_leakage.py::test_no_registered_feature_depends_on_the_future",
+      "direction_hypothesis": "negative",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": false
+    },
+    {
+      "feature": "mom_21",
+      "base_feature": null,
+      "group": "price",
+      "description": "Compounded total return over the trailing 21 sessions.",
+      "rationale": "One-month momentum; also the leg excluded from mom_252_21.",
+      "formula": "prod(1 + r_t) over t in (T-20, T] - 1",
+      "raw_fields": [
+        "total_return"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_split",
+          "repository": "stocks",
+          "table": "split",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_dividend",
+          "repository": "stocks",
+          "table": "dividend",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 21,
+      "earliest_required_observation_sessions_before": 21,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "A centred window, a negative shift, or min_periods below the full window would let a later bar reach an earlier row.",
+      "leakage_test": "tests/quant/test_leakage.py::test_no_registered_feature_depends_on_the_future",
+      "direction_hypothesis": "two_sided",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": false
+    },
+    {
+      "feature": "mom_252_21",
+      "base_feature": null,
+      "group": "price",
+      "description": "12-1 momentum: trailing year excluding the most recent month.",
+      "rationale": "The canonical cross-sectional momentum construction. The skipped month keeps short-horizon reversal out of the signal.",
+      "formula": "(1 + r_252) / (1 + r_21) - 1",
+      "raw_fields": [
+        "total_return"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_split",
+          "repository": "stocks",
+          "table": "split",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_dividend",
+          "repository": "stocks",
+          "table": "dividend",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 252,
+      "earliest_required_observation_sessions_before": 252,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "A centred window, a negative shift, or min_periods below the full window would let a later bar reach an earlier row.",
+      "leakage_test": "tests/quant/test_leakage.py::test_no_registered_feature_depends_on_the_future",
+      "direction_hypothesis": "positive",
+      "citation": "Jegadeesh & Titman (1993)",
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": false
+    },
+    {
+      "feature": "mom_63",
+      "base_feature": null,
+      "group": "price",
+      "description": "Compounded total return over the trailing 63 sessions.",
+      "rationale": "Quarter-horizon momentum, the shortest horizon at which the effect is usually reported.",
+      "formula": "prod(1 + r_t) over t in (T-62, T] - 1",
+      "raw_fields": [
+        "total_return"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_split",
+          "repository": "stocks",
+          "table": "split",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_dividend",
+          "repository": "stocks",
+          "table": "dividend",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 63,
+      "earliest_required_observation_sessions_before": 63,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "A centred window, a negative shift, or min_periods below the full window would let a later bar reach an earlier row.",
+      "leakage_test": "tests/quant/test_leakage.py::test_no_registered_feature_depends_on_the_future",
+      "direction_hypothesis": "positive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": false
+    },
+    {
+      "feature": "opt_expirations",
+      "base_feature": null,
+      "group": "options",
+      "description": "Distinct expirations listed on the snapshot date.",
+      "rationale": "Chain breadth \u2014 a proxy for institutional interest and option-market depth.",
+      "formula": "count(distinct expiration)",
+      "raw_fields": [
+        "expirations"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_options_volatility_history",
+          "repository": "options",
+          "table": "volatility_history",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_options_chain_daily",
+          "repository": "options",
+          "table": "option_chain",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 1,
+      "earliest_required_observation_sessions_before": 1,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "THREE, all realised at least once. (1) merge_asof discards the left index, so writing results back positionally attaches values to the wrong rows \u2014 this occurred and was fixed. (2) direction='nearest' would match a Monday to Tuesday's snapshot. (3) an unbounded forward-fill would turn a data gap into a confident flat signal; capped at 21 days.",
+      "leakage_test": "tests/quant/test_earnings_options.py::test_asof_option_join_aligns_to_the_original_row_order",
+      "direction_hypothesis": "descriptive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": false
+    },
+    {
+      "feature": "opt_iv",
+      "base_feature": null,
+      "group": "options",
+      "description": "Implied volatility of the underlying, latest snapshot at or before the date.",
+      "rationale": "The option market's forward volatility expectation \u2014 information the price series does not contain.",
+      "formula": "iv_current from volatility_history",
+      "raw_fields": [
+        "iv_current"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_options_volatility_history",
+          "repository": "options",
+          "table": "volatility_history",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_options_chain_daily",
+          "repository": "options",
+          "table": "option_chain",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 1,
+      "earliest_required_observation_sessions_before": 1,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "THREE, all realised at least once. (1) merge_asof discards the left index, so writing results back positionally attaches values to the wrong rows \u2014 this occurred and was fixed. (2) direction='nearest' would match a Monday to Tuesday's snapshot. (3) an unbounded forward-fill would turn a data gap into a confident flat signal; capped at 21 days.",
+      "leakage_test": "tests/quant/test_earnings_options.py::test_asof_option_join_aligns_to_the_original_row_order",
+      "direction_hypothesis": "negative",
+      "citation": null,
+      "version": "1.0",
+      "notes": [
+        "Vendor measurement under an unpublished model, not a reconstructible quantity."
+      ],
+      "used_in_study": false
+    },
+    {
+      "feature": "opt_iv_change_21",
+      "base_feature": null,
+      "group": "options",
+      "description": "Change in implied volatility over roughly one month.",
+      "rationale": "Direction of the volatility repricing, not just its level.",
+      "formula": "iv_current / iv_month_ago - 1",
+      "raw_fields": [
+        "iv_current",
+        "iv_month_ago"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_options_volatility_history",
+          "repository": "options",
+          "table": "volatility_history",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_options_chain_daily",
+          "repository": "options",
+          "table": "option_chain",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 1,
+      "earliest_required_observation_sessions_before": 1,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "THREE, all realised at least once. (1) merge_asof discards the left index, so writing results back positionally attaches values to the wrong rows \u2014 this occurred and was fixed. (2) direction='nearest' would match a Monday to Tuesday's snapshot. (3) an unbounded forward-fill would turn a data gap into a confident flat signal; capped at 21 days.",
+      "leakage_test": "tests/quant/test_earnings_options.py::test_asof_option_join_aligns_to_the_original_row_order",
+      "direction_hypothesis": "two_sided",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": false
+    },
+    {
+      "feature": "opt_iv_minus_hv",
+      "base_feature": null,
+      "group": "options",
+      "description": "Implied over realised volatility, as a ratio minus one.",
+      "rationale": "The volatility risk premium \u2014 the most durable documented effect in options data. A ratio, not a difference, so it compares across names with very different absolute volatility.",
+      "formula": "iv_current / hv_current - 1",
+      "raw_fields": [
+        "iv_current",
+        "hv_current"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_options_volatility_history",
+          "repository": "options",
+          "table": "volatility_history",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_options_chain_daily",
+          "repository": "options",
+          "table": "option_chain",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 1,
+      "earliest_required_observation_sessions_before": 1,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "THREE, all realised at least once. (1) merge_asof discards the left index, so writing results back positionally attaches values to the wrong rows \u2014 this occurred and was fixed. (2) direction='nearest' would match a Monday to Tuesday's snapshot. (3) an unbounded forward-fill would turn a data gap into a confident flat signal; capped at 21 days.",
+      "leakage_test": "tests/quant/test_earnings_options.py::test_asof_option_join_aligns_to_the_original_row_order",
+      "direction_hypothesis": "two_sided",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": false
+    },
+    {
+      "feature": "opt_iv_rank",
+      "base_feature": null,
+      "group": "options",
+      "description": "Position of current IV within its trailing 52-week range.",
+      "rationale": "A percentile rather than a level, so 'expensive volatility' means the same thing across names and eras.",
+      "formula": "(iv_current - iv_year_low) / (iv_year_high - iv_year_low)",
+      "raw_fields": [
+        "iv_current",
+        "iv_year_high",
+        "iv_year_low"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_options_volatility_history",
+          "repository": "options",
+          "table": "volatility_history",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_options_chain_daily",
+          "repository": "options",
+          "table": "option_chain",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 1,
+      "earliest_required_observation_sessions_before": 1,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "THREE, all realised at least once. (1) merge_asof discards the left index, so writing results back positionally attaches values to the wrong rows \u2014 this occurred and was fixed. (2) direction='nearest' would match a Monday to Tuesday's snapshot. (3) an unbounded forward-fill would turn a data gap into a confident flat signal; capped at 21 days.",
+      "leakage_test": "tests/quant/test_earnings_options.py::test_asof_option_join_aligns_to_the_original_row_order",
+      "direction_hypothesis": "two_sided",
+      "citation": null,
+      "version": "1.0",
+      "notes": [
+        "Both bounds are 52-week LOOKBACK columns supplied by the source \u2014 point-in-time as published."
+      ],
+      "used_in_study": false
+    },
+    {
+      "feature": "opt_rel_spread",
+      "base_feature": null,
+      "group": "options",
+      "description": "Mean relative bid-ask spread across the chain.",
+      "rationale": "Option-market liquidity, which is a different measurement from equity dollar volume.",
+      "formula": "mean (ask - bid) / mid over quotes with both sides positive",
+      "raw_fields": [
+        "rel_spread"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_options_volatility_history",
+          "repository": "options",
+          "table": "volatility_history",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_options_chain_daily",
+          "repository": "options",
+          "table": "option_chain",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 1,
+      "earliest_required_observation_sessions_before": 1,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "THREE, all realised at least once. (1) merge_asof discards the left index, so writing results back positionally attaches values to the wrong rows \u2014 this occurred and was fixed. (2) direction='nearest' would match a Monday to Tuesday's snapshot. (3) an unbounded forward-fill would turn a data gap into a confident flat signal; capped at 21 days.",
+      "leakage_test": "tests/quant/test_earnings_options.py::test_asof_option_join_aligns_to_the_original_row_order",
+      "direction_hypothesis": "negative",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": false
+    },
+    {
+      "feature": "opt_skew_25d",
+      "base_feature": null,
+      "group": "options",
+      "description": "25-delta put IV minus 25-delta call IV, normalised by ATM IV.",
+      "rationale": "The price of downside protection relative to upside. Steep skew is the option market paying up for crash insurance, which the underlying's own return series cannot express.",
+      "formula": "(put_25_iv - call_25_iv) / atm_iv",
+      "raw_fields": [
+        "put_25_iv",
+        "call_25_iv",
+        "atm_iv"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_options_volatility_history",
+          "repository": "options",
+          "table": "volatility_history",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_options_chain_daily",
+          "repository": "options",
+          "table": "option_chain",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 1,
+      "earliest_required_observation_sessions_before": 1,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "THREE, all realised at least once. (1) merge_asof discards the left index, so writing results back positionally attaches values to the wrong rows \u2014 this occurred and was fixed. (2) direction='nearest' would match a Monday to Tuesday's snapshot. (3) an unbounded forward-fill would turn a data gap into a confident flat signal; capped at 21 days.",
+      "leakage_test": "tests/quant/test_earnings_options.py::test_asof_option_join_aligns_to_the_original_row_order",
+      "direction_hypothesis": "two_sided",
+      "citation": null,
+      "version": "1.0",
+      "notes": [
+        "Delta buckets are wide (0.20-0.30) because listed strikes are discrete."
+      ],
+      "used_in_study": false
+    },
+    {
+      "feature": "opt_term_slope",
+      "base_feature": null,
+      "group": "options",
+      "description": "Far-expiry ATM IV over near-expiry ATM IV, minus one.",
+      "rationale": "Term structure. Inversion \u2014 near above far \u2014 is the option market pricing an imminent event, and it is a distinct state from a high level.",
+      "formula": "atm_iv(>45d) / atm_iv(<=45d) - 1",
+      "raw_fields": [
+        "atm_iv_near",
+        "atm_iv_far"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_options_volatility_history",
+          "repository": "options",
+          "table": "volatility_history",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_options_chain_daily",
+          "repository": "options",
+          "table": "option_chain",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 1,
+      "earliest_required_observation_sessions_before": 1,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "THREE, all realised at least once. (1) merge_asof discards the left index, so writing results back positionally attaches values to the wrong rows \u2014 this occurred and was fixed. (2) direction='nearest' would match a Monday to Tuesday's snapshot. (3) an unbounded forward-fill would turn a data gap into a confident flat signal; capped at 21 days.",
+      "leakage_test": "tests/quant/test_earnings_options.py::test_asof_option_join_aligns_to_the_original_row_order",
+      "direction_hypothesis": "two_sided",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": false
+    },
+    {
+      "feature": "rates_change_63",
+      "base_feature": null,
+      "group": "macro",
+      "description": "Quarterly change in the 10-year yield.",
+      "rationale": "Direction of the discount rate, not just its level.",
+      "formula": "10_year(T) - 10_year(T-63), lagged one session",
+      "raw_fields": [
+        "10_year"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_rates_us_treasury",
+          "repository": "rates",
+          "table": "us_treasury",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 64,
+      "earliest_required_observation_sessions_before": 65,
+      "availability_lag_sessions": 1,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "The Treasury curve is published after the close of the day it describes, so a same-day read is a one-session leak. Applied once in lagged_macro_frame. Market-regime features are rolling windows over the daily cross-sectional mean and must be computed BEFORE the observation stride \u2014 computing them after would make a 252-row window span 1,260 sessions.",
+      "leakage_test": "tests/quant/test_leakage.py::test_no_registered_feature_depends_on_the_future",
+      "direction_hypothesis": "negative",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": true
+    },
+    {
+      "feature": "rates_curvature",
+      "base_feature": null,
+      "group": "macro",
+      "description": "2*2y - 3m - 10y, prior session.",
+      "rationale": "The third Litterman-Scheinkman factor; policy-cycle position.",
+      "formula": "(2*2_year - 3_month - 10_year) / 100, lagged one session",
+      "raw_fields": [
+        "2_year",
+        "3_month",
+        "10_year"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_rates_us_treasury",
+          "repository": "rates",
+          "table": "us_treasury",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 1,
+      "earliest_required_observation_sessions_before": 2,
+      "availability_lag_sessions": 1,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "The Treasury curve is published after the close of the day it describes, so a same-day read is a one-session leak. Applied once in lagged_macro_frame. Market-regime features are rolling windows over the daily cross-sectional mean and must be computed BEFORE the observation stride \u2014 computing them after would make a 252-row window span 1,260 sessions.",
+      "leakage_test": "tests/quant/test_leakage.py::test_no_registered_feature_depends_on_the_future",
+      "direction_hypothesis": "descriptive",
+      "citation": "Litterman & Scheinkman (1991)",
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": true
+    },
+    {
+      "feature": "rates_level",
+      "base_feature": null,
+      "group": "macro",
+      "description": "10-year US Treasury par yield, prior session.",
+      "rationale": "The discount rate every equity valuation is anchored to.",
+      "formula": "10_year / 100, lagged one session",
+      "raw_fields": [
+        "10_year"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_rates_us_treasury",
+          "repository": "rates",
+          "table": "us_treasury",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 1,
+      "earliest_required_observation_sessions_before": 2,
+      "availability_lag_sessions": 1,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "The Treasury curve is published after the close of the day it describes, so a same-day read is a one-session leak. Applied once in lagged_macro_frame. Market-regime features are rolling windows over the daily cross-sectional mean and must be computed BEFORE the observation stride \u2014 computing them after would make a 252-row window span 1,260 sessions.",
+      "leakage_test": "tests/quant/test_leakage.py::test_no_registered_feature_depends_on_the_future",
+      "direction_hypothesis": "descriptive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": true
+    },
+    {
+      "feature": "rates_short",
+      "base_feature": null,
+      "group": "macro",
+      "description": "3-month Treasury bill yield, prior session.",
+      "rationale": "The policy rate proxy and the cash alternative equities compete with.",
+      "formula": "3_month / 100, lagged one session",
+      "raw_fields": [
+        "3_month"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_rates_us_treasury",
+          "repository": "rates",
+          "table": "us_treasury",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 1,
+      "earliest_required_observation_sessions_before": 2,
+      "availability_lag_sessions": 1,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "The Treasury curve is published after the close of the day it describes, so a same-day read is a one-session leak. Applied once in lagged_macro_frame. Market-regime features are rolling windows over the daily cross-sectional mean and must be computed BEFORE the observation stride \u2014 computing them after would make a 252-row window span 1,260 sessions.",
+      "leakage_test": "tests/quant/test_leakage.py::test_no_registered_feature_depends_on_the_future",
+      "direction_hypothesis": "descriptive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": true
+    },
+    {
+      "feature": "rates_slope",
+      "base_feature": null,
+      "group": "macro",
+      "description": "10-year minus 2-year yield, prior session.",
+      "rationale": "The curve's growth/recession signal; inversion is its best-known form.",
+      "formula": "(10_year - 2_year) / 100, lagged one session",
+      "raw_fields": [
+        "10_year",
+        "2_year"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_rates_us_treasury",
+          "repository": "rates",
+          "table": "us_treasury",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 1,
+      "earliest_required_observation_sessions_before": 2,
+      "availability_lag_sessions": 1,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "The Treasury curve is published after the close of the day it describes, so a same-day read is a one-session leak. Applied once in lagged_macro_frame. Market-regime features are rolling windows over the daily cross-sectional mean and must be computed BEFORE the observation stride \u2014 computing them after would make a 252-row window span 1,260 sessions.",
+      "leakage_test": "tests/quant/test_leakage.py::test_no_registered_feature_depends_on_the_future",
+      "direction_hypothesis": "descriptive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": true
+    },
+    {
+      "feature": "reversal_5",
+      "base_feature": null,
+      "group": "price",
+      "description": "Negated trailing 5-session return.",
+      "rationale": "Short-horizon reversal; negated so the hypothesis is positive.",
+      "formula": "-(prod(1 + r_t) over the last 5 sessions - 1)",
+      "raw_fields": [
+        "total_return"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_split",
+          "repository": "stocks",
+          "table": "split",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_dividend",
+          "repository": "stocks",
+          "table": "dividend",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 5,
+      "earliest_required_observation_sessions_before": 5,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "A centred window, a negative shift, or min_periods below the full window would let a later bar reach an earlier row.",
+      "leakage_test": "tests/quant/test_leakage.py::test_no_registered_feature_depends_on_the_future",
+      "direction_hypothesis": "positive",
+      "citation": "Lehmann (1990); Jegadeesh (1990)",
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": false
+    },
+    {
+      "feature": "trend_strength_63",
+      "base_feature": null,
+      "group": "structure",
+      "description": "63-session return divided by 63-session annualised volatility.",
+      "rationale": "Path quality: distinguishes a steady climb from a volatile one.",
+      "formula": "mom_63 / vol_63",
+      "raw_fields": [
+        "total_return"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_split",
+          "repository": "stocks",
+          "table": "split",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_dividend",
+          "repository": "stocks",
+          "table": "dividend",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 63,
+      "earliest_required_observation_sessions_before": 63,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "As price.",
+      "leakage_test": "tests/quant/test_leakage.py::test_no_registered_feature_depends_on_the_future",
+      "direction_hypothesis": "positive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": false
+    },
+    {
+      "feature": "vol_21",
+      "base_feature": null,
+      "group": "volatility",
+      "description": "Annualised realised volatility over 21 sessions.",
+      "rationale": "Risk scaling and the base of the low-volatility effect.",
+      "formula": "std(r, 21) * sqrt(252)",
+      "raw_fields": [
+        "total_return"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_split",
+          "repository": "stocks",
+          "table": "split",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_dividend",
+          "repository": "stocks",
+          "table": "dividend",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 21,
+      "earliest_required_observation_sessions_before": 21,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "As price: a forward-looking window.",
+      "leakage_test": "tests/quant/test_leakage.py::test_no_registered_feature_depends_on_the_future",
+      "direction_hypothesis": "negative",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": false
+    },
+    {
+      "feature": "vol_63",
+      "base_feature": null,
+      "group": "volatility",
+      "description": "Annualised realised volatility over 63 sessions.",
+      "rationale": "Slower risk estimate; the denominator of trend_strength_63.",
+      "formula": "std(r, 63) * sqrt(252)",
+      "raw_fields": [
+        "total_return"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_split",
+          "repository": "stocks",
+          "table": "split",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_dividend",
+          "repository": "stocks",
+          "table": "dividend",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 63,
+      "earliest_required_observation_sessions_before": 63,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "As price: a forward-looking window.",
+      "leakage_test": "tests/quant/test_leakage.py::test_no_registered_feature_depends_on_the_future",
+      "direction_hypothesis": "negative",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": false
+    },
+    {
+      "feature": "vol_ratio",
+      "base_feature": null,
+      "group": "volatility",
+      "description": "21-session volatility divided by 63-session volatility.",
+      "rationale": "Volatility regime change, self-referencing so it is comparable across names.",
+      "formula": "vol_21 / vol_63",
+      "raw_fields": [
+        "total_return"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_split",
+          "repository": "stocks",
+          "table": "split",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_dividend",
+          "repository": "stocks",
+          "table": "dividend",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 63,
+      "earliest_required_observation_sessions_before": 63,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "As price: a forward-looking window.",
+      "leakage_test": "tests/quant/test_leakage.py::test_no_registered_feature_depends_on_the_future",
+      "direction_hypothesis": "two_sided",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": false
+    },
+    {
+      "feature": "volume_shock",
+      "base_feature": null,
+      "group": "volume",
+      "description": "Dollar volume z-scored against its own trailing 63 sessions.",
+      "rationale": "Attention or crowding, measured relative to the name's own norm.",
+      "formula": "(dv - mean(dv, 63)) / std(dv, 63)",
+      "raw_fields": [
+        "dollar_volume"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 63,
+      "earliest_required_observation_sessions_before": 63,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "As price. Note amihud_21 is a RATIO of two perturbed inputs, so a uniform-scale leakage probe cancels inside it and proves nothing; the probe uses distinct per-column factors.",
+      "leakage_test": "tests/quant/test_leakage.py::test_no_registered_feature_depends_on_the_future",
+      "direction_hypothesis": "two_sided",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": false
+    },
+    {
+      "feature": "acceleration_xs",
+      "base_feature": "acceleration",
+      "group": "cross_sectional",
+      "description": "Trailing-month return minus the quarter-return ending a month ago.",
+      "rationale": "Separates a strengthening trend from a decaying one at equal total return.",
+      "formula": "r_21(T) - r_63(T - 21)",
+      "raw_fields": [
+        "total_return"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_split",
+          "repository": "stocks",
+          "table": "split",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_dividend",
+          "repository": "stocks",
+          "table": "dividend",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 84,
+      "earliest_required_observation_sessions_before": 84,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "two_sided",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": true
+    },
+    {
+      "feature": "amihud_21_xs",
+      "base_feature": "amihud_21",
+      "group": "cross_sectional",
+      "description": "Log Amihud illiquidity over 21 sessions.",
+      "rationale": "Price impact per dollar traded; the standard illiquidity premium proxy.",
+      "formula": "log(mean(|r| / dollar_volume * 1e6, 21))",
+      "raw_fields": [
+        "total_return",
+        "dollar_volume"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 21,
+      "earliest_required_observation_sessions_before": 21,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "positive",
+      "citation": "Amihud (2002)",
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": true
+    },
+    {
+      "feature": "dist_52w_high_xs",
+      "base_feature": "dist_52w_high",
+      "group": "cross_sectional",
+      "description": "Fractional distance below the trailing-year high (<= 0).",
+      "rationale": "Carries information beyond momentum; anchoring to a salient level.",
+      "formula": "index_T / max(index over 252) - 1",
+      "raw_fields": [
+        "total_return"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_split",
+          "repository": "stocks",
+          "table": "split",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_dividend",
+          "repository": "stocks",
+          "table": "dividend",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 252,
+      "earliest_required_observation_sessions_before": 252,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "positive",
+      "citation": "George & Hwang (2004)",
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": true
+    },
+    {
+      "feature": "downside_vol_63_xs",
+      "base_feature": "downside_vol_63",
+      "group": "cross_sectional",
+      "description": "Downside deviation over 63 sessions, annualised.",
+      "rationale": "Investors do not experience upside and downside variance alike.",
+      "formula": "sqrt(mean(min(r, 0)^2, 63)) * sqrt(252)",
+      "raw_fields": [
+        "total_return"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_split",
+          "repository": "stocks",
+          "table": "split",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_dividend",
+          "repository": "stocks",
+          "table": "dividend",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 63,
+      "earliest_required_observation_sessions_before": 63,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "negative",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": true
+    },
+    {
+      "feature": "earn_days_since_xs",
+      "base_feature": "earn_days_since",
+      "group": "cross_sectional",
+      "description": "Approximate trading sessions since the latest available print.",
+      "rationale": "Drift decays. A surprise 5 sessions old and one 55 sessions old are different signals and the model should be able to tell them apart.",
+      "formula": "(observation date - availability date) in calendar days x 5/7",
+      "raw_fields": [
+        "reported"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 1,
+      "earliest_required_observation_sessions_before": 2,
+      "availability_lag_sessions": 1,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "negative",
+      "citation": null,
+      "version": "1.0",
+      "notes": [
+        "Calendar-to-session conversion is approximate and used only as a staleness cut-off."
+      ],
+      "used_in_study": true
+    },
+    {
+      "feature": "earn_sue_xs",
+      "base_feature": "earn_sue",
+      "group": "cross_sectional",
+      "description": "Standardised unexpected earnings: surprise over its own trailing dispersion.",
+      "rationale": "Scales the surprise by the firm's own history of surprises, so a 2-cent beat is read against how tightly that company usually lands.",
+      "formula": "(reported - estimate) / std(prior surprises, expanding, >= 4 observations)",
+      "raw_fields": [
+        "reported",
+        "estimate"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 1,
+      "earliest_required_observation_sessions_before": 2,
+      "availability_lag_sessions": 1,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "positive",
+      "citation": "Foster, Olsen & Shevlin (1984)",
+      "version": "1.0",
+      "notes": [
+        "The denominator uses PRIOR surprises only \u2014 shift(1) before the expanding window."
+      ],
+      "used_in_study": true
+    },
+    {
+      "feature": "earn_surprise_pct_xs",
+      "base_feature": "earn_surprise_pct",
+      "group": "cross_sectional",
+      "description": "Latest EPS surprise as a fraction of |estimate|, available from the print.",
+      "rationale": "Post-earnings-announcement drift: prices continue in the direction of the surprise for weeks after the print. One of the most replicated cross-sectional effects there is.",
+      "formula": "(reported - estimate) / |estimate|, attached from the announcement's availability date",
+      "raw_fields": [
+        "reported",
+        "estimate"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 1,
+      "earliest_required_observation_sessions_before": 2,
+      "availability_lag_sessions": 1,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "positive",
+      "citation": "Ball & Brown (1968); Bernard & Thomas (1989)",
+      "version": "1.0",
+      "notes": [
+        "NULL when |estimate| <= 0.01 \u2014 a ratio to a near-zero denominator is not a surprise.",
+        "NULL beyond 63 sessions after the print; drift is a quarter-horizon effect."
+      ],
+      "used_in_study": true
+    },
+    {
+      "feature": "earn_surprise_sign_xs",
+      "base_feature": "earn_surprise_sign",
+      "group": "cross_sectional",
+      "description": "Sign of the latest available surprise (-1, 0, +1).",
+      "rationale": "Separates direction from magnitude. Part of the drift literature finds the sign carries most of the effect and the magnitude adds little.",
+      "formula": "sign(surprise_pct)",
+      "raw_fields": [
+        "reported",
+        "estimate"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 1,
+      "earliest_required_observation_sessions_before": 2,
+      "availability_lag_sessions": 1,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "positive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": true
+    },
+    {
+      "feature": "log_dollar_volume_21_xs",
+      "base_feature": "log_dollar_volume_21",
+      "group": "cross_sectional",
+      "description": "Log of mean daily dollar volume over 21 sessions.",
+      "rationale": "Liquidity and size control; split-invariant by construction.",
+      "formula": "log(mean(close * volume, 21))",
+      "raw_fields": [
+        "dollar_volume"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 21,
+      "earliest_required_observation_sessions_before": 21,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "descriptive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": true
+    },
+    {
+      "feature": "ma_gap_xs",
+      "base_feature": "ma_gap",
+      "group": "cross_sectional",
+      "description": "Log-index 21-session mean minus 126-session mean.",
+      "rationale": "Trend state as a level rather than a crossing event.",
+      "formula": "mean(log_index, 21) - mean(log_index, 126)",
+      "raw_fields": [
+        "total_return"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_split",
+          "repository": "stocks",
+          "table": "split",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_dividend",
+          "repository": "stocks",
+          "table": "dividend",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 126,
+      "earliest_required_observation_sessions_before": 126,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "positive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": true
+    },
+    {
+      "feature": "max_drawdown_252_xs",
+      "base_feature": "max_drawdown_252",
+      "group": "cross_sectional",
+      "description": "Deepest peak-to-trough decline in the trailing year, positive.",
+      "rationale": "Path risk that neither volatility nor total return expresses.",
+      "formula": "max over the window of (peak - value) / peak",
+      "raw_fields": [
+        "total_return"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_split",
+          "repository": "stocks",
+          "table": "split",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_dividend",
+          "repository": "stocks",
+          "table": "dividend",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 252,
+      "earliest_required_observation_sessions_before": 252,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "negative",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": true
+    },
+    {
+      "feature": "mom_21_xs",
+      "base_feature": "mom_21",
+      "group": "cross_sectional",
+      "description": "Compounded total return over the trailing 21 sessions.",
+      "rationale": "One-month momentum; also the leg excluded from mom_252_21.",
+      "formula": "prod(1 + r_t) over t in (T-20, T] - 1",
+      "raw_fields": [
+        "total_return"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_split",
+          "repository": "stocks",
+          "table": "split",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_dividend",
+          "repository": "stocks",
+          "table": "dividend",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 21,
+      "earliest_required_observation_sessions_before": 21,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "two_sided",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": true
+    },
+    {
+      "feature": "mom_252_21_xs",
+      "base_feature": "mom_252_21",
+      "group": "cross_sectional",
+      "description": "12-1 momentum: trailing year excluding the most recent month.",
+      "rationale": "The canonical cross-sectional momentum construction. The skipped month keeps short-horizon reversal out of the signal.",
+      "formula": "(1 + r_252) / (1 + r_21) - 1",
+      "raw_fields": [
+        "total_return"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_split",
+          "repository": "stocks",
+          "table": "split",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_dividend",
+          "repository": "stocks",
+          "table": "dividend",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 252,
+      "earliest_required_observation_sessions_before": 252,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "positive",
+      "citation": "Jegadeesh & Titman (1993)",
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": true
+    },
+    {
+      "feature": "mom_63_xs",
+      "base_feature": "mom_63",
+      "group": "cross_sectional",
+      "description": "Compounded total return over the trailing 63 sessions.",
+      "rationale": "Quarter-horizon momentum, the shortest horizon at which the effect is usually reported.",
+      "formula": "prod(1 + r_t) over t in (T-62, T] - 1",
+      "raw_fields": [
+        "total_return"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_split",
+          "repository": "stocks",
+          "table": "split",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_dividend",
+          "repository": "stocks",
+          "table": "dividend",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 63,
+      "earliest_required_observation_sessions_before": 63,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "positive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": true
+    },
+    {
+      "feature": "opt_expirations_xs",
+      "base_feature": "opt_expirations",
+      "group": "cross_sectional",
+      "description": "Distinct expirations listed on the snapshot date.",
+      "rationale": "Chain breadth \u2014 a proxy for institutional interest and option-market depth.",
+      "formula": "count(distinct expiration)",
+      "raw_fields": [
+        "expirations"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_options_volatility_history",
+          "repository": "options",
+          "table": "volatility_history",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_options_chain_daily",
+          "repository": "options",
+          "table": "option_chain",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 1,
+      "earliest_required_observation_sessions_before": 1,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "descriptive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": true
+    },
+    {
+      "feature": "opt_iv_xs",
+      "base_feature": "opt_iv",
+      "group": "cross_sectional",
+      "description": "Implied volatility of the underlying, latest snapshot at or before the date.",
+      "rationale": "The option market's forward volatility expectation \u2014 information the price series does not contain.",
+      "formula": "iv_current from volatility_history",
+      "raw_fields": [
+        "iv_current"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_options_volatility_history",
+          "repository": "options",
+          "table": "volatility_history",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_options_chain_daily",
+          "repository": "options",
+          "table": "option_chain",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 1,
+      "earliest_required_observation_sessions_before": 1,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "negative",
+      "citation": null,
+      "version": "1.0",
+      "notes": [
+        "Vendor measurement under an unpublished model, not a reconstructible quantity."
+      ],
+      "used_in_study": true
+    },
+    {
+      "feature": "opt_iv_change_21_xs",
+      "base_feature": "opt_iv_change_21",
+      "group": "cross_sectional",
+      "description": "Change in implied volatility over roughly one month.",
+      "rationale": "Direction of the volatility repricing, not just its level.",
+      "formula": "iv_current / iv_month_ago - 1",
+      "raw_fields": [
+        "iv_current",
+        "iv_month_ago"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_options_volatility_history",
+          "repository": "options",
+          "table": "volatility_history",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_options_chain_daily",
+          "repository": "options",
+          "table": "option_chain",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 1,
+      "earliest_required_observation_sessions_before": 1,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "two_sided",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": true
+    },
+    {
+      "feature": "opt_iv_minus_hv_xs",
+      "base_feature": "opt_iv_minus_hv",
+      "group": "cross_sectional",
+      "description": "Implied over realised volatility, as a ratio minus one.",
+      "rationale": "The volatility risk premium \u2014 the most durable documented effect in options data. A ratio, not a difference, so it compares across names with very different absolute volatility.",
+      "formula": "iv_current / hv_current - 1",
+      "raw_fields": [
+        "iv_current",
+        "hv_current"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_options_volatility_history",
+          "repository": "options",
+          "table": "volatility_history",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_options_chain_daily",
+          "repository": "options",
+          "table": "option_chain",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 1,
+      "earliest_required_observation_sessions_before": 1,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "two_sided",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": true
+    },
+    {
+      "feature": "opt_iv_rank_xs",
+      "base_feature": "opt_iv_rank",
+      "group": "cross_sectional",
+      "description": "Position of current IV within its trailing 52-week range.",
+      "rationale": "A percentile rather than a level, so 'expensive volatility' means the same thing across names and eras.",
+      "formula": "(iv_current - iv_year_low) / (iv_year_high - iv_year_low)",
+      "raw_fields": [
+        "iv_current",
+        "iv_year_high",
+        "iv_year_low"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_options_volatility_history",
+          "repository": "options",
+          "table": "volatility_history",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_options_chain_daily",
+          "repository": "options",
+          "table": "option_chain",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 1,
+      "earliest_required_observation_sessions_before": 1,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "two_sided",
+      "citation": null,
+      "version": "1.0",
+      "notes": [
+        "Both bounds are 52-week LOOKBACK columns supplied by the source \u2014 point-in-time as published."
+      ],
+      "used_in_study": true
+    },
+    {
+      "feature": "opt_rel_spread_xs",
+      "base_feature": "opt_rel_spread",
+      "group": "cross_sectional",
+      "description": "Mean relative bid-ask spread across the chain.",
+      "rationale": "Option-market liquidity, which is a different measurement from equity dollar volume.",
+      "formula": "mean (ask - bid) / mid over quotes with both sides positive",
+      "raw_fields": [
+        "rel_spread"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_options_volatility_history",
+          "repository": "options",
+          "table": "volatility_history",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_options_chain_daily",
+          "repository": "options",
+          "table": "option_chain",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 1,
+      "earliest_required_observation_sessions_before": 1,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "negative",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": true
+    },
+    {
+      "feature": "opt_skew_25d_xs",
+      "base_feature": "opt_skew_25d",
+      "group": "cross_sectional",
+      "description": "25-delta put IV minus 25-delta call IV, normalised by ATM IV.",
+      "rationale": "The price of downside protection relative to upside. Steep skew is the option market paying up for crash insurance, which the underlying's own return series cannot express.",
+      "formula": "(put_25_iv - call_25_iv) / atm_iv",
+      "raw_fields": [
+        "put_25_iv",
+        "call_25_iv",
+        "atm_iv"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_options_volatility_history",
+          "repository": "options",
+          "table": "volatility_history",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_options_chain_daily",
+          "repository": "options",
+          "table": "option_chain",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 1,
+      "earliest_required_observation_sessions_before": 1,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "two_sided",
+      "citation": null,
+      "version": "1.0",
+      "notes": [
+        "Delta buckets are wide (0.20-0.30) because listed strikes are discrete."
+      ],
+      "used_in_study": true
+    },
+    {
+      "feature": "opt_term_slope_xs",
+      "base_feature": "opt_term_slope",
+      "group": "cross_sectional",
+      "description": "Far-expiry ATM IV over near-expiry ATM IV, minus one.",
+      "rationale": "Term structure. Inversion \u2014 near above far \u2014 is the option market pricing an imminent event, and it is a distinct state from a high level.",
+      "formula": "atm_iv(>45d) / atm_iv(<=45d) - 1",
+      "raw_fields": [
+        "atm_iv_near",
+        "atm_iv_far"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_options_volatility_history",
+          "repository": "options",
+          "table": "volatility_history",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_options_chain_daily",
+          "repository": "options",
+          "table": "option_chain",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 1,
+      "earliest_required_observation_sessions_before": 1,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "two_sided",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": true
+    },
+    {
+      "feature": "reversal_5_xs",
+      "base_feature": "reversal_5",
+      "group": "cross_sectional",
+      "description": "Negated trailing 5-session return.",
+      "rationale": "Short-horizon reversal; negated so the hypothesis is positive.",
+      "formula": "-(prod(1 + r_t) over the last 5 sessions - 1)",
+      "raw_fields": [
+        "total_return"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_split",
+          "repository": "stocks",
+          "table": "split",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_dividend",
+          "repository": "stocks",
+          "table": "dividend",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 5,
+      "earliest_required_observation_sessions_before": 5,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "positive",
+      "citation": "Lehmann (1990); Jegadeesh (1990)",
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": true
+    },
+    {
+      "feature": "trend_strength_63_xs",
+      "base_feature": "trend_strength_63",
+      "group": "cross_sectional",
+      "description": "63-session return divided by 63-session annualised volatility.",
+      "rationale": "Path quality: distinguishes a steady climb from a volatile one.",
+      "formula": "mom_63 / vol_63",
+      "raw_fields": [
+        "total_return"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_split",
+          "repository": "stocks",
+          "table": "split",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_dividend",
+          "repository": "stocks",
+          "table": "dividend",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 63,
+      "earliest_required_observation_sessions_before": 63,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "positive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": true
+    },
+    {
+      "feature": "vol_21_xs",
+      "base_feature": "vol_21",
+      "group": "cross_sectional",
+      "description": "Annualised realised volatility over 21 sessions.",
+      "rationale": "Risk scaling and the base of the low-volatility effect.",
+      "formula": "std(r, 21) * sqrt(252)",
+      "raw_fields": [
+        "total_return"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_split",
+          "repository": "stocks",
+          "table": "split",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_dividend",
+          "repository": "stocks",
+          "table": "dividend",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 21,
+      "earliest_required_observation_sessions_before": 21,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "negative",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": true
+    },
+    {
+      "feature": "vol_63_xs",
+      "base_feature": "vol_63",
+      "group": "cross_sectional",
+      "description": "Annualised realised volatility over 63 sessions.",
+      "rationale": "Slower risk estimate; the denominator of trend_strength_63.",
+      "formula": "std(r, 63) * sqrt(252)",
+      "raw_fields": [
+        "total_return"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_split",
+          "repository": "stocks",
+          "table": "split",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_dividend",
+          "repository": "stocks",
+          "table": "dividend",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 63,
+      "earliest_required_observation_sessions_before": 63,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "negative",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": true
+    },
+    {
+      "feature": "vol_ratio_xs",
+      "base_feature": "vol_ratio",
+      "group": "cross_sectional",
+      "description": "21-session volatility divided by 63-session volatility.",
+      "rationale": "Volatility regime change, self-referencing so it is comparable across names.",
+      "formula": "vol_21 / vol_63",
+      "raw_fields": [
+        "total_return"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_split",
+          "repository": "stocks",
+          "table": "split",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_stocks_dividend",
+          "repository": "stocks",
+          "table": "dividend",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 63,
+      "earliest_required_observation_sessions_before": 63,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "two_sided",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": true
+    },
+    {
+      "feature": "volume_shock_xs",
+      "base_feature": "volume_shock",
+      "group": "cross_sectional",
+      "description": "Dollar volume z-scored against its own trailing 63 sessions.",
+      "rationale": "Attention or crowding, measured relative to the name's own norm.",
+      "formula": "(dv - mean(dv, 63)) / std(dv, 63)",
+      "raw_fields": [
+        "dollar_volume"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_stocks_ohlcv",
+          "repository": "stocks",
+          "table": "ohlcv",
+          "point_in_time_class": "point_in_time",
+          "survivorship_class": "complete",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 63,
+      "earliest_required_observation_sessions_before": 63,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "two_sided",
+      "citation": null,
+      "version": "1.0",
+      "notes": [],
+      "used_in_study": true
+    }
+  ]
+}
