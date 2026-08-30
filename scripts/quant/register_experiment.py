@@ -34,7 +34,7 @@ from src.quant.models.registry import ModelEntry, ModelRegistry
 logger = logging.getLogger("omnisignal.quant.scripts.register")
 
 #: Registry ``version`` per study. A study's entries are addressable forever.
-STUDY_VERSIONS: dict[str, str] = {"EXP-002": "1.0", "EXP-004": "2.0", "EXP-005": "3.0"}
+STUDY_VERSIONS: dict[str, str] = {"EXP-002": "1.0", "EXP-004": "2.0", "EXP-005": "3.0", "EXP-006": "4.0"}
 
 #: Validation dates a regime needs before its metrics are quoted as evidence.
 #:

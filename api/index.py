@@ -2183,3 +2183,50 @@ def quant_symbol(symbol: str = FastPath(..., max_length=10, pattern=r"^[A-Za-z.\
     from src.services import quant_service
 
     return quant_service.symbol_view(symbol)
+
+
+@app.get("/api/quant/experiments/{experiment_id}/series/{model_id}", tags=["quant"])
+def quant_model_series(
+    experiment_id: str = FastPath(..., max_length=32, pattern=r"^[A-Za-z0-9_-]+$"),
+    model_id: str = FastPath(..., max_length=64, pattern=r"^[a-z0-9_]+$"),
+    target: str = "fwd_rank_21",
+):
+    """Per-fold IC and the cumulative rank-spread path for one model.
+
+    Derived in Python from the predictions artifact, never in the frontend: a
+    rank IC recomputed in TypeScript would be a second implementation of a
+    scientific calculation, and the first time the two disagreed the page would
+    be quietly wrong.
+
+    The spread curve is **not** a P&L. `fwd_rank_21` is a cross-sectional rank,
+    so the accumulation is additive and its units are rank points. Every Sharpe
+    and return figure on the page comes from the artifact's costed backtest.
+    """
+    from src.services import quant_series
+
+    if not target.replace("_", "").isalnum():
+        raise HTTPException(status_code=422, detail="invalid target")
+
+    folds = quant_series.fold_series(experiment_id, model_id, target=target)
+    if folds.get("status") != "ok":
+        raise HTTPException(status_code=404, detail=folds.get("detail", "unavailable"))
+    return {
+        "experiment_id": experiment_id,
+        "model_id": model_id,
+        "target": target,
+        "folds": folds,
+        "spread_curve": quant_series.spread_curve(experiment_id, model_id, target=target),
+    }
+
+
+@app.get("/api/quant/registry", tags=["quant"])
+def quant_registry():
+    """The model registry: counts, per-entry status, and why each one is there.
+
+    Promotion is decided in Python. This endpoint reports that decision and the
+    unmet thresholds behind it, so a reader can check the reasoning rather than
+    take the status on trust.
+    """
+    from src.services import quant_service
+
+    return quant_service.registry_view()

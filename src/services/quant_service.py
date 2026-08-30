@@ -45,6 +45,18 @@ METRICS_NAME = "metrics.json"
 #: +0.721 and every tree model between +0.18 and +0.39.
 OVERFIT_GAP = 0.15
 
+#: Models that exist to prove a diagnostic fires, not to be candidates.
+#:
+#: `gradient_boosting_deep` is deliberately over-parameterised. It is in the
+#: ladder so the train/validation gap diagnostic can be shown to work — and it
+#: does, at +0.729. Because it also tends to post the highest raw IC, a naive
+#: "best model" selection picks it, and the page then presents the control as
+#: the study's strongest evidence. That is backwards: the control's high IC is
+#: the thing being warned about.
+#:
+#: It stays in every table, marked. It is only excluded from "best".
+OVERFIT_CONTROL_MODELS: frozenset[str] = frozenset({"gradient_boosting_deep"})
+
 #: Studies whose results a later audit invalidated. Never deleted — removing one
 #: would erase the multiple-testing exposure it created.
 VOID_EXPERIMENTS: dict[str, str] = {
@@ -153,7 +165,27 @@ def verdict(
         failed = [name for name, g in gates.items() if not g["passed"]]
         label, reason = "EXPERIMENTAL", f"measured, and does not clear: {', '.join(failed)}"
 
-    return {"label": label, "reason": reason, "gates": gates}
+    # The label names the WORST property, which can bury a more decision-relevant
+    # one. EXP-006's gradient_boosting is OVERFIT at a gap of 0.162 *and* the
+    # closest thing to a candidate this project has produced — it clears three of
+    # four gates and fails only net Sharpe. A card reading OVERFIT with no further
+    # detail would hide that, so the remaining gate state is appended rather than
+    # the threshold being moved to produce a friendlier label.
+    unmet = [name for name, g in gates.items() if not g["passed"]]
+    cleared = [name for name, g in gates.items() if g["passed"]]
+    if label in {"OVERFIT", "UNTRADEABLE"} and cleared:
+        reason += (
+            f". Gates cleared: {', '.join(cleared)}"
+            + (f"; still failing: {', '.join(unmet)}" if unmet else "; no gate outstanding")
+        )
+
+    return {
+        "label": label,
+        "reason": reason,
+        "gates": gates,
+        "gates_cleared": cleared,
+        "gates_failed": unmet,
+    }
 
 
 # ── endpoints ───────────────────────────────────────────────────────────────
@@ -267,6 +299,7 @@ def experiment(experiment_id: str, root: Path | str = DEFAULT_ROOT) -> dict[str,
                 else row["mean_ic"] > best_baseline
             ),
         }
+        entry["is_overfit_control"] = row["model_id"] in OVERFIT_CONTROL_MODELS
         entry["verdict"] = verdict(
             entry, controls_passed=controls_passed, integrity_clean=integrity_clean,
         )
@@ -286,6 +319,7 @@ def experiment(experiment_id: str, root: Path | str = DEFAULT_ROOT) -> dict[str,
         "dataset": metrics.get("dataset"),
         "universe": metrics.get("universe"),
         "features_used": metrics.get("features_used", []),
+        "dataset_sources": (metrics.get("dataset") or {}).get("source_datasets", []),
         "integrity": integrity,
         "negative_controls": controls,
         "holdout": metrics.get("holdout"),
@@ -293,6 +327,24 @@ def experiment(experiment_id: str, root: Path | str = DEFAULT_ROOT) -> dict[str,
         "regimes": metrics.get("regimes"),
         "primary_target": primary,
         "leaderboard": leaderboard,
+        # The strongest *candidate* evidence: best learned model excluding the
+        # deliberately over-parameterised control. Computed here so every surface
+        # agrees on what "best" means.
+        "best_candidate": max(
+            (
+                r for r in leaderboard
+                if r.get("kind") != "baseline"
+                and not r["is_overfit_control"]
+                and r.get("mean_ic") is not None
+            ),
+            key=lambda r: r["mean_ic"],
+            default=None,
+        ),
+        "best_baseline": max(
+            (r for r in leaderboard if r.get("kind") == "baseline" and r.get("mean_ic") is not None),
+            key=lambda r: r["mean_ic"],
+            default=None,
+        ),
         "walk_forward_plan": label_block.get("walk_forward_plan"),
         "fold_rows": label_block.get("fold_rows"),
         "cost_sensitivity": label_block.get("cost_sensitivity"),
@@ -370,6 +422,57 @@ def production_status(root: Path | str = DEFAULT_ROOT) -> dict[str, Any]:
         "note": (
             "Only a model with status=production may be served as a production "
             "prediction. Anything else is a research signal and is labelled as one."
+        ),
+    }
+
+
+def registry_view() -> dict[str, Any]:
+    """The registry as counts and rejection reasons, for the UI.
+
+    Deliberately does not expose the full evidence bundle: that is megabytes of
+    fold detail per entry and the page needs the decision, not the derivation.
+    What it does expose is *why* each entry is where it is, because a registry
+    that shows a status without a reason is asking to be trusted rather than
+    checked.
+    """
+    from src.quant.models.registry import ModelRegistry
+
+    try:
+        registry = ModelRegistry("data/research/models")
+    except Exception as error:  # noqa: BLE001
+        return {"status": "unavailable", "detail": str(error)}
+
+    rows: list[dict[str, Any]] = []
+    for entry in registry.all():
+        payload = entry.as_dict()
+        rows.append({
+            "key": entry.key,
+            "model_id": entry.model_id,
+            "version": entry.version,
+            "label": entry.label,
+            "status": entry.status,
+            "experiments_run": entry.experiments_run,
+            "dataset_version": entry.dataset_version,
+            "eligible_for": payload.get("eligible_for", []),
+            "candidate_thresholds_not_met": payload.get("candidate_thresholds_not_met", {}),
+            "notes": entry.notes,
+            "retired_reason": next(
+                (h.get("reason") for h in reversed(entry.status_history)
+                 if h.get("to") == "retired"),
+                None,
+            ),
+        })
+
+    summary = registry.summary()
+    return {
+        "status": "ok",
+        "entries": summary["entries"],
+        "by_status": summary["by_status"],
+        "models": rows,
+        "promotion_note": (
+            "Promotion is evaluated by ModelRegistry.promote(), which refuses a "
+            "transition whose evidence is absent AND one whose numbers fail. The "
+            "frontend renders this decision; it never makes it."
         ),
     }
 

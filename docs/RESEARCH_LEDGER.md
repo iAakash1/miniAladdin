@@ -283,6 +283,76 @@ Full detail: `docs/EXP-005.md`.
 
 ---
 
+### EXP-006 — is the C_base feature set tradeable?
+
+**Pre-registered**, with a recorded prediction. Fingerprint `6f8703469aec28e5`.
+
+EXP-005's ablation arms were never costed — they measured rank information only.
+`C_base` therefore finished that study with the highest observed IC and an
+unknown economic profile. EXP-006 froze the specification and put it through the
+full apparatus: 17 models, 27 features, costed backtest, cost sweep, six-factor
+attribution, deflated Sharpe. 17 declared evaluations, 139 prior, **156
+cumulative**.
+
+**The recorded prediction was wrong, in both halves.**
+
+> "C_base will not survive. Its t-statistic should regress toward the
+> single-model value; its gross Sharpe should be negative."
+
+The t did not regress and *could not have* — EXP-006 refits the identical model
+on identical folds with an identical seed, so it reproduced +2.66 exactly.
+Regression to the mean applies to a new sample; this was not one. The prediction
+was badly reasoned. And the gross Sharpe was **+0.384**, the first positive one
+from a learned model anywhere in this project.
+
+**Result — REJECTED, on one criterion.**
+
+| Gate | Required | `gradient_boosting` | |
+|---|---|---|---|
+| \|IC t\| | ≥ 2.0 | +2.66 | PASS |
+| gross Sharpe | > 0 | **+0.384** | PASS |
+| beats best baseline | true | +0.0290 vs +0.0209 | PASS |
+| **net Sharpe** | **> 0** | **−0.102** | **FAIL** |
+
+The gate was not weakened and the 10 bp half-spread — declared in `exp_004()`
+and unchanged across three studies — was not revisited. Lowering it after seeing
+that it is the only thing blocking candidacy is exactly what pre-registration
+exists to prevent.
+
+**The uncomfortable part.** Net Sharpe is **positive at 1, 3 and 5 bp**
+(+0.169, +0.108, +0.048) and crosses zero between 5 and 10. The half-spread is
+the largest acknowledged uncertainty in the pipeline — the dataset has no
+bid/ask, so it is a parameter, not an observation. A result whose sign depends on
+that parameter is a result about that parameter. Turnover is the mechanism:
+**20.1× annualised** against 5.6× for `baseline_low_volatility`.
+
+**There is no alpha.** Six-factor attribution gives alpha t = **+0.047**,
+annualised +0.25%. `baseline_momentum` — published 1993, 7.4× turnover — has
+alpha t +0.44, ten times larger and still not significant.
+
+**The signal is slow.** `shifted_forward` rose from t +1.30 (57 features) to
++1.88 (27 features): the model predicts a target displaced ~20 sessions
+(IC +0.0287) almost exactly as well as the real one (IC +0.0290). Both blocking
+controls passed, so this is not leakage — it is evidence about what kind of
+signal this is, and the answer is a slow one that momentum already captures.
+
+Regimes: the one quotable bucket (low-vol bull, 267 dates) improved from
++0.0019/t +0.17 to **+0.0188/t +1.67** — consistent with the smaller feature set
+being a better specification, and still below 2. The stress bucket shows t +3.30
+on **33 dates**: INSUFFICIENT EVIDENCE.
+
+**Holdout decision: DO NOT ARM.** Production models remain **0**.
+
+**What it establishes:** a smaller feature set is a better specification; the
+gross edge is real but small; turnover consumes it; there is no alpha; the signal
+is slow. If the line is worth pursuing, the next question is **turnover
+reduction**, not model capacity — and that is a new pre-registered experiment
+with its own trial budget.
+
+Full detail: `docs/EXP-006.md`.
+
+---
+
 ## Multiple-testing exposure
 
 | Study | Configurations | Targets | Evaluations | Counts against significance |
@@ -292,10 +362,11 @@ Full detail: `docs/EXP-005.md`.
 | EXP-003 | 0 | 0 | 0 | no |
 | EXP-004 | 17 | 2 | 34 | yes |
 | EXP-005 | 17 + 7x6 arms | 1 | 59 | yes |
-| **Running total** | | | **139** | |
+| EXP-006 | 17 | 1 | 17 | yes |
+| **Running total** | | | **156** | |
 
 Any deflated-Sharpe calculation on these validation folds must use a trial
-count of **at least 139**. EXP-002 discounted against its own 17 and therefore
+count of **at least 156**. EXP-002 discounted against its own 17 and therefore
 understated the correction it needed — and it already rejected every candidate.
 EXP-004 discounts against the full 80, which is set in its definition rather
 than counted afterwards.

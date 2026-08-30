@@ -1,0 +1,177 @@
+{
+  "experiment_id": "EXP-006",
+  "objective": "Determine whether the C_base feature set \u2014 price, volatility, volume and macro, 27 cross-sectional features \u2014 carries an economically meaningful edge, by putting it through the full costed apparatus the EXP-005 ablation arms never received: transaction costs, execution lag, turnover, six-factor attribution, and deflated Sharpe against the cumulative trial count.",
+  "start": "2014-04-01",
+  "end": null,
+  "step_sessions": 5,
+  "targets": [
+    "fwd_rank_21"
+  ],
+  "primary_target": "fwd_rank_21",
+  "models": [
+    {
+      "name": "baseline_zero",
+      "kind": "zero",
+      "params": {},
+      "seed": 0
+    },
+    {
+      "name": "baseline_historical_mean",
+      "kind": "historical_mean",
+      "params": {},
+      "seed": 0
+    },
+    {
+      "name": "baseline_momentum",
+      "kind": "passthrough",
+      "params": {
+        "feature": "mom_252_21_xs"
+      },
+      "seed": 0
+    },
+    {
+      "name": "baseline_reversal",
+      "kind": "passthrough",
+      "params": {
+        "feature": "reversal_5_xs"
+      },
+      "seed": 0
+    },
+    {
+      "name": "baseline_low_volatility",
+      "kind": "passthrough",
+      "params": {
+        "feature": "vol_63_xs",
+        "sign": -1.0
+      },
+      "seed": 0
+    },
+    {
+      "name": "baseline_earnings_surprise",
+      "kind": "passthrough",
+      "params": {
+        "feature": "earn_surprise_pct_xs"
+      },
+      "seed": 0
+    },
+    {
+      "name": "baseline_iv_premium",
+      "kind": "passthrough",
+      "params": {
+        "feature": "opt_iv_minus_hv_xs"
+      },
+      "seed": 0
+    },
+    {
+      "name": "ols",
+      "kind": "ols",
+      "params": {},
+      "seed": 0
+    },
+    {
+      "name": "ridge",
+      "kind": "ridge",
+      "params": {
+        "alpha": 10.0
+      },
+      "seed": 0
+    },
+    {
+      "name": "ridge_strong",
+      "kind": "ridge",
+      "params": {
+        "alpha": 200.0
+      },
+      "seed": 0
+    },
+    {
+      "name": "lasso",
+      "kind": "lasso",
+      "params": {
+        "alpha": 0.0005
+      },
+      "seed": 0
+    },
+    {
+      "name": "elastic_net",
+      "kind": "elastic_net",
+      "params": {
+        "alpha": 0.0005,
+        "l1_ratio": 0.5
+      },
+      "seed": 0
+    },
+    {
+      "name": "gradient_boosting",
+      "kind": "gradient_boosting",
+      "params": {},
+      "seed": 0
+    },
+    {
+      "name": "random_forest",
+      "kind": "random_forest",
+      "params": {},
+      "seed": 0
+    },
+    {
+      "name": "hist_gradient_boosting",
+      "kind": "hist_gradient_boosting",
+      "params": {},
+      "seed": 0
+    },
+    {
+      "name": "extra_trees",
+      "kind": "extra_trees",
+      "params": {},
+      "seed": 0
+    },
+    {
+      "name": "gradient_boosting_deep",
+      "kind": "gradient_boosting",
+      "params": {
+        "max_depth": 8,
+        "n_estimators": 150,
+        "learning_rate": 0.1,
+        "subsample": 1.0,
+        "min_samples_leaf": 5
+      },
+      "seed": 0
+    }
+  ],
+  "model_count": 17,
+  "seed": 0,
+  "universe_name": "liquid",
+  "universe_size": 250,
+  "execution_lag_periods": 1,
+  "cost_half_spreads_bps": [
+    1.0,
+    3.0,
+    5.0,
+    10.0,
+    20.0
+  ],
+  "primary_half_spread_bps": 10.0,
+  "validation_sessions": 252,
+  "min_train_sessions": 756,
+  "holdout_sessions": 252,
+  "embargo_sessions": 5,
+  "declared_evaluations": 17,
+  "prior_evaluations": 139,
+  "cumulative_evaluations": 156,
+  "run_negative_controls": true,
+  "feature_families": [
+    "price",
+    "volatility",
+    "volume",
+    "macro"
+  ],
+  "arms": [],
+  "arm_models": [],
+  "arm_count": 0,
+  "notes": [
+    "Pre-registered. The feature set is frozen to EXP-005's C_base arm and nothing is tuned. No threshold moves.",
+    "RECORDED PREDICTION: C_base will not survive. Its t-statistic was the maximum of 42 configurations and should regress toward the single-model value; its gross Sharpe should be negative, as every configuration measured across five studies has been.",
+    "This is the first time C_base is costed. EXP-005 measured rank information only, which is why its IC could not be acted on.",
+    "The 252-session holdout is not read, scored or used for selection."
+  ]
+}

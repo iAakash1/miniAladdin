@@ -616,8 +616,26 @@ not support is worse than no prediction.
 * **Gated promotion** — evidence must exist *and* say the right thing. A model
   with a complete evidence bundle showing it loses money is refused candidacy.
 
+### The research terminal
+
+`/quant` renders all of it — twelve sections and seven charts, every scientific
+number computed in Python and merely displayed by the frontend. It is built to
+read the same whether the research succeeded or failed:
+
+![Quant research overview](docs/screenshots/quant/01-overview-LOCAL.png)
+
+`NO_MODEL` is read from the model registry, not from the leaderboard below it, so
+nothing measured on the page can change it. Regime rows carry their date counts.
+Every ablation contrast reads `NO IMPROVEMENT`. The void study stays listed.
+
+![Feature-family ablation](docs/screenshots/quant/04-ablation-LOCAL.png)
+
+Screenshots are **LOCAL** and unverified in production — see
+[`docs/screenshots/quant/README.md`](docs/screenshots/quant/README.md).
+
 Full detail: [`docs/quant.md`](docs/quant.md) ·
-[`docs/EXP-004.md`](docs/EXP-004.md) ·
+[`docs/training.md`](docs/training.md) ·
+[`docs/EXP-005.md`](docs/EXP-005.md) ·
 [`docs/RESEARCH_LEDGER.md`](docs/RESEARCH_LEDGER.md)
 
 ### Local datasets

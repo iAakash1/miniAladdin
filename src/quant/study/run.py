@@ -50,7 +50,7 @@ from src.quant.pit.dataset import DatasetBuilder
 from src.quant.pit.universe import UniverseHistory
 from src.quant.regime import classify_rules, performance_by_regime
 from src.quant.study.firewall import FIREWALL
-from src.quant.study.families import arm_features, family_members
+from src.quant.study.families import FeatureArm, arm_features, family_members
 from src.quant.study.experiment import ExperimentDefinition, get_experiment, git_commit, git_dirty
 from src.quant.validation import controls as negative_controls
 from src.quant.validation.parallel import evaluate_specs
@@ -127,6 +127,24 @@ def run_experiment(
     cross = [n for n in manifest.features if n.endswith("_xs")]
     macro = [n for n in manifest.features if n.startswith(("rates_", "market_"))]
     features = cross + macro
+
+    # A definition may freeze the feature set to named families. This is how a
+    # follow-up study re-tests a specification an earlier ablation surfaced,
+    # without the families being re-chosen after seeing results — they are named
+    # in the frozen definition and hashed into the fingerprint.
+    if definition.feature_families:
+        restricted = arm_features(
+            FeatureArm("declared", definition.feature_families, "frozen in the definition"),
+            features,
+        )
+        if not restricted:
+            raise ValueError(
+                f"feature_families {definition.feature_families} matched no column in "
+                "the built matrix; refusing to run on an empty feature set"
+            )
+        print(f"      feature families {definition.feature_families} -> "
+              f"{len(restricted)} of {len(features)} columns")
+        features = restricted
     print(f"      features {len(features)} used ({len(cross)} cross-sectional + {len(macro)} macro)")
 
     # ── 2. integrity ─────────────────────────────────────────────────────

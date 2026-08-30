@@ -81,6 +81,12 @@ class ExperimentDefinition:
     #: available feature, which is how EXP-001 to EXP-004 ran.
     arms: tuple[FeatureArm, ...] = ()
 
+    #: Restrict the feature set to these families. Empty means every available
+    #: feature, which is how EXP-001 to EXP-005 ran their main leaderboard.
+    #: Naming families rather than columns keeps the definition stable when a
+    #: family gains a feature — and makes the restriction auditable.
+    feature_families: tuple[str, ...] = ()
+
     #: Models refitted once per arm. The full `models` ladder still runs on the
     #: complete feature set; this smaller set is what the ablation contrast uses,
     #: because asking 17 models the same question 7 times costs 238 trials to
@@ -144,6 +150,7 @@ class ExperimentDefinition:
             "prior_evaluations": self.prior_evaluations,
             "cumulative_evaluations": self.cumulative_evaluations,
             "run_negative_controls": self.run_negative_controls,
+            "feature_families": list(self.feature_families),
             "arms": [arm.as_dict() for arm in self.arms],
             "arm_models": [spec.as_dict() for spec in self.arm_models],
             "arm_count": len(self.arms),
@@ -273,7 +280,75 @@ def exp_005(seed: int = 0) -> ExperimentDefinition:
     )
 
 
-EXPERIMENTS: dict[str, Any] = {"EXP-004": exp_004, "EXP-005": exp_005}
+def exp_006(seed: int = 0) -> ExperimentDefinition:
+    """EXP-006 — is the C_base feature set tradeable?
+
+    EXP-005 answered "does any additional source add information?" with a clear
+    no, and left one thing unresolved as a side effect of how the ablation was
+    run: **the arms were never costed.** They measured rank information only —
+    no backtest, no execution lag applied to a book, no turnover, no Sharpe, no
+    factor attribution. So `C_base` finished the study with the highest observed
+    IC (+0.0290, t +2.66) and a completely unknown economic profile.
+
+    That is a real open question and a bad place to stop. A 27-feature set that
+    beats a 57-feature set on rank information is either a genuinely better
+    specification or a maximum picked out of a noisy surface, and the cheapest
+    way to tell is to put it through the full apparatus the main leaderboard
+    gets: costed backtest, cost sweep, six-factor attribution, deflated Sharpe
+    against the cumulative trial count, PBO, regimes.
+
+    **Pre-registered, and the prediction is recorded before the run.** EXP-005's
+    t = +2.66 is the maximum of 42 configurations, and the expected maximum of
+    139 zero-skill configurations is ≈ 2.62. The honest prior is therefore that
+    C_base will NOT survive: its t should fall toward the single-model value, and
+    its gross Sharpe should be negative like every other configuration measured
+    so far. Writing that down now is what makes the result informative either way.
+
+    The feature set is frozen to EXP-005's `C_base` arm — price, volatility,
+    volume and macro. Nothing is added, nothing is tuned, and no threshold moves.
+
+    Trial accounting: 17 models x 1 target = 17 declared, against 139 already
+    spent, for 156 cumulative.
+    """
+    return ExperimentDefinition(
+        experiment_id="EXP-006",
+        objective=(
+            "Determine whether the C_base feature set — price, volatility, volume "
+            "and macro, 27 cross-sectional features — carries an economically "
+            "meaningful edge, by putting it through the full costed apparatus the "
+            "EXP-005 ablation arms never received: transaction costs, execution "
+            "lag, turnover, six-factor attribution, and deflated Sharpe against "
+            "the cumulative trial count."
+        ),
+        start=Date(2014, 4, 1),
+        end=None,
+        step_sessions=5,
+        targets=("fwd_rank_21",),
+        primary_target="fwd_rank_21",
+        models=tuple(default_specs(seed)),
+        arms=(),                      # no ablation: the feature set is the point
+        arm_models=(),
+        feature_families=("price", "volatility", "volume", "macro"),
+        seed=seed,
+        execution_lag_periods=1,
+        prior_evaluations=139,
+        notes=(
+            "Pre-registered. The feature set is frozen to EXP-005's C_base arm and "
+            "nothing is tuned. No threshold moves.",
+            "RECORDED PREDICTION: C_base will not survive. Its t-statistic was the "
+            "maximum of 42 configurations and should regress toward the single-model "
+            "value; its gross Sharpe should be negative, as every configuration "
+            "measured across five studies has been.",
+            "This is the first time C_base is costed. EXP-005 measured rank "
+            "information only, which is why its IC could not be acted on.",
+            "The 252-session holdout is not read, scored or used for selection.",
+        ),
+    )
+
+
+EXPERIMENTS: dict[str, Any] = {
+    "EXP-004": exp_004, "EXP-005": exp_005, "EXP-006": exp_006,
+}
 
 
 def get_experiment(experiment_id: str, seed: int = 0) -> ExperimentDefinition:

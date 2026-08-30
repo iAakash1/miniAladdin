@@ -309,7 +309,72 @@ building the refusal path first.
 
 ---
 
-## 9. Reproducing
+## 9. The research terminal
+
+`/quant` renders the evidence and the evidence against it. The design constraint
+is that the page must read the same whether the research succeeded or failed — a
+quant surface that only looks impressive when the numbers are good is a marketing
+surface wearing a lab coat.
+
+```mermaid
+flowchart LR
+    subgraph BE["Python — every scientific number"]
+        A["experiments/EXP-*/metrics.json"]
+        S["quant_series.py<br/>per-fold IC · spread curve"]
+        R["ModelRegistry<br/>promote() gates"]
+        V["quant_service.verdict()<br/>reads CANDIDATE_THRESHOLDS"]
+    end
+    subgraph API["/api/quant/*"]
+        E1["/status"]; E2["/experiments"]; E3["/experiments/:id"]
+        E4["/experiments/:id/series/:model"]; E5["/registry"]; E6["/symbol/:ticker"]
+    end
+    subgraph FE["/quant — renders only"]
+        U["QuantResearchView"]
+        C["QuantCharts"]
+    end
+    A --> E3; S --> E4; R --> E1 & E5; V --> E3
+    E1 & E2 & E3 & E4 & E5 --> U --> C
+    E6 --> Sym["company page panel"]
+```
+
+**No scientific calculation happens in TypeScript.** Rank ICs, spread curves,
+fold statistics, verdicts and promotion eligibility all arrive computed. A second
+implementation in the frontend would eventually disagree with the Python one, and
+the page would be quietly wrong in a way no test covers.
+
+### The sections
+
+| # | Section | What it refuses to do |
+|---|---|---|
+| 1 | Deployment banner | Read anything but the registry. No leaderboard result can change `NO_MODEL` |
+| 2 | Current finding | Bury the negative. `NO ROBUST EVIDENCE OF EDGE` is stated at full weight with the strongest surviving evidence beside it |
+| 3 | Research overview | Omit the dataset hash, trial count, execution lag or cost assumption |
+| 4 | Experiment explorer | Hide a void study. EXP-002 stays listed with its reason |
+| 5 | Model comparison | Rank by IC alone. Every discounting column sits to the right of it |
+| 6 | Ablation | Read the maximum t-statistic as an edge. It is labelled `HYPOTHESIS — NOT A RESULT` |
+| 7 | Walk-forward | Imply a random split. Train, purge, validation and the locked holdout are drawn to scale |
+| 8 | Regimes | Show a metric without its date count. Thin regimes render `INSUFFICIENT EVIDENCE` |
+| 9 | Research integrity | Claim restatement handling is solved. It reads `UNQUANTIFIED` |
+| 10 | Dataset coverage | Present coverage as complete |
+| 11 | Model registry | Decide promotion. It renders what Python already decided, with the unmet thresholds |
+| 12 | Model training | Fake a trained model. The last pipeline step reads `blocked` |
+
+### Charts
+
+Inline SVG, no charting dependency. Every chart carries its **units** and
+**sample size** in the header and an explanation underneath, because a quant
+chart without units is a decoration.
+
+One deliberate naming decision: the cumulative curve is a **rank spread**, not an
+equity curve, and it accumulates additively. The target is a cross-sectional rank
+in [−1, 1]; an earlier version compounded it as a return and produced **+6,553%**
+— a number that would have sat on a page headlined "no evidence of edge" and been
+believed. Every Sharpe and return figure on the page comes from the artifact's
+costed backtest instead.
+
+---
+
+## 10. Reproducing
 
 ```bash
 export QUANT_DATA_ROOT=/path/to/datasets     # optional; defaults to ./datasets

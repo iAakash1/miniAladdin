@@ -27,7 +27,6 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
 PROXY="dashboard/src/proxy.ts"
-VIEW="dashboard/src/components/terminal/QuantResearchView.tsx"
 OUT="docs/screenshots/quant"
 CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 
@@ -40,12 +39,10 @@ CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 # to prevent. Byte-for-byte copies do not care whether a file is tracked.
 BACKUP="$(mktemp -d)"
 cp "$PROXY" "$BACKUP/proxy.ts"
-cp "$VIEW" "$BACKUP/view.tsx"
 
 restore() {
   local failed=0
   cp "$BACKUP/proxy.ts" "$PROXY" || failed=1
-  cp "$BACKUP/view.tsx" "$VIEW" || failed=1
   rm -rf "$BACKUP"
   if [ "$failed" -ne 0 ]; then
     echo "!! RESTORE FAILED — check $PROXY for a public /quant route before committing" >&2
@@ -56,7 +53,7 @@ restore() {
     echo "!! $PROXY still routes /quant publicly — restore did not take" >&2
     return 1
   fi
-  echo "restored $PROXY and $VIEW (verified: /quant is auth-gated again)"
+  echo "restored $PROXY (verified: /quant is auth-gated again)"
 }
 trap restore EXIT INT TERM
 
@@ -66,23 +63,20 @@ curl -sf -o /dev/null "http://127.0.0.1:8000/api/quant/status" \
 
 mkdir -p "$OUT"
 
-python3 - "$PROXY" "$VIEW" <<'PY'
+python3 - "$PROXY" <<'PY'
 import sys
 from pathlib import Path
 
-proxy, view = Path(sys.argv[1]), Path(sys.argv[2])
-
+# Only the auth gate needs lifting. Every Section on the quant page now renders
+# `defaultOpen`, so the old step that rewrote the component to expand them is
+# gone — it broke the moment the component was refactored, which is a good
+# argument for not scripting edits to source you do not control.
+proxy = Path(sys.argv[1])
 s = proxy.read_text()
-s = s.replace("  '/sitemap.xml',", "  '/quant(.*)',\n  '/sitemap.xml',")
-proxy.write_text(s)
-
-v = view.read_text()
-for section in ("ablation", "integrity", "regimes", "costs", "overfit", "provenance"):
-    idx = v.index(f'id="{section}"')
-    close = v.index(">", v.index("summary=", idx))
-    v = v[:close] + "\n              defaultOpen\n            " + v[close:]
-view.write_text(v)
-print("capture mode applied")
+if "'/quant" not in s:
+    s = s.replace("  '/sitemap.xml',", "  '/quant(.*)',\n  '/sitemap.xml',")
+    proxy.write_text(s)
+print("capture mode applied (/quant temporarily public)")
 PY
 
 echo "waiting for the dev server to recompile…"
