@@ -15,8 +15,8 @@ absent, returning the specific unmet requirements.
 |---|---|---|
 | `experimental` | nothing | — |
 | `validated` | walk-forward folds · written methodology · baseline comparison | "it looked good on the training set" |
-| `production_candidate` | + cost-aware backtest · factor attribution | a strong IC whose turnover eats it; momentum in disguise described as new |
-| `production` | + holdout metrics · regime-stability breakdown | selection on the same folds it is reported against; a model that worked only in the dominant regime |
+| `production_candidate` | + cost-aware backtest · factor attribution · **validation numbers clearing `CANDIDATE_THRESHOLDS`** | a strong IC whose turnover eats it; momentum in disguise described as new; **a complete evidence bundle stating the model loses money** |
+| `production` | + holdout metrics · regime-stability breakdown · **numbers clearing `PRODUCTION_THRESHOLDS`** | selection on the same folds it is reported against; a model that worked only in the dominant regime |
 | `retired` | nothing | — stopping is always allowed |
 
 ```python
@@ -26,6 +26,51 @@ registry.promote("ridge@1.0:fwd_ret_21", "production")
 #   performance broken out by market regime.
 #   A model is promoted on evidence, not on the best backtest number.
 ```
+
+### Two kinds of refusal, and why both are needed
+
+`PROMOTION_GATES` asks whether the required evidence **exists**. The threshold
+tables ask what that evidence **says**. A model can satisfy the first and fail
+the second, and that is the ordinary case.
+
+Until EXP-004 the numeric bars were only consulted at `production`, and they
+read `holdout_metrics` — which is empty by design while the holdout is locked.
+The consequence was that a model could arrive with a full, honest evidence
+bundle saying it loses money and still be labelled a *production candidate*.
+
+`CANDIDATE_THRESHOLDS` closes that, on validation evidence alone:
+
+| Bar | Source | Why |
+|---|---|---|
+| \|IC t\| ≥ 2.0 | `walk_forward` | Below this the validation IC is not distinguishable from zero; a holdout cannot confirm what development never established |
+| net Sharpe > 0 | `backtest` | After costs and the execution lag |
+| **gross Sharpe > 0** | `backtest` | Before any cost. A negative gross Sharpe means the ranking does not survive becoming a book, so no cost assumption can rescue it |
+| beats best baseline | `baseline_comparison` | A learned model losing to a free published factor has rediscovered it expensively |
+
+An unrecorded value counts as **unmet** — absent evidence is not passing
+evidence. `eligible_for` applies the same bars, so it can never advertise a
+status that `promote()` would refuse.
+
+```python
+registry.promote("random_forest@2.0:fwd_rank_21", "production_candidate")
+# PromotionRefused: supplies the required evidence but its validation numbers
+#   do not clear the candidate thresholds:
+#   ic_t_stat = 1.911; net_sharpe = -0.598; gross_sharpe = -0.276
+```
+
+### Current contents
+
+| | |
+|---|---|
+| Entries | 71 |
+| `experimental` | 37 — 34 from EXP-004 (`@2.0`), 3 from EXP-001 |
+| `retired` | 34 — EXP-002 (`@1.0`), **VOID**, retained not deleted |
+| `validated` / `production_candidate` / **`production`** | 0 / 0 / **0** |
+
+Every EXP-004 entry is eligible for `validated` and nothing beyond it. A study
+is registered under its own `version` so a later run can never overwrite an
+earlier one's record — `key` is `model_id@version:label`, and a superseded
+study is retired with a reason rather than replaced.
 
 ---
 

@@ -195,7 +195,17 @@ def audit_feature(name: str, *, cross_sectional: bool = False) -> dict[str, Any]
 
 
 def build_feature_audit(feature_set: Optional[list[str]] = None) -> dict[str, Any]:
-    """The complete audit, optionally restricted to a study's actual feature set."""
+    """The complete audit, optionally restricted to a study's actual feature set.
+
+    Features register themselves as a side effect of importing their module, so
+    an audit built before those imports happen describes an empty registry.
+    Writing that out produces a *clean-looking* artifact asserting there is
+    nothing to audit — the worst possible failure for a document whose purpose
+    is to prove every feature was examined. The import is forced here and the
+    empty case raises.
+    """
+    from src.quant.features import earnings, macro, options, price  # noqa: F401
+
     per_symbol = REGISTRY.per_symbol_names()
     join_stage = REGISTRY.names(group=FeatureGroup.OPTIONS) + REGISTRY.names(
         group=FeatureGroup.FUNDAMENTAL
@@ -213,6 +223,12 @@ def build_feature_audit(feature_set: Optional[list[str]] = None) -> dict[str, An
         chosen = set(feature_set)
         for entry in entries:
             entry["used_in_study"] = entry["feature"] in chosen
+
+    if not entries:
+        raise RuntimeError(
+            "feature audit is empty: the registry has no features. An empty audit "
+            "would silently claim there is nothing to check."
+        )
 
     unsafe = [e["feature"] for e in entries if not e["declared_point_in_time_safe"]]
     fitted = [e["feature"] for e in entries if e["requires_fitting"]]

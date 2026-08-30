@@ -256,3 +256,66 @@ def test_factor_compounding_is_geometric_and_drops_the_first_boundary():
     # First boundary is dropped; the second compounds the 5 days after it.
     assert len(out) == 1
     assert out["mkt_rf"].iloc[0] == pytest.approx(1.01**5 - 1, rel=1e-9)
+
+
+# ── execution lag ───────────────────────────────────────────────────────────
+#
+# EXP-002 formed positions at the close its signal was computed from. These
+# tests exist so that reverting to same-period execution fails loudly rather
+# than silently improving every number.
+
+
+def test_execution_lag_defaults_to_one_period():
+    """The default must never drift back to 0.
+
+    A lag of 0 means the signal computed from date t's close is traded at that
+    same close, which is not achievable. If a future change makes 0 the default
+    again, this fails.
+    """
+    assert BacktestConfig().execution_lag_periods == 1
+
+
+def test_execution_lag_is_recorded_in_the_config_payload():
+    """A backtest's assumptions must travel with its result."""
+    payload = BacktestConfig().as_dict()
+    assert payload["execution_lag_periods"] == 1
+    assert "not achievable" in payload["execution_lag_note"]
+
+
+def test_zero_lag_produces_a_different_and_better_looking_result():
+    """Demonstrates why the lag matters rather than asserting that it does.
+
+    Same predictions, same returns; only the execution assumption changes. If
+    lag 0 and lag 1 gave the same answer the parameter would be cosmetic.
+    """
+    predictions, returns = _panel(periods=80, names=30, seed=3)
+    optimistic = run_backtest(
+        predictions, returns,
+        config=BacktestConfig(execution_lag_periods=0), forward_return_column="fwd_ret_5",
+    )
+    realistic = run_backtest(
+        predictions, returns,
+        config=BacktestConfig(execution_lag_periods=1), forward_return_column="fwd_ret_5",
+    )
+    assert optimistic.metrics["net_cagr"] != realistic.metrics["net_cagr"]
+    # The synthetic panel has a real contemporaneous signal, so removing the
+    # same-period advantage must cost performance.
+    assert realistic.metrics["net_cagr"] < optimistic.metrics["net_cagr"]
+
+
+def test_lagged_backtest_never_uses_a_prediction_from_the_period_it_trades():
+    """The invariant, checked on the joined frame rather than inferred."""
+    from src.quant.backtest.engine import _apply_execution_lag
+
+    predictions, _ = _panel(periods=20, names=5, seed=1)
+    original = predictions.set_index(["symbol", "date"])["prediction"]
+    lagged = _apply_execution_lag(
+        predictions, 1, prediction_column="prediction",
+        date_column="date", symbol_column="symbol",
+    ).set_index(["symbol", "date"])["prediction"]
+
+    for (symbol, date_), value in lagged.items():
+        same_period = original.loc[(symbol, date_)]
+        # The value carried into this period must not be this period's own
+        # signal (the synthetic panel gives every row a distinct prediction).
+        assert value != same_period

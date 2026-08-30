@@ -309,12 +309,24 @@ def catalog() -> list[dict[str, Any]]:
 def compute_symbol_labels(
     frame: pd.DataFrame, *, labels: Optional[Sequence[str]] = None
 ) -> pd.DataFrame:
-    """Every per-symbol label for one symbol's history, sorted ascending by date."""
+    """Every per-symbol label for one symbol's history, sorted ascending by date.
+
+    The ordering requirement is enforced, not documented. Forward labels are
+    computed over row order, so an unsorted frame yields values that look
+    plausible and are wrong.
+    """
+    from src.quant.pit.calendar import require_chronological
+
+    require_chronological(frame, context="compute_symbol_labels")
+
     chosen = list(labels) if labels else [
         d.name for d in LABEL_DEFINITIONS if not d.cross_sectional
     ]
     returns = pd.to_numeric(frame["total_return"], errors="coerce").reset_index(drop=True)
-    out = pd.DataFrame(index=frame.index)
+    # A positional write needs a positional index on both sides. `frame.index`
+    # may be anything the caller was carrying; the labels are produced against a
+    # fresh RangeIndex, so the container is given one too.
+    out = pd.DataFrame(index=pd.RangeIndex(len(frame)))
 
     for name in chosen:
         definition = get(name)

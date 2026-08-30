@@ -130,6 +130,43 @@ PRODUCTION_THRESHOLDS: dict[str, dict[str, Any]] = {
     },
 }
 
+#: Numeric bars a `production_candidate` promotion must clear, on VALIDATION.
+#:
+#: `PROMOTION_GATES` only asks whether the required evidence exists, so before
+#: these were added a model could carry a full evidence bundle saying it loses
+#: money and still be labelled a production candidate. EXP-004's best model is
+#: precisely that case: IC t +1.91, gross Sharpe −0.28, net Sharpe −0.60. The
+#: holdout thresholds could not catch it, because they are only consulted at
+#: `production` and are measured on a holdout that must stay locked.
+#:
+#: Read from `walk_forward`, `backtest` and `baseline_comparison` rather than
+#: `holdout_metrics` — this is the validation-side counterpart, and it is what
+#: makes "candidate" mean something a locked holdout can still be spent on.
+CANDIDATE_THRESHOLDS: dict[str, dict[str, Any]] = {
+    "ic_t_stat": {
+        "source": "walk_forward", "minimum": 2.0, "absolute": True,
+        "why": "Newey-West corrected for label overlap. Below this the validation "
+               "IC is not distinguishable from zero, and a holdout cannot confirm "
+               "something development never established.",
+    },
+    "net_sharpe": {
+        "source": "backtest", "minimum": 0.0,
+        "why": "After costs and the execution lag. A candidate that loses money "
+               "in validation has nothing for a holdout to confirm.",
+    },
+    "gross_sharpe": {
+        "source": "backtest", "minimum": 0.0,
+        "why": "Before any cost. A negative gross Sharpe means the ranking does "
+               "not survive being turned into a book at all, so no cost "
+               "assumption can rescue it.",
+    },
+    "beat_best_baseline": {
+        "source": "baseline_comparison", "minimum": True,
+        "why": "A learned model that loses to a free published factor has "
+               "rediscovered it expensively.",
+    },
+}
+
 
 class PromotionRefused(ValueError):
     """Raised when a status change lacks the evidence that status requires."""
@@ -227,6 +264,32 @@ class ModelEntry:
                 unmet[name] = value
         return unmet
 
+    def candidate_thresholds_not_met(self) -> dict[str, Any]:
+        """Validation-side thresholds this entry's numbers fail.
+
+        Same rule as `thresholds_not_met`: a value that was never recorded
+        counts as unmet. Absent evidence is not passing evidence.
+        """
+        unmet: dict[str, Any] = {}
+        for name, rule in CANDIDATE_THRESHOLDS.items():
+            block = getattr(self, rule["source"], {}) or {}
+            value = block.get(name)
+            if value is None:
+                unmet[name] = "not recorded"
+                continue
+            bound = rule["minimum"]
+            observed = (
+                abs(value)
+                if rule.get("absolute") and isinstance(value, (int, float))
+                else value
+            )
+            if isinstance(bound, bool):
+                if observed is not True:
+                    unmet[name] = observed
+            elif observed < bound:
+                unmet[name] = observed
+        return unmet
+
     def as_dict(self) -> dict[str, Any]:
         return {
             "key": self.key,
@@ -256,6 +319,7 @@ class ModelEntry:
             "turnover_evidence": dict(self.turnover_evidence),
             "reproducibility": dict(self.reproducibility),
             "thresholds_not_met": self.thresholds_not_met(),
+            "candidate_thresholds_not_met": self.candidate_thresholds_not_met(),
             "experiments_run": self.experiments_run,
             "git_commit": self.git_commit,
             "dependency_versions": dict(self.dependency_versions),
@@ -264,9 +328,18 @@ class ModelEntry:
             "updated_at": self.updated_at,
             "status_history": list(self.status_history),
             "notes": list(self.notes),
+            # Eligibility means a `promote()` call would actually succeed, so it
+            # must apply the same numeric bars promotion does. Listing a status
+            # here that promotion then refuses is how a reader concludes a
+            # money-losing model was "eligible for production".
             "eligible_for": [
                 status for status in ("validated", "production_candidate", "production")
                 if not self.missing_for(status)
+                and not (status == "production_candidate" and self.candidate_thresholds_not_met())
+                and not (
+                    status == "production"
+                    and (self.candidate_thresholds_not_met() or self.thresholds_not_met())
+                )
             ],
         }
 
@@ -276,7 +349,10 @@ class ModelEntry:
         # emitted for readers and recomputed on load. Feeding them back to the
         # constructor would both fail and, worse, let a stale computed value
         # persist across a round trip.
-        derived = {"key", "eligible_for", "thresholds_not_met"}
+        derived = {
+            "key", "eligible_for", "thresholds_not_met",
+            "candidate_thresholds_not_met",
+        }
         data = {k: v for k, v in payload.items() if k not in derived}
         return cls(**data)
 
@@ -362,6 +438,18 @@ class ModelRegistry:
                 raise PromotionRefused(
                     f"{key} cannot become {status}: missing {', '.join(missing)}. "
                     "A model is promoted on evidence, not on the best backtest number."
+                )
+
+        if status in ("production_candidate", "production"):
+            unmet = entry.candidate_thresholds_not_met()
+            if unmet:
+                lines = "; ".join(
+                    f"{name} = {value} ({CANDIDATE_THRESHOLDS[name]['why']})"
+                    for name, value in unmet.items()
+                )
+                raise PromotionRefused(
+                    f"{key} supplies the required evidence but its validation "
+                    f"numbers do not clear the candidate thresholds: {lines}"
                 )
 
         if status == "production":

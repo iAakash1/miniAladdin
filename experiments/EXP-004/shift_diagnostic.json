@@ -1,0 +1,52 @@
+{
+  "shift_periods": 4,
+  "target": "fwd_rank_21",
+  "rows": [
+    {
+      "variant": "real_target",
+      "model": "baseline_momentum",
+      "mean_ic": 0.015836364258114712,
+      "t_stat": 0.876403408234093,
+      "observations": 404
+    },
+    {
+      "variant": "real_target",
+      "model": "baseline_low_volatility",
+      "mean_ic": 0.02086784167670688,
+      "t_stat": 0.8990917675902595,
+      "observations": 404
+    },
+    {
+      "variant": "shifted_forward_4",
+      "model": "baseline_momentum",
+      "mean_ic": 0.01939141083476126,
+      "t_stat": 1.0455821865769064,
+      "observations": 403
+    },
+    {
+      "variant": "shifted_forward_4",
+      "model": "baseline_low_volatility",
+      "mean_ic": 0.01267286239437781,
+      "t_stat": 0.5397503400094898,
+      "observations": 403
+    },
+    {
+      "variant": "shuffled_within_date",
+      "model": "baseline_momentum",
+      "mean_ic": 0.0006759561371502553,
+      "t_stat": 0.2209319872528981,
+      "observations": 404
+    },
+    {
+      "variant": "shuffled_within_date",
+      "model": "baseline_low_volatility",
+      "mean_ic": 0.0049671865951011,
+      "t_stat": 1.5199832006923812,
+      "observations": 404
+    }
+  ],
+  "verdict_lines": [
+    "baseline_momentum: retains 122% of its real-target IC on a target displaced 4 periods",
+    "baseline_low_volatility: retains 61% of its real-target IC on a target displaced 4 periods"
+  ]
+}

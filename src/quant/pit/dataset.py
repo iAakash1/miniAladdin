@@ -72,7 +72,7 @@ from src.quant.labels import compute_symbol_labels, cross_sectional_rank_label
 from src.quant.labels import get as get_label
 from src.quant.pit import guards as guard_module
 from src.quant.pit.adjust import point_in_time_returns
-from src.quant.pit.calendar import TradingCalendar
+from src.quant.pit.calendar import TradingCalendar, require_chronological
 from src.quant.pit.universe import UniverseHistory
 
 logger = logging.getLogger("omnisignal.quant.pit.dataset")
@@ -559,6 +559,13 @@ class DatasetBuilder:
         frame = adjusted.frame
         if frame.empty:
             return None
+
+        # One check covering every feature computer and every label below. They
+        # all read row order rather than dates, so this is the invariant they
+        # silently depend on. `point_in_time_returns` already sorts and
+        # de-duplicates; asserting it here means a future caller that does not
+        # cannot fail quietly.
+        require_chronological(frame, context=f"symbol block {symbol}")
 
         block = pd.DataFrame(
             {

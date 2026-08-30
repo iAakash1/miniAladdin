@@ -77,3 +77,11 @@ data/panel/
 
 # Training and ingestion logs — reproducible output, often large.
 /logs/
+
+# Experiment artifacts: keep the ones a decision rests on, exclude the bulk.
+#
+# metrics/config/manifest/folds/portfolio are small and are the evidence a
+# reader needs. Per-row predictions run to tens of megabytes and are fully
+# regenerable from the recorded seed, dataset content hash and git commit, so
+# they stay local — the same rule that keeps raw partitions out.
+experiments/*/predictions_*.parquet

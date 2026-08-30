@@ -218,15 +218,44 @@ def test_fingerprint_ignores_feature_order():
 
 
 def _complete_entry(**holdout) -> ModelEntry:
+    """An entry carrying every required evidence block, and validation numbers
+    that clear `CANDIDATE_THRESHOLDS`.
+
+    The candidate bars have to be satisfied here, otherwise these tests would be
+    asserting the *validation*-side refusal while claiming to test the holdout
+    thresholds — and would keep passing if the production thresholds were
+    deleted entirely.
+    """
     return ModelEntry(
         model_id="gb", version="1.0", task="regression", label="fwd_rank_21",
-        walk_forward={"mean_ic": 0.03}, validation_methodology="8-fold expanding",
-        baseline_comparison={"beat": True}, backtest={"net_sharpe": 0.03},
+        walk_forward={"mean_ic": 0.03, "ic_t_stat": 2.8},
+        validation_methodology="8-fold expanding",
+        baseline_comparison={"beat_best_baseline": True},
+        backtest={"net_sharpe": 0.03, "gross_sharpe": 0.51},
         factor_attribution={"alpha_t_stat": 0.44}, regime_stability={"by_regime": []},
         multiple_testing={"trials": 46}, leakage_evidence={"probe": "pass"},
         stability_evidence={"fold_positive": 0.75}, turnover_evidence={"annualised": 20.7},
         reproducibility={"seed": 0}, holdout_metrics=holdout,
     )
+
+
+def test_candidate_thresholds_are_checked_before_the_holdout_ones(tmp_path):
+    """A model that fails on validation never reaches the holdout thresholds.
+
+    Ordering matters: the holdout bars read `holdout_metrics`, and consulting
+    them for a model whose validation numbers are already negative would imply
+    the holdout had been spent on it.
+    """
+    registry = ModelRegistry(tmp_path)
+    entry = registry.register(_complete_entry(
+        holdout_ic_t_stat=2.7, holdout_net_sharpe=0.5, beats_best_baseline=True,
+        sign_matches_validation=True, cost_share_of_gross=0.2,
+        deflated_sharpe_probability=0.99,
+    ))
+    entry.backtest = {"net_sharpe": -0.60, "gross_sharpe": -0.28}
+    with pytest.raises(PromotionRefused, match="candidate thresholds"):
+        registry.promote(entry.key, "production")
+    assert entry.status == "experimental"
 
 
 def test_complete_evidence_still_fails_on_the_numbers(tmp_path):

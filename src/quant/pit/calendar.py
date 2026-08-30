@@ -111,6 +111,55 @@ class TradingCalendar:
         return self.sessions[::step]
 
 
+class ChronologyError(ValueError):
+    """Raised when a per-symbol frame is not strictly date-ascending."""
+
+
+def require_chronological(
+    frame, *, column: str = "date", context: str = "frame"
+) -> None:
+    """Assert a per-symbol frame is strictly ascending in `column`.
+
+    Every rolling feature and every forward label is computed over **row order**,
+    not over dates. `rolling(21)` looks at the previous 21 rows; `shift(-5)`
+    reaches five rows forward. If the rows are not in date order those windows
+    span the wrong observations, and the output is silently wrong rather than
+    obviously broken.
+
+    Demonstrated, not theorised: passing a date-shuffled frame to
+    `compute_symbol_labels` or to any price feature produces values that do not
+    match the correctly-ordered answer once realigned by date. The callers in
+    this package all sort first, so nothing was affected — but relying on every
+    caller to remember is exactly the arrangement that produced the `merge_asof`
+    defect. The invariant is enforced here instead.
+
+    Strictly ascending, not merely sorted: a duplicated date means two rows
+    describe the same session, and a rolling window over them counts one session
+    twice.
+    """
+    if column not in frame.columns:
+        raise ChronologyError(f"{context}: no {column!r} column to order by")
+    if len(frame) < 2:
+        return
+
+    import pandas as pd
+
+    values = pd.to_datetime(frame[column], errors="coerce")
+    if values.isna().any():
+        raise ChronologyError(
+            f"{context}: {int(values.isna().sum())} unparseable value(s) in {column!r}"
+        )
+    differences = values.diff().dropna()
+    if (differences <= pd.Timedelta(0)).any():
+        offenders = int((differences <= pd.Timedelta(0)).sum())
+        raise ChronologyError(
+            f"{context}: {column!r} is not strictly ascending ({offenders} non-increasing "
+            "step(s)). Rolling features and forward labels are computed over ROW order, "
+            "so an unordered frame produces silently wrong values. Sort by date and "
+            "drop duplicate sessions before calling."
+        )
+
+
 def _as_date(value: object) -> Date:
     if isinstance(value, Date):
         return value

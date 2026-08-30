@@ -199,20 +199,79 @@ def test_promotion_is_refused_without_evidence(tmp_path):
         registry.promote(entry.key, "validated")
 
 
+def _passing_candidate(**overrides) -> ModelEntry:
+    """An entry whose validation numbers clear every candidate threshold."""
+    base = dict(
+        walk_forward={"mean_ic": 0.02, "ic_t_stat": 2.6},
+        validation_methodology="8-fold expanding",
+        baseline_comparison={"beat_best_baseline": True},
+        backtest={"net_sharpe": 0.9, "gross_sharpe": 1.1},
+        factor_attribution={"alpha_t_stat": 2.4},
+    )
+    base.update(overrides)
+    return _entry(**base)
+
+
 def test_production_needs_holdout_and_regime_evidence(tmp_path):
     registry = ModelRegistry(tmp_path)
-    entry = registry.register(
-        _entry(
-            walk_forward={"mean_ic": 0.02},
-            validation_methodology="8-fold expanding",
-            baseline_comparison={"beat": True},
-            backtest={"net_sharpe": 0.9},
-            factor_attribution={"alpha_t_stat": 2.4},
-        )
-    )
+    entry = registry.register(_passing_candidate())
     registry.promote(entry.key, "production_candidate")
     with pytest.raises(PromotionRefused, match="holdout"):
         registry.promote(entry.key, "production")
+
+
+def test_candidacy_is_refused_when_the_model_loses_money(tmp_path):
+    """The EXP-004 case: a full evidence bundle that says the model is bad.
+
+    Every `PROMOTION_GATES` requirement is satisfied — the walk-forward, the
+    methodology, the baseline comparison, the backtest and the attribution all
+    exist. Only the numbers are damning. Before `CANDIDATE_THRESHOLDS` this
+    reached `production_candidate`.
+    """
+    registry = ModelRegistry(tmp_path)
+    entry = registry.register(
+        _passing_candidate(
+            walk_forward={"mean_ic": 0.0238, "ic_t_stat": 1.91},
+            backtest={"net_sharpe": -0.598, "gross_sharpe": -0.276},
+        )
+    )
+    with pytest.raises(PromotionRefused, match="candidate thresholds"):
+        registry.promote(entry.key, "production_candidate")
+    assert entry.status == "experimental"
+
+    unmet = entry.candidate_thresholds_not_met()
+    assert unmet["ic_t_stat"] == pytest.approx(1.91)
+    assert unmet["net_sharpe"] == pytest.approx(-0.598)
+    assert unmet["gross_sharpe"] == pytest.approx(-0.276)
+
+
+def test_unrecorded_candidate_metric_counts_as_unmet(tmp_path):
+    """Absent evidence is not passing evidence — including a nested backtest.
+
+    The study nests its backtest metrics under a ``metrics`` key. If that block
+    is stored unflattened the thresholds find nothing, and "not recorded" must
+    refuse rather than wave the model through.
+    """
+    registry = ModelRegistry(tmp_path)
+    entry = registry.register(
+        _passing_candidate(backtest={"metrics": {"net_sharpe": 2.0, "gross_sharpe": 2.4}})
+    )
+    assert entry.candidate_thresholds_not_met()["net_sharpe"] == "not recorded"
+    with pytest.raises(PromotionRefused, match="candidate thresholds"):
+        registry.promote(entry.key, "production_candidate")
+
+
+def test_eligible_for_never_lists_a_status_promotion_would_refuse(tmp_path):
+    registry = ModelRegistry(tmp_path)
+    entry = registry.register(
+        _passing_candidate(backtest={"net_sharpe": -0.6, "gross_sharpe": -0.3})
+    )
+    eligible = entry.as_dict()["eligible_for"]
+    assert "production_candidate" not in eligible
+    assert "production" not in eligible
+    assert "validated" in eligible
+    for status in eligible:
+        registry.promote(entry.key, status, reason="asserting eligibility is honest")
 
 
 def test_retirement_never_requires_evidence(tmp_path):
