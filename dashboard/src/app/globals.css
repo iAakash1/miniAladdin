@@ -5565,3 +5565,39 @@ a.hl-row:hover .hl-row__out { color: var(--accent); transform: translate(1px, -1
   .qr-step__detail { grid-column: 1 / -1; }
 }
 .ml-tag--control { border-color: var(--warn, #b7791f); color: var(--warn, #b7791f); }
+
+/* ── deployed model + inference ───────────────────────────────────────────
+   The status pills sit beside the number, never below it: a prediction that
+   scrolls away from its EXPERIMENTAL label is a prediction without one. */
+.qi-card { border: 1px solid var(--line); padding: 14px 16px; margin-bottom: 12px; }
+.qi-card__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.qi-card__head strong { display: block; font-size: 0.875rem; margin-top: 2px; }
+.qi-card__pills { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.qi-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); margin: 0 0 10px; }
+.qi-metrics div { background: var(--surface-1); padding: 8px 11px; display: flex; flex-direction: column; gap: 2px; }
+.qi-metrics dt { font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.qi-metrics dd { margin: 0; font-family: var(--font-mono, monospace); font-size: 1rem; }
+.qi-metrics .qr-fail dd { color: var(--neg, #c0392b); }
+.qi-caveat { margin: 0 0 10px; }
+
+.qi-block { border-left: 2px solid var(--neg, #c0392b); padding: 8px 0 8px 12px; margin: 0 0 12px; }
+.qi-block p { margin: 4px 0 0; font-size: 0.8125rem; }
+.qi-block code { font-family: var(--font-mono, monospace); font-size: 0.75rem; }
+
+.qi-run { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.qi-input {
+  font-family: var(--font-mono, monospace); font-size: 0.875rem; text-transform: uppercase;
+  padding: 5px 9px; width: 110px; background: var(--surface-1);
+  border: 1px solid var(--line); color: var(--text);
+}
+.qi-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.qi-result { border: 1px solid var(--line); padding: 12px 14px; margin-bottom: 10px; }
+.qi-result__value { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.qi-result__num { font-size: 1.875rem; font-weight: 600; line-height: 1; }
+.qi-disclaimer { border-left: 2px solid var(--warn, #b7791f); padding-left: 12px; margin-top: 4px; }
+.qi-down { border-left: 2px solid var(--muted); padding: 6px 0 6px 12px; }
+.qi-down p { margin: 0 0 4px; font-size: 0.8125rem; }
+
+@media (max-width: 640px) { .qi-metrics { grid-template-columns: repeat(2, 1fr); } }

@@ -1,0 +1,18 @@
+# Inference-only dependencies.
+#
+# Deliberately minimal and NOT `-r ../../requirements.txt`. The research stack
+# carries yfinance, supabase, groq, fpdf2 and a provider fabric; none of it is
+# reachable from an endpoint that loads one 89 KB estimator and scores a matrix.
+# A smaller image is also a smaller attack surface.
+#
+# scikit-learn and numpy are pinned to the versions the artifact was fitted
+# with. An estimator unpickled under a different scikit-learn minor version is
+# not guaranteed to behave identically, and a silent behaviour change in a
+# served model is the worst kind.
+fastapi==0.139.0
+uvicorn==0.49.0
+pydantic==2.13.4
+numpy==2.2.6
+scikit-learn==1.7.2
+scipy==1.18.1
+joblib==1.5.3

@@ -1,0 +1,28 @@
+# Render deployment.
+#
+# ONE service: inference. Training never runs here — it needs 14 GB of Dolt
+# clones and hours of CPU, and neither belongs on a request path. The deployable
+# unit is an 89 KB estimator plus its feature schema, which is why this image
+# does not carry the research dependencies at all.
+services:
+  - type: web
+    name: minialaddin-quant-inference
+    runtime: python
+    plan: free
+    region: oregon
+    rootDir: .
+    buildCommand: pip install -r services/inference/requirements.txt
+    startCommand: uvicorn services.inference.app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: false
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.11
+      - key: MODEL_ARTIFACT_DIR
+        value: artifacts
+      - key: MODEL_ARTIFACT
+        value: gradient_boosting@EXP-006
+      # Browser origins allowed to call this directly. Empty by default: the
+      # miniAladdin backend proxies it server-side, so no browser needs CORS.
+      - key: ALLOWED_ORIGINS
+        sync: false

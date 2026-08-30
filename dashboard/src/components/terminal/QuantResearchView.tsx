@@ -38,6 +38,7 @@ import {
   AblationChart, CostCurve, FoldIcChart, OverfitScatter,
   RegimeChart, SpreadCurve, WalkForwardTimeline,
 } from '@/components/terminal/quant/QuantCharts'
+import ModelInference from '@/components/terminal/quant/ModelInference'
 import type {
   Experiment, ExperimentIndexRow, ModelSeries, QuantStatus, RegistryView,
 } from '@/components/terminal/quant/types'
@@ -247,6 +248,16 @@ export default function QuantResearchView() {
               finding. It is what the apparatus is for.
             </p>
           </div>
+
+          {/* ── 2b. deployed model + inference ── */}
+          <Section
+            id="inference"
+            title="Model intelligence"
+            summary="deployed · experimental · not promoted"
+            defaultOpen
+          >
+            <ModelInference />
+          </Section>
 
           {/* ── 3. research overview ── */}
           <Section id="overview" title="Research overview"

@@ -374,6 +374,28 @@ costed backtest instead.
 
 ---
 
+## 9b. Model deployment
+
+`gradient_boosting@4.0:fwd_rank_21` from EXP-006 is deployed as an **inference
+service**. It is **not promoted** — registry production count is 0 and the
+artifact carries `promotion_status: BLOCKED` as data, so no part of the serving
+path can present it otherwise.
+
+The service loads an 89 KB estimator once at startup, computes no features, and
+touches no dataset. Callers supply a feature vector; the miniAladdin backend
+supplies one from a **frozen snapshot dated 2025-08-27** (the last panel date
+before the holdout), and that date travels in every response.
+
+Every prediction is a cross-sectional rank in [−1, 1] over 21 sessions — not a
+return, not a price, not advice — and arrives with its model id, experiment id,
+research status and promotion status attached.
+
+The inference service is optional: if it is down, `/quant` renders all of its
+research evidence from local artifacts and the model section states the reason.
+Full detail in [`docs/training.md` §7b](training.md).
+
+---
+
 ## 10. Reproducing
 
 ```bash

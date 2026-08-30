@@ -633,6 +633,24 @@ Every ablation contrast reads `NO IMPROVEMENT`. The void study stays listed.
 Screenshots are **LOCAL** and unverified in production — see
 [`docs/screenshots/quant/README.md`](docs/screenshots/quant/README.md).
 
+### Deployed, but not promoted
+
+`gradient_boosting@4.0:fwd_rank_21` from EXP-006 runs as an inference service on
+Render — an 89 KB estimator, loaded once, computing no features and touching no
+dataset. It is labelled **EXPERIMENTAL** with **promotion BLOCKED** in the
+artifact metadata, in the API response and on the page, because it fails one of
+four candidate gates:
+
+| Bar | Required | Observed | |
+|---|---|---|---|
+| \|IC t\| | ≥ 2.0 | +2.66 | PASS |
+| gross Sharpe | > 0 | +0.384 | PASS |
+| beats best baseline | true | +0.0290 vs +0.0209 | PASS |
+| **net Sharpe** | **> 0** | **−0.102** | **FAIL** |
+
+Deploying it changes nothing about that. `promote()` lives in the research
+repository; the serving path has no authority over it.
+
 Full detail: [`docs/quant.md`](docs/quant.md) ·
 [`docs/training.md`](docs/training.md) ·
 [`docs/EXP-005.md`](docs/EXP-005.md) ·

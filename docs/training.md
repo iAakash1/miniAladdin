@@ -223,6 +223,134 @@ explicit refusal instead of a number.
 
 ---
 
+## 7b. Model Deployment (EXP-006)
+
+> The model is deployed as an **inference service**. It is **not** promoted.
+> Registry production count remains 0.
+
+### What is deployed
+
+| | |
+|---|---|
+| Model | `gradient_boosting@4.0:fwd_rank_21` |
+| Experiment | **EXP-006**, fingerprint `6f8703469aec28e5` |
+| Target | `fwd_rank_21` — cross-sectional rank, 21-session horizon |
+| Features | 27 (`price`, `volatility`, `volume`, `macro`) |
+| Artifact | `artifacts/gradient_boosting@EXP-006.joblib` — **89 KB**, committed |
+| Metadata | `artifacts/gradient_boosting@EXP-006.metadata.json` |
+| Feature snapshot | `artifacts/feature_snapshot.parquet` — 250 symbols, as of **2025-08-27** |
+| Research status | **EXPERIMENTAL** |
+| Promotion | **BLOCKED** — net Sharpe −0.102 at the declared 10 bp half-spread |
+
+### The distinction that must travel with it
+
+EXP-006 never persisted a fitted estimator, and neither did any earlier study:
+`run_walk_forward` builds a fresh model per fold and discards it. That is correct
+for research, because the object of study is the **specification**.
+
+So `scripts/quant/build_artifact.py` materialises one. The consequence:
+
+* **EXP-006's metrics** — IC +0.0290, t +2.66, gross Sharpe +0.384, net Sharpe
+  −0.102 — were estimated from **eight separate walk-forward fits** and describe
+  the specification.
+* **The deployed artifact** is **one** fit of that specification over the whole
+  pre-holdout window (142,941 rows, 2014-04-03 → 2025-08-27, 876 symbols).
+
+They are not the same object. `/model` serves the metrics under
+`specification_metrics` with that caveat attached rather than as properties of
+the file. Reporting them as the artifact's own would be a category error.
+
+The builder refuses to run if the rebuilt dataset's `content_hash` differs from
+the one EXP-006 recorded, and arms the holdout firewall over the fit window.
+
+### Architecture
+
+```mermaid
+flowchart LR
+    subgraph L["Local — training only"]
+        D["Dolt clones · 14 GB · gitignored"] --> R["ExperimentRunner"]
+        R --> A["experiments/EXP-006/"]
+        R --> B["build_artifact.py"] --> AR["artifacts/*.joblib · 89 KB"]
+    end
+    subgraph V["Vercel"]
+        Q["/quant"]
+    end
+    subgraph API["Render — miniAladdin backend"]
+        C["inference_client.py"]
+    end
+    subgraph INF["Render — inference service"]
+        S["services/inference/app.py"] --> M["gradient_boosting@4.0"]
+    end
+    AR -.->|committed| S
+    Q --> C --> S
+    A -.->|read-only| C
+```
+
+Training is **off** the request path. The inference image installs
+`services/inference/requirements.txt` only — no yfinance, no supabase, no
+provider fabric, no Dolt.
+
+### Endpoints
+
+**Inference service** (`render.yaml` → `minialaddin-quant-inference`):
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /health` | `ok` is false when the artifact failed to load — a service reporting healthy while unable to predict stops the caller's fallback engaging |
+| `GET /model` | Full provenance: registry key, experiment, fingerprint, features, dataset hash, git SHA, seed, fit scope, specification metrics, blocked gate |
+| `POST /predict` | Scores pre-computed feature vectors. Every response repeats model identity and status |
+
+**miniAladdin backend** (degrades, never raises):
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/quant/inference/status` | Service health + model card |
+| `GET /api/quant/inference/predict/{symbol}` | Prediction with provenance, or a structured `unavailable` |
+
+### Environment variables
+
+| Variable | Where | Purpose |
+|---|---|---|
+| `MODEL_ARTIFACT_DIR` | inference | Artifact directory (default `artifacts`) |
+| `MODEL_ARTIFACT` | inference | Artifact stem (default `gradient_boosting@EXP-006`) |
+| `ALLOWED_ORIGINS` | inference | CORS allow-list. **Empty by default** — the backend proxies server-side, so no browser needs direct access |
+| `QUANT_INFERENCE_URL` | backend | Inference service base URL. Unset ⇒ reported unavailable, never guessed |
+| `QUANT_INFERENCE_TIMEOUT` | backend | Seconds, default 8 |
+
+No secrets. The service reads two files and exposes no path, no dataset and no
+credential.
+
+### Deploying
+
+```bash
+python -m scripts.quant.build_artifact --experiment EXP-006 --model gradient_boosting
+python -m scripts.quant.export_feature_snapshot --experiment EXP-006
+git add artifacts/ && git commit && git push        # 89 KB + 39 KB
+# Render: create from render.yaml, then set QUANT_INFERENCE_URL on the backend
+curl https://<service>.onrender.com/health
+```
+
+### Why it is not promoted
+
+`CANDIDATE_THRESHOLDS` on validation:
+
+| Bar | Required | Observed | |
+|---|---|---|---|
+| \|IC t\| | ≥ 2.0 | +2.66 | PASS |
+| gross Sharpe | > 0 | +0.384 | PASS |
+| beats best baseline | true | +0.0290 vs +0.0209 | PASS |
+| **net Sharpe** | **> 0** | **−0.102** | **FAIL** |
+
+Three of four. Deploying it as an inference service does not change that, and no
+part of the serving path can: `promote()` lives in the research repository and
+the artifact carries `promotion_status: BLOCKED` as data.
+
+Net Sharpe is positive at 1, 3 and 5 bp and crosses zero between 5 and 10 — the
+half-spread is assumed, not observed. That is a reason for caution, not a reason
+to lower the bar.
+
+---
+
 ## 8. Experiment lifecycle
 
 ```mermaid

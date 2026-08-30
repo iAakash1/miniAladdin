@@ -2230,3 +2230,45 @@ def quant_registry():
     from src.services import quant_service
 
     return quant_service.registry_view()
+
+
+# ── quant inference (Render model service) ──────────────────────────────────
+#
+# A thin, optional edge onto the deployed EXP-006 model. Every endpoint below
+# degrades to a structured `unavailable` rather than raising: the research
+# surface is the product, and the model is an annotation on it. No page depends
+# on the inference service being up.
+
+
+@app.get("/api/quant/inference/status", tags=["quant"])
+def quant_inference_status():
+    """Whether the deployed model is reachable, and what it is.
+
+    Returns `unavailable` with a reason when the service is unset, cold-starting
+    or down — never an error, because the caller's job is to render the rest of
+    the page regardless.
+    """
+    from src.services import inference_client
+
+    return {
+        "configured": inference_client.configured(),
+        "health": inference_client.health(),
+        "model": inference_client.model_card(),
+    }
+
+
+@app.get("/api/quant/inference/predict/{symbol}", tags=["quant"])
+def quant_inference_predict(
+    symbol: str = FastPath(..., max_length=10, pattern=r"^[A-Za-z.\-]+$"),
+):
+    """A research prediction for one symbol, with its provenance attached.
+
+    The prediction is a **cross-sectional rank**, not a return and not a
+    recommendation, and it is computed from a frozen feature snapshot whose
+    as-of date travels in the response. The model is EXPERIMENTAL and
+    promotion-BLOCKED; that status is carried through from the artifact and
+    cannot be altered here.
+    """
+    from src.services import inference_client
+
+    return inference_client.predict([symbol])
