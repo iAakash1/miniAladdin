@@ -48,6 +48,8 @@ from src.quant.validation.metrics import (
 )
 from src.quant.validation.walkforward import WalkForwardPlan
 
+from src.quant.study.firewall import FIREWALL
+
 logger = logging.getLogger("omnisignal.quant.validation.runner")
 
 
@@ -197,6 +199,18 @@ def run_walk_forward(
         if train.empty or validation.empty:
             errors.append(f"fold {fold.index}: empty train or validation split")
             continue
+
+        # The firewall, at the only place that matters: immediately before rows
+        # become a fit. A plan that reserved the holdout correctly cannot reach
+        # here with holdout rows, so this is a guard against the plan being
+        # wrong — which is exactly the case a fold-level assertion cannot make.
+        FIREWALL.assert_clear(
+            train, context=f"walk-forward fold {fold.index} TRAIN", date_column=date_column
+        )
+        FIREWALL.assert_clear(
+            validation, context=f"walk-forward fold {fold.index} VALIDATION",
+            date_column=date_column,
+        )
 
         X_train = train[feature_list].to_numpy(dtype=float)
         y_train = train[label].to_numpy(dtype=float)

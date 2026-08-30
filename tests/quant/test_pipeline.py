@@ -111,6 +111,35 @@ def test_a_non_point_in_time_source_is_refused_as_a_feature(store, universe, tmp
         builder._admit("dolthub_earnings_income_statement", role="feature")
 
 
+def test_an_ingested_not_pit_status_overrides_a_permissive_catalog(store, universe):
+    """The manifest describes the rows on disk; it outranks an optimistic catalog.
+
+    `dolthub_earnings_eps_estimate` is catalogued POINT_IN_TIME and is genuinely
+    admissible. If a partition were ever ingested carrying a not_point_in_time
+    status, the two disagree — and before EXP-005 the disagreement was copied
+    into provenance and admitted, because only the catalog was consulted.
+    """
+    _write(
+        store, "dolthub_earnings_eps_estimate",
+        pd.DataFrame({"date": [Date(2020, 1, 1)], "symbol": ["SYM00"], "consensus": [1.0]}),
+        point_in_time_status="not_point_in_time",
+    )
+    builder = DatasetBuilder(store, universe)
+    with pytest.raises(ValueError, match="INGESTED as not_point_in_time"):
+        builder._admit("dolthub_earnings_eps_estimate", role="feature")
+
+
+def test_a_clean_ingested_status_still_admits_a_permitted_source(store, universe):
+    """The override is one-directional: pessimistic manifest blocks, never the reverse."""
+    _write(
+        store, "dolthub_earnings_eps_estimate",
+        pd.DataFrame({"date": [Date(2020, 1, 1)], "symbol": ["SYM00"], "consensus": [1.0]}),
+        point_in_time_status="point_in_time",
+    )
+    builder = DatasetBuilder(store, universe)
+    assert builder._admit("dolthub_earnings_eps_estimate", role="feature") is not None
+
+
 def test_a_waiver_admits_it_and_is_recorded(store, universe):
     _write(
         store, "dolthub_earnings_income_statement",

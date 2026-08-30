@@ -55,6 +55,8 @@ import pandas as pd
 
 from src.quant.pit.calendar import TradingCalendar
 
+from src.quant.study.firewall import FIREWALL
+
 logger = logging.getLogger("omnisignal.quant.validation.walkforward")
 
 #: Additional sessions removed beyond the label horizon. One trading week:
@@ -205,6 +207,10 @@ def build_plan(
             f"final {holdout_sessions} sessions ({holdout_start} to {holdout_end}) "
             "reserved as an untouched holdout; no fold reaches them"
         )
+        # Declaring the window here is what makes the reservation enforceable
+        # rather than advisory: from this point every guarded stage refuses
+        # rows inside it. See src/quant/study/firewall.py.
+        FIREWALL.arm_window(holdout_start, holdout_end)
 
     gap = int(label_horizon_sessions) + int(embargo_sessions)
     folds: list[Fold] = []

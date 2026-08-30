@@ -21,6 +21,7 @@ import Headlines from '@/components/terminal/Headlines'
 import KeyStats from '@/components/terminal/KeyStats'
 import MacroPanel from '@/components/terminal/MacroPanel'
 import QuantPanel from '@/components/terminal/QuantPanel'
+import QuantIntelligence from '@/components/terminal/QuantIntelligence'
 import SentimentPanel from '@/components/terminal/SentimentPanel'
 import StreetIntelligence from '@/components/terminal/StreetIntelligence'
 import TechnicalIntelligence from '@/components/terminal/TechnicalIntelligence'
@@ -245,6 +246,7 @@ export default function CompanyReport({ analysis, initialChart, isPro, requestUp
 
       <div id="scorecard" className="report-section">
         <QuantPanel analysis={analysis} />
+        <QuantIntelligence symbol={analysis.ticker} />
       </div>
 
       <div id="price" className="report-section terminal-grid-main">

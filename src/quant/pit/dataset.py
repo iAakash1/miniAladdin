@@ -66,6 +66,8 @@ from src.quant.features import cross_section as xs
 from src.quant.features import macro as macro_features
 from src.quant.features import price as price_features  # noqa: F401 - registers 16 features
 from src.quant.features import earnings as earnings_features
+from src.quant.features import estimates as estimate_features
+from src.quant.features import fundamentals as fundamental_features
 from src.quant.features import options as option_features
 from src.quant.features.registry import REGISTRY, FeatureGroup
 from src.quant.labels import compute_symbol_labels, cross_sectional_rank_label
@@ -189,6 +191,13 @@ class DatasetBuilder:
         chain_dataset: str = "dolthub_options_chain_daily",
         eps_history_dataset: str = "dolthub_earnings_eps_history",
         earnings_calendar_dataset: str = "dolthub_earnings_calendar",
+        eps_estimate_dataset: str = "dolthub_earnings_eps_estimate",
+        sales_estimate_dataset: str = "dolthub_earnings_sales_estimate",
+        income_dataset: str = "dolthub_earnings_income_statement",
+        balance_assets_dataset: str = "dolthub_earnings_balance_sheet_assets",
+        balance_liabilities_dataset: str = "dolthub_earnings_balance_sheet_liabilities",
+        balance_equity_dataset: str = "dolthub_earnings_balance_sheet_equity",
+        cash_flow_dataset: str = "dolthub_earnings_cash_flow_statement",
         waivers: Optional[Sequence[str]] = None,
     ) -> None:
         self.store = store
@@ -201,6 +210,13 @@ class DatasetBuilder:
         self.chain_dataset = chain_dataset
         self.eps_history_dataset = eps_history_dataset
         self.earnings_calendar_dataset = earnings_calendar_dataset
+        self.eps_estimate_dataset = eps_estimate_dataset
+        self.sales_estimate_dataset = sales_estimate_dataset
+        self.income_dataset = income_dataset
+        self.balance_assets_dataset = balance_assets_dataset
+        self.balance_liabilities_dataset = balance_liabilities_dataset
+        self.balance_equity_dataset = balance_equity_dataset
+        self.cash_flow_dataset = cash_flow_dataset
         self.waivers = list(waivers or [])
         self._sources: list[dict[str, Any]] = []
 
@@ -218,8 +234,9 @@ class DatasetBuilder:
         except KeyError:
             spec = None
 
+        waiver = f"{dataset_id}:{role}"
+
         if spec is not None and role == "feature" and not spec.historical_training_allowed:
-            waiver = f"{dataset_id}:{role}"
             if waiver not in self.waivers:
                 raise ValueError(
                     f"{dataset_id} is catalogued {spec.point_in_time.value} and may not be "
@@ -236,6 +253,28 @@ class DatasetBuilder:
             return None
 
         manifest = self.store.manifest(dataset_id)
+
+        # The catalog declares what a source SHOULD be; the manifest records what
+        # was actually ingested. Before EXP-005 only the catalog was consulted and
+        # the manifest's status was copied into provenance unread — so a partition
+        # ingested as not_point_in_time was admitted on the strength of an
+        # optimistic catalog entry, and the contradiction was recorded rather than
+        # raised. The stricter of the two now wins, in that direction only: a
+        # pessimistic manifest can block an optimistic catalog, never the reverse.
+        if role == "feature" and manifest.point_in_time_status == "not_point_in_time":
+            if waiver not in self.waivers:
+                catalogued = spec.point_in_time.value if spec is not None else "uncatalogued"
+                raise ValueError(
+                    f"{dataset_id} was INGESTED as not_point_in_time (the catalog says "
+                    f"{catalogued}) and may not be used as a {role} source. The stored "
+                    "status describes the rows actually on disk, so it overrides a more "
+                    f"permissive catalog entry. To override deliberately, pass "
+                    f"waivers=['{waiver}']."
+                )
+            logger.warning(
+                "dataset: WAIVER admitting %s as %s despite an ingested status of "
+                "not_point_in_time", dataset_id, role,
+            )
         self._sources.append(
             {
                 "dataset_id": dataset_id,
@@ -295,6 +334,13 @@ class DatasetBuilder:
         chain = self._admit(self.chain_dataset, role="feature")
         eps_history = self._admit(self.eps_history_dataset, role="feature")
         earnings_calendar = self._admit(self.earnings_calendar_dataset, role="feature")
+        eps_estimate = self._admit(self.eps_estimate_dataset, role="feature")
+        sales_estimate = self._admit(self.sales_estimate_dataset, role="feature")
+        income = self._admit(self.income_dataset, role="feature")
+        balance_assets = self._admit(self.balance_assets_dataset, role="feature")
+        balance_liabilities = self._admit(self.balance_liabilities_dataset, role="feature")
+        balance_equity = self._admit(self.balance_equity_dataset, role="feature")
+        cash_flow = self._admit(self.cash_flow_dataset, role="feature")
 
         feature_names = list(features) if features else REGISTRY.per_symbol_names()
         macro_names = REGISTRY.names(group=FeatureGroup.MACRO)
@@ -433,7 +479,40 @@ class DatasetBuilder:
         if not attached_earnings:
             logger.warning("dataset: no earnings events — earnings features absent, not zeroed")
 
-        joined_names = attached_options + attached_earnings
+        # Estimate vintages need no announcement gate: they are dated by
+        # observation, so the as-of merge on the vintage date is the whole
+        # point-in-time argument. See features/estimates.py.
+        attached_estimates: list[str] = []
+        estimate_frame = estimate_features.build_estimate_features(eps_estimate, sales_estimate)
+        if not estimate_frame.empty:
+            panel = estimate_features.attach_estimate_features(panel, estimate_frame)
+            attached_estimates = [
+                n for n in estimate_features.FEATURE_NAMES if n in panel.columns
+            ]
+        else:
+            logger.warning("dataset: no estimate vintages — estimate features absent, not zeroed")
+
+        # Statement fundamentals are period-keyed and reach the panel ONLY behind
+        # earnings_calendar. See features/fundamentals.py for what that does and
+        # does not fix.
+        attached_fundamentals: list[str] = []
+        fundamental_frame = fundamental_features.build_fundamental_events(
+            income, balance_assets, balance_liabilities, balance_equity,
+            cash_flow, earnings_calendar,
+        )
+        if not fundamental_frame.empty:
+            panel = fundamental_features.attach_fundamental_features(panel, fundamental_frame)
+            attached_fundamentals = [
+                n for n in fundamental_features.FEATURE_NAMES if n in panel.columns
+            ]
+        else:
+            logger.warning(
+                "dataset: no gated fundamentals — fundamental features absent, not zeroed"
+            )
+
+        joined_names = (
+            attached_options + attached_earnings + attached_estimates + attached_fundamentals
+        )
 
         # ── cross-sectional stage ────────────────────────────────────────
         rankable = feature_names + joined_names

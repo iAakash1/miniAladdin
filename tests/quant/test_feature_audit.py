@@ -30,9 +30,22 @@ def test_every_registered_feature_appears(audit):
 
 
 def test_cross_sectional_variants_are_audited(audit):
-    """The _xs columns are what the models actually consume."""
+    """The _xs columns are what the models actually consume.
+
+    The count is derived from the registry rather than hard-coded: a literal
+    would have to be edited every time a feature family is added, and an
+    assertion that is routinely edited to match the code stops testing it.
+    What must hold is that EVERY rankable base has an `_xs` twin.
+    """
+    from src.quant.features.registry import REGISTRY, FeatureGroup
+
     ranks = [e for e in audit["features"] if e["is_cross_sectional"]]
-    assert len(ranks) == 28
+    rankable = set(REGISTRY.per_symbol_names()) | set(
+        REGISTRY.names(group=FeatureGroup.OPTIONS)
+        + REGISTRY.names(group=FeatureGroup.FUNDAMENTAL)
+    )
+    assert len(ranks) == len(rankable)
+    assert {e["base_feature"] for e in ranks} == rankable
     for entry in ranks:
         assert entry["feature"].endswith("_xs")
         assert entry["base_feature"] is not None

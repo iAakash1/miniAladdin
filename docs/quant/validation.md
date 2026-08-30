@@ -153,3 +153,76 @@ rigorous.
 8. Performance not confined to a single regime.
 
 Failing any of these is a finding and is reported as one.
+
+---
+
+## 8. The twenty failure modes, and where each is controlled
+
+Added for EXP-005. "fires" marks a control that has actually caught something in
+this repository — six have, which is the argument for keeping the rest.
+
+| # | Failure | Controlled by | Fired? |
+|---|---|---|---|
+| 1 | Feature leakage | Truncation invariance at 3+ cutoffs, real builder | yes |
+| 2 | Survivorship bias | Whole-market monthly cross-sections + universe guard | yes |
+| 3 | Look-ahead via fundamentals | `earnings_calendar` announcement gate | yes |
+| 4 | Look-ahead via options | Backward as-of, 21-session staleness cap | — |
+| 5 | Publication vs period-end | Catalog class `PUBLICATION_LAGGED` | **yes** |
+| 6 | Restatement contamination | **UNRESOLVED** — see §10 | open |
+| 7 | Universe selection leakage | Trailing dollar volume only; `in_universe` per date | — |
+| 8 | Corporate-action leakage | Returns from unadjusted prices + ex-dated actions | — |
+| 9 | Normalisation leakage | `FoldImputer` fitted inside the fold loop | — |
+| 10 | Target leakage | `require_chronological` on labels and price features | **yes** |
+| 11 | Cross-sectional leakage | Ranks fitted per date within the PIT universe | — |
+| 12 | Scaling outside the fold | As 9; fit scope asserted in `test_leakage.py` | — |
+| 13 | Hyperparameter leakage | No search; fixed defaults in the frozen definition | — |
+| 14 | Model-selection leakage | Primary target declared in advance; holdout untouched | — |
+| 15 | Multiple-testing inflation | Cumulative ledger count; DSR against 139 | — |
+| 16 | Cost optimism | 1/3/5/10/20 bp sweep; gross reported beside net | — |
+| 17 | Turnover error | Turnover and cost share per model | — |
+| 18 | Signal/execution timing | `execution_lag_periods >= 1`, enforced in `__post_init__` | **yes** |
+| 19 | Regime-selection bias | 200-date floor; thin regimes report INSUFFICIENT | **yes** |
+| 20 | Future data in rolling features | Row-order guard via `require_chronological` | **yes** |
+
+---
+
+## 9. The holdout firewall (EXP-005)
+
+Before EXP-005 the holdout was defended at one entry point: the runner refused
+to execute the holdout experiment unarmed. That did nothing about the way a
+holdout actually gets spent — someone builds a panel that extends past the
+cutoff, fits something, and sees the number before realising. By then it is gone.
+
+`src/quant/study/firewall.py` moves the guard to where holdout **rows** meet
+code. `FIREWALL.assert_clear` runs at the walk-forward plan and again on the
+train and validation frames of **every fold, immediately before the fit**. A
+breach raises `HoldoutBreach` — not a `ValueError`, deliberately, because a
+breach is never something a caller should catch and continue past.
+
+It lifts only when `docs/HOLDOUT_CONTRACT.md` is armed by a human editing a
+tracked file, or through `FIREWALL.override(reason)`, which requires a reason and
+logs at WARNING. There is **no environment variable**:
+`QUANT_DISABLE_HOLDOUT_FIREWALL` raises if set, so a hopeful export fails loudly
+rather than silently doing nothing.
+
+`tests/quant/test_firewall.py` plants a corrupted plan whose last validation
+window slides into the reserved period and asserts the fit is refused. A guard
+that has never been shown to fire is a comment.
+
+---
+
+## 10. What is still open
+
+**Restatement contamination is not solved.** The statement tables hold one row
+per (symbol, period) and no vintage column, so a later correction overwrites the
+original irrecoverably. Announcement-gating fixes *when* a figure becomes
+readable; it does nothing about *which version* is read. The magnitude cannot be
+measured from the source.
+
+The mitigations are honest rather than sufficient: every affected feature is
+marked `restatement_risk=UNQUANTIFIED`, they are isolated in EXP-005's arm F so
+their contribution can be discounted separately, and any promotion leaning on
+them has to confront the label. The real fix is `src/panel/fundamentals.py` —
+SEC companyfacts carries a real `filed` date per fact and resolves each period to
+the most recent filing visible on a given date — and wiring it to the quant panel
+at scale is recorded as future work, not as done.

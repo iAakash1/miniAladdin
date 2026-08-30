@@ -49,6 +49,8 @@ from src.quant.models.registry import dependency_versions
 from src.quant.pit.dataset import DatasetBuilder
 from src.quant.pit.universe import UniverseHistory
 from src.quant.regime import classify_rules, performance_by_regime
+from src.quant.study.firewall import FIREWALL
+from src.quant.study.families import arm_features, family_members
 from src.quant.study.experiment import ExperimentDefinition, get_experiment, git_commit, git_dirty
 from src.quant.validation import controls as negative_controls
 from src.quant.validation.parallel import evaluate_specs
@@ -229,6 +231,11 @@ def run_experiment(
             definition, target, frame, features, dataset, regimes, store, workers, output,
         )
 
+    # ── 5b. ablation arms ────────────────────────────────────────────────
+    ablation = _run_ablation(
+        definition, frame, features, dataset, regimes, store, workers, output,
+    )
+
     # ── 6. artifact ──────────────────────────────────────────────────────
     payload = {
         "experiment": definition.as_dict(),
@@ -258,6 +265,8 @@ def run_experiment(
         "negative_controls": control_report,
         "regimes": regimes.as_dict(),
         "labels": labels_report,
+        "ablation": ablation,
+        "firewall": FIREWALL.status(),
         "runtime_seconds": round(time.perf_counter() - began, 1),
     }
     (output / "metrics.json").write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
@@ -477,6 +486,182 @@ def _evaluate_target(
 #: nothing — which is how PBO silently became "not computed" rather than a
 #: number. They are excluded and named instead.
 MIN_PBO_PERIODS = 60
+
+
+def _run_ablation(
+    definition: ExperimentDefinition,
+    frame: pd.DataFrame,
+    features: list[str],
+    dataset: Any,
+    regimes: Any,
+    store: RawStore,
+    workers: int,
+    output: Path,
+) -> dict[str, Any]:
+    """Refit a reduced model ladder once per pre-registered feature arm.
+
+    The contrast that matters is arm-minus-base, so every arm runs on the same
+    folds, the same seed and the same models. Only the feature columns change.
+
+    An arm whose families are entirely absent from the built matrix — options
+    before 2019, say, or fundamentals if the calendar failed to load — is
+    SKIPPED and reported as skipped. Running it on a silently-empty column set
+    would produce a number that looks like evidence of nothing when it is
+    actually evidence of nothing having been measured.
+    """
+    if not definition.arms or not definition.arm_models:
+        return {"ran": False, "reason": "no arms declared", "arms": []}
+
+    target = definition.primary_target
+    horizon = _horizon(target)
+    plan = build_plan(
+        dataset.calendar, start=definition.start, end=max(frame["date"]),
+        label_horizon_sessions=horizon,
+        validation_sessions=definition.validation_sessions,
+        min_train_sessions=definition.min_train_sessions,
+        embargo_sessions=definition.embargo_sessions,
+        holdout_sessions=definition.holdout_sessions,
+    )
+
+    print(f"\n[5b] ablation: {len(definition.arms)} arms x "
+          f"{len(definition.arm_models)} models on {target}")
+
+    rows: list[dict[str, Any]] = []
+    coverage: dict[str, Any] = {}
+
+    for arm in definition.arms:
+        columns = arm_features(arm, features)
+        missing = [f for f in arm.families if not family_members(f, features)]
+        coverage[arm.name] = {
+            "features": len(columns),
+            "families": list(arm.families),
+            "families_absent": missing,
+        }
+        if not columns:
+            print(f"  {arm.name:22s} SKIPPED — no features present")
+            rows.append({
+                "arm": arm.name, "families": list(arm.families),
+                "hypothesis": arm.hypothesis, "skipped": True,
+                "reason": "no features present in the built matrix",
+                "feature_count": 0, "models": [],
+            })
+            continue
+
+        progress = TrainingProgress(
+            total_units=len(definition.arm_models), label=f"{arm.name}",
+        )
+        results, failures, timing = evaluate_specs(
+            list(definition.arm_models), frame, plan,
+            features=columns, label=target,
+            step_sessions=definition.step_sessions, workers=workers,
+            on_complete=lambda name, result, error: progress.advance(
+                detail=name,
+                folds=len(result.folds) if result else None,
+                ic=result.pooled_ic.get("mean_ic") if result else None,
+            ),
+        )
+        timing.update(progress.finish(f"{len(results)}/{len(definition.arm_models)}"))
+
+        # These key names are NOT interchangeable with the ones on `pooled_ic`.
+        # `ExperimentLog.leaderboard` reads `t_stat` (not `ic_t_stat`) and pulls
+        # the train IC and fold rate from `result.stability(...)`. Reading the
+        # leaderboard's names off `pooled_ic` silently yields None for all four,
+        # which is how EXP-005's first pass recorded arm ICs with no significance
+        # beside them — a mistake that is invisible unless someone looks.
+        model_rows = [
+            {
+                "model_id": r.model_id,
+                "mean_ic": r.pooled_ic.get("mean_ic"),
+                "ic_t_stat": r.pooled_ic.get("t_stat"),
+                "ic_ir": r.pooled_ic.get("ic_ir"),
+                "train_mean_ic": r.stability("train_mean_ic").get("mean"),
+                "train_ic_gap": _gap_of(r),
+                "fold_ic_positive_rate": r.stability("spearman").get("fold_positive_rate"),
+                "folds": len(r.folds),
+            }
+            for r in results
+        ]
+        best = max(
+            (m for m in model_rows if m["mean_ic"] is not None),
+            key=lambda m: m["mean_ic"], default=None,
+        )
+        rows.append({
+            "arm": arm.name,
+            "families": list(arm.families),
+            "hypothesis": arm.hypothesis,
+            "skipped": False,
+            "feature_count": len(columns),
+            "models": model_rows,
+            "best_model": best["model_id"] if best else None,
+            "best_ic": best["mean_ic"] if best else None,
+            "best_t": best["ic_t_stat"] if best else None,
+            "failures": failures,
+            "timing": timing,
+        })
+
+    # ── the contrast ────────────────────────────────────────────────────
+    #
+    # Every arm is compared to C_base, the arm containing everything derivable
+    # from price. A family "adds information" only if its arm beats that, and
+    # the delta is reported per model as well as on the best, because a single
+    # best-of comparison is a maximum of six draws and is biased upward.
+    by_arm = {r["arm"]: r for r in rows if not r["skipped"]}
+    base = by_arm.get("C_base")
+    contrasts: list[dict[str, Any]] = []
+    if base is not None:
+        base_by_model = {m["model_id"]: m["mean_ic"] for m in base["models"]}
+        for row in rows:
+            if row["skipped"] or row["arm"] == "C_base":
+                continue
+            deltas = [
+                {
+                    "model_id": m["model_id"],
+                    "arm_ic": m["mean_ic"],
+                    "base_ic": base_by_model.get(m["model_id"]),
+                    "delta": (
+                        None if m["mean_ic"] is None
+                        or base_by_model.get(m["model_id"]) is None
+                        else m["mean_ic"] - base_by_model[m["model_id"]]
+                    ),
+                }
+                for m in row["models"]
+            ]
+            usable = [d["delta"] for d in deltas if d["delta"] is not None]
+            contrasts.append({
+                "arm": row["arm"],
+                "families_added": [
+                    f for f in row["families"] if f not in set(base["families"])
+                ],
+                "per_model": deltas,
+                "mean_delta": float(np.mean(usable)) if usable else None,
+                "median_delta": float(np.median(usable)) if usable else None,
+                "models_improved": sum(1 for d in usable if d > 0),
+                "models_compared": len(usable),
+            })
+
+    return {
+        "ran": True,
+        "target": target,
+        "base_arm": "C_base",
+        "arms": rows,
+        "coverage": coverage,
+        "contrasts": contrasts,
+        "interpretation": (
+            "A family adds information only if its arm beats C_base on the same "
+            "folds with the same models and seed. `models_improved` out of "
+            "`models_compared` is the honest headline: one model improving out of "
+            "six is noise, not a source."
+        ),
+    }
+
+
+def _gap_of(result: Any) -> Optional[float]:
+    """Train-minus-validation IC, from the same source the leaderboard uses."""
+    train = result.stability("train_mean_ic").get("mean")
+    validation = result.pooled_ic.get("mean_ic")
+    if train is None or validation is None:
+        return None
+    return train - validation
 
 
 def _pbo(series: dict[str, pd.Series]) -> dict[str, Any]:

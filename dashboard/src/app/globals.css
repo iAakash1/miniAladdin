@@ -5295,3 +5295,127 @@ a.hl-row:hover .hl-row__out { color: var(--accent); transform: translate(1px, -1
 /* Void results stay legible but visibly demoted — they are evidence about a
    process, not about a market. */
 .ml-void { opacity: 0.62; filter: saturate(0.5); }
+
+/* ── quant research ───────────────────────────────────────────────────────
+   Reuses the terminal surfaces, lines and type scale. The only new idea is
+   the banner: a state that must read at a glance and must not be softened
+   when the answer is negative. */
+
+.qr-banner {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--neg, #c0392b);
+  background: var(--surface-2);
+  padding: 16px 18px;
+  margin-bottom: 14px;
+}
+.qr-banner--production { border-left-color: var(--pos, #1e8449); }
+.qr-banner__head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+.qr-banner__head strong { font-size: 0.9375rem; }
+.qr-banner__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px 18px;
+  margin: 12px 0 0;
+}
+.qr-banner__stats--wide { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+.qr-banner__stats div { display: flex; flex-direction: column; gap: 2px; }
+.qr-banner__stats dt {
+  font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted);
+}
+.qr-banner__stats dd { margin: 0; font-family: var(--font-mono, monospace); font-size: 0.875rem; }
+
+.qr-holdout {
+  display: flex; align-items: flex-start; gap: 12px;
+  border: 1px solid var(--line); padding: 12px 16px; margin-bottom: 18px;
+  background: var(--surface-1);
+}
+.qr-holdout--armed { border-color: var(--warn, #b7791f); }
+.qr-holdout__lock { font-size: 0.875rem; color: var(--muted); line-height: 1.5; }
+.qr-holdout strong { font-size: 0.8125rem; font-family: var(--font-mono, monospace); }
+.qr-holdout p { margin: 4px 0 0; }
+
+.qr-experiments { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.qr-exp {
+  display: flex; flex-direction: column; gap: 3px; align-items: flex-start;
+  border: 1px solid var(--line); background: var(--surface-1);
+  padding: 8px 12px; cursor: pointer; text-align: left; min-width: 150px;
+  transition: border-color var(--t-fast) var(--ease-out);
+}
+.qr-exp:hover:not(:disabled) { border-color: var(--accent); }
+.qr-exp:disabled { cursor: not-allowed; opacity: 0.75; }
+.qr-exp--active { border-color: var(--accent); background: var(--surface-2); }
+.qr-exp--void { border-style: dashed; }
+.qr-exp__id { font-family: var(--font-mono, monospace); font-size: 0.8125rem; font-weight: 600; }
+.qr-exp__meta, .qr-exp__why { font-size: 0.6875rem; color: var(--muted); }
+.qr-exp__why { max-width: 260px; line-height: 1.4; }
+.qr-exp__badge {
+  font-size: 0.625rem; letter-spacing: 0.06em; padding: 1px 5px;
+  border: 1px solid var(--neg, #c0392b); color: var(--neg, #c0392b);
+}
+
+.qr-headline { border: 1px solid var(--line); padding: 14px 16px; margin-bottom: 14px; }
+.qr-headline__label { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+.qr-headline__label .u-note { font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.qr-model { font-family: var(--font-mono, monospace); font-size: 0.8125rem; }
+
+.qr-gates { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; margin-top: 12px; }
+.qr-gate {
+  display: flex; flex-direction: column; gap: 2px;
+  border-left: 2px solid var(--line); padding: 4px 0 4px 10px;
+}
+.qr-gate--pass { border-left-color: var(--pos, #1e8449); }
+.qr-gate--fail { border-left-color: var(--neg, #c0392b); }
+.qr-gate__name { font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.qr-gate__obs { font-family: var(--font-mono, monospace); font-size: 0.9375rem; }
+.qr-gate__req { font-size: 0.6875rem; }
+
+/* Wide tables scroll inside their own container; the PAGE must never scroll
+   sideways. The leaderboard genuinely needs 880px of columns, but the regime,
+   control and cost tables do not — giving them all the same floor was what
+   pushed the document wider than the viewport on a phone. */
+.qr-table { min-width: 880px; }
+.qr-table--narrow { min-width: 460px; }
+.qr-table .qr-hypothesis { max-width: 320px; line-height: 1.4; white-space: normal; }
+.qr-row--base td { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.qr-row--thin td { opacity: 0.68; }
+
+.qr-subhead {
+  font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--muted); margin: 18px 0 8px;
+}
+.qr-contrasts { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
+.qr-contrast { border: 1px solid var(--line); border-left: 3px solid var(--neg, #c0392b); padding: 10px 12px; }
+.qr-contrast--pos { border-left-color: var(--pos, #1e8449); }
+.qr-contrast__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.qr-contrast__head strong { font-family: var(--font-mono, monospace); font-size: 0.8125rem; }
+.qr-contrast__stats { display: flex; gap: 14px; margin: 8px 0 0; flex-wrap: wrap; }
+.qr-contrast__stats div { display: flex; flex-direction: column; gap: 1px; }
+.qr-contrast__stats dt { font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.qr-contrast__stats dd { margin: 0; font-family: var(--font-mono, monospace); font-size: 0.8125rem; }
+
+.qr-command {
+  display: inline-block; font-family: var(--font-mono, monospace); font-size: 0.75rem;
+  background: var(--surface-2); border: 1px solid var(--line); padding: 4px 8px;
+}
+
+@media (max-width: 640px) {
+  .qr-banner__stats { grid-template-columns: repeat(2, 1fr); }
+  .qr-exp { min-width: 100%; }
+  .qr-exp__why { max-width: none; }
+}
+
+/* ── company-page quant panel ─────────────────────────────────────────────
+   Built around the refusal: when nothing is promoted this renders the fact,
+   never a number. The status chip is the loudest element in the panel. */
+.qi { padding: 14px 16px; }
+.qi__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.qi__status {
+  font-family: var(--font-mono, monospace); font-size: 0.625rem; letter-spacing: 0.06em;
+  padding: 2px 6px; border: 1px solid var(--line); color: var(--muted);
+}
+.qi__status--none { border-color: var(--neg, #c0392b); color: var(--neg, #c0392b); }
+.qi__status--live { border-color: var(--pos, #1e8449); color: var(--pos, #1e8449); }
+.qi__message { font-size: 0.8125rem; margin: 0 0 6px; }
+.qi__why { margin-top: 8px; }
+.qi__prediction { display: flex; align-items: baseline; gap: 10px; }
+.qi__value { font-size: 1.5rem; font-weight: 600; }

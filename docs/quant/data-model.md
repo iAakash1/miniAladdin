@@ -206,3 +206,53 @@ a manifest recording one cannot support a reproducibility claim.
 Every training matrix carries a `content_hash` over its numeric payload, so two
 builds that agree on every number agree on the hash regardless of column order
 or dtype width.
+
+---
+
+## 7. What is actually consumed (EXP-005)
+
+Being catalogued is not the same as being used. Before EXP-005 nine tables
+reached a feature; five more were catalogued and idle. The ablation exists to
+decide whether the newly-wired ones earn their place.
+
+| Table | Ingested | Reaches a feature | Gate |
+|---|---|---|---|
+| `ohlcv` | yes | yes | none — as-dated |
+| `split`, `dividend` | yes | yes | ex-date |
+| `us_treasury` | yes | yes | as-dated |
+| `volatility_history`, `option_chain` | yes | yes | observation, 21-session staleness cap |
+| `eps_history` | yes | yes | **announcement** |
+| `earnings_calendar` | yes | yes (as the gate itself) | — |
+| **`eps_estimate`** | **EXP-005** | **yes** | none — vintage-dated |
+| **`sales_estimate`** | **EXP-005** | **yes** | none — vintage-dated |
+| **`income_statement`** | **EXP-005** | **yes** | **announcement** |
+| **`balance_sheet_assets/liabilities/equity`** | **EXP-005** | **yes** | **announcement** |
+| **`cash_flow_statement`** | **EXP-005** | **yes** | **announcement** |
+| `rank_score` | no | no | — vendor composite; see below |
+
+### Why `rank_score` is still not used
+
+1,765,103 dated rows of vendor composite scores (`rank`, `value`, `growth`,
+`momentum`, `vgm`). The `date` column is an observation date, so it looks
+point-in-time. It is not usable as evidence, for a reason no gate fixes:
+
+**the methodology is unpublished.** There is no way to establish what data went
+into a score, whether it was computed from figures available on its date, or
+whether the vendor recomputed history after a restatement. A feature whose
+construction cannot be inspected cannot be shown not to leak, and "it looks
+point-in-time" is exactly the argument that produced EXP-002.
+
+It stays catalogued and unused so the decision is visible and revisable rather
+than silent.
+
+### The announcement gate, quantified
+
+Of 196,879 quarterly statement periods, **119,602 were matched to an
+announcement and 77,277 were dropped**. Nearly all the drops are pre-2020, where
+`earnings_calendar` has no coverage at all. Nothing is estimated from a
+conventional 45- or 90-day lag: a period whose announcement cannot be
+established produces no feature.
+
+This is why `fund_*` coverage is 53% of panel rows overall but rises above 90%
+after 2020, and it is a real limit on how far back any fundamental result can
+reach.

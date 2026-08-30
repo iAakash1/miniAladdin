@@ -12,7 +12,9 @@ That is the finding, not a gap in the document.
 | Intended use | Cross-sectional research: ranking a liquid US equity universe over a 21-session horizon |
 | Deployment status | **Not deployed.** No model has passed the registry's `production` gate |
 | Registry gate outstanding | holdout metrics and regime-stability evidence for any candidate |
-| Audience | Analysts reading `/terminal/models`, not an automated trading path |
+| Audience | Analysts reading `/quant` and `/terminal/models`, not an automated trading path |
+| Registry contents | 71 entries — 0 production, 0 candidates, 34 retired VOID |
+| Holdout | 252 sessions, **never opened**; firewall enforces this at fit time |
 
 There is no live-order path anywhere in this codebase, and none is planned in
 this phase.
@@ -138,3 +140,60 @@ python -m scripts.quant.study --start 2014-04-01 --all-labels --seed 0
 `study.json` records the git commit, dependency versions, machine profile, seed
 and dataset content hash. A rebuild that produces a different hash means either
 the raw partitions or the feature code changed, and `source_datasets` says which.
+
+---
+
+## 8. EXP-005 addendum — the sources, and whether they earn their place
+
+EXP-004 established that the corrected pipeline finds nothing in the feature set
+it had. That leaves two readings — the signal is not there, or the feature set
+never contained it — and EXP-005 separates them by adding one data source at a
+time to a fixed price-and-volatility base.
+
+### What was added to the model's inputs
+
+| Family | Source | Point-in-time basis | Residual risk |
+|---|---|---|---|
+| `estimates` | `eps_estimate`, `sales_estimate` — 7.06M weekly vintages each | **Observation-dated.** A row says what consensus was that Sunday. No gate needed | Revisions NULL across a fiscal rollover, by design |
+| `fundamentals` | `income_statement`, `balance_sheet_*`, `cash_flow_statement` | **Period-keyed.** Gated on `earnings_calendar`; 77,277 of 196,879 quarters dropped for want of an announcement | **UNQUANTIFIED restatement risk** |
+| `options` | `option_chain`, `volatility_history` | Observation-dated | Coverage begins 2019-02-09 |
+
+Feature count went 67 → 103 registered, 39 → 57 used.
+
+### What the options schema cannot support
+
+Several commonly-cited options signals are **not computable** from this source
+and are deliberately not implemented rather than approximated:
+
+* put/call **volume** imbalance — no traded volume column
+* **open-interest** imbalance — no open interest column
+* dealer **gamma exposure** — needs positioning, which needs OI
+* **unusual activity** — needs a volume baseline
+
+What is available: IV level and rank, term structure, skew, per-contract Greeks,
+and bid/ask spread as a liquidity proxy. Claiming the others would mean
+inventing them.
+
+### The restatement caveat, stated plainly
+
+The statement tables hold one row per (symbol, period) and **no vintage column**.
+A restatement overwrites the original irrecoverably. Announcement-gating fixes
+*when* a figure becomes readable and does nothing about *which version* is read.
+The magnitude cannot be measured from the source.
+
+Consequently: every `fund_*` feature carries `restatement_risk=UNQUANTIFIED`,
+they are isolated in EXP-005's arm F, and **any promotion leaning on them must
+confront that label rather than inherit it silently**. `src/panel/fundamentals.py`
+— SEC companyfacts, with real `filed` dates — is the correct long-term source and
+wiring it to the quant panel at scale is open work.
+
+---
+
+## 9. What must still not be claimed
+
+Unchanged from §6 and worth repeating after a study that added three data
+sources: **more data is not evidence of more signal.** If the ablation shows a
+family does not improve on the base, the honest conclusion is that the family
+does not help *in this universe, at this horizon, with these models* — and the
+correct action is to stop paying to store it, not to search for a model
+specification that makes it look useful.

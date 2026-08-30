@@ -192,3 +192,55 @@ them.
 | `Ledger` | assemble the chain of custody; classify input health; carry per-vendor rosters | `Evidence`, `ProviderResult` |
 | `portfolio_intelligence` | valuation, concentration, volatility, drawdown, correlation, contribution, benchmark | positions, stored analyses, price series |
 | `visual_intelligence` | brand identity, deterministic image query, concurrent search, rank, dedupe, cache | Logo.dev, Pexels, Unsplash |
+
+---
+
+## Quant research subsystem
+
+Full treatment in [`docs/quant.md`](quant.md). The shape, and the one property
+that distinguishes it from the evidence fabric: **the quant path refuses by
+default.** The evidence fabric's job is to gather everything available and mark
+its provenance; the quant path's job is to reject anything whose provenance is
+not good enough to train on, because a leak makes results *better* and is
+therefore invisible exactly when it matters.
+
+```mermaid
+flowchart LR
+    subgraph IN["Local Dolt clones (14 GB, never in git)"]
+        S["stocks · options · earnings · rates"]
+    end
+    subgraph ADMIT["Admission"]
+        C["DatasetCatalog<br/>PIT class per source"]
+        M["Manifest status<br/>stricter of the two wins"]
+    end
+    subgraph BUILD["Point-in-time build"]
+        U["UniverseHistory"] --> A["CorporateActions"] --> F["FeatureEngine (103)"] --> L["LabelEngine"]
+    end
+    subgraph GATE["Guards"]
+        T["Truncation invariance"]
+        N["Negative controls"]
+        FW["HoldoutFirewall"]
+    end
+    subgraph EVAL["Evaluation"]
+        W["WalkForward"] --> MD["Models"] --> B["Backtest"] --> R["Risk"]
+    end
+    S --> C --> M -->|admitted| U
+    M -->|refused| X["ValueError"]
+    L --> T --> N --> W
+    FW -.->|guards every fit| MD
+    R --> REG["ModelRegistry<br/>gated promotion"] --> API["/api/quant/*"] --> UI["/quant"]
+```
+
+### CRC — quant components
+
+| Class | Responsibilities | Collaborators |
+|---|---|---|
+| `DatasetCatalog` | Classify every source point-in-time and survivorship; refuse the inadmissible | `DatasetBuilder` |
+| `DatasetBuilder` | Assemble the PIT panel; enforce admission; record provenance | Catalog, RawStore, features |
+| `FeatureRegistry` | Definition, lookback, direction, leakage note per feature; refuse unregistered | builder, audit |
+| `HoldoutFirewall` | Refuse holdout rows at every guarded stage; lift only on an armed contract | walk-forward, runner |
+| `WalkForwardEngine` | Expanding folds with purge and embargo; reserve the holdout | Calendar, Firewall |
+| `ExperimentRunner` | Execute a frozen definition; integrity, controls, models, ablation; one artifact | all of the above |
+| `BacktestEngine` | Execution lag, costs, turnover; gross and net kept separate | CostModel, Attribution |
+| `ModelRegistry` | Store evidence; refuse promotion on missing evidence or failing numbers | `quant_service` |
+| `quant_service` | Shape artifacts for the API; compute verdicts from the registry's own gates | API, `/quant` |

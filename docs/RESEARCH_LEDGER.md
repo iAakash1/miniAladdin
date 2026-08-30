@@ -157,6 +157,132 @@ version `1.0` retired as VOID rather than overwritten, per rule 4 below.
 
 ---
 
+### EXP-005 — does any additional data source add information over price?
+
+**Pre-registered.** Arms, models, metrics and trial count were fixed in
+`src/quant/study/experiment.py::exp_005` and committed **before** the run. No arm
+may be added after results are seen.
+
+| Field | Value |
+|---|---|
+| Definition | `exp_005`, fingerprint `3f63b2b53a2a9419` |
+| Question | EXP-004 found nothing in the feature set it had. Is the signal absent, or was the feature set? |
+| Targets | `fwd_rank_21` only — `fwd_ret_21` was settled by EXP-004 and re-running it would double the trial count to re-answer it |
+| Models | 17 on the full set + 6 per arm |
+| Arms | 7, a ladder: each adds ONE family to a fixed base |
+| Hyperparameters | fixed defaults; **no search** |
+| Seed | 0 |
+| Execution lag | 1 rebalance period |
+| Cost sweep | 1, 3, 5, 10, 20 bp; 10 bp primary |
+| Holdout | **NOT TOUCHED**, and now enforced at fit time by `study/firewall.py` |
+| Evaluations | 17 + 42 = **59 declared**, 80 prior, **139 cumulative** |
+| **Influenced model selection?** | **YES, as validation evidence only.** Does not authorise holdout access |
+
+**New data brought into the panel.** Feature count 67 → 103 registered, 39 → 57
+used. Two families had never been tested in this repository:
+
+| Family | Rows | Point-in-time basis |
+|---|---|---|
+| `estimates` | 7,060,412 EPS + 7,060,412 sales vintages | **Observation-dated** — no gate required |
+| `fundamentals` | 270,925 income + 284k×3 balance + 176,631 cash flow | **Period-keyed** — announcement gate required |
+
+**A catalog reclassification, recorded because it weakens a prior refusal.**
+`dolthub_earnings_income_statement` was classed `NOT_POINT_IN_TIME` and BARRED.
+It is now `PUBLICATION_LAGGED`. The data did not change; the gate did.
+`features/fundamentals.py` joins every period forward to its first
+`earnings_calendar` announcement and drops any period without one — 77,277 of
+196,879 quarters, all pre-2020. That is the mechanism already governing
+`eps_history`, and two tables of the same shape now carry the same class.
+
+The **timing** leak is closed. The **restatement** leak is not: one row per
+period, no vintage column, so a correction overwrites the original
+irrecoverably. Every `fund_*` feature is marked `restatement_risk=UNQUANTIFIED`
+and isolated in arm F so its contribution can be discounted separately.
+
+**Defects found and fixed while building EXP-005**, none affecting results:
+
+| Defect | Effect | Status |
+|---|---|---|
+| `_admit` read the catalog but ignored the ingested manifest status | a partition ingested `not_point_in_time` was admitted on an optimistic catalog entry, and the contradiction was recorded rather than raised | fixed — stricter of the two wins |
+| No runtime guard on holdout rows | the CLI refused the holdout *experiment*; nothing stopped a panel that ran past the cutoff from being fitted | fixed — `HoldoutFirewall`, asserted per fold before every fit |
+| `build_feature_audit()` never imported the feature modules | emitted a clean, well-formed audit reporting **zero** features | fixed — raises on empty |
+| `deflated_sharpe_probability` read at the wrong nesting in the service | rendered as an em dash; an absent correction looked identical to an uncomputed one | fixed, with a regression test |
+| Three quant tables rendered outside a scroll container | wide tables pushed the page instead of scrolling internally | fixed |
+
+**Negative controls** (run before any model was fitted):
+
+| Control | IC | t | Role | Result |
+|---|---|---|---|---|
+| `shuffled_within_date` | −0.0037 | −1.07 | blocking | **PASS** |
+| `permuted_symbols` | see artifact | | blocking | **PASS** |
+| `shifted_forward` | +0.0170 | +1.30 | diagnostic | PASS |
+
+`shifted_forward` fell from t +2.00 (EXP-004) to +1.30 with the larger feature
+set, consistent with the horizon-persistence reading recorded under EXP-004
+rather than with contamination.
+
+**Integrity:** truncation invariance CLEAN at 3 cutoffs, 1,097,673 rows × 103
+features, every cutoff strictly before the holdout.
+
+**Result — NO. No additional data source adds information over price.**
+
+Seven arms, six models each, same folds and seed; only the feature columns move.
+
+| Arm | Features | Best IC |
+|---|---|---|
+| `A_price` | 8 | +0.0145 |
+| `B_price_vol` | 13 | +0.0139 |
+| **`C_base`** (price+vol+volume+macro) | **27** | **+0.0290** |
+| `D_base_options` | 35 | +0.0275 |
+| `E_base_estimates` | 35 | +0.0229 |
+| `F_base_fundamentals` | 41 | +0.0124 |
+| `G_all` | 57 | +0.0151 |
+
+Contrast against `C_base`, which is the peak:
+
+| Source added | mean ΔIC | models improved |
+|---|---|---|
+| options (8 GB, 116.5M rows) | −0.0060 | **1 / 6** |
+| analyst estimate revisions | −0.0037 | **2 / 6** |
+| earnings + statement fundamentals | −0.0210 | **0 / 6** |
+| all four together | −0.0179 | **0 / 6** |
+
+The best feature set is the smallest useful one. On the full 57-feature set the
+only \|t\| > 2 belongs to the deliberately over-parameterised control (train gap
++0.718); the best genuine learned model is `random_forest` at t +0.89, losing to
+two free baselines. Gross Sharpe is negative for every learned model — they lose
+before costs. Alpha t is negative for all but `baseline_momentum` (+0.44). PBO
+0.071; every deflated-Sharpe probability 0.000 against 139 trials.
+
+Regime: in the only bucket with enough dates to quote (low-vol bull, 267 dates)
+the best model scores IC +0.0019 at t +0.17. The two t-statistics above 2.0 sit
+on 85 and 33 dates.
+
+**A reporting defect in this study, disclosed.** The first pass wrote every arm's
+IC and a blank for every arm's t-statistic: `_run_ablation` read the leaderboard's
+field names off `pooled_ic`, where the t-statistic is `t_stat`. The fits were
+correct; only the transcription was wrong. `scripts/quant/rerun_ablation.py`
+recomputes the block and **refuses to merge unless every mean IC reproduces
+exactly**. The trial count does not move — re-running a fixed pre-registered
+configuration to recover a mis-transcribed metric adds no selection freedom.
+
+**The one number that needs care.** `C_base` gradient_boosting reaches
+**t = +2.66** — the strongest statistical result in five studies, and not from
+the overfit control. It is nonetheless not evidence: it is the maximum of 42 arm
+configurations, and the expected maximum of 139 zero-skill configurations is
+**≈ 2.62**. It clears neither the 42-test Bonferroni threshold (3.24) nor the
+139-test one (3.57), its t swings from +0.24 to +2.66 across feature sets, and no
+backtest was run on the arms so it has never been costed. Recorded as the best
+available **hypothesis** for a future pre-registered experiment with its own
+trial budget — not as a candidate.
+
+**Holdout decision: DO NOT ARM.** After 139 cumulative evaluations there is still
+no candidate for a holdout to confirm. Production models remain **0**.
+
+Full detail: `docs/EXP-005.md`.
+
+---
+
 ## Multiple-testing exposure
 
 | Study | Configurations | Targets | Evaluations | Counts against significance |
@@ -165,10 +291,11 @@ version `1.0` retired as VOID rather than overwritten, per rule 4 below.
 | EXP-002 | 17 | 2 | 34 | yes |
 | EXP-003 | 0 | 0 | 0 | no |
 | EXP-004 | 17 | 2 | 34 | yes |
-| **Running total** | | | **80** | |
+| EXP-005 | 17 + 7x6 arms | 1 | 59 | yes |
+| **Running total** | | | **139** | |
 
 Any deflated-Sharpe calculation on these validation folds must use a trial
-count of **at least 80**. EXP-002 discounted against its own 17 and therefore
+count of **at least 139**. EXP-002 discounted against its own 17 and therefore
 understated the correction it needed — and it already rejected every candidate.
 EXP-004 discounts against the full 80, which is set in its definition rather
 than counted afterwards.

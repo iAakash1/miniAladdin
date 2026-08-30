@@ -43,6 +43,7 @@ aggregate server-side and only the aggregate crosses the boundary.
 from __future__ import annotations
 
 import logging
+import os
 import shutil
 import subprocess
 import time
@@ -54,7 +55,17 @@ import pandas as pd
 
 logger = logging.getLogger("omnisignal.quant.datasets.local_dolt")
 
-DEFAULT_ROOT = Path("datasets")
+#: Where the Dolt clones live.
+#:
+#: Overridable with `QUANT_DATA_ROOT` so the clones can sit outside the working
+#: tree — they are 14 GB and must never enter git. The default is relative, not
+#: an absolute home directory, so a checkout on another machine still resolves.
+DEFAULT_ROOT = Path(os.environ.get("QUANT_DATA_ROOT") or "datasets")
+
+
+def data_root() -> Path:
+    """The configured clone root, re-read each call so tests can repoint it."""
+    return Path(os.environ.get("QUANT_DATA_ROOT") or "datasets")
 
 #: Repository directory name per catalog `repository` value.
 REPOSITORIES: tuple[str, ...] = ("stocks", "options", "earnings", "rates")

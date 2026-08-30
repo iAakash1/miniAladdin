@@ -27,6 +27,7 @@ from datetime import date as Date
 from typing import Any, Optional
 
 from src.quant.models.factory import ModelSpec, default_specs
+from src.quant.study.families import DEFAULT_ARMS, FeatureArm
 
 
 def git_commit() -> str:
@@ -76,6 +77,16 @@ class ExperimentDefinition:
     run_negative_controls: bool = True
     notes: tuple[str, ...] = ()
 
+    #: Pre-registered feature-family arms. Empty means a single arm using every
+    #: available feature, which is how EXP-001 to EXP-004 ran.
+    arms: tuple[FeatureArm, ...] = ()
+
+    #: Models refitted once per arm. The full `models` ladder still runs on the
+    #: complete feature set; this smaller set is what the ablation contrast uses,
+    #: because asking 17 models the same question 7 times costs 238 trials to
+    #: answer it no better than 42 do.
+    arm_models: tuple[ModelSpec, ...] = ()
+
     def __post_init__(self) -> None:
         if self.primary_target not in self.targets:
             raise ValueError(
@@ -93,7 +104,15 @@ class ExperimentDefinition:
 
     @property
     def declared_evaluations(self) -> int:
-        return len(self.models) * len(self.targets)
+        """Every fit whose result is looked at, including every ablation arm.
+
+        The arm evaluations are counted here rather than treated as a separate
+        budget. A contrast between arms is still a comparison a human looks at
+        and can select on, so it costs trials exactly like any other.
+        """
+        base = len(self.models) * len(self.targets)
+        arm_total = len(self.arms) * len(self.arm_models) * len(self.targets)
+        return base + arm_total
 
     @property
     def cumulative_evaluations(self) -> int:
@@ -125,6 +144,9 @@ class ExperimentDefinition:
             "prior_evaluations": self.prior_evaluations,
             "cumulative_evaluations": self.cumulative_evaluations,
             "run_negative_controls": self.run_negative_controls,
+            "arms": [arm.as_dict() for arm in self.arms],
+            "arm_models": [spec.as_dict() for spec in self.arm_models],
+            "arm_count": len(self.arms),
             "notes": list(self.notes),
         }
 
@@ -179,7 +201,79 @@ def exp_004(seed: int = 0) -> ExperimentDefinition:
     )
 
 
-EXPERIMENTS: dict[str, Any] = {"EXP-004": exp_004}
+def exp_005(seed: int = 0) -> ExperimentDefinition:
+    """EXP-005 — does any additional data source add information over price?
+
+    EXP-004 established that the corrected pipeline finds nothing in the feature
+    set it had. Two readings of that survive: the signal is not there, or the
+    feature set never contained it. EXP-005 separates them by asking, one source
+    at a time, whether adding a family beats the price-and-volatility base.
+
+    **This is pre-registered.** The arms, the reduced model ladder, the metrics,
+    the thresholds and the trial count are all fixed in this function before the
+    run. The ladder structure means each arm differs from the base by exactly one
+    family, so a contrast is attributable.
+
+    Two families are genuinely new and neither has been tested before:
+
+    * `estimates` — 7,060,412 weekly analyst-revision vintages, dated by
+      OBSERVATION and therefore needing no publication gate. The one clean
+      fundamental-adjacent source in the repository.
+    * `fundamentals` — statement figures behind the `earnings_calendar` gate,
+      carrying UNQUANTIFIED restatement risk and isolated in their own arm so a
+      positive result there can be discounted appropriately.
+
+    Trial accounting: 17 models x 1 target on the full set, plus 7 arms x 6
+    models x 1 target = 17 + 42 = 59 declared, against 80 already spent.
+
+    The primary target is `fwd_rank_21` only. EXP-004 showed `fwd_ret_21` is won
+    by a baseline with every learned model at or below +0.0028; carrying it here
+    would double the trial count to re-answer a settled question.
+    """
+    arm_models = tuple(
+        spec for spec in default_specs(seed)
+        if spec.name in {
+            "ridge", "elastic_net", "random_forest",
+            "gradient_boosting", "hist_gradient_boosting", "extra_trees",
+        }
+    )
+    return ExperimentDefinition(
+        experiment_id="EXP-005",
+        objective=(
+            "Determine whether any additional data source — options, analyst "
+            "estimate revisions, or announcement-gated statement fundamentals — "
+            "adds out-of-sample predictive information over a price, volatility, "
+            "volume and macro base, after transaction costs, a one-period "
+            "execution lag, and correction for cumulative multiple testing."
+        ),
+        start=Date(2014, 4, 1),
+        end=None,
+        step_sessions=5,
+        targets=("fwd_rank_21",),
+        primary_target="fwd_rank_21",
+        models=tuple(default_specs(seed)),
+        arms=DEFAULT_ARMS,
+        arm_models=arm_models,
+        seed=seed,
+        execution_lag_periods=1,
+        prior_evaluations=80,
+        notes=(
+            "Pre-registered: arms, models, metrics and trial count are fixed in "
+            "exp_005() before the run. No arm may be added after results are seen.",
+            "The ladder adds ONE family per arm to a fixed base, so each contrast "
+            "is attributable to a single source.",
+            "Baselines are single-feature passthroughs and do not depend on the "
+            "arm, so they run once on the full set rather than seven times.",
+            "estimates and fundamentals have never been tested in this repository.",
+            "fundamentals carry UNQUANTIFIED restatement risk and are isolated in "
+            "arm F so a result there can be discounted separately.",
+            "The 252-session holdout is not read, scored, or used for selection, "
+            "and src/quant/study/firewall.py now enforces that at fit time.",
+        ),
+    )
+
+
+EXPERIMENTS: dict[str, Any] = {"EXP-004": exp_004, "EXP-005": exp_005}
 
 
 def get_experiment(experiment_id: str, seed: int = 0) -> ExperimentDefinition:

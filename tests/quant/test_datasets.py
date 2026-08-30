@@ -174,12 +174,50 @@ def test_manifest_round_trips(tmp_path):
 # ── catalog contract ────────────────────────────────────────────────────────
 
 
-def test_income_statement_is_barred_from_training():
-    """The catalog must enforce its own point-in-time classification."""
+def test_period_keyed_statements_are_publication_lagged_not_point_in_time():
+    """A fiscal-period key is never an availability date.
+
+    These tables are keyed by period end, so they are admissible only behind an
+    announcement gate. The class that says so is PUBLICATION_LAGGED; declaring
+    any of them POINT_IN_TIME would let the builder read them as-dated and hand
+    a model a month of hindsight on every quarterly figure.
+    """
+    period_keyed = [
+        catalog.EARNINGS_INCOME_STATEMENT,
+        catalog.EARNINGS_BALANCE_ASSETS,
+        catalog.EARNINGS_BALANCE_LIABILITIES,
+        catalog.EARNINGS_BALANCE_EQUITY,
+        catalog.EARNINGS_CASH_FLOW,
+        catalog.EARNINGS_EPS_HISTORY,
+    ]
+    for spec in period_keyed:
+        assert spec.point_in_time is catalog.PointInTimeClass.PUBLICATION_LAGGED, spec.dataset_id
+        assert "period" in spec.point_in_time_note.lower(), spec.dataset_id
+
+
+def test_income_statement_reclassification_is_documented_with_its_caveat():
+    """Weakening a BARRED label has to carry its reason and its residual risk."""
     spec = catalog.EARNINGS_INCOME_STATEMENT
-    assert spec.point_in_time is catalog.PointInTimeClass.NOT_POINT_IN_TIME
-    assert not spec.historical_training_allowed
-    assert spec not in catalog.training_admissible()
+    note = spec.point_in_time_note
+    assert "RECLASSIFIED" in note
+    assert "NOT_POINT_IN_TIME" in note
+    assert "earnings_calendar" in note
+    # The timing leak is closed; the restatement leak is not, and the note must
+    # say so rather than let the reclassification imply the table is now clean.
+    assert "RESTATEMENT" in note.upper()
+    assert any("restatement" in limit.lower() for limit in spec.limitations)
+    assert any("UNQUANTIFIED" in limit for limit in spec.limitations)
+
+
+def test_estimate_vintages_need_no_announcement_gate():
+    """The estimate tables are dated by OBSERVATION, which is why they are clean."""
+    for spec in (catalog.EARNINGS_EPS_ESTIMATE, catalog.EARNINGS_SALES_ESTIMATE):
+        assert spec.point_in_time is catalog.PointInTimeClass.POINT_IN_TIME
+        # The note must locate the date on the OBSERVATION, however it words it —
+        # that is the whole reason these two need no gate.
+        note = spec.point_in_time_note.lower()
+        assert "vintage" in note or "observation" in note, spec.dataset_id
+        assert spec.historical_training_allowed
 
 
 def test_ohlcv_is_declared_survivorship_complete_with_evidence():

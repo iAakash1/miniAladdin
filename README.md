@@ -580,8 +580,60 @@ python -m scripts.quant.report --out docs/research-report.md
 ```
 
 Both write immutable, checksummed artifacts. Results render at
-`/terminal/models`; the findings are in
-[`docs/research-report.md`](docs/research-report.md).
+`/terminal/models` and `/quant`.
+
+### The result so far: no edge
+
+Five studies, one of them void. The current finding is negative and is stated as
+the headline rather than buried:
+
+| Study | Outcome |
+|---|---|
+| EXP-001 | 12 evaluations, no candidate |
+| EXP-002 | **VOID** — a `pandas.merge_asof` index-reset defect put other rows' values into 12 of 39 features |
+| EXP-003 | Pre-holdout audit; no fits |
+| EXP-004 | Clean re-run. **NO EVIDENCE OF EDGE** — best model t +1.91, gross Sharpe −0.28 |
+| EXP-005 | Feature-family ablation over options, analyst revisions and gated fundamentals |
+
+Correcting the EXP-002 defect cost the learned models 17–56% of their IC and
+flipped every linear model's sign, while the three passthrough baselines that
+never touched the broken joins reproduced **bit-identically**. That contrast is
+the reason the invalidation was trusted.
+
+**The registry holds zero production models and the 252-session holdout has never
+been opened.** `/quant` says so at full weight, and `/api/quant/symbol/{ticker}`
+returns an explicit refusal rather than a number. A prediction the evidence does
+not support is worse than no prediction.
+
+### What guards it
+
+* **Truncation invariance** — build to *T*, build to *T+k*, compare every pre-*T*
+  value using the real builder. CLEAN over 1.1M rows × 103 features.
+* **Negative controls** — shuffle within date, permute symbols. Both must return
+  approximately nothing, and a failure aborts the study before any model is fitted.
+* **Holdout firewall** — `FIREWALL.assert_clear` refuses holdout-dated rows at
+  every fold immediately before the fit. No environment variable opens it.
+* **Gated promotion** — evidence must exist *and* say the right thing. A model
+  with a complete evidence bundle showing it loses money is refused candidacy.
+
+Full detail: [`docs/quant.md`](docs/quant.md) ·
+[`docs/EXP-004.md`](docs/EXP-004.md) ·
+[`docs/RESEARCH_LEDGER.md`](docs/RESEARCH_LEDGER.md)
+
+### Local datasets
+
+Four Dolt clones, ~14 GB, **never committed**. Point the app at them with:
+
+```bash
+export QUANT_DATA_ROOT=/path/to/datasets   # defaults to ./datasets
+```
+
+| Repo | Tables | Rows |
+|---|---|---|
+| `stocks` | ohlcv, dividend, split, symbol | 28.9M bars, 21,512 symbols, 2011→ |
+| `options` | option_chain, volatility_history | **116.5M** chain rows, 2,317 symbols, 2019→ |
+| `earnings` | calendar, eps/sales estimate, statements | 7.06M estimate vintages ×2, 2017→ |
+| `rates` | us_treasury | 9,158 curve observations, 1990→ |
 
 ---
 

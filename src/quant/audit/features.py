@@ -204,7 +204,9 @@ def build_feature_audit(feature_set: Optional[list[str]] = None) -> dict[str, An
     is to prove every feature was examined. The import is forced here and the
     empty case raises.
     """
-    from src.quant.features import earnings, macro, options, price  # noqa: F401
+    from src.quant.features import (  # noqa: F401
+        earnings, estimates, fundamentals, macro, options, price,
+    )
 
     per_symbol = REGISTRY.per_symbol_names()
     join_stage = REGISTRY.names(group=FeatureGroup.OPTIONS) + REGISTRY.names(

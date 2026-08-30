@@ -50,6 +50,22 @@ REPORT_NAME = "study.json"
 #: multiple-testing exposure it created, which docs/RESEARCH_LEDGER.md has to
 #: account for. Instead every surface that renders it says so, so a reader
 #: cannot encounter the numbers without the retraction attached.
+#: The commit that fixed the as-of join defect. A study built at or after this
+#: commit is not affected by it, whatever dataset version it used.
+#:
+#: This distinction was wrong before EXP-005 and would have mislabelled a valid
+#: study. The defect lived in the FEATURE CODE, not in the data — EXP-004 rebuilt
+#: the very same dataset version with the fix and produced admissible results.
+#: Keying invalidity on `dataset_version` alone therefore condemns every future
+#: study that happens to rebuild that version, which is the opposite of what the
+#: retraction is for. Validity is now a property of the study, identified by its
+#: experiment id, with the dataset version kept only as a corroborating signal.
+AS_OF_FIX_COMMIT = "3bbe8e36b09098528ba4300fd7c1f2f34fbac940"
+
+#: Experiment ids whose results a later audit invalidated. Never deleted:
+#: removing one would erase the multiple-testing exposure it created.
+VOID_EXPERIMENT_IDS: frozenset[str] = frozenset({"EXP-002"})
+
 INVALIDATED_STUDIES: dict[str, dict[str, Any]] = {
     "ds-e691b48ca49deb16": {
         "reason": (
@@ -70,11 +86,39 @@ INVALIDATED_STUDIES: dict[str, dict[str, Any]] = {
 }
 
 
-def study_validity(dataset_version: Optional[str]) -> dict[str, Any]:
-    """Whether a study's results may be presented as findings."""
+def study_validity(
+    dataset_version: Optional[str],
+    *,
+    experiment_id: Optional[str] = None,
+    git_commit: Optional[str] = None,
+) -> dict[str, Any]:
+    """Whether a study's results may be presented as findings.
+
+    A study is void because of how it was BUILT, not because of which dataset
+    version it read. `experiment_id` is therefore the authoritative key; the
+    dataset version is consulted only when the caller cannot supply one, and
+    even then a study built at the fix commit is cleared.
+    """
+    if experiment_id is not None:
+        if experiment_id in VOID_EXPERIMENT_IDS:
+            record = INVALIDATED_STUDIES.get(dataset_version or "", {})
+            return {"valid": False, "dataset_version": dataset_version,
+                    "experiment_id": experiment_id, **record}
+        return {"valid": True, "experiment_id": experiment_id}
+
     record = INVALIDATED_STUDIES.get(dataset_version or "")
     if record is None:
         return {"valid": True}
+
+    if git_commit and git_commit.startswith(AS_OF_FIX_COMMIT[:12]):
+        return {
+            "valid": True,
+            "dataset_version": dataset_version,
+            "note": (
+                "Built at the commit that fixed the as-of join defect. The defect "
+                "was in the feature code, not in this dataset version."
+            ),
+        }
     return {"valid": False, "dataset_version": dataset_version, **record}
 
 #: Study artifacts are immutable outputs of a batch job, so a long TTL is
@@ -206,8 +250,18 @@ def capabilities(root: Path | str = DEFAULT_ROOT) -> dict[str, Any]:
 
 
 def dataset_catalog() -> dict[str, Any]:
-    """The catalog as data, including what is deliberately excluded and why."""
-    from src.quant.datasets.catalog import CATALOG, catalog_payload, training_admissible
+    """The catalog as data: what is admissible, what is gated, what is refused.
+
+    Three tiers, not two. `excluded` is refused outright at admission.
+    `gated` is admissible but only behind a publication gate — a fiscal-period
+    key is not an availability date, so those sources reach a feature only after
+    an as-of join to an announcement. Reporting only `excluded` would let the UI
+    imply that everything not refused is unconditionally safe, which is the
+    opposite of what PUBLICATION_LAGGED means.
+    """
+    from src.quant.datasets.catalog import (
+        CATALOG, PointInTimeClass, catalog_payload, training_admissible,
+    )
 
     return {
         "datasets": catalog_payload(),
@@ -221,6 +275,23 @@ def dataset_catalog() -> dict[str, Any]:
             }
             for spec in CATALOG
             if not spec.historical_training_allowed
+        ],
+        "gated": [
+            {
+                "dataset_id": spec.dataset_id,
+                "reason": spec.point_in_time_note,
+                "classification": spec.point_in_time.value,
+                "gate": (
+                    "Admissible only after an as-of join to an availability date. "
+                    "The builder refuses to read this source as-dated."
+                ),
+                "residual_risk": [
+                    limit for limit in spec.limitations
+                    if "restatement" in limit.lower() or "UNQUANTIFIED" in limit
+                ],
+            }
+            for spec in CATALOG
+            if spec.point_in_time is PointInTimeClass.PUBLICATION_LAGGED
         ],
     }
 

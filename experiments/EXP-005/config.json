@@ -1,0 +1,289 @@
+{
+  "experiment_id": "EXP-005",
+  "objective": "Determine whether any additional data source \u2014 options, analyst estimate revisions, or announcement-gated statement fundamentals \u2014 adds out-of-sample predictive information over a price, volatility, volume and macro base, after transaction costs, a one-period execution lag, and correction for cumulative multiple testing.",
+  "start": "2014-04-01",
+  "end": null,
+  "step_sessions": 5,
+  "targets": [
+    "fwd_rank_21"
+  ],
+  "primary_target": "fwd_rank_21",
+  "models": [
+    {
+      "name": "baseline_zero",
+      "kind": "zero",
+      "params": {},
+      "seed": 0
+    },
+    {
+      "name": "baseline_historical_mean",
+      "kind": "historical_mean",
+      "params": {},
+      "seed": 0
+    },
+    {
+      "name": "baseline_momentum",
+      "kind": "passthrough",
+      "params": {
+        "feature": "mom_252_21_xs"
+      },
+      "seed": 0
+    },
+    {
+      "name": "baseline_reversal",
+      "kind": "passthrough",
+      "params": {
+        "feature": "reversal_5_xs"
+      },
+      "seed": 0
+    },
+    {
+      "name": "baseline_low_volatility",
+      "kind": "passthrough",
+      "params": {
+        "feature": "vol_63_xs",
+        "sign": -1.0
+      },
+      "seed": 0
+    },
+    {
+      "name": "baseline_earnings_surprise",
+      "kind": "passthrough",
+      "params": {
+        "feature": "earn_surprise_pct_xs"
+      },
+      "seed": 0
+    },
+    {
+      "name": "baseline_iv_premium",
+      "kind": "passthrough",
+      "params": {
+        "feature": "opt_iv_minus_hv_xs"
+      },
+      "seed": 0
+    },
+    {
+      "name": "ols",
+      "kind": "ols",
+      "params": {},
+      "seed": 0
+    },
+    {
+      "name": "ridge",
+      "kind": "ridge",
+      "params": {
+        "alpha": 10.0
+      },
+      "seed": 0
+    },
+    {
+      "name": "ridge_strong",
+      "kind": "ridge",
+      "params": {
+        "alpha": 200.0
+      },
+      "seed": 0
+    },
+    {
+      "name": "lasso",
+      "kind": "lasso",
+      "params": {
+        "alpha": 0.0005
+      },
+      "seed": 0
+    },
+    {
+      "name": "elastic_net",
+      "kind": "elastic_net",
+      "params": {
+        "alpha": 0.0005,
+        "l1_ratio": 0.5
+      },
+      "seed": 0
+    },
+    {
+      "name": "gradient_boosting",
+      "kind": "gradient_boosting",
+      "params": {},
+      "seed": 0
+    },
+    {
+      "name": "random_forest",
+      "kind": "random_forest",
+      "params": {},
+      "seed": 0
+    },
+    {
+      "name": "hist_gradient_boosting",
+      "kind": "hist_gradient_boosting",
+      "params": {},
+      "seed": 0
+    },
+    {
+      "name": "extra_trees",
+      "kind": "extra_trees",
+      "params": {},
+      "seed": 0
+    },
+    {
+      "name": "gradient_boosting_deep",
+      "kind": "gradient_boosting",
+      "params": {
+        "max_depth": 8,
+        "n_estimators": 150,
+        "learning_rate": 0.1,
+        "subsample": 1.0,
+        "min_samples_leaf": 5
+      },
+      "seed": 0
+    }
+  ],
+  "model_count": 17,
+  "seed": 0,
+  "universe_name": "liquid",
+  "universe_size": 250,
+  "execution_lag_periods": 1,
+  "cost_half_spreads_bps": [
+    1.0,
+    3.0,
+    5.0,
+    10.0,
+    20.0
+  ],
+  "primary_half_spread_bps": 10.0,
+  "validation_sessions": 252,
+  "min_train_sessions": 756,
+  "holdout_sessions": 252,
+  "embargo_sessions": 5,
+  "declared_evaluations": 59,
+  "prior_evaluations": 80,
+  "cumulative_evaluations": 139,
+  "run_negative_controls": true,
+  "arms": [
+    {
+      "name": "A_price",
+      "families": [
+        "price"
+      ],
+      "hypothesis": "Price alone. The floor: whatever momentum and reversal already capture."
+    },
+    {
+      "name": "B_price_vol",
+      "families": [
+        "price",
+        "volatility"
+      ],
+      "hypothesis": "Does volatility add information over price alone?"
+    },
+    {
+      "name": "C_base",
+      "families": [
+        "price",
+        "volatility",
+        "volume",
+        "macro"
+      ],
+      "hypothesis": "The base. Everything derivable from the price panel plus the rate curve."
+    },
+    {
+      "name": "D_base_options",
+      "families": [
+        "price",
+        "volatility",
+        "volume",
+        "macro",
+        "options"
+      ],
+      "hypothesis": "Does the 8 GB options dataset add information over the base? This is the question that justifies its storage and ingestion cost."
+    },
+    {
+      "name": "E_base_estimates",
+      "families": [
+        "price",
+        "volatility",
+        "volume",
+        "macro",
+        "estimates"
+      ],
+      "hypothesis": "Do analyst revisions add information over the base? Untested before EXP-005 and the only genuinely new signal family in this study."
+    },
+    {
+      "name": "F_base_fundamentals",
+      "families": [
+        "price",
+        "volatility",
+        "volume",
+        "macro",
+        "earnings",
+        "fundamentals"
+      ],
+      "hypothesis": "Do announcement-gated statement fundamentals add information over the base? Isolated so their UNQUANTIFIED restatement risk can be discounted separately rather than contaminating a combined result."
+    },
+    {
+      "name": "G_all",
+      "families": [
+        "price",
+        "volatility",
+        "volume",
+        "macro",
+        "options",
+        "earnings",
+        "estimates",
+        "fundamentals"
+      ],
+      "hypothesis": "Everything. If G does not beat C, the additional sources add nothing jointly and the negative result covers all of them at once."
+    }
+  ],
+  "arm_models": [
+    {
+      "name": "ridge",
+      "kind": "ridge",
+      "params": {
+        "alpha": 10.0
+      },
+      "seed": 0
+    },
+    {
+      "name": "elastic_net",
+      "kind": "elastic_net",
+      "params": {
+        "alpha": 0.0005,
+        "l1_ratio": 0.5
+      },
+      "seed": 0
+    },
+    {
+      "name": "gradient_boosting",
+      "kind": "gradient_boosting",
+      "params": {},
+      "seed": 0
+    },
+    {
+      "name": "random_forest",
+      "kind": "random_forest",
+      "params": {},
+      "seed": 0
+    },
+    {
+      "name": "hist_gradient_boosting",
+      "kind": "hist_gradient_boosting",
+      "params": {},
+      "seed": 0
+    },
+    {
+      "name": "extra_trees",
+      "kind": "extra_trees",
+      "params": {},
+      "seed": 0
+    }
+  ],
+  "arm_count": 7,
+  "notes": [
+    "Pre-registered: arms, models, metrics and trial count are fixed in exp_005() before the run. No arm may be added after results are seen.",
+    "The ladder adds ONE family per arm to a fixed base, so each contrast is attributable to a single source.",
+    "Baselines are single-feature passthroughs and do not depend on the arm, so they run once on the full set rather than seven times.",
+    "estimates and fundamentals have never been tested in this repository.",
+    "fundamentals carry UNQUANTIFIED restatement risk and are isolated in arm F so a result there can be discounted separately.",
+    "The 252-session holdout is not read, scored, or used for selection, and src/quant/study/firewall.py now enforces that at fit time."
+  ]
+}

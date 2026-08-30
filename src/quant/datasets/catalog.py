@@ -489,29 +489,58 @@ EARNINGS_INCOME_STATEMENT = DatasetSpec(
     repository="earnings",
     table="income_statement",
     description="Quarterly and annual income statement lines.",
-    point_in_time=PointInTimeClass.NOT_POINT_IN_TIME,
+    point_in_time=PointInTimeClass.PUBLICATION_LAGGED,
     point_in_time_note=(
-        "BARRED from historical training. The primary key is (act_symbol, date, "
-        "period) where `date` is a PERIOD marker; no column anywhere in the "
-        "schema records when the figure was filed or whether it was later "
-        "restated. Using it historically inserts today's knowledge of a quarter "
-        "into dates before that quarter was reported — the failure mode that "
-        "makes results look better, which is why it is refused rather than "
-        "flagged. This repository already has genuinely point-in-time "
-        "fundamentals with real SEC `filed` dates in src/panel/fundamentals.py; "
-        "that path is strictly better and this one is redundant."
+        "RECLASSIFIED for EXP-005, from NOT_POINT_IN_TIME. `date` is a fiscal "
+        "PERIOD END, not a filing date — verified on AAPL, where the quarter "
+        "ending 2026-06-30 was announced 2026-07-30, and where 270,888 of "
+        "270,925 rows fall on a month end. The original BARRED classification "
+        "was correct at the time, because nothing gated it. "
+        "What changed is the gate, not the data: src/quant/features/"
+        "fundamentals.py joins every period forward to its first "
+        "`earnings_calendar` announcement and emits nothing for a period whose "
+        "announcement cannot be established — the mechanism that has governed "
+        "`eps_history` since EXP-002. Two tables of the same shape now carry the "
+        "same class. "
+        "The TIMING leak is closed. The RESTATEMENT leak is NOT: one row per "
+        "period, no vintage column, so a later correction overwrites the "
+        "original irrecoverably. Features derived here are marked "
+        "restatement_risk=UNQUANTIFIED and isolated in their own ablation arm so "
+        "their contribution can be measured and discounted separately. "
+        "src/panel/fundamentals.py remains strictly better wherever SEC "
+        "companyfacts can be fetched, because it carries real `filed` dates."
     ),
     survivorship=SurvivorshipClass.PARTIAL,
-    survivorship_note="Not assessed — the dataset is not admitted to training.",
-    ingestion=IngestionMode.DATE_PARTITIONED,
-    columns=("act_symbol", "date", "period", "sales", "gross_profit", "net_income"),
-    priority=90,
-    research_value=(
-        "Low. Superseded by SEC XBRL, which carries the filing date this lacks. "
-        "Catalogued so the decision to exclude it is visible and revisable rather "
-        "than silent."
+    survivorship_note=(
+        "9,292 symbols from 2012-10-31. Filers that stop filing stop appearing; "
+        "there is no explicit termination marker, so exits are inferred from the "
+        "price panel rather than from this table."
     ),
-    limitations=("No filing date. No restatement history. Not admissible.",),
+    ingestion=IngestionMode.WHOLE_TABLE,
+    columns=("act_symbol", "date", "period", "sales", "cost_of_goods",
+             "gross_profit", "pretax_income", "net_income", "average_shares",
+             "diluted_net_eps", "depreciation_and_amortization", "interest_expense"),
+    primary_key=("date", "act_symbol", "period"),
+    measured_start="2012-10-31",
+    measured_end="2026-07-31",
+    measured_symbols=9292,
+    priority=3,
+    research_value=(
+        "Margins, profitability and their trends — the quality and growth legs "
+        "of the cross-section, none of which is recoverable from price. "
+        "Admissible only through the announcement gate, and only with the "
+        "restatement caveat attached."
+    ),
+    limitations=(
+        "No filing date in the table: availability comes entirely from "
+        "`earnings_calendar`, which begins 2020-01-22. Periods before that "
+        "cannot be gated and are dropped rather than assumed.",
+        "No restatement history. A restated figure silently replaces the "
+        "original and the magnitude of that effect cannot be measured from this "
+        "table alone. UNQUANTIFIED.",
+        "Quarterly rows for some filers are year-to-date cumulative rather than "
+        "discrete.",
+    ),
     licence="Open data on DoltHub.",
     url="https://www.dolthub.com/repositories/post-no-preference/earnings",
 )
@@ -743,6 +772,206 @@ EARNINGS_EPS_HISTORY = DatasetSpec(
 )
 
 
+
+# ── DoltHub earnings: the tables the first study left on the table ───────────
+#
+# All five are keyed by FISCAL PERIOD END, not by publication date. Verified on
+# AAPL: the quarter ending 2026-06-30 was announced 2026-07-30, and the quarter
+# ending 2025-12-31 was announced 2026-01-29 — a 29-30 day lag, and 270,888 of
+# 270,925 `income_statement` rows fall on a month end. Treating `date` as an
+# availability date would grant a model a month of hindsight on every quarterly
+# figure, which is why each carries PUBLICATION_LAGGED and why the feature layer
+# refuses to emit them without an announcement date from `earnings_calendar`.
+
+EARNINGS_SALES_ESTIMATE = DatasetSpec(
+    dataset_id="dolthub_earnings_sales_estimate",
+    source="dolthub",
+    repository="earnings",
+    table="sales_estimate",
+    description="Weekly analyst revenue-estimate vintages: consensus, dispersion, coverage.",
+    point_in_time=PointInTimeClass.POINT_IN_TIME,
+    point_in_time_note=(
+        "`date` is the OBSERVATION date of the estimate, not the period it "
+        "describes — the row says what analysts believed on that Sunday. "
+        "Verified on AAPL for period_end_date 2026-06-30: consensus holds at "
+        "1.70 from 2026-02-01, moves to 1.68 on 2026-04-12 and 1.73 on "
+        "2026-04-19. A revision series is therefore recoverable without any "
+        "hindsight, which is what makes this the one fundamental-adjacent table "
+        "needing no announcement gate."
+    ),
+    survivorship=SurvivorshipClass.PARTIAL,
+    survivorship_note=(
+        "Coverage begins 2017-10-26 and tracks 7,029 symbols. Names that lost "
+        "analyst coverage stop appearing, so the estimate panel thins before a "
+        "delisting rather than ending abruptly."
+    ),
+    ingestion=IngestionMode.WHOLE_TABLE,
+    columns=("date", "act_symbol", "period", "period_end_date", "consensus",
+             "count", "high", "low", "year_ago"),
+    primary_key=("date", "act_symbol", "period"),
+    measured_start="2017-10-26",
+    measured_end="2026-08-23",
+    measured_rows_per_date=None,
+    measured_symbols=7029,
+    priority=2,
+    research_value=(
+        "Revenue-estimate revisions are the second leg of the revisions anomaly "
+        "and are not recoverable from price. 7,060,412 vintages at a weekly "
+        "cadence over 8.8 years."
+    ),
+    limitations=(
+        "Weekly, so a revision is located to within a week and no finer.",
+        "`period` is relative ('Current Quarter', 'Next Year'), so the target "
+        "period moves as time passes; period_end_date is the stable key.",
+        "No revision timestamp within the week, and no per-analyst detail.",
+    ),
+    licence="Open data on DoltHub.",
+    url="https://www.dolthub.com/repositories/post-no-preference/earnings",
+)
+
+EARNINGS_BALANCE_ASSETS = DatasetSpec(
+    dataset_id="dolthub_earnings_balance_sheet_assets",
+    source="dolthub",
+    repository="earnings",
+    table="balance_sheet_assets",
+    description="Quarterly and annual asset-side balance sheet, keyed by fiscal period end.",
+    point_in_time=PointInTimeClass.PUBLICATION_LAGGED,
+    point_in_time_note=(
+        "`date` is the FISCAL PERIOD END. The figure was not public until the "
+        "results were announced, typically 30-90 days later. Usable only after "
+        "an as-of join to `earnings_calendar`; periods with no matching "
+        "announcement are dropped, never estimated."
+    ),
+    survivorship=SurvivorshipClass.PARTIAL,
+    survivorship_note=(
+        "9,998 symbols from 2012-10-31. Filers that stop filing simply stop "
+        "appearing; there is no explicit termination marker in this table."
+    ),
+    ingestion=IngestionMode.WHOLE_TABLE,
+    columns=("date", "act_symbol", "period", "cash_and_equivalents", "receivables",
+             "inventories", "total_current_assets", "net_property_and_equipment",
+             "intangibles", "total_assets"),
+    primary_key=("date", "act_symbol", "period"),
+    measured_start="2012-10-31",
+    measured_end="2026-07-31",
+    measured_symbols=9998,
+    priority=3,
+    research_value=(
+        "Asset composition supports accruals and asset-growth measures, both "
+        "documented cross-sectional effects that price data cannot express."
+    ),
+    limitations=(
+        "No publication date in the table; availability comes entirely from "
+        "`earnings_calendar`, which starts 2020-01-22.",
+        "One row per period with no vintage column, so a restatement OVERWRITES "
+        "the original figure and the original is unrecoverable.",
+    ),
+    licence="Open data on DoltHub.",
+    url="https://www.dolthub.com/repositories/post-no-preference/earnings",
+)
+
+EARNINGS_BALANCE_LIABILITIES = DatasetSpec(
+    dataset_id="dolthub_earnings_balance_sheet_liabilities",
+    source="dolthub",
+    repository="earnings",
+    table="balance_sheet_liabilities",
+    description="Quarterly and annual liability-side balance sheet, keyed by fiscal period end.",
+    point_in_time=PointInTimeClass.PUBLICATION_LAGGED,
+    point_in_time_note=(
+        "Fiscal period end, identical treatment to the asset side: gated on "
+        "`earnings_calendar` or not emitted."
+    ),
+    survivorship=SurvivorshipClass.PARTIAL,
+    survivorship_note="Same filer-attrition behaviour as the asset side.",
+    ingestion=IngestionMode.WHOLE_TABLE,
+    columns=("date", "act_symbol", "period", "accounts_payable",
+             "total_current_liabilities", "long_term_debt", "total_liabilities"),
+    primary_key=("date", "act_symbol", "period"),
+    measured_start="2012-10-31",
+    measured_end="2026-07-31",
+    measured_symbols=9998,
+    priority=3,
+    research_value="Leverage and its change; the denominator for balance-sheet quality.",
+    limitations=(
+        "No publication date; no restatement vintage.",
+        "Debt is book, not market, and carries no maturity schedule.",
+    ),
+    licence="Open data on DoltHub.",
+    url="https://www.dolthub.com/repositories/post-no-preference/earnings",
+)
+
+EARNINGS_BALANCE_EQUITY = DatasetSpec(
+    dataset_id="dolthub_earnings_balance_sheet_equity",
+    source="dolthub",
+    repository="earnings",
+    table="balance_sheet_equity",
+    description="Quarterly and annual equity, shares outstanding and book value per share.",
+    point_in_time=PointInTimeClass.PUBLICATION_LAGGED,
+    point_in_time_note=(
+        "Fiscal period end. `shares_outstanding` and `book_value_per_share` are "
+        "as of the period end and became public at the announcement."
+    ),
+    survivorship=SurvivorshipClass.PARTIAL,
+    survivorship_note="Same filer-attrition behaviour as the rest of the statement set.",
+    ingestion=IngestionMode.WHOLE_TABLE,
+    columns=("date", "act_symbol", "period", "common_stock", "retained_earnings",
+             "treasury_stock", "total_equity", "shares_outstanding",
+             "book_value_per_share"),
+    primary_key=("date", "act_symbol", "period"),
+    measured_start="2012-10-31",
+    measured_end="2026-07-31",
+    measured_symbols=9998,
+    priority=3,
+    research_value=(
+        "`book_value_per_share` against price is book-to-market, the oldest "
+        "documented value measure and the one HML is built from. "
+        "`shares_outstanding` gives net issuance."
+    ),
+    limitations=(
+        "No publication date; no restatement vintage.",
+        "Shares outstanding is period-end, so buybacks inside a quarter are invisible.",
+    ),
+    licence="Open data on DoltHub.",
+    url="https://www.dolthub.com/repositories/post-no-preference/earnings",
+)
+
+EARNINGS_CASH_FLOW = DatasetSpec(
+    dataset_id="dolthub_earnings_cash_flow_statement",
+    source="dolthub",
+    repository="earnings",
+    table="cash_flow_statement",
+    description="Quarterly and annual cash-flow statement, keyed by fiscal period end.",
+    point_in_time=PointInTimeClass.PUBLICATION_LAGGED,
+    point_in_time_note=(
+        "Fiscal period end; announcement-gated like the rest of the statement set."
+    ),
+    survivorship=SurvivorshipClass.PARTIAL,
+    survivorship_note="9,513 symbols from 2012-10-31, with the same filer attrition.",
+    ingestion=IngestionMode.WHOLE_TABLE,
+    columns=("date", "act_symbol", "period", "net_income",
+             "net_cash_from_operating_activities", "property_and_equipment",
+             "net_cash_from_investing_activities", "net_cash_from_financing_activities",
+             "payment_of_dividends_and_other_distributions"),
+    primary_key=("date", "act_symbol", "period"),
+    measured_start="2012-10-31",
+    measured_end="2026-07-31",
+    measured_symbols=9513,
+    priority=3,
+    research_value=(
+        "Operating cash flow less capex is free cash flow, and accruals — the "
+        "gap between earnings and cash — is among the better-replicated "
+        "cross-sectional predictors."
+    ),
+    limitations=(
+        "No publication date; no restatement vintage.",
+        "Quarterly cash-flow figures are sometimes cumulative year-to-date "
+        "rather than discrete; the feature layer differences them and drops "
+        "the first quarter of each year where the convention is ambiguous.",
+    ),
+    licence="Open data on DoltHub.",
+    url="https://www.dolthub.com/repositories/post-no-preference/earnings",
+)
+
 CATALOG: tuple[DatasetSpec, ...] = (
     OPTIONS_CHAIN_DAILY,
     EARNINGS_EPS_HISTORY,
@@ -758,6 +987,11 @@ CATALOG: tuple[DatasetSpec, ...] = (
     EARNINGS_CALENDAR,
     OPTIONS_CHAIN,
     EARNINGS_INCOME_STATEMENT,
+    EARNINGS_SALES_ESTIMATE,
+    EARNINGS_BALANCE_ASSETS,
+    EARNINGS_BALANCE_LIABILITIES,
+    EARNINGS_BALANCE_EQUITY,
+    EARNINGS_CASH_FLOW,
 )
 
 _BY_ID = {spec.dataset_id: spec for spec in CATALOG}

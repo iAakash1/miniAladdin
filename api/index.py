@@ -2080,3 +2080,106 @@ def get_memo(ticker: str):
     research = research_ticker(ticker, fast=False)
     memo = memo_service.generate_memo(research)
     return {"memo": memo, "research": research}
+
+
+# ── quant research ──────────────────────────────────────────────────────────
+#
+# Read-only over `experiments/`. Nothing here trains, backtests or ingests: a
+# page load must not be able to start a walk-forward. Every endpoint reports
+# `unavailable` with a remedy when the artifact is missing, rather than
+# computing a cheap substitute a reader could not distinguish from the real one.
+
+
+@app.get("/api/quant/status", tags=["quant"])
+def quant_status():
+    """What the product is allowed to serve, and whether the holdout is locked.
+
+    `deployment_status` reads the model registry, not any leaderboard, so a
+    spectacular research result cannot make this say anything other than
+    NO_MODEL until a model is actually promoted. This is the endpoint the UI
+    uses to decide whether it may show a prediction at all.
+    """
+    from src.services import quant_service
+
+    return {
+        **quant_service.production_status(),
+        "firewall": quant_service.firewall_status(),
+    }
+
+
+@app.get("/api/quant/experiments", tags=["quant"])
+def quant_experiments():
+    """Every experiment on disk, newest first, with invalidated ones marked VOID.
+
+    Void studies are listed rather than deleted: removing one would erase the
+    multiple-testing exposure it created, which the significance correction on
+    every later study depends on.
+    """
+    from src.services import quant_service
+
+    return quant_service.experiments()
+
+
+@app.get("/api/quant/experiments/{experiment_id}", tags=["quant"])
+def quant_experiment(
+    experiment_id: str = FastPath(..., max_length=32, pattern=r"^[A-Za-z0-9_-]+$"),
+):
+    """One experiment in full: leaderboard, verdicts, ablation, controls, regimes.
+
+    Every leaderboard row carries a `verdict` computed from the same gate
+    constants `ModelRegistry.promote()` enforces, so a card and a promotion
+    refusal can never disagree.
+    """
+    from src.services import quant_service
+
+    payload = quant_service.experiment(experiment_id)
+    if payload.get("status") == "unavailable":
+        raise HTTPException(status_code=404, detail=payload["detail"])
+    return payload
+
+
+@app.get("/api/quant/latest", tags=["quant"])
+def quant_latest():
+    """The newest completed, non-void experiment. What /quant renders by default."""
+    from src.services import quant_service
+
+    return quant_service.latest()
+
+
+@app.get("/api/quant/features", tags=["quant"])
+def quant_features():
+    """The feature registry: definition, source, lookback, direction, leakage note.
+
+    An unregistered feature cannot enter an experiment, so this is the complete
+    set of inputs any result could have used.
+    """
+    from src.services import ml_service
+
+    return ml_service.feature_catalog()
+
+
+@app.get("/api/quant/datasets", tags=["quant"])
+def quant_datasets():
+    """The dataset catalog in three tiers: admissible, gated, excluded.
+
+    `gated` is the tier that matters most and the easiest to omit: a source
+    keyed by fiscal period is admissible only behind a publication gate, and
+    reporting only `excluded` would imply everything else is unconditionally
+    safe to read as-dated.
+    """
+    from src.services import ml_service
+
+    return ml_service.dataset_catalog()
+
+
+@app.get("/api/quant/symbol/{symbol}", tags=["quant"])
+def quant_symbol(symbol: str = FastPath(..., max_length=10, pattern=r"^[A-Za-z.\-]+$")):
+    """The company-page quant panel.
+
+    Returns NO_MODEL and an explicit disclosure unless a production-approved
+    model exists. It never fabricates a prediction and never renders a research
+    signal in a shape that could be mistaken for a production one.
+    """
+    from src.services import quant_service
+
+    return quant_service.symbol_view(symbol)

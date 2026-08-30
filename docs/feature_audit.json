@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "feature_count": 67,
+  "feature_count": 103,
   "declared_unsafe": [],
   "requires_fitting": [
     "acceleration_xs",
@@ -11,6 +11,24 @@
     "earn_sue_xs",
     "earn_surprise_pct_xs",
     "earn_surprise_sign_xs",
+    "est_eps_coverage_xs",
+    "est_eps_coverage_chg_13w_xs",
+    "est_eps_dispersion_xs",
+    "est_eps_growth_expected_xs",
+    "est_eps_rev_13w_xs",
+    "est_eps_rev_4w_xs",
+    "est_sales_rev_13w_xs",
+    "est_sales_rev_4w_xs",
+    "fund_accruals_xs",
+    "fund_asset_growth_yoy_xs",
+    "fund_current_ratio_xs",
+    "fund_debt_to_equity_xs",
+    "fund_gross_margin_xs",
+    "fund_net_issuance_yoy_xs",
+    "fund_operating_margin_xs",
+    "fund_roa_xs",
+    "fund_roe_xs",
+    "fund_sales_growth_yoy_xs",
     "log_dollar_volume_21_xs",
     "ma_gap_xs",
     "max_drawdown_252_xs",
@@ -40,10 +58,10 @@
     "volume": 3,
     "structure": 3,
     "volatility": 5,
-    "cross_sectional": 28,
+    "cross_sectional": 46,
     "macro": 11,
     "options": 8,
-    "fundamental": 4
+    "fundamental": 22
   },
   "features": [
     {
@@ -97,8 +115,7 @@
       "direction_hypothesis": "two_sided",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": false
+      "notes": []
     },
     {
       "feature": "amihud_21",
@@ -136,8 +153,7 @@
       "direction_hypothesis": "positive",
       "citation": "Amihud (2002)",
       "version": "1.0",
-      "notes": [],
-      "used_in_study": false
+      "notes": []
     },
     {
       "feature": "dist_52w_high",
@@ -190,8 +206,7 @@
       "direction_hypothesis": "positive",
       "citation": "George & Hwang (2004)",
       "version": "1.0",
-      "notes": [],
-      "used_in_study": false
+      "notes": []
     },
     {
       "feature": "downside_vol_63",
@@ -244,8 +259,7 @@
       "direction_hypothesis": "negative",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": false
+      "notes": []
     },
     {
       "feature": "earn_days_since",
@@ -292,8 +306,7 @@
       "version": "1.0",
       "notes": [
         "Calendar-to-session conversion is approximate and used only as a staleness cut-off."
-      ],
-      "used_in_study": false
+      ]
     },
     {
       "feature": "earn_sue",
@@ -341,8 +354,7 @@
       "version": "1.0",
       "notes": [
         "The denominator uses PRIOR surprises only \u2014 shift(1) before the expanding window."
-      ],
-      "used_in_study": false
+      ]
     },
     {
       "feature": "earn_surprise_pct",
@@ -391,8 +403,7 @@
       "notes": [
         "NULL when |estimate| <= 0.01 \u2014 a ratio to a near-zero denominator is not a surprise.",
         "NULL beyond 63 sessions after the print; drift is a quarter-horizon effect."
-      ],
-      "used_in_study": false
+      ]
     },
     {
       "feature": "earn_surprise_sign",
@@ -438,8 +449,896 @@
       "direction_hypothesis": "positive",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": false
+      "notes": []
+    },
+    {
+      "feature": "est_eps_coverage",
+      "base_feature": null,
+      "group": "fundamental",
+      "description": "Number of analysts contributing an FY1 EPS estimate.",
+      "rationale": "Coverage proxies for attention and for how quickly information is impounded. Included as a control on the revision features rather than as a predictor in its own right.",
+      "formula": "count",
+      "raw_fields": [
+        "count"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 0,
+      "earliest_required_observation_sessions_before": 0,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "The largest in the corpus. eps_history is keyed by period end with no announcement date; used raw it inserts a quarter's result ~30 days before it was public (measured on AAPL). Closed by joining to earnings_calendar and honouring the before-open / after-close session rule. Also subject to the merge_asof alignment defect above.",
+      "leakage_test": "tests/quant/test_earnings_options.py::test_attached_features_never_precede_availability",
+      "direction_hypothesis": "descriptive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [
+        "Vintage-dated: the row records what consensus WAS on its observation date, so no publication gate is required.",
+        "Revisions are NULL across a fiscal rollover, where 'Current Year' changes which period it refers to.",
+        "Weekly cadence; a vintage older than 45 days is treated as stale and the row is NULL."
+      ]
+    },
+    {
+      "feature": "est_eps_coverage_chg_13w",
+      "base_feature": null,
+      "group": "fundamental",
+      "description": "Change in analyst count over 13 weekly vintages.",
+      "rationale": "Analysts initiating or dropping coverage is a slow signal about institutional interest.",
+      "formula": "count_t - count_(t-13w)",
+      "raw_fields": [
+        "count"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 65,
+      "earliest_required_observation_sessions_before": 65,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "The largest in the corpus. eps_history is keyed by period end with no announcement date; used raw it inserts a quarter's result ~30 days before it was public (measured on AAPL). Closed by joining to earnings_calendar and honouring the before-open / after-close session rule. Also subject to the merge_asof alignment defect above.",
+      "leakage_test": "tests/quant/test_earnings_options.py::test_attached_features_never_precede_availability",
+      "direction_hypothesis": "positive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [
+        "Vintage-dated: the row records what consensus WAS on its observation date, so no publication gate is required.",
+        "Revisions are NULL across a fiscal rollover, where 'Current Year' changes which period it refers to.",
+        "Weekly cadence; a vintage older than 45 days is treated as stale and the row is NULL."
+      ]
+    },
+    {
+      "feature": "est_eps_dispersion",
+      "base_feature": null,
+      "group": "fundamental",
+      "description": "Spread of FY1 EPS estimates, scaled by consensus.",
+      "rationale": "Disagreement among analysts proxies for uncertainty. High-dispersion names have historically UNDERperformed, which is the opposite of what a risk story predicts.",
+      "formula": "(high - low) / |consensus|",
+      "raw_fields": [
+        "high",
+        "low",
+        "consensus"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 0,
+      "earliest_required_observation_sessions_before": 0,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "The largest in the corpus. eps_history is keyed by period end with no announcement date; used raw it inserts a quarter's result ~30 days before it was public (measured on AAPL). Closed by joining to earnings_calendar and honouring the before-open / after-close session rule. Also subject to the merge_asof alignment defect above.",
+      "leakage_test": "tests/quant/test_earnings_options.py::test_attached_features_never_precede_availability",
+      "direction_hypothesis": "negative",
+      "citation": "Diether, Malloy & Scherbina (2002)",
+      "version": "1.0",
+      "notes": [
+        "Vintage-dated: the row records what consensus WAS on its observation date, so no publication gate is required.",
+        "Revisions are NULL across a fiscal rollover, where 'Current Year' changes which period it refers to.",
+        "Weekly cadence; a vintage older than 45 days is treated as stale and the row is NULL."
+      ]
+    },
+    {
+      "feature": "est_eps_growth_expected",
+      "base_feature": null,
+      "group": "fundamental",
+      "description": "FY1 consensus against the year-ago realised figure.",
+      "rationale": "Expected growth. `year_ago` describes a period already reported, so it carries no forward reference.",
+      "formula": "(consensus - year_ago) / |year_ago|",
+      "raw_fields": [
+        "consensus",
+        "year_ago"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 0,
+      "earliest_required_observation_sessions_before": 0,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "The largest in the corpus. eps_history is keyed by period end with no announcement date; used raw it inserts a quarter's result ~30 days before it was public (measured on AAPL). Closed by joining to earnings_calendar and honouring the before-open / after-close session rule. Also subject to the merge_asof alignment defect above.",
+      "leakage_test": "tests/quant/test_earnings_options.py::test_attached_features_never_precede_availability",
+      "direction_hypothesis": "descriptive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [
+        "Vintage-dated: the row records what consensus WAS on its observation date, so no publication gate is required.",
+        "Revisions are NULL across a fiscal rollover, where 'Current Year' changes which period it refers to.",
+        "Weekly cadence; a vintage older than 45 days is treated as stale and the row is NULL."
+      ]
+    },
+    {
+      "feature": "est_eps_rev_13w",
+      "base_feature": null,
+      "group": "fundamental",
+      "description": "Change in FY1 EPS consensus over 13 weekly vintages.",
+      "rationale": "Analyst revisions are among the better-replicated cross-sectional effects: consensus adjusts gradually, so the direction of recent revision carries into forward returns.",
+      "formula": "(consensus_t - consensus_(t-13w)) / |consensus_(t-13w)|, only where period_end_date is unchanged",
+      "raw_fields": [
+        "consensus",
+        "period_end_date"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 65,
+      "earliest_required_observation_sessions_before": 65,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "The largest in the corpus. eps_history is keyed by period end with no announcement date; used raw it inserts a quarter's result ~30 days before it was public (measured on AAPL). Closed by joining to earnings_calendar and honouring the before-open / after-close session rule. Also subject to the merge_asof alignment defect above.",
+      "leakage_test": "tests/quant/test_earnings_options.py::test_attached_features_never_precede_availability",
+      "direction_hypothesis": "positive",
+      "citation": "Chan, Jegadeesh & Lakonishok (1996); Stickel (1991)",
+      "version": "1.0",
+      "notes": [
+        "Vintage-dated: the row records what consensus WAS on its observation date, so no publication gate is required.",
+        "Revisions are NULL across a fiscal rollover, where 'Current Year' changes which period it refers to.",
+        "Weekly cadence; a vintage older than 45 days is treated as stale and the row is NULL."
+      ]
+    },
+    {
+      "feature": "est_eps_rev_4w",
+      "base_feature": null,
+      "group": "fundamental",
+      "description": "Change in FY1 EPS consensus over 4 weekly vintages.",
+      "rationale": "Analyst revisions are among the better-replicated cross-sectional effects: consensus adjusts gradually, so the direction of recent revision carries into forward returns.",
+      "formula": "(consensus_t - consensus_(t-4w)) / |consensus_(t-4w)|, only where period_end_date is unchanged",
+      "raw_fields": [
+        "consensus",
+        "period_end_date"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 20,
+      "earliest_required_observation_sessions_before": 20,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "The largest in the corpus. eps_history is keyed by period end with no announcement date; used raw it inserts a quarter's result ~30 days before it was public (measured on AAPL). Closed by joining to earnings_calendar and honouring the before-open / after-close session rule. Also subject to the merge_asof alignment defect above.",
+      "leakage_test": "tests/quant/test_earnings_options.py::test_attached_features_never_precede_availability",
+      "direction_hypothesis": "positive",
+      "citation": "Chan, Jegadeesh & Lakonishok (1996); Stickel (1991)",
+      "version": "1.0",
+      "notes": [
+        "Vintage-dated: the row records what consensus WAS on its observation date, so no publication gate is required.",
+        "Revisions are NULL across a fiscal rollover, where 'Current Year' changes which period it refers to.",
+        "Weekly cadence; a vintage older than 45 days is treated as stale and the row is NULL."
+      ]
+    },
+    {
+      "feature": "est_sales_rev_13w",
+      "base_feature": null,
+      "group": "fundamental",
+      "description": "Change in FY1 revenue consensus over 13 weekly vintages.",
+      "rationale": "Revenue revisions are harder to manage than earnings revisions and so carry information the EPS series does not.",
+      "formula": "(consensus_t - consensus_(t-13w)) / |consensus_(t-13w)|, only where period_end_date is unchanged",
+      "raw_fields": [
+        "consensus",
+        "period_end_date"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 65,
+      "earliest_required_observation_sessions_before": 65,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "The largest in the corpus. eps_history is keyed by period end with no announcement date; used raw it inserts a quarter's result ~30 days before it was public (measured on AAPL). Closed by joining to earnings_calendar and honouring the before-open / after-close session rule. Also subject to the merge_asof alignment defect above.",
+      "leakage_test": "tests/quant/test_earnings_options.py::test_attached_features_never_precede_availability",
+      "direction_hypothesis": "positive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [
+        "Vintage-dated: the row records what consensus WAS on its observation date, so no publication gate is required.",
+        "Revisions are NULL across a fiscal rollover, where 'Current Year' changes which period it refers to.",
+        "Weekly cadence; a vintage older than 45 days is treated as stale and the row is NULL."
+      ]
+    },
+    {
+      "feature": "est_sales_rev_4w",
+      "base_feature": null,
+      "group": "fundamental",
+      "description": "Change in FY1 revenue consensus over 4 weekly vintages.",
+      "rationale": "Revenue revisions are harder to manage than earnings revisions and so carry information the EPS series does not.",
+      "formula": "(consensus_t - consensus_(t-4w)) / |consensus_(t-4w)|, only where period_end_date is unchanged",
+      "raw_fields": [
+        "consensus",
+        "period_end_date"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 20,
+      "earliest_required_observation_sessions_before": 20,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "The largest in the corpus. eps_history is keyed by period end with no announcement date; used raw it inserts a quarter's result ~30 days before it was public (measured on AAPL). Closed by joining to earnings_calendar and honouring the before-open / after-close session rule. Also subject to the merge_asof alignment defect above.",
+      "leakage_test": "tests/quant/test_earnings_options.py::test_attached_features_never_precede_availability",
+      "direction_hypothesis": "positive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [
+        "Vintage-dated: the row records what consensus WAS on its observation date, so no publication gate is required.",
+        "Revisions are NULL across a fiscal rollover, where 'Current Year' changes which period it refers to.",
+        "Weekly cadence; a vintage older than 45 days is treated as stale and the row is NULL."
+      ]
+    },
+    {
+      "feature": "fund_accruals",
+      "base_feature": null,
+      "group": "fundamental",
+      "description": "Earnings less operating cash flow, over assets.",
+      "rationale": "The accruals anomaly: earnings not backed by cash predict lower subsequent returns.",
+      "formula": "(net_income - net_cash_from_operating_activities) / total_assets",
+      "raw_fields": [
+        "period_end_date",
+        "announcement_date"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 0,
+      "earliest_required_observation_sessions_before": 0,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "The largest in the corpus. eps_history is keyed by period end with no announcement date; used raw it inserts a quarter's result ~30 days before it was public (measured on AAPL). Closed by joining to earnings_calendar and honouring the before-open / after-close session rule. Also subject to the merge_asof alignment defect above.",
+      "leakage_test": "tests/quant/test_earnings_options.py::test_attached_features_never_precede_availability",
+      "direction_hypothesis": "negative",
+      "citation": "Sloan (1996)",
+      "version": "1.0",
+      "notes": [
+        "Announcement-gated: joined forward to the first earnings_calendar date at or after the period end. Periods with no announcement are dropped, not estimated.",
+        "restatement_risk=UNQUANTIFIED \u2014 one row per period, no vintage column, so a later correction overwrites the original irrecoverably."
+      ]
+    },
+    {
+      "feature": "fund_asset_growth_yoy",
+      "base_feature": null,
+      "group": "fundamental",
+      "description": "Year-over-year change in total assets.",
+      "rationale": "Asset growth predicts lower returns \u2014 firms that expand the balance sheet fastest subsequently underperform.",
+      "formula": "(total_assets_t - total_assets_(t-4q)) / total_assets_(t-4q)",
+      "raw_fields": [
+        "period_end_date",
+        "announcement_date"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 252,
+      "earliest_required_observation_sessions_before": 252,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "The largest in the corpus. eps_history is keyed by period end with no announcement date; used raw it inserts a quarter's result ~30 days before it was public (measured on AAPL). Closed by joining to earnings_calendar and honouring the before-open / after-close session rule. Also subject to the merge_asof alignment defect above.",
+      "leakage_test": "tests/quant/test_earnings_options.py::test_attached_features_never_precede_availability",
+      "direction_hypothesis": "negative",
+      "citation": "Cooper, Gulen & Schill (2008)",
+      "version": "1.0",
+      "notes": [
+        "Announcement-gated: joined forward to the first earnings_calendar date at or after the period end. Periods with no announcement are dropped, not estimated.",
+        "restatement_risk=UNQUANTIFIED \u2014 one row per period, no vintage column, so a later correction overwrites the original irrecoverably."
+      ]
+    },
+    {
+      "feature": "fund_current_ratio",
+      "base_feature": null,
+      "group": "fundamental",
+      "description": "Current assets over current liabilities.",
+      "rationale": "Short-term solvency; a coarse distress screen.",
+      "formula": "total_current_assets / total_current_liabilities",
+      "raw_fields": [
+        "period_end_date",
+        "announcement_date"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 0,
+      "earliest_required_observation_sessions_before": 0,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "The largest in the corpus. eps_history is keyed by period end with no announcement date; used raw it inserts a quarter's result ~30 days before it was public (measured on AAPL). Closed by joining to earnings_calendar and honouring the before-open / after-close session rule. Also subject to the merge_asof alignment defect above.",
+      "leakage_test": "tests/quant/test_earnings_options.py::test_attached_features_never_precede_availability",
+      "direction_hypothesis": "positive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [
+        "Announcement-gated: joined forward to the first earnings_calendar date at or after the period end. Periods with no announcement are dropped, not estimated.",
+        "restatement_risk=UNQUANTIFIED \u2014 one row per period, no vintage column, so a later correction overwrites the original irrecoverably."
+      ]
+    },
+    {
+      "feature": "fund_debt_to_equity",
+      "base_feature": null,
+      "group": "fundamental",
+      "description": "Total liabilities over total equity.",
+      "rationale": "Leverage. Book, not market, and without a maturity schedule.",
+      "formula": "total_liabilities / total_equity",
+      "raw_fields": [
+        "period_end_date",
+        "announcement_date"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 0,
+      "earliest_required_observation_sessions_before": 0,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "The largest in the corpus. eps_history is keyed by period end with no announcement date; used raw it inserts a quarter's result ~30 days before it was public (measured on AAPL). Closed by joining to earnings_calendar and honouring the before-open / after-close session rule. Also subject to the merge_asof alignment defect above.",
+      "leakage_test": "tests/quant/test_earnings_options.py::test_attached_features_never_precede_availability",
+      "direction_hypothesis": "negative",
+      "citation": null,
+      "version": "1.0",
+      "notes": [
+        "Announcement-gated: joined forward to the first earnings_calendar date at or after the period end. Periods with no announcement are dropped, not estimated.",
+        "restatement_risk=UNQUANTIFIED \u2014 one row per period, no vintage column, so a later correction overwrites the original irrecoverably."
+      ]
+    },
+    {
+      "feature": "fund_gross_margin",
+      "base_feature": null,
+      "group": "fundamental",
+      "description": "Gross profit over sales.",
+      "rationale": "Pricing power and cost structure. Stable, slow-moving, and among the quality measures that survive replication.",
+      "formula": "gross_profit / sales",
+      "raw_fields": [
+        "period_end_date",
+        "announcement_date"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 0,
+      "earliest_required_observation_sessions_before": 0,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "The largest in the corpus. eps_history is keyed by period end with no announcement date; used raw it inserts a quarter's result ~30 days before it was public (measured on AAPL). Closed by joining to earnings_calendar and honouring the before-open / after-close session rule. Also subject to the merge_asof alignment defect above.",
+      "leakage_test": "tests/quant/test_earnings_options.py::test_attached_features_never_precede_availability",
+      "direction_hypothesis": "positive",
+      "citation": "Novy-Marx (2013)",
+      "version": "1.0",
+      "notes": [
+        "Announcement-gated: joined forward to the first earnings_calendar date at or after the period end. Periods with no announcement are dropped, not estimated.",
+        "restatement_risk=UNQUANTIFIED \u2014 one row per period, no vintage column, so a later correction overwrites the original irrecoverably."
+      ]
+    },
+    {
+      "feature": "fund_net_issuance_yoy",
+      "base_feature": null,
+      "group": "fundamental",
+      "description": "Year-over-year change in shares outstanding.",
+      "rationale": "Net issuance predicts lower returns; buybacks the reverse.",
+      "formula": "(shares_t - shares_(t-4q)) / shares_(t-4q)",
+      "raw_fields": [
+        "period_end_date",
+        "announcement_date"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 252,
+      "earliest_required_observation_sessions_before": 252,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "The largest in the corpus. eps_history is keyed by period end with no announcement date; used raw it inserts a quarter's result ~30 days before it was public (measured on AAPL). Closed by joining to earnings_calendar and honouring the before-open / after-close session rule. Also subject to the merge_asof alignment defect above.",
+      "leakage_test": "tests/quant/test_earnings_options.py::test_attached_features_never_precede_availability",
+      "direction_hypothesis": "negative",
+      "citation": "Pontiff & Woodgate (2008)",
+      "version": "1.0",
+      "notes": [
+        "Announcement-gated: joined forward to the first earnings_calendar date at or after the period end. Periods with no announcement are dropped, not estimated.",
+        "restatement_risk=UNQUANTIFIED \u2014 one row per period, no vintage column, so a later correction overwrites the original irrecoverably."
+      ]
+    },
+    {
+      "feature": "fund_operating_margin",
+      "base_feature": null,
+      "group": "fundamental",
+      "description": "Pretax income over sales.",
+      "rationale": "Profitability after operating costs, before financing choices.",
+      "formula": "pretax_income / sales",
+      "raw_fields": [
+        "period_end_date",
+        "announcement_date"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 0,
+      "earliest_required_observation_sessions_before": 0,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "The largest in the corpus. eps_history is keyed by period end with no announcement date; used raw it inserts a quarter's result ~30 days before it was public (measured on AAPL). Closed by joining to earnings_calendar and honouring the before-open / after-close session rule. Also subject to the merge_asof alignment defect above.",
+      "leakage_test": "tests/quant/test_earnings_options.py::test_attached_features_never_precede_availability",
+      "direction_hypothesis": "positive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [
+        "Announcement-gated: joined forward to the first earnings_calendar date at or after the period end. Periods with no announcement are dropped, not estimated.",
+        "restatement_risk=UNQUANTIFIED \u2014 one row per period, no vintage column, so a later correction overwrites the original irrecoverably."
+      ]
+    },
+    {
+      "feature": "fund_roa",
+      "base_feature": null,
+      "group": "fundamental",
+      "description": "Net income over total assets.",
+      "rationale": "Return unlevered by capital structure, so comparable where leverage is not.",
+      "formula": "net_income / total_assets",
+      "raw_fields": [
+        "period_end_date",
+        "announcement_date"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 0,
+      "earliest_required_observation_sessions_before": 0,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "The largest in the corpus. eps_history is keyed by period end with no announcement date; used raw it inserts a quarter's result ~30 days before it was public (measured on AAPL). Closed by joining to earnings_calendar and honouring the before-open / after-close session rule. Also subject to the merge_asof alignment defect above.",
+      "leakage_test": "tests/quant/test_earnings_options.py::test_attached_features_never_precede_availability",
+      "direction_hypothesis": "positive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [
+        "Announcement-gated: joined forward to the first earnings_calendar date at or after the period end. Periods with no announcement are dropped, not estimated.",
+        "restatement_risk=UNQUANTIFIED \u2014 one row per period, no vintage column, so a later correction overwrites the original irrecoverably."
+      ]
+    },
+    {
+      "feature": "fund_roe",
+      "base_feature": null,
+      "group": "fundamental",
+      "description": "Net income over total equity.",
+      "rationale": "Return on the equity base. A quality measure and a component of most profitability factors.",
+      "formula": "net_income / total_equity",
+      "raw_fields": [
+        "period_end_date",
+        "announcement_date"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 0,
+      "earliest_required_observation_sessions_before": 0,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "The largest in the corpus. eps_history is keyed by period end with no announcement date; used raw it inserts a quarter's result ~30 days before it was public (measured on AAPL). Closed by joining to earnings_calendar and honouring the before-open / after-close session rule. Also subject to the merge_asof alignment defect above.",
+      "leakage_test": "tests/quant/test_earnings_options.py::test_attached_features_never_precede_availability",
+      "direction_hypothesis": "positive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [
+        "Announcement-gated: joined forward to the first earnings_calendar date at or after the period end. Periods with no announcement are dropped, not estimated.",
+        "restatement_risk=UNQUANTIFIED \u2014 one row per period, no vintage column, so a later correction overwrites the original irrecoverably."
+      ]
+    },
+    {
+      "feature": "fund_sales_growth_yoy",
+      "base_feature": null,
+      "group": "fundamental",
+      "description": "Year-over-year change in sales.",
+      "rationale": "Top-line growth, harder to manage than earnings growth.",
+      "formula": "(sales_t - sales_(t-4q)) / sales_(t-4q)",
+      "raw_fields": [
+        "period_end_date",
+        "announcement_date"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 252,
+      "earliest_required_observation_sessions_before": 252,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": false,
+      "requires_fitting": false,
+      "fit_scope": null,
+      "fitted_inside_training_fold": "not_applicable_no_fit",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "The largest in the corpus. eps_history is keyed by period end with no announcement date; used raw it inserts a quarter's result ~30 days before it was public (measured on AAPL). Closed by joining to earnings_calendar and honouring the before-open / after-close session rule. Also subject to the merge_asof alignment defect above.",
+      "leakage_test": "tests/quant/test_earnings_options.py::test_attached_features_never_precede_availability",
+      "direction_hypothesis": "descriptive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [
+        "Announcement-gated: joined forward to the first earnings_calendar date at or after the period end. Periods with no announcement are dropped, not estimated.",
+        "restatement_risk=UNQUANTIFIED \u2014 one row per period, no vintage column, so a later correction overwrites the original irrecoverably."
+      ]
     },
     {
       "feature": "log_dollar_volume_21",
@@ -476,8 +1375,7 @@
       "direction_hypothesis": "descriptive",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": false
+      "notes": []
     },
     {
       "feature": "ma_gap",
@@ -530,8 +1428,7 @@
       "direction_hypothesis": "positive",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": false
+      "notes": []
     },
     {
       "feature": "market_drawdown",
@@ -576,8 +1473,7 @@
       "direction_hypothesis": "descriptive",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": true
+      "notes": []
     },
     {
       "feature": "market_mom_21",
@@ -622,8 +1518,7 @@
       "direction_hypothesis": "descriptive",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": true
+      "notes": []
     },
     {
       "feature": "market_mom_252",
@@ -668,8 +1563,7 @@
       "direction_hypothesis": "descriptive",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": true
+      "notes": []
     },
     {
       "feature": "market_vol_21",
@@ -714,8 +1608,7 @@
       "direction_hypothesis": "descriptive",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": true
+      "notes": []
     },
     {
       "feature": "market_vol_63",
@@ -760,8 +1653,7 @@
       "direction_hypothesis": "descriptive",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": true
+      "notes": []
     },
     {
       "feature": "market_vol_percentile",
@@ -806,8 +1698,7 @@
       "direction_hypothesis": "descriptive",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": true
+      "notes": []
     },
     {
       "feature": "max_drawdown_252",
@@ -860,8 +1751,7 @@
       "direction_hypothesis": "negative",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": false
+      "notes": []
     },
     {
       "feature": "mom_21",
@@ -914,8 +1804,7 @@
       "direction_hypothesis": "two_sided",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": false
+      "notes": []
     },
     {
       "feature": "mom_252_21",
@@ -968,8 +1857,7 @@
       "direction_hypothesis": "positive",
       "citation": "Jegadeesh & Titman (1993)",
       "version": "1.0",
-      "notes": [],
-      "used_in_study": false
+      "notes": []
     },
     {
       "feature": "mom_63",
@@ -1022,8 +1910,7 @@
       "direction_hypothesis": "positive",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": false
+      "notes": []
     },
     {
       "feature": "opt_expirations",
@@ -1068,8 +1955,7 @@
       "direction_hypothesis": "descriptive",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": false
+      "notes": []
     },
     {
       "feature": "opt_iv",
@@ -1116,8 +2002,7 @@
       "version": "1.0",
       "notes": [
         "Vendor measurement under an unpublished model, not a reconstructible quantity."
-      ],
-      "used_in_study": false
+      ]
     },
     {
       "feature": "opt_iv_change_21",
@@ -1163,8 +2048,7 @@
       "direction_hypothesis": "two_sided",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": false
+      "notes": []
     },
     {
       "feature": "opt_iv_minus_hv",
@@ -1210,8 +2094,7 @@
       "direction_hypothesis": "two_sided",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": false
+      "notes": []
     },
     {
       "feature": "opt_iv_rank",
@@ -1260,8 +2143,7 @@
       "version": "1.0",
       "notes": [
         "Both bounds are 52-week LOOKBACK columns supplied by the source \u2014 point-in-time as published."
-      ],
-      "used_in_study": false
+      ]
     },
     {
       "feature": "opt_rel_spread",
@@ -1306,8 +2188,7 @@
       "direction_hypothesis": "negative",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": false
+      "notes": []
     },
     {
       "feature": "opt_skew_25d",
@@ -1356,8 +2237,7 @@
       "version": "1.0",
       "notes": [
         "Delta buckets are wide (0.20-0.30) because listed strikes are discrete."
-      ],
-      "used_in_study": false
+      ]
     },
     {
       "feature": "opt_term_slope",
@@ -1403,8 +2283,7 @@
       "direction_hypothesis": "two_sided",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": false
+      "notes": []
     },
     {
       "feature": "rates_change_63",
@@ -1449,8 +2328,7 @@
       "direction_hypothesis": "negative",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": true
+      "notes": []
     },
     {
       "feature": "rates_curvature",
@@ -1497,8 +2375,7 @@
       "direction_hypothesis": "descriptive",
       "citation": "Litterman & Scheinkman (1991)",
       "version": "1.0",
-      "notes": [],
-      "used_in_study": true
+      "notes": []
     },
     {
       "feature": "rates_level",
@@ -1543,8 +2420,7 @@
       "direction_hypothesis": "descriptive",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": true
+      "notes": []
     },
     {
       "feature": "rates_short",
@@ -1589,8 +2465,7 @@
       "direction_hypothesis": "descriptive",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": true
+      "notes": []
     },
     {
       "feature": "rates_slope",
@@ -1636,8 +2511,7 @@
       "direction_hypothesis": "descriptive",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": true
+      "notes": []
     },
     {
       "feature": "reversal_5",
@@ -1690,8 +2564,7 @@
       "direction_hypothesis": "positive",
       "citation": "Lehmann (1990); Jegadeesh (1990)",
       "version": "1.0",
-      "notes": [],
-      "used_in_study": false
+      "notes": []
     },
     {
       "feature": "trend_strength_63",
@@ -1744,8 +2617,7 @@
       "direction_hypothesis": "positive",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": false
+      "notes": []
     },
     {
       "feature": "vol_21",
@@ -1798,8 +2670,7 @@
       "direction_hypothesis": "negative",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": false
+      "notes": []
     },
     {
       "feature": "vol_63",
@@ -1852,8 +2723,7 @@
       "direction_hypothesis": "negative",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": false
+      "notes": []
     },
     {
       "feature": "vol_ratio",
@@ -1906,8 +2776,7 @@
       "direction_hypothesis": "two_sided",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": false
+      "notes": []
     },
     {
       "feature": "volume_shock",
@@ -1944,8 +2813,7 @@
       "direction_hypothesis": "two_sided",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": false
+      "notes": []
     },
     {
       "feature": "acceleration_xs",
@@ -1998,8 +2866,7 @@
       "direction_hypothesis": "two_sided",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": true
+      "notes": []
     },
     {
       "feature": "amihud_21_xs",
@@ -2037,8 +2904,7 @@
       "direction_hypothesis": "positive",
       "citation": "Amihud (2002)",
       "version": "1.0",
-      "notes": [],
-      "used_in_study": true
+      "notes": []
     },
     {
       "feature": "dist_52w_high_xs",
@@ -2091,8 +2957,7 @@
       "direction_hypothesis": "positive",
       "citation": "George & Hwang (2004)",
       "version": "1.0",
-      "notes": [],
-      "used_in_study": true
+      "notes": []
     },
     {
       "feature": "downside_vol_63_xs",
@@ -2145,8 +3010,7 @@
       "direction_hypothesis": "negative",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": true
+      "notes": []
     },
     {
       "feature": "earn_days_since_xs",
@@ -2193,8 +3057,7 @@
       "version": "1.0",
       "notes": [
         "Calendar-to-session conversion is approximate and used only as a staleness cut-off."
-      ],
-      "used_in_study": true
+      ]
     },
     {
       "feature": "earn_sue_xs",
@@ -2242,8 +3105,7 @@
       "version": "1.0",
       "notes": [
         "The denominator uses PRIOR surprises only \u2014 shift(1) before the expanding window."
-      ],
-      "used_in_study": true
+      ]
     },
     {
       "feature": "earn_surprise_pct_xs",
@@ -2292,8 +3154,7 @@
       "notes": [
         "NULL when |estimate| <= 0.01 \u2014 a ratio to a near-zero denominator is not a surprise.",
         "NULL beyond 63 sessions after the print; drift is a quarter-horizon effect."
-      ],
-      "used_in_study": true
+      ]
     },
     {
       "feature": "earn_surprise_sign_xs",
@@ -2339,8 +3200,896 @@
       "direction_hypothesis": "positive",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": true
+      "notes": []
+    },
+    {
+      "feature": "est_eps_coverage_xs",
+      "base_feature": "est_eps_coverage",
+      "group": "cross_sectional",
+      "description": "Number of analysts contributing an FY1 EPS estimate.",
+      "rationale": "Coverage proxies for attention and for how quickly information is impounded. Included as a control on the revision features rather than as a predictor in its own right.",
+      "formula": "count",
+      "raw_fields": [
+        "count"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 0,
+      "earliest_required_observation_sessions_before": 0,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "descriptive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [
+        "Vintage-dated: the row records what consensus WAS on its observation date, so no publication gate is required.",
+        "Revisions are NULL across a fiscal rollover, where 'Current Year' changes which period it refers to.",
+        "Weekly cadence; a vintage older than 45 days is treated as stale and the row is NULL."
+      ]
+    },
+    {
+      "feature": "est_eps_coverage_chg_13w_xs",
+      "base_feature": "est_eps_coverage_chg_13w",
+      "group": "cross_sectional",
+      "description": "Change in analyst count over 13 weekly vintages.",
+      "rationale": "Analysts initiating or dropping coverage is a slow signal about institutional interest.",
+      "formula": "count_t - count_(t-13w)",
+      "raw_fields": [
+        "count"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 65,
+      "earliest_required_observation_sessions_before": 65,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "positive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [
+        "Vintage-dated: the row records what consensus WAS on its observation date, so no publication gate is required.",
+        "Revisions are NULL across a fiscal rollover, where 'Current Year' changes which period it refers to.",
+        "Weekly cadence; a vintage older than 45 days is treated as stale and the row is NULL."
+      ]
+    },
+    {
+      "feature": "est_eps_dispersion_xs",
+      "base_feature": "est_eps_dispersion",
+      "group": "cross_sectional",
+      "description": "Spread of FY1 EPS estimates, scaled by consensus.",
+      "rationale": "Disagreement among analysts proxies for uncertainty. High-dispersion names have historically UNDERperformed, which is the opposite of what a risk story predicts.",
+      "formula": "(high - low) / |consensus|",
+      "raw_fields": [
+        "high",
+        "low",
+        "consensus"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 0,
+      "earliest_required_observation_sessions_before": 0,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "negative",
+      "citation": "Diether, Malloy & Scherbina (2002)",
+      "version": "1.0",
+      "notes": [
+        "Vintage-dated: the row records what consensus WAS on its observation date, so no publication gate is required.",
+        "Revisions are NULL across a fiscal rollover, where 'Current Year' changes which period it refers to.",
+        "Weekly cadence; a vintage older than 45 days is treated as stale and the row is NULL."
+      ]
+    },
+    {
+      "feature": "est_eps_growth_expected_xs",
+      "base_feature": "est_eps_growth_expected",
+      "group": "cross_sectional",
+      "description": "FY1 consensus against the year-ago realised figure.",
+      "rationale": "Expected growth. `year_ago` describes a period already reported, so it carries no forward reference.",
+      "formula": "(consensus - year_ago) / |year_ago|",
+      "raw_fields": [
+        "consensus",
+        "year_ago"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 0,
+      "earliest_required_observation_sessions_before": 0,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "descriptive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [
+        "Vintage-dated: the row records what consensus WAS on its observation date, so no publication gate is required.",
+        "Revisions are NULL across a fiscal rollover, where 'Current Year' changes which period it refers to.",
+        "Weekly cadence; a vintage older than 45 days is treated as stale and the row is NULL."
+      ]
+    },
+    {
+      "feature": "est_eps_rev_13w_xs",
+      "base_feature": "est_eps_rev_13w",
+      "group": "cross_sectional",
+      "description": "Change in FY1 EPS consensus over 13 weekly vintages.",
+      "rationale": "Analyst revisions are among the better-replicated cross-sectional effects: consensus adjusts gradually, so the direction of recent revision carries into forward returns.",
+      "formula": "(consensus_t - consensus_(t-13w)) / |consensus_(t-13w)|, only where period_end_date is unchanged",
+      "raw_fields": [
+        "consensus",
+        "period_end_date"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 65,
+      "earliest_required_observation_sessions_before": 65,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "positive",
+      "citation": "Chan, Jegadeesh & Lakonishok (1996); Stickel (1991)",
+      "version": "1.0",
+      "notes": [
+        "Vintage-dated: the row records what consensus WAS on its observation date, so no publication gate is required.",
+        "Revisions are NULL across a fiscal rollover, where 'Current Year' changes which period it refers to.",
+        "Weekly cadence; a vintage older than 45 days is treated as stale and the row is NULL."
+      ]
+    },
+    {
+      "feature": "est_eps_rev_4w_xs",
+      "base_feature": "est_eps_rev_4w",
+      "group": "cross_sectional",
+      "description": "Change in FY1 EPS consensus over 4 weekly vintages.",
+      "rationale": "Analyst revisions are among the better-replicated cross-sectional effects: consensus adjusts gradually, so the direction of recent revision carries into forward returns.",
+      "formula": "(consensus_t - consensus_(t-4w)) / |consensus_(t-4w)|, only where period_end_date is unchanged",
+      "raw_fields": [
+        "consensus",
+        "period_end_date"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 20,
+      "earliest_required_observation_sessions_before": 20,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "positive",
+      "citation": "Chan, Jegadeesh & Lakonishok (1996); Stickel (1991)",
+      "version": "1.0",
+      "notes": [
+        "Vintage-dated: the row records what consensus WAS on its observation date, so no publication gate is required.",
+        "Revisions are NULL across a fiscal rollover, where 'Current Year' changes which period it refers to.",
+        "Weekly cadence; a vintage older than 45 days is treated as stale and the row is NULL."
+      ]
+    },
+    {
+      "feature": "est_sales_rev_13w_xs",
+      "base_feature": "est_sales_rev_13w",
+      "group": "cross_sectional",
+      "description": "Change in FY1 revenue consensus over 13 weekly vintages.",
+      "rationale": "Revenue revisions are harder to manage than earnings revisions and so carry information the EPS series does not.",
+      "formula": "(consensus_t - consensus_(t-13w)) / |consensus_(t-13w)|, only where period_end_date is unchanged",
+      "raw_fields": [
+        "consensus",
+        "period_end_date"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 65,
+      "earliest_required_observation_sessions_before": 65,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "positive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [
+        "Vintage-dated: the row records what consensus WAS on its observation date, so no publication gate is required.",
+        "Revisions are NULL across a fiscal rollover, where 'Current Year' changes which period it refers to.",
+        "Weekly cadence; a vintage older than 45 days is treated as stale and the row is NULL."
+      ]
+    },
+    {
+      "feature": "est_sales_rev_4w_xs",
+      "base_feature": "est_sales_rev_4w",
+      "group": "cross_sectional",
+      "description": "Change in FY1 revenue consensus over 4 weekly vintages.",
+      "rationale": "Revenue revisions are harder to manage than earnings revisions and so carry information the EPS series does not.",
+      "formula": "(consensus_t - consensus_(t-4w)) / |consensus_(t-4w)|, only where period_end_date is unchanged",
+      "raw_fields": [
+        "consensus",
+        "period_end_date"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 20,
+      "earliest_required_observation_sessions_before": 20,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "positive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [
+        "Vintage-dated: the row records what consensus WAS on its observation date, so no publication gate is required.",
+        "Revisions are NULL across a fiscal rollover, where 'Current Year' changes which period it refers to.",
+        "Weekly cadence; a vintage older than 45 days is treated as stale and the row is NULL."
+      ]
+    },
+    {
+      "feature": "fund_accruals_xs",
+      "base_feature": "fund_accruals",
+      "group": "cross_sectional",
+      "description": "Earnings less operating cash flow, over assets.",
+      "rationale": "The accruals anomaly: earnings not backed by cash predict lower subsequent returns.",
+      "formula": "(net_income - net_cash_from_operating_activities) / total_assets",
+      "raw_fields": [
+        "period_end_date",
+        "announcement_date"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 0,
+      "earliest_required_observation_sessions_before": 0,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "negative",
+      "citation": "Sloan (1996)",
+      "version": "1.0",
+      "notes": [
+        "Announcement-gated: joined forward to the first earnings_calendar date at or after the period end. Periods with no announcement are dropped, not estimated.",
+        "restatement_risk=UNQUANTIFIED \u2014 one row per period, no vintage column, so a later correction overwrites the original irrecoverably."
+      ]
+    },
+    {
+      "feature": "fund_asset_growth_yoy_xs",
+      "base_feature": "fund_asset_growth_yoy",
+      "group": "cross_sectional",
+      "description": "Year-over-year change in total assets.",
+      "rationale": "Asset growth predicts lower returns \u2014 firms that expand the balance sheet fastest subsequently underperform.",
+      "formula": "(total_assets_t - total_assets_(t-4q)) / total_assets_(t-4q)",
+      "raw_fields": [
+        "period_end_date",
+        "announcement_date"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 252,
+      "earliest_required_observation_sessions_before": 252,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "negative",
+      "citation": "Cooper, Gulen & Schill (2008)",
+      "version": "1.0",
+      "notes": [
+        "Announcement-gated: joined forward to the first earnings_calendar date at or after the period end. Periods with no announcement are dropped, not estimated.",
+        "restatement_risk=UNQUANTIFIED \u2014 one row per period, no vintage column, so a later correction overwrites the original irrecoverably."
+      ]
+    },
+    {
+      "feature": "fund_current_ratio_xs",
+      "base_feature": "fund_current_ratio",
+      "group": "cross_sectional",
+      "description": "Current assets over current liabilities.",
+      "rationale": "Short-term solvency; a coarse distress screen.",
+      "formula": "total_current_assets / total_current_liabilities",
+      "raw_fields": [
+        "period_end_date",
+        "announcement_date"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 0,
+      "earliest_required_observation_sessions_before": 0,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "positive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [
+        "Announcement-gated: joined forward to the first earnings_calendar date at or after the period end. Periods with no announcement are dropped, not estimated.",
+        "restatement_risk=UNQUANTIFIED \u2014 one row per period, no vintage column, so a later correction overwrites the original irrecoverably."
+      ]
+    },
+    {
+      "feature": "fund_debt_to_equity_xs",
+      "base_feature": "fund_debt_to_equity",
+      "group": "cross_sectional",
+      "description": "Total liabilities over total equity.",
+      "rationale": "Leverage. Book, not market, and without a maturity schedule.",
+      "formula": "total_liabilities / total_equity",
+      "raw_fields": [
+        "period_end_date",
+        "announcement_date"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 0,
+      "earliest_required_observation_sessions_before": 0,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "negative",
+      "citation": null,
+      "version": "1.0",
+      "notes": [
+        "Announcement-gated: joined forward to the first earnings_calendar date at or after the period end. Periods with no announcement are dropped, not estimated.",
+        "restatement_risk=UNQUANTIFIED \u2014 one row per period, no vintage column, so a later correction overwrites the original irrecoverably."
+      ]
+    },
+    {
+      "feature": "fund_gross_margin_xs",
+      "base_feature": "fund_gross_margin",
+      "group": "cross_sectional",
+      "description": "Gross profit over sales.",
+      "rationale": "Pricing power and cost structure. Stable, slow-moving, and among the quality measures that survive replication.",
+      "formula": "gross_profit / sales",
+      "raw_fields": [
+        "period_end_date",
+        "announcement_date"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 0,
+      "earliest_required_observation_sessions_before": 0,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "positive",
+      "citation": "Novy-Marx (2013)",
+      "version": "1.0",
+      "notes": [
+        "Announcement-gated: joined forward to the first earnings_calendar date at or after the period end. Periods with no announcement are dropped, not estimated.",
+        "restatement_risk=UNQUANTIFIED \u2014 one row per period, no vintage column, so a later correction overwrites the original irrecoverably."
+      ]
+    },
+    {
+      "feature": "fund_net_issuance_yoy_xs",
+      "base_feature": "fund_net_issuance_yoy",
+      "group": "cross_sectional",
+      "description": "Year-over-year change in shares outstanding.",
+      "rationale": "Net issuance predicts lower returns; buybacks the reverse.",
+      "formula": "(shares_t - shares_(t-4q)) / shares_(t-4q)",
+      "raw_fields": [
+        "period_end_date",
+        "announcement_date"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 252,
+      "earliest_required_observation_sessions_before": 252,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "negative",
+      "citation": "Pontiff & Woodgate (2008)",
+      "version": "1.0",
+      "notes": [
+        "Announcement-gated: joined forward to the first earnings_calendar date at or after the period end. Periods with no announcement are dropped, not estimated.",
+        "restatement_risk=UNQUANTIFIED \u2014 one row per period, no vintage column, so a later correction overwrites the original irrecoverably."
+      ]
+    },
+    {
+      "feature": "fund_operating_margin_xs",
+      "base_feature": "fund_operating_margin",
+      "group": "cross_sectional",
+      "description": "Pretax income over sales.",
+      "rationale": "Profitability after operating costs, before financing choices.",
+      "formula": "pretax_income / sales",
+      "raw_fields": [
+        "period_end_date",
+        "announcement_date"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 0,
+      "earliest_required_observation_sessions_before": 0,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "positive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [
+        "Announcement-gated: joined forward to the first earnings_calendar date at or after the period end. Periods with no announcement are dropped, not estimated.",
+        "restatement_risk=UNQUANTIFIED \u2014 one row per period, no vintage column, so a later correction overwrites the original irrecoverably."
+      ]
+    },
+    {
+      "feature": "fund_roa_xs",
+      "base_feature": "fund_roa",
+      "group": "cross_sectional",
+      "description": "Net income over total assets.",
+      "rationale": "Return unlevered by capital structure, so comparable where leverage is not.",
+      "formula": "net_income / total_assets",
+      "raw_fields": [
+        "period_end_date",
+        "announcement_date"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 0,
+      "earliest_required_observation_sessions_before": 0,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "positive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [
+        "Announcement-gated: joined forward to the first earnings_calendar date at or after the period end. Periods with no announcement are dropped, not estimated.",
+        "restatement_risk=UNQUANTIFIED \u2014 one row per period, no vintage column, so a later correction overwrites the original irrecoverably."
+      ]
+    },
+    {
+      "feature": "fund_roe_xs",
+      "base_feature": "fund_roe",
+      "group": "cross_sectional",
+      "description": "Net income over total equity.",
+      "rationale": "Return on the equity base. A quality measure and a component of most profitability factors.",
+      "formula": "net_income / total_equity",
+      "raw_fields": [
+        "period_end_date",
+        "announcement_date"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 0,
+      "earliest_required_observation_sessions_before": 0,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "positive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [
+        "Announcement-gated: joined forward to the first earnings_calendar date at or after the period end. Periods with no announcement are dropped, not estimated.",
+        "restatement_risk=UNQUANTIFIED \u2014 one row per period, no vintage column, so a later correction overwrites the original irrecoverably."
+      ]
+    },
+    {
+      "feature": "fund_sales_growth_yoy_xs",
+      "base_feature": "fund_sales_growth_yoy",
+      "group": "cross_sectional",
+      "description": "Year-over-year change in sales.",
+      "rationale": "Top-line growth, harder to manage than earnings growth.",
+      "formula": "(sales_t - sales_(t-4q)) / sales_(t-4q)",
+      "raw_fields": [
+        "period_end_date",
+        "announcement_date"
+      ],
+      "sources": [
+        {
+          "dataset_id": "dolthub_earnings_eps_history",
+          "repository": "earnings",
+          "table": "eps_history",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        },
+        {
+          "dataset_id": "dolthub_earnings_calendar",
+          "repository": "earnings",
+          "table": "earnings_calendar",
+          "point_in_time_class": "publication_lagged",
+          "survivorship_class": "partial",
+          "admissible_as_feature": true
+        }
+      ],
+      "lookback_sessions": 252,
+      "earliest_required_observation_sessions_before": 252,
+      "availability_lag_sessions": 0,
+      "uses_future_information": false,
+      "declared_point_in_time_safe": true,
+      "is_cross_sectional": true,
+      "requires_fitting": true,
+      "fit_scope": "per_date_within_point_in_time_universe",
+      "fitted_inside_training_fold": "not_applicable_fitted_per_date",
+      "missing_data_behaviour": "NULL, never zero or forward-filled. Absence is carried explicitly; imputation happens once, per fold, in FoldImputer using the training fold's median.",
+      "leakage_mechanism": "Ranking against whatever rows happen to be loaded rather than against point-in-time universe membership. That is both irreproducible and quietly survivorship-biased, since the names that load are the ones that still have data.",
+      "leakage_test": "tests/quant/test_leakage.py::test_cross_sectional_values_ignore_non_members",
+      "direction_hypothesis": "descriptive",
+      "citation": null,
+      "version": "1.0",
+      "notes": [
+        "Announcement-gated: joined forward to the first earnings_calendar date at or after the period end. Periods with no announcement are dropped, not estimated.",
+        "restatement_risk=UNQUANTIFIED \u2014 one row per period, no vintage column, so a later correction overwrites the original irrecoverably."
+      ]
     },
     {
       "feature": "log_dollar_volume_21_xs",
@@ -2377,8 +4126,7 @@
       "direction_hypothesis": "descriptive",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": true
+      "notes": []
     },
     {
       "feature": "ma_gap_xs",
@@ -2431,8 +4179,7 @@
       "direction_hypothesis": "positive",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": true
+      "notes": []
     },
     {
       "feature": "max_drawdown_252_xs",
@@ -2485,8 +4232,7 @@
       "direction_hypothesis": "negative",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": true
+      "notes": []
     },
     {
       "feature": "mom_21_xs",
@@ -2539,8 +4285,7 @@
       "direction_hypothesis": "two_sided",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": true
+      "notes": []
     },
     {
       "feature": "mom_252_21_xs",
@@ -2593,8 +4338,7 @@
       "direction_hypothesis": "positive",
       "citation": "Jegadeesh & Titman (1993)",
       "version": "1.0",
-      "notes": [],
-      "used_in_study": true
+      "notes": []
     },
     {
       "feature": "mom_63_xs",
@@ -2647,8 +4391,7 @@
       "direction_hypothesis": "positive",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": true
+      "notes": []
     },
     {
       "feature": "opt_expirations_xs",
@@ -2693,8 +4436,7 @@
       "direction_hypothesis": "descriptive",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": true
+      "notes": []
     },
     {
       "feature": "opt_iv_xs",
@@ -2741,8 +4483,7 @@
       "version": "1.0",
       "notes": [
         "Vendor measurement under an unpublished model, not a reconstructible quantity."
-      ],
-      "used_in_study": true
+      ]
     },
     {
       "feature": "opt_iv_change_21_xs",
@@ -2788,8 +4529,7 @@
       "direction_hypothesis": "two_sided",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": true
+      "notes": []
     },
     {
       "feature": "opt_iv_minus_hv_xs",
@@ -2835,8 +4575,7 @@
       "direction_hypothesis": "two_sided",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": true
+      "notes": []
     },
     {
       "feature": "opt_iv_rank_xs",
@@ -2885,8 +4624,7 @@
       "version": "1.0",
       "notes": [
         "Both bounds are 52-week LOOKBACK columns supplied by the source \u2014 point-in-time as published."
-      ],
-      "used_in_study": true
+      ]
     },
     {
       "feature": "opt_rel_spread_xs",
@@ -2931,8 +4669,7 @@
       "direction_hypothesis": "negative",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": true
+      "notes": []
     },
     {
       "feature": "opt_skew_25d_xs",
@@ -2981,8 +4718,7 @@
       "version": "1.0",
       "notes": [
         "Delta buckets are wide (0.20-0.30) because listed strikes are discrete."
-      ],
-      "used_in_study": true
+      ]
     },
     {
       "feature": "opt_term_slope_xs",
@@ -3028,8 +4764,7 @@
       "direction_hypothesis": "two_sided",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": true
+      "notes": []
     },
     {
       "feature": "reversal_5_xs",
@@ -3082,8 +4817,7 @@
       "direction_hypothesis": "positive",
       "citation": "Lehmann (1990); Jegadeesh (1990)",
       "version": "1.0",
-      "notes": [],
-      "used_in_study": true
+      "notes": []
     },
     {
       "feature": "trend_strength_63_xs",
@@ -3136,8 +4870,7 @@
       "direction_hypothesis": "positive",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": true
+      "notes": []
     },
     {
       "feature": "vol_21_xs",
@@ -3190,8 +4923,7 @@
       "direction_hypothesis": "negative",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": true
+      "notes": []
     },
     {
       "feature": "vol_63_xs",
@@ -3244,8 +4976,7 @@
       "direction_hypothesis": "negative",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": true
+      "notes": []
     },
     {
       "feature": "vol_ratio_xs",
@@ -3298,8 +5029,7 @@
       "direction_hypothesis": "two_sided",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": true
+      "notes": []
     },
     {
       "feature": "volume_shock_xs",
@@ -3336,8 +5066,7 @@
       "direction_hypothesis": "two_sided",
       "citation": null,
       "version": "1.0",
-      "notes": [],
-      "used_in_study": true
+      "notes": []
     }
   ]
 }

@@ -34,7 +34,7 @@ from src.quant.models.registry import ModelEntry, ModelRegistry
 logger = logging.getLogger("omnisignal.quant.scripts.register")
 
 #: Registry ``version`` per study. A study's entries are addressable forever.
-STUDY_VERSIONS: dict[str, str] = {"EXP-002": "1.0", "EXP-004": "2.0"}
+STUDY_VERSIONS: dict[str, str] = {"EXP-002": "1.0", "EXP-004": "2.0", "EXP-005": "3.0"}
 
 #: Validation dates a regime needs before its metrics are quoted as evidence.
 #:
@@ -245,10 +245,17 @@ def register_experiment(experiment_id: str, *, root: Path, registry_root: Path) 
 
     # Retire superseded studies first, so the void records carry their reason
     # before the replacement lands beside them.
+    #
+    # Only EXP-002's entries are retired, and only once. EXP-004 is a completed,
+    # valid study whose negative result stands on its own; a later study does not
+    # supersede it, and retiring it would misrepresent the register as showing one
+    # current answer rather than a sequence of them.
     retired: list[str] = []
-    for entry in registry.all():
-        if entry.version == STUDY_VERSIONS["EXP-002"] and entry.status != "retired":
-            if entry.dataset_version != metrics["dataset"]["dataset_version"]:
+    if experiment_id != "EXP-002":
+        for entry in registry.all():
+            if entry.version != STUDY_VERSIONS["EXP-002"] or entry.status == "retired":
+                continue
+            if entry.dataset_version != "ds-e691b48ca49deb16":
                 continue  # EXP-001, a different dataset; not in scope.
             registry.promote(entry.key, "retired", reason=VOID_REASON)
             retired.append(entry.key)

@@ -125,3 +125,50 @@ import — the same explicit-degradation pattern the provider fabric uses.
 
 Training dependencies belong in a separate requirements file, installed only
 where a study runs.
+
+---
+
+## 6. The quant API (EXP-005)
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/quant/status` | Deployment state + holdout firewall state |
+| `GET /api/quant/experiments` | Every study, void ones marked and retained |
+| `GET /api/quant/experiments/{id}` | Leaderboard with verdicts, ablation, controls, regimes |
+| `GET /api/quant/latest` | Newest completed non-void study |
+| `GET /api/quant/features` | Feature registry with lookbacks and directions |
+| `GET /api/quant/datasets` | Catalog in three tiers: admissible, **gated**, excluded |
+| `GET /api/quant/symbol/{s}` | Company-page panel — refuses without a production model |
+
+No endpoint exposes a filesystem path, a credential, or arbitrary execution, and
+none trains: a page load must not be able to start a walk-forward.
+
+The `gated` tier is the one that is easy to omit and matters most. A source keyed
+by fiscal period is admissible only behind a publication gate; reporting only
+`excluded` would imply everything else is unconditionally safe to read as-dated.
+
+### Deployment states
+
+```
+NO_MODEL      nothing promoted; no prediction is served      <- current
+EXPERIMENTAL  models validated, none clears the candidate bars
+CANDIDATE     clears development gates; holdout not spent
+PRODUCTION    holdout spent, thresholds cleared, promoted
+```
+
+Read from the **model registry**, deliberately independent of any leaderboard: a
+spectacular research result cannot move it, because only a registry promotion
+can. `/quant` renders the state at full weight rather than in a footnote, and
+`/api/quant/symbol/{s}` returns an explicit disclosure instead of a number.
+
+### The candidate gate that was missing
+
+`PROMOTION_GATES` verified that evidence *existed*; numeric bars were consulted
+only at `production`, and those read the locked holdout. So a model could arrive
+with a complete, honest evidence bundle stating that it loses money and still be
+labelled a production candidate — EXP-004's best model is exactly that bundle.
+
+`CANDIDATE_THRESHOLDS` now applies validation-side bars at candidacy: |IC t| ≥ 2,
+net Sharpe > 0, **gross Sharpe > 0**, and beating the best baseline. An
+unrecorded value counts as unmet. `eligible_for` applies the same bars, so it
+cannot advertise a status `promote()` would refuse.

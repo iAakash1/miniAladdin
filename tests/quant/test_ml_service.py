@@ -115,11 +115,30 @@ def test_feature_catalog_is_available_before_any_study():
     assert all("point_in_time_safe" in f for f in catalog["features"])
 
 
-def test_dataset_catalog_names_what_is_excluded_and_why():
+def test_dataset_catalog_names_what_is_gated_and_why():
+    """A source behind a publication gate must be reported as restricted.
+
+    It is not `excluded` — the builder will read it — but it is not free to use
+    either, and a payload that showed only the excluded tier would imply the
+    period-keyed statement tables are unconditionally safe.
+    """
     catalog = ml_service.dataset_catalog()
-    excluded = {e["dataset_id"]: e for e in catalog["excluded"]}
-    assert "dolthub_earnings_income_statement" in excluded
-    assert excluded["dolthub_earnings_income_statement"]["classification"] == "not_point_in_time"
+    gated = {e["dataset_id"]: e for e in catalog["gated"]}
+    assert "dolthub_earnings_income_statement" in gated
+    entry = gated["dolthub_earnings_income_statement"]
+    assert entry["classification"] == "publication_lagged"
+    assert "as-of join" in entry["gate"]
+    # The restatement caveat has to travel with it to the UI, not stay in a docstring.
+    assert entry["residual_risk"], "gated source must carry its residual risk forward"
+    assert any("restatement" in r.lower() for r in entry["residual_risk"])
+
+
+def test_every_gated_source_explains_its_gate():
+    catalog = ml_service.dataset_catalog()
+    assert catalog["gated"], "the period-keyed statement tables must appear here"
+    for entry in catalog["gated"]:
+        assert entry["reason"]
+        assert entry["gate"]
 
 
 def test_capabilities_reports_each_capability_with_a_reason(tmp_path):
@@ -267,3 +286,41 @@ def test_label_report_carries_validity(tmp_path):
     ml_service.reset_for_tests()
 
     assert ml_service.label_report("fwd_ret_21", tmp_path)["validity"]["valid"] is False
+
+
+# ── invalidation is a property of the study, not of the dataset ─────────────
+
+
+def test_a_void_study_is_identified_by_experiment_id():
+    result = ml_service.study_validity("ds-e691b48ca49deb16", experiment_id="EXP-002")
+    assert result["valid"] is False
+    assert "merge_asof" in result["reason"]
+
+
+def test_a_clean_rerun_on_the_same_dataset_version_is_valid():
+    """The defect was in the feature code, not in the data.
+
+    EXP-004 rebuilt the very same dataset version with the fix applied. Keying
+    invalidity on `dataset_version` alone condemned it — and would condemn every
+    future study that rebuilds that version, which is the opposite of what a
+    retraction is for.
+    """
+    result = ml_service.study_validity("ds-e691b48ca49deb16", experiment_id="EXP-004")
+    assert result["valid"] is True
+
+
+def test_a_legacy_study_with_no_id_still_falls_back_to_the_dataset_version():
+    """The old artifact carries no experiment id, so the coarse key must remain."""
+    assert ml_service.study_validity("ds-e691b48ca49deb16")["valid"] is False
+
+
+def test_the_fix_commit_clears_a_legacy_study():
+    result = ml_service.study_validity(
+        "ds-e691b48ca49deb16", git_commit=ml_service.AS_OF_FIX_COMMIT
+    )
+    assert result["valid"] is True
+    assert "feature code" in result["note"]
+
+
+def test_an_unrelated_dataset_version_is_valid():
+    assert ml_service.study_validity("ds-something-else")["valid"] is True
