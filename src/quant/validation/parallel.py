@@ -186,6 +186,21 @@ def evaluate_specs(
             for spec in specs
         ]
 
+    # ── restore the declared order ────────────────────────────────────────
+    #
+    # `generator_unordered` yields in COMPLETION order, which depends on the
+    # worker count. The serial path yields in SPEC order, and that is the
+    # reference behaviour. The difference is not cosmetic: `_pbo` builds its
+    # CSCV matrix from a dict keyed by model, so column order is insertion
+    # order, and CSCV partitions columns — meaning the reported probability of
+    # backtest overfitting could change with `--workers` alone.
+    #
+    # Sorting back to the declared order makes the parallel path produce exactly
+    # what the serial path produces, for any pool size. Progress reporting still
+    # streams as models finish; only the collected order is normalised.
+    declared = {spec.name: index for index, spec in enumerate(specs)}
+    outcomes.sort(key=lambda outcome: declared.get(outcome[0], len(declared)))
+
     results: list[ExperimentResult] = []
     failures: list[dict[str, Any]] = []
     already_reported = mode.startswith("parallel")

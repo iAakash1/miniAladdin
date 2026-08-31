@@ -46,6 +46,7 @@ violated constraint named, rather than silently returning something close.
 from __future__ import annotations
 
 import logging
+import warnings
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
@@ -280,10 +281,22 @@ def risk_parity(cov: pd.DataFrame, *, iterations: int = 500, tolerance: float = 
     w = np.full(n, 1.0 / n)
     target = 1.0 / n
 
+    # Same narrow suppression as the risk engine: numpy 2.2 on Accelerate warns
+    # spuriously on matmul, and this loop runs it up to 500 times.
+    with np.errstate(all="ignore"), warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        return _risk_parity_loop(matrix, w, target, n, iterations, tolerance, cov.index)
+
+
+def _risk_parity_loop(matrix, w, target, n, iterations, tolerance, index) -> pd.Series:
     for _ in range(iterations):
         portfolio_vol = float(np.sqrt(max(w @ matrix @ w, 1e-24)))
+        if not np.isfinite(portfolio_vol) or portfolio_vol <= 0:
+            return pd.Series(np.full(n, 1.0 / n), index=index, dtype=float)
         marginal = matrix @ w / portfolio_vol
         contribution = w * marginal / portfolio_vol
+        if not np.all(np.isfinite(contribution)):
+            return pd.Series(np.full(n, 1.0 / n), index=index, dtype=float)
         gap = float(np.max(np.abs(contribution - target)))
         if gap < tolerance:
             break
@@ -292,7 +305,7 @@ def risk_parity(cov: pd.DataFrame, *, iterations: int = 500, tolerance: float = 
         w = np.maximum(w, 1e-12)
         w = w / w.sum()
 
-    return pd.Series(w, index=cov.index, dtype=float)
+    return pd.Series(w, index=index, dtype=float)
 
 
 def mean_variance(

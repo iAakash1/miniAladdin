@@ -35,6 +35,7 @@ there.
 from __future__ import annotations
 
 import logging
+import warnings
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
@@ -246,14 +247,25 @@ def risk_contributions(weights: pd.Series, cov: pd.DataFrame) -> pd.DataFrame:
     """
     aligned = weights.reindex(cov.index).fillna(0.0)
     matrix = cov.to_numpy()
-    variance = float(aligned @ matrix @ aligned)
-    portfolio_vol = float(np.sqrt(max(variance, 0.0)))
-    if portfolio_vol <= 0:
+    # numpy 2.2 on Accelerate emits spurious divide/overflow/invalid warnings for
+    # matmul on well-formed input. They are suppressed narrowly and the result is
+    # checked for finiteness instead — the same pattern `models/base.py` uses,
+    # because a warning nobody can act on trains people to ignore warnings.
+    with np.errstate(all="ignore"), warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        variance = float(aligned @ matrix @ aligned)
+        portfolio_vol = float(np.sqrt(max(variance, 0.0)))
+        if not np.isfinite(portfolio_vol) or portfolio_vol <= 0:
+            return pd.DataFrame(
+                {"weight": aligned, "marginal": 0.0, "component": 0.0, "share": 0.0}
+            )
+        marginal_values = matrix @ aligned.to_numpy() / portfolio_vol
+
+    if not np.all(np.isfinite(marginal_values)):
         return pd.DataFrame(
             {"weight": aligned, "marginal": 0.0, "component": 0.0, "share": 0.0}
         )
-
-    marginal = pd.Series(matrix @ aligned.to_numpy() / portfolio_vol, index=cov.index)
+    marginal = pd.Series(marginal_values, index=cov.index)
     component = aligned * marginal
     total = float(component.sum())
     assert abs(total - portfolio_vol) < 1e-8 * max(1.0, portfolio_vol), (
