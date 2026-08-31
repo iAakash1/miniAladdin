@@ -165,6 +165,7 @@ def build(
         r for r in metrics["labels"][target]["leaderboard"] if r["model_id"] == model_id
     )
     backtest = (metrics["labels"][target]["backtests"].get(model_id) or {}).get("metrics", {})
+    attribution = (metrics["labels"][target]["factor_attribution"].get(model_id) or {})
 
     meta: dict[str, Any] = {
         "schema_version": 1,
@@ -215,6 +216,7 @@ def build(
             "train_ic_gap": leader.get("train_ic_gap"),
             "gross_sharpe": backtest.get("gross_sharpe"),
             "net_sharpe": backtest.get("net_sharpe"),
+            "alpha_t_stat": attribution.get("alpha_t_stat"),
             "annualised_turnover": backtest.get("annualised_turnover"),
             "half_spread_bps": 10.0,
             "execution_lag_periods": definition.execution_lag_periods,

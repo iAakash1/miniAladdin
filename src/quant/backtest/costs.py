@@ -66,16 +66,18 @@ class CostBreakdown:
     commission: float
     spread: float
     impact: float
+    slippage: float = 0.0
 
     @property
     def total(self) -> float:
-        return self.commission + self.spread + self.impact
+        return self.commission + self.spread + self.impact + self.slippage
 
     def as_dict(self) -> dict[str, Any]:
         return {
             "traded_notional": round(self.traded_notional, 2),
             "commission": round(self.commission, 4),
             "spread": round(self.spread, 4),
+            "slippage": round(self.slippage, 4),
             "impact": round(self.impact, 4),
             "total": round(self.total, 4),
             "total_bps": (
@@ -86,13 +88,58 @@ class CostBreakdown:
         }
 
 
+#: Slippage: adverse fill relative to the decision price, beyond the quoted
+#: spread. Distinct from `half_spread_bps` because they have different causes —
+#: spread is what the book charges to cross, slippage is the price moving while
+#: an order works. Defaulting to 0 keeps every historical figure unchanged;
+#: the parameter exists so the assumption is explicit rather than absent.
+DEFAULT_SLIPPAGE_BPS = 0.0
+
+
+@dataclass(frozen=True)
+class CostWaterfall:
+    """Return decomposed one cost layer at a time.
+
+    A single "net of costs" figure hides which assumption is load-bearing. This
+    project's central finding is that a strategy with a POSITIVE gross Sharpe
+    has a NEGATIVE net one, so the step where the sign flips is the result — and
+    a scalar cannot show it.
+    """
+
+    gross: float
+    after_commission: float
+    after_spread: float
+    after_slippage: float
+    net: float
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "gross": round(self.gross, 8),
+            "after_commission": round(self.after_commission, 8),
+            "after_spread": round(self.after_spread, 8),
+            "after_slippage": round(self.after_slippage, 8),
+            "net": round(self.net, 8),
+            "commission_drag": round(self.gross - self.after_commission, 8),
+            "spread_drag": round(self.after_commission - self.after_spread, 8),
+            "slippage_drag": round(self.after_spread - self.after_slippage, 8),
+            "impact_drag": round(self.after_slippage - self.net, 8),
+            "total_drag": round(self.gross - self.net, 8),
+            "sign_flips": bool(self.gross > 0 >= self.net),
+            "order": [
+                "gross", "after_commission", "after_spread",
+                "after_slippage", "net (after impact)",
+            ],
+        }
+
+
 @dataclass(frozen=True)
 class SimpleCostModel:
-    """Commission + half-spread + square-root impact, charged per rebalance."""
+    """Commission + half-spread + slippage + square-root impact, per rebalance."""
 
     commission_bps: float = DEFAULT_COMMISSION_BPS
     half_spread_bps: float = DEFAULT_HALF_SPREAD_BPS
     impact_coefficient: float = DEFAULT_IMPACT_COEFFICIENT
+    slippage_bps: float = DEFAULT_SLIPPAGE_BPS
 
     def charge(
         self,
@@ -111,10 +158,11 @@ class SimpleCostModel:
         deltas = pd.to_numeric(weight_change, errors="coerce").abs().fillna(0.0)
         traded = float(deltas.sum()) * capital
         if traded <= 0:
-            return CostBreakdown(0.0, 0.0, 0.0, 0.0)
+            return CostBreakdown(0.0, 0.0, 0.0, 0.0, 0.0)
 
         commission = traded * self.commission_bps / 10000.0
         spread = traded * self.half_spread_bps / 10000.0
+        slippage = traded * self.slippage_bps / 10000.0
 
         impact = 0.0
         if dollar_volume is not None and self.impact_coefficient > 0:
@@ -130,7 +178,7 @@ class SimpleCostModel:
                 impact_bps = self.impact_coefficient * np.sqrt(participation) * 10000.0
                 impact = float((per_name[usable] * impact_bps / 10000.0).sum())
 
-        return CostBreakdown(traded, commission, spread, impact)
+        return CostBreakdown(traded, commission, spread, impact, slippage)
 
     def assumptions(self) -> dict[str, Any]:
         return {
@@ -152,6 +200,37 @@ class SimpleCostModel:
 
     def with_half_spread(self, bps: float) -> "SimpleCostModel":
         return SimpleCostModel(self.commission_bps, bps, self.impact_coefficient)
+
+
+def waterfall(
+    gross_return: float,
+    breakdown: CostBreakdown,
+    *,
+    capital: float,
+) -> CostWaterfall:
+    """Peel cost layers off a gross return, one at a time.
+
+    Order is commission, spread, slippage, impact — cheapest and most certain
+    first, most model-dependent last, so a reader can stop at whichever layer
+    they are willing to believe.
+    """
+    if capital <= 0:
+        return CostWaterfall(gross_return, gross_return, gross_return, gross_return, gross_return)
+    commission = breakdown.commission / capital
+    spread = breakdown.spread / capital
+    slippage = breakdown.slippage / capital
+    impact = breakdown.impact / capital
+
+    after_commission = gross_return - commission
+    after_spread = after_commission - spread
+    after_slippage = after_spread - slippage
+    return CostWaterfall(
+        gross=gross_return,
+        after_commission=after_commission,
+        after_spread=after_spread,
+        after_slippage=after_slippage,
+        net=after_slippage - impact,
+    )
 
 
 def sensitivity_grid(

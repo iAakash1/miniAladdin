@@ -23,8 +23,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { StatusPill } from '@/components/ui/DataMarks'
 import { f, sign } from '@/components/terminal/quant/format'
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? ''
+import { quantFetch } from '@/lib/quantApi'
 
 interface DeployedModel {
   status?: string
@@ -48,6 +47,7 @@ interface DeployedModel {
   }
   specification_metrics?: {
     mean_ic?: number; ic_t_stat?: number; gross_sharpe?: number; net_sharpe?: number
+    alpha_t_stat?: number
     annualised_turnover?: number; half_spread_bps?: number; cumulative_trials?: number
     caveat?: string; source?: string
   }
@@ -56,7 +56,9 @@ interface DeployedModel {
 
 interface InferenceStatus {
   configured: boolean
-  health?: { status?: string; model_loaded?: boolean; detail?: string; remedy?: string }
+  health?: {
+    status?: string; model_loaded?: boolean; detail?: string; remedy?: string; error?: string
+  }
   model?: DeployedModel
 }
 
@@ -87,8 +89,8 @@ export default function ModelInference() {
     let live = true
     ;(async () => {
       try {
-        const r = await fetch(`${API}/api/quant/inference/status`)
-        if (live) setStatus(await r.json())
+        const r = await quantFetch<InferenceStatus>('/api/quant/inference/status')
+        if (live) setStatus(r.ok ? r.data : { configured: false })
       } catch {
         if (live) setStatus({ configured: false })
       }
@@ -101,10 +103,10 @@ export default function ModelInference() {
     if (!symbol) return
     setBusy(true)
     try {
-      const r = await fetch(`${API}/api/quant/inference/predict/${encodeURIComponent(symbol)}`)
-      setResult(await r.json())
-    } catch (e) {
-      setResult({ status: 'unavailable', detail: e instanceof Error ? e.message : 'request failed' })
+      const r = await quantFetch<Prediction>(
+        `/api/quant/inference/predict/${encodeURIComponent(symbol)}`,
+      )
+      setResult(r.ok ? r.data : { status: 'unavailable', detail: r.message, remedy: r.remedy })
     } finally {
       setBusy(false)
     }
@@ -141,6 +143,7 @@ export default function ModelInference() {
               <div className="qr-fail">
                 <dt>net Sharpe</dt><dd className="num">{sign(spec.net_sharpe, 3)}</dd>
               </div>
+              <div><dt>alpha t-stat</dt><dd className="num">{sign(spec.alpha_t_stat, 3)}</dd></div>
               <div><dt>turnover</dt><dd className="num">{f(spec.annualised_turnover, 1)}×</dd></div>
               <div><dt>trials</dt><dd className="num">{spec.cumulative_trials ?? '—'}</dd></div>
             </dl>
@@ -188,7 +191,7 @@ export default function ModelInference() {
               The inference service is not reachable, so no prediction is produced.
             </p>
             <p className="body-copy u-note">
-              {status?.health?.detail ?? 'Not configured.'}{' '}
+              {status?.health?.error ?? status?.health?.detail ?? 'Not configured.'}{' '}
               {status?.health?.remedy ?? ''} The research evidence above is read from
               local artifacts and is unaffected.
             </p>

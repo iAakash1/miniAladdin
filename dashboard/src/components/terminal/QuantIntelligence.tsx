@@ -21,7 +21,7 @@
 
 import { useEffect, useState } from 'react'
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? ''
+import { quantFetch } from '@/lib/quantApi'
 
 interface SymbolView {
   symbol: string
@@ -44,9 +44,12 @@ export default function QuantIntelligence({ symbol }: { symbol?: string }) {
     let live = true
     ;(async () => {
       try {
-        const r = await fetch(`${API}/api/quant/symbol/${encodeURIComponent(symbol)}`)
-        const j = await r.json()
-        if (live) setView(j)
+        const r = await quantFetch<SymbolView>(
+          `/api/quant/symbol/${encodeURIComponent(symbol)}`,
+        )
+        if (!live) return
+        if (r.ok) setView(r.data)
+        else setFailed(true)
       } catch {
         if (live) setFailed(true)
       }

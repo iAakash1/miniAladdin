@@ -39,14 +39,15 @@ import {
   RegimeChart, SpreadCurve, WalkForwardTimeline,
 } from '@/components/terminal/quant/QuantCharts'
 import ModelInference from '@/components/terminal/quant/ModelInference'
+import EngineOffline from '@/components/terminal/quant/EngineOffline'
+import PortfolioRisk from '@/components/terminal/quant/PortfolioRisk'
+import { quantFetch, type QuantFailure } from '@/lib/quantApi'
 import type {
   Experiment, ExperimentIndexRow, ModelSeries, QuantStatus, RegistryView,
 } from '@/components/terminal/quant/types'
 import {
   REGIME_MIN_DATES, VERDICT_TONE, f, int, num, pct, sign,
 } from '@/components/terminal/quant/format'
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? ''
 
 export default function QuantResearchView() {
   const [status, setStatus] = useState<QuantStatus | null>(null)
@@ -56,13 +57,16 @@ export default function QuantResearchView() {
   const [selected, setSelected] = useState<string | null>(null)
   const [series, setSeries] = useState<ModelSeries | null>(null)
   const [focus, setFocus] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<QuantFailure | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const get = useCallback(async (path: string) => {
-    const response = await fetch(`${API}${path}`)
-    if (!response.ok) throw new Error(`${path} → ${response.status}`)
-    return response.json()
+  // Every call goes through `quantFetch`: same-origin in the browser so the
+  // Next rewrite proxies it, and structured failures so a network error renders
+  // as a diagnostic rather than as the string "TypeError: Failed to fetch".
+  const get = useCallback(async <T,>(path: string): Promise<T> => {
+    const result = await quantFetch<T>(path)
+    if (!result.ok) throw result
+    return result.data
   }, [])
 
   useEffect(() => {
@@ -70,18 +74,18 @@ export default function QuantResearchView() {
     ;(async () => {
       try {
         const [s, x, r] = await Promise.all([
-          get('/api/quant/status'),
-          get('/api/quant/experiments'),
-          get('/api/quant/registry').catch(() => null),
+          get<QuantStatus>('/api/quant/status'),
+          get<{ experiments: ExperimentIndexRow[] }>('/api/quant/experiments'),
+          get<RegistryView>('/api/quant/registry').catch(() => null),
         ])
         if (!live) return
         setStatus(s)
         setRegistry(r)
-        const rows: ExperimentIndexRow[] = x.experiments ?? []
+        const rows: ExperimentIndexRow[] = x?.experiments ?? []
         setIndex(rows)
         setSelected(rows.find((e) => !e.void && e.status === 'complete')?.experiment_id ?? null)
       } catch (e) {
-        if (live) setError(e instanceof Error ? e.message : 'request failed')
+        if (live) setError(e as QuantFailure)
       } finally {
         if (live) setLoading(false)
       }
@@ -95,7 +99,7 @@ export default function QuantResearchView() {
     setSeries(null)
     ;(async () => {
       try {
-        const j = await get(`/api/quant/experiments/${selected}`)
+        const j = await get<Experiment>(`/api/quant/experiments/${selected}`)
         if (!live) return
         setExperiment(j)
         setFocus(j.best_candidate?.model_id ?? null)
@@ -111,7 +115,9 @@ export default function QuantResearchView() {
     let live = true
     ;(async () => {
       try {
-        const j = await get(`/api/quant/experiments/${selected}/series/${focus}`)
+        const j = await get<ModelSeries>(
+          `/api/quant/experiments/${selected}/series/${focus}`,
+        )
         if (live) setSeries(j)
       } catch {
         if (live) setSeries(null)
@@ -122,7 +128,20 @@ export default function QuantResearchView() {
 
   if (loading) return <p className="body-copy u-note">Reading experiment artifacts…</p>
   if (error) {
-    return <EmptyState title="Quant research layer unreachable" description={error} />
+    return (
+      <>
+        <PageHeader
+          eyebrow="Quantitative research"
+          title="Quant"
+          lede="Point-in-time research: what was measured, what it cost, and what it does not support."
+        />
+        <EngineOffline
+          failure={error}
+          title="Quant research layer"
+          onRetry={() => window.location.reload()}
+        />
+      </>
+    )
   }
 
   const armed = status?.firewall?.contract_armed
@@ -473,6 +492,18 @@ export default function QuantResearchView() {
                 A best-of comparison is a maximum over six draws and is biased upward by
                 construction; two of six improving is what noise looks like.
               </p>
+            </Section>
+          )}
+
+          {/* ── 6b. portfolio construction, risk and cost ── */}
+          {focus && experiment.experiment_id && (
+            <Section
+              id="portfolio"
+              title="Portfolio construction, risk and cost"
+              summary="what the signal looks like as a book"
+              defaultOpen
+            >
+              <PortfolioRisk experimentId={experiment.experiment_id} modelId={focus} />
             </Section>
           )}
 

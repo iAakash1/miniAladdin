@@ -244,3 +244,113 @@ flowchart LR
 | `BacktestEngine` | Execution lag, costs, turnover; gross and net kept separate | CostModel, Attribution |
 | `ModelRegistry` | Store evidence; refuse promotion on missing evidence or failing numbers | `quant_service` |
 | `quant_service` | Shape artifacts for the API; compute verdicts from the registry's own gates | API, `/quant` |
+
+---
+
+## Quant CRC cards
+
+Every class below **exists in the code**. Nothing here is aspirational; the file
+path is given so a reader can check.
+
+| Class | Responsibilities | Collaborators |
+|---|---|---|
+| **`DatasetCatalog`** `quant/datasets/catalog.py` | Declare each source's point-in-time and survivorship class; refuse inadmissible ones; carry measured coverage | `DatasetBuilder`, `ml_service` |
+| **`RawStore`** `quant/datasets/store.py` | Persist immutable partitions with a manifest; record what was ingested and when | `LocalDoltClient`, `DatasetBuilder` |
+| **`LocalDoltClient`** `quant/datasets/local_dolt.py` | Stream query results from a local clone without materialising the table | `RawStore`, ingest scripts |
+| **`UniverseHistory`** `quant/pit/universe.py` | Survivorship-free monthly membership from whole-market cross-sections | `DatasetBuilder`, `cross_section` |
+| **`DatasetBuilder`** `quant/pit/dataset.py` | Assemble the point-in-time panel; enforce admission (catalog **and** ingested status); record provenance | Catalog, RawStore, feature modules, `LabelEngine` |
+| **`FeatureRegistry`** `quant/features/registry.py` | Hold every feature's definition, lookback, direction hypothesis and leakage note; refuse unregistered features | `DatasetBuilder`, `audit.features` |
+| **`TradingCalendar`** `quant/pit/calendar.py` | Session arithmetic; `require_chronological` refuses unsorted input at the boundary | `LabelEngine`, `WalkForwardEngine` |
+| **`HoldoutFirewall`** `quant/study/firewall.py` | Refuse holdout-dated rows at every guarded stage; lift only on an armed contract | `WalkForwardEngine`, `runner`, `build_artifact` |
+| **`WalkForwardEngine`** `quant/validation/walkforward.py` | Cut expanding folds with purge and embargo; reserve the holdout; arm the firewall | `TradingCalendar`, `HoldoutFirewall` |
+| **`ExperimentDefinition`** `quant/study/experiment.py` | Freeze models, targets, folds, costs, seed, feature families and trial count; hash the whole declaration | `ExperimentRunner`, `ResearchLedger` |
+| **`ExperimentRunner`** `quant/study/run.py` | Execute a frozen definition: integrity, controls, models, ablation; write one artifact | everything above |
+| **`PortfolioOptimizer`** `quant/portfolio/optimizer.py` | Turn estimates into weights under constraints; report feasibility and diagnostics | `RiskEngine`, `quant_portfolio_service` |
+| **`Constraints`** `quant/portfolio/optimizer.py` | Value object for long-only, caps, cash floor, turnover, gross/net, group caps; refuse unsatisfiable combinations | `PortfolioOptimizer` |
+| **`RiskEngine`** `quant/risk/engine.py` | Measure volatility, drawdown, VaR/CVaR (method-labelled), beta, contributions, concentration, exposure, turnover | `PortfolioOptimizer`, `quant_portfolio_service` |
+| **`SimpleCostModel`** `quant/backtest/costs.py` | Charge commission, half-spread, slippage and sqrt impact on traded notional | `BacktestEngine`, `CostWaterfall` |
+| **`CostWaterfall`** `quant/backtest/costs.py` | Decompose gross → commission → spread → slippage → net; flag where the sign changes | `quant_portfolio_service` |
+| **`BacktestEngine`** `quant/backtest/engine.py` | Apply execution lag, build the quantile book, charge costs, produce gross and net separately | `SimpleCostModel`, `Attribution` |
+| **`ModelRegistry`** `quant/models/registry.py` | Store evidence per model; refuse promotion on missing evidence **and** on failing numbers | `quant_service`, `register_experiment` |
+| **`ResearchLedger`** `docs/RESEARCH_LEDGER.md` | Append-only record of every study, its trial count and its decision; void studies retained | `ExperimentDefinition`, significance |
+| **`InferenceService`** `services/inference/app.py` | Load one artifact at startup; serve health, model card and predictions with provenance | `inference_client` |
+| **`InferenceClient`** `src/services/inference_client.py` | Reach the model service with a bounded timeout; degrade to a structured `unavailable` | API routes |
+| **`quant_service`** `src/services/quant_service.py` | Shape artifacts for the API; compute verdicts from the registry's own gate constants | API, `/quant` |
+| **`quant_series`** `src/services/quant_series.py` | Derive per-fold IC and the cumulative rank-spread path from the predictions artifact | API, `QuantCharts` |
+| **`quant_portfolio_service`** `src/services/quant_portfolio_service.py` | Build a book from predictions; measure risk and cost | `PortfolioOptimizer`, `RiskEngine`, `CostWaterfall` |
+
+### Layer boundaries, enforced
+
+```mermaid
+classDiagram
+    class DatasetBuilder {
+        +build(start, end, step) Dataset
+        -_admit(dataset_id, role)
+    }
+    class FeatureRegistry {
+        +register(definition, computer)
+        +names(group, pit_only)
+    }
+    class HoldoutFirewall {
+        +arm_window(start, end)
+        +assert_clear(frame, context)
+        +contract_armed() bool
+    }
+    class WalkForwardEngine {
+        +build_plan(calendar, ...) WalkForwardPlan
+    }
+    class PortfolioOptimizer {
+        +optimize(method, returns, expected, constraints) Allocation
+    }
+    class RiskEngine {
+        +analyse(returns, weights, panel) RiskReport
+    }
+    class SimpleCostModel {
+        +charge(weight_change, capital) CostBreakdown
+    }
+    class ModelRegistry {
+        +register(entry)
+        +promote(key, status) ModelEntry
+    }
+
+    DatasetBuilder --> FeatureRegistry : reads definitions
+    WalkForwardEngine --> HoldoutFirewall : arms
+    PortfolioOptimizer --> RiskEngine : covariance
+    PortfolioOptimizer ..> SimpleCostModel : never calls
+    ModelRegistry ..> PortfolioOptimizer : never calls
+    note for PortfolioOptimizer "Consumes estimates. Cannot see a model.\nWeights are not alpha."
+    note for ModelRegistry "Promotion is arithmetic here.\nNo other layer may set it."
+```
+
+### Inference sequence
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant B as Browser
+    participant N as Next rewrite
+    participant A as miniAladdin API
+    participant C as InferenceClient
+    participant R as Render inference
+    participant M as EXP-006 artifact
+
+    B->>N: GET /api/quant/inference/predict/AAPL (same origin)
+    Note over B,N: quantApi.ts forces same-origin so a stale<br/>NEXT_PUBLIC_API_URL cannot strand the browser
+    N->>A: proxied server-side (no CORS)
+    A->>C: predict(["AAPL"])
+    C->>C: load frozen feature snapshot (as_of 2025-08-27)
+    alt symbol outside the snapshot universe
+        C-->>A: not_covered — never imputed into existence
+    end
+    C->>R: POST /predict {features}
+    alt service down or cold
+        R--xC: timeout
+        C-->>A: {status: unavailable, detail, remedy}
+        A-->>B: rendered as EngineOffline, not "Failed to fetch"
+    end
+    R->>M: score
+    M-->>R: rank
+    R-->>C: prediction + research_status + promotion_status
+    C-->>A: + feature_as_of
+    A-->>B: prediction with provenance
+```

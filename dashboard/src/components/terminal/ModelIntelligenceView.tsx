@@ -34,8 +34,9 @@ import PageHeader from '@/components/ui/PageHeader'
 import Section from '@/components/ui/Section'
 import { StatusPill, type StatusTone } from '@/components/ui/DataMarks'
 import EmptyState from '@/components/ui/EmptyState'
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? ''
+import ModelInference from '@/components/terminal/quant/ModelInference'
+import EngineOffline from '@/components/terminal/quant/EngineOffline'
+import { quantFetch, type QuantFailure } from '@/lib/quantApi'
 
 // ── contracts ────────────────────────────────────────────────────────────────
 
@@ -235,13 +236,16 @@ export default function ModelIntelligenceView() {
   const [overview, setOverview] = useState<Overview | null>(null)
   const [report, setReport] = useState<LabelReport | null>(null)
   const [label, setLabel] = useState<string>('')
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<QuantFailure | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let cancelled = false
-    fetch(`${API}/api/ml/overview`)
-      .then((r) => r.json())
+    quantFetch<Overview>('/api/ml/overview')
+      .then((r) => {
+        if (!r.ok) throw r
+        return r.data
+      })
       .then((data: Overview) => {
         if (cancelled) return
         setOverview(data)
@@ -251,7 +255,7 @@ export default function ModelIntelligenceView() {
       })
       .catch((e) => {
         if (cancelled) return
-        setError(String(e))
+        setError(e as QuantFailure)
         setLoading(false)
       })
     return () => {
@@ -262,8 +266,11 @@ export default function ModelIntelligenceView() {
   useEffect(() => {
     if (!label) return
     let cancelled = false
-    fetch(`${API}/api/ml/labels/${label}`)
-      .then((r) => r.json())
+    quantFetch<LabelReport>(`/api/ml/labels/${label}`)
+      .then((r) => {
+        if (!r.ok) throw r
+        return r.data
+      })
       .then((data: LabelReport) => {
         if (!cancelled) setReport(data)
       })
@@ -276,7 +283,18 @@ export default function ModelIntelligenceView() {
   }, [label])
 
   if (loading) return <p className="body-copy u-note">Reading study artifacts…</p>
-  if (error) return <EmptyState titleAs="h2" title="Model intelligence unavailable" description={error} />
+  if (error) {
+    return (
+      <>
+        <PageHeader
+          eyebrow="Research"
+          title="Model Intelligence"
+          lede="The served EXP-006 specification and the evidence that keeps it experimental."
+        />
+        <EngineOffline failure={error} title="Model research API" onRetry={() => window.location.reload()} />
+      </>
+    )
+  }
 
   if (!overview || overview.status !== 'available') {
     return (
@@ -284,8 +302,16 @@ export default function ModelIntelligenceView() {
         <PageHeader
           eyebrow="Research"
           title="Model Intelligence"
-          lede="Out-of-sample results for every model evaluated — including the ones that failed."
+          lede="The served EXP-006 specification and the evidence that keeps it experimental."
         />
+        <Section
+          id="deployed-model"
+          title="EXP-006 model intelligence"
+          summary="served · experimental · promotion blocked"
+          defaultOpen
+        >
+          <ModelInference />
+        </Section>
         <EmptyState
           titleAs="h2"
           title="No study has been run"
@@ -355,6 +381,15 @@ export default function ModelIntelligenceView() {
           </>
         }
       />
+
+      <Section
+        id="deployed-model"
+        title="EXP-006 model intelligence"
+        summary="served · experimental · promotion blocked"
+        defaultOpen
+      >
+        <ModelInference />
+      </Section>
 
       {/* ── headline verdicts ─────────────────────────────────────────── */}
       <div className="ml-verdicts">

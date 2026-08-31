@@ -78,6 +78,7 @@
     "train_ic_gap": 0.16205168020850638,
     "gross_sharpe": 0.38444407774245604,
     "net_sharpe": -0.102177804608853,
+    "alpha_t_stat": 0.04713079284983564,
     "annualised_turnover": 20.14859127968805,
     "half_spread_bps": 10.0,
     "execution_lag_periods": 1,

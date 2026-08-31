@@ -396,6 +396,71 @@ Full detail in [`docs/training.md` §7b](training.md).
 
 ---
 
+## 9c. Portfolio, risk and cost layers
+
+Added after the EXP-006 finding that a *positive* gross Sharpe becomes a
+*negative* net one at 20.1× turnover. That result is about portfolio and cost
+mechanics, not about prediction, so those layers became first-class.
+
+| Layer | Module | What it is not allowed to do |
+|---|---|---|
+| Portfolio | `src/quant/portfolio/optimizer.py` | See a model, produce a forecast, or have its weights called alpha |
+| Risk | `src/quant/risk/engine.py` | Allocate, forecast, or report a number without its method |
+| Cost | `src/quant/backtest/costs.py` | Present a single "net" figure without the waterfall behind it |
+
+**Eight allocators**, all closed-form or short-iterative on numpy: equal weight,
+inverse volatility, minimum variance, maximum diversification, risk parity,
+mean-variance, volatility targeting, and a tail-weighted heuristic that reports
+`optimal: false` because it is **not** an LP-optimal CVaR solution.
+
+**Constraints** are a value object — long-only, per-name cap, cash floor,
+turnover limit, gross/net targets, group caps — applied to a fixed point and then
+*verified*. An unsatisfiable set returns `feasible=False` naming the violated
+constraint. `Constraints(long_only=True, net_target=0.0)` is refused at
+construction: a book with no short side cannot sum to zero unless it is empty,
+and the first version of this silently returned an all-zero allocation.
+
+**Every risk metric carries its method.** `var_historical_95` and
+`var_parametric_95` are separate fields, never averaged, and the parametric one
+flags itself when sample kurtosis exceeds the threshold — which on this data it
+does.
+
+**The cost waterfall** decomposes gross → commission → spread → slippage → net
+one layer at a time, cheapest and most certain first, and flags where the sign
+changes. A scalar "net of costs" hides which assumption is load-bearing, and on
+this project that is the whole result.
+
+Reachable at `GET /api/quant/portfolio` and rendered in the *Portfolio
+construction, risk and cost* section of `/quant`.
+
+---
+
+## 9d. How the browser reaches the backend
+
+`dashboard/src/lib/quantApi.ts` is the single path.
+
+**In the browser it always calls the same origin.** `next.config.ts` rewrites
+`/api/:path*` to the Render backend server-side, so there is no CORS and no
+cross-origin DNS. `NEXT_PUBLIC_API_URL` is honoured only when it points at
+localhost; a hosted value pointing elsewhere is ignored and logged.
+
+That rule exists because of a real failure: `next.config.ts` already carried a
+comment about a stale `API_URL` pinned to a dead Railway backend. When that
+happens the browser fails at the network layer and React surfaces
+`TypeError: Failed to fetch` — no status, no origin, no cause.
+
+`quantFetch` therefore never throws a bare `TypeError`. It returns a
+discriminated result carrying the failure *kind* (network, timeout, auth,
+not_found, server, malformed), the endpoint and a remedy, which
+`EngineOffline.tsx` renders as a status board.
+
+One subtlety worth recording: **Clerk answers an unauthenticated `/api/*`
+request with a 404 rewrite, not a 401** (`x-clerk-auth-reason: protect-rewrite`).
+A 404 is therefore ambiguous between "route missing" and "signed out", and the
+remedy text says both rather than guessing.
+
+---
+
 ## 10. Reproducing
 
 ```bash

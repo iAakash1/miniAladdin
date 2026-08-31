@@ -2272,3 +2272,53 @@ def quant_inference_predict(
     from src.services import inference_client
 
     return inference_client.predict([symbol])
+
+
+# ── quant portfolio construction + risk ─────────────────────────────────────
+#
+# Arithmetic on committed artifacts: no dataset, no inference service, no
+# research metric recomputed. An allocation shown here illustrates how the
+# signal would be held; it is never evidence that holding it is a good idea.
+
+
+@app.get("/api/quant/portfolio/methods", tags=["quant"])
+def quant_portfolio_methods():
+    """Available allocators and what each one assumes."""
+    from src.services import quant_portfolio_service
+
+    return quant_portfolio_service.methods()
+
+
+@app.get("/api/quant/portfolio", tags=["quant"])
+def quant_portfolio(
+    experiment_id: str = "EXP-006",
+    model_id: str = "gradient_boosting",
+    method: str = "risk_parity",
+    long_only: bool = False,
+    max_weight: float = 0.05,
+):
+    """Build a book from the latest predictions and measure its risk and cost.
+
+    Returns weights, per-name risk contributions, concentration, exposure,
+    turnover and the gross → commission → spread → slippage → net waterfall.
+
+    Units are the target's: `fwd_rank_21` is a cross-sectional rank, so nothing
+    here is a P&L. The evidential Sharpe figures live in the experiment's costed
+    backtest, not in this view.
+    """
+    from src.quant.portfolio.optimizer import METHODS
+    from src.services import quant_portfolio_service
+
+    if method not in METHODS:
+        raise HTTPException(status_code=422, detail=f"unknown method; known: {list(METHODS)}")
+    if not 0 < max_weight <= 1:
+        raise HTTPException(status_code=422, detail="max_weight must be in (0, 1]")
+    if not experiment_id.replace("-", "").replace("_", "").isalnum():
+        raise HTTPException(status_code=422, detail="invalid experiment id")
+    if not model_id.replace("_", "").isalnum():
+        raise HTTPException(status_code=422, detail="invalid model id")
+
+    return quant_portfolio_service.build(
+        experiment_id, model_id, method=method,
+        long_only=long_only, max_weight=max_weight,
+    )
