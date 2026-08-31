@@ -105,7 +105,8 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     began = time.perf_counter()
     definition = get_experiment(args.experiment, args.seed)
-    results = [ConfigResult.from_dict(r) for r in artifact["results"]]
+    results = [c for c in (ConfigResult.from_dict(r) for r in artifact["results"])
+               if c is not None]
     finalists = _finalists(results, args.finalists)
     if not finalists:
         print("error: no non-overfit configuration in the search.", file=sys.stderr)

@@ -2146,6 +2146,37 @@ def quant_latest():
     return quant_service.latest()
 
 
+@app.get("/api/quant/search/{experiment_id}", tags=["quant"])
+def quant_search(experiment_id: str):
+    """State of a staged search — RUNNING, COMPLETE or NOT STARTED.
+
+    While a search is running this serves the append-only checkpoint, and every
+    field is labelled PARTIAL. A leaderboard from a search still in flight is
+    progress, not a result, and the multiple-testing threshold is computed at
+    the DECLARED budget rather than the count reached so far — otherwise the bar
+    would rise under the reader all night and a mid-run configuration could
+    appear to clear a threshold it will never actually face.
+    """
+    from src.services import quant_search_service
+
+    return quant_search_service.search(experiment_id)
+
+
+@app.get("/api/quant/selection/{experiment_id}", tags=["quant"])
+def quant_selection(experiment_id: str):
+    """The gate verdict for a completed search, if selection has been run.
+
+    Separate endpoint from the search on purpose: a search produces
+    configurations, and the verdict comes from a distinct step that applies the
+    predeclared gates. Serving them from one endpoint would invite the UI to
+    treat the top of a leaderboard as a candidate, which is exactly the mistake
+    the gates exist to prevent.
+    """
+    from src.services import quant_search_service
+
+    return quant_search_service.selection(experiment_id)
+
+
 @app.get("/api/quant/features", tags=["quant"])
 def quant_features():
     """The feature registry: definition, source, lookback, direction, leakage note.

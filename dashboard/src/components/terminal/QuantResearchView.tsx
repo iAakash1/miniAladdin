@@ -41,6 +41,11 @@ import {
 import ModelInference from '@/components/terminal/quant/ModelInference'
 import EngineOffline from '@/components/terminal/quant/EngineOffline'
 import PortfolioRisk from '@/components/terminal/quant/PortfolioRisk'
+import SearchLab from '@/components/terminal/quant/SearchLab'
+import {
+  ExperimentTimeline, Provenance, SelectionVerdict, TrainCommand,
+} from '@/components/terminal/quant/SelectionVerdict'
+import type { SearchState, SelectionState } from '@/components/terminal/quant/searchTypes'
 import { quantFetch, type QuantFailure } from '@/lib/quantApi'
 import type {
   Experiment, ExperimentIndexRow, ModelSeries, QuantStatus, RegistryView,
@@ -59,6 +64,8 @@ export default function QuantResearchView() {
   const [focus, setFocus] = useState<string | null>(null)
   const [error, setError] = useState<QuantFailure | null>(null)
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState<SearchState | null>(null)
+  const [selection, setSelection] = useState<SelectionState | null>(null)
 
   // Every call goes through `quantFetch`: same-origin in the browser so the
   // Next rewrite proxies it, and structured failures so a network error renders
@@ -109,6 +116,37 @@ export default function QuantResearchView() {
     })()
     return () => { live = false }
   }, [selected, get])
+
+  // The staged search is fetched separately from the experiment artifact,
+  // because it exists BEFORE one: EXP-007 writes its metrics only at the end,
+  // and a run in flight is visible through the append-only checkpoint.
+  //
+  // Polled only while it is actually running, and not at all otherwise. A
+  // dashboard that polls a finished experiment forever is a bill, not a feature.
+  useEffect(() => {
+    let live = true
+    let timer: ReturnType<typeof setTimeout> | undefined
+
+    const poll = async () => {
+      try {
+        const s = await get<SearchState>('/api/quant/search/EXP-007')
+        if (!live) return
+        setSearch(s)
+        if (s.state === 'RUNNING') timer = setTimeout(poll, 30_000)
+      } catch {
+        if (live) setSearch(null)
+      }
+    }
+    void poll()
+    get<SelectionState>('/api/quant/selection/EXP-007')
+      .then((v) => { if (live) setSelection(v) })
+      .catch(() => { if (live) setSelection(null) })
+
+    return () => {
+      live = false
+      if (timer) clearTimeout(timer)
+    }
+  }, [get])
 
   useEffect(() => {
     if (!selected || !focus) return
@@ -268,7 +306,36 @@ export default function QuantResearchView() {
             </p>
           </div>
 
-          {/* ── 2b. deployed model + inference ── */}
+          {/* ── 2a. the staged search ── */}
+          {search?.available ? (
+            <Section
+              id="search"
+              title="Model search"
+              summary={
+                search.state === 'RUNNING'
+                  ? `${search.configurations_evaluated ?? 0}/${search.configurations_planned ?? '?'} · running`
+                  : `${search.configurations_evaluated ?? 0} configurations`
+              }
+              defaultOpen
+            >
+              <SearchLab search={search} />
+            </Section>
+          ) : null}
+
+          {/* ── 2b. the gate verdict ── */}
+          {search?.available ? (
+            <Section
+              id="verdict"
+              title="Selection verdict"
+              summary={selection?.verdict?.status ?? 'not selected'}
+              defaultOpen
+            >
+              <SelectionVerdict selection={selection ?? { available: false,
+                detail: 'The selection endpoint has not been reached yet.' }} />
+            </Section>
+          ) : null}
+
+          {/* ── 2c. deployed model + inference ── */}
           <Section
             id="inference"
             title="Model intelligence"
@@ -796,6 +863,34 @@ export default function QuantResearchView() {
                 </li>
               ))}
             </ol>
+          </Section>
+
+          {/* ── 15. experiment timeline ── */}
+          <Section id="timeline" title="Experiment history"
+                   summary="every study, including the void one" defaultOpen>
+            <ExperimentTimeline current={selected ?? undefined} />
+            <p className="body-copy u-note">
+              A void study stays in the record. Deleting EXP-002 would erase the
+              multiple-testing exposure it created, which every later study&rsquo;s
+              significance correction depends on.
+            </p>
+          </Section>
+
+          {/* ── 16. provenance ── */}
+          {search?.available ? (
+            <Section id="provenance" title="Provenance"
+                     summary="chain of custody" defaultOpen>
+              <Provenance
+                search={search as unknown as { [k: string]: unknown }}
+                fallbackCommit={experiment.git_commit ?? null}
+              />
+            </Section>
+          ) : null}
+
+          {/* ── 17. training ── */}
+          <Section id="run" title="Run training locally"
+                   summary="the command, not a button that fits" defaultOpen>
+            <TrainCommand />
           </Section>
         </>
       )}

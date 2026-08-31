@@ -97,9 +97,20 @@ class ConfigResult:
         }
 
     @classmethod
-    def from_dict(cls, payload: dict[str, Any]) -> "ConfigResult":
+    def from_dict(cls, payload: dict[str, Any]) -> Optional["ConfigResult"]:
+        """Rebuild from a checkpoint line, or None if the line is unusable.
+
+        Returns None rather than raising. A checkpoint written by an older
+        version — or a line that survived JSON parsing but lost a required field
+        — would otherwise take down the whole resume, which is the opposite of
+        what a crash-safety mechanism is for. The caller counts what it skipped
+        and says so.
+        """
         known = {f for f in cls.__dataclass_fields__}
-        return cls(**{k: v for k, v in payload.items() if k in known})
+        try:
+            return cls(**{k: v for k, v in payload.items() if k in known})
+        except TypeError:
+            return None
 
 
 class Checkpoint:
@@ -130,6 +141,9 @@ class Checkpoint:
                 skipped += 1          # a torn final line from a crash
                 continue
             result = ConfigResult.from_dict(payload)
+            if result is None:
+                skipped += 1      # parsed as JSON but not a usable record
+                continue
             done[result.config_id] = result
         if skipped:
             logger.warning("checkpoint: skipped %d unreadable line(s)", skipped)
@@ -232,10 +246,39 @@ def evaluate_batch(
         lookup = {f"{family}::{cid}": (cid, family, params) for cid, family, params in items}
 
         began = time.perf_counter()
+
+        # Checkpoint as each configuration lands, not when the batch returns.
+        #
+        # A tune stage is one `evaluate_specs` call over several hundred specs.
+        # Without this callback nothing reaches disk until the whole stage
+        # finishes, so a closed lid six hours in would lose six hours — while the
+        # docstring promised the opposite. `on_complete` fires per spec, so the
+        # checkpoint is written as the work actually completes.
+        #
+        # The callback writes the file and nothing else. The returned list is
+        # still built from `outcomes` below, in DECLARED spec order, because
+        # completion order depends on the worker count and ranking must not.
+        written: dict[str, ConfigResult] = {}
+
+        def _record(model_id: str, outcome: Any, error: Optional[str]) -> None:
+            entry = lookup.get(model_id)
+            if entry is None:
+                return
+            cid, family, params = entry
+            result = _config_result(
+                cid, stage, family, params, arm, target, len(features),
+                outcome, error,
+            )
+            written[cid] = result
+            checkpoint.append(result)
+            if on_result:
+                on_result(result)
+
         outcomes, failures, _timing = evaluate_specs(
             model_specs, context.frame, plan,
             features=features, label=target,
             step_sessions=definition.step_sessions, workers=workers,
+            on_complete=_record,
         )
         elapsed = time.perf_counter() - began
         per_config = elapsed / max(len(items), 1)
@@ -244,6 +287,9 @@ def evaluate_batch(
         for outcome in outcomes:
             cid, family, params = lookup[outcome.model_id]
             seen.add(outcome.model_id)
+            if cid in written:
+                results.append(written[cid])   # already on disk and reported
+                continue
             result = ConfigResult(
                 config_id=cid, stage=stage, family=family, params=params,
                 arm=arm, target=target, feature_count=len(features), ok=True,
@@ -267,6 +313,9 @@ def evaluate_batch(
             if name in seen or name not in lookup:
                 continue
             cid, family, params = lookup[name]
+            if cid in written:
+                results.append(written[cid])
+                continue
             result = ConfigResult(
                 config_id=cid, stage=stage, family=family, params=params,
                 arm=arm, target=target, feature_count=len(features), ok=False,
@@ -279,6 +328,34 @@ def evaluate_batch(
                 on_result(result)
 
     return results
+
+
+def _config_result(
+    config_id: str, stage: str, family: str, params: dict[str, Any],
+    arm: str, target: str, feature_count: int,
+    outcome: Any, error: Optional[str],
+) -> ConfigResult:
+    """One `ConfigResult` from one finished evaluation, success or failure."""
+    now = datetime.now(timezone.utc).isoformat()
+    if outcome is None or error is not None:
+        return ConfigResult(
+            config_id=config_id, stage=stage, family=family, params=params,
+            arm=arm, target=target, feature_count=feature_count, ok=False,
+            error=str(error or "no result returned")[:500], completed_at=now,
+        )
+    return ConfigResult(
+        config_id=config_id, stage=stage, family=family, params=params,
+        arm=arm, target=target, feature_count=feature_count, ok=True,
+        mean_ic=outcome.pooled_ic.get("mean_ic"),
+        ic_t_stat=outcome.pooled_ic.get("t_stat"),
+        ic_ir=outcome.pooled_ic.get("ic_ir"),
+        train_mean_ic=outcome.stability("train_mean_ic").get("mean"),
+        train_ic_gap=_gap(outcome),
+        fold_ic_positive_rate=outcome.stability("spearman").get("fold_positive_rate"),
+        folds=len(outcome.folds),
+        seconds=round(outcome.seconds or 0.0, 2),
+        completed_at=now,
+    )
 
 
 def _gap(outcome: Any) -> Optional[float]:
