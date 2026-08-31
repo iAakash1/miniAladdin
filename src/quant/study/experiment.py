@@ -87,6 +87,12 @@ class ExperimentDefinition:
     #: family gains a feature — and makes the restriction auditable.
     feature_families: tuple[str, ...] = ()
 
+    #: Default search budget for a staged-search study, resolved by the training
+    #: CLI when `--budget` is not given. `None` means this study has a fixed
+    #: model ladder and is run by `study.run`, which is every study before
+    #: EXP-007.
+    search_budget: Optional[str] = None
+
     #: Models refitted once per arm. The full `models` ladder still runs on the
     #: complete feature set; this smaller set is what the ablation contrast uses,
     #: because asking 17 models the same question 7 times costs 238 trials to
@@ -155,6 +161,11 @@ class ExperimentDefinition:
             "arm_models": [spec.as_dict() for spec in self.arm_models],
             "arm_count": len(self.arms),
             "notes": list(self.notes),
+            # Emitted only when set, so adding staged search left the dictionary
+            # — and therefore the fingerprint — of every earlier study byte
+            # identical. Committed artifacts reference those fingerprints; a new
+            # field must not silently invalidate them.
+            **({"search_budget": self.search_budget} if self.search_budget else {}),
         }
 
     def fingerprint(self) -> str:
@@ -346,8 +357,79 @@ def exp_006(seed: int = 0) -> ExperimentDefinition:
     )
 
 
+def exp_007(seed: int = 0) -> ExperimentDefinition:
+    """EXP-007 — staged model search. The heaviest study in the register.
+
+    Every prior study fixed the model ladder and varied one thing. This one
+    searches: families, hyperparameters, feature arms and targets, in four
+    stages, with the budget declared before the run.
+
+    **The budget is the constraint, and it cuts the other way.** Every
+    configuration is a trial, and the deflated-Sharpe correction runs against the
+    cumulative count. The `deep` budget takes the register from 156 evaluations
+    to ~546, which raises the expected maximum |t| of a zero-skill population
+    from 3.09 to 3.21 — so a larger search makes a finding *harder* to defend,
+    not easier. `search.multiple_testing_cost` prints that before the run.
+
+    A gate is added here that earlier studies did not need: `survives_search_size`
+    requires the winner's |t| to exceed the expected maximum |t| of a zero-skill
+    population of the same size. Selecting the best of several hundred
+    configurations without that bar is how a search manufactures significance.
+
+    Stages:
+
+        1 SCREEN      every family, few configurations, on C_base / fwd_rank_21
+        2 TUNE        the competitive families, deeply, same context
+        3 CONTEXT     finalists across 5 feature arms x 2 targets
+        4 ROBUSTNESS  neighbours of each finalist
+
+    `prior_evaluations` is 156 — EXP-001 through EXP-006. The final count is
+    written by the runner once the search is complete, because a resumed or
+    interrupted run evaluates fewer configurations than the budget projects and
+    the *actual* number is what the correction must use.
+
+    The holdout is not read, scored, or used for selection. This study cannot
+    produce a production model; the best possible outcome is a DEVELOPMENT
+    CANDIDATE that the holdout may later be spent on.
+    """
+    return ExperimentDefinition(
+        experiment_id="EXP-007",
+        objective=(
+            "Search model families, hyperparameters, feature arms and targets in "
+            "four controlled stages to find the strongest configuration that "
+            "survives costs, turnover, overfitting diagnostics and a "
+            "multiple-testing correction scaled to the size of the search itself."
+        ),
+        start=Date(2014, 4, 1),
+        end=None,
+        step_sessions=5,
+        targets=("fwd_rank_21", "fwd_ret_21"),
+        primary_target="fwd_rank_21",
+        models=tuple(default_specs(seed)),
+        arms=(),
+        arm_models=(),
+        feature_families=(),          # the search varies this; not frozen here
+        seed=seed,
+        execution_lag_periods=1,
+        prior_evaluations=156,
+        search_budget="overnight",
+        notes=(
+            "Staged search. The budget is declared in src/quant/study/search.py "
+            "and selected at the command line; it is recorded in the artifact.",
+            "A larger budget raises the significance bar rather than lowering it. "
+            "The `survives_search_size` gate makes that explicit.",
+            "Selection uses validation folds only. The 252-session holdout is "
+            "reserved before any fold is cut and the firewall refuses its rows.",
+            "The best possible outcome is DEVELOPMENT CANDIDATE. Promotion "
+            "remains blocked until the holdout is spent under the contract.",
+            "NO PRODUCTION CANDIDATE is a valid and complete result.",
+        ),
+    )
+
+
 EXPERIMENTS: dict[str, Any] = {
     "EXP-004": exp_004, "EXP-005": exp_005, "EXP-006": exp_006,
+    "EXP-007": exp_007,
 }
 
 

@@ -112,6 +112,9 @@ POLICIES: dict[str, ResourcePolicy] = {
 
 DEFAULT_POLICY = "safe"
 
+#: Imported lazily by name so `--help` works without pandas/numpy present.
+from src.quant.study.search import BUDGETS as SEARCH_BUDGETS, DEFAULT_BUDGET
+
 #: Threads per worker, FIXED across every policy.
 #:
 #: Set to 1 on purpose. Parallelism here is process-level — `evaluate_specs`
@@ -625,6 +628,81 @@ def _print_plan(payload: dict[str, Any]) -> None:
     print("=" * width)
 
 
+def _report_usage(usage: dict[str, Any], elapsed_minutes: float) -> None:
+    """Print measured utilisation. Never estimated — see `ResourceMonitor`."""
+    print()
+    print("=" * 78)
+    if usage.get("measured"):
+        print(f"  utilisation   peak {usage['cpu_cores_equivalent_peak']:.1f} cores "
+              f"({usage['cpu_pct_peak']:.0f}% CPU) · peak {usage['rss_gb_peak']:.1f} GB RSS "
+              f"· {usage['processes_peak']} processes")
+        print(f"                mean {usage['cpu_pct_mean'] / 100.0:.1f} cores over "
+              f"{usage['samples']} samples — measured from ps, not estimated")
+    else:
+        print(f"  utilisation   NOT MEASURED ({usage.get('reason')})")
+    print(f"  duration      {elapsed_minutes:.1f} min")
+
+
+def _print_search_plan(budget_name: str, plan: ComputePlan, out_root: Path,
+                       experiment_id: str, seed: int) -> None:
+    """Print the staged-search plan: what will be fitted, and what it costs.
+
+    Both halves matter. The wall-clock projection is what someone plans a night
+    around; the multiple-testing line is what stops the size of the search from
+    reading as free. A bigger budget buys more configurations AND a higher bar,
+    and both move on this screen before anything is fitted.
+    """
+    from src.quant.study import search as space
+
+    budget = space.BUDGETS[budget_name]
+    projection = space.projected_total(budget)
+    worker_hours = projection["total_worker_seconds"] / 3600.0
+    wall_low = worker_hours / max(plan.workers, 1)
+    # Stages are sequential and each ends on its slowest worker, so the pool is
+    # never perfectly packed. The band is the honest form of this number.
+    wall_high = wall_low * 1.45
+
+    print()
+    print("─" * 78)
+    print(f"  STAGED SEARCH — budget {budget_name.upper()}")
+    print("─" * 78)
+    s1, s2 = projection["stage_1_screen"], projection["stage_2_tune"]
+    s3, s4 = projection["stage_3_context"], projection["stage_4_robustness"]
+    print(f"  1 screen      {s1['configs']:>4} configs   "
+          f"{s1['worker_seconds'] / 3600:>6.2f} worker-h   every family, C_base / fwd_rank_21")
+    print(f"  2 tune        {s2['configs']:>4} configs   "
+          f"{s2['worker_seconds'] / 3600:>6.2f} worker-h   "
+          f"top {budget.tune_families} families advance")
+    print(f"  3 context     {s3['evaluations']:>4} evals     "
+          f"{s3['worker_seconds'] / 3600:>6.2f} worker-h   "
+          f"{len(s3['arms'])} arms x {len(s3['targets'])} targets on {budget.finalists} finalists")
+    print(f"  4 robustness  {s4['configs']:>4} configs   "
+          f"{s4['worker_seconds'] / 3600:>6.2f} worker-h   "
+          f"{budget.neighbours_per_finalist} neighbours per finalist")
+    print(f"  {'':14}{projection['total_configs']:>4} total     "
+          f"{worker_hours:>6.2f} worker-h")
+    print()
+    print(f"  wall clock    {wall_low:.1f}-{wall_high:.1f} h at {plan.workers} workers "
+          f"(upper bound — assumes the most expensive families advance)")
+
+    mt = projection["multiple_testing_cost"]
+    print()
+    print(f"  THE COST OF THIS BUDGET")
+    print(f"    cumulative trials  {mt['prior_trials']} prior + "
+          f"{mt['new_trials']} here = {mt['cumulative_trials']}")
+    print(f"    a winner must clear |t| > {mt['expected_max_abs_t_under_null']} "
+          f"(expected max |t| of {mt['cumulative_trials']} zero-skill trials)")
+    print(f"    Bonferroni 5%      |t| > {mt['bonferroni_threshold_5pct']}")
+    print("    A larger search RAISES this bar. It cannot lower it.")
+
+    checkpoint = out_root / experiment_id / "checkpoints" / "configs.jsonl"
+    if checkpoint.exists():
+        recorded = sum(1 for line in checkpoint.read_text().splitlines() if line.strip())
+        print()
+        print(f"  checkpoint    {recorded} configuration(s) already recorded at {checkpoint}")
+        print("                --resume will skip them")
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m src.quant.train",
@@ -649,15 +727,46 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument("--dry-run", action="store_true",
                         help="Explicit no-op. The default behaviour anyway.")
     parser.add_argument("--json", action="store_true", help="Emit the plan as JSON and exit.")
+    parser.add_argument("--budget", choices=sorted(SEARCH_BUDGETS), default=None,
+                        help="Search budget for a staged-search experiment (EXP-007). "
+                             "Declared before the run and recorded in the artifact. "
+                             "Larger budgets RAISE the significance bar.")
+    parser.add_argument("--resume", action="store_true",
+                        help="Continue from the checkpoint, skipping configurations "
+                             "already recorded. Safe to use after an interruption.")
+    parser.add_argument("--overwrite", action="store_true",
+                        help="Permit overwriting an existing experiment artifact. "
+                             "Without it a completed artifact is protected.")
     args = parser.parse_args(argv)
 
     # Spec count bounds the pool: `evaluate_specs` distributes model specs, so a
     # pool larger than the ladder cannot be busy.
+    declared_budget: Optional[str] = None
     try:
         from src.quant.study.experiment import get_experiment as _peek
 
-        spec_count = len(_peek(args.experiment, args.seed).models)
+        _definition = _peek(args.experiment, args.seed)
+        spec_count = len(_definition.models)
+        declared_budget = _definition.search_budget
     except Exception:  # noqa: BLE001
+        spec_count = None
+
+    # ── which runner ─────────────────────────────────────────────────────
+    #
+    # A study declares whether it is a staged search. `--budget` selects among
+    # the declared budgets; it cannot turn a fixed-ladder study into a search,
+    # because that study's pre-registration says what will be fitted and a
+    # search would fit something else entirely.
+    budget_name = args.budget or declared_budget
+    if args.budget is not None and declared_budget is None:
+        print(f"error: {args.experiment} is not a staged-search study; it declares a "
+              f"fixed model ladder.\n"
+              f"       --budget would replace the pre-registered ladder with a search.",
+              file=sys.stderr)
+        return 2
+    if budget_name is not None:
+        # A search fits one config per worker, so the ladder length does not
+        # bound the pool — hundreds of configurations do.
         spec_count = None
 
     plan = plan_compute(
@@ -678,6 +787,8 @@ def main(argv: Optional[list[str]] = None) -> int:
         return 0
 
     _print_plan(payload)
+    if budget_name is not None:
+        _print_search_plan(budget_name, plan, args.out, args.experiment, args.seed)
 
     if not args.confirm or args.dry_run:
         print()
@@ -694,8 +805,16 @@ def main(argv: Optional[list[str]] = None) -> int:
             print("  hyperparameters, costs and thresholds. Verified to produce results")
             print("  identical to the serial path.")
         print()
-        print("Expect 30-100 minutes on this machine and sustained CPU. The holdout")
-        print("stays sealed either way; this command has no path that opens it.")
+        if budget_name is not None:
+            print("If it is interrupted — closed lid, power loss, Ctrl-C — re-run the same")
+            print("command with --resume. Every finished configuration is on disk and is")
+            print("skipped; nothing is refitted and no result changes.")
+            print()
+            print("The holdout stays sealed. This command has no path that opens it, and")
+            print("selection reads validation folds only.")
+        else:
+            print("Expect 30-100 minutes on this machine and sustained CPU. The holdout")
+            print("stays sealed either way; this command has no path that opens it.")
         return 0
 
     if payload["integrity"]["holdout_contract_armed"]:
@@ -704,9 +823,66 @@ def main(argv: Optional[list[str]] = None) -> int:
         print("Use `python -m src.quant.study.holdout` for a pre-registered holdout run.")
         return 3
 
+    # ── artifact protection ──────────────────────────────────────────────
+    #
+    # A completed artifact is a research record. Training silently over one is
+    # how EXP-006's recorded run was replaced by a re-run on a shifted panel:
+    # the numbers happened to be identical, but the provenance the deployed
+    # model references was overwritten, and nothing warned.
+    artifact_path = Path(args.out) / args.experiment / "metrics.json"
+    search_path = Path(args.out) / args.experiment / "search.json"
+    existing = artifact_path if artifact_path.exists() else (
+        search_path if search_path.exists() else None
+    )
+    if existing is not None and not args.overwrite and not args.resume:
+        print(f"\nREFUSED: {existing} already exists.")
+        print("That is a recorded result. Re-running would replace it.")
+        print("  --resume     continue an interrupted run from its checkpoint")
+        print("  --overwrite  replace the record deliberately")
+        return 7
+
     pin_threads(plan)
     print(f"\nstarting — policy {plan.policy.upper()}, {plan.workers} workers × "
           f"{plan.threads_per_worker} thread\n")
+
+    # ── staged search ────────────────────────────────────────────────────
+    if budget_name is not None:
+        from src.quant.study.heavy_run import run_search
+
+        monitor = ResourceMonitor(interval=15.0).start()
+        began = time.perf_counter()
+        try:
+            payload = run_search(
+                args.experiment, budget_name=budget_name, root=str(args.root),
+                out_root=str(args.out), workers=plan.workers, seed=args.seed,
+                resume=args.resume, monitor=monitor,
+            )
+        except BaseException as exc:  # noqa: BLE001
+            monitor.stop()
+            print(f"\n  status        FAILED — {type(exc).__name__}: {exc}")
+            print("  Progress is checkpointed. Re-run with --resume to continue.")
+            return 4
+        usage = monitor.stop()
+        _report_usage(usage, (time.perf_counter() - began) / 60.0)
+
+        search = payload["search"]
+        print(f"  configurations {search['configurations_evaluated']} evaluated, "
+              f"{search['configurations_failed']} failed")
+        mt = search["multiple_testing"]
+        print(f"  trials        {mt['cumulative_trials']} cumulative · a finding must "
+              f"clear |t| > {mt['expected_max_abs_t_under_null']}")
+        if not payload["complete"]:
+            print("  status        INCOMPLETE — some configurations failed")
+            print("=" * 78)
+            print("\nRe-run with --resume after investigating. The artifact records the")
+            print("failures rather than presenting a partial search as finished.")
+            return 5
+        print("  status        SEARCH COMPLETE")
+        print(f"  artifact      {search_path}")
+        print("=" * 78)
+        print("\nNext:")
+        print(f"    python -m scripts.quant.select_candidate --experiment {args.experiment}")
+        return 0
 
     from src.quant.study.experiment import get_experiment
     from src.quant.study.run import run_experiment
@@ -730,17 +906,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     elapsed = (time.perf_counter() - began) / 60.0
     artifact = Path(args.out) / args.experiment / "metrics.json"
 
-    print()
-    print("=" * 78)
-    if usage.get("measured"):
-        print(f"  utilisation   peak {usage['cpu_cores_equivalent_peak']:.1f} cores "
-              f"({usage['cpu_pct_peak']:.0f}% CPU) · peak {usage['rss_gb_peak']:.1f} GB RSS "
-              f"· {usage['processes_peak']} processes")
-        print(f"                mean {usage['cpu_pct_mean'] / 100.0:.1f} cores over "
-              f"{usage['samples']} samples — measured from ps, not estimated")
-    else:
-        print(f"  utilisation   NOT MEASURED ({usage.get('reason')})")
-    print(f"  duration      {elapsed:.1f} min")
+    _report_usage(usage, elapsed)
 
     # ── completion gate ──────────────────────────────────────────────────
     #
