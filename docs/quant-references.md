@@ -1,9 +1,16 @@
 # External quant references
 
-Four open-source projects and one article were studied while building the quant
-layer. This records what each contributed, what was deliberately **not** taken,
-and why — because a list of links is not a design influence, and claiming to have
-implemented something a reference merely mentions is worse than not reading it.
+Open-source projects studied while building the quant layer. This records what
+each contributed, what was deliberately **not** taken, and why — because a list
+of links is not a design influence, and claiming to have implemented something a
+reference merely mentions is worse than not reading it.
+
+**Depth of inspection is stated per reference**, because it varies and pretending
+otherwise would be the same failure the rest of this document exists to avoid.
+Sections 1–5 were worked through in detail while their ideas were being
+implemented. Sections 6–7 were read at documentation level during the EXP-007
+design. Section 8 covers tools assessed as candidates rather than studied as
+architectures.
 
 **Rule applied throughout:** nothing is listed under "implemented" unless it
 exists in this repository and is reachable. Where a concept only shaped a
@@ -17,6 +24,9 @@ property of *this* project, not a criticism of the reference.
 | [Vibe-Trading](https://github.com/HKUDS/Vibe-Trading) | LLM oversight / research workflow | Grounding gate; hash-chained provenance; refuse-don't-default |
 | [Kronos](https://github.com/shiyu-coder/Kronos) | Time-series foundation model | Probabilistic-forecast framing. **Model rejected** |
 | [QuantFrame article](https://www.quantframe.io/article/open-source-hedge-fund-stack) | Assembles the four | The four-layer contract, and "the LLM is the analyst, not the trader" |
+| [Qlib](https://github.com/microsoft/qlib) | Full research chain | Staged search shape; the Recorder discipline. **Expression engine rejected** |
+| [FinRL / FinRL-Meta / ElegantRL](https://github.com/AI4Finance-Foundation/FinRL) | RL trading infrastructure | Layer separation confirmed. **RL rejected for this problem** |
+| Tooling (XGBoost, LightGBM, CatBoost, PyTorch, cvxpy, mlfinlab, vectorbt, …) | Components | Boosters and torch adopted for the GPU worker; the rest assessed and declined |
 
 ---
 
@@ -246,7 +256,134 @@ edge first, build the execution stack second.
 
 ---
 
-## What this repository has that none of the four emphasise
+## 6. Qlib
+
+*Inspected at documentation level during the EXP-007 design.*
+
+**What it solves.** The complete research chain in one framework: data ingestion
+and storage, an expression engine for factor definition, a model zoo, workflow
+orchestration, experiment tracking, backtesting, portfolio construction and
+nested execution.
+
+**Architecture.** Loose-coupled modules that each work standalone. The pieces
+that matter here are the **Recorder** (systematic tracking of every run's
+results and metrics), **rolling retraining** with explicit handling of concept
+drift, a **point-in-time database** feature specifically to prevent leakage, and
+**Alpha158/Alpha360** as named, versioned feature sets rather than ad-hoc column
+lists.
+
+### What we implemented
+
+* **Named, versioned feature sets.** Alpha158/Alpha360 are the same idea as this
+  project's `FeatureArm` and the frozen `C_base` 27. Naming a feature set makes
+  a result attributable to it; a study that says "all available features" cannot
+  be compared to one run a month later.
+* **The staged search shape.** Qlib's workflow separates screening from
+  refinement rather than running one flat grid. `study/search.py`'s four stages
+  are the same decomposition: Stage 1 decides where Stage 2's budget goes.
+* **The Recorder discipline.** Every configuration, its hyperparameters, seed,
+  dataset hash and timing land in an artifact — `search.json` and the append-only
+  checkpoint. The specific thing taken is that *tracking is not optional
+  instrumentation*; a run that was not recorded did not happen.
+
+### What we rejected
+
+* **The expression engine.** Qlib defines factors as declarative strings
+  (`Ref($close, -1)/$close - 1`). It is elegant and it is the wrong trade here.
+  This project's features are Python functions with a registry entry stating
+  observation date, lookback, direction and a leakage test. A string DSL makes
+  the *definition* compact and the **point-in-time semantics invisible** — and
+  every serious defect this project has hit, including the as-of join that voided
+  EXP-002, was a timing bug that a leakage test caught and a compact expression
+  would have hidden.
+* **The model zoo.** TabNet, TFT, HIST, KRNN and the rest are available and are
+  not being added. Six studies have failed to extract a *costed* edge from this
+  panel with models that fit in seconds; the constraint is the signal-to-noise
+  ratio of the data, not the capacity of the estimator. Adding twelve
+  architectures would add twelve hundred trials to the multiple-testing budget
+  and raise the bar for everything already run.
+* **Nested execution.** Optimising strategy and execution jointly is the right
+  idea for a firm with a real execution stack. This project has a cost model and
+  no execution venue; a nested optimiser over a cost *assumption* would be
+  optimising against the assumption.
+
+---
+
+## 7. FinRL, FinRL-Meta, ElegantRL, FinRL-Trading
+
+*Inspected at documentation level during the EXP-007 design.*
+
+**What it solves.** Reinforcement learning for trading: gym-style market
+environments, DRL agents (A2C, DDPG, PPO, SAC, TD3) via Stable Baselines 3,
+ElegantRL or RLlib, and application layers for stock trading, portfolio
+allocation and crypto.
+
+**Architecture.** Three layers — market environments, agents, applications —
+kept strictly apart, with environments under `meta/env_stock_trading`,
+`meta/env_portfolio_allocation` and so on.
+
+### What we implemented
+
+* **Confirmation of the layer split.** FinRL's environment/agent/application
+  separation is the same discipline NautilusTrader enforces and that this project
+  applies as prediction / portfolio / risk / cost. Two independent references
+  arriving at it moved it from "a preference" to "the load-bearing structure".
+  `portfolio/optimizer.py` cannot see a model; `risk/engine.py` cannot see an
+  allocator.
+
+### What we rejected — and why RL specifically
+
+**Reinforcement learning is not used, and the reason is not that it is hard.**
+
+RL solves sequential decision problems where the action changes the state.
+Trading has that structure — position, turnover and market impact are genuinely
+path-dependent — so it is a defensible framing in general.
+
+It is the wrong tool *here*, for three concrete reasons:
+
+1. **There is no established edge to sequence.** Six studies say the predictive
+   signal is weak and does not survive costs at 10 bp. An RL agent placed on top
+   of a signal with no costed edge learns to exploit the *simulator*. The
+   headline result would be a backtest, and the backtest would be of the
+   environment.
+2. **The trial accounting would become uncountable.** This project deflates
+   Sharpe against the cumulative trial count — currently 1,035. An RL training
+   run evaluates a policy thousands of times against the same folds, and every
+   one of those is a look at the validation data. There is no honest number to
+   put in the ledger, and "we stopped counting" is how multiple-testing bias gets
+   laundered.
+3. **The problem decomposes.** Prediction (what will outperform) and execution
+   (how to hold it without paying the spread away) are separable here, and
+   EXP-006 showed exactly which half fails: gross Sharpe +0.384, net −0.102. That
+   is a turnover and cost problem with a clear, measurable objective. Wrapping it
+   in a policy network makes it harder to attribute, not easier to solve.
+
+**What would change this.** A costed edge that survives the gates, plus a
+capacity constraint that makes the sizing decision genuinely path-dependent.
+Neither exists yet. If EXP-007 produces the first, the second becomes worth
+revisiting — as a *separate registered experiment*, with a trial-accounting
+scheme designed before it runs.
+
+---
+
+## 8. Tooling assessed
+
+*Assessed as components rather than studied as architectures.*
+
+| Tool | Decision | Why |
+|---|---|---|
+| **XGBoost, LightGBM, CatBoost** | **Adopted**, GPU worker only | Genuine CUDA histogram paths, and three different inductive biases rather than three copies of one. Not added to the Mac environment: they are a different experiment (`EXP-007-WIN-GPU`) with their own trial count. |
+| **PyTorch** | **Adopted**, GPU worker only | The one family in the GPU set that uses the device for something other than histograms. Deliberately a *small* MLP: 27 features and a low signal-to-noise target do not justify depth, and the overfitting gate would reject it. |
+| **scikit-learn** | **In use** | The existing ladder. Exact-split boosting, single-threaded by the determinism rule, no CUDA path — which is why "run it on the GPU" was never an option. |
+| **cvxpy** | **Declined** | `portfolio/optimizer.py` needs eight allocators and a constraint set applied to a fixed point, all of which closed-form or iterative NumPy handles. A convex-programming dependency earns its place when constraints stop being expressible that way; today it would be a dependency for an import statement. |
+| **PyPortfolioOpt** | **Declined** | Overlaps skfolio, from which the estimator/optimiser split was already taken. Two portfolio libraries is one more than the problem has. |
+| **mlfinlab / *Advances in Financial ML*** | **Methodology adopted, library declined** | Purging, embargo, PBO via CSCV and the deflated Sharpe ratio are all implemented here — `validation/walkforward.py` and `validation/significance.py`. The methodology is the contribution; implementing it directly means the assumptions are visible in this repository rather than behind an API. |
+| **vectorbt** | **Declined** | Fast vectorised backtesting over large parameter sweeps. This project's constraint is not backtest throughput — it is that a large sweep *raises the significance bar*. A tool that makes sweeping cheaper optimises the wrong variable. |
+| **backtrader, Zipline** | **Declined** | Event-driven engines for intraday and order-level simulation. Rebalances here are 5 sessions apart with a 1-period execution lag; `backtest/engine.py` covers that in a form whose cost assumptions are auditable in one file. |
+
+---
+
+## What this repository has that none of the references emphasise
 
 Recorded because the influence ran both ways in the design review:
 

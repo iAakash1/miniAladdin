@@ -351,6 +351,73 @@ to lower the bar.
 
 ---
 
+## 7c. Staged search (EXP-007)
+
+A study with a `search_budget` in its definition routes to the staged runner
+instead of the fixed-ladder one. EXP-007 declares `overnight`.
+
+```bash
+python -m src.quant.train --experiment EXP-007 --budget overnight --performance max --confirm
+```
+
+Without `--confirm` this prints the machine profile, the worker plan, the four
+stages, the projected wall time and the multiple-testing cost, and fits nothing.
+
+**Four stages.** Screen every family coarsely on the reference context; tune the
+families that competed; sweep the finalists across feature arms and targets;
+perturb each finalist to see whether it is a point or a region. Stage 1 decides
+where Stage 2's budget goes — spreading 630 configurations flat across eight
+families would give the four that matter a quarter of the search they deserve.
+
+**The budget raises the bar.** 879 configurations take the cumulative trial count
+from 156 to 1,035 and the expected maximum |t| of a zero-skill population from
+3.09 to 3.39. The `survives_search_size` gate requires the winner to clear it.
+Choosing a bigger budget is choosing a harder test, and the dry run prints the
+number before anything is fitted.
+
+**Resume.** Every completed configuration is appended to
+`experiments/EXP-007/checkpoints/configs.jsonl` as it finishes. After any
+interruption:
+
+```bash
+python -m src.quant.train --experiment EXP-007 --budget overnight --performance max --confirm --resume
+```
+
+Configurations are a deterministic function of `(family, stage, index, seed)`,
+so a resumed run continues the same search rather than drawing a fresh
+correlated one. Nothing already recorded is refit.
+
+**Overwrite protection.** Training over an existing `metrics.json` or
+`search.json` is refused unless `--overwrite` or `--resume` is given. That gap is
+how EXP-006's recorded run was once silently replaced by a re-run.
+
+**Selection is a separate step.** The search produces configurations; the verdict
+comes from the eight predeclared gates:
+
+```bash
+python -m scripts.quant.select_candidate --experiment EXP-007
+```
+
+It refits each finalist with predictions retained, computes the costed backtest,
+the cost sweep, the six-factor attribution, the regime breakdown, the deflated
+Sharpe and PBO, and writes
+`artifacts/experiments/EXP-007/final_selection.json`. It also records
+`search_mean_ic` against `refit_mean_ic` per finalist — a non-zero delta means
+the run is not reproducible and the selection should not be trusted whatever the
+gates say.
+
+Exit code 0 means every gate passed (**DEVELOPMENT CANDIDATE**, not production).
+Exit code 1 means **NO PRODUCTION CANDIDATE**, which is a legitimate result.
+
+### Second machine
+
+`docs/HEAVY_TRAINING_WINDOWS.md` covers `EXP-007-WIN-GPU`: xgboost, lightgbm,
+catboost and a small torch MLP on a CUDA machine, over the same folds and
+features. It is a separate experiment whose trials count against the shared
+budget, and its results are never merged into EXP-007.
+
+---
+
 ## 8. Experiment lifecycle
 
 ```mermaid

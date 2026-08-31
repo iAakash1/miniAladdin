@@ -34,7 +34,15 @@ from src.quant.models.registry import ModelEntry, ModelRegistry
 logger = logging.getLogger("omnisignal.quant.scripts.register")
 
 #: Registry ``version`` per study. A study's entries are addressable forever.
-STUDY_VERSIONS: dict[str, str] = {"EXP-002": "1.0", "EXP-004": "2.0", "EXP-005": "3.0", "EXP-006": "4.0"}
+STUDY_VERSIONS: dict[str, str] = {
+    "EXP-002": "1.0", "EXP-004": "2.0", "EXP-005": "3.0", "EXP-006": "4.0",
+    # A staged search registers only what selection promotes to a finalist, not
+    # its several hundred configurations. Registering every one would fill the
+    # registry with configurations nobody examined, and the registry is meant to
+    # be the set of models with a complete evidence bundle.
+    "EXP-007": "5.0",
+    "EXP-007-WIN-GPU": "5.1",
+}
 
 #: Validation dates a regime needs before its metrics are quoted as evidence.
 #:

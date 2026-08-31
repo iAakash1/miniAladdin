@@ -353,6 +353,91 @@ Full detail: `docs/EXP-006.md`.
 
 ---
 
+### EXP-007 — was the fixed model ladder the limit?
+
+**Pre-registered before the run.** Fingerprint `56a0582aa43b4bdc`. Budget
+`overnight`, declared at the command line and recorded in the artifact.
+
+Every study to this point fixed the ladder and varied one thing. EXP-006's
+winner ran on scikit-learn's defaults — 100 trees, depth 3, learning rate 0.1 —
+because that is what `default_specs` declares, not because anything chose them.
+EXP-007 asks whether a configuration that was never selected does better, under
+control.
+
+| | |
+|---|---|
+| stages | screen (129) → tune (630) → context (60) → robustness (60) |
+| configurations | **879** declared upper bound |
+| families | gradient_boosting, hist_gradient_boosting, random_forest, extra_trees, ridge, lasso, elastic_net, ols |
+| reference context | arm `C_base`, target `fwd_rank_21` |
+| context sweep | 5 arms × 2 targets on 6 finalists |
+| prior evaluations | 156 |
+| **cumulative trials** | **1,035** |
+| execution lag | 1 period (inherited, unchanged) |
+| half-spread | 10 bp (inherited, unchanged) |
+| folds | inherited from EXP-004/005/006 — same geometry, embargo, purge |
+| seed | 0 |
+| holdout | **SEALED. Not read, not armed, not used for selection.** |
+
+**The budget cuts against the study.** 879 configurations take the expected
+maximum |t| of a zero-skill population from **3.09 to 3.39**, and Bonferroni at
+5% from 3.82 to 4.06. A new gate, `survives_search_size`, requires the winner to
+clear that bar — so a larger search makes a finding *harder* to defend. The
+threshold is printed by the dry run before anything is fitted.
+
+**Pre-registered prediction, recorded before results were seen:** no
+configuration clears all eight gates. The binding constraint in EXP-006 was net
+Sharpe at 20× turnover, and hyperparameter search addresses model capacity, not
+turnover. Tree families are expected to post higher raw IC than the EXP-006
+default and to fail the same gate.
+
+**Status: RUNNING.** Stage 1 complete at time of writing — 129 configurations,
+0 failures, 63 of them flagged OVERFIT (train-minus-validation IC gap > 0.15).
+Best non-overfit screen result: `random_forest`, IC +0.0430, t +3.29, gap
++0.0910 — **below the 3.39 the search size demands**, and with no economics
+computed yet. Nothing here is a result; results require the completed artifact
+and the selection step.
+
+Selection runs separately, in `scripts/quant/select_candidate.py`, behind the
+eight predeclared gates. **NO PRODUCTION CANDIDATE is an acceptable and
+expected outcome and the gates will not be adjusted to avoid it.**
+
+Full detail: `docs/EXP-007.md`.
+
+---
+
+### EXP-007-WIN-GPU — do GPU-native families find anything the CPU families did not?
+
+**Pre-registered. NOT YET RUN.** Fingerprint `ddb70515d38802d2`.
+
+A **separate experiment on separate hardware** (NVIDIA RTX PRO 4500, 24 GB
+VRAM), not an extension of EXP-007. Its definition is built with
+`dataclasses.replace` from `exp_007`, so folds, embargo, purge, execution lag,
+cost sweep, targets, universe and seed are inherited by construction. Only the
+id, the families and `prior_evaluations` differ.
+
+| | |
+|---|---|
+| families | xgboost, lightgbm, catboost, torch_mlp |
+| configurations | **130** upper bound |
+| prior evaluations | 1,035 (includes EXP-007's full budget) |
+| **cumulative trials** | **1,165** |
+| bar | expected max \|t\| rises 3.39 → **3.42** |
+| holdout | SEALED |
+
+**These trials count against EXP-007 too**, because they share its validation
+folds. Running this search raises the bar EXP-007's own Mac winner must clear.
+That is why the budget is 130 configurations and not 1,300.
+
+**Results are not merged.** Different machine, different floating-point
+association, different families. Two ledger rows, each with its own machine
+provenance. Taking the better number off two machines and reporting it as one
+result is selection, not aggregation.
+
+Setup and command: `docs/HEAVY_TRAINING_WINDOWS.md`.
+
+---
+
 ## Multiple-testing exposure
 
 | Study | Configurations | Targets | Evaluations | Counts against significance |
@@ -363,10 +448,17 @@ Full detail: `docs/EXP-006.md`.
 | EXP-004 | 17 | 2 | 34 | yes |
 | EXP-005 | 17 + 7x6 arms | 1 | 59 | yes |
 | EXP-006 | 17 | 1 | 17 | yes |
-| **Running total** | | | **156** | |
+| **Total through EXP-006** | | | **156** | |
+| EXP-007 | 879 staged configs | 2 | 879 (declared) | yes |
+| EXP-007-WIN-GPU | 130 staged configs | 1 | 130 (declared) | yes |
+| **Running total** | | | **1,165** | |
 
 Any deflated-Sharpe calculation on these validation folds must use a trial
-count of **at least 156**. EXP-002 discounted against its own 17 and therefore
+count of **at least 156** — and, once EXP-007 completes, at least its actual
+configuration count. The runner writes the *actual* number rather than the
+budgeted one, because a resumed or interrupted run evaluates fewer
+configurations than the budget projects and the correction must use what was
+really spent. EXP-002 discounted against its own 17 and therefore
 understated the correction it needed — and it already rejected every candidate.
 EXP-004 discounts against the full 80, which is set in its definition rather
 than counted afterwards.

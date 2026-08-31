@@ -278,6 +278,14 @@ path is given so a reader can check.
 | **`quant_service`** `src/services/quant_service.py` | Shape artifacts for the API; compute verdicts from the registry's own gate constants | API, `/quant` |
 | **`quant_series`** `src/services/quant_series.py` | Derive per-fold IC and the cumulative rank-spread path from the predictions artifact | API, `QuantCharts` |
 | **`quant_portfolio_service`** `src/services/quant_portfolio_service.py` | Build a book from predictions; measure risk and cost | `PortfolioOptimizer`, `RiskEngine`, `CostWaterfall` |
+| **`SearchBudget`** `quant/study/search.py` | Declare configurations per family per stage; project worker-seconds; price the search in significance before it runs | `SearchPlan`, `train`, `heavy_run` |
+| **`Axis`** `quant/study/search.py` | One hyperparameter, its sampling law and why it matters; drawn from a seeded generator | `SearchBudget`, `GpuModelSpec` |
+| **`Checkpoint`** `quant/study/heavy.py` | Append one JSONL line per completed configuration; skip torn and unusable lines on reload | `evaluate_batch`, `run_search`, `quant_search_service` |
+| **`ConfigResult`** `quant/study/heavy.py` | One configuration's outcome — the unit of the checkpoint and of the trial count | `Checkpoint`, `Gate`, `quant_search_service` |
+| **`SearchContext`** `quant/study/heavy.py` | Hold the panel, manifest and calendar built once; cache one walk-forward plan per target | `evaluate_batch`, `select_candidate` |
+| **`Gate`** `quant/study/heavy.py` | One predeclared pass/fail bar with its observed value and requirement; never a weighted score | `evaluate_gates`, `SelectionVerdict` |
+| **`GpuModelSpec`** `quant/models/gpu.py` | Resolve the CUDA families without touching the CPU factory; picklable across a loky boundary | `win_gpu_worker`, `evaluate_specs` |
+| **`quant_search_service`** `src/services/quant_search_service.py` | Serve a running search from its checkpoint and a finished one from its artifact; label everything partial while it runs | API, `SearchLab` |
 
 ### Layer boundaries, enforced
 
