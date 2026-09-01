@@ -14,14 +14,38 @@ import { clerkAppearance } from '@/lib/clerk-appearance'
    Methodology) stays one ⌘K keystroke away and is linked from the surface
    it belongs to, which is why the palette affordance beside these tabs is
    part of this change rather than a nicety. */
+//
+// Ordered as a research workflow rather than as a feature list: you look at the
+// market, form a view on a name, test it as a factor, see what the research
+// register already says, check the portfolio, then inspect what is deployed.
+//
+// `/quant` was previously reachable only by typing the URL. It is the deepest
+// surface in the product — the experiment register, the search lab, the
+// promotion gates and the holdout firewall all live there — and it had no
+// entry in this list. That is fixed here; an unreachable workspace is an
+// unbuilt one.
+//
+// Validation and Methodology moved out of Learn. They are the evidence behind
+// the research, not teaching material, and filing them under Learn told the
+// reader they were optional reading.
 const TABS = [
-  { href: '/terminal', label: 'Market', match: (p: string) => p === '/terminal' },
-  { href: '/terminal/analyze', label: 'Research', match: (p: string) => p.startsWith('/terminal/analyze') || p.startsWith('/company') },
-  { href: '/terminal/portfolio', label: 'Portfolio', match: (p: string) => p.startsWith('/terminal/portfolio') },
-  { href: '/terminal/sessions', label: 'Workspace', match: (p: string) => p.startsWith('/terminal/sessions') || p.startsWith('/terminal/graph') || p.startsWith('/terminal/vault') },
-  { href: '/terminal/factors', label: 'Factor Lab', match: (p: string) => p.startsWith('/terminal/factors') },
-  { href: '/terminal/models', label: 'Models', match: (p: string) => p.startsWith('/terminal/models') },
-  { href: '/learn', label: 'Learn', match: (p: string) => p.startsWith('/learn') || p.startsWith('/terminal/methodology') || p.startsWith('/terminal/validation') },
+  { href: '/terminal', label: 'Market',
+    match: (p: string) => p === '/terminal' },
+  { href: '/terminal/analyze', label: 'Research',
+    match: (p: string) => p.startsWith('/terminal/analyze') || p.startsWith('/company') },
+  { href: '/terminal/factors', label: 'Factors',
+    match: (p: string) => p.startsWith('/terminal/factors') },
+  { href: '/quant', label: 'Quant',
+    match: (p: string) => p.startsWith('/quant')
+      || p.startsWith('/terminal/validation') || p.startsWith('/terminal/methodology') },
+  { href: '/terminal/models', label: 'Models',
+    match: (p: string) => p.startsWith('/terminal/models') },
+  { href: '/terminal/portfolio', label: 'Portfolio',
+    match: (p: string) => p.startsWith('/terminal/portfolio') },
+  { href: '/terminal/sessions', label: 'Workspace',
+    match: (p: string) => p.startsWith('/terminal/sessions') || p.startsWith('/terminal/graph') || p.startsWith('/terminal/vault') },
+  { href: '/learn', label: 'Learn',
+    match: (p: string) => p.startsWith('/learn') },
 ]
 import { fmtNum, fmtPctRaw } from '@/lib/format'
 import { FREE_DAILY_LIMIT } from '@/lib/usage'

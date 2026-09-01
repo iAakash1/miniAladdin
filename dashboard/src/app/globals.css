@@ -6341,3 +6341,204 @@ a.hl-row:hover .hl-row__out { color: var(--accent); transform: translate(1px, -1
      The document must not scroll: that is what makes the header overflow. */
   .qt .ml-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Terminal primitives — Panel / Metric / StateBlock / ProvenanceChain
+
+   Shared across workspaces so a number looks the same wherever it appears and
+   carries the same context. Theme-neutral: these use the app's own tokens and
+   therefore work inside the dark `.qt` research surface and on the ordinary
+   terminal pages without redefinition.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.tp-panel {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: var(--r-sm);
+  margin-bottom: 1rem;
+}
+.tp-panel__head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--line);
+}
+.tp-panel__id { display: flex; align-items: baseline; gap: 0.6rem; min-width: 0; flex: 1 1 auto; }
+.tp-panel__title {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+.tp-panel__subtitle { font-size: 0.6875rem; color: var(--muted); }
+.tp-panel__actions { margin-left: auto; display: flex; gap: 0.4rem; }
+.tp-panel__body { padding: 1rem; }
+.tp-panel__foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.1rem;
+  padding: 0.5rem 1rem;
+  border-top: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  color: var(--faint);
+}
+.tp-panel__foot b { color: var(--muted); font-weight: 500; }
+
+/* ── status chip ────────────────────────────────────────────────────────── */
+
+.tp-status {
+  flex-shrink: 0;
+  padding: 0.1rem 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
+  letter-spacing: 0.12em;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  white-space: nowrap;
+}
+.tp-status--pass  { color: var(--pos); background: var(--pos-wash); }
+.tp-status--fail  { color: var(--neg); background: var(--neg-wash); }
+.tp-status--warn  { color: var(--warn); background: var(--warn-wash); }
+.tp-status--info  { color: var(--accent); background: var(--accent-wash); }
+.tp-status--muted { color: var(--faint); background: transparent; }
+
+/* ── metric ─────────────────────────────────────────────────────────────── */
+
+.tp-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(172px, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+}
+.tp-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+  padding: 0.7rem 0.9rem 0.8rem;
+  background: var(--surface);
+  border-left: 2px solid transparent;
+}
+.tp-metric__label {
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.tp-metric__value {
+  font-family: var(--font-mono);
+  font-size: 1.0625rem;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+.tp-metric--lead .tp-metric__value { font-size: 1.375rem; }
+.tp-metric__unit {
+  margin-left: 0.15em;
+  font-size: 0.6875em;
+  font-style: normal;
+  color: var(--muted);
+}
+.tp-metric__method { font-size: 0.625rem; line-height: 1.4; color: var(--faint); }
+.tp-metric--pass  { border-left-color: var(--pos); }
+.tp-metric--pass  .tp-metric__value { color: var(--pos); }
+.tp-metric--fail  { border-left-color: var(--neg); }
+.tp-metric--fail  .tp-metric__value { color: var(--neg); }
+.tp-metric--warn  { border-left-color: color-mix(in srgb, var(--warn) 60%, transparent); }
+.tp-metric--warn  .tp-metric__value { color: var(--warn); }
+.tp-metric--info  { border-left-color: color-mix(in srgb, var(--accent) 60%, transparent); }
+
+/* ── designed states ────────────────────────────────────────────────────── */
+
+.tp-state {
+  border: 1px solid var(--line);
+  border-left-width: 3px;
+  border-radius: var(--r-sm);
+  padding: 0.85rem 1rem;
+  background: var(--surface);
+}
+.tp-state--loading { border-left-color: var(--accent); }
+.tp-state--empty   { border-left-color: var(--line-strong); }
+.tp-state--error   { border-left-color: var(--neg); }
+.tp-state--offline { border-left-color: var(--warn); }
+.tp-state--locked  { border-left-color: var(--warn); }
+.tp-state__head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.8125rem;
+  flex-wrap: wrap;
+}
+.tp-state__why {
+  margin: 0.5rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.55;
+  color: var(--muted);
+  max-width: 82ch;
+}
+.tp-state__action { margin-top: 0.65rem; }
+
+/* The loading chip pulses; nothing else animates. Motion should mean "this is
+   still happening", and it means nothing if everything moves. */
+@media (prefers-reduced-motion: no-preference) {
+  .tp-state--loading .tp-status { animation: tp-pulse 1.6s var(--ease-out) infinite; }
+}
+@keyframes tp-pulse { 50% { opacity: 0.45; } }
+
+/* ── provenance chain ───────────────────────────────────────────────────── */
+
+.tp-chain {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 1rem;
+  border-left: 1px solid var(--line-strong);
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+.tp-chain__link { position: relative; display: flex; flex-direction: column; gap: 0.1rem; }
+.tp-chain__link::before {
+  content: '';
+  position: absolute;
+  left: calc(-1rem - 3px);
+  top: 0.42rem;
+  width: 5px;
+  height: 5px;
+  background: var(--line-strong);
+  border-radius: 50%;
+}
+.tp-chain__stage {
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.tp-chain__value {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  word-break: break-all;
+}
+.tp-chain__detail { font-size: 0.6875rem; color: var(--muted); }
+
+@media (max-width: 700px) {
+  .tp-metrics { grid-template-columns: repeat(auto-fit, minmax(136px, 1fr)); }
+  .tp-metric__value { font-size: 0.9375rem; }
+  .tp-metric--lead .tp-metric__value { font-size: 1.125rem; }
+}
+
+/* Inline code tokens must be allowed to break.
+   Identifiers like `baseline_low_volatility` and `docs/PRE_HOLDOUT_AUDIT.md`
+   contain no spaces, so at narrow widths they set an unbreakable minimum width
+   on their container and drag the whole document sideways — a 375px phone was
+   rendering this page at 573px because of two of them in one banner.
+   `break-word` only acts when the line would otherwise overflow, so nothing
+   changes at desktop widths. */
+code, kbd, samp { overflow-wrap: break-word; word-break: break-word; }
+
+/* Scroll containers must be allowed to shrink. A block child of a flex or grid
+   parent defaults to min-width:auto and refuses to go below its content width,
+   which silently defeats the overflow-x:auto on the container itself. */
+.ml-scroll, .tp-panel, .tp-metrics { min-width: 0; max-width: 100%; }

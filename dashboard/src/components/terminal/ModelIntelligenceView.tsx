@@ -36,6 +36,7 @@ import { StatusPill, type StatusTone } from '@/components/ui/DataMarks'
 import EmptyState from '@/components/ui/EmptyState'
 import ModelInference from '@/components/terminal/quant/ModelInference'
 import EngineOffline from '@/components/terminal/quant/EngineOffline'
+import LatestResearch from '@/components/terminal/quant/LatestResearch'
 import { quantFetch, type QuantFailure } from '@/lib/quantApi'
 
 // ── contracts ────────────────────────────────────────────────────────────────
@@ -381,6 +382,12 @@ export default function ModelIntelligenceView() {
           </>
         }
       />
+
+      {/* What is DEPLOYED and what the research currently CONCLUDES are two
+          different things, and they diverged when EXP-007 finished. Serving
+          EXP-006 without saying so implies it is the current state of the
+          research rather than the current state of deployment. */}
+      <LatestResearch />
 
       <Section
         id="deployed-model"

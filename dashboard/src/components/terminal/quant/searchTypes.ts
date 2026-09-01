@@ -99,6 +99,16 @@ export interface SelectionState {
     failed: string[]
     note: string
   }
+  /** The same recorded numbers re-evaluated against the gate standard in force
+   *  today. Present only when the artifact predates the current standard. */
+  current_standard?: {
+    passed: boolean
+    status: string
+    gates: SelectionGate[]
+    failed: string[]
+    restated: true
+    note: string
+  }
   selected?: {
     config_id: string
     family: string

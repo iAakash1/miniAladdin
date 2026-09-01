@@ -50,7 +50,12 @@ export function SelectionVerdict({ selection }: { selection: SelectionState }) {
     )
   }
 
-  const { verdict, selected } = selection
+  // When an artifact predates the current gate standard, the read layer
+  // restates it from the same recorded numbers. Showing the recorded eight
+  // beside two more failing metrics below would be an invitation to ask which
+  // one counts; the current standard counts.
+  const verdict = selection.current_standard ?? selection.verdict
+  const { selected } = selection
   const passed = verdict.passed
   const reproduction = selection.refit_reproduction ?? []
   const reproduces = reproduction.every((r) => r.reproduces)
@@ -65,9 +70,14 @@ export function SelectionVerdict({ selection }: { selection: SelectionState }) {
               ? 'Every gate passed. This is a development candidate.'
               : `Failed ${verdict.failed.length} of ${verdict.gates.length} gates.`}
           </strong>
+          {selection.current_standard ? (
+            <span className="tp-status tp-status--warn">RESTATED · 10-GATE STANDARD</span>
+          ) : null}
         </div>
         <p className="body-copy u-note">{verdict.note}</p>
       </div>
+
+
 
       {selected ? (
         <dl className="qr-grid qr-grid--tight">

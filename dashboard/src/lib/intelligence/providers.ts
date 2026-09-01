@@ -32,6 +32,21 @@ const ROUTE_ENTITIES: Entity[] = [
   { id: 'route:validation', type: 'route', title: 'Validation', subtitle: 'Walk-forward model evaluation', route: '/terminal/validation', keywords: ['backtest', 'ic', 'calibration', 'model health'] },
   { id: 'route:methodology', type: 'route', title: 'Methodology', subtitle: 'How OmniSignal works', route: '/terminal/methodology', keywords: ['factors', 'pipeline', 'how it works', 'docs'] },
   { id: 'route:news', type: 'route', title: 'Market news', subtitle: 'Live aggregated feed', route: '/news', keywords: ['headlines', 'feed', 'stories'] },
+
+  // The quant workspace, addressed by section rather than only by page.
+  //
+  // Its sections are long and a researcher arrives with a specific question —
+  // "did it clear the gates", "what is the holdout doing", "what command runs
+  // this" — so the palette answers those directly instead of dropping them at
+  // the top of a page to scroll. Section ids match the `id` on each Section.
+  { id: 'route:quant', type: 'route', title: 'Quant research', subtitle: 'Experiment register, gates, holdout', route: '/quant', keywords: ['quant', 'research', 'experiment', 'exp-007', 'terminal', 'lab'] },
+  { id: 'route:quant-verdict', type: 'route', title: 'Promotion gates', subtitle: 'Why the model is or is not promotable', route: '/quant#verdict', keywords: ['gate', 'promotion', 'blocked', 'verdict', 'candidate', 'pass', 'fail'] },
+  { id: 'route:quant-search', type: 'route', title: 'Model search', subtitle: 'Configurations, families, overfitting census', route: '/quant#search', keywords: ['search', 'hyperparameter', 'configurations', 'overfit', 'leaderboard', 'pbo'] },
+  { id: 'route:quant-provenance', type: 'route', title: 'Provenance', subtitle: 'Dataset hash, commit, trial count', route: '/quant#provenance', keywords: ['provenance', 'hash', 'commit', 'lineage', 'chain of custody', 'reproduce'] },
+  { id: 'route:quant-timeline', type: 'route', title: 'Experiment history', subtitle: 'EXP-002 through EXP-008', route: '/quant#timeline', keywords: ['history', 'experiments', 'ledger', 'timeline', 'exp-004', 'exp-005', 'exp-006'] },
+  { id: 'route:quant-train', type: 'route', title: 'Training command', subtitle: 'Run a study locally', route: '/quant#run', keywords: ['train', 'training', 'command', 'cli', 'overnight', 'resume'] },
+  { id: 'route:models', type: 'route', title: 'Models', subtitle: 'Deployed artifacts and their status', route: '/terminal/models', keywords: ['model', 'artifact', 'inference', 'deployed', 'registry', 'promotion'] },
+  { id: 'route:factors', type: 'route', title: 'Factor Lab', subtitle: 'Factor construction and diagnostics', route: '/terminal/factors', keywords: ['factor', 'lab', 'exposure', 'signal'] },
 ]
 
 /* ---------- static: glossaries (the Learn layer) ---------- */

@@ -321,7 +321,15 @@ export default function QuantResearchView() {
             <Section
               id="verdict"
               title="Selection verdict"
-              summary={selection?.verdict?.status ?? 'not selected'}
+              summary={
+                (() => {
+                  const v = selection?.current_standard ?? selection?.verdict
+                  if (!v) return 'not selected'
+                  return v.passed
+                    ? `all ${v.gates.length} gates passed`
+                    : `${v.failed.length} of ${v.gates.length} gates failed`
+                })()
+              }
               defaultOpen
             >
               <SelectionVerdict selection={selection ?? { available: false,

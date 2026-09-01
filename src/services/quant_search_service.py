@@ -321,6 +321,76 @@ def search(experiment_id: str, root: Path | str = DEFAULT_ROOT) -> dict[str, Any
     }
 
 
+#: Gates added to the standard on 2026-09-01, after EXP-007 was already
+#: selected. An artifact written before that date records eight gates; the
+#: current standard has ten.
+_STANDARD_ADDED_2026_09_01 = ("deflated_sharpe", "selection_carries_information")
+
+
+def _restate_under_current_standard(payload: dict[str, Any]) -> Optional[dict[str, Any]]:
+    """Re-evaluate a recorded selection against the gate standard in force today.
+
+    This does not refit anything and does not alter the artifact. It reads the
+    numbers the run recorded — the deflated-Sharpe probability and the PBO were
+    already computed and stored — and applies the two gates that were added
+    afterwards.
+
+    The reason this exists rather than being left to a re-run: an artifact
+    written under the eight-gate standard says "failed 1 of 8" while carrying a
+    deflated-Sharpe probability of 0.06 and a PBO of 0.93 in the same file. A
+    reader seeing both is entitled to a straight answer about which standard
+    applies. Re-running selection to regenerate the artifact would cost an hour
+    of compute to change a count, so the count is derived instead and labelled.
+
+    Returns None when the artifact already carries the current gates, or when
+    the inputs needed are absent.
+    """
+    verdict = payload.get("verdict") or {}
+    recorded = [g.get("gate") for g in verdict.get("gates", [])]
+    if not recorded or all(g in recorded for g in _STANDARD_ADDED_2026_09_01):
+        return None
+
+    selected = (payload.get("selected") or {}).get("config_id")
+    significance = (payload.get("significance") or {}).get(selected) or {}
+    deflated = (significance.get("deflated_sharpe") or {}).get("deflated_probability")
+    pbo = (payload.get("probability_of_backtest_overfitting") or {}).get("pbo")
+    if deflated is None and pbo is None:
+        return None
+
+    added = [
+        {
+            "gate": "deflated_sharpe",
+            "passed": deflated is not None and deflated > 0.95,
+            "observed": deflated,
+            "required": "> 0.95 — the probability the Sharpe survives deflation "
+                        "against the trial count, their dispersion, and the return "
+                        "distribution's skew and kurtosis",
+        },
+        {
+            "gate": "selection_carries_information",
+            "passed": pbo is not None and pbo <= 0.20,
+            "observed": pbo,
+            "required": "PBO <= 0.2 — the in-sample winner must not land in the "
+                        "bottom half out-of-sample",
+        },
+    ]
+    gates = list(verdict.get("gates", [])) + added
+    failed = [g["gate"] for g in gates if not g["passed"]]
+    return {
+        "gates": gates,
+        "failed": failed,
+        "passed": not failed,
+        "status": "DEVELOPMENT CANDIDATE" if not failed else "NO PRODUCTION CANDIDATE",
+        "restated": True,
+        "note": (
+            "The artifact was written under the eight-gate standard. Two gates were "
+            "added on 2026-09-01 and are applied here to the numbers the run already "
+            "recorded — nothing was refit. The added gates make promotion strictly "
+            "harder; they cannot turn a refusal into a pass."
+        ),
+    }
+
+
 def selection(experiment_id: str,
               artifacts_root: Path | str = Path("artifacts/experiments")) -> dict[str, Any]:
     """The gate verdict, if `select_candidate` has been run."""
@@ -335,4 +405,11 @@ def selection(experiment_id: str,
                 "applies the predeclared gates."
             ),
         }
-    return {"available": True, **payload}
+    restated = _restate_under_current_standard(payload)
+    return {
+        "available": True,
+        **payload,
+        # `verdict` stays exactly as recorded — the artifact is the record.
+        # `current_standard` is the derivation, clearly named as one.
+        **({"current_standard": restated} if restated else {}),
+    }
