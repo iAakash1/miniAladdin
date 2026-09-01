@@ -418,19 +418,48 @@ class Gate:
     required: str
 
 
+#: Deflated-Sharpe probability a candidate must exceed, and the PBO it must stay
+#: under. Both are Bailey & Lopez de Prado's own thresholds, not values chosen
+#: here.
+#:
+#: **Registered 2026-09-01, after EXP-007 and before any experiment they gate.**
+#: The direction is the reason this is admissible: EXP-007 produced a finalist
+#: that cleared all eight original gates while posting a deflated-Sharpe
+#: probability of 0.0485 and sharing a PBO of 0.93. The eight gates could pass a
+#: selection artifact, because `survives_search_size` compares an *IC*
+#: t-statistic against a threshold derived for *Sharpe* selection, and nothing
+#: consulted the two statistics this project already computes for exactly this
+#: purpose.
+#:
+#: Adding them makes promotion strictly harder. No model that passed before
+#: passes now. A threshold change that rejects the model in front of it is the
+#: only kind that can be made after seeing results.
+DEFLATED_SHARPE_MINIMUM = 0.95
+PBO_MAXIMUM = 0.20
+
+
 def evaluate_gates(
     candidate: dict[str, Any],
     *,
     best_baseline_ic: Optional[float],
     cumulative_trials: int,
     expected_max_t: float,
+    deflated_probability: Optional[float] = None,
+    pbo: Optional[float] = None,
 ) -> list[Gate]:
     """The predeclared development gates. None of them move.
 
     These are the same bars `ModelRegistry.CANDIDATE_THRESHOLDS` enforces, plus
     the search-specific ones: a candidate selected from N configurations must
-    clear the |t| a zero-skill population of N would be expected to produce, and
-    must not be an overfit configuration.
+    clear the |t| a zero-skill population of N would be expected to produce,
+    must not be an overfit configuration, must survive deflation against the
+    dispersion of the trials that produced it, and must come from a selection
+    process that carries information about out-of-sample rank.
+
+    `deflated_probability` and `pbo` are optional only because a caller may not
+    have computed them. They are **not** optional in effect: a missing value
+    fails its gate. A candidate that cannot be deflated is not a candidate that
+    passed deflation.
     """
     ic = candidate.get("mean_ic")
     t = candidate.get("ic_t_stat")
@@ -462,6 +491,23 @@ def evaluate_gates(
              "> 0 against the six-factor model"),
         Gate("turnover_tolerable", turnover is not None and turnover <= 30.0, turnover,
              "<= 30x annualised"),
+        Gate(
+            "deflated_sharpe",
+            deflated_probability is not None
+            and deflated_probability > DEFLATED_SHARPE_MINIMUM,
+            deflated_probability,
+            f"> {DEFLATED_SHARPE_MINIMUM} — the probability the Sharpe survives "
+            f"deflation against {cumulative_trials} trials, their dispersion, and "
+            "the return distribution's skew and kurtosis",
+        ),
+        Gate(
+            "selection_carries_information",
+            pbo is not None and pbo <= PBO_MAXIMUM,
+            pbo,
+            f"PBO <= {PBO_MAXIMUM} — the in-sample winner must not land in the "
+            "bottom half out-of-sample. 0.5 means selection is a coin flip; above "
+            "it, selection is actively misleading",
+        ),
     ]
 
 

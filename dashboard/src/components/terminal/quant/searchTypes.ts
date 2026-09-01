@@ -108,8 +108,27 @@ export interface SelectionState {
     ranked_by: string
   }
   economics?: Record<string, Record<string, unknown>>
+  significance?: Record<string, {
+    deflated_sharpe?: {
+      observed_sharpe?: number | null
+      deflated_probability?: number | null
+      expected_max_sharpe_under_null?: number | null
+      trials?: number | null
+      skew?: number | null
+      excess_kurtosis?: number | null
+    }
+    minimum_track_record?: {
+      required_periods?: number | null
+      observed_periods?: number | null
+      sufficient?: boolean | null
+    }
+  }>
   multiple_testing?: MultipleTesting
-  probability_of_backtest_overfitting?: Record<string, unknown>
+  probability_of_backtest_overfitting?: {
+    pbo?: number | null
+    splits_evaluated?: number | null
+    interpretation?: string | null
+  }
   refit_reproduction?: {
     config_id: string
     search_mean_ic: number | null

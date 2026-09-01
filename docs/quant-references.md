@@ -383,6 +383,54 @@ scheme designed before it runs.
 
 ---
 
+## 9. What EXP-007 settled about these references
+
+Recorded because a reference's value is only demonstrated when it changes an
+outcome, and EXP-007 was the first study large enough to test several of them.
+
+**mlfinlab methodology — vindicated, and it was the deciding evidence.** PBO via
+CSCV and the deflated Sharpe ratio are the two statistics that rejected EXP-007,
+and neither is visible in a leaderboard. A finalist cleared all eight original
+gates with a deflated-Sharpe probability of 0.0485 and a PBO of 0.929. Having
+implemented the methodology directly rather than through a library meant the
+numbers were already computed, already in the artifact, and could be promoted to
+gates the same day. **This is the single highest-value adoption in the project.**
+
+**Qlib's staged search — adopted, and it worked as intended.** Stage 1 screened
+129 configurations, 63 of them overfit, and correctly routed Stage 2's 630
+configurations to the four tree families rather than spreading them across
+eight. The four linear families plateaued at IC ≈ +0.005 and were dropped. A
+flat grid would have spent a quarter of the search on them.
+
+**Qlib's model zoo — rejection confirmed.** EXP-007 measured the ceiling of
+eight families over 873 configurations and found the binding constraint is the
+sample, not the estimator: 10.7 trials per independent block of data. Adding
+TabNet, TFT and HIST would have raised the significance threshold without
+touching the cause.
+
+**skfolio's estimator/optimiser split — value now measurable, and unused.**
+EXP-007's selected configuration has excess kurtosis of 43.3, which is a large
+part of why its required track record is 10,545 periods against 403 available.
+The portfolio layer that could address this exists and the backtest does not
+call it. That gap is hypothesis H2 of `docs/EXP-008.md`, and it is a direct
+consequence of having kept the layers separable.
+
+**Vibe-Trading's refuse-don't-default — now enforced in the inference path.**
+The service verifies the artifact's sha256 against its metadata, checks feature
+count and ordering, and refuses to score a row that is mostly imputed. Each
+failure leaves the model unloaded rather than degrading to an answer. A
+prediction assembled from training medians is indistinguishable downstream from
+a real one, which is exactly the failure mode the principle names.
+
+**Kronos — rejection reinforced.** The argument for a sequence model was always
+that this panel might carry temporal structure a cross-sectional model misses.
+EXP-007's context sweep measured return targets against rank targets across five
+feature arms: rank targets are learnable, raw return targets are not, in any
+arm. A higher-capacity temporal model would be fitted to the target type that
+has already been shown to carry no learnable signal here.
+
+---
+
 ## What this repository has that none of the references emphasise
 
 Recorded because the influence ran both ways in the design review:

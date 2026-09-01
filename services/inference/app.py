@@ -36,6 +36,7 @@ cannot get a prediction, and that is the correct failure.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
@@ -101,29 +102,116 @@ if ALLOWED_ORIGINS:
         allow_headers=["content-type"],
     )
 
-_state: dict[str, Any] = {"model": None, "imputer": None, "features": [], "meta": {}, "error": None}
+_state: dict[str, Any] = {
+    "model": None, "imputer": None, "features": [], "meta": {},
+    "fingerprint": None, "error": None,
+}
+
+
+#: Fraction of the feature vector that must be genuinely supplied before a row
+#: is scored. Below it the row is refused rather than imputed.
+#:
+#: A safety floor, not a research threshold. The imputer fills gaps with the
+#: training fold's medians, so a row with almost nothing supplied is scored as
+#: "the median stock" — and the service would return a confident-looking number
+#: that contains no information about the symbol that was asked about. Refusing
+#: is the only honest answer, and the response says which features were missing.
+MIN_FEATURE_COMPLETENESS = 0.60
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def _load() -> None:
-    """Load once, at startup. A request must never trigger a disk read."""
+    """Load once, at startup, and refuse to serve anything that fails a check.
+
+    Every failure here leaves `_state["model"]` as None, which makes `/predict`
+    return 503. That is deliberate and it is the whole point: an inference
+    service that degrades to *some* answer when its artifact is wrong is worse
+    than one that is down, because the wrong answer is indistinguishable from a
+    right one downstream.
+    """
     import joblib
 
     began = time.perf_counter()
     bundle_path = ARTIFACT_DIR / f"{ARTIFACT_NAME}.joblib"
     meta_path = ARTIFACT_DIR / f"{ARTIFACT_NAME}.metadata.json"
     try:
-        bundle = joblib.load(bundle_path)
         meta = json.loads(meta_path.read_text(encoding="utf-8"))
     except Exception as error:  # noqa: BLE001 — reported, never faked
+        _state["error"] = f"metadata unreadable: {type(error).__name__}: {error}"
+        logger.error("inference: %s", _state["error"])
+        return
+
+    # ── integrity ────────────────────────────────────────────────────────
+    #
+    # The metadata carries the sha256 of the bundle it describes. Verifying it
+    # is what makes "which model is this?" answerable: without the check, a
+    # metadata file and a model file that drifted apart serve predictions under
+    # the wrong provenance, and nothing anywhere would say so.
+    declared = meta.get("sha256")
+    if not declared:
+        _state["error"] = "metadata declares no sha256; artifact integrity cannot be verified"
+        logger.error("inference: %s", _state["error"])
+        return
+    try:
+        observed = _sha256(bundle_path)
+    except Exception as error:  # noqa: BLE001
+        _state["error"] = f"artifact unreadable: {type(error).__name__}: {error}"
+        logger.error("inference: %s", _state["error"])
+        return
+    if observed != declared:
+        _state["error"] = (
+            f"artifact sha256 mismatch: metadata declares {declared[:16]}…, "
+            f"file is {observed[:16]}…. Refusing to serve."
+        )
+        logger.error("inference: %s", _state["error"])
+        return
+
+    try:
+        bundle = joblib.load(bundle_path)
+    except Exception as error:  # noqa: BLE001
         _state["error"] = f"{type(error).__name__}: {error}"
         logger.error("inference: artifact load FAILED — %s", _state["error"])
+        return
+
+    # ── schema ───────────────────────────────────────────────────────────
+    missing = [key for key in ("model", "imputer", "features") if key not in bundle]
+    if missing:
+        _state["error"] = f"artifact is missing {missing}; refusing to serve"
+        logger.error("inference: %s", _state["error"])
+        return
+
+    features = list(bundle["features"])
+    expected = meta.get("feature_count")
+    if expected is not None and len(features) != expected:
+        _state["error"] = (
+            f"feature count mismatch: metadata declares {expected}, bundle carries "
+            f"{len(features)}. Refusing to serve."
+        )
+        logger.error("inference: %s", _state["error"])
+        return
+    declared_features = meta.get("features")
+    if declared_features is not None and list(declared_features) != features:
+        _state["error"] = (
+            "feature ORDER differs between metadata and bundle. A tree model scores "
+            "columns positionally, so this would silently produce wrong numbers. "
+            "Refusing to serve."
+        )
+        logger.error("inference: %s", _state["error"])
         return
 
     _state.update(
         model=bundle["model"],
         imputer=bundle["imputer"],
-        features=list(bundle["features"]),
+        features=features,
         meta=meta,
+        fingerprint=observed,
         error=None,
     )
     logger.info(
@@ -184,6 +272,9 @@ def model_card() -> dict[str, Any]:
         "registry_key": meta.get("registry_key"),
         "experiment_id": meta.get("experiment_id"),
         "experiment_fingerprint": meta.get("experiment_fingerprint"),
+        "artifact_fingerprint": _state.get("fingerprint"),
+        "artifact_integrity": "sha256 verified against metadata at load",
+        "minimum_feature_completeness": MIN_FEATURE_COMPLETENESS,
         "target": meta.get("target"),
         "horizon_sessions": meta.get("horizon_sessions"),
         "prediction_units": (
@@ -244,16 +335,32 @@ def predict(request: PredictRequest) -> dict[str, Any]:
     scores = np.asarray(_state["model"].predict(ready), dtype=float)
 
     meta = _state["meta"]
-    predictions = [
-        {
+    floor = int(np.ceil(MIN_FEATURE_COMPLETENESS * len(features)))
+    predictions = []
+    for i, item in enumerate(request.items):
+        completeness = supplied[i] / len(features) if features else 0.0
+        # A row that is mostly medians is a prediction about the median stock,
+        # not about this symbol. It is refused with its reason rather than
+        # returned as a number that looks exactly like a real one.
+        refused = supplied[i] < floor
+        predictions.append({
             "symbol": item.symbol.upper(),
-            "prediction": None if not np.isfinite(scores[i]) else round(float(scores[i]), 6),
+            "prediction": (
+                None if refused or not np.isfinite(scores[i])
+                else round(float(scores[i]), 6)
+            ),
             "features_supplied": supplied[i],
             "features_expected": len(features),
             "features_imputed": len(features) - supplied[i],
-        }
-        for i, item in enumerate(request.items)
-    ]
+            "feature_completeness": round(completeness, 4),
+            "refused_reason": (
+                f"only {supplied[i]} of {len(features)} features supplied; "
+                f"at least {floor} are required. The remainder would be filled with "
+                f"training medians, which scores the median stock rather than "
+                f"{item.symbol.upper()}."
+                if refused else None
+            ),
+        })
 
     return {
         "predictions": predictions,
@@ -267,8 +374,13 @@ def predict(request: PredictRequest) -> dict[str, Any]:
         "model_id": meta.get("model_id"),
         "model_version": meta.get("model_version"),
         "experiment_id": meta.get("experiment_id"),
+        "artifact_fingerprint": _state.get("fingerprint"),
+        "dataset_content_hash": meta.get("dataset_content_hash"),
+        "training_cutoff": (meta.get("fit_scope") or {}).get("training_cutoff"),
         "research_status": meta.get("research_status"),
         "promotion_status": meta.get("promotion_status"),
+        "promotion_blocked_by": meta.get("promotion_blocked_by"),
+        "minimum_feature_completeness": MIN_FEATURE_COMPLETENESS,
         "disclaimer": meta.get("usage"),
         "unknown_features_ignored": sorted(unknown)[:20],
         "elapsed_ms": round((time.perf_counter() - began) * 1000, 2),

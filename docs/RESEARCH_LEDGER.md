@@ -391,18 +391,85 @@ Sharpe at 20× turnover, and hyperparameter search addresses model capacity, not
 turnover. Tree families are expected to post higher raw IC than the EXP-006
 default and to fail the same gate.
 
-**Status: RUNNING.** Stage 1 complete at time of writing — 129 configurations,
-0 failures, 63 of them flagged OVERFIT (train-minus-validation IC gap > 0.15).
-Best non-overfit screen result: `random_forest`, IC +0.0430, t +3.29, gap
-+0.0910 — **below the 3.39 the search size demands**, and with no economics
-computed yet. Nothing here is a result; results require the completed artifact
-and the selection step.
+**Status: COMPLETE — 2026-09-01.** 873 configurations, 0 failures, 9.87 h on 5
+workers. Final cumulative trials **1,029**; search-size threshold **3.38**.
 
-Selection runs separately, in `scripts/quant/select_candidate.py`, behind the
-eight predeclared gates. **NO PRODUCTION CANDIDATE is an acceptable and
-expected outcome and the gates will not be adjusted to avoid it.**
+**Result: NO PRODUCTION CANDIDATE.** Seven of ten gates pass; the three that
+fail all test selection bias.
+
+Selected: `hist_gradient_boosting` on `C_base` / `fwd_rank_21`, ranked by net
+Sharpe — IC **+0.0332**, t **+2.810**, gross Sharpe **+0.498**, net Sharpe
+**+0.111**, turnover **18.47×**, alpha t **+0.480**, overfit gap **0.0909**.
+
+**The first positive net Sharpe in the project.** EXP-006 posted −0.102. The
+pre-registered prediction — that nothing would clear all gates — was right, but
+for the wrong reason: it predicted net Sharpe would remain the blocker, and net
+Sharpe passed. The blocker is statistical, not economic.
+
+Three independent tests reject it:
+
+| test | required | observed |
+|---|---|---|
+| search-size threshold | \|t\| > 3.38 | +2.810 |
+| deflated Sharpe probability | > 0.95 | **0.0608** |
+| PBO (CSCV, 70 splits) | ≤ 0.20 | **0.929** |
+
+The expected maximum Sharpe of 1,029 zero-skill configurations is **0.6439**;
+we observed **0.1106** — 0.17× the search's own noise ceiling. Minimum track
+record length is **10,545 periods against 403 available**.
+
+**Disclosed:** one finalist (`random_forest`, t +3.47) clears
+`survives_search_size` and passes all eight of the *original* gates. It is not
+selected only because the ranking criterion — net Sharpe — was fixed in code
+before the run. **The criterion was not changed.** That configuration also posts
+a deflated-Sharpe probability of 0.0485 and shares the PBO of 0.929.
+
+**Gate standard strengthened 2026-09-01**, after this result and before any
+experiment it governs: `deflated_sharpe` and `selection_carries_information`
+added, taking the standard from eight gates to ten. The eight-gate set could
+pass a selection artifact because `survives_search_size` compares an *IC*
+t-statistic against a *Sharpe*-selection threshold and nothing consulted the
+deflated Sharpe or PBO this project already computes. The change makes promotion
+strictly harder and rejects the model in front of it.
+
+**Bottleneck: 10.7 cumulative trials per independent block of data** (403
+periods × 5 sessions ÷ 21-session label ≈ 96 blocks). More search raises the bar
+faster than it raises the result. **No further hyperparameter search on this
+panel.**
+
+Full detail: `docs/EXP-007.md`. Next question: `docs/EXP-008.md`.
 
 Full detail: `docs/EXP-007.md`.
+
+---
+
+### EXP-008 — can the evidence be made decidable at all?
+
+**PRE-REGISTERED 2026-09-01. NOT IMPLEMENTED. NOT RUN.**
+
+EXP-007 established that trials are the scarce resource on this panel, so
+EXP-008 spends almost none: **5 declared trials**, taking the cumulative count
+from 1,029 to 1,034 and the bar from 3.38 to 3.39.
+
+No search. A frozen model specification carried unchanged from EXP-007, against
+two pre-declared hypotheses:
+
+- **H1** — label overlap destroys the effective sample. Rebalance is 5 sessions
+  and labels run 21 forward, so consecutive observations share 16 of 21 days.
+  Add a **non-overlapping** `fwd_rank_5` target and re-measure. A rank rather
+  than the existing `fwd_ret_5`, because EXP-007's context sweep showed return
+  targets are not learnable on this panel in any arm.
+- **H2** — the return distribution, not the signal, is what makes this
+  undecidable. Skew 3.61 and excess kurtosis 43.28 drive the 10,545-period
+  track-record requirement. Apply four pre-declared allocators from the existing
+  portfolio engine, which the backtest currently does not use.
+
+Stopping rules are declared in the document rather than decided afterwards. If
+both hypotheses stop, the conclusion is that this dataset cannot support a
+promotable model, and the next question is about acquiring more independent
+data.
+
+Full detail: `docs/EXP-008.md`.
 
 ---
 
@@ -449,9 +516,10 @@ Setup and command: `docs/HEAVY_TRAINING_WINDOWS.md`.
 | EXP-005 | 17 + 7x6 arms | 1 | 59 | yes |
 | EXP-006 | 17 | 1 | 17 | yes |
 | **Total through EXP-006** | | | **156** | |
-| EXP-007 | 879 staged configs | 2 | 879 (declared) | yes |
+| EXP-007 | 873 staged configs | 2 | **873 (actual)** | yes |
+| EXP-008 | 5 declared | 2 | 5 (declared) | yes |
 | EXP-007-WIN-GPU | 130 staged configs | 1 | 130 (declared) | yes |
-| **Running total** | | | **1,165** | |
+| **Running total** | | | **1,164** | |
 
 Any deflated-Sharpe calculation on these validation folds must use a trial
 count of **at least 156** — and, once EXP-007 completes, at least its actual

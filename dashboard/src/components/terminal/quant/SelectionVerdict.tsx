@@ -13,6 +13,7 @@
 
 import { useState } from 'react'
 import { StatusPill, type StatusTone } from '@/components/ui/DataMarks'
+import { Metric } from './ResearchTerminal'
 import { int, num, sign } from './format'
 import type { SelectionState } from './searchTypes'
 
@@ -27,6 +28,10 @@ const GATE_PURPOSE: Record<string, string> = {
     'It beats what the best of a zero-skill population this size would show.',
   alpha_credible: 'What is left is not just factor exposure.',
   turnover_tolerable: 'It can be traded at a plausible size.',
+  deflated_sharpe:
+    'The Sharpe survives deflation against the number of trials, their dispersion, and the return distribution’s skew and kurtosis.',
+  selection_carries_information:
+    'Picking the in-sample best actually predicts out-of-sample rank. Above 0.5 it predicts the opposite.',
 }
 
 export function SelectionVerdict({ selection }: { selection: SelectionState }) {
@@ -106,6 +111,8 @@ export function SelectionVerdict({ selection }: { selection: SelectionState }) {
         ))}
       </div>
 
+      <SelectionBias selection={selection} />
+
       {reproduction.length ? (
         <>
           <h4 className="qr-subhead">
@@ -145,6 +152,92 @@ export function SelectionVerdict({ selection }: { selection: SelectionState }) {
         </>
       ) : null}
     </div>
+  )
+}
+
+/**
+ * The three statistics that decide whether a result is a discovery or an
+ * artifact of having looked many times.
+ *
+ * Given its own panel because a leaderboard cannot show any of them: they are
+ * properties of the *search*, not of a model. A configuration with the best IC
+ * in the table and a PBO of 0.93 is the table telling you that the table is not
+ * to be trusted.
+ */
+function SelectionBias({ selection }: { selection: SelectionState }) {
+  const cid = selection.selected?.config_id
+  const sig = cid ? selection.significance?.[cid] : undefined
+  const dsr = sig?.deflated_sharpe
+  const mtrl = sig?.minimum_track_record
+  const pbo = selection.probability_of_backtest_overfitting
+
+  if (!dsr && !pbo) return null
+
+  const ratio =
+    dsr?.observed_sharpe != null && dsr?.expected_max_sharpe_under_null
+      ? dsr.observed_sharpe / dsr.expected_max_sharpe_under_null
+      : null
+
+  return (
+    <>
+      <h4 className="qr-subhead">Selection bias</h4>
+      <div className="qt-blocked__metrics">
+        {dsr ? (
+          <Metric
+            label="deflated Sharpe p"
+            value={num(dsr.deflated_probability, 4)}
+            method={`vs ${int(dsr.trials)} trials · needs > 0.95`}
+            status={(dsr.deflated_probability ?? 0) > 0.95 ? 'pass' : 'fail'}
+          />
+        ) : null}
+        {pbo?.pbo != null ? (
+          <Metric
+            label="PBO"
+            value={num(pbo.pbo, 3)}
+            method={`CSCV, ${int(pbo.splits_evaluated)} splits · needs ≤ 0.20`}
+            status={pbo.pbo <= 0.2 ? 'pass' : 'fail'}
+          />
+        ) : null}
+        {dsr ? (
+          <Metric
+            label="search noise ceiling"
+            value={num(dsr.expected_max_sharpe_under_null, 4)}
+            method={`Sharpe the best of ${int(dsr.trials)} zero-skill configs would show`}
+            status="none"
+          />
+        ) : null}
+        {ratio != null ? (
+          <Metric
+            label="observed ÷ ceiling"
+            value={`${num(ratio, 2)}×`}
+            method="above 1.0 is where a result starts being interesting"
+            status={ratio > 1 ? 'pass' : 'fail'}
+          />
+        ) : null}
+        {mtrl ? (
+          <Metric
+            label="track record needed"
+            value={int(mtrl.required_periods)}
+            method={`periods, for 95% confidence Sharpe > 0 · ${int(mtrl.observed_periods)} available`}
+            status={mtrl.sufficient ? 'pass' : 'fail'}
+          />
+        ) : null}
+        {dsr ? (
+          <Metric
+            label="return distribution"
+            value={`γ₁ ${num(dsr.skew, 2)}`}
+            method={`excess kurtosis ${num(dsr.excess_kurtosis, 1)} — fat tails lengthen the record required`}
+            status="none"
+          />
+        ) : null}
+      </div>
+      <p className="body-copy u-note">
+        These are properties of the search, not of any model in it. A high IC and
+        a PBO above 0.5 together mean the leaderboard ordering does not survive
+        out of sample — the in-sample winner lands in the bottom half more often
+        than not.
+      </p>
+    </>
   )
 }
 

@@ -244,6 +244,56 @@ still be labelled a candidate. EXP-004's best model is exactly that bundle.
 
 ---
 
+## 6b. The promotion standard — ten gates
+
+A candidate must clear all ten. They are in
+`src/quant/study/heavy.py::evaluate_gates`, they mirror
+`ModelRegistry.CANDIDATE_THRESHOLDS`, and a search cannot reach them.
+
+| gate | requirement | what it tests |
+|---|---|---|
+| `ic_t_stat` | \|t\| ≥ 2.0 | the ordering carries information |
+| `gross_sharpe` | > 0 | it makes money before costs |
+| `net_sharpe` | > 0 at 10 bp | it still does after them |
+| `beats_best_baseline` | IC above the best baseline refit on the same folds | it beats free factors |
+| `not_overfit` | train − validation IC ≤ 0.15 | it did not memorise |
+| `survives_search_size` | \|t\| > E[max \|t\|] of the cumulative trials | it beats what looking N times produces |
+| `alpha_credible` | six-factor alpha t > 0 | it is not just factor exposure |
+| `turnover_tolerable` | ≤ 30× annualised | it is tradeable at size |
+| `deflated_sharpe` | probability > 0.95 | the Sharpe survives deflation |
+| `selection_carries_information` | PBO ≤ 0.20 | in-sample selection predicts out-of-sample rank |
+
+### Why the last two were added
+
+**Registered 2026-09-01, after EXP-007 and before any experiment they govern.**
+
+EXP-007 produced a finalist that cleared all eight of the original gates while
+posting a deflated-Sharpe probability of **0.0485** and a PBO of **0.929**. The
+eight-gate set had a real hole: `survives_search_size` compares an *IC*
+t-statistic against a threshold derived for *Sharpe* selection, and nothing
+consulted the deflated Sharpe or the PBO that this project already computes for
+exactly that question.
+
+Both thresholds are Bailey & López de Prado's published values, not numbers
+chosen here. The change makes promotion **strictly harder** and rejects the
+model that was in front of it when it was made — which is the only kind of
+threshold change admissible after seeing results. Pinned by
+`tests/quant/test_promotion_standard.py` against EXP-007's real numbers.
+
+**Passing all ten yields DEVELOPMENT CANDIDATE, not production.** Production
+requires the holdout, spent once, under `docs/HOLDOUT_CONTRACT.md`.
+
+### Where the standard currently stands
+
+| | |
+|---|---|
+| production models | 0 |
+| candidates | 0 |
+| holdout | SEALED, contract not armed |
+| latest verdict | EXP-007 — **NO PRODUCTION CANDIDATE** (7 of 10) |
+
+---
+
 ## 7. CRC cards
 
 | Class | Responsibilities | Collaborators |

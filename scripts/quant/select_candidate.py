@@ -275,11 +275,18 @@ def main(argv: Optional[list[str]] = None) -> int:
         key=lambda e: -(e.get("net_sharpe") if e.get("net_sharpe") is not None else -1e9),
     )
     best = ranked[0]
+    # Deflation and PBO are gates, not commentary. They are read from the
+    # significance block computed above, and a missing value fails its gate
+    # rather than being skipped.
+    best_significance = significance.get(best["config_id"], {})
+    deflated = (best_significance.get("deflated_sharpe") or {}).get("deflated_probability")
     gates = evaluate_gates(
         best,
         best_baseline_ic=baseline_ic.get((best["arm"], best["target"])),
         cumulative_trials=trials,
         expected_max_t=expected_max_t,
+        deflated_probability=deflated,
+        pbo=pbo.get("pbo"),
     )
     verdict = selection_verdict(gates)
     for gate in gates:
