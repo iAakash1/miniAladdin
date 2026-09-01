@@ -173,6 +173,60 @@ curl -fsS "$RENDER_INFERENCE/model" | jq '.promotion_status, .artifact_integrity
 Expect `NO_MODEL`, `NOT_ARMED`, a ready health response, `BLOCKED`, and
 `sha256 verified against metadata at load`. Anything else is a real finding.
 
+## 4b. The backend's deployment is not in this repository
+
+`render.yaml` declares **one** service: `minialaddin-quant-inference`. The
+backend that serves `/api/*` runs at `minialaddin-d8oe.onrender.com` and is not
+declared anywhere in the repository.
+
+That service was created by hand in the Render dashboard, so its build command,
+start command, environment variables, branch and **auto-deploy setting** exist
+only there. Three consequences, all real:
+
+1. **The deployment is not reproducible from the repository.** If the service
+   were deleted, nothing here says how to recreate it.
+2. **Whether a push deploys it cannot be determined from here.** After pushing
+   the register fix, `/api/quant/status` continued to serve `total_entries: 0`
+   and no `registry_available` field — i.e. the old code — for as long as this
+   was observed.
+3. **Its environment variables cannot be audited.** `QUANT_INFERENCE_URL` in
+   particular is required for the model panel to work at all, and whether it is
+   set correctly is invisible from the repository.
+
+**This was deliberately not "fixed" by adding a service block to
+`render.yaml`.** Render blueprints match services by name, the existing service's
+name is not known from here (the URL slug is `minialaddin-d8oe`), and declaring
+a guess would create a **second, duplicate service** rather than adopting the
+existing one. That is a worse outcome than the documentation gap.
+
+### What you need to check in the Render dashboard
+
+| | |
+|---|---|
+| Service | the one serving `minialaddin-d8oe.onrender.com` |
+| Auto-Deploy | should be **On** for branch `main` |
+| Latest deploy | should be at or after commit `41a48f9` |
+| Build command | `pip install -r requirements.txt` |
+| Start command | must bind `$PORT`, e.g. `uvicorn api.index:app --host 0.0.0.0 --port $PORT` |
+| `QUANT_INFERENCE_URL` | `https://minialaddin-quant-inference.onrender.com` |
+
+If auto-deploy is off, a manual deploy of `main` is needed for the register fix
+to reach production. Until then the deployed backend keeps reporting
+`total_entries: 0` — which, after this change, would at least be honest, because
+an old build has no register either way.
+
+Once it deploys, this is the check:
+
+```bash
+curl -fsS https://minialaddin-d8oe.onrender.com/api/quant/status \
+  | jq '{deployment_status, registry_available, total_entries}'
+```
+
+Expect `NO_MODEL`, `true`, `103`. If `registry_available` is absent, the deploy
+has not picked up the change.
+
+---
+
 ## 5. Deployment configuration
 
 Confirmed consistent between code and `render.yaml`:
