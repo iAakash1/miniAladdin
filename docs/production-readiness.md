@@ -185,10 +185,12 @@ only there. Three consequences, all real:
 
 1. **The deployment is not reproducible from the repository.** If the service
    were deleted, nothing here says how to recreate it.
-2. **Whether a push deploys it cannot be determined from here.** After pushing
-   the register fix, `/api/quant/status` continued to serve `total_entries: 0`
-   and no `registry_available` field — i.e. the old code — for as long as this
-   was observed.
+2. **Auto-deploy is on, and that was established by observation rather than by
+   configuration.** The deployed `/api/quant/status` carries `contract_state`,
+   a field introduced in commit `f672669`, so pushes to `main` do reach this
+   service. The following commit `41a48f9` had not appeared within the ~10
+   minutes it was watched — a build, not a failure — so the register fix was
+   confirmed in code and in the local backend, but **not observed live**.
 3. **Its environment variables cannot be audited.** `QUANT_INFERENCE_URL` in
    particular is required for the model panel to work at all, and whether it is
    set correctly is invisible from the repository.
@@ -210,10 +212,9 @@ existing one. That is a worse outcome than the documentation gap.
 | Start command | must bind `$PORT`, e.g. `uvicorn api.index:app --host 0.0.0.0 --port $PORT` |
 | `QUANT_INFERENCE_URL` | `https://minialaddin-quant-inference.onrender.com` |
 
-If auto-deploy is off, a manual deploy of `main` is needed for the register fix
-to reach production. Until then the deployed backend keeps reporting
-`total_entries: 0` — which, after this change, would at least be honest, because
-an old build has no register either way.
+Auto-deploy appears to be on (see point 2), so this should land without
+intervention. If `registry_available` is still absent an hour after
+`41a48f9`, the deploy failed and the Render build log is the place to look.
 
 Once it deploys, this is the check:
 
