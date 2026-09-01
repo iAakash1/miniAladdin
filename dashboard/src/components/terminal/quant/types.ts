@@ -143,6 +143,10 @@ export interface Experiment {
   fold_rows?: FoldRow[]
   cost_sensitivity?: Record<string, CostRow[]>
   regime_performance?: Record<string, RegimeRow[]>
+  /** Six-factor attribution per model. The alpha t-stat lives here and
+   *  nowhere else — a leaderboard cannot show it. */
+  factor_attribution?: Record<string, { alpha_t_stat?: number | null;
+    alpha_annualised?: number | null; methodology?: string | null }> | null
   probability_of_backtest_overfitting?: {
     pbo?: number | null; configurations?: number; aligned_periods?: number
   }

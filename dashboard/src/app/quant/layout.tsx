@@ -15,7 +15,16 @@ export const dynamic = 'force-dynamic'
 export default function QuantLayout({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider>
-      <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}>
+      {/* The research surface is dark on this route regardless of the app theme.
+          It is read for long stretches beside a terminal, and the dense numeric
+          tables below depend on the dark palette for their contrast ratios.
+          Scoped with `data-theme` on this wrapper rather than by editing
+          TerminalShell, so the chrome matches here and nothing changes on
+          /terminal or anywhere else. */}
+      <div
+        data-theme="dark"
+        style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}
+      >
         {children}
       </div>
     </ClerkProvider>

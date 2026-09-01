@@ -5912,3 +5912,432 @@ a.hl-row:hover .hl-row__out { color: var(--accent); transform: translate(1px, -1
   transition: border-color var(--t-fast) var(--ease-out);
 }
 .qs-copy:hover { border-color: var(--accent); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   QUANT RESEARCH TERMINAL — scoped to `.qt`
+
+   A research surface with different requirements from the rest of the product:
+   dense, monospaced where it is numeric, and dark regardless of the app theme,
+   because this page is read for long stretches beside a terminal.
+
+   Scoped deliberately. Every token below is redefined on `.qt` rather than on
+   `:root`, so nothing here can reach the other terminal pages — this route is
+   the only place the research palette applies, and a change made for /quant
+   cannot destabilise /terminal.
+
+   Colour discipline, enforced by convention and by the component API:
+     GREEN  a gate that PASSED, or a genuinely healthy system state
+     RED    a gate that FAILED, or a blocking condition
+     AMBER  a warning, or evidence too thin to quote
+     GREY   unknown, unavailable, not computed
+   Green is never used because a number happens to be positive. The highest IC
+   in the search leaderboard routinely renders amber, because it is routinely
+   overfit.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.qt {
+  --paper:        #0c0e0d;
+  --bg:           #0c0e0d;
+  --surface:      #121514;
+  --surface-2:    #171b19;
+  --ink:          #dfe3e0;
+  --ink-2:        #9aa39e;
+  --ink-3:        #6b7570;
+  --text:         #dfe3e0;
+  --muted:        #9aa39e;
+  --faint:        #6b7570;
+  --line:         rgba(255, 255, 255, 0.07);
+  --line-strong:  rgba(255, 255, 255, 0.15);
+  --accent:       #4ea88a;
+  --accent-strong:#6fc4a5;
+  --accent-wash:  rgba(78, 168, 138, 0.10);
+  --pos:          #46a06f;
+  --pos-wash:     rgba(70, 160, 111, 0.10);
+  --neg:          #c9524a;
+  --neg-wash:     rgba(201, 82, 74, 0.10);
+  --warn:         #c08a2e;
+  --warn-wash:    rgba(192, 138, 46, 0.10);
+  --r-sm: 2px;
+  --r-md: 2px;
+  --r-lg: 3px;
+
+  background: var(--bg);
+  color: var(--text);
+  /* Research pages are read at width. Tables scroll inside their own
+     containers; the document itself must never scroll sideways. */
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.qt table { font-variant-numeric: tabular-nums; }
+.qt .num,
+.qt dd,
+.qt th.num,
+.qt td.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.qt .ml-scroll { max-width: 100%; }
+
+/* Corners off. A research table is not a card. */
+.qt .qr-banner,
+.qt .qr-callout,
+.qt .qr-check,
+.qt .qs-banner,
+.qt .qs-gate,
+.qt .qs-command,
+.qt .qs-census { border-radius: 2px; }
+
+/* ── masthead ───────────────────────────────────────────────────────────── */
+
+.qt-masthead {
+  padding: 0 0 1.25rem;
+  border-bottom: 1px solid var(--line-strong);
+  margin-bottom: 1px;
+}
+.qt-masthead__eyebrow {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.4rem;
+}
+.qt-masthead__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+.qt-masthead__lede {
+  margin: 0;
+  max-width: 78ch;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+/* ── status rail ────────────────────────────────────────────────────────── */
+
+.qt-rail {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line-strong);
+  margin-bottom: 1.75rem;
+}
+.qt-rail__cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.7rem 0.85rem 0.75rem;
+  background: var(--surface);
+  border-top: 2px solid transparent;
+}
+.qt-rail__label {
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.qt-rail__value {
+  font-family: var(--font-mono);
+  font-size: 0.9375rem;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+}
+.qt-rail__detail {
+  font-size: 0.625rem;
+  line-height: 1.3;
+  color: var(--ink-3);
+  min-height: 1em;
+}
+.qt-rail__cell--active  { border-top-color: var(--accent); }
+.qt-rail__cell--active  .qt-rail__value { color: var(--accent-strong); }
+.qt-rail__cell--blocked { border-top-color: var(--neg); }
+.qt-rail__cell--blocked .qt-rail__value { color: var(--neg); }
+.qt-rail__cell--sealed  { border-top-color: var(--line-strong); }
+.qt-rail__cell--pass    { border-top-color: var(--pos); }
+.qt-rail__cell--pass    .qt-rail__value { color: var(--pos); }
+
+/* ── executive summary ──────────────────────────────────────────────────── */
+
+.qt-exec {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 1.25rem 1.35rem;
+  margin-bottom: 1.5rem;
+}
+.qt-exec__head { max-width: 82ch; }
+.qt-exec__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.0625rem;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+.qt-exec__lede {
+  margin: 0 0 1.25rem;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.qt-exec__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem 2rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--line);
+}
+.qt-exec__foot {
+  margin: 1.1rem 0 0;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.75rem;
+  line-height: 1.6;
+  color: var(--muted);
+  max-width: 88ch;
+}
+.qt-exec__foot strong { color: var(--text); }
+
+.qt-label {
+  margin: 0 0 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--faint);
+}
+
+.qt-defs { margin: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+.qt-defs > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px dotted var(--line);
+}
+.qt-defs dt { font-size: 0.6875rem; color: var(--muted); }
+.qt-defs dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.qt-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.65rem; }
+.qt-list li { font-size: 0.75rem; line-height: 1.5; color: var(--muted); }
+.qt-list__tag {
+  display: inline-block;
+  margin-right: 0.5rem;
+  padding: 0.05rem 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  vertical-align: 1px;
+}
+.qt-list__tag--open {
+  color: var(--warn);
+  border-color: color-mix(in srgb, var(--warn) 45%, transparent);
+}
+
+/* ── holdout firewall ───────────────────────────────────────────────────── */
+
+.qt-firewall {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  margin-bottom: 1.5rem;
+}
+.qt-firewall__bar {
+  flex: 0 0 4px;
+  /* A hatched barrier rather than a solid rule — it should read as a boundary,
+     not as a section accent. */
+  background: repeating-linear-gradient(
+    135deg,
+    var(--pos) 0 6px,
+    transparent 6px 12px
+  );
+  opacity: 0.75;
+}
+.qt-firewall--armed .qt-firewall__bar {
+  background: repeating-linear-gradient(135deg, var(--neg) 0 6px, transparent 6px 12px);
+  opacity: 1;
+}
+.qt-firewall--unknown .qt-firewall__bar {
+  background: repeating-linear-gradient(135deg, var(--faint) 0 6px, transparent 6px 12px);
+}
+.qt-firewall__body { flex: 1 1 auto; padding: 1rem 1.25rem; min-width: 0; }
+.qt-firewall__head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+.qt-firewall__state {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+  padding: 0.15rem 0.5rem;
+  color: var(--pos);
+  border: 1px solid color-mix(in srgb, var(--pos) 50%, transparent);
+  background: var(--pos-wash);
+}
+.qt-firewall--armed .qt-firewall__state {
+  color: var(--neg);
+  border-color: color-mix(in srgb, var(--neg) 50%, transparent);
+  background: var(--neg-wash);
+}
+.qt-firewall--unknown .qt-firewall__state {
+  color: var(--faint);
+  border-color: var(--line-strong);
+  background: transparent;
+}
+.qt-firewall__title {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+.qt-firewall__facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem 1.5rem;
+  margin: 0 0 0.9rem;
+}
+.qt-firewall__facts dt {
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-bottom: 0.15rem;
+}
+.qt-firewall__facts dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+}
+.qt-firewall__note {
+  margin: 0;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.6875rem;
+  line-height: 1.6;
+  color: var(--muted);
+  max-width: 92ch;
+}
+.qt-firewall__note code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  color: var(--ink-2);
+  background: var(--surface-2);
+  padding: 0.05em 0.3em;
+}
+
+/* ── blocked headline ───────────────────────────────────────────────────── */
+
+.qt-blocked {
+  border: 1px solid var(--line-strong);
+  border-top: 2px solid var(--neg);
+  background: var(--surface);
+  margin-bottom: 1.5rem;
+}
+.qt-blocked__head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid var(--line);
+}
+.qt-blocked__flag {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.16em;
+  padding: 0.15rem 0.5rem;
+  color: var(--neg);
+  border: 1px solid color-mix(in srgb, var(--neg) 50%, transparent);
+  background: var(--neg-wash);
+}
+.qt-blocked__model {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  color: var(--text);
+}
+.qt-blocked__exp {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--faint);
+  margin-left: auto;
+}
+.qt-blocked__metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1px;
+  background: var(--line);
+}
+.qt-blocked__note {
+  margin: 0;
+  padding: 0.9rem 1.25rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.6875rem;
+  line-height: 1.6;
+  color: var(--muted);
+  max-width: 92ch;
+}
+
+/* ── metric cell ────────────────────────────────────────────────────────── */
+
+.qt-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.85rem 1.1rem 0.95rem;
+  background: var(--surface);
+  border-left: 2px solid transparent;
+}
+.qt-metric__label {
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.qt-metric__value {
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.qt-metric__method {
+  font-size: 0.625rem;
+  line-height: 1.4;
+  color: var(--ink-3);
+}
+.qt-metric--pass .qt-metric__value { color: var(--pos); }
+.qt-metric--pass { border-left-color: color-mix(in srgb, var(--pos) 55%, transparent); }
+.qt-metric--fail .qt-metric__value { color: var(--neg); }
+.qt-metric--fail { border-left-color: var(--neg); }
+.qt-metric--warn .qt-metric__value { color: var(--warn); }
+.qt-metric--warn { border-left-color: color-mix(in srgb, var(--warn) 55%, transparent); }
+
+/* ── narrow viewports ───────────────────────────────────────────────────── */
+
+@media (max-width: 700px) {
+  .qt-masthead__title { font-size: 1.25rem; }
+  .qt-rail { grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); }
+  .qt-rail__value { font-size: 0.8125rem; }
+  .qt-blocked__exp { margin-left: 0; width: 100%; }
+  .qt-blocked__metrics { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+  .qt-metric__value { font-size: 1.0625rem; }
+  /* Wide research tables keep their width and scroll inside their container.
+     The document must not scroll: that is what makes the header overflow. */
+  .qt .ml-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}

@@ -45,6 +45,9 @@ import SearchLab from '@/components/terminal/quant/SearchLab'
 import {
   ExperimentTimeline, Provenance, SelectionVerdict, TrainCommand,
 } from '@/components/terminal/quant/SelectionVerdict'
+import {
+  BlockedHeadline, ExecutiveSummary, HoldoutFirewall, StatusRail,
+} from '@/components/terminal/quant/ResearchTerminal'
 import type { SearchState, SelectionState } from '@/components/terminal/quant/searchTypes'
 import { quantFetch, type QuantFailure } from '@/lib/quantApi'
 import type {
@@ -194,14 +197,48 @@ export default function QuantResearchView() {
   const ablation = experiment?.ablation
 
   return (
-    <>
-      <PageHeader
-        eyebrow="Quantitative research"
-        title="Quant"
-        lede="Point-in-time research: what was measured, what it cost, and what it does not support."
+    <div className="qt">
+      {/* ── masthead ─────────────────────────────────────────────────────
+          Identity, then the seven states that decide how everything below it
+          should be read. The rail is deliberately flat: promotion and holdout
+          carry the same weight as search progress, because a search at 92%
+          reads as momentum unless they do. */}
+      <header className="qt-masthead">
+        <div className="qt-masthead__id">
+          <span className="qt-masthead__eyebrow">OmniSignal</span>
+          <h1 className="qt-masthead__title">Quantitative research terminal</h1>
+        </div>
+        <p className="qt-masthead__lede">
+          Point-in-time research: what was measured, what it cost, and what it does not
+          support. Every number on this page is read from a recorded artifact or the live
+          search checkpoint. Nothing is inferred to fill a gap.
+        </p>
+      </header>
+
+      <StatusRail
+        search={search}
+        production={status?.production}
+        candidates={status?.candidates}
+        holdoutArmed={armed}
+        integrityClean={experiment?.integrity?.clean}
       />
 
-      {/* ── 1. deployment state — nothing on this page can change it ── */}
+      <ExecutiveSummary
+        search={search}
+        selection={selection}
+        trials={experiment?.trials_used_for_correction}
+      />
+
+      <HoldoutFirewall
+        armed={armed}
+        start={experiment?.holdout?.start ?? search?.holdout?.start}
+        end={experiment?.holdout?.end ?? search?.holdout?.end}
+        sessions={experiment?.holdout?.sessions}
+        touched={search?.holdout?.touched ?? false}
+      />
+
+      {/* Registry state, kept adjacent to the firewall: promotion is decided
+          there and cannot be changed by any result rendered below. */}
       <div className={`qr-banner qr-banner--${(status?.deployment_status ?? 'NO_MODEL').toLowerCase()}`}>
         <div className="qr-banner__head">
           <StatusPill
@@ -221,20 +258,6 @@ export default function QuantResearchView() {
           <div><dt>validated</dt><dd className="num">{status?.validated ?? 0}</dd></div>
           <div><dt>retired / void</dt><dd className="num">{status?.retired ?? 0}</dd></div>
         </dl>
-      </div>
-
-      <div className={`qr-holdout ${armed ? 'qr-holdout--armed' : ''}`}>
-        <span className="qr-holdout__lock" aria-hidden>{armed ? '◉' : '⬛'}</span>
-        <div>
-          <strong>{status?.firewall?.headline ?? 'HOLDOUT LOCKED'}</strong>
-          <p className="body-copy u-note">
-            {experiment?.holdout?.start
-              ? `${experiment.holdout.start} → ${experiment.holdout.end} · ${experiment.holdout.sessions} sessions. `
-              : ''}
-            Single-use and untouched. The firewall refuses holdout-dated rows at fit time,
-            not merely by convention — see <code>src/quant/study/firewall.py</code>.
-          </p>
-        </div>
       </div>
 
       {experiment?.status !== 'ok' ? (
@@ -259,46 +282,17 @@ export default function QuantResearchView() {
               in the ladder only to prove the overfitting diagnostic fires.
             </p>
             {best && (
-              <div className="qr-evidence">
-                <div className="qr-evidence__item">
-                  <dt>best learned model</dt>
-                  <dd className="num qr-model">{best.model_id}</dd>
-                </div>
-                <div className="qr-evidence__item">
-                  <dt>validation IC</dt><dd className="num">{sign(best.mean_ic)}</dd>
-                </div>
-                <div className={`qr-evidence__item ${(best.ic_t_stat ?? 0) < 2 ? 'qr-fail' : ''}`}>
-                  <dt>IC t-statistic</dt>
-                  <dd className="num">{sign(best.ic_t_stat, 2)}<em> need ≥ 2</em></dd>
-                </div>
-                <div className={`qr-evidence__item ${(best.gross_sharpe ?? 0) <= 0 ? 'qr-fail' : ''}`}>
-                  <dt>gross Sharpe</dt>
-                  <dd className="num">{sign(best.gross_sharpe, 2)}<em> before any cost</em></dd>
-                </div>
-                <div className={`qr-evidence__item ${(best.net_sharpe ?? 0) <= 0 ? 'qr-fail' : ''}`}>
-                  <dt>net Sharpe</dt>
-                  <dd className="num">{sign(best.net_sharpe, 2)}<em> at 10 bp</em></dd>
-                </div>
-                <div className="qr-evidence__item">
-                  <dt>vs best baseline</dt>
-                  <dd className="num">
-                    {bestBaseline && best.mean_ic != null && bestBaseline.mean_ic != null
-                      ? sign(best.mean_ic - bestBaseline.mean_ic)
-                      : '—'}
-                    <em> {bestBaseline?.model_id ?? ''}</em>
-                  </dd>
-                </div>
-                <div className="qr-evidence__item qr-fail">
-                  <dt>deflated Sharpe p</dt>
-                  <dd className="num">
-                    {f(best.deflated_sharpe_probability, 3)}
-                    <em> vs {best.deflated_sharpe_trials ?? '—'} trials</em>
-                  </dd>
-                </div>
-                <div className="qr-evidence__item qr-fail">
-                  <dt>promotion</dt><dd>REJECTED</dd>
-                </div>
-              </div>
+              <BlockedHeadline
+                modelId={best.model_id}
+                ic={best.mean_ic}
+                icT={best.ic_t_stat}
+                grossSharpe={best.gross_sharpe}
+                netSharpe={best.net_sharpe}
+                turnover={best.annualised_turnover}
+                alphaT={
+                  experiment.factor_attribution?.[best.model_id]?.alpha_t_stat ?? null
+                }
+              />
             )}
             <p className="body-copy u-note">
               A negative result from a pipeline with working leakage controls is a
@@ -894,6 +888,6 @@ export default function QuantResearchView() {
           </Section>
         </>
       )}
-    </>
+    </div>
   )
 }

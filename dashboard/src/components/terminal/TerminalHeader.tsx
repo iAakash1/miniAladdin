@@ -68,6 +68,12 @@ export default function TerminalHeader({ macro, isPro, usedToday, onUpgrade }: T
         borderBottom: '1px solid var(--line)',
       }}
     >
+      {/* The row's contents are fixed-width and do not shrink, so below roughly
+          1000px they used to spill out of the header and drag the whole document
+          sideways — a 375px phone rendered a 1004px page. Scrolling the row
+          internally contains it. At widths where the contents already fit this
+          changes nothing: `overflow-x: auto` shows no scrollbar until there is
+          something to scroll. */}
       <div
         style={{
           display: 'flex',
@@ -75,6 +81,9 @@ export default function TerminalHeader({ macro, isPro, usedToday, onUpgrade }: T
           gap: 16,
           height: 54,
           padding: '0 clamp(16px, 3vw, 28px)',
+          overflowX: 'auto',
+          overflowY: 'hidden',
+          scrollbarWidth: 'none',
         }}
       >
         <Link

@@ -348,6 +348,11 @@ def experiment(experiment_id: str, root: Path | str = DEFAULT_ROOT) -> dict[str,
         "walk_forward_plan": label_block.get("walk_forward_plan"),
         "fold_rows": label_block.get("fold_rows"),
         "cost_sensitivity": label_block.get("cost_sensitivity"),
+        # Six-factor attribution, per model. Surfaced because the alpha t-stat is
+        # the number that separates "this returned something" from "this returned
+        # something the factor model does not already explain" — and it is the one
+        # a leaderboard sorted by Sharpe will never show you.
+        "factor_attribution": label_block.get("factor_attribution"),
         "regime_performance": label_block.get("regime_performance"),
         "probability_of_backtest_overfitting": label_block.get(
             "probability_of_backtest_overfitting"
