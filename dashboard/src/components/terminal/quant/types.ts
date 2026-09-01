@@ -172,6 +172,12 @@ export interface QuantStatus {
   retired: number
   total_entries: number
   firewall?: {
+    /** ARMED | NOT_ARMED | UNKNOWN. Prefer this over `contract_armed`: a false
+     *  `contract_armed` can mean "confirmed not armed" or "contract could not
+     *  be read", and a holdout must never be described more confidently than it
+     *  is known. */
+    contract_state?: 'ARMED' | 'NOT_ARMED' | 'UNKNOWN'
+    contract_readable?: boolean
     headline?: string
     contract_armed?: boolean
     window?: { start?: string | null; end?: string | null }

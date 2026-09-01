@@ -100,8 +100,31 @@ class HoldoutFirewall:
         if self.window.active:
             logger.info("firewall: holdout %s..%s is LOCKED", start, end)
 
+    def contract_readable(self) -> bool:
+        """Whether the contract could actually be read.
+
+        Separate from `contract_armed` because the two answer different
+        questions and only one of them is a fact about the contract. An
+        unreadable contract makes `contract_armed` return False — which is the
+        correct *behaviour*, since the firewall must stay engaged — but it is
+        not evidence that a human declined to arm it. Reporting those two states
+        identically would let "we could not read the file" render as "confirmed
+        not armed", and a holdout is exactly the thing that must never be
+        described more confidently than it is known.
+        """
+        try:
+            self.contract_path.read_text(encoding="utf-8")
+        except OSError:
+            return False
+        return True
+
     def contract_armed(self) -> bool:
-        """Whether a human has armed the contract. The only lift condition."""
+        """Whether a human has armed the contract. The only lift condition.
+
+        Unreadable means not armed. That is the safe direction and it does not
+        change: the firewall stays engaged. `contract_readable` records whether
+        this answer was measured or defaulted.
+        """
         try:
             text = self.contract_path.read_text(encoding="utf-8")
         except OSError:
@@ -180,10 +203,18 @@ class HoldoutFirewall:
         self.assert_clear(pd.DataFrame({"date": list(dates)}), context=context)
 
     def status(self) -> dict[str, Any]:
+        readable = self.contract_readable()
+        armed = self.contract_armed()
         return {
             "window": self.window.as_dict(),
             "contract_path": str(self.contract_path),
-            "contract_armed": self.contract_armed(),
+            "contract_armed": armed,
+            #: False here means `contract_armed` was defaulted, not measured.
+            #: The firewall is engaged either way; the reader is told which.
+            "contract_readable": readable,
+            "contract_state": (
+                "ARMED" if armed else "NOT_ARMED" if readable else "UNKNOWN"
+            ),
             "engaged": self.engaged,
             "override_reason": self._override_reason,
             "checks": self.checks,

@@ -185,7 +185,16 @@ export default function QuantResearchView() {
     )
   }
 
-  const armed = status?.firewall?.contract_armed
+  // ARMED | NOT_ARMED | UNKNOWN. `undefined` (status not yet loaded) and
+  // 'UNKNOWN' (contract unreadable) both render as unknown rather than sealed.
+  const contractState = status?.firewall?.contract_state
+  const armed =
+    contractState === 'ARMED' ? true
+    : contractState === 'NOT_ARMED' ? false
+    : status?.firewall?.contract_armed === true ? true
+    : contractState === 'UNKNOWN' ? undefined
+    : status?.firewall?.contract_armed === false ? false
+    : undefined
   const leaders = experiment?.leaderboard ?? []
   // `best_candidate` comes from the backend and excludes the deliberately
   // over-parameterised control, which otherwise posts the highest raw IC and

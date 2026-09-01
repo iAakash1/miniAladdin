@@ -138,7 +138,12 @@ export function ExecutiveSummary({
   const running = search?.state === 'RUNNING'
   const complete = search?.state === 'COMPLETE'
   const mt = search?.multiple_testing
-  const selected = selection?.available && selection.verdict
+  // The gate standard in force today, restated by the read layer when the
+  // artifact predates it. Every surface on this page reads the same one, or the
+  // executive summary would report a different failure count from the verdict
+  // panel two sections below it.
+  const gateVerdict = selection?.current_standard ?? selection?.verdict
+  const selected = selection?.available && gateVerdict
 
   const settled: [string, string][] = [
     [
@@ -248,13 +253,13 @@ export function ExecutiveSummary({
               <li>
                 <span
                   className={`qt-list__tag ${
-                    selection?.verdict?.passed ? '' : 'qt-list__tag--open'
+                    gateVerdict?.passed ? '' : 'qt-list__tag--open'
                   }`}
                 >
-                  {selection?.verdict?.status}
+                  {gateVerdict?.status}
                 </span>
-                {selection?.verdict?.failed?.length
-                  ? `Failed: ${selection.verdict.failed.join(', ')}.`
+                {gateVerdict?.failed?.length
+                  ? `Failed ${gateVerdict.failed.length} of ${gateVerdict.gates.length}: ${gateVerdict.failed.join(', ')}.`
                   : 'Every predeclared gate passed. Development candidate only — the holdout is untouched and promotion remains blocked.'}
               </li>
             </ul>
