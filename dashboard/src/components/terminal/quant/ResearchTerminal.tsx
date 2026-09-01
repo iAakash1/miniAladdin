@@ -72,7 +72,7 @@ export function StatusRail({
     {
       label: 'promotion',
       value: 'BLOCKED',
-      detail: `${int(candidates ?? 0)} candidates`,
+      detail: `${int(candidates)} candidates`,
       tone: 'blocked',
     },
     {
@@ -90,9 +90,13 @@ export function StatusRail({
       tone: holdoutArmed === undefined ? 'neutral' : holdoutArmed ? 'blocked' : 'sealed',
     },
     {
+      // `?? 0` would render an unreadable register as "0 models serving",
+      // which is a claim rather than a reading. int() gives an em dash.
       label: 'production',
-      value: int(production ?? 0),
-      detail: 'models serving',
+      value: int(production),
+      detail: production === null || production === undefined
+        ? 'register unreadable'
+        : 'models serving',
       tone: (production ?? 0) > 0 ? 'pass' : 'neutral',
     },
     {

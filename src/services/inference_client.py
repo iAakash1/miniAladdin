@@ -61,14 +61,55 @@ def configured() -> bool:
     return bool(INFERENCE_URL)
 
 
-def _unavailable(detail: str, *, remedy: Optional[str] = None) -> dict[str, Any]:
+def _unavailable(detail: str, *, remedy: Optional[str] = None,
+                 status: str = "unavailable") -> dict[str, Any]:
     return {
-        "status": "unavailable",
+        "status": status,
         "detail": detail,
         "remedy": remedy or "Set QUANT_INFERENCE_URL to the deployed service.",
         "research_status": "EXPERIMENTAL",
         "promotion_status": "BLOCKED",
     }
+
+
+def _from_exception(error: BaseException) -> dict[str, Any]:
+    """Classify a transport failure, because the causes are not equivalent.
+
+    Every failure used to collapse into `unavailable` carrying a raw exception
+    string. A free-tier cold start and a service that no longer exists then look
+    identical to the reader, and they need opposite responses: one is a wait,
+    the other is an outage.
+
+    Measured 2026-09-01: the inference service takes ~43s to wake from Render's
+    free-tier spin-down, against a request budget of 8s. So a timeout here is
+    the *expected* first response after ~15 minutes of inactivity, and calling
+    it "unavailable" describes the most routine state of the deployment as a
+    fault.
+    """
+    import requests
+
+    if isinstance(error, requests.exceptions.Timeout):
+        return _unavailable(
+            f"no response within {TIMEOUT_SECONDS:.0f}s",
+            status="waking",
+            remedy=(
+                "The service is most likely starting. Render's free tier spins a "
+                "service down after ~15 minutes of inactivity and takes roughly a "
+                "minute to wake. Retry shortly; the research evidence on this page "
+                "is read from committed artifacts and is unaffected."
+            ),
+        )
+    if isinstance(error, requests.exceptions.ConnectionError):
+        return _unavailable(
+            f"could not connect: {type(error).__name__}",
+            status="waking",
+            remedy=(
+                "The host refused or dropped the connection, which also happens "
+                "while a spun-down service is starting. If it persists for more "
+                "than a few minutes, check the service is deployed and running."
+            ),
+        )
+    return _unavailable(f"{type(error).__name__}: {error}")
 
 
 def _snapshot() -> dict[str, Any]:
@@ -111,8 +152,7 @@ def health() -> dict[str, Any]:
         response.raise_for_status()
         return {"status": "ok", **response.json()}
     except Exception as error:  # noqa: BLE001
-        return _unavailable(f"{type(error).__name__}: {error}",
-                            remedy="The inference service is unreachable or cold-starting.")
+        return _from_exception(error)
 
 
 def model_card() -> dict[str, Any]:
@@ -134,8 +174,7 @@ def model_card() -> dict[str, Any]:
         response.raise_for_status()
         payload = {"status": "ok", **response.json()}
     except Exception as error:  # noqa: BLE001
-        return _unavailable(f"{type(error).__name__}: {error}",
-                            remedy="The inference service is unreachable or cold-starting.")
+        return _from_exception(error)
 
     with _lock:
         _meta_cache.update(payload=payload, at=now)
@@ -188,8 +227,7 @@ def predict(symbols: list[str]) -> dict[str, Any]:
         response.raise_for_status()
         payload = response.json()
     except Exception as error:  # noqa: BLE001
-        return _unavailable(f"{type(error).__name__}: {error}",
-                            remedy="The inference service is unreachable or cold-starting.")
+        return _from_exception(error)
 
     return {
         "status": "ok",

@@ -3,7 +3,87 @@
 What is verified, what is not, and what is blocked on something outside this
 repository. Written to be falsifiable: every "verified" line names how.
 
-**Last reviewed:** 2026-09-01
+**Last reviewed:** 2026-09-01 (incident review)
+
+---
+
+## 0. Incident 2026-09-01 — "Render is unreachable"
+
+Reported as an outage. It was not one. Both services returned **HTTP 200** on
+every request throughout. The measurements:
+
+| endpoint | first request | warm |
+|---|---|---|
+| `minialaddin-d8oe.onrender.com/api/health` | **43.0s** | — |
+| `minialaddin-d8oe.onrender.com/api/quant/status` | — | 1.07s |
+| `minialaddin-quant-inference.onrender.com/health` | **42.7s** | — |
+| `mini-aladding.vercel.app/` | 1.14s | — |
+
+### Root cause chain
+
+1. **The keep-alive workflow was throttled ~29×.** Its cron is `*/10`
+   (10 minutes). GitHub Actions actually ran it at a **median gap of 286
+   minutes** over the last twelve runs — 136, 160, 173, 197, 223, 286, 294,
+   316, 350, 383, 410 minutes. Every single gap exceeded Render's 15-minute
+   spin-down. High-frequency schedules on free runners are best-effort and are
+   dropped under load.
+2. **The workflow reported success the whole time.** Each run took 39–52
+   seconds — the curl waiting out a cold start — and exited 0. A green check
+   was masking a mechanism that had not worked in days.
+3. **It only ever pinged the backend.** The inference service was never in the
+   workflow at all, so it slept unconditionally.
+4. **A sleeping inference service always reads as unavailable.** The backend
+   calls it with an 8s budget (`QUANT_INFERENCE_TIMEOUT`) against a ~43s wake,
+   so the first request after any quiet period fails by construction.
+5. **Every transport failure collapsed into `unavailable`** carrying a raw
+   exception string, making a routine cold start indistinguishable from a dead
+   service.
+
+### A second, unrelated defect found during the same investigation
+
+The deployed backend was serving `total_entries: 0` where local serves 103.
+
+`data/research/models/registry.json` — the model register, and the only place a
+promotion can be recorded — was excluded from git by `/data/research/`, a rule
+written to keep 216 MB of derived partitions out of the repository. The register
+is a 1.5 MB evidence ledger caught by where it happens to live.
+
+`ModelRegistry._load()` returns silently when the file is absent, so a **missing**
+register was indistinguishable from an **empty** one. The API then asserted
+"No production-grade predictive model currently validated" — a claim about
+research — from a file that was not in the image. It happened to match the truth
+and was not derived from it, and it would have kept saying NO_MODEL after a real
+promotion.
+
+### Fixes
+
+| # | fix |
+|---|---|
+| 1 | Keep-alive pings **both** services, as independent matrix jobs so one failure cannot mask the other. |
+| 2 | The workflow documents the measured throttling, so a green check is not read as a warm service. |
+| 3 | Timeouts and connection errors classify as **`waking`** with a specific message, not `unavailable`. |
+| 4 | `ModelRegistry.source_present` records whether the file was actually read. |
+| 5 | `production_status` returns **`UNKNOWN` with null counts** when the register is absent or corrupt — never `NO_MODEL` with zeros — and refuses to serve. |
+| 6 | The register ships: `.gitignore` re-admits that one file and nothing else. |
+| 7 | The frontend renders null counts as an em dash instead of `?? 0`. |
+| 8 | Fixed `symbol_view` passing an experiments root into what is now `registry_root`. |
+
+### What is NOT fixed, and cannot be from this repository
+
+**GitHub Actions cron cannot reliably keep a Render free-tier service warm.**
+The run history is the evidence: a 10-minute schedule delivered at a 286-minute
+median. Pinging both services helps when a run does fire, and it does not change
+the cadence.
+
+Real options, all requiring a decision outside this repository:
+
+- **Render paid tier** — services do not spin down. The direct fix.
+- **An external uptime pinger** (UptimeRobot, Cron-job.org, a small always-on
+  host) hitting both `/health` endpoints every 10 minutes. Free tiers exist and
+  are not subject to Actions throttling.
+- **Accept cold starts.** The application now handles them honestly: the first
+  request after a quiet period reports `waking` with an explanation, and all
+  research evidence renders from committed artifacts regardless.
 
 ---
 

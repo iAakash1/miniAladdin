@@ -32,12 +32,19 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Any, Optional
 
 logger = logging.getLogger("omnisignal.services.quant")
 
 DEFAULT_ROOT = Path("experiments")
+
+#: Where the model register lives. Overridable so a deployment can mount it
+#: outside the research tree; the two paths are unrelated and were previously
+#: hardcoded at each call site, which meant the `root` argument on
+#: `production_status` and `registry_view` was accepted and silently ignored.
+REGISTRY_ROOT = Path(os.environ.get("QUANT_REGISTRY_ROOT", "data/research/models"))
 METRICS_NAME = "metrics.json"
 
 #: Train-minus-validation IC above which a model is called overfit regardless of
@@ -376,7 +383,7 @@ def latest(root: Path | str = DEFAULT_ROOT) -> dict[str, Any]:
     return experiment(newest["experiment_id"], root)
 
 
-def production_status(root: Path | str = DEFAULT_ROOT) -> dict[str, Any]:
+def production_status(registry_root: Path | str | None = None) -> dict[str, Any]:
     """What the product is allowed to serve. The honest empty state.
 
     Deliberately independent of any experiment result: it reads the registry,
@@ -387,10 +394,52 @@ def production_status(root: Path | str = DEFAULT_ROOT) -> dict[str, Any]:
     from src.quant.models.registry import ModelRegistry
 
     try:
-        registry = ModelRegistry("data/research/models")
+        registry = ModelRegistry(registry_root or REGISTRY_ROOT)
     except Exception as error:  # noqa: BLE001
-        return {"deployment_status": "NO_MODEL", "detail": f"registry unreadable: {error}",
-                "production": 0, "candidates": 0}
+        # Unreadable is unknown, never zero. Reporting 0 here would turn a
+        # corrupt or unparseable register into the assertion that nothing is
+        # approved for production.
+        return {
+            "deployment_status": "UNKNOWN",
+            "message": "The model register could not be read.",
+            "detail": f"registry unreadable: {error}",
+            "registry_available": False,
+            "production": None, "candidates": None, "validated": None,
+            "total_entries": None, "retired": None,
+            "serving_predictions": False,
+        }
+
+    # An absent register is not an empty one.
+    #
+    # `NO_MODEL` is a positive claim — "nothing has been validated" — and it can
+    # only be made from a register we actually read. When the file is missing,
+    # every count below would be zero and the message would assert a research
+    # conclusion drawn from nothing. This is the state the deployed backend was
+    # in while the register was excluded from the image: it reported NO_MODEL
+    # with 0 total entries, which happened to match the truth and was not
+    # derived from it.
+    if not registry.source_present:
+        return {
+            "deployment_status": "UNKNOWN",
+            "message": (
+                "The model register could not be read, so what is approved for "
+                "production is unknown. This is not a statement that nothing is "
+                "approved."
+            ),
+            "detail": f"no registry at {registry.path}",
+            "registry_available": False,
+            "production": None,
+            "candidates": None,
+            "validated": None,
+            "total_entries": None,
+            "retired": None,
+            "serving_predictions": False,
+            "note": (
+                "Serving is refused while the register is unreadable. A model may "
+                "only be served as a production prediction when a promotion is "
+                "recorded, and no promotion can be confirmed from here."
+            ),
+        }
 
     production = registry.by_status("production")
     candidates = registry.by_status("production_candidate")
@@ -417,6 +466,7 @@ def production_status(root: Path | str = DEFAULT_ROOT) -> dict[str, Any]:
 
     return {
         "deployment_status": status,
+        "registry_available": True,
         "message": message,
         "production": len(production),
         "candidates": len(candidates),
@@ -431,7 +481,7 @@ def production_status(root: Path | str = DEFAULT_ROOT) -> dict[str, Any]:
     }
 
 
-def registry_view() -> dict[str, Any]:
+def registry_view(registry_root: Path | str | None = None) -> dict[str, Any]:
     """The registry as counts and rejection reasons, for the UI.
 
     Deliberately does not expose the full evidence bundle: that is megabytes of
@@ -443,7 +493,7 @@ def registry_view() -> dict[str, Any]:
     from src.quant.models.registry import ModelRegistry
 
     try:
-        registry = ModelRegistry("data/research/models")
+        registry = ModelRegistry(registry_root or REGISTRY_ROOT)
     except Exception as error:  # noqa: BLE001
         return {"status": "unavailable", "detail": str(error)}
 
@@ -501,7 +551,11 @@ def symbol_view(symbol: str, root: Path | str = DEFAULT_ROOT) -> dict[str, Any]:
     fabricates a prediction, and it never renders a research signal in a shape
     that could be mistaken for one.
     """
-    production = production_status(root)
+    # `root` is the experiments directory; the register lives elsewhere and is
+    # resolved by production_status itself. Passing `root` through here would
+    # point the register at the experiments tree and make every symbol page
+    # report UNKNOWN.
+    production = production_status()
     payload = {
         "symbol": symbol.upper(),
         "deployment_status": production["deployment_status"],

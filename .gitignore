@@ -73,6 +73,25 @@ data/panel/
 # it means only the clones.
 /datasets/
 /data/research/
+
+# ...except the model register, which is not data.
+#
+# `/data/research/` exists to exclude derived partitions measured in gigabytes.
+# The register is a 1.5 MB evidence ledger that records every model, its
+# metrics, and its promotion state — and it is the ONLY place a promotion can be
+# recorded. It was caught by this rule because of where it happens to live, and
+# the consequence reached production: the deployed backend read no register,
+# found no entries, and reported "no model is validated" as a conclusion drawn
+# from a file that was not in the image.
+#
+# Git cannot re-include a file beneath an excluded directory, so the whole path
+# chain is re-admitted one level at a time. The `*` lines keep everything else
+# in those directories excluded.
+!/data/research/
+/data/research/*
+!/data/research/models/
+/data/research/models/*
+!/data/research/models/registry.json
 /data/panel/
 
 # Training and ingestion logs — reproducible output, often large.

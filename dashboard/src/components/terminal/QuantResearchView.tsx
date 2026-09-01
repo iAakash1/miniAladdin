@@ -251,8 +251,12 @@ export default function QuantResearchView() {
       <div className={`qr-banner qr-banner--${(status?.deployment_status ?? 'NO_MODEL').toLowerCase()}`}>
         <div className="qr-banner__head">
           <StatusPill
-            tone={status?.deployment_status === 'PRODUCTION' ? 'pos' : 'neg'}
-            label={status?.deployment_status ?? 'NO_MODEL'}
+            tone={
+              status?.deployment_status === 'PRODUCTION' ? 'pos'
+              : status?.deployment_status === 'UNKNOWN' ? 'warn'
+              : 'neg'
+            }
+            label={status?.deployment_status ?? 'UNKNOWN'}
           />
           <strong>{status?.message}</strong>
         </div>
@@ -262,10 +266,12 @@ export default function QuantResearchView() {
           evidence this research has not produced.
         </p>
         <dl className="qr-banner__stats">
-          <div><dt>production</dt><dd className="num">{status?.production ?? 0}</dd></div>
-          <div><dt>candidates</dt><dd className="num">{status?.candidates ?? 0}</dd></div>
-          <div><dt>validated</dt><dd className="num">{status?.validated ?? 0}</dd></div>
-          <div><dt>retired / void</dt><dd className="num">{status?.retired ?? 0}</dd></div>
+          {/* `?? 0` here would turn "the register could not be read" into the
+              assertion that nothing is approved. int() renders an em dash. */}
+          <div><dt>production</dt><dd className="num">{int(status?.production)}</dd></div>
+          <div><dt>candidates</dt><dd className="num">{int(status?.candidates)}</dd></div>
+          <div><dt>validated</dt><dd className="num">{int(status?.validated)}</dd></div>
+          <div><dt>retired / void</dt><dd className="num">{int(status?.retired)}</dd></div>
         </dl>
       </div>
 
@@ -799,9 +805,9 @@ export default function QuantResearchView() {
                    summary={`${registry?.entries ?? status?.total_entries ?? 0} entries · 0 production`} defaultOpen>
             <div className="qr-registry">
               {[
-                ['PRODUCTION', status?.production ?? 0, 'neg'],
-                ['CANDIDATES', status?.candidates ?? 0, 'muted'],
-                ['VALIDATED', status?.validated ?? 0, 'muted'],
+                ['PRODUCTION', int(status?.production), 'neg'],
+                ['CANDIDATES', int(status?.candidates), 'muted'],
+                ['VALIDATED', int(status?.validated), 'muted'],
                 ['RETIRED / VOID', status?.retired ?? 0, 'muted'],
               ].map(([label, count, tone]) => (
                 <div key={String(label)} className="qr-reg">

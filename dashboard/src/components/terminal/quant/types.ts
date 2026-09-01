@@ -165,6 +165,10 @@ export interface Experiment {
 
 export interface QuantStatus {
   deployment_status: string
+  /** False when the model register could not be read. The counts below are
+   *  then null and MUST NOT be coerced to zero — "we cannot see the register"
+   *  is not "nothing is approved". */
+  registry_available?: boolean
   message: string
   production: number
   candidates: number

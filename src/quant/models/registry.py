@@ -364,6 +364,16 @@ class ModelRegistry:
         self.root = Path(root)
         self.path = self.root / "registry.json"
         self._entries: dict[str, ModelEntry] = {}
+        #: Whether the registry file was actually found and read.
+        #:
+        #: A missing file loads as an empty registry, which is correct for a
+        #: fresh checkout that has registered nothing yet. It is NOT correct to
+        #: then report "no model is validated": that is a claim about research,
+        #: made from a file nobody could see. Callers use this to distinguish
+        #: "nothing is registered" from "the register is not here", and the
+        #: deployed API got this wrong — it asserted NO_MODEL from an absent
+        #: registry for as long as the file was excluded from the image.
+        self.source_present: bool = False
         self._load()
 
     # ── persistence ──────────────────────────────────────────────────────
@@ -372,6 +382,7 @@ class ModelRegistry:
         if not self.path.exists():
             return
         payload = json.loads(self.path.read_text(encoding="utf-8"))
+        self.source_present = True
         for item in payload.get("entries", []):
             entry = ModelEntry.from_dict(item)
             self._entries[entry.key] = entry

@@ -1,15 +1,25 @@
-name: Keep backend warm
+name: Keep services warm
 
-# Render's free tier spins the service down after ~15 min of inactivity, so
-# the next request cold-starts for 30-60s and the dashboard looks broken.
-# This pings the health endpoint every ~10 min to keep the instance awake.
+# Render's free tier spins a service down after ~15 min of inactivity, and the
+# next request then cold-starts. Measured 2026-09-01: 43.0s for the backend and
+# 42.7s for the inference service, against 1.1s once warm.
+#
+# That is the whole "the site is down" failure mode. It is not a crash — both
+# services return 200 — it is a wait longer than anyone or anything is willing
+# to sit through. In particular the backend calls the inference service with an
+# 8s timeout (QUANT_INFERENCE_TIMEOUT), so a sleeping inference service is
+# *always* reported unavailable on the first request, and the model panel reads
+# as broken until something wakes it.
+#
+# This previously pinged the backend only, which is why the backend usually
+# looked fine and inference usually did not.
 #
 # Notes:
 #  * GitHub cron is best-effort and can be delayed under load — 10 min leaves
 #    slack under the 15-min spin-down window.
 #  * GitHub auto-disables scheduled workflows after 60 days of repo inactivity;
 #    a single push (or the "Enable workflow" button) re-arms it.
-#  * Runs are tiny (one curl) and stay well within the free Actions minutes.
+#  * Runs are two curls and stay well within the free Actions minutes.
 
 on:
   schedule:
@@ -26,14 +36,25 @@ concurrency:
 jobs:
   ping:
     runs-on: ubuntu-latest
+    strategy:
+      # Independent jobs on purpose. One shared step that pinged both would let
+      # a backend failure mask a sleeping inference service, which is exactly
+      # the blind spot this workflow had.
+      fail-fast: false
+      matrix:
+        include:
+          - name: backend
+            url: https://minialaddin-d8oe.onrender.com/api/health
+          - name: inference
+            url: https://minialaddin-quant-inference.onrender.com/health
+    name: ping ${{ matrix.name }}
     steps:
-      - name: Ping Render health endpoint
+      - name: Ping ${{ matrix.name }}
         run: |
-          URL="https://minialaddin-d8oe.onrender.com/api/health"
-          echo "Pinging $URL"
-          # --retry rides out the cold-start; max-time covers a full wake.
+          echo "Pinging ${{ matrix.url }}"
+          # --retry rides out a cold start; max-time covers a full wake.
           code=$(curl -sS -o /dev/null -w '%{http_code}' \
             --max-time 90 --retry 3 --retry-all-errors --retry-delay 15 \
-            "$URL")
+            "${{ matrix.url }}")
           echo "HTTP $code"
           test "$code" = "200"
