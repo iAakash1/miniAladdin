@@ -71,7 +71,7 @@ export default function UpgradeDialog({ open, onClose, reason }: UpgradeDialogPr
         amount: order.amount,
         currency: order.currency,
         name: 'OmniSignal',
-        description: 'Pro subscription',
+        description: 'Pro access',
         order_id: order.id,
         handler: async (response) => {
           const verify = await fetch('/payment/verify', {
@@ -147,7 +147,7 @@ export default function UpgradeDialog({ open, onClose, reason }: UpgradeDialogPr
           <span className="num" style={{ fontSize: '1.75rem', fontWeight: 600 }}>
             ₹100
           </span>
-          <span style={{ fontSize: '0.8125rem', color: 'var(--faint)' }}>per month · cancel anytime</span>
+          <span style={{ fontSize: '0.8125rem', color: 'var(--faint)' }}>one-time · no recurring charge</span>
         </div>
 
         <ul

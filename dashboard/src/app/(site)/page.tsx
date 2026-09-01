@@ -59,8 +59,8 @@ const FAQ = [
     a: 'Five factors each contribute a weighted score. The sum maps to a raw signal from Strong Sell to Strong Buy. That signal is then dampened by the Systemic Risk Multiplier — a macro-regime reading built from FRED data — so a bullish setup in a fragile macro environment gets pulled toward caution. Both the raw and the risk-adjusted signal are always shown.',
   },
   {
-    q: 'Can I cancel Pro?',
-    a: 'Yes, anytime. Pro is ₹100 per month through Razorpay. If you cancel, you keep Pro until the end of the billing period and then return to the free tier — nothing is deleted.',
+    q: 'Is Pro a subscription?',
+    a: 'No. Pro is a single ₹100 payment through Razorpay that unlocks the paid features on your account. There is no recurring charge, no billing period and nothing to cancel — the payment happens once and does not repeat.',
   },
 ]
 
@@ -354,7 +354,7 @@ export default function LandingPage() {
                   <span className="num" style={{ fontSize: '2rem', fontWeight: 600 }}>
                     ₹100
                   </span>
-                  <span style={{ fontSize: '0.875rem', color: 'var(--faint)' }}> / month</span>
+                  <span style={{ fontSize: '0.875rem', color: 'var(--faint)' }}> one-time</span>
                 </p>
                 <ul style={{ listStyle: 'none', margin: '0 0 28px', padding: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {[

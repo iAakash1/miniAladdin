@@ -1,6 +1,11 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import Razorpay from 'razorpay'
+import {
+  PRO_AMOUNT_PAISE,
+  PRO_CURRENCY,
+  PRO_PRODUCT,
+} from '../payment-security'
 
 /**
  * Razorpay SDK rejections are plain objects, NOT Error instances:
@@ -52,9 +57,12 @@ export async function POST() {
   })
 
   const orderRequest = {
-    amount: 10000, // paise → ₹100.00; integer >= 100 required by Razorpay
-    currency: 'INR',
+    amount: PRO_AMOUNT_PAISE,
+    currency: PRO_CURRENCY,
     receipt: buildReceipt(userId), // <= 40 chars enforced above
+    // Receipt is deliberately short and is not authorization. These provider-
+    // stored notes bind the order to the authenticated user at verification.
+    notes: { clerk_user_id: userId, product: PRO_PRODUCT },
   }
 
   try {
