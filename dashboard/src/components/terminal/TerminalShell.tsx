@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useUser } from '@clerk/nextjs'
 
 import CommandPalette from '@/components/terminal/CommandPalette'
+import { useGotoShortcuts } from '@/components/terminal/useGotoShortcuts'
 import TerminalHeader from '@/components/terminal/TerminalHeader'
 import UpgradeDialog from '@/components/terminal/UpgradeDialog'
 import { fetchMacroClient } from '@/lib/api'
@@ -35,6 +36,10 @@ interface TerminalShellProps {
  * upgrade flow identical across the terminal.
  */
 export default function TerminalShell({ loadingLabel, children }: TerminalShellProps) {
+  // `g` then a letter jumps between workspaces. Mounted at the shell so
+  // every terminal surface has it, and inert while typing or in a dialog.
+  useGotoShortcuts()
+
   const { user, isLoaded } = useUser()
   const isPro = (user?.publicMetadata?.isPro as boolean) ?? false
 

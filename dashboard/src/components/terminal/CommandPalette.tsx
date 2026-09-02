@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { TYPE_LABELS, groupByType, type Entity } from '@/lib/intelligence/entities'
+import { GOTO_TARGETS } from '@/components/terminal/useGotoShortcuts'
 import { registerDefaultProviders } from '@/lib/intelligence/providers'
 import { queryIntelligence, readRecents, recordRecent } from '@/lib/intelligence/registry'
 
@@ -317,6 +318,15 @@ export default function CommandPalette() {
           <span className="pfoot__pair"><kbd className="pkey">↑</kbd><kbd className="pkey">↓</kbd> navigate</span>
           <span className="pfoot__pair"><kbd className="pkey">↵</kbd> open</span>
           <span className="pfoot__pair"><kbd className="pkey">esc</kbd> close</span>
+          {/* A shortcut nobody can discover is a shortcut nobody uses. The
+              palette is where a user already comes to navigate, so the chords
+              are listed where that question is being asked. */}
+          <span className="pfoot__pair">
+            <kbd className="pkey">g</kbd> then{' '}
+            {GOTO_TARGETS.map((t) => (
+              <kbd key={t.key} className="pkey" title={t.label}>{t.key}</kbd>
+            ))}
+          </span>
           {shown.length > 0 && (
             <span className="pfoot__count num">{shown.length} result{shown.length === 1 ? '' : 's'}</span>
           )}
