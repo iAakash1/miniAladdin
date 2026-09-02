@@ -169,6 +169,21 @@ class RiskMetric:
         return payload
 
 
+class NotPositiveSemiDefinite(ValueError):
+    """Raised when a covariance matrix cannot describe a real portfolio.
+
+    A variance is a squared quantity and cannot be negative. When `w' C w`
+    comes out below zero, the matrix is not a covariance matrix — usually
+    because pandas estimated each entry on whichever rows that particular pair
+    happened to share, so the entries are mutually inconsistent.
+
+    This is raised rather than clamped. `sqrt(max(variance, 0))` turns the one
+    piece of evidence that the estimate is invalid into a portfolio that
+    reports no risk at all, and the contributions then sum to zero, which
+    satisfies the identity assertion exactly.
+    """
+
+
 class UnorderedSeries(ValueError):
     """Raised when a path-dependent metric is handed a non-chronological series."""
 
@@ -858,9 +873,28 @@ def risk_contributions(weights: pd.Series, cov: pd.DataFrame) -> pd.DataFrame:
     # because a warning nobody can act on trains people to ignore warnings.
     with np.errstate(all="ignore"), warnings.catch_warnings():
         warnings.simplefilter("ignore", RuntimeWarning)
+        if not np.all(np.isfinite(matrix)):
+            raise NotPositiveSemiDefinite(
+                f"covariance matrix has {int((~np.isfinite(matrix)).sum())} "
+                "non-finite entries. A pair of names with no overlapping history "
+                "produces one, and no risk number can be computed from it."
+            )
         variance = float(aligned @ matrix @ aligned)
+
+        # Float noise around a genuinely zero variance is not evidence of a bad
+        # matrix; a negative beyond that scale is.
+        scale = float(np.max(np.abs(matrix))) * float(aligned.abs().sum()) ** 2
+        if variance < -1e-12 * max(scale, 1.0):
+            raise NotPositiveSemiDefinite(
+                f"portfolio variance is negative ({variance:.3e}). The covariance "
+                "matrix is not positive semi-definite, so it does not describe any "
+                "real book. Estimating it on complete rows, or shrinking it, gives "
+                "a matrix that does."
+            )
+
         portfolio_vol = float(np.sqrt(max(variance, 0.0)))
-        if not np.isfinite(portfolio_vol) or portfolio_vol <= 0:
+        # A genuinely riskless or empty book. Zero here is the true answer.
+        if portfolio_vol <= 0:
             return _contributions_frame(
                 aligned, 0.0, 0.0, 0.0, weight_coverage, missing)
         marginal_values = matrix @ aligned.to_numpy() / portfolio_vol

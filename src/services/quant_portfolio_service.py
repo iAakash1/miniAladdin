@@ -159,7 +159,16 @@ def build(
 
     weights = allocation.weights
     cov = risk.covariance_matrix(sub)
-    contributions = risk.risk_contributions(weights, cov)
+    # An invalid covariance is reported as such rather than allowed to render as
+    # a book with no risk. Every `risk_share` below already falls back to None
+    # when a symbol is absent, so an empty table degrades to "—" per position
+    # instead of to a confident zero.
+    try:
+        contributions = risk.risk_contributions(weights, cov)
+        contributions_note = None
+    except risk.NotPositiveSemiDefinite as exc:
+        contributions = pd.DataFrame(columns=["weight", "marginal", "component", "share"])
+        contributions_note = str(exc)
 
     # Book-level outcome series, in RANK units.
     series = (sub[weights.index] * weights).sum(axis=1)
@@ -200,6 +209,7 @@ def build(
             for sym, w in weights.sort_values(key=abs, ascending=False).head(25).items()
         ],
         "risk": report.as_dict(),
+        "risk_contributions_unavailable": contributions_note,
         "cost": {
             "breakdown": breakdown.as_dict(),
             "waterfall": flow.as_dict(),
