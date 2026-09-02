@@ -38,14 +38,14 @@ export const WORKBENCH: { group: string; items: { href: string; label: string; k
   {
     group: 'Explain',
     items: [
-      { href: '/terminal/factors', label: 'Factors', key: 'f' },
+      { href: '/terminal/factorlab', label: 'Factors', key: 'f' },
       { href: '/terminal/signals', label: 'Signals', key: 'g' },
     ],
   },
   {
     group: 'Validate',
     items: [
-      { href: '/terminal/models', label: 'Models', key: 'm' },
+      { href: '/terminal/lab', label: 'Models', key: 'm' },
       { href: '/terminal/evidence', label: 'Evidence', key: 'v' },
       { href: '/terminal/experiments', label: 'Experiments', key: 'x' },
     ],
