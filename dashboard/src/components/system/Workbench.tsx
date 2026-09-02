@@ -37,6 +37,8 @@ const GOTO: Record<string, string> = {
   d: '/terminal/data', y: '/terminal/handbook', p: '/terminal/performance',
   o: '/terminal/providers', n: '/terminal/provenance', k: '/terminal/covariance',
   w: '/terminal/compare', a: '/terminal/gates', e: '/terminal/memos', t: '/terminal/timeline',
+  i: '/terminal/analyze', l: '/terminal/factors', z: '/terminal/portfolio',
+  u: '/terminal/validation', h: '/terminal/graph',
 }
 
 /* Navigation follows the research loop, not the backend modules. The groups
@@ -73,6 +75,22 @@ export const WORKBENCH: { group: string; items: { href: string; label: string; k
       { href: '/terminal/book', label: 'Book', key: 'b' },
       { href: '/terminal/risk', label: 'Risk', key: 'r' },
       { href: '/terminal/covariance', label: 'Covariance', key: 'k' },
+    ],
+  },
+  // The deep surfaces that predate the workbench and carry analysis the rebuilt
+  // workspaces do not: the full security report, the factor lab's cross-section
+  // and screen, the ownership and positions views, the knowledge graph. They are
+  // listed rather than deleted, because deleting working analysis to tidy an
+  // architecture is a bad trade, and rather than left unlinked, because a page
+  // nobody can reach is its own kind of debt.
+  {
+    group: 'Deep',
+    items: [
+      { href: '/terminal/analyze', label: 'Report', key: 'i' },
+      { href: '/terminal/factors', label: 'Factor lab', key: 'l' },
+      { href: '/terminal/portfolio', label: 'Positions', key: 'z' },
+      { href: '/terminal/validation', label: 'Validation', key: 'u' },
+      { href: '/terminal/graph', label: 'Graph', key: 'h' },
     ],
   },
   {
