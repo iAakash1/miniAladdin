@@ -19,6 +19,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Panel, Section, StateBlock, Status, Strip, Value } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
+import { EnvelopeGrid, type Envelope } from '@/components/system/EnvelopeMetric'
 
 interface Finalist {
   config_id: string
@@ -50,6 +51,7 @@ interface DeflatedSharpe {
 }
 interface Selection {
   available?: boolean
+  envelopes?: Record<string, Envelope>
   experiment?: string
   finalists?: Finalist[]
   economics?: Record<string, Economics>
@@ -124,6 +126,30 @@ export default function SignalLab() {
 
   return (
     <>
+      {data.envelopes && Object.keys(data.envelopes).length ? (
+        <Panel
+          title="Decision figures"
+          subtitle="click a number for its envelope"
+          state="recorded"
+        >
+          <EnvelopeGrid
+            metrics={[
+              { label: 'IC t-stat', envelope: data.envelopes.ic_t_stat, digits: 3, signed: true },
+              { label: 'Gross Sharpe', envelope: data.envelopes.gross_sharpe, digits: 4, signed: true, tone: true },
+              { label: 'Net Sharpe', envelope: data.envelopes.net_sharpe, digits: 4, signed: true, tone: true },
+              { label: 'Alpha t-stat', envelope: data.envelopes.alpha_t_stat, digits: 3, signed: true },
+              { label: 'Deflated Sharpe', envelope: data.envelopes.deflated_sharpe_probability, digits: 4 },
+              { label: 'PBO', envelope: data.envelopes.pbo, digits: 4 },
+            ]}
+          />
+          <p style={{ margin: 'var(--d-3) 0 0', fontSize: 'var(--t-meta)', color: 'var(--ink-muted)', lineHeight: 'var(--lh-body)', maxWidth: '86ch' }}>
+            These are the six numbers a promotion decision turns on. Each carries
+            the artifact it was read from, the method that produced it and the
+            moment it was retrieved, so none of them has to be taken on trust.
+          </p>
+        </Panel>
+      ) : null}
+
       {/* The account of how many ideas were tried comes before any result. */}
       <Panel title="Multiple testing" subtitle={data.experiment} state="recorded">
         <Strip metrics={[
