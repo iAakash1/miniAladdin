@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 
 import Workbench from '@/components/system/Workbench'
 import CommandCenter from '@/components/terminal/command/CommandCenter'
+import ResearchContext from '@/components/terminal/command/ResearchContext'
 import { Panel, Provenance } from '@/components/system'
 
 export const metadata: Metadata = {
@@ -47,6 +48,7 @@ export default function CommandPage() {
       }
     >
       <CommandCenter />
+      <ResearchContext />
     </Workbench>
   )
 }
