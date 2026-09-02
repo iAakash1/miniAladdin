@@ -65,7 +65,16 @@ export default function PortfolioWorkbench() {
   const assumptions = (data.cost?.assumptions ?? {}) as Record<string, unknown>
 
   const columns: Column<Weight>[] = [
-    { key: 'sym', header: 'Symbol', width: '18%', render: (w) => <span style={{ fontFamily: 'var(--font-mono)' }}>{w.symbol}</span> },
+    {
+      key: 'sym', header: 'Symbol', width: '18%',
+      // Every holding is a link into its own workspace. This is the edge that
+      // makes the book part of the object graph rather than a terminal list.
+      render: (w) => (
+        <Link href={`/terminal/security?symbol=${encodeURIComponent(w.symbol)}`} style={{ color: 'inherit', fontFamily: 'var(--font-mono)' }}>
+          {w.symbol}
+        </Link>
+      ),
+    },
     { key: 'side', header: 'Side', width: '12%', render: (w) => <Status state={w.weight >= 0 ? 'recorded' : 'experimental'} label={w.side} /> },
     { key: 'w', header: 'Weight', numeric: true, render: (w) => <Value value={w.weight} digits={6} signed tone /> },
     { key: 'sig', header: 'Signal', unit: 'rank', numeric: true, render: (w) => <Value value={w.signal ?? null} digits={6} signed /> },
