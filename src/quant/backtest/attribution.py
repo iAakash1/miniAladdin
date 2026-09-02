@@ -163,7 +163,16 @@ def attribute_returns(
     strategy_returns: pd.Series,
     factors: pd.DataFrame,
     *,
-    periods_per_year: float = 52.0,
+    # Required, not defaulted.
+    #
+    # It was 52.0 — weekly — while every caller in this repository passes
+    # 252 / step_sessions, which is 50.4 at the project's 5-session cadence.
+    # The default was never used, and that is exactly what made it dangerous: a
+    # caller who forgot would have annualised alpha and residual volatility
+    # against the wrong period count and got a plausible number back. Alpha is
+    # compounded to the power of this value, so a 3% error in the exponent is
+    # not a 3% error in the result.
+    periods_per_year: float,
     holding_periods: int = 4,
     market_neutral: bool = True,
 ) -> AttributionResult:
