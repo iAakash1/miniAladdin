@@ -13,7 +13,10 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
-import { Panel, StateBlock, Status, Strip, Table, Value, type Column } from '@/components/system'
+import { Panel, Section, StateBlock, Status, Strip, Value } from '@/components/system'
+import { DataTable, type DataColumn } from '@/components/system/DataTable'
+import { BarRows, Histogram } from '@/components/system/charts'
+import { recordVisit } from '@/lib/research/history'
 
 interface Weight { symbol: string; weight: number; side: string; signal?: number | null; risk_share: number | null }
 interface Payload {
@@ -64,9 +67,19 @@ export default function PortfolioWorkbench() {
   const net = weights.reduce((s, w) => s + w.weight, 0)
   const assumptions = (data.cost?.assumptions ?? {}) as Record<string, unknown>
 
-  const columns: Column<Weight>[] = [
+  // Concentration on gross weight shares. Squared shares, so one large position
+  // moves this far more than several small ones — which is the point.
+  const shares = gross > 0 ? weights.map((w) => Math.abs(w.weight) / gross) : []
+  const herfindahl = shares.length ? shares.reduce((s, v) => s + v * v, 0) : null
+  const effectiveNames = herfindahl && herfindahl > 0 ? 1 / herfindahl : null
+  const topFive = shares.length
+    ? [...shares].sort((a, b) => b - a).slice(0, 5).reduce((s, v) => s + v, 0)
+    : null
+
+  const columns: DataColumn<Weight>[] = [
     {
       key: 'sym', header: 'Symbol', width: '18%',
+      sort: (w) => w.symbol, text: (w) => w.symbol,
       // Every holding is a link into its own workspace. This is the edge that
       // makes the book part of the object graph rather than a terminal list.
       render: (w) => (
@@ -75,12 +88,24 @@ export default function PortfolioWorkbench() {
         </Link>
       ),
     },
-    { key: 'side', header: 'Side', width: '12%', render: (w) => <Status state={w.weight >= 0 ? 'recorded' : 'experimental'} label={w.side} /> },
-    { key: 'w', header: 'Weight', numeric: true, render: (w) => <Value value={w.weight} digits={6} signed tone /> },
-    { key: 'sig', header: 'Signal', unit: 'rank', numeric: true, render: (w) => <Value value={w.signal ?? null} digits={6} signed /> },
+    { key: 'side', header: 'Side', width: '12%', sort: (w) => w.side, text: (w) => w.side, render: (w) => <Status state={w.weight >= 0 ? 'recorded' : 'experimental'} label={w.side} /> },
+    { key: 'w', header: 'Weight', numeric: true, sort: (w) => w.weight, render: (w) => <Value value={w.weight} digits={6} signed tone /> },
+    { key: 'abs', header: 'Gross weight', numeric: true, optional: true, sort: (w) => Math.abs(w.weight), render: (w) => <Value value={Math.abs(w.weight)} digits={6} /> },
+    { key: 'sig', header: 'Signal', unit: 'rank', numeric: true, sort: (w) => w.signal ?? null, render: (w) => <Value value={w.signal ?? null} digits={6} signed /> },
     {
-      key: 'rc', header: 'Risk share', numeric: true,
+      key: 'rc', header: 'Risk share', numeric: true, sort: (w) => w.risk_share,
       render: (w) => <Value value={w.risk_share} digits={4} title={w.risk_share === null ? 'Not available: the covariance could not describe this book' : undefined} />,
+    },
+    {
+      key: 'ratio', header: 'Risk per unit weight', numeric: true, optional: true,
+      sort: (w) => (w.risk_share !== null && Math.abs(w.weight) > 0 ? w.risk_share / Math.abs(w.weight) : null),
+      render: (w) => (
+        <Value
+          value={w.risk_share !== null && Math.abs(w.weight) > 0 ? w.risk_share / Math.abs(w.weight) : null}
+          digits={3}
+          title="Above 1 means the position carries more risk than its size suggests"
+        />
+      ),
     },
   ]
 
@@ -112,10 +137,67 @@ export default function PortfolioWorkbench() {
         flush
         actions={<Link href="/terminal/risk" className="sys-meta" style={{ color: 'var(--ink)' }}>Risk →</Link>}
       >
-        <Table columns={columns} rows={weights} rowKey={(w) => w.symbol} density="compact" />
+        <DataTable
+          columns={columns} rows={weights} rowKey={(w) => w.symbol}
+          density="compact" filterPlaceholder="filter positions"
+          initialSort={{ key: 'abs', direction: 'desc' }}
+          onSelect={(w) => recordVisit({ kind: 'security', id: w.symbol, label: w.symbol, detail: w.side })}
+        />
       </Panel>
 
-      <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
+      <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))' }}>
+        <Panel title="Largest positions" subtitle="by gross weight">
+          <BarRows
+            unit="weight"
+            rows={[...weights]
+              .sort((a, b) => Math.abs(b.weight) - Math.abs(a.weight))
+              .slice(0, 12)
+              .map((w) => ({ label: w.symbol, value: w.weight, note: `${w.side}, risk share ${w.risk_share?.toFixed(4) ?? 'not available'}` }))}
+          />
+        </Panel>
+
+        <Panel title="Weight distribution">
+          <Histogram
+            values={weights.map((w) => w.weight)}
+            unit="weight"
+            bins={20}
+            title=""
+            marks={[{ at: 0, label: '0', color: 'var(--rule-focus)' }]}
+          />
+          <p style={{ margin: 'var(--d-2) 0 0', fontSize: 'var(--t-meta)', color: 'var(--ink-muted)', lineHeight: 'var(--lh-body)' }}>
+            A book that is dollar-neutral by construction should be roughly
+            symmetric here; a lean to one side is a net exposure the gross figure
+            above does not show.
+          </p>
+        </Panel>
+
+        <Panel title="Concentration">
+          <Section title="Effective breadth">
+            <table className="sys-table sys-table--compact">
+              <tbody>
+                <tr><td>Positions</td><td className="num"><Value value={weights.length} digits={0} /></td></tr>
+                <tr>
+                  <td>Herfindahl</td>
+                  <td className="num"><Value value={herfindahl} digits={5} title="Sum of squared gross weight shares" /></td>
+                </tr>
+                <tr>
+                  <td>Effective names</td>
+                  <td className="num"><Value value={effectiveNames} digits={2} title="1 / Herfindahl. Counting positions overstates breadth when sizes are uneven." /></td>
+                </tr>
+                <tr>
+                  <td>Top 5 share</td>
+                  <td className="num"><Value value={topFive} digits={4} /></td>
+                </tr>
+              </tbody>
+            </table>
+            <p style={{ margin: 'var(--d-2) 0 0', fontSize: 'var(--t-meta)', color: 'var(--ink-muted)', lineHeight: 'var(--lh-body)' }}>
+              Effective names counts by size, not by ticker. It is a statement
+              about weights only — whether those names are really independent bets
+              is a covariance question, answered in Risk.
+            </p>
+          </Section>
+        </Panel>
+
         <Panel title="Cost assumptions" state="recorded">
           <table className="sys-table sys-table--compact">
             <tbody>
