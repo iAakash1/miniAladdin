@@ -95,10 +95,19 @@ interface PortfolioView {
   disclaimer?: string
 }
 
-const METHODS = [
-  'risk_parity', 'equal_weight', 'inverse_volatility', 'minimum_variance',
-  'maximum_diversification', 'mean_variance', 'min_cvar_heuristic',
-]
+interface AllocatorMethod {
+  name: string
+  /** What the allocator assumes, from the optimiser itself. Shown beside the
+   *  selector: choosing between "ignores correlation entirely" and
+   *  "unconstrained it will short" is the actual decision, and a bare list of
+   *  names does not present it. */
+  description: string
+}
+
+/** Used only until the served list arrives, so the control is not empty on
+ *  first paint. The API is the source of truth; a hardcoded list here could
+ *  drift from the allocators that actually exist. */
+const FALLBACK_METHOD = 'risk_parity'
 
 const WATERFALL_STEPS: Array<[string, string]> = [
   ['gross', 'Gross'],
@@ -115,9 +124,20 @@ export default function PortfolioRisk({
   experimentId: string
   modelId: string
 }) {
-  const [method, setMethod] = useState('risk_parity')
+  const [method, setMethod] = useState(FALLBACK_METHOD)
+  const [methods, setMethods] = useState<AllocatorMethod[]>([])
   const [view, setView] = useState<PortfolioView | null>(null)
   const [busy, setBusy] = useState(true)
+
+  // The allocator list comes from the optimiser, so the control cannot offer a
+  // method that does not exist or omit one that does.
+  useEffect(() => {
+    let live = true
+    quantFetch<{ methods: AllocatorMethod[] }>('/api/quant/portfolio/methods')
+      .then((r) => { if (live && r.ok) setMethods(r.data.methods ?? []) })
+      .catch(() => { /* the selector keeps working on the current method */ })
+    return () => { live = false }
+  }, [])
 
   // The state update lives inside the async body, not in the effect's
   // synchronous path: setting state synchronously in an effect triggers a
@@ -146,6 +166,7 @@ export default function PortfolioRisk({
     )
   }
 
+  const selectedMethod = methods.find((m) => m.name === method)
   const a = view.allocation!
   const risk = view.risk!
   const waterfall = view.cost?.waterfall ?? {}
@@ -161,12 +182,19 @@ export default function PortfolioRisk({
           value={method}
           onChange={(e) => setMethod(e.target.value)}
         >
-          {METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
+          {(methods.length ? methods.map((m) => m.name) : [method]).map((m) => (
+            <option key={m} value={m}>{m}</option>
+          ))}
         </select>
         <StatusPill tone={a.feasible ? 'accent' : 'warn'}
                     label={a.feasible ? 'CONSTRAINTS MET' : 'INFEASIBLE'} />
         <span className="u-note">as of {view.as_of}</span>
       </div>
+      {selectedMethod ? (
+        <p className="body-copy u-note qp-assumption">
+          <strong>{selectedMethod.name}</strong> — {selectedMethod.description}
+        </p>
+      ) : null}
 
       <dl className="qi-metrics">
         <div><dt>gross</dt><dd className="num">{f(a.gross_exposure, 3)}</dd></div>

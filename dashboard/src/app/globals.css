@@ -6544,3 +6544,13 @@ code, kbd, samp { overflow-wrap: break-word; word-break: break-word; }
    parent defaults to min-width:auto and refuses to go below its content width,
    which silently defeats the overflow-x:auto on the container itself. */
 .ml-scroll, .tp-panel, .tp-metrics { min-width: 0; max-width: 100%; }
+
+/* The selected allocator's assumption, beside the control that chooses it.
+   Choosing between "ignores correlation entirely" and "unconstrained it will
+   short" is the actual decision; a list of names does not present it. */
+.qp-assumption {
+  margin: 0.35rem 0 0.9rem;
+  padding-left: 0.75rem;
+  border-left: 2px solid var(--line-strong);
+}
+.qp-assumption strong { font-family: var(--font-mono); font-size: 0.8125rem; }
