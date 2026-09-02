@@ -46,6 +46,7 @@ export const WORKBENCH: { group: string; items: { href: string; label: string; k
     group: 'Validate',
     items: [
       { href: '/terminal/models', label: 'Models', key: 'm' },
+      { href: '/terminal/evidence', label: 'Evidence', key: 'v' },
       { href: '/terminal/validation', label: 'Experiments', key: 'e' },
     ],
   },
