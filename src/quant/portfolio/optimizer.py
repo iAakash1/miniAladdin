@@ -50,6 +50,7 @@ import warnings
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
+from src.quant.portfolio import psd
 import numpy as np
 import pandas as pd
 
@@ -290,7 +291,12 @@ def risk_parity(cov: pd.DataFrame, *, iterations: int = 500, tolerance: float = 
 
 def _risk_parity_loop(matrix, w, target, n, iterations, tolerance, index) -> pd.Series:
     for _ in range(iterations):
-        portfolio_vol = float(np.sqrt(max(w @ matrix @ w, 1e-24)))
+        # A 1e-24 floor passes the `> 0` check below, so an indefinite matrix
+        # used to divide by 1e-12 and iterate on nonsense rather than fall back.
+        try:
+            portfolio_vol = psd.volatility(w, matrix, context="risk parity")
+        except psd.NotPositiveSemiDefinite:
+            return pd.Series(np.full(n, 1.0 / n), index=index, dtype=float)
         if not np.isfinite(portfolio_vol) or portfolio_vol <= 0:
             return pd.Series(np.full(n, 1.0 / n), index=index, dtype=float)
         marginal = matrix @ w / portfolio_vol
@@ -540,11 +546,40 @@ def optimize(
     if returns is not None and not returns.empty and len(weights):
         cov = covariance(returns.dropna(axis=1, how="all"))
         aligned = weights.reindex(cov.index).fillna(0.0)
-        variance = float(aligned @ cov.to_numpy() @ aligned)
-        realised = float(np.sqrt(max(variance, 0.0)) * np.sqrt(periods_per_year))
-        diagnostics["ex_ante_volatility_annualised"] = round(realised, 6)
+        # sqrt(max(variance, 0.0)) reported an ex-ante volatility of exactly zero
+        # whenever the covariance was indefinite, and a positive but understated
+        # one when it was nearly so. The second is worse: volatility targeting
+        # divides by this number, and a 10% target against an understated 0.012%
+        # levers the book 832x to "hit" a target measured on a matrix that
+        # describes no real portfolio.
+        try:
+            realised = psd.volatility(
+                aligned.to_numpy(), cov.to_numpy(),
+                context="ex-ante portfolio volatility",
+            ) * np.sqrt(periods_per_year)
+        except psd.NotPositiveSemiDefinite as exc:
+            realised = None
+            diagnostics["ex_ante_volatility_annualised"] = None
+            diagnostics["ex_ante_volatility_unavailable"] = str(exc)
+            notes.append(
+                "ex-ante volatility could not be computed, so any volatility "
+                "target was not applied"
+            )
+        else:
+            diagnostics["ex_ante_volatility_annualised"] = round(realised, 6)
 
-        if method == "volatility_target" and target_volatility and realised > 0:
+        if method == "volatility_target" and target_volatility and realised is None:
+            notes.append(
+                "volatility_target requested but not applied: the covariance "
+                "estimate is unusable"
+            )
+        elif method == "volatility_target" and target_volatility and realised == 0.0:
+            # Previously `realised > 0` skipped scaling here in silence.
+            notes.append(
+                "volatility_target requested but not applied: ex-ante volatility "
+                "is zero, so no scale reaches the target"
+            )
+        elif method == "volatility_target" and target_volatility and realised > 0:
             scale = target_volatility / realised
             weights = weights * scale
             diagnostics["volatility_scale"] = round(scale, 6)
