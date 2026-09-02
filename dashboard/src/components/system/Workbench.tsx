@@ -52,11 +52,9 @@ export const WORKBENCH: { group: string; items: { href: string; label: string; k
   },
   {
     group: 'Allocate',
-    // Risk is not yet its own route. It stays inside Portfolio rather than
-    // appearing here as a link to nothing — a navigation entry that 404s is
-    // the exact class of debt this shell exists to remove.
     items: [
       { href: '/terminal/portfolio', label: 'Portfolio', key: 'p' },
+      { href: '/terminal/risk', label: 'Risk', key: 'r' },
     ],
   },
   {
