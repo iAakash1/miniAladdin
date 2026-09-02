@@ -81,6 +81,26 @@ export interface SearchState {
   note?: string
 }
 
+/**
+ * One served value with its provenance, from `src/services/envelope.py`.
+ *
+ * `status` is computed on the server from the timestamp and the declared
+ * freshness policy — the client cannot set it, and must not infer it. A
+ * `value` of null with status `unavailable` is a different thing from a
+ * measured zero, and the UI is required to render them differently.
+ */
+export interface Envelope<T = number | null> {
+  value: T
+  status: 'live' | 'stale' | 'recorded' | 'waking' | 'unavailable' | 'unknown'
+  source: string
+  as_of: string | null
+  retrieved_at: string | null
+  method: string | null
+  unit: string | null
+  detail: string | null
+  freshness: { policy: string; ttl_seconds: number | null; why: string }
+}
+
 export interface SelectionGate {
   gate: string
   passed: boolean
@@ -117,6 +137,10 @@ export interface SelectionState {
     target: string
     ranked_by: string
   }
+  /** Decision-bearing numbers, each with its own source, status and method.
+   *  Prefer these over reaching into `economics`: the methodology lives with
+   *  the value instead of being restated in each component. */
+  envelopes?: Record<string, Envelope>
   economics?: Record<string, Record<string, unknown>>
   significance?: Record<string, {
     deflated_sharpe?: {

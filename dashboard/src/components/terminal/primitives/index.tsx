@@ -222,3 +222,71 @@ export function ProvenanceChain({ links }: { links: ProvenanceLink[] }) {
     </ol>
   )
 }
+
+/* ── envelope-driven metric ───────────────────────────────────────────────── */
+
+/**
+ * Anything the server can send in an envelope.
+ *
+ * Declared structurally rather than imported so the primitives stay usable
+ * outside the quant surface; the shape is `src/services/envelope.py`.
+ */
+export interface EnvelopeLike {
+  value: number | null
+  status: string
+  source: string
+  as_of: string | null
+  method: string | null
+  unit: string | null
+  detail: string | null
+}
+
+/** Statuses that license rendering the number as usable. */
+const TRUSTWORTHY = new Set(['live', 'recorded'])
+
+/**
+ * Render a metric straight from a server envelope.
+ *
+ * The methodology comes from the server, so it cannot drift between the two
+ * components that happen to show the same number — which it previously did,
+ * because each restated it in its own JSX.
+ *
+ * A value that is not trustworthy renders its status instead of its number.
+ * There is no path here that prints a figure the server declined to vouch for.
+ */
+export function EnvelopeMetric({
+  label,
+  envelope,
+  digits = 4,
+  signed: withSign = true,
+  status,
+  emphasis = false,
+}: {
+  label: string
+  envelope: EnvelopeLike | undefined
+  digits?: number
+  signed?: boolean
+  /** Pass/fail against a gate. Omitted leaves the metric neutral — a colour
+   *  here is a verdict, and most numbers are not verdicts. */
+  status?: Tone
+  emphasis?: boolean
+}) {
+  if (!envelope) {
+    return <Metric label={label} value="—" method="not served" status="muted" />
+  }
+  const usable = TRUSTWORTHY.has(envelope.status) && envelope.value !== null
+  const shown = usable
+    ? (withSign ? signed(envelope.value, digits) : (envelope.value as number).toFixed(digits))
+    : envelope.status.toUpperCase()
+
+  return (
+    <Metric
+      label={label}
+      value={shown}
+      unit={usable ? envelope.unit ?? undefined : undefined}
+      method={usable ? envelope.method ?? undefined : envelope.detail ?? undefined}
+      status={usable ? (status ?? 'muted') : 'warn'}
+      emphasis={emphasis}
+    />
+  )
+}

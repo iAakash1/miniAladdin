@@ -391,6 +391,71 @@ def _restate_under_current_standard(payload: dict[str, Any]) -> Optional[dict[st
     }
 
 
+def _decision_envelopes(payload: dict[str, Any]) -> dict[str, Any]:
+    """The decision-bearing numbers, each with its own provenance.
+
+    These six are the ones a reader acts on, and each carries a methodology that
+    changes what the number means. A net Sharpe without its cost assumption and
+    a PBO without its estimator are both unfalsifiable, so the methodology
+    travels with the value rather than sitting in a caption somewhere.
+
+    Everything here is `recorded`: read from a committed artifact, where age is
+    provenance rather than decay.
+    """
+    from src.services.envelope import DataEnvelope, envelope_dict
+
+    selected = (payload.get("selected") or {}).get("config_id")
+    economics = (payload.get("economics") or {}).get(selected) or {}
+    significance = (payload.get("significance") or {}).get(selected) or {}
+    deflated = significance.get("deflated_sharpe") or {}
+    pbo = payload.get("probability_of_backtest_overfitting") or {}
+    mt = payload.get("multiple_testing") or {}
+    source = payload.get("search_artifact") or "artifacts/experiments/.../final_selection.json"
+
+    def recorded(value: Any, method: str, unit: Optional[str] = None) -> Any:
+        if value is None:
+            return DataEnvelope.unavailable(source, f"not recorded: {method}")
+        return DataEnvelope.recorded(value, source, method=method, unit=unit)
+
+    return envelope_dict(
+        net_sharpe=recorded(
+            economics.get("net_sharpe"),
+            "annualised, after commission, the declared 10 bp half-spread, "
+            "slippage and square-root impact; 8 expanding walk-forward folds",
+            "Sharpe",
+        ),
+        gross_sharpe=recorded(
+            economics.get("gross_sharpe"),
+            "annualised, before any cost is charged; same folds",
+            "Sharpe",
+        ),
+        ic_t_stat=recorded(
+            economics.get("ic_t_stat"),
+            "Newey-West with a Bartlett kernel, correcting for the 21-session "
+            "label overlap",
+            "t",
+        ),
+        alpha_t_stat=recorded(
+            economics.get("alpha_t_stat"),
+            "intercept of a six-factor regression (Fama-French 5 plus momentum) "
+            "on the net return series",
+            "t",
+        ),
+        deflated_sharpe_probability=recorded(
+            deflated.get("deflated_probability"),
+            f"Bailey & Lopez de Prado, deflated against "
+            f"{mt.get('cumulative_trials', 'the cumulative')} trials, their "
+            "dispersion, and the return distribution's skew and kurtosis",
+        ),
+        pbo=recorded(
+            pbo.get("pbo"),
+            f"combinatorially symmetric cross-validation over "
+            f"{pbo.get('splits_evaluated', 'n')} splits of "
+            f"{pbo.get('blocks', 'n')} blocks",
+        ),
+    )
+
+
 def selection(experiment_id: str,
               artifacts_root: Path | str = Path("artifacts/experiments")) -> dict[str, Any]:
     """The gate verdict, if `select_candidate` has been run."""
@@ -412,4 +477,7 @@ def selection(experiment_id: str,
         # `verdict` stays exactly as recorded — the artifact is the record.
         # `current_standard` is the derivation, clearly named as one.
         **({"current_standard": restated} if restated else {}),
+        # Each decision-bearing number with its own source, status and method.
+        # Additive: existing consumers are untouched.
+        "envelopes": _decision_envelopes(payload),
     }

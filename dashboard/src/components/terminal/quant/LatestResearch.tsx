@@ -18,7 +18,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { quantFetch } from '@/lib/quantApi'
 import {
-  Metric, MetricGrid, Panel, StateBlock, signed,
+  EnvelopeMetric, Metric, MetricGrid, Panel, StateBlock,
 } from '@/components/terminal/primitives'
 import type { SelectionState } from './searchTypes'
 
@@ -85,9 +85,7 @@ export default function LatestResearch() {
   const { selected } = state
   const cid = selected?.config_id
   const economics = cid ? state.economics?.[cid] : undefined
-  const sig = cid ? state.significance?.[cid] : undefined
-  const dsr = sig?.deflated_sharpe
-  const pbo = state.probability_of_backtest_overfitting
+  const env = state.envelopes
   const mt = state.multiple_testing
 
   const num = (v: unknown, d = 3) =>
@@ -117,33 +115,30 @@ export default function LatestResearch() {
         )}
       </p>
 
+      {/* Methodology comes from the server envelope, so the two components that
+          show these numbers cannot drift apart in how they describe them. The
+          pass/fail tone stays here: it is a judgement against a gate, not a
+          property of the measurement. */}
       <MetricGrid>
-        <Metric
-          label="net Sharpe"
-          value={signed(economics?.net_sharpe as number | undefined, 3)}
-          method="after commission, 10 bp assumed half-spread, slippage"
-          status={(economics?.net_sharpe as number ?? -1) > 0 ? 'pass' : 'fail'}
+        <EnvelopeMetric
+          label="net Sharpe" envelope={env?.net_sharpe} digits={3}
+          status={(env?.net_sharpe?.value ?? -1) > 0 ? 'pass' : 'fail'}
         />
-        <Metric
-          label="IC t-stat"
-          value={signed(economics?.ic_t_stat as number | undefined, 2)}
-          method={`search-size bar ${num(mt?.expected_max_abs_t_under_null, 2)}`}
+        <EnvelopeMetric
+          label="IC t-stat" envelope={env?.ic_t_stat} digits={2}
           status={
-            (economics?.ic_t_stat as number ?? 0) >
+            (env?.ic_t_stat?.value ?? 0) >
             (mt?.expected_max_abs_t_under_null ?? Infinity) ? 'pass' : 'fail'
           }
         />
-        <Metric
-          label="deflated Sharpe p"
-          value={num(dsr?.deflated_probability, 4)}
-          method="needs > 0.95 · Bailey & López de Prado"
-          status={(dsr?.deflated_probability ?? 0) > 0.95 ? 'pass' : 'fail'}
+        <EnvelopeMetric
+          label="deflated Sharpe p" envelope={env?.deflated_sharpe_probability}
+          signed={false}
+          status={(env?.deflated_sharpe_probability?.value ?? 0) > 0.95 ? 'pass' : 'fail'}
         />
-        <Metric
-          label="PBO"
-          value={num(pbo?.pbo, 3)}
-          method="needs ≤ 0.20 · CSCV"
-          status={(pbo?.pbo ?? 1) <= 0.2 ? 'pass' : 'fail'}
+        <EnvelopeMetric
+          label="PBO" envelope={env?.pbo} digits={3} signed={false}
+          status={(env?.pbo?.value ?? 1) <= 0.2 ? 'pass' : 'fail'}
         />
         <Metric
           label="trials"
