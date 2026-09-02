@@ -2177,6 +2177,23 @@ def quant_selection(experiment_id: str):
     return quant_search_service.selection(experiment_id)
 
 
+@app.get("/api/quant/preflight", tags=["quant"])
+def quant_preflight():
+    """The integrity gates that stand between the research and the holdout.
+
+    Read-only and fast. It fits no model, reads no holdout-dated row, and cannot
+    spend the holdout — the only path that can is an explicit human run of
+    `python -m src.quant.study.holdout --run` under the contract.
+
+    The two-build contamination probe is skipped because it rebuilds the panel
+    twice; `valid_for_run` is therefore always false from this surface, and the
+    response says which check was omitted and why.
+    """
+    from src.services import quant_preflight_service
+
+    return quant_preflight_service.preflight()
+
+
 @app.get("/api/quant/features", tags=["quant"])
 def quant_features():
     """The feature registry: definition, source, lookback, direction, leakage note.

@@ -41,6 +41,7 @@ import {
 import ModelInference from '@/components/terminal/quant/ModelInference'
 import EngineOffline from '@/components/terminal/quant/EngineOffline'
 import PortfolioRisk from '@/components/terminal/quant/PortfolioRisk'
+import PreflightGates from '@/components/terminal/quant/PreflightGates'
 import SearchLab from '@/components/terminal/quant/SearchLab'
 import {
   ExperimentTimeline, Provenance, SelectionVerdict, TrainCommand,
@@ -237,6 +238,11 @@ export default function QuantResearchView() {
         selection={selection}
         trials={experiment?.trials_used_for_correction}
       />
+
+      {/* What actually stands between this research and the holdout. The gates
+          already decide it — the holdout runner defers to them — and until now
+          they were reachable only from a CLI. */}
+      <PreflightGates />
 
       <HoldoutFirewall
         armed={armed}
