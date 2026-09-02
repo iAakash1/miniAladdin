@@ -159,6 +159,18 @@ export default function TerminalHeader({ macro, isPro, usedToday, onUpgrade }: T
           })}
         </nav>
 
+        {/* The way back into the workbench. Without this the deep pages are a
+            one-way door: a reader who lands on one has no route to the
+            workspaces, and an architecture you can fall out of is not one. */}
+        <Link
+          href="/terminal/command"
+          className="btn btn--secondary btn--sm"
+          style={{ flex: 'none', whiteSpace: 'nowrap' }}
+          title="The research workbench"
+        >
+          Workbench →
+        </Link>
+
         {/* One search surface, not two: the palette is the search box AND
             the way to reach everything no longer in the tab bar. Making the
             shortcut visible is what allows the tab reduction. */}

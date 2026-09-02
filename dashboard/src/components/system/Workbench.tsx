@@ -31,7 +31,7 @@ import { KINDS, href as objectHref } from '@/lib/research/objects'
 
 /** `g` then a letter jumps between workspaces. Inert while typing. */
 const GOTO: Record<string, string> = {
-  c: '/terminal/command', s: '/terminal/security', f: '/terminal/factorlab',
+  c: '/terminal/command', s: '/terminal/security', j: '/terminal', f: '/terminal/factorlab',
   g: '/terminal/signals', m: '/terminal/lab', v: '/terminal/evidence',
   x: '/terminal/experiments', b: '/terminal/book', r: '/terminal/risk',
   d: '/terminal/data', y: '/terminal/handbook', p: '/terminal/performance',
@@ -49,6 +49,7 @@ export const WORKBENCH: { group: string; items: { href: string; label: string; k
     group: 'Observe',
     items: [
       { href: '/terminal/command', label: 'Command', key: 'c' },
+      { href: '/terminal', label: 'Market', key: 'j' },
       { href: '/terminal/security', label: 'Securities', key: 's' },
     ],
   },

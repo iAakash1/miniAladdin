@@ -19,8 +19,9 @@ APP = ROOT / "dashboard" / "src" / "app"
 ITEM = re.compile(
     r"\{\s*href:\s*'([^']+)',\s*label:\s*'([^']+)',\s*key:\s*'([a-z])'\s*\}"
 )
-#: The `g`-prefixed jump table.
-GOTO = re.compile(r"\b([a-z]):\s*'(/terminal/[a-z-]+)'")
+#: The `g`-prefixed jump table. The trailing segment is optional because the
+#: market surface is `/terminal` itself, with nothing after it.
+GOTO = re.compile(r"\b([a-z]):\s*'(/terminal(?:/[a-z-]+)?)'")
 
 
 def _source() -> str:

@@ -23,6 +23,7 @@ const GROUPS: { title: string; keys: { combo: string; action: string }[] }[] = [
     title: 'Go to',
     keys: [
       { combo: 'g c', action: 'Command' },
+      { combo: 'g j', action: 'Market' },
       { combo: 'g s', action: 'Securities' },
       { combo: 'g f', action: 'Factors' },
       { combo: 'g g', action: 'Signals' },
