@@ -752,6 +752,39 @@ def covariance_matrix(returns: pd.DataFrame) -> pd.DataFrame:
 # ── risk attribution ─────────────────────────────────────────────────────────
 
 
+#: Gross weight that must be covered by the covariance matrix before the risk
+#: decomposition may be read as describing the book. Below it the numbers
+#: describe a subset and say so.
+MIN_RISK_COVERAGE = 0.99
+
+
+def _annotate_coverage(
+    frame: pd.DataFrame, coverage: float, missing: list[Any],
+) -> pd.DataFrame:
+    """Attach coverage to a contributions frame without changing its columns."""
+    frame.attrs["weight_coverage"] = round(coverage, 6)
+    frame.attrs["uncovered_symbols"] = [str(m) for m in missing]
+    frame.attrs["complete"] = coverage >= MIN_RISK_COVERAGE and not missing
+    frame.attrs["caveat"] = None if frame.attrs["complete"] else (
+        f"INCOMPLETE — the covariance matrix covers {coverage:.1%} of gross "
+        f"weight. {len(missing)} position(s) have no covariance row and were "
+        "excluded, so portfolio volatility and every contribution below describe "
+        "a subset of the book and understate its risk."
+    )
+    return frame
+
+
+def _contributions_frame(
+    aligned: pd.Series, marginal: float, component: float, share: float,
+    coverage: float, missing: list[Any],
+) -> pd.DataFrame:
+    frame = pd.DataFrame({
+        "weight": aligned, "marginal": marginal,
+        "component": component, "share": share,
+    })
+    return _annotate_coverage(frame, coverage, missing)
+
+
 def risk_contributions(weights: pd.Series, cov: pd.DataFrame) -> pd.DataFrame:
     """Marginal and component contribution to portfolio risk.
 
@@ -759,6 +792,25 @@ def risk_contributions(weights: pd.Series, cov: pd.DataFrame) -> pd.DataFrame:
     that identity is asserted, because a contribution table that does not add up
     is the usual symptom of a misaligned index.
     """
+    # Coverage first.
+    #
+    # `reindex(...).fillna(0.0)` silently drops any held position the covariance
+    # matrix does not cover — a new listing, a name with too little history, a
+    # data gap. Portfolio volatility is then computed on a subset of the book,
+    # the component contributions still sum to that subset's volatility so the
+    # identity assertion below passes, and `share` still totals 1.0. The result
+    # is a plausible, internally consistent, UNDERSTATED risk number with
+    # nothing to indicate a position went missing — the flattering direction.
+    #
+    # The weights are still zero-filled, because the arithmetic needs a value.
+    # What changes is that the omission is measured and attached, and the caller
+    # is told rather than left to assume the book was fully covered.
+    requested = pd.to_numeric(weights, errors="coerce").dropna()
+    covered = requested.reindex(cov.index).dropna()
+    gross = float(requested.abs().sum())
+    weight_coverage = float(covered.abs().sum() / gross) if gross > 0 else 0.0
+    missing = sorted(set(requested.index) - set(cov.index))
+
     aligned = weights.reindex(cov.index).fillna(0.0)
     matrix = cov.to_numpy()
     # numpy 2.2 on Accelerate emits spurious divide/overflow/invalid warnings for
@@ -770,15 +822,12 @@ def risk_contributions(weights: pd.Series, cov: pd.DataFrame) -> pd.DataFrame:
         variance = float(aligned @ matrix @ aligned)
         portfolio_vol = float(np.sqrt(max(variance, 0.0)))
         if not np.isfinite(portfolio_vol) or portfolio_vol <= 0:
-            return pd.DataFrame(
-                {"weight": aligned, "marginal": 0.0, "component": 0.0, "share": 0.0}
-            )
+            return _contributions_frame(
+                aligned, 0.0, 0.0, 0.0, weight_coverage, missing)
         marginal_values = matrix @ aligned.to_numpy() / portfolio_vol
 
     if not np.all(np.isfinite(marginal_values)):
-        return pd.DataFrame(
-            {"weight": aligned, "marginal": 0.0, "component": 0.0, "share": 0.0}
-        )
+        return _contributions_frame(aligned, 0.0, 0.0, 0.0, weight_coverage, missing)
     marginal = pd.Series(marginal_values, index=cov.index)
     component = aligned * marginal
     total = float(component.sum())
@@ -786,12 +835,13 @@ def risk_contributions(weights: pd.Series, cov: pd.DataFrame) -> pd.DataFrame:
         "component contributions must sum to portfolio volatility; "
         f"got {total} vs {portfolio_vol}"
     )
-    return pd.DataFrame({
+    frame = pd.DataFrame({
         "weight": aligned,
         "marginal": marginal,
         "component": component,
         "share": component / portfolio_vol,
     }).sort_values("component", ascending=False)
+    return _annotate_coverage(frame, weight_coverage, missing)
 
 
 def concentration(weights: pd.Series) -> dict[str, Any]:
@@ -1049,6 +1099,16 @@ def analyse(
                 }
                 for idx, row in contributions.head(20).iterrows()
             ]
+            # Coverage travels with the decomposition. A table computed on 75%
+            # of the book is not a smaller version of the right answer; it is a
+            # different portfolio's risk.
+            report.tables["risk_contributions_coverage"] = {
+                "weight_coverage": contributions.attrs.get("weight_coverage"),
+                "complete": contributions.attrs.get("complete"),
+                "uncovered_symbols": contributions.attrs.get("uncovered_symbols", []),
+                "caveat": contributions.attrs.get("caveat"),
+                "minimum_required": MIN_RISK_COVERAGE,
+            }
             report.tables["risk_contributions_method"] = (
                 "marginal = (Σw)ᵢ / σ_p ; component = wᵢ × marginalᵢ ; "
                 "components sum to σ_p by construction"

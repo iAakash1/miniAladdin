@@ -22,6 +22,7 @@
 
 import { useEffect, useState } from 'react'
 import { StatusPill } from '@/components/ui/DataMarks'
+import { StateBlock } from '@/components/terminal/primitives'
 import { f, pct, sign } from '@/components/terminal/quant/format'
 import { quantFetch } from '@/lib/quantApi'
 
@@ -61,6 +62,16 @@ interface PortfolioView {
     risk_contributions?: Array<{
       symbol: string; weight: number; marginal: number; component: number; share: number
     }>
+    /** How much of the book the covariance matrix actually covered. A
+     *  decomposition over 75% of gross weight is not a smaller version of the
+     *  right answer; it is a different portfolio's risk. */
+    risk_contributions_coverage?: {
+      weight_coverage: number | null
+      complete: boolean | null
+      uncovered_symbols: string[]
+      caveat: string | null
+      minimum_required: number
+    }
     /** Shape of the return distribution. Decides whether the Gaussian metrics
      *  beside it may be read at face value. */
     distribution?: {
@@ -331,6 +342,25 @@ export default function PortfolioRisk({
       ) : null}
 
       {/* ── weights + risk contribution ── */}
+      {/* Only rendered when the decomposition did not cover the book. Silence
+          here previously meant "fully covered" and "quietly understated" alike. */}
+      {risk.risk_contributions_coverage &&
+       risk.risk_contributions_coverage.complete === false ? (
+        <StateBlock
+          kind="error"
+          what="a complete risk decomposition"
+          why={risk.risk_contributions_coverage.caveat ?? undefined}
+          action={
+            risk.risk_contributions_coverage.uncovered_symbols.length ? (
+              <span className="u-note">
+                No covariance row:{' '}
+                <code>{risk.risk_contributions_coverage.uncovered_symbols.join(', ')}</code>
+              </span>
+            ) : undefined
+          }
+        />
+      ) : null}
+
       <h4 className="qr-subhead">Book — largest positions by weight</h4>
       <div className="ml-scroll">
         <table className="data-table qr-table qr-table--narrow">
