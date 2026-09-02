@@ -32,6 +32,7 @@ const GROUPS: { title: string; keys: { combo: string; action: string }[] }[] = [
       { combo: 'g p', action: 'Performance' },
       { combo: 'g x', action: 'Experiments' },
       { combo: 'g w', action: 'Compare' },
+      { combo: 'g q', action: 'Difference' },
       { combo: 'g b', action: 'Book' },
       { combo: 'g r', action: 'Risk' },
       { combo: 'g k', action: 'Covariance' },
