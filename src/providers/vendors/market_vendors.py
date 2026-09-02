@@ -11,6 +11,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+from src.quant.pit.calendar import session_date_from_epoch
 from src.providers.base import VendorClient, VendorError
 from src.providers.schemas import (
     AnalystTargets,
@@ -150,7 +151,10 @@ class PolygonVendor(VendorClient):
         )
         bars = [
             OHLCVBar(
-                date=datetime.fromtimestamp(item["t"] / 1000, tz=timezone.utc).strftime("%Y-%m-%d"),
+                # Resolved in the exchange timezone, not UTC. See
+                # pit.calendar.session_date_from_epoch — the UTC reading is
+                # right for US bars only by the sign of the offset.
+                date=session_date_from_epoch(item["t"] / 1000),
                 open=_safe_float(item.get("o")), high=_safe_float(item.get("h")),
                 low=_safe_float(item.get("l")), close=_safe_float(item.get("c")) or 0.0,
                 volume=int(item["v"]) if item.get("v") else None,
@@ -788,7 +792,7 @@ class YFinanceVendor(VendorClient):
         stamp = _safe_float(info.get("dateShortInterest"))
         if stamp:
             try:
-                short_date = datetime.fromtimestamp(stamp, tz=_tz.utc).date().isoformat()
+                short_date = session_date_from_epoch(stamp)
             except (OSError, ValueError, OverflowError):
                 short_date = None
 

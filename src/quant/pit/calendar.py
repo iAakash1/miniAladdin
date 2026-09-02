@@ -190,3 +190,27 @@ def align_to_sessions(
         if anchored is not None:
             out.append(anchored)
     return out
+
+
+#: The venue every price series in this repository comes from. Stated as a
+#: constant because the alternative is an assumption nobody can see.
+EXCHANGE_TIMEZONE = "America/New_York"
+
+
+def session_date_from_epoch(epoch_seconds: float) -> str:
+    """The trading session an instant belongs to, as an ISO calendar date.
+
+    Vendors deliver daily bars as an epoch stamp. Reading the calendar date off
+    that instant *in UTC* happens to give the right answer for a US venue, but
+    only because Eastern is behind UTC: midnight ET is 04:00 or 05:00 UTC on the
+    same date. The same expression shifts a Tokyo session a day earlier, and
+    shifts any US stamp taken after 20:00 ET a day later.
+
+    Resolving in the exchange's own timezone is the same answer for every US bar
+    and stops being right by accident.
+    """
+    from datetime import datetime, timezone
+    from zoneinfo import ZoneInfo
+
+    instant = datetime.fromtimestamp(epoch_seconds, tz=timezone.utc)
+    return instant.astimezone(ZoneInfo(EXCHANGE_TIMEZONE)).date().isoformat()
