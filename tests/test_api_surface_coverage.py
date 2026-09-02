@@ -38,10 +38,7 @@ INTERNAL: dict[str, str] = {
     "/api/research/providers/health": "duplicate of /api/providers/health",
     "/api/factors/universes": "populates a control inside the factor workspace, not a page",
     "/api/company/{ticker}/media": "called from the security workspace by composed path",
-    "/api/memo/{ticker}": "analyst memos are not built yet; kept so the route does not move",
-    "/api/ml/provenance/{label}/{model_id}": "provenance drill-through is not built yet",
-    "/api/providers/capabilities": "provider matrix is not built yet",
-    "/api/providers/health": "provider matrix is not built yet",
+    "/api/memo/{ticker}": "server-generated analyst prose; the notebook is deliberately author-written instead, so this stays unwired",
     "/api/knowledge/{ticker}": "read through lib/knowledge, which composes the path",
     "/api/screen": "read through lib/intelligence/providers, which composes the path",
     "/api/quotes": "read through lib/watchlists, which composes the path",
@@ -113,6 +110,10 @@ def test_internal_entries_carry_a_reason() -> None:
         "/api/quant/selection/{experiment_id}",
         "/api/quant/portfolio",
         "/api/quant/status",
+        "/api/ml/provenance/{label}/{model_id}",
+        "/api/providers/capabilities",
+        "/api/providers/health",
+        "/api/quant/covariance",
     ],
 )
 def test_the_endpoints_the_redesign_surfaced_stay_surfaced(endpoint: str) -> None:
