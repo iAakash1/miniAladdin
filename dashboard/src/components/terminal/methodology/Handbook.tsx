@@ -1,0 +1,170 @@
+/**
+ * Research handbook.
+ *
+ * Generated from the engine's own methodology table, not written out. Units,
+ * annualisation, inputs and applicability come from the code that computes the
+ * numbers, so the page cannot state a convention the engine no longer follows.
+ *
+ * The column that earns its place is "fails when". A list of assumptions is
+ * only useful to a reader who is told what breaks them.
+ */
+'use client'
+
+import { useEffect, useMemo, useState } from 'react'
+
+import { Panel, Section, StateBlock, Status, Strip, Table, Value, type Column } from '@/components/system'
+
+interface Entry {
+  name: string
+  unit: string
+  annualisation: string
+  inputs: string[]
+  return_units_required: boolean
+  minimum_observations: number
+  purpose: string | null
+  fails_when: string | null
+  documented: boolean
+}
+
+interface Book {
+  entries: Entry[]
+  total: number
+  documented: number
+  minimum_observations: number
+  source: string
+  note: string
+}
+
+const UNIT_LABEL: Record<string, string> = {
+  return: 'return',
+  return_magnitude: 'magnitude',
+  annualised_volatility: 'ann. vol',
+  ratio: 'ratio',
+  other: 'other',
+}
+
+const ANN_LABEL: Record<string, string> = {
+  none: 'per period',
+  sqrt_periods_per_year: '√T',
+  periods_per_year: '× T',
+  geometric_compounded: 'compounded',
+}
+
+export default function Handbook() {
+  const [book, setBook] = useState<Book | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [selected, setSelected] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
+
+  useEffect(() => {
+    let alive = true
+    fetch('/api/quant/methodology')
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((d: Book) => { if (alive) setBook(d) })
+      .catch((e: Error) => { if (alive) setError(e.message) })
+    return () => { alive = false }
+  }, [])
+
+  const rows = useMemo(() => {
+    if (!book) return []
+    const q = query.trim().toLowerCase()
+    if (!q) return book.entries
+    return book.entries.filter(
+      (e) => e.name.includes(q) || (e.purpose ?? '').toLowerCase().includes(q) || e.unit.includes(q),
+    )
+  }, [book, query])
+
+  const columns: Column<Entry>[] = useMemo(() => [
+    { key: 'name', header: 'Measure', width: '22%', render: (e) => <span style={{ fontFamily: 'var(--font-mono)' }}>{e.name}</span> },
+    { key: 'unit', header: 'Unit', width: '12%', render: (e) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{UNIT_LABEL[e.unit] ?? e.unit}</span> },
+    { key: 'ann', header: 'Annualisation', width: '13%', render: (e) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{ANN_LABEL[e.annualisation] ?? e.annualisation}</span> },
+    { key: 'ret', header: 'Needs return units', width: '13%', render: (e) => <Status state={e.return_units_required ? 'blocked' : 'recorded'} label={e.return_units_required ? 'yes' : 'no'} /> },
+    { key: 'purpose', header: 'Purpose', render: (e) => <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-muted)' }}>{e.purpose ?? '—'}</span> },
+  ], [])
+
+  if (error) {
+    return (
+      <Panel title="Handbook" state="unavailable">
+        <StateBlock state="unavailable" title="The handbook could not be read" detail={`Request failed: ${error}.`} />
+      </Panel>
+    )
+  }
+  if (!book) return <Panel title="Handbook" state="waking"><StateBlock state="waking" title="Reading the methodology table" /></Panel>
+
+  const entry = book.entries.find((e) => e.name === selected)
+
+  return (
+    <>
+      <Strip metrics={[
+        { label: 'Measures', value: book.total, digits: 0 },
+        { label: 'With failure conditions', value: book.documented, digits: 0 },
+        { label: 'Minimum observations', value: book.minimum_observations, digits: 0, title: 'Below this a measure reports nothing rather than a number its sample cannot support' },
+      ]} />
+
+      <Panel
+        title="Measures"
+        subtitle={`${rows.length} of ${book.total}`}
+        flush
+        actions={
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="filter"
+            aria-label="Filter measures"
+            className="sys-focusable"
+            style={{
+              font: '400 var(--t-meta)/1 var(--font-mono)',
+              padding: '3px 6px', border: '1px solid var(--rule)',
+              background: 'var(--p-panel)', color: 'var(--ink)', width: 140,
+            }}
+          />
+        }
+      >
+        <Table columns={columns} rows={rows} rowKey={(e) => e.name} density="compact" selectedKey={selected ?? undefined} onSelect={(e) => setSelected(e.name)} />
+      </Panel>
+
+      {entry ? (
+        <Panel title="Measure" subtitle={entry.name}>
+          <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1.4fr)' }}>
+            <Section title="Derived from the engine">
+              <table className="sys-table sys-table--compact">
+                <tbody>
+                  <tr><td>Unit</td><td className="num">{UNIT_LABEL[entry.unit] ?? entry.unit}</td></tr>
+                  <tr><td>Annualisation</td><td className="num">{ANN_LABEL[entry.annualisation] ?? entry.annualisation}</td></tr>
+                  <tr><td>Needs return units</td><td className="num">{entry.return_units_required ? 'yes' : 'no'}</td></tr>
+                  <tr><td>Minimum observations</td><td className="num"><Value value={entry.minimum_observations} digits={0} /></td></tr>
+                  <tr><td>Inputs</td><td className="num">{entry.inputs.join(', ') || '—'}</td></tr>
+                </tbody>
+              </table>
+              <p style={{ margin: 0, fontSize: 'var(--t-micro)', color: 'var(--ink-faint)' }}>
+                Read from {book.source}
+              </p>
+            </Section>
+            <Section title="Authored">
+              <div>
+                <div className="sys-label" style={{ fontSize: 'var(--t-micro)', marginBottom: 'var(--d-1)' }}>Purpose</div>
+                <p style={{ margin: '0 0 var(--d-3)', fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
+                  {entry.purpose ?? '—'}
+                </p>
+                <div className="sys-label" style={{ fontSize: 'var(--t-micro)', marginBottom: 'var(--d-1)' }}>Fails when</div>
+                <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink)' }}>
+                  {entry.fails_when ?? '—'}
+                </p>
+              </div>
+            </Section>
+          </div>
+        </Panel>
+      ) : (
+        <Panel title="Measure">
+          <StateBlock state="unknown" title="No measure selected" detail="Choose a row to see its unit, how it is annualised, what it is computed from, and what makes it fail." />
+        </Panel>
+      )}
+
+      <Panel title="Why this page is generated">
+        <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)', maxWidth: '84ch' }}>
+          {book.note}
+        </p>
+      </Panel>
+    </>
+  )
+}

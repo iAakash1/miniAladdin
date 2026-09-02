@@ -31,7 +31,7 @@ export const WORKBENCH: { group: string; items: { href: string; label: string; k
   {
     group: 'Observe',
     items: [
-      { href: '/terminal', label: 'Command', key: 'h' },
+      { href: '/terminal/command', label: 'Command', key: 'c' },
       { href: '/terminal/analyze', label: 'Securities', key: 's' },
     ],
   },
@@ -39,7 +39,7 @@ export const WORKBENCH: { group: string; items: { href: string; label: string; k
     group: 'Explain',
     items: [
       { href: '/terminal/factors', label: 'Factors', key: 'f' },
-      { href: '/quant', label: 'Signals', key: 'g' },
+      { href: '/terminal/signals', label: 'Signals', key: 'g' },
     ],
   },
   {
@@ -47,13 +47,13 @@ export const WORKBENCH: { group: string; items: { href: string; label: string; k
     items: [
       { href: '/terminal/models', label: 'Models', key: 'm' },
       { href: '/terminal/evidence', label: 'Evidence', key: 'v' },
-      { href: '/terminal/validation', label: 'Experiments', key: 'e' },
+      { href: '/terminal/experiments', label: 'Experiments', key: 'x' },
     ],
   },
   {
     group: 'Allocate',
     items: [
-      { href: '/terminal/portfolio', label: 'Portfolio', key: 'p' },
+      { href: '/terminal/book', label: 'Book', key: 'b' },
       { href: '/terminal/risk', label: 'Risk', key: 'r' },
     ],
   },
@@ -61,7 +61,7 @@ export const WORKBENCH: { group: string; items: { href: string; label: string; k
     group: 'Verify',
     items: [
       { href: '/terminal/data', label: 'Data', key: 'd' },
-      { href: '/terminal/methodology', label: 'Methodology', key: 'y' },
+      { href: '/terminal/handbook', label: 'Handbook', key: 'y' },
     ],
   },
 ]

@@ -2206,6 +2206,21 @@ def quant_features():
     return ml_service.feature_catalog()
 
 
+@app.get("/api/quant/methodology", tags=["quant"])
+def quant_methodology():
+    """Every reported measure, with its unit, annualisation and failure conditions.
+
+    Units, annualisation, inputs and applicability are read from the risk
+    engine's own methodology table rather than restated here, so the handbook
+    cannot drift from the code that produces the numbers. A handbook that has
+    drifted is worse than none: it is a confident claim about how a number was
+    computed that is no longer true.
+    """
+    from src.services import methodology_service
+
+    return methodology_service.handbook()
+
+
 @app.get("/api/quant/datasets", tags=["quant"])
 def quant_datasets():
     """The dataset catalog in three tiers: admissible, gated, excluded.
