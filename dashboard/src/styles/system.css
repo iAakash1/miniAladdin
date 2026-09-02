@@ -500,3 +500,170 @@ a:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .wb-rail, .wb-context { transition: none; }
 }
+
+/* ── density modes ───────────────────────────────────────────────────────
+   A professional user decides how much fits on screen. Three modes, applied
+   at the root so every table and panel follows without per-page wiring. */
+
+:root[data-density='compact'] {
+  --row-compact: 18px; --row-normal: 22px; --row-relaxed: 26px;
+  --d-2: 6px; --d-3: 8px; --d-4: 12px; --d-5: 16px;
+  --t-body: 12px; --t-value: 14px;
+}
+
+:root[data-density='comfortable'] {
+  --row-compact: 28px; --row-normal: 34px; --row-relaxed: 42px;
+  --d-2: 10px; --d-3: 16px; --d-4: 22px; --d-5: 30px;
+  --t-body: 14px; --t-value: 16px;
+}
+
+/* ── command palette ─────────────────────────────────────────────────────
+   The one place motion is worth spending: the palette arrives over whatever
+   the user was reading, and a hard cut there loses the reading position. */
+
+.pal-backdrop {
+  position: fixed; inset: 0; z-index: 200;
+  background: color-mix(in srgb, var(--p-inverse) 42%, transparent);
+  backdrop-filter: blur(2px);
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 12vh var(--d-4) var(--d-4);
+  animation: pal-in 120ms ease-out;
+}
+
+@keyframes pal-in { from { opacity: 0 } to { opacity: 1 } }
+
+.pal {
+  width: min(680px, 100%);
+  max-height: 70vh;
+  background: var(--p-panel);
+  border: 1px solid var(--rule-strong);
+  display: flex; flex-direction: column;
+  box-shadow: 0 18px 48px -24px color-mix(in srgb, var(--p-inverse) 70%, transparent);
+  animation: pal-rise 140ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes pal-rise { from { transform: translateY(-6px); opacity: 0 } to { transform: none; opacity: 1 } }
+
+@media (prefers-reduced-motion: reduce) {
+  .pal-backdrop, .pal { animation: none; }
+}
+
+.pal-input {
+  width: 100%; box-sizing: border-box;
+  padding: var(--d-3) var(--d-4);
+  border: 0; border-bottom: 1px solid var(--rule-strong);
+  background: transparent; color: var(--ink);
+  font: 400 var(--t-value) / 1.3 var(--font-mono);
+  outline: none;
+}
+.pal-input::placeholder { color: var(--ink-faint); }
+
+.pal-body { overflow-y: auto; flex: 1; padding: var(--d-2) 0; }
+
+.pal-group + .pal-group { border-top: 1px solid var(--rule); margin-top: var(--d-2); padding-top: var(--d-2); }
+.pal-group-label { padding: 0 var(--d-4) var(--d-1); font-size: var(--t-micro); }
+
+.pal-row {
+  display: flex; align-items: center; gap: var(--d-2);
+  width: 100%; text-align: left;
+  padding: 0 var(--d-4); height: var(--row-normal);
+  background: transparent; border: 0; cursor: pointer;
+  color: var(--ink); font-size: var(--t-body);
+  border-left: 2px solid transparent;
+}
+.pal-row.is-active { background: var(--p-sunken); border-left-color: var(--ink); }
+
+.pal-badge {
+  flex: none; width: 16px; height: 16px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--rule-strong); color: var(--ink-muted);
+  font: 500 var(--t-micro) / 1 var(--font-mono);
+}
+
+.pal-label { flex: none; font-family: var(--font-mono); }
+.pal-detail {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--ink-faint); font: 400 var(--t-meta) / 1 var(--font-mono);
+}
+.pal-hint {
+  margin-left: auto; flex: none;
+  color: var(--ink-faint); font: 400 var(--t-micro) / 1 var(--font-mono);
+  border: 1px solid var(--rule); padding: 1px 4px;
+}
+
+.pal-empty { padding: var(--d-5) var(--d-4); }
+
+.pal-foot {
+  display: flex; justify-content: space-between; gap: var(--d-3);
+  padding: var(--d-2) var(--d-4);
+  border-top: 1px solid var(--rule); background: var(--p-sunken);
+}
+
+/* ── controls ────────────────────────────────────────────────────────────
+   Restrained. A terminal button should read as a control, not as a call to
+   action, so the resting state is a hairline and the state change is a
+   background rather than a colour wash. */
+
+.sys-btn {
+  display: inline-flex; align-items: center; gap: var(--d-1);
+  font: 500 var(--t-micro) / 1 var(--font-sans);
+  letter-spacing: var(--tracking-label); text-transform: uppercase;
+  padding: 4px 9px;
+  background: var(--p-panel); color: var(--ink-muted);
+  border: 1px solid var(--rule); cursor: pointer;
+  transition: background var(--t-fast, 90ms) ease, color var(--t-fast, 90ms) ease,
+              border-color var(--t-fast, 90ms) ease;
+}
+.sys-btn:hover { background: var(--p-sunken); color: var(--ink); border-color: var(--rule-strong); }
+.sys-btn:active { transform: translateY(0.5px); }
+.sys-btn[aria-pressed='true'], .sys-btn.is-active {
+  background: var(--p-inverse); color: var(--p-base); border-color: var(--p-inverse);
+}
+.sys-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Segmented control: one border for the group, hairlines between. */
+.sys-seg { display: inline-flex; border: 1px solid var(--rule); }
+.sys-seg > .sys-btn { border: 0; border-radius: 0; }
+.sys-seg > .sys-btn + .sys-btn { border-left: 1px solid var(--rule); }
+
+.sys-input {
+  font: 400 var(--t-meta) / 1.2 var(--font-mono);
+  padding: 4px 7px;
+  background: var(--p-panel); color: var(--ink);
+  border: 1px solid var(--rule);
+  transition: border-color var(--t-fast, 90ms) ease;
+}
+.sys-input:focus { border-color: var(--rule-focus); outline: none; }
+.sys-input::placeholder { color: var(--ink-faint); }
+
+/* Sortable column header. The affordance appears on hover and stays once a
+   sort is applied, so the active sort is legible without a legend. */
+.sys-th-sort {
+  cursor: pointer; user-select: none;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.sys-th-sort .caret { opacity: 0; transition: opacity var(--t-fast, 90ms) ease; }
+.sys-table th:hover .sys-th-sort .caret,
+.sys-th-sort[data-sorted='asc'] .caret,
+.sys-th-sort[data-sorted='desc'] .caret { opacity: 1; }
+
+/* ── drawer ──────────────────────────────────────────────────────────── */
+
+.sys-drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 150;
+  width: min(460px, 92vw);
+  background: var(--p-panel);
+  border-left: 1px solid var(--rule-strong);
+  display: flex; flex-direction: column;
+  animation: drawer-in 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes drawer-in { from { transform: translateX(12px); opacity: 0 } to { transform: none; opacity: 1 } }
+@media (prefers-reduced-motion: reduce) { .sys-drawer { animation: none; } }
+
+.sys-drawer-head {
+  display: flex; align-items: center; gap: var(--d-2);
+  padding: var(--d-3) var(--d-4);
+  border-bottom: 1px solid var(--rule-strong);
+  background: var(--p-sunken);
+}
+.sys-drawer-body { overflow-y: auto; padding: var(--d-4); display: flex; flex-direction: column; gap: var(--d-4); }

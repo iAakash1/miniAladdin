@@ -19,11 +19,22 @@
  */
 'use client'
 
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 
 import { Status, type ResearchState } from './index'
+import Palette, { applyStoredDensity } from './Palette'
+import { usePinnedObjects, useRecentObjects } from '@/lib/research/history'
+import { KINDS, href as objectHref } from '@/lib/research/objects'
+
+/** `g` then a letter jumps between workspaces. Inert while typing. */
+const GOTO: Record<string, string> = {
+  c: '/terminal/command', s: '/terminal/analyze', f: '/terminal/factorlab',
+  g: '/terminal/signals', m: '/terminal/lab', v: '/terminal/evidence',
+  x: '/terminal/experiments', b: '/terminal/book', r: '/terminal/risk',
+  d: '/terminal/data', y: '/terminal/handbook',
+}
 
 /* Navigation follows the research loop, not the backend modules. The groups
    are the questions a researcher actually moves between. */
@@ -85,11 +96,43 @@ export default function Workbench({
   children: ReactNode
 }) {
   const pathname = usePathname()
+  const router = useRouter()
   const [navOpen, setNavOpen] = useState(false)
   const [ctxOpen, setCtxOpen] = useState(false)
+  const recent = useRecentObjects()
+  const pinned = usePinnedObjects()
+
+  useEffect(() => { applyStoredDensity() }, [])
+
+  // Two-key navigation. A leading `g` arms the next letter for one second,
+  // which is short enough that it never swallows a keystroke the user meant
+  // for something else.
+  useEffect(() => {
+    let armed = false
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      if (armed) {
+        armed = false
+        if (timer) clearTimeout(timer)
+        const dest = GOTO[e.key.toLowerCase()]
+        if (dest) { e.preventDefault(); router.push(dest) }
+        return
+      }
+      if (e.key === 'g') {
+        armed = true
+        timer = setTimeout(() => { armed = false }, 1000)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => { window.removeEventListener('keydown', onKey); if (timer) clearTimeout(timer) }
+  }, [router])
 
   return (
     <div className="wb">
+      <Palette />
       <nav className={`wb-rail${navOpen ? ' is-open' : ''}`} aria-label="Workbench">
         {WORKBENCH.map((section) => (
           <div className="wb-group" key={section.group}>
@@ -111,6 +154,30 @@ export default function Workbench({
             })}
           </div>
         ))}
+
+        {pinned.length ? (
+          <div className="wb-group">
+            <div className="sys-label wb-group-label">Pinned</div>
+            {pinned.slice(0, 6).map((o) => (
+              <Link key={`p-${o.kind}-${o.id}`} href={objectHref(o)} className="wb-link" title={`${KINDS[o.kind].plural} · ${o.detail ?? ''}`}>
+                <span style={{ fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.label}</span>
+                <span className="wb-key" style={{ opacity: 1 }}>{KINDS[o.kind].glyph}</span>
+              </Link>
+            ))}
+          </div>
+        ) : null}
+
+        {recent.length ? (
+          <div className="wb-group">
+            <div className="sys-label wb-group-label">Recent</div>
+            {recent.slice(0, 6).map((o) => (
+              <Link key={`r-${o.kind}-${o.id}`} href={objectHref(o)} className="wb-link" title={`${KINDS[o.kind].plural} · ${o.detail ?? ''}`}>
+                <span style={{ fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.label}</span>
+                <span className="wb-key" style={{ opacity: 1 }}>{KINDS[o.kind].glyph}</span>
+              </Link>
+            ))}
+          </div>
+        ) : null}
       </nav>
 
       <div className="wb-main">
@@ -126,6 +193,13 @@ export default function Workbench({
             {subtitle ? <span className="sys-meta">{subtitle}</span> : null}
           </div>
           <div className="wb-head-actions">
+            <button
+              className="sys-btn"
+              onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
+              title="Search objects and commands"
+            >
+              search <kbd style={{ font: '400 var(--t-micro)/1 var(--font-mono)', opacity: 0.7 }}>⌘K</kbd>
+            </button>
             {actions}
             {context ? (
               <button
