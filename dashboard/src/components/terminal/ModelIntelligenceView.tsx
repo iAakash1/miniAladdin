@@ -51,6 +51,10 @@ interface Validity {
 
 interface Overview {
   status: string
+  /** Which study these numbers are. The page previously rendered a study it
+   *  could not name, which is how it went on serving a voided one. */
+  experiment_id?: string | null
+  source_artifact?: string | null
   validity?: Validity
   reason?: string
   remediation?: string
@@ -290,7 +294,7 @@ export default function ModelIntelligenceView() {
         <PageHeader
           eyebrow="Research"
           title="Model Intelligence"
-          lede="The served EXP-006 specification and the evidence that keeps it experimental."
+          lede="The served specification and the evidence that keeps it experimental."
         />
         <EngineOffline failure={error} title="Model research API" onRetry={() => window.location.reload()} />
       </>
@@ -303,11 +307,11 @@ export default function ModelIntelligenceView() {
         <PageHeader
           eyebrow="Research"
           title="Model Intelligence"
-          lede="The served EXP-006 specification and the evidence that keeps it experimental."
+          lede="The served specification and the evidence that keeps it experimental."
         />
         <Section
           id="deployed-model"
-          title="EXP-006 model intelligence"
+          title="Deployed model"
           summary="served · experimental · promotion blocked"
           defaultOpen
         >
@@ -391,7 +395,7 @@ export default function ModelIntelligenceView() {
 
       <Section
         id="deployed-model"
-        title="EXP-006 model intelligence"
+        title="Deployed model"
         summary="served · experimental · promotion blocked"
         defaultOpen
       >
@@ -442,6 +446,9 @@ export default function ModelIntelligenceView() {
         <Section
           id="ml-leaderboard"
           title={`Every model evaluated — ${report.label}`}
+          /* The study is named from the artifact, not a literal. A page that
+             cannot say which study it renders is how a voided one went on
+             being served under these headings. */
           summary={`${report.models?.length ?? 0} configurations, none filtered`}
           defaultOpen
         >
@@ -737,6 +744,17 @@ export default function ModelIntelligenceView() {
         summary={`${overview.universe?.unique_members ?? '—'} names ever eligible`}
       >
         <dl className="ml-prov">
+          {/* Which study, first. Everything below describes it. */}
+          <dt>Study</dt>
+          <dd>
+            <code>{overview.experiment_id ?? 'unnamed'}</code>
+            {overview.source_artifact ? (
+              <> · read from <code>{overview.source_artifact}</code></>
+            ) : null}
+            {overview.validity?.valid === false ? (
+              <> · <strong>VOID</strong></>
+            ) : null}
+          </dd>
           <dt>Dataset</dt>
           <dd>
             <code>{dataset.dataset_version}</code> · content hash{' '}

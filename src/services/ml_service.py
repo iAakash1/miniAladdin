@@ -153,11 +153,75 @@ def _read_json(path: Path) -> Any:
     return payload
 
 
+#: Where completed experiments are written. Preferred over the legacy report.
+EXPERIMENTS_ROOT = Path("experiments")
+
+
+def _newest_valid_experiment(root: Optional[Path] = None) -> Optional[tuple[str, Path]]:
+    """The newest completed, non-void experiment artifact.
+
+    `data/research/reports/study.json` is written by the standalone study runner
+    and carries no experiment id, so `study_validity` can only key it on dataset
+    version — and the one on disk was generated before the as-of fix, against
+    the version that voided EXP-002. The Models workspace was therefore serving
+    the invalidated study as its leaderboard, walk-forward, cost and regime
+    sections, under headings that did not say which study they were.
+
+    EXP-004 onward are on disk, valid, and schema-compatible. This prefers them,
+    newest first, and falls back to the legacy report only when no experiment
+    artifact exists.
+    """
+    # Resolved at call time, not bound as a default: a module-level constant
+    # captured in a signature cannot be overridden by a deployment or a test,
+    # and silently ignoring the override is worse than not offering one.
+    root = Path(root) if root is not None else EXPERIMENTS_ROOT
+    if not root.exists():
+        return None
+    candidates: list[tuple[str, str, Path]] = []
+    for directory in sorted(root.iterdir(), reverse=True):
+        artifact = directory / "metrics.json"
+        if not artifact.is_file():
+            continue
+        try:
+            payload = json.loads(artifact.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            continue
+        experiment_id = (payload.get("experiment") or {}).get("experiment_id")
+        if experiment_id in VOID_EXPERIMENT_IDS:
+            continue
+        if not payload.get("labels"):
+            continue
+        generated = str(payload.get("generated_at") or "")
+        candidates.append((generated, experiment_id or directory.name, artifact))
+    if not candidates:
+        return None
+    generated, experiment_id, artifact = max(candidates)
+    return experiment_id, artifact
+
+
 def _study(root: Path) -> Any:
+    """The study the ML surfaces render. Newest valid experiment wins.
+
+    The experiment preference applies to the DEFAULT root only. A caller that
+    names a root means it — a test pointing at a fixture directory, or a
+    deployment mounting research data elsewhere — and silently serving a
+    different study than the one asked for is a worse failure than the one this
+    preference exists to fix.
+    """
+    newest = _newest_valid_experiment() if Path(root) == DEFAULT_ROOT else None
+    if newest is not None:
+        experiment_id, artifact = newest
+        payload = _read_json(artifact)
+        # Stamp the source so callers — and the page — can name the study.
+        payload.setdefault("experiment_id", experiment_id)
+        payload.setdefault("source_artifact", str(artifact))
+        return payload
+
     path = root / "reports" / REPORT_NAME
     if not path.exists():
         raise MLUnavailable(
-            f"no study report at {path}. Run `python -m scripts.quant.study --all-labels`. "
+            f"no completed experiment under {EXPERIMENTS_ROOT} and no study report "
+            f"at {path}. Run `python -m scripts.quant.study --all-labels`. "
             "Nothing is estimated in its place: an approximation rendered where a "
             "walk-forward result belongs cannot be told apart from the real thing."
         )
@@ -311,6 +375,23 @@ def feature_catalog() -> dict[str, Any]:
     }
 
 
+#: Models in the ladder purely as diagnostics. They may never be presented as a
+#: study's best result. Mirrors `quant_service.OVERFIT_CONTROL_MODELS`.
+OVERFIT_CONTROL_MODELS: frozenset[str] = frozenset({"gradient_boosting_deep"})
+
+
+def _headline_model(leaderboard: list[dict[str, Any]]) -> Optional[dict[str, Any]]:
+    """The best genuine candidate, skipping diagnostic controls.
+
+    Falls back to nothing rather than to the control: a study whose only entry
+    is an overfitting control has no best model, and saying so is correct.
+    """
+    for row in leaderboard:
+        if row.get("model_id") not in OVERFIT_CONTROL_MODELS:
+            return row
+    return None
+
+
 def overview(root: Path | str = DEFAULT_ROOT) -> dict[str, Any]:
     """Headline state: dataset, universe, regime, and the leaderboard summary."""
     try:
@@ -325,7 +406,18 @@ def overview(root: Path | str = DEFAULT_ROOT) -> dict[str, Any]:
         leaderboard = report.get("leaderboard", [])
         if not leaderboard:
             continue
-        best = leaderboard[0]
+        # The leaderboard is ordered by IC, and `gradient_boosting_deep` is the
+        # deliberately over-parameterised control — it tops that ordering
+        # BECAUSE it memorises the training fold. Taking row zero would headline
+        # the one model in the ladder that exists to prove the overfitting
+        # diagnostic fires, and label it "best".
+        #
+        # The control stays in the leaderboard table below, where its gap is
+        # visible and makes the point it is there to make. It is only excluded
+        # from being called best.
+        best = _headline_model(leaderboard)
+        if best is None:
+            continue
         model_id = best.get("model_id")
         headline.append(
             {
@@ -378,6 +470,11 @@ def overview(root: Path | str = DEFAULT_ROOT) -> dict[str, Any]:
             "agreement": regimes.get("agreement", {}),
         },
         "labels": headline,
+        # Which study these numbers are. The page previously rendered a study it
+        # could not name, which is how it went on serving a voided one.
+        "experiment_id": study.get("experiment_id")
+        or (study.get("experiment") or {}).get("experiment_id"),
+        "source_artifact": study.get("source_artifact"),
         "feature_count": len(study.get("features_used", [])),
         "dependency_versions": study.get("dependency_versions", {}),
     }

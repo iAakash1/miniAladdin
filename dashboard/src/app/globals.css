@@ -6436,7 +6436,9 @@ a.hl-row:hover .hl-row__out { color: var(--accent); transform: translate(1px, -1
 }
 .tp-metric--lead .tp-metric__value { font-size: 1.375rem; }
 .tp-metric__unit {
-  margin-left: 0.15em;
+  /* A real space. At 0.15em the unit collided with the number — "+0.111Sharpe"
+     rather than "+0.111 Sharpe" — because the mono digits carry no side bearing. */
+  margin-left: 0.3em;
   font-size: 0.6875em;
   font-style: normal;
   color: var(--muted);

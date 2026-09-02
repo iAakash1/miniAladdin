@@ -422,24 +422,20 @@ def _decision_envelopes(payload: dict[str, Any]) -> dict[str, Any]:
             economics.get("net_sharpe"),
             "annualised, after commission, the declared 10 bp half-spread, "
             "slippage and square-root impact; 8 expanding walk-forward folds",
-            "Sharpe",
         ),
         gross_sharpe=recorded(
             economics.get("gross_sharpe"),
             "annualised, before any cost is charged; same folds",
-            "Sharpe",
         ),
         ic_t_stat=recorded(
             economics.get("ic_t_stat"),
             "Newey-West with a Bartlett kernel, correcting for the 21-session "
             "label overlap",
-            "t",
         ),
         alpha_t_stat=recorded(
             economics.get("alpha_t_stat"),
             "intercept of a six-factor regression (Fama-French 5 plus momentum) "
             "on the net return series",
-            "t",
         ),
         deflated_sharpe_probability=recorded(
             deflated.get("deflated_probability"),

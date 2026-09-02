@@ -352,16 +352,6 @@ export default function QuantResearchView() {
             </Section>
           ) : null}
 
-          {/* ── 2c. deployed model + inference ── */}
-          <Section
-            id="inference"
-            title="Model intelligence"
-            summary="deployed · experimental · not promoted"
-            defaultOpen
-          >
-            <ModelInference />
-          </Section>
-
           {/* ── 3. research overview ── */}
           <Section id="overview" title="Research overview"
                    summary={`${experiment.experiment_id} · ${int(ds.rows as number)} observations`} defaultOpen>
@@ -388,11 +378,20 @@ export default function QuantResearchView() {
           </Section>
 
           {/* ── 4. experiment explorer ── */}
-          <Section id="history" title="Experiment explorer" summary={`${index.length} recorded`} defaultOpen>
+          <Section id="history" title="Experiment history"
+                   summary={`${index.length} recorded · every study, including the void one`}
+                   defaultOpen>
             <p className="body-copy u-note">
               Invalidated studies stay listed. Deleting one would erase the multiple-testing
               exposure that every later significance claim is discounted against.
             </p>
+
+            {/* The narrative and the register, together. They were two sections
+                five hundred lines apart repeating the same rule about void
+                studies; the question "what has been tried" has one answer. */}
+            <ExperimentTimeline current={selected ?? undefined} />
+
+            <h4 className="qr-subhead">Recorded artifacts</h4>
             <div className="qr-experiments">
               {index.map((e) => (
                 <button
@@ -845,52 +844,14 @@ export default function QuantResearchView() {
             )}
           </Section>
 
-          {/* ── 13. training ── */}
-          <Section id="training" title="Model training" summary="pipeline ready · nothing deployed" defaultOpen>
-            <div className="qr-callout">
-              <div className="qr-banner__head">
-                <StatusPill tone="muted" label="NOT DEPLOYED" />
-                <strong>No model currently satisfies production promotion gates.</strong>
-              </div>
-              <p className="body-copy u-note">
-                The pipeline below runs today — EXP-005 executed all of it in 1h 42m on
-                this machine. What is <em>not</em> built is the last step, because nothing
-                has earned it. Wiring a deployment path for a model with a negative gross
-                Sharpe would be the most expensive thing this product could do.
-              </p>
-            </div>
-            <ol className="qr-pipeline">
-              {[
-                ['DATASET', 'point-in-time panel, content-hashed', 'done'],
-                ['FEATURES', '103 registered, 57 used, each with a leakage test', 'done'],
-                ['TARGET', 'forward 21-session cross-sectional rank', 'done'],
-                ['WALK-FORWARD TRAINING', '8 expanding folds, purge + embargo', 'done'],
-                ['VALIDATION', 'Newey-West IC, fold dispersion, negative controls', 'done'],
-                ['COSTED BACKTEST', 'execution lag, commission, spread, impact', 'done'],
-                ['ROBUSTNESS', 'regimes, cost sweep, PBO, ablation', 'done'],
-                ['MULTIPLE TESTING', 'deflated Sharpe vs cumulative trials', 'done'],
-                ['MODEL REGISTRY', 'evidence bundle per model, immutable per study', 'done'],
-                ['PROMOTION GATE', 'refuses on missing evidence and on failing numbers', 'blocked'],
-                ['DEPLOYMENT', 'awaiting a model that clears the gate', 'pending'],
-              ].map(([step, detail, state]) => (
-                <li key={String(step)} className={`qr-step qr-step--${state}`}>
-                  <span className="qr-step__name">{step}</span>
-                  <span className="qr-step__detail u-note">{detail}</span>
-                  <span className="qr-step__state">{state === 'done' ? '✓' : state === 'blocked' ? '⊘' : '·'}</span>
-                </li>
-              ))}
-            </ol>
-          </Section>
-
-          {/* ── 15. experiment timeline ── */}
-          <Section id="timeline" title="Experiment history"
-                   summary="every study, including the void one" defaultOpen>
-            <ExperimentTimeline current={selected ?? undefined} />
-            <p className="body-copy u-note">
-              A void study stays in the record. Deleting EXP-002 would erase the
-              multiple-testing exposure it created, which every later study&rsquo;s
-              significance correction depends on.
-            </p>
+          {/* ── 2c. deployed model + inference ── */}
+          <Section
+            id="inference"
+            title="Model intelligence"
+            summary="deployed · experimental · not promoted"
+            defaultOpen
+          >
+            <ModelInference />
           </Section>
 
           {/* ── 16. provenance ── */}
