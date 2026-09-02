@@ -643,6 +643,14 @@ def _redundancy_payload(
         "factors": result.factors,
         "matrix": result.matrix,
         "effective_factors": result.effective_factors,
+        # Every unobserved pair entered the eigenvalue calculation as zero
+        # correlation, which pushes effective_factors up. Published so the
+        # number can be discounted rather than read at face value.
+        "measured_pairs": result.measured_pairs,
+        "total_pairs": result.total_pairs,
+        "pair_coverage": (
+            round(result.pair_coverage, 4) if result.pair_coverage is not None else None
+        ),
         "redundant_pairs": [
             {"a": a, "b": b, "correlation": c} for a, b, c in result.redundant_pairs
         ],

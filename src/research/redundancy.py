@@ -39,6 +39,10 @@ import pandas as pd
 MIN_NAMES = 10
 
 #: Above this, two factors are telling you substantially the same thing.
+#: Below this share of factor pairs actually observed together, the
+#: independence verdict is withheld rather than computed from the fill.
+MIN_PAIR_COVERAGE = 0.75
+
 REDUNDANT_ABOVE = 0.7
 
 
@@ -49,20 +53,45 @@ class Redundancy:
     effective_factors: float
     redundant_pairs: list[tuple[str, str, float]]
     dates: int
+    #: Factor pairs that were actually observed together. Every unobserved pair
+    #: enters the eigenvalue calculation as zero correlation, which inflates
+    #: `effective_factors` toward a claim of independence.
+    measured_pairs: int = 0
+    total_pairs: int = 0
+
+    @property
+    def pair_coverage(self) -> float | None:
+        if self.total_pairs <= 0:
+            return None
+        return self.measured_pairs / self.total_pairs
 
     @property
     def assessment(self) -> str:
         count = len(self.factors)
         ratio = self.effective_factors / count if count else 0.0
+        coverage = self.pair_coverage
+        # A breadth claim built mostly on pairs that were never observed together
+        # is a claim about the fill, not about the factors.
+        if coverage is not None and coverage < MIN_PAIR_COVERAGE:
+            return (
+                f"{count} factors, but only {self.measured_pairs} of "
+                f"{self.total_pairs} pairs were ever observed together — too "
+                "little overlap to say whether they are independent"
+            )
         if ratio > 0.85:
             shape = "largely independent"
         elif ratio > 0.6:
             shape = "partly overlapping"
         else:
             shape = "heavily overlapping"
+        suffix = (
+            ""
+            if coverage is None or coverage >= 1.0
+            else f" (on {self.measured_pairs} of {self.total_pairs} observed pairs)"
+        )
         return (
             f"{count} factors behave like {self.effective_factors:.1f} independent "
-            f"ones — {shape}"
+            f"ones — {shape}{suffix}"
         )
 
 
@@ -93,9 +122,21 @@ def analyse(panel: pd.DataFrame, factors: tuple[str, ...]) -> Redundancy | None:
                          where=counts > 0)
     np.fill_diagonal(mean, 1.0)
 
-    # Eigenvalues need a complete matrix; unmeasured pairs are treated as
-    # uncorrelated, which is the assumption that *understates* redundancy —
-    # the conservative direction for a claim about independence.
+    # Eigenvalues need a complete matrix, and an unmeasured pair has no value to
+    # supply, so it is filled with zero — treated as uncorrelated.
+    #
+    # That fill is NOT conservative, which this comment previously claimed. It
+    # understates redundancy, and understating redundancy overstates
+    # independence, which is the direction this metric's own verdict flatters:
+    # `assessment` reports "largely independent" above a ratio of 0.85. Six
+    # factors correlated 0.9 with each other have 1.19 effective factors; blank
+    # out twelve of the fifteen pairs and the same six report 3.31, a 2.8x
+    # inflation toward a breadth claim the data does not support.
+    #
+    # There is no better fill — a correlation that was never observed cannot be
+    # invented — so the fill stays and the coverage is published beside the
+    # result instead, and the verdict is withheld when coverage is too thin to
+    # support a claim about independence.
     filled = np.nan_to_num(mean, nan=0.0)
     eigenvalues = np.linalg.eigvalsh(filled)
     eigenvalues = np.clip(eigenvalues, 0.0, None)
@@ -110,10 +151,16 @@ def analyse(panel: pd.DataFrame, factors: tuple[str, ...]) -> Redundancy | None:
     ]
     pairs.sort(key=lambda row: -abs(row[2]))
 
+    off_diagonal = [
+        mean[i, j] for i in range(len(present)) for j in range(i + 1, len(present))
+    ]
+    measured = sum(1 for v in off_diagonal if not np.isnan(v))
     return Redundancy(
         factors=present,
         matrix=[[None if np.isnan(v) else round(float(v), 3) for v in row] for row in mean],
         effective_factors=round(effective, 2),
         redundant_pairs=pairs,
         dates=int(counts.max()),
+        measured_pairs=measured,
+        total_pairs=len(off_diagonal),
     )
