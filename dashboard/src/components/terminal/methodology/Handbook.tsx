@@ -52,10 +52,10 @@ const ANN_LABEL: Record<string, string> = {
   geometric_compounded: 'compounded',
 }
 
-export default function Handbook() {
+export default function Handbook({ initialMeasure }: { initialMeasure?: string }) {
   const [book, setBook] = useState<Book | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [selected, setSelected] = useState<string | null>(null)
+  const [selected, setSelected] = useState<string | null>(initialMeasure ?? null)
 
   useEffect(() => {
     let alive = true

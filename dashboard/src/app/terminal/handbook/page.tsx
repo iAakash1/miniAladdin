@@ -9,7 +9,12 @@ export const metadata: Metadata = {
   description: 'Every reported measure with its unit, annualisation, inputs and failure conditions, generated from the engine.',
 }
 
-export default function HandbookPage() {
+export default async function HandbookPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ measure?: string }>
+}) {
+  const params = await searchParams
   return (
     <Workbench
       title="Handbook"
@@ -39,7 +44,7 @@ export default function HandbookPage() {
         </>
       }
     >
-      <Handbook />
+      <Handbook initialMeasure={params.measure} />
     </Workbench>
   )
 }

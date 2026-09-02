@@ -117,6 +117,40 @@ function unitFor(m: Metric | undefined): string | undefined {
   return undefined
 }
 
+/**
+ * The handbook key for a reported metric.
+ *
+ * The report names a measure at a confidence level (`var_historical_95`) while
+ * the methodology table keys the same entry without it. Mapping here rather
+ * than guessing keeps the link honest: a measure with no handbook entry gets no
+ * link instead of one that lands on nothing.
+ */
+const HANDBOOK_KEY: Record<string, string> = {
+  var_historical_95: 'var_historical_95',
+  var_historical_99: 'var_historical_99',
+  var_parametric_95: 'var_parametric_95',
+  cvar_historical_95: 'cvar_historical_95',
+  cvar_historical_99: 'cvar_historical_99',
+  entropic_var_95: 'entropic_var_95',
+  entropic_drawdown_risk_95: 'entropic_drawdown_risk_95',
+  drawdown_at_risk_95: 'drawdown_at_risk_95',
+  conditional_drawdown_at_risk_95: 'conditional_drawdown_at_risk_95',
+  volatility: 'volatility',
+  downside_deviation: 'downside_deviation',
+  mean_absolute_deviation: 'mean_absolute_deviation',
+  gini_dispersion: 'gini_dispersion',
+  semi_variance: 'semi_variance',
+  max_drawdown: 'max_drawdown',
+  average_drawdown: 'average_drawdown',
+  ulcer_index: 'ulcer_index',
+  ulcer_performance_index: 'ulcer_performance_index',
+  sharpe: 'sharpe',
+  sortino: 'sortino',
+  calmar: 'calmar',
+  omega: 'omega',
+  worst_realization: 'worst_realization',
+}
+
 function MetricTable({ keys, metrics }: { keys: [string, string][]; metrics: Record<string, Metric> }) {
   return (
     <table className="sys-table sys-table--compact">
@@ -148,9 +182,20 @@ function MetricTable({ keys, metrics }: { keys: [string, string][]; metrics: Rec
             meth?.frequency ? `frequency: ${meth.frequency}` : null,
             m.caveat,
           ].filter(Boolean).join(' · ')
+          const handbook = HANDBOOK_KEY[key]
           return (
             <tr key={key}>
-              <td>{label}</td>
+              <td>
+                {handbook ? (
+                  <Link
+                    href={`/terminal/handbook?measure=${encodeURIComponent(handbook)}`}
+                    style={{ color: 'inherit' }}
+                    title="How this is computed, and what makes it fail"
+                  >
+                    {label}
+                  </Link>
+                ) : label}
+              </td>
               <td className="num">
                 <Value value={m.value} digits={4} unit={unitFor(m)} title={title || undefined} />
               </td>
