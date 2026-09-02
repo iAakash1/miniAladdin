@@ -408,6 +408,164 @@ def distribution(returns: pd.Series) -> dict[str, Any]:
     }
 
 
+# ── drawdown-based risk ──────────────────────────────────────────────────────
+#
+# `max_drawdown` reports depth and nothing else, so a single catastrophic day
+# and a two-year grind to the same trough score identically. These measure the
+# drawdown *path*, which is what an investor actually sits through.
+#
+# The family mirrors the tail family deliberately: DaR is the drawdown analogue
+# of VaR, CDaR of CVaR. Same quantile logic, applied to the underwater series
+# instead of the return series.
+
+
+def average_drawdown(returns: pd.Series, *, compound: bool = True) -> RiskMetric:
+    """Mean depth across the whole path, including periods at a high-water mark.
+
+    Zeros are included on purpose. Averaging only the underwater periods answers
+    "how bad was it while it was bad", which is a different question and reads
+    far worse for a strategy that is usually at its peak.
+    """
+    series = _clean(returns)
+    if len(series) < MIN_OBSERVATIONS:
+        return _insufficient("average_drawdown", "mean_of_drawdown_path", len(series))
+    path = drawdown_series(series, compound=compound)
+    return RiskMetric(
+        "average_drawdown", float(path.mean()),
+        "mean_of_drawdown_path_including_zeros", len(series),
+    )
+
+
+def ulcer_index(returns: pd.Series, *, compound: bool = True) -> RiskMetric:
+    """Root mean square of the drawdown path.
+
+    Penalises depth and duration together — squaring makes a deep drawdown count
+    disproportionately, and averaging over the whole path makes a long one count
+    at all. Two strategies with the same maximum drawdown separate here, which
+    is the point.
+    """
+    series = _clean(returns)
+    if len(series) < MIN_OBSERVATIONS:
+        return _insufficient("ulcer_index", "rms_of_drawdown_path", len(series))
+    path = drawdown_series(series, compound=compound)
+    return RiskMetric(
+        "ulcer_index", float(np.sqrt(np.mean(np.square(path.to_numpy())))),
+        "rms_of_drawdown_path", len(series),
+    )
+
+
+def drawdown_at_risk(
+    returns: pd.Series, *, confidence: float = 0.95, compound: bool = True,
+) -> RiskMetric:
+    """The drawdown analogue of VaR: the depth exceeded (1-confidence) of the time.
+
+    Reported as a positive magnitude, matching `var_historical`, so the tail
+    family reads consistently. Empirical quantile — no distribution assumed.
+    """
+    series = _clean(returns)
+    if len(series) < MIN_OBSERVATIONS:
+        return _insufficient("drawdown_at_risk", f"empirical_quantile_{confidence:.0%}", len(series))
+    path = drawdown_series(series, compound=compound)
+    return RiskMetric(
+        "drawdown_at_risk", float(-np.quantile(path.to_numpy(), 1.0 - confidence)),
+        f"empirical_drawdown_quantile_{confidence:.0%}", len(series),
+    )
+
+
+def conditional_drawdown_at_risk(
+    returns: pd.Series, *, confidence: float = 0.95, compound: bool = True,
+) -> RiskMetric:
+    """Mean depth of the worst (1-confidence) share of the drawdown path — CDaR.
+
+    Stands to DaR as CVaR stands to VaR: it reports the average of the tail
+    rather than its boundary, so a path with a few very deep excursions is
+    distinguishable from one that merely crosses the threshold often.
+    """
+    series = _clean(returns)
+    if len(series) < MIN_OBSERVATIONS:
+        return _insufficient("conditional_drawdown_at_risk",
+                             f"empirical_es_{confidence:.0%}", len(series))
+    path = drawdown_series(series, compound=compound).to_numpy()
+    threshold = np.quantile(path, 1.0 - confidence)
+    tail = path[path <= threshold]
+    if tail.size == 0:
+        tail = np.array([threshold])
+    return RiskMetric(
+        "conditional_drawdown_at_risk", float(-tail.mean()),
+        f"empirical_drawdown_es_{confidence:.0%}", len(series),
+    )
+
+
+def ulcer_performance_index(
+    returns: pd.Series, *, periods_per_year: float = 252.0, risk_free: float = 0.0,
+    compound: bool = True,
+) -> RiskMetric:
+    """Annualised excess return per unit of ulcer — the Martin ratio.
+
+    A Sharpe that treats drawdown depth-and-duration as the risk rather than
+    volatility. Useful precisely when returns are fat-tailed, since it never
+    touches a standard deviation.
+    """
+    series = _clean(returns)
+    if len(series) < MIN_OBSERVATIONS:
+        return _insufficient("ulcer_performance_index",
+                             "excess_return_over_ulcer_annualised", len(series))
+    ulcer = ulcer_index(series, compound=compound).value
+    if ulcer is None or _is_zero_dispersion(ulcer, 1.0):
+        return RiskMetric(
+            "ulcer_performance_index", None,
+            "excess_return_over_ulcer_annualised", len(series),
+            caveat="no drawdown in the sample — the ratio has no denominator",
+        )
+    excess = _excess(series, risk_free)
+    return RiskMetric(
+        "ulcer_performance_index",
+        float(excess.mean()) * periods_per_year / ulcer,
+        "excess_return_over_ulcer_annualised", len(series),
+    )
+
+
+# ── robust dispersion ────────────────────────────────────────────────────────
+#
+# Standard deviation squares every deviation, so one outlier can dominate it.
+# On this project's own data that is not hypothetical: EXP-007's selected
+# configuration has excess kurtosis of 43.28. These measures are far less
+# sensitive to that, and reporting them beside the standard ones shows how much
+# of the risk figure is coming from a handful of periods.
+
+
+def mean_absolute_deviation(returns: pd.Series) -> RiskMetric:
+    """Mean absolute deviation from the mean.
+
+    Linear in the deviations rather than quadratic, so a single extreme period
+    moves it far less than it moves a standard deviation. A large gap between
+    the two is itself the finding.
+    """
+    series = _clean(returns)
+    if len(series) < MIN_OBSERVATIONS:
+        return _insufficient("mean_absolute_deviation", "mean_abs_deviation_from_mean", len(series))
+    values = series.to_numpy()
+    return RiskMetric(
+        "mean_absolute_deviation", float(np.mean(np.abs(values - values.mean()))),
+        "mean_abs_deviation_from_mean", len(series),
+    )
+
+
+def worst_realization(returns: pd.Series) -> RiskMetric:
+    """The single worst period, as a positive magnitude.
+
+    No estimation and no assumption — it is an observation. Reported because
+    every parametric tail measure should be readable against the worst thing
+    that actually happened.
+    """
+    series = _clean(returns)
+    if len(series) < 1:
+        return _insufficient("worst_realization", "sample_minimum", len(series))
+    return RiskMetric(
+        "worst_realization", float(-series.min()), "sample_minimum", len(series),
+    )
+
+
 # ── tail ─────────────────────────────────────────────────────────────────────
 
 
@@ -631,8 +789,22 @@ def analyse(
         "sharpe": sharpe(returns, periods_per_year=periods_per_year, risk_free=risk_free),
         "sortino": sortino(returns, periods_per_year=periods_per_year, risk_free=risk_free),
         "calmar": calmar(returns, periods_per_year=periods_per_year, compound=compound),
-        # drawdown
+        "ulcer_performance_index": ulcer_performance_index(
+            returns, periods_per_year=periods_per_year, risk_free=risk_free,
+            compound=compound),
+        # drawdown. Depth alone cannot separate a brief plunge from a long
+        # grind to the same trough; the path measures do.
         "max_drawdown": max_drawdown(returns, compound=compound),
+        "average_drawdown": average_drawdown(returns, compound=compound),
+        "ulcer_index": ulcer_index(returns, compound=compound),
+        "drawdown_at_risk_95": drawdown_at_risk(returns, confidence=0.95, compound=compound),
+        "conditional_drawdown_at_risk_95": conditional_drawdown_at_risk(
+            returns, confidence=0.95, compound=compound),
+        # robust dispersion. Reported beside the standard deviation because a
+        # large gap between them says how much of the risk figure comes from a
+        # handful of periods.
+        "mean_absolute_deviation": mean_absolute_deviation(returns),
+        "worst_realization": worst_realization(returns),
         # tail. Historical and parametric are kept as separate fields and are
         # never averaged: they answer the same question with different
         # assumptions, and a blend of the two means nothing.
