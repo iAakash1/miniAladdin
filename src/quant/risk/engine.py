@@ -169,8 +169,47 @@ class RiskMetric:
         return payload
 
 
+class UnorderedSeries(ValueError):
+    """Raised when a path-dependent metric is handed a non-chronological series."""
+
+
 def _clean(returns: pd.Series) -> pd.Series:
     return pd.to_numeric(returns, errors="coerce").replace([np.inf, -np.inf], np.nan).dropna()
+
+
+def _chronological(returns: pd.Series, metric: str) -> pd.Series:
+    """Clean, and refuse a date-indexed series that is not in date order.
+
+    Every drawdown-derived quantity is computed over ROW ORDER: `cumprod` and
+    `cummax` walk the series as given. On a date-indexed series that is not
+    sorted, the wealth path is wrong and so is everything read off it — and the
+    result is a different plausible number rather than an error.
+
+    Measured on a 200-observation sample, shuffling the rows moved maximum
+    drawdown from -0.0959 to -0.1185, the ulcer index from 0.0462 to 0.0509 and
+    Calmar from 1.75 to 1.42, while `drawdown_profile` happily reported a trough
+    date that meant nothing.
+
+    A positional index is left alone: there, row order *is* the intended order
+    and there is nothing to violate. Only a date-like index carries an
+    independent claim about sequence that the rows can contradict.
+
+    This mirrors `pit.calendar.require_chronological`, whose docstring makes the
+    argument this repository has already accepted: relying on every caller to
+    sort is the arrangement that produced the merge_asof defect.
+    """
+    series = _clean(returns)
+    index = series.index
+    date_like = isinstance(index, (pd.DatetimeIndex, pd.PeriodIndex)) or (
+        index.inferred_type in {"datetime", "datetime64", "date"}
+    )
+    if date_like and len(series) > 1 and not index.is_monotonic_increasing:
+        raise UnorderedSeries(
+            f"{metric} is path-dependent and its input is not in date order. "
+            "cumprod and cummax walk the series as given, so an unsorted series "
+            "produces a different, plausible, wrong answer. Sort by date first."
+        )
+    return series
 
 
 def _insufficient(name: str, method: str, n: int) -> RiskMetric:
@@ -225,7 +264,7 @@ def max_drawdown(returns: pd.Series, *, compound: bool = True) -> RiskMetric:
     not a return — this repository's primary target is a cross-sectional rank,
     and compounding it produced a +6,553% "equity curve" once already.
     """
-    series = _clean(returns)
+    series = _chronological(returns, "max_drawdown")
     if len(series) < 2:
         return _insufficient("max_drawdown", "peak_to_trough", len(series))
     path = (1.0 + series).cumprod() if compound else series.cumsum()
@@ -240,7 +279,7 @@ def max_drawdown(returns: pd.Series, *, compound: bool = True) -> RiskMetric:
 
 
 def drawdown_series(returns: pd.Series, *, compound: bool = True) -> pd.Series:
-    series = _clean(returns)
+    series = _chronological(returns, "drawdown_series")
     path = (1.0 + series).cumprod() if compound else series.cumsum()
     peak = path.cummax()
     return (path / peak - 1.0) if compound else (path - peak)
@@ -339,7 +378,7 @@ def calmar(
     compares a growth rate against a peak-to-trough decline and an arithmetic
     mean is not that rate.
     """
-    series = _clean(returns)
+    series = _chronological(returns, "calmar")
     if len(series) < MIN_OBSERVATIONS:
         return _insufficient("calmar", "annualised_return_over_max_drawdown", len(series))
     worst = max_drawdown(series, compound=compound).value
@@ -446,7 +485,7 @@ def drawdown_profile(returns: pd.Series, *, compound: bool = True) -> dict[str, 
     unrecovered drawdown has no recovery time, and reporting one would be a
     measurement of when we stopped looking.
     """
-    series = _clean(returns)
+    series = _chronological(returns, "drawdown_profile")
     if len(series) < MIN_OBSERVATIONS:
         return {"observations": len(series), "max_drawdown": None,
                 "peak_index": None, "trough_index": None,
@@ -523,7 +562,7 @@ def average_drawdown(returns: pd.Series, *, compound: bool = True) -> RiskMetric
     "how bad was it while it was bad", which is a different question and reads
     far worse for a strategy that is usually at its peak.
     """
-    series = _clean(returns)
+    series = _chronological(returns, "average_drawdown")
     if len(series) < MIN_OBSERVATIONS:
         return _insufficient("average_drawdown", "mean_of_drawdown_path", len(series))
     path = drawdown_series(series, compound=compound)
@@ -541,7 +580,7 @@ def ulcer_index(returns: pd.Series, *, compound: bool = True) -> RiskMetric:
     at all. Two strategies with the same maximum drawdown separate here, which
     is the point.
     """
-    series = _clean(returns)
+    series = _chronological(returns, "ulcer_index")
     if len(series) < MIN_OBSERVATIONS:
         return _insufficient("ulcer_index", "rms_of_drawdown_path", len(series))
     path = drawdown_series(series, compound=compound)
@@ -559,7 +598,7 @@ def drawdown_at_risk(
     Reported as a positive magnitude, matching `var_historical`, so the tail
     family reads consistently. Empirical quantile — no distribution assumed.
     """
-    series = _clean(returns)
+    series = _chronological(returns, "drawdown_at_risk")
     if len(series) < MIN_OBSERVATIONS:
         return _insufficient("drawdown_at_risk", f"empirical_quantile_{confidence:.0%}", len(series))
     path = drawdown_series(series, compound=compound)
@@ -578,7 +617,7 @@ def conditional_drawdown_at_risk(
     rather than its boundary, so a path with a few very deep excursions is
     distinguishable from one that merely crosses the threshold often.
     """
-    series = _clean(returns)
+    series = _chronological(returns, "conditional_drawdown_at_risk")
     if len(series) < MIN_OBSERVATIONS:
         return _insufficient("conditional_drawdown_at_risk",
                              f"empirical_es_{confidence:.0%}", len(series))
@@ -603,7 +642,7 @@ def ulcer_performance_index(
     volatility. Useful precisely when returns are fat-tailed, since it never
     touches a standard deviation.
     """
-    series = _clean(returns)
+    series = _chronological(returns, "ulcer_performance_index")
     if len(series) < MIN_OBSERVATIONS:
         return _insufficient("ulcer_performance_index",
                              "excess_return_over_ulcer_annualised", len(series))
