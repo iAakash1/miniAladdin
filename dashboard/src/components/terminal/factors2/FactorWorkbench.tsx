@@ -23,6 +23,7 @@ import { Panel, Section, StateBlock, Status, Strip, Value } from '@/components/s
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { BarRows } from '@/components/system/charts'
 import { recordVisit } from '@/lib/research/history'
+import { Compare, CompareLegend, type CompareField, type CompareSubject } from '@/components/system/Compare'
 
 interface FactorEvaluation {
   factor: string
@@ -69,10 +70,31 @@ interface Lab {
   error?: string
 }
 
+const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null)
+
+/**
+ * Comparison fields. Only the ones with an unambiguous direction are coloured.
+ * Overlap inflation is deliberately undirected: a factor with a large inflation
+ * is not worse than one with a small inflation — it is a statement about the
+ * label geometry both share, not about either factor.
+ */
+const COMPARE_FIELDS: CompareField[] = [
+  { key: 'mean_ic', label: 'mean_ic', unit: 'rank corr.', group: 'Signal', direction: 'higher-better', value: (r) => num(r.mean_ic) },
+  { key: 't_stat', label: 't_stat', unit: 'Newey-West', group: 'Signal', direction: 'higher-better', value: (r) => num(r.t_stat), digits: 3 },
+  { key: 'naive_t_stat', label: 'naive_t_stat', unit: 'uncorrected', group: 'Signal', direction: 'none', value: (r) => num(r.naive_t_stat), digits: 3 },
+  { key: 'overlap_inflation', label: 'overlap_inflation', unit: '×', group: 'Signal', direction: 'none', value: (r) => num(r.overlap_inflation), digits: 3 },
+  { key: 'std_ic', label: 'std_ic', group: 'Stability', direction: 'lower-better', value: (r) => num(r.std_ic) },
+  { key: 'hit_rate', label: 'hit_rate', group: 'Stability', direction: 'higher-better', value: (r) => num(r.hit_rate), digits: 3 },
+  { key: 'top_minus_bottom', label: 'top_minus_bottom', group: 'Spread', direction: 'higher-better', value: (r) => num(r.top_minus_bottom) },
+  { key: 'dates', label: 'dates', group: 'Coverage', direction: 'none', value: (r) => num(r.dates), digits: 0 },
+  { key: 'names_median', label: 'names_median', group: 'Coverage', direction: 'none', value: (r) => num(r.names_median), digits: 0 },
+]
+
 export default function FactorWorkbench() {
   const [lab, setLab] = useState<Lab | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
+  const [picked, setPicked] = useState<string[]>([])
   // The endpoint answers with progress while a build runs, so this polls until
   // the payload settles. The loop lives entirely inside the effect: a
   // self-rescheduling callback held in a ref is the same behaviour with an
@@ -103,6 +125,21 @@ export default function FactorWorkbench() {
   const factors = useMemo(() => lab?.factors ?? [], [lab])
 
   const columns: DataColumn<FactorEvaluation>[] = useMemo(() => [
+    {
+      key: 'pick', header: '', width: '34px',
+      render: (f) => (
+        <input
+          type="checkbox"
+          checked={picked.includes(f.factor)}
+          onChange={(e) => {
+            e.stopPropagation()
+            setPicked((p) => (p.includes(f.factor) ? p.filter((k) => k !== f.factor) : [...p, f.factor]))
+          }}
+          onClick={(e) => e.stopPropagation()}
+          aria-label={`Compare ${f.factor}`}
+        />
+      ),
+    },
     { key: 'f', header: 'Factor', width: '18%', sort: (f) => f.factor, text: (f) => f.factor, render: (f) => <span style={{ fontFamily: 'var(--font-mono)' }}>{f.factor}</span> },
     { key: 'ic', header: 'Mean IC', unit: 'rank corr.', numeric: true, sort: (f) => f.mean_ic, render: (f) => <Value value={f.mean_ic} digits={4} signed tone /> },
     { key: 't', header: 'IC t-stat', unit: 'Newey-West', numeric: true, sort: (f) => f.t_stat, render: (f) => <Value value={f.t_stat} digits={2} signed /> },
@@ -116,7 +153,7 @@ export default function FactorWorkbench() {
     { key: 'tmb', header: 'Top minus bottom', numeric: true, optional: true, sort: (f) => f.top_minus_bottom, render: (f) => <Value value={f.top_minus_bottom} digits={4} signed tone /> },
     { key: 'dates', header: 'Dates', numeric: true, optional: true, sort: (f) => f.dates, render: (f) => <Value value={f.dates} digits={0} /> },
     { key: 'sig', header: 'Significant', width: '11%', sort: (f) => (f.significant ? 1 : 0), render: (f) => <Status state={f.significant ? 'candidate' : 'blocked'} label={f.significant ? 'yes' : 'no'} /> },
-  ], [])
+  ], [picked])
 
   if (error) {
     return <Panel title="Factors" state="unavailable"><StateBlock state="unavailable" title="The factor lab could not be reached" detail={`Request failed: ${error}.`} /></Panel>
@@ -189,6 +226,29 @@ export default function FactorWorkbench() {
           }}
         />
       </Panel>
+
+      {picked.length >= 2 ? (
+        <Panel
+          title="Comparison"
+          subtitle={`${picked[0]} is the baseline`}
+          flush
+          actions={<button className="sys-btn" onClick={() => setPicked([])}>clear</button>}
+        >
+          <Compare
+            subjects={picked
+              .map((k) => factors.find((f) => f.factor === k))
+              .filter((f): f is FactorEvaluation => Boolean(f))
+              .map((f): CompareSubject => ({
+                id: f.factor,
+                label: f.factor,
+                detail: f.significant ? 'significant' : 'not significant',
+                data: f as unknown as Record<string, unknown>,
+              }))}
+            fields={COMPARE_FIELDS}
+          />
+          <CompareLegend />
+        </Panel>
+      ) : null}
 
       {sel ? (
         <Panel title="Factor" subtitle={sel.factor} state={sel.significant ? 'candidate' : 'blocked'}>
