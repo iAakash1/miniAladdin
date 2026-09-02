@@ -667,3 +667,37 @@ a:focus-visible {
   background: var(--p-sunken);
 }
 .sys-drawer-body { overflow-y: auto; padding: var(--d-4); display: flex; flex-direction: column; gap: var(--d-4); }
+
+/* ── lineage ─────────────────────────────────────────────────────────────
+   A vertical chain. The dot colour carries the stage kind, because the
+   difference between an observation and this system's own inference is the
+   thing a reviewer is reading the chain to find. */
+
+.lin { list-style: none; margin: 0; padding: var(--d-3); display: flex; flex-direction: column; }
+.lin-row { display: grid; grid-template-columns: 16px 1fr; gap: var(--d-3); }
+.lin-spine { position: relative; display: flex; justify-content: center; }
+
+.lin-dot {
+  width: 9px; height: 9px; margin-top: 7px; flex: none;
+  border: 1px solid currentColor; background: currentColor;
+  color: var(--ink-faint);
+}
+.lin-dot[data-kind='OBSERVED'] { color: var(--s-recorded); }
+.lin-dot[data-kind='DERIVED'] { color: var(--s-candidate); background: transparent; }
+.lin-dot[data-kind='MODEL_PREDICTED'] { color: var(--s-experimental); background: transparent; }
+
+.lin-line { position: absolute; top: 18px; bottom: -2px; width: 1px; background: var(--rule); }
+
+.lin-body { padding-bottom: var(--d-4); min-width: 0; }
+
+.lin-head {
+  display: flex; align-items: center; gap: var(--d-2);
+  width: 100%; background: transparent; border: 0; padding: 0;
+  cursor: pointer; text-align: left; color: var(--ink);
+}
+.lin-stage { font: 500 var(--t-body) / 1.2 var(--font-mono); }
+.lin-caret { margin-left: auto; color: var(--ink-faint); font-family: var(--font-mono); }
+.lin-detail {
+  margin: var(--d-1) 0 0; font-size: var(--t-meta);
+  color: var(--ink-muted); line-height: var(--lh-body); max-width: 78ch;
+}

@@ -2206,6 +2206,34 @@ def quant_features():
     return ml_service.feature_catalog()
 
 
+@app.get("/api/quant/covariance", tags=["quant"])
+def quant_covariance():
+    """Every named covariance estimator on the research book's own panel.
+
+    The choice of estimator changes every risk number a book reports, and a
+    single matrix shown alone hides that dependence. The pairwise default is
+    included because it is the one that can fail to be positive semi-definite;
+    seeing it beside three that cannot is the point of the surface.
+
+    Nothing here changes the default. It compares.
+    """
+    from src.services import covariance_service, quant_portfolio_service
+
+    panel = quant_portfolio_service.panel_and_weights()
+    if panel is None:
+        return {
+            "status": "unavailable",
+            "message": "no research book is available to estimate a covariance from",
+            "estimators": [],
+        }
+
+    returns, weights = panel
+    payload = covariance_service.compare(returns, weights)
+    payload["status"] = "ok"
+    payload["correlation"] = covariance_service.correlation_view(returns)
+    return payload
+
+
 @app.get("/api/quant/methodology", tags=["quant"])
 def quant_methodology():
     """Every reported measure, with its unit, annualisation and failure conditions.

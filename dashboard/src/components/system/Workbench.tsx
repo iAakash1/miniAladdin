@@ -34,6 +34,7 @@ const GOTO: Record<string, string> = {
   g: '/terminal/signals', m: '/terminal/lab', v: '/terminal/evidence',
   x: '/terminal/experiments', b: '/terminal/book', r: '/terminal/risk',
   d: '/terminal/data', y: '/terminal/handbook',
+  o: '/terminal/providers', n: '/terminal/provenance', k: '/terminal/covariance',
 }
 
 /* Navigation follows the research loop, not the backend modules. The groups
@@ -66,12 +67,15 @@ export const WORKBENCH: { group: string; items: { href: string; label: string; k
     items: [
       { href: '/terminal/book', label: 'Book', key: 'b' },
       { href: '/terminal/risk', label: 'Risk', key: 'r' },
+      { href: '/terminal/covariance', label: 'Covariance', key: 'k' },
     ],
   },
   {
     group: 'Verify',
     items: [
       { href: '/terminal/data', label: 'Data', key: 'd' },
+      { href: '/terminal/providers', label: 'Providers', key: 'o' },
+      { href: '/terminal/provenance', label: 'Provenance', key: 'n' },
       { href: '/terminal/handbook', label: 'Handbook', key: 'y' },
     ],
   },

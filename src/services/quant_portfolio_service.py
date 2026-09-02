@@ -77,6 +77,38 @@ def _panel(experiment_id: str, target: str, model_id: str) -> Optional[pd.DataFr
     return wide.dropna(axis=1, thresh=max(20, int(len(wide) * 0.5)))
 
 
+def panel_and_weights(
+    experiment_id: str = "EXP-006",
+    model_id: str = "gradient_boosting",
+    *,
+    target: str = "fwd_rank_21",
+) -> Optional[tuple[pd.DataFrame, pd.Series]]:
+    """The return panel and weights a built book rests on.
+
+    Exposed so the covariance comparison can estimate several matrices from the
+    same inputs the book itself used. It calls `build` rather than repeating its
+    selection logic: a second copy of "which names are in the book" would drift
+    from the first, and then the comparison would be describing a different book
+    than the one on screen.
+    """
+    book = build(experiment_id, model_id, target=target)
+    if book.get("status") != "ok":
+        return None
+    weights = pd.Series(
+        {row["symbol"]: float(row["weight"]) for row in book.get("weights", [])},
+        dtype=float,
+    )
+    if weights.empty:
+        return None
+    panel = _panel(experiment_id, target, model_id)
+    if panel is None or panel.empty:
+        return None
+    usable = [s for s in weights.index if s in panel.columns]
+    if len(usable) < 10:
+        return None
+    return panel[usable], weights.reindex(usable)
+
+
 def build(
     experiment_id: str = "EXP-006",
     model_id: str = "gradient_boosting",
