@@ -1,0 +1,295 @@
+/**
+ * Data & Provenance workbench.
+ *
+ * This surface is new, but almost none of what it shows is. `/api/ml/features`
+ * and `/api/ml/datasets` have been serving a complete point-in-time contract —
+ * 27 features with their lookback, availability lag and PIT safety; 19 datasets
+ * with their survivorship and ingestion classification — and nothing in the
+ * product had ever called them.
+ *
+ * That is the gap this workspace closes. The product's claim is that it will
+ * tell you how much a number can be trusted; the evidence for that claim was
+ * being computed and thrown away.
+ *
+ * Nothing here is derived, aggregated or scored. Every field is passed through
+ * from the contract the backend already publishes.
+ */
+'use client'
+
+import { useEffect, useMemo, useState } from 'react'
+
+import {
+  Panel, Provenance, Section, StateBlock, Status, Strip, Table, Value,
+  type Column, type ResearchState,
+} from '@/components/system'
+
+interface Feature {
+  name: string
+  group: string
+  description: string
+  rationale?: string
+  formula?: string
+  lookback_sessions: number | null
+  availability_lag_sessions: number | null
+  point_in_time_safe: boolean
+  cross_sectional?: boolean
+  direction?: string
+  required_columns?: string[]
+}
+
+interface Dataset {
+  dataset_id: string
+  source: string
+  repository?: string
+  table?: string
+  description?: string
+  point_in_time: string
+  point_in_time_note?: string
+  survivorship: string
+  survivorship_note?: string
+  ingestion?: string
+  columns?: string[]
+}
+
+interface FeatureCatalog {
+  features: Feature[]
+  feature_count: number
+  labels: unknown[]
+  unsafe_features: Feature[]
+  max_lookback_sessions: number | null
+}
+
+interface DatasetCatalog {
+  datasets: Dataset[]
+  total: number
+  training_admissible: number
+  excluded: Dataset[]
+  gated: Dataset[]
+}
+
+type Tab = 'datasets' | 'features'
+
+/** A dataset's PIT classification maps onto the product's trust vocabulary. */
+function pitState(value: string): ResearchState {
+  const v = (value || '').toLowerCase()
+  if (v.includes('point_in_time') || v === 'true' || v.includes('pit')) return 'recorded'
+  if (v.includes('gated') || v.includes('restricted')) return 'blocked'
+  if (v.includes('unknown')) return 'unknown'
+  return 'stale'
+}
+
+export default function DataWorkbench() {
+  const [features, setFeatures] = useState<FeatureCatalog | null>(null)
+  const [datasets, setDatasets] = useState<DatasetCatalog | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [tab, setTab] = useState<Tab>('datasets')
+  const [selected, setSelected] = useState<string | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    Promise.all([
+      fetch('/api/ml/features').then((r) => (r.ok ? r.json() : Promise.reject(new Error(`features ${r.status}`)))),
+      fetch('/api/ml/datasets').then((r) => (r.ok ? r.json() : Promise.reject(new Error(`datasets ${r.status}`)))),
+    ])
+      .then(([f, d]) => { if (alive) { setFeatures(f); setDatasets(d) } })
+      .catch((e: Error) => { if (alive) setError(e.message) })
+    return () => { alive = false }
+  }, [])
+
+  const datasetColumns: Column<Dataset>[] = useMemo(() => [
+    { key: 'id', header: 'Dataset', width: '22%', render: (d) => <span style={{ fontFamily: 'var(--font-mono)' }}>{d.dataset_id}</span> },
+    { key: 'source', header: 'Source', width: '14%', render: (d) => d.source },
+    {
+      key: 'pit', header: 'Point in time', width: '16%',
+      render: (d) => <Status state={pitState(d.point_in_time)} label={d.point_in_time} />,
+    },
+    {
+      key: 'surv', header: 'Survivorship', width: '16%',
+      render: (d) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{d.survivorship}</span>,
+    },
+    { key: 'ingest', header: 'Ingestion', width: '14%', render: (d) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{d.ingestion ?? '—'}</span> },
+    { key: 'cols', header: 'Columns', unit: 'count', numeric: true, render: (d) => <Value value={d.columns?.length ?? null} digits={0} /> },
+  ], [])
+
+  const featureColumns: Column<Feature>[] = useMemo(() => [
+    { key: 'name', header: 'Feature', width: '22%', render: (f) => <span style={{ fontFamily: 'var(--font-mono)' }}>{f.name}</span> },
+    { key: 'group', header: 'Group', width: '14%', render: (f) => f.group },
+    {
+      key: 'pit', header: 'PIT safe', width: '12%',
+      render: (f) => <Status state={f.point_in_time_safe ? 'recorded' : 'blocked'} label={f.point_in_time_safe ? 'safe' : 'unsafe'} />,
+    },
+    {
+      key: 'lookback', header: 'Lookback', unit: 'sessions', numeric: true,
+      render: (f) => <Value value={f.lookback_sessions} digits={0} title="Sessions of history the feature reads" />,
+    },
+    {
+      key: 'lag', header: 'Availability lag', unit: 'sessions', numeric: true,
+      render: (f) => <Value value={f.availability_lag_sessions} digits={0} title="Sessions between the observation and the moment it could be known" />,
+    },
+    {
+      key: 'xs', header: 'Cross-sectional', width: '12%',
+      render: (f) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{f.cross_sectional ? 'yes' : 'no'}</span>,
+    },
+  ], [])
+
+  if (error) {
+    return (
+      <Panel title="Data catalogue" state="unavailable">
+        <StateBlock
+          state="unavailable"
+          title="The catalogue could not be read"
+          detail={`The request failed with: ${error}. No values are shown in its place, because a data contract that cannot be read is not a data contract that is empty.`}
+        />
+      </Panel>
+    )
+  }
+
+  if (!features || !datasets) {
+    return <Panel title="Data catalogue" state="waking"><StateBlock state="waking" title="Reading the catalogue" /></Panel>
+  }
+
+  const selectedDataset = datasets.datasets.find((d) => d.dataset_id === selected)
+  const selectedFeature = features.features.find((f) => f.name === selected)
+
+  return (
+    <>
+      <Strip metrics={[
+        { label: 'Datasets', value: datasets.total, digits: 0 },
+        { label: 'Training admissible', value: datasets.training_admissible, digits: 0, title: 'Datasets whose point-in-time and survivorship classification permit training use' },
+        { label: 'Gated', value: datasets.gated?.length ?? 0, digits: 0, title: 'Available but withheld from training' },
+        { label: 'Excluded', value: datasets.excluded?.length ?? 0, digits: 0 },
+        { label: 'Features', value: features.feature_count, digits: 0 },
+        { label: 'PIT unsafe', value: features.unsafe_features?.length ?? 0, digits: 0, title: 'Features that could not be computed from information available at the time' },
+        { label: 'Max lookback', value: features.max_lookback_sessions, digits: 0, unit: 'sess', title: 'The longest history any registered feature reads. Sets the minimum warm-up before any model can score.' },
+      ]} />
+
+      <Panel
+        title="Catalogue"
+        subtitle={tab === 'datasets' ? `${datasets.total} datasets` : `${features.feature_count} features`}
+        flush
+        actions={
+          <div style={{ display: 'flex', gap: 0, border: '1px solid var(--rule)' }}>
+            {(['datasets', 'features'] as Tab[]).map((t) => (
+              <button
+                key={t}
+                onClick={() => { setTab(t); setSelected(null) }}
+                className="sys-focusable"
+                style={{
+                  font: '500 var(--t-micro)/1 var(--font-sans)',
+                  letterSpacing: 'var(--tracking-label)',
+                  textTransform: 'uppercase',
+                  padding: '4px 10px',
+                  border: 0,
+                  cursor: 'pointer',
+                  background: tab === t ? 'var(--p-inverse)' : 'transparent',
+                  color: tab === t ? 'var(--p-base)' : 'var(--ink-muted)',
+                }}
+              >{t}</button>
+            ))}
+          </div>
+        }
+      >
+        {tab === 'datasets' ? (
+          <Table
+            columns={datasetColumns}
+            rows={datasets.datasets}
+            rowKey={(d) => d.dataset_id}
+            density="compact"
+            selectedKey={selected ?? undefined}
+            onSelect={(d) => setSelected(d.dataset_id)}
+          />
+        ) : (
+          <Table
+            columns={featureColumns}
+            rows={features.features}
+            rowKey={(f) => f.name}
+            density="compact"
+            selectedKey={selected ?? undefined}
+            onSelect={(f) => setSelected(f.name)}
+          />
+        )}
+      </Panel>
+
+      {selectedDataset ? (
+        <Panel title="Dataset" subtitle={selectedDataset.dataset_id} state={pitState(selectedDataset.point_in_time)}>
+          <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)' }}>
+            <Section title="Classification">
+              <Provenance steps={[
+                { label: 'Source', value: selectedDataset.source },
+                ...(selectedDataset.repository ? [{ label: 'Repository', value: selectedDataset.repository }] : []),
+                ...(selectedDataset.table ? [{ label: 'Table', value: selectedDataset.table }] : []),
+                { label: 'Point in time', value: selectedDataset.point_in_time },
+                { label: 'Survivorship', value: selectedDataset.survivorship },
+                ...(selectedDataset.ingestion ? [{ label: 'Ingestion', value: selectedDataset.ingestion }] : []),
+              ]} />
+            </Section>
+            <Section title="Notes">
+              <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
+                {selectedDataset.description ?? '—'}
+              </p>
+              {selectedDataset.point_in_time_note ? (
+                <p style={{ margin: 0, fontSize: 'var(--t-meta)', color: 'var(--ink-muted)', lineHeight: 'var(--lh-body)' }}>
+                  <strong style={{ color: 'var(--ink)' }}>PIT: </strong>{selectedDataset.point_in_time_note}
+                </p>
+              ) : null}
+              {selectedDataset.survivorship_note ? (
+                <p style={{ margin: 0, fontSize: 'var(--t-meta)', color: 'var(--ink-muted)', lineHeight: 'var(--lh-body)' }}>
+                  <strong style={{ color: 'var(--ink)' }}>Survivorship: </strong>{selectedDataset.survivorship_note}
+                </p>
+              ) : null}
+            </Section>
+          </div>
+        </Panel>
+      ) : null}
+
+      {selectedFeature ? (
+        <Panel
+          title="Feature"
+          subtitle={selectedFeature.name}
+          state={selectedFeature.point_in_time_safe ? 'recorded' : 'blocked'}
+        >
+          <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)' }}>
+            <Section title="Contract">
+              <Provenance steps={[
+                { label: 'Group', value: selectedFeature.group },
+                { label: 'Lookback', value: `${selectedFeature.lookback_sessions ?? '—'} sessions` },
+                { label: 'Availability lag', value: `${selectedFeature.availability_lag_sessions ?? '—'} sessions` },
+                { label: 'Point in time', value: selectedFeature.point_in_time_safe ? 'safe' : 'unsafe' },
+                ...(selectedFeature.direction ? [{ label: 'Direction', value: selectedFeature.direction }] : []),
+                ...(selectedFeature.required_columns?.length
+                  ? [{ label: 'Requires', value: selectedFeature.required_columns.join(', ') }] : []),
+              ]} />
+            </Section>
+            <Section title="Definition">
+              <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
+                {selectedFeature.description}
+              </p>
+              {selectedFeature.formula ? (
+                <pre style={{
+                  margin: 0, padding: 'var(--d-2)', background: 'var(--p-sunken)',
+                  border: '1px solid var(--rule)', fontSize: 'var(--t-meta)',
+                  fontFamily: 'var(--font-mono)', overflowX: 'auto', color: 'var(--ink)',
+                }}>{selectedFeature.formula}</pre>
+              ) : null}
+              {selectedFeature.rationale ? (
+                <p style={{ margin: 0, fontSize: 'var(--t-meta)', color: 'var(--ink-muted)', lineHeight: 'var(--lh-body)' }}>
+                  {selectedFeature.rationale}
+                </p>
+              ) : null}
+            </Section>
+          </div>
+        </Panel>
+      ) : null}
+
+      {!selected ? (
+        <Panel title="Selection">
+          <StateBlock
+            state="unknown"
+            title="No row selected"
+            detail="Choose a dataset or a feature above to see its point-in-time contract, its survivorship classification and the columns it depends on."
+          />
+        </Panel>
+      ) : null}
+    </>
+  )
+}

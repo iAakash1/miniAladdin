@@ -1,0 +1,502 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   miniAladdin design system — terminal layer
+
+   The existing stylesheet grew page by page. This layer is the opposite: a
+   fixed vocabulary that every workspace draws from, so density, alignment and
+   status semantics are decided once.
+
+   Three rules govern everything below.
+
+   1. Numbers are monospaced and tabular. A column of figures that does not
+      align cannot be scanned, and scanning is the whole point of a terminal.
+   2. Colour carries meaning or it is not used. There is no decorative accent
+      here: a value is coloured when its sign or its status is the information.
+   3. Density is a scale, not a preference. Panels do not float, do not carry
+      shadows and do not round into cards. They are ruled regions of one page.
+   ───────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* ── type scale ──────────────────────────────────────────────────────────
+     Seven sizes, each with a job. A page that needs an eighth is a page whose
+     hierarchy is wrong. */
+  --t-micro:  10px;   /* units, superscripts, column qualifiers            */
+  --t-meta:   11px;   /* metadata, provenance, timestamps, source tags     */
+  --t-label:  12px;   /* section labels, table headers, axis labels        */
+  --t-body:   13px;   /* table cells, prose in panels                      */
+  --t-value:  15px;   /* analytical values — the numbers being read        */
+  --t-lead:   18px;   /* panel titles, headline figures                    */
+  --t-title:  24px;   /* workspace title. One per screen.                  */
+
+  --lh-tight: 1.15;
+  --lh-body:  1.45;
+
+  /* Section labels and column headers. Letterspaced small caps read as
+     structure rather than as content, which keeps them out of the way. */
+  --tracking-label: 0.08em;
+
+  /* ── density ─────────────────────────────────────────────────────────────
+     A 4px base. Every gap in the product is one of these. */
+  --d-0: 0px;
+  --d-1: 4px;
+  --d-2: 8px;
+  --d-3: 12px;
+  --d-4: 16px;
+  --d-5: 24px;
+  --d-6: 32px;
+  --d-7: 48px;
+
+  /* Row heights for the three table densities. */
+  --row-compact:  22px;
+  --row-normal:   28px;
+  --row-relaxed:  34px;
+
+  /* ── shell geometry ──────────────────────────────────────────────────── */
+  --rail-w:        212px;   /* left workbench navigation                   */
+  --rail-w-collapsed: 52px;
+  --context-w:     320px;   /* right context / provenance column           */
+  --header-h:      44px;
+  --status-h:      28px;    /* bottom research-state rail                  */
+
+  /* ── status semantics ────────────────────────────────────────────────────
+     These are the product's vocabulary for how much a number can be trusted.
+     They are never mixed with the sign colours below: one says where a value
+     came from, the other says whether it is good. Conflating them is how a
+     stale number reads as a bad one, or a bad one as a broken feed. */
+  --s-live:        #29a37a;   /* observed now, inside its freshness window */
+  --s-recorded:    #6b7a8f;   /* a fact from an artifact; cannot go stale  */
+  --s-stale:       #b7791f;   /* real, but past its window                 */
+  --s-waking:      #4a7fb5;   /* a cold service is starting                */
+  --s-unavailable: #8a6a6a;   /* refused or absent — never rendered as 0   */
+  --s-blocked:     #a4553a;   /* a research constraint, not an error       */
+  --s-experimental:#7a6ea8;   /* exists, not promotable                    */
+  --s-candidate:   #3f7f9f;   /* cleared development gates                 */
+  --s-production:  #29a37a;   /* armed and serving                         */
+
+  /* ── evidence semantics ─────────────────────────────────────────────────
+     For sign and for gate outcomes. Deliberately desaturated: a terminal that
+     shouts on every negative number teaches people to stop reading it. */
+  --e-pos:  #1f8f66;
+  --e-neg:  #b4503f;
+  --e-warn: #9a7420;
+  --e-null: #7b8494;
+
+  /* ── surfaces ────────────────────────────────────────────────────────────
+     Four planes only. Depth is expressed by rules, not by shadow. */
+  --p-base:    #fbfaf8;
+  --p-panel:   #ffffff;
+  --p-sunken:  #f5f4f1;
+  --p-inverse: #14161a;
+
+  --rule:        #e3e0da;   /* hairline between rows and panels            */
+  --rule-strong: #c9c5bd;   /* panel edges, header/footer separation       */
+  --rule-focus:  #8d8578;
+
+  --ink:       #1b1d21;
+  --ink-muted: #5f6672;
+  --ink-faint: #8d94a1;
+}
+
+/* Dark is a re-plane, not an inversion. The status hues shift toward the
+   lighter end so they hold contrast on a dark ground without turning neon. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --p-base:   #101215;
+    --p-panel:  #16191d;
+    --p-sunken: #0b0d10;
+
+    --rule:        #262a30;
+    --rule-strong: #363c44;
+    --rule-focus:  #5a636e;
+
+    --ink:       #e6e8ec;
+    --ink-muted: #9aa2ae;
+    --ink-faint: #6b7480;
+
+    --s-live: #3fbf92; --s-recorded: #8895a8; --s-stale: #d59a35;
+    --s-waking: #63a0d8; --s-unavailable: #a98686; --s-blocked: #c97054;
+    --s-experimental: #9b8ecb; --s-candidate: #57a3c6; --s-production: #3fbf92;
+
+    --e-pos: #35b184; --e-neg: #d4705e; --e-warn: #c39a3c; --e-null: #8b93a0;
+  }
+}
+
+:root[data-theme='dark'] {
+  --p-base:   #101215;
+  --p-panel:  #16191d;
+  --p-sunken: #0b0d10;
+  --rule:        #262a30;
+  --rule-strong: #363c44;
+  --rule-focus:  #5a636e;
+  --ink:       #e6e8ec;
+  --ink-muted: #9aa2ae;
+  --ink-faint: #6b7480;
+  --s-live: #3fbf92; --s-recorded: #8895a8; --s-stale: #d59a35;
+  --s-waking: #63a0d8; --s-unavailable: #a98686; --s-blocked: #c97054;
+  --s-experimental: #9b8ecb; --s-candidate: #57a3c6; --s-production: #3fbf92;
+  --e-pos: #35b184; --e-neg: #d4705e; --e-warn: #c39a3c; --e-null: #8b93a0;
+}
+
+/* ── typography primitives ───────────────────────────────────────────────── */
+
+.sys-label {
+  font: 500 var(--t-label) / var(--lh-tight) var(--font-sans);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.sys-meta {
+  font: 400 var(--t-meta) / var(--lh-tight) var(--font-mono);
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Every analytical number in the product uses this. Tabular figures and a
+   slashed zero, so a column reads as a column and 0 is never O. */
+.sys-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums slashed-zero;
+  font-feature-settings: 'zero' 1;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.sys-value { font-size: var(--t-value); color: var(--ink); }
+.sys-lead  { font: 500 var(--t-lead) / var(--lh-tight) var(--font-sans); color: var(--ink); }
+.sys-title { font: 500 var(--t-title) / var(--lh-tight) var(--font-sans); color: var(--ink); letter-spacing: -0.01em; }
+
+.sys-pos  { color: var(--e-pos); }
+.sys-neg  { color: var(--e-neg); }
+.sys-warn { color: var(--e-warn); }
+/* An absent value. Never zero, never blank — an em dash the eye can find. */
+.sys-null { color: var(--e-null); }
+
+/* ── panel ───────────────────────────────────────────────────────────────
+   A ruled region, not a card. No radius, no shadow, no float. */
+
+.sys-panel {
+  background: var(--p-panel);
+  border: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sys-panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--d-3);
+  padding: var(--d-2) var(--d-3);
+  border-bottom: 1px solid var(--rule);
+  background: var(--p-sunken);
+  min-height: 30px;
+}
+
+.sys-panel-body { padding: var(--d-3); min-width: 0; }
+.sys-panel-body--flush { padding: 0; }
+
+/* ── table ───────────────────────────────────────────────────────────────
+   First-class, because institutional finance reads tables. */
+
+.sys-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--t-body);
+  color: var(--ink);
+}
+
+.sys-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--p-sunken);
+  border-bottom: 1px solid var(--rule-strong);
+  padding: var(--d-1) var(--d-2);
+  text-align: left;
+  font: 500 var(--t-label) / var(--lh-tight) var(--font-sans);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+.sys-table thead th.num,
+.sys-table tbody td.num { text-align: right; }
+
+.sys-table tbody td {
+  padding: 0 var(--d-2);
+  height: var(--row-normal);
+  border-bottom: 1px solid var(--rule);
+  vertical-align: middle;
+}
+
+.sys-table tbody td.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums slashed-zero;
+  white-space: nowrap;
+}
+
+.sys-table--compact tbody td { height: var(--row-compact); font-size: var(--t-meta); }
+.sys-table--relaxed tbody td { height: var(--row-relaxed); }
+
+.sys-table tbody tr:hover td { background: var(--p-sunken); }
+.sys-table tbody tr[data-selected='true'] td { background: var(--p-sunken); }
+
+/* A column whose header carries a unit qualifier. */
+.sys-table th .unit {
+  display: block;
+  font: 400 var(--t-micro) / 1 var(--font-mono);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink-faint);
+  margin-top: 2px;
+}
+
+/* Wide tables scroll inside their own region; the page never scrolls sideways. */
+.sys-scroll-x { overflow-x: auto; max-width: 100%; }
+
+/* ── status chip ────────────────────────────────────────────────────────── */
+
+.sys-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--d-1);
+  font: 500 var(--t-micro) / 1 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 5px;
+  border: 1px solid currentColor;
+  color: var(--tone, var(--ink-muted));
+  white-space: nowrap;
+}
+
+.sys-status::before {
+  content: '';
+  width: 5px; height: 5px;
+  background: currentColor;
+  flex: none;
+}
+
+/* A waking service is the one state that earns motion: it is the one state
+   that is actually changing while you look at it. */
+.sys-status[data-state='waking']::before { animation: sys-pulse 1.4s ease-in-out infinite; }
+@keyframes sys-pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.25 } }
+
+@media (prefers-reduced-motion: reduce) {
+  .sys-status[data-state='waking']::before { animation: none; }
+}
+
+.sys-status[data-state='live']         { --tone: var(--s-live); }
+.sys-status[data-state='recorded']     { --tone: var(--s-recorded); }
+.sys-status[data-state='stale']        { --tone: var(--s-stale); }
+.sys-status[data-state='waking']       { --tone: var(--s-waking); }
+.sys-status[data-state='unavailable']  { --tone: var(--s-unavailable); }
+.sys-status[data-state='blocked']      { --tone: var(--s-blocked); }
+.sys-status[data-state='experimental'] { --tone: var(--s-experimental); }
+.sys-status[data-state='candidate']    { --tone: var(--s-candidate); }
+.sys-status[data-state='production']   { --tone: var(--s-production); }
+.sys-status[data-state='unknown']      { --tone: var(--ink-faint); }
+
+/* ── metric strip ────────────────────────────────────────────────────────
+   Replaces the card grid. Values on one baseline, labels above, hairlines
+   between — so a row of figures reads as a row rather than as six boxes. */
+
+.sys-strip {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  border: 1px solid var(--rule);
+  background: var(--p-panel);
+}
+
+.sys-strip > * + * { border-left: 1px solid var(--rule); }
+
+.sys-strip-item { padding: var(--d-2) var(--d-3); min-width: 0; }
+.sys-strip-item .k {
+  font: 500 var(--t-micro) / 1 var(--font-sans);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  display: block;
+  margin-bottom: var(--d-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sys-strip-item .v {
+  font: 500 var(--t-value) / 1 var(--font-mono);
+  font-variant-numeric: tabular-nums slashed-zero;
+  color: var(--ink);
+  display: block;
+}
+.sys-strip-item .u {
+  font: 400 var(--t-micro) / 1 var(--font-mono);
+  color: var(--ink-faint);
+  margin-left: 3px;
+}
+
+@media (max-width: 900px) {
+  .sys-strip { grid-auto-flow: row; grid-auto-columns: none; }
+  .sys-strip > * + * { border-left: 0; border-top: 1px solid var(--rule); }
+}
+
+/* ── focus ──────────────────────────────────────────────────────────────
+   Visible on every interactive element. A dense terminal is keyboard-driven
+   and an invisible focus ring makes it unusable. */
+
+.sys-focusable:focus-visible,
+.sys-table tbody tr:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--rule-focus);
+  outline-offset: -1px;
+}
+
+/* ── workbench shell ──────────────────────────────────────────────────── */
+
+.wb {
+  display: grid;
+  grid-template-columns: var(--rail-w) minmax(0, 1fr);
+  height: 100dvh;
+  background: var(--p-base);
+  color: var(--ink);
+  overflow: hidden;
+}
+
+.wb-rail {
+  border-right: 1px solid var(--rule-strong);
+  background: var(--p-sunken);
+  overflow-y: auto;
+  padding: var(--d-3) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--d-4);
+}
+
+.wb-group { display: flex; flex-direction: column; }
+.wb-group-label { padding: 0 var(--d-3) var(--d-1); font-size: var(--t-micro); }
+
+.wb-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--d-2);
+  padding: var(--d-1) var(--d-3);
+  height: var(--row-normal);
+  font-size: var(--t-body);
+  color: var(--ink-muted);
+  text-decoration: none;
+  border-left: 2px solid transparent;
+}
+
+.wb-link:hover { background: var(--p-panel); color: var(--ink); }
+.wb-link.is-active {
+  background: var(--p-panel);
+  color: var(--ink);
+  border-left-color: var(--ink);
+  font-weight: 500;
+}
+
+.wb-key {
+  font: 400 var(--t-micro) / 1 var(--font-mono);
+  color: var(--ink-faint);
+  opacity: 0;
+  border: 1px solid var(--rule);
+  padding: 1px 3px;
+}
+.wb-link:hover .wb-key, .wb-link.is-active .wb-key { opacity: 1; }
+
+.wb-main { display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+
+.wb-head {
+  display: flex;
+  align-items: center;
+  gap: var(--d-3);
+  padding: 0 var(--d-4);
+  min-height: var(--header-h);
+  border-bottom: 1px solid var(--rule-strong);
+  background: var(--p-panel);
+  flex: none;
+}
+
+.wb-head-title { display: flex; align-items: baseline; gap: var(--d-3); min-width: 0; }
+.wb-head-title h1 { margin: 0; font-size: var(--t-lead); }
+.wb-head-actions { margin-left: auto; display: flex; align-items: center; gap: var(--d-2); }
+
+.wb-toggle {
+  display: none;
+  background: transparent;
+  border: 1px solid var(--rule);
+  color: var(--ink-muted);
+  font: 400 var(--t-meta) / 1 var(--font-mono);
+  padding: var(--d-1) var(--d-2);
+  cursor: pointer;
+}
+
+.wb-body { display: flex; min-height: 0; flex: 1; }
+
+.wb-workspace {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: var(--d-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--d-4);
+}
+
+.wb-context {
+  width: var(--context-w);
+  flex: none;
+  border-left: 1px solid var(--rule-strong);
+  background: var(--p-panel);
+  overflow-y: auto;
+  padding: var(--d-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--d-4);
+}
+
+.wb-status {
+  display: flex;
+  align-items: center;
+  gap: var(--d-5);
+  padding: 0 var(--d-4);
+  min-height: var(--status-h);
+  border-top: 1px solid var(--rule-strong);
+  background: var(--p-sunken);
+  flex: none;
+  overflow-x: auto;
+}
+
+.wb-status-item { display: flex; align-items: center; gap: var(--d-2); white-space: nowrap; }
+.wb-status-key { font-size: var(--t-micro); }
+
+/* Tablet: the context column becomes a drawer. */
+@media (max-width: 1180px) {
+  .wb-context {
+    position: fixed; right: 0; top: var(--header-h); bottom: var(--status-h);
+    z-index: 40; transform: translateX(100%); transition: transform var(--t-med, 180ms) ease;
+    box-shadow: -1px 0 0 var(--rule-strong);
+  }
+  .wb-context.is-open { transform: none; }
+  .wb-toggle--ctx { display: inline-block; }
+}
+
+/* Mobile: navigation becomes a drawer too. The workspace keeps the screen. */
+@media (max-width: 860px) {
+  .wb { grid-template-columns: minmax(0, 1fr); }
+  .wb-rail {
+    position: fixed; left: 0; top: 0; bottom: 0; width: var(--rail-w);
+    z-index: 50; transform: translateX(-100%); transition: transform var(--t-med, 180ms) ease;
+  }
+  .wb-rail.is-open { transform: none; }
+  .wb-toggle { display: inline-block; }
+  .wb-workspace { padding: var(--d-3); gap: var(--d-3); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wb-rail, .wb-context { transition: none; }
+}

@@ -1,0 +1,310 @@
+/**
+ * miniAladdin design system — React primitives.
+ *
+ * Every workspace composes from these. The rule they enforce together is the
+ * one the audits kept proving matters: a number is never shown without its
+ * unit, its status and a way to ask where it came from.
+ *
+ * `Value` is the centre of it. It refuses to render a bare number.
+ */
+'use client'
+
+import type { ReactNode } from 'react'
+
+/* ── research state ───────────────────────────────────────────────────────
+   The product's vocabulary for trust. Deliberately separate from sign: one
+   says where a number came from, the other says whether it is good news. */
+
+export type ResearchState =
+  | 'live' | 'recorded' | 'stale' | 'waking' | 'unavailable'
+  | 'blocked' | 'experimental' | 'candidate' | 'production' | 'unknown'
+
+const STATE_TITLE: Record<ResearchState, string> = {
+  live:         'Observed now, inside its freshness window',
+  recorded:     'A fact read from a stored artifact — it cannot go stale',
+  stale:        'Real, but past its freshness window',
+  waking:       'A cold service is starting; no value yet',
+  unavailable:  'Refused or absent. No value is being shown in its place',
+  blocked:      'A research constraint prevents this, not an error',
+  experimental: 'Exists and is measured, but is not promotable',
+  candidate:    'Cleared the development gates; holdout not yet spent',
+  production:   'Armed and serving',
+  unknown:      'State could not be determined',
+}
+
+export function Status({ state, label }: { state: ResearchState; label?: string }) {
+  return (
+    <span className="sys-status" data-state={state} title={STATE_TITLE[state]}>
+      {label ?? state}
+    </span>
+  )
+}
+
+/* ── value ────────────────────────────────────────────────────────────────
+   The single way a number reaches the screen. */
+
+export interface ValueProps {
+  value: number | string | null | undefined
+  /** Rendered small after the number. "bps", "×", "ann.", "21d". */
+  unit?: string
+  /** Decimal places. Ignored for string values. */
+  digits?: number
+  /** Prefix a + on positives. For figures where direction is the point. */
+  signed?: boolean
+  /** Colour by sign. Off by default: most numbers are not good or bad. */
+  tone?: boolean
+  /** Shown on hover — method, frequency, period, source. */
+  title?: string
+}
+
+export function Value({
+  value, unit, digits = 2, signed = false, tone = false, title,
+}: ValueProps) {
+  if (value === null || value === undefined || (typeof value === 'number' && !Number.isFinite(value))) {
+    // An em dash, never a zero. The audits found three places where invalid
+    // mathematics rendered as 0.0 and read as a real measurement.
+    return <span className="sys-num sys-null" title={title ?? 'no value'}>—</span>
+  }
+
+  const numeric = typeof value === 'number'
+  const text = numeric
+    ? `${signed && value >= 0 ? '+' : ''}${value.toFixed(digits)}`
+    : String(value)
+
+  const cls = tone && numeric
+    ? value > 0 ? 'sys-pos' : value < 0 ? 'sys-neg' : ''
+    : ''
+
+  return (
+    <span className={`sys-num ${cls}`} title={title}>
+      {text}
+      {unit ? <span className="u" style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-faint)', marginLeft: 3 }}>{unit}</span> : null}
+    </span>
+  )
+}
+
+/* ── panel ────────────────────────────────────────────────────────────── */
+
+export function Panel({
+  title, subtitle, actions, state, children, flush = false,
+}: {
+  title: string
+  subtitle?: ReactNode
+  actions?: ReactNode
+  state?: ResearchState
+  children: ReactNode
+  flush?: boolean
+}) {
+  return (
+    <section className="sys-panel">
+      <header className="sys-panel-head">
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--d-2)', minWidth: 0 }}>
+          <h2 className="sys-label" style={{ margin: 0 }}>{title}</h2>
+          {subtitle ? <span className="sys-meta">{subtitle}</span> : null}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--d-2)', flex: 'none' }}>
+          {state ? <Status state={state} /> : null}
+          {actions}
+        </div>
+      </header>
+      <div className={`sys-panel-body${flush ? ' sys-panel-body--flush' : ''}`}>{children}</div>
+    </section>
+  )
+}
+
+/* ── metric strip ───────────────────────────────────────────────────────
+   The replacement for a grid of cards. */
+
+export interface StripMetric {
+  label: string
+  value: number | string | null | undefined
+  unit?: string
+  digits?: number
+  signed?: boolean
+  tone?: boolean
+  title?: string
+}
+
+export function Strip({ metrics }: { metrics: StripMetric[] }) {
+  return (
+    <div className="sys-strip">
+      {metrics.map((m) => (
+        <div className="sys-strip-item" key={m.label}>
+          <span className="k" title={m.label}>{m.label}</span>
+          <span className="v">
+            <Value
+              value={m.value} unit={m.unit} digits={m.digits}
+              signed={m.signed} tone={m.tone} title={m.title}
+            />
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/* ── state block ────────────────────────────────────────────────────────
+   Empty, error and data-gated states. §29 and §30: never "coming soon",
+   never a silent zero. A gated capability says what it needs. */
+
+export function StateBlock({
+  state, title, detail, requires, coverage,
+}: {
+  state: ResearchState
+  title: string
+  detail?: string
+  /** For a data-gated capability: exactly what is missing. */
+  requires?: string[]
+  /** What the current data actually covers. */
+  coverage?: string
+}) {
+  return (
+    <div style={{ padding: 'var(--d-5) var(--d-4)', textAlign: 'left' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--d-2)', marginBottom: 'var(--d-2)' }}>
+        <Status state={state} />
+        <span className="sys-lead">{title}</span>
+      </div>
+      {detail ? (
+        <p style={{ margin: '0 0 var(--d-3)', fontSize: 'var(--t-body)', color: 'var(--ink-muted)', maxWidth: '60ch', lineHeight: 'var(--lh-body)' }}>
+          {detail}
+        </p>
+      ) : null}
+      {requires?.length ? (
+        <div style={{ marginTop: 'var(--d-3)' }}>
+          <div className="sys-label" style={{ marginBottom: 'var(--d-1)' }}>Required</div>
+          <ul style={{ margin: 0, paddingLeft: 'var(--d-4)', fontSize: 'var(--t-body)', color: 'var(--ink-muted)' }}>
+            {requires.map((r) => <li key={r}>{r}</li>)}
+          </ul>
+        </div>
+      ) : null}
+      {coverage ? (
+        <div style={{ marginTop: 'var(--d-3)' }}>
+          <div className="sys-label" style={{ marginBottom: 'var(--d-1)' }}>Current coverage</div>
+          <div className="sys-meta">{coverage}</div>
+        </div>
+      ) : null}
+      {requires?.length ? (
+        <p style={{ marginTop: 'var(--d-3)', marginBottom: 0, fontSize: 'var(--t-meta)', color: 'var(--ink-faint)' }}>
+          No synthetic values are shown in place of the missing data.
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
+/* ── table ──────────────────────────────────────────────────────────────── */
+
+export interface Column<T> {
+  key: string
+  header: string
+  /** Unit qualifier shown under the header, e.g. "bps", "ann.", "21d". */
+  unit?: string
+  numeric?: boolean
+  width?: string
+  render: (row: T) => ReactNode
+}
+
+export function Table<T>({
+  columns, rows, rowKey, density = 'normal', onSelect, selectedKey, empty,
+}: {
+  columns: Column<T>[]
+  rows: T[]
+  rowKey: (row: T) => string
+  density?: 'compact' | 'normal' | 'relaxed'
+  onSelect?: (row: T) => void
+  selectedKey?: string
+  empty?: ReactNode
+}) {
+  if (!rows.length) {
+    return <>{empty ?? <StateBlock state="unavailable" title="No rows" />}</>
+  }
+  const cls = `sys-table${density === 'compact' ? ' sys-table--compact' : density === 'relaxed' ? ' sys-table--relaxed' : ''}`
+  return (
+    <div className="sys-scroll-x">
+      <table className={cls}>
+        <thead>
+          <tr>
+            {columns.map((c) => (
+              <th key={c.key} className={c.numeric ? 'num' : undefined} style={c.width ? { width: c.width } : undefined} scope="col">
+                {c.header}
+                {c.unit ? <span className="unit">{c.unit}</span> : null}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => {
+            const key = rowKey(row)
+            return (
+              <tr
+                key={key}
+                data-selected={selectedKey === key}
+                onClick={onSelect ? () => onSelect(row) : undefined}
+                onKeyDown={onSelect ? (e) => { if (e.key === 'Enter') onSelect(row) } : undefined}
+                tabIndex={onSelect ? 0 : undefined}
+                style={onSelect ? { cursor: 'pointer' } : undefined}
+              >
+                {columns.map((c) => (
+                  <td key={c.key} className={c.numeric ? 'num' : undefined}>{c.render(row)}</td>
+                ))}
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+/* ── provenance ─────────────────────────────────────────────────────────
+   §24 of the product brief: every important number answers where it came
+   from. Rendered as a chain because that is what it is. */
+
+export interface ProvenanceStep {
+  label: string
+  value: string
+  href?: string
+}
+
+export function Provenance({ steps }: { steps: ProvenanceStep[] }) {
+  if (!steps.length) return null
+  return (
+    <ol style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+      {steps.map((s, i) => (
+        <li
+          key={s.label}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '14px 1fr',
+            gap: 'var(--d-2)',
+            paddingBottom: i === steps.length - 1 ? 0 : 'var(--d-2)',
+          }}
+        >
+          <div style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
+            <span style={{ width: 5, height: 5, background: 'var(--ink-faint)', marginTop: 5, flex: 'none' }} />
+            {i < steps.length - 1 ? (
+              <span style={{ position: 'absolute', top: 12, bottom: -4, width: 1, background: 'var(--rule)' }} />
+            ) : null}
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div className="sys-label" style={{ fontSize: 'var(--t-micro)' }}>{s.label}</div>
+            <div className="sys-meta" style={{ color: 'var(--ink)', wordBreak: 'break-word' }}>
+              {s.href ? <a href={s.href} style={{ color: 'inherit' }}>{s.value}</a> : s.value}
+            </div>
+          </div>
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+/* ── section ────────────────────────────────────────────────────────────── */
+
+export function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--d-2)' }}>
+      <div className="sys-label">{title}</div>
+      {children}
+    </div>
+  )
+}
