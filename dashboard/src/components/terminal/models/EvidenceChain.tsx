@@ -27,6 +27,8 @@ import {
 } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
+import Inspector from '@/components/system/Inspector'
+import type { ResearchObject } from '@/lib/research/objects'
 
 interface LeaderboardRow {
   key: string
@@ -137,6 +139,7 @@ export default function EvidenceChain() {
   const [registry, setRegistry] = useState<Registry | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
+  const [inspecting, setInspecting] = useState<ResearchObject | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -180,8 +183,64 @@ export default function EvidenceChain() {
   const candidateUnmet = Object.entries(entry?.candidate_thresholds_not_met ?? {})
   const by = registry.summary.by_status
 
+  const inspectedEntry = inspecting
+    ? registry.entries.find((e) => e.model_id === inspecting.id)
+    : undefined
+
   return (
     <>
+      {inspecting && inspectedEntry ? (
+        <Inspector
+          object={inspecting}
+          state={statusState(inspectedEntry.status)}
+          onClose={() => setInspecting(null)}
+          sections={[
+            {
+              title: 'Identity',
+              fields: [
+                { label: 'Label', value: inspectedEntry.label },
+                { label: 'Task', value: inspectedEntry.task ?? '—' },
+                { label: 'Status', value: inspectedEntry.status },
+                { label: 'Dataset version', value: inspectedEntry.dataset_version ?? '—' },
+                { label: 'Training', value: `${inspectedEntry.training_start ?? '—'} → ${inspectedEntry.training_end ?? '—'}` },
+                { label: 'Eligible for', value: inspectedEntry.eligible_for?.join(', ') || 'nothing' },
+              ],
+            },
+            {
+              title: 'Unmet gates',
+              body: Object.keys(inspectedEntry.thresholds_not_met ?? {}).length ? (
+                <table className="sys-table sys-table--compact">
+                  <tbody>
+                    {Object.entries(inspectedEntry.thresholds_not_met ?? {}).map(([k, v]) => (
+                      <tr key={k}>
+                        <td style={{ fontFamily: 'var(--font-mono)' }}>{k}</td>
+                        <td className="num">
+                          {v === 'not recorded'
+                            ? <span className="sys-null">not recorded</span>
+                            : <span className="sys-neg">{String(v)}</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : <span className="sys-meta">none recorded</span>,
+            },
+          ]}
+          actions={
+            <>
+              <Link href="/terminal/gates" className="sys-btn" style={{ textDecoration: 'none' }}>gate matrix</Link>
+              <Link href="/terminal/compare" className="sys-btn" style={{ textDecoration: 'none' }}>compare</Link>
+              <Link
+                href={`/terminal/provenance?label=${encodeURIComponent(inspectedEntry.label)}&model=${encodeURIComponent(inspectedEntry.model_id)}`}
+                className="sys-btn" style={{ textDecoration: 'none' }}
+              >
+                provenance
+              </Link>
+            </>
+          }
+        />
+      ) : null}
+
       <Strip metrics={[
         { label: 'Registered', value: registry.summary.entries, digits: 0 },
         { label: 'Experimental', value: by.experimental ?? 0, digits: 0, title: 'Measured, but not promotable' },
@@ -212,7 +271,9 @@ export default function EvidenceChain() {
           selectedKey={selected ?? undefined}
           onSelect={(r) => {
             setSelected(r.key)
-            recordVisit({ kind: 'model', id: r.model_id, label: r.model_id, detail: r.label, state: r.status })
+            const obj = { kind: 'model' as const, id: r.model_id, label: r.model_id, detail: r.label, state: r.status }
+            recordVisit(obj)
+            setInspecting(obj)
           }}
         />
       </Panel>

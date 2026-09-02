@@ -25,6 +25,8 @@ import {
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { Histogram } from '@/components/system/charts'
 import { recordVisit } from '@/lib/research/history'
+import Inspector, { type InspectorSection } from '@/components/system/Inspector'
+import type { ResearchObject } from '@/lib/research/objects'
 
 interface Feature {
   name: string
@@ -87,6 +89,9 @@ export default function DataWorkbench() {
   const [error, setError] = useState<string | null>(null)
   const [tab, setTab] = useState<Tab>('datasets')
   const [selected, setSelected] = useState<string | null>(null)
+  // The inspector opens over the workspace rather than navigating away, so
+  // following a reference does not cost the reader the table they were reading.
+  const [inspecting, setInspecting] = useState<ResearchObject | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -158,8 +163,77 @@ export default function DataWorkbench() {
   const selectedDataset = datasets.datasets.find((d) => d.dataset_id === selected)
   const selectedFeature = features.features.find((f) => f.name === selected)
 
+  const inspectorSections = (): InspectorSection[] => {
+    if (inspecting?.kind === 'dataset') {
+      const d = datasets.datasets.find((x) => x.dataset_id === inspecting.id)
+      if (!d) return []
+      return [
+        {
+          title: 'Contract',
+          fields: [
+            { label: 'Source', value: d.source },
+            { label: 'Repository', value: d.repository ?? '—' },
+            { label: 'Table', value: d.table ?? '—' },
+            { label: 'Point in time', value: d.point_in_time, title: d.point_in_time_note },
+            { label: 'Survivorship', value: d.survivorship, title: d.survivorship_note },
+            { label: 'Ingestion', value: d.ingestion ?? '—' },
+            { label: 'Columns', value: String(d.columns?.length ?? '—') },
+          ],
+        },
+        {
+          title: 'Notes',
+          body: (
+            <p style={{ margin: 0, fontSize: 'var(--t-meta)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
+              {d.description ?? 'No description recorded.'}
+            </p>
+          ),
+        },
+      ]
+    }
+    if (inspecting?.kind === 'feature') {
+      const f = features.features.find((x) => x.name === inspecting.id)
+      if (!f) return []
+      return [
+        {
+          title: 'Contract',
+          fields: [
+            { label: 'Group', value: f.group },
+            { label: 'Lookback', value: `${f.lookback_sessions ?? '—'} sessions`, title: 'History the feature reads' },
+            { label: 'Availability lag', value: `${f.availability_lag_sessions ?? '—'} sessions`, title: 'Between the observation and the moment it could be known' },
+            { label: 'Point in time', value: f.point_in_time_safe ? 'safe' : 'unsafe' },
+            { label: 'Cross-sectional', value: f.cross_sectional ? 'yes' : 'no' },
+            { label: 'Direction', value: f.direction ?? '—' },
+            { label: 'Requires', value: f.required_columns?.join(', ') || '—' },
+          ],
+        },
+        {
+          title: 'Definition',
+          body: (
+            <p style={{ margin: 0, fontSize: 'var(--t-meta)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
+              {f.description}
+            </p>
+          ),
+        },
+      ]
+    }
+    return []
+  }
+
   return (
     <>
+      {inspecting ? (
+        <Inspector
+          object={inspecting}
+          state={
+            inspecting.kind === 'feature'
+              ? (features.features.find((f) => f.name === inspecting.id)?.point_in_time_safe ? 'recorded' : 'blocked')
+              : pitState(datasets.datasets.find((d) => d.dataset_id === inspecting.id)?.point_in_time ?? '')
+          }
+          sections={inspectorSections()}
+          onClose={() => setInspecting(null)}
+        />
+      ) : null}
+
       <Strip metrics={[
         { label: 'Datasets', value: datasets.total, digits: 0 },
         { label: 'Training admissible', value: datasets.training_admissible, digits: 0, title: 'Datasets whose point-in-time and survivorship classification permit training use' },
@@ -206,7 +280,9 @@ export default function DataWorkbench() {
             selectedKey={selected ?? undefined}
             onSelect={(d) => {
               setSelected(d.dataset_id)
-              recordVisit({ kind: 'dataset', id: d.dataset_id, label: d.dataset_id, detail: d.source })
+              const obj = { kind: 'dataset' as const, id: d.dataset_id, label: d.dataset_id, detail: d.source }
+              recordVisit(obj)
+              setInspecting(obj)
             }}
           />
         ) : (
@@ -220,7 +296,9 @@ export default function DataWorkbench() {
             selectedKey={selected ?? undefined}
             onSelect={(f) => {
               setSelected(f.name)
-              recordVisit({ kind: 'feature', id: f.name, label: f.name, detail: f.group })
+              const obj = { kind: 'feature' as const, id: f.name, label: f.name, detail: f.group }
+              recordVisit(obj)
+              setInspecting(obj)
             }}
           />
         )}
