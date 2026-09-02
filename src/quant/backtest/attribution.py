@@ -173,7 +173,11 @@ def attribute_returns(
     # compounded to the power of this value, so a 3% error in the exponent is
     # not a 3% error in the result.
     periods_per_year: float,
-    holding_periods: int = 4,
+    # Required for the same reason. This sets the Newey-West lag count, so a
+    # caller who forgets gets three lags no matter how far the label looks
+    # forward. Under-correction does not produce an obviously broken number; it
+    # produces a t-statistic that is merely too large.
+    holding_periods: int,
     market_neutral: bool = True,
 ) -> AttributionResult:
     """Regress strategy returns on factor returns and report the intercept.

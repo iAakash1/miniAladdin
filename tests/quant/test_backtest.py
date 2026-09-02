@@ -241,7 +241,7 @@ def test_too_few_observations_reports_nothing_rather_than_a_number():
     factors = _factors(n=60)
     weekly = sorted({d for d in factors["date"] if d.weekday() == 4})[:8]
     series = pd.Series(np.random.default_rng(0).normal(size=len(weekly)), index=weekly)
-    result = attribute_returns(series, factors, periods_per_year=52)
+    result = attribute_returns(series, factors, periods_per_year=52, holding_periods=4)
     assert result.alpha_t_stat is None
     assert "below" in result.note or "overlapping" in result.note
 

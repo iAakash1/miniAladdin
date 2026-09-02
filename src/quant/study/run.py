@@ -48,6 +48,7 @@ from src.quant.datasets.store import RawStore
 from src.quant.models.registry import dependency_versions
 from src.quant.pit.dataset import DatasetBuilder
 from src.quant.pit.universe import UniverseHistory
+from src.quant.labels.geometry import LabelGeometry
 from src.quant.regime import classify_rules, performance_by_regime
 from src.quant.study.firewall import FIREWALL
 from src.quant.study.families import FeatureArm, arm_features, family_members
@@ -436,10 +437,18 @@ def _evaluate_target(
             attributions[result.model_id] = attribute_returns(
                 primary.net_returns, factors,
                 periods_per_year=252 / definition.step_sessions,
-                holding_periods=max(1, horizon // definition.step_sessions),
+                # Ceiling. `horizon // step` leaves one overlapping observation
+                # uncorrected, and the residual dependence inflates the alpha
+                # t-statistic. LabelGeometry.block_length is the same arithmetic
+                # `ic_summary` already uses for its own lag count.
+                holding_periods=LabelGeometry(
+                    target=target, horizon_sessions=horizon,
+                    step_sessions=definition.step_sessions, embargo_sessions=0,
+                ).block_length,
             ).as_dict()
         regime_rows[result.model_id] = performance_by_regime(
-            result.predictions, regimes, label=target
+            result.predictions, regimes, label=target,
+            horizon_sessions=horizon, step_sessions=definition.step_sessions,
         )
 
     trials = definition.cumulative_evaluations

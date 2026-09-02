@@ -245,6 +245,8 @@ def performance_by_regime(
     regimes: RegimeSeries,
     *,
     label: str,
+    horizon_sessions: int,
+    step_sessions: int,
     prediction_column: str = "prediction",
     date_column: str = "date",
     min_observations: int = 200,
@@ -255,6 +257,12 @@ def performance_by_regime(
     count and no metrics. A rank IC computed on 40 rows in one rare regime has a
     standard error wide enough to cover any conclusion, and printing it invites
     exactly the story it cannot support.
+
+    `horizon_sessions` and `step_sessions` carry no defaults on purpose. They
+    set the Newey-West lag count, and a wrong one is invisible: the t-statistic
+    stays plausible and only its size is wrong. These were hardcoded to 21 and
+    5, which under-corrects every label that looks further than 21 sessions —
+    `fwd_ret_63` among them.
     """
     from src.quant.validation.metrics import ic_summary, per_date_ic, regression_metrics
 
@@ -283,7 +291,8 @@ def performance_by_regime(
                 group, prediction_column=prediction_column, target_column=label,
                 date_column=date_column,
             ),
-            horizon_sessions=21, step_sessions=5,
+            horizon_sessions=horizon_sessions,
+            step_sessions=step_sessions,
         )
         row.update(
             {
