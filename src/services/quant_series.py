@@ -31,6 +31,8 @@ from __future__ import annotations
 import logging
 import threading
 from pathlib import Path
+
+from src.quant.validation.metrics import bootstrap_interval
 from typing import Any, Optional
 
 import numpy as np
@@ -39,6 +41,12 @@ import pandas as pd
 logger = logging.getLogger("omnisignal.services.quant_series")
 
 DEFAULT_ROOT = Path("experiments")
+
+#: Label horizon and rebalance cadence, from the experiment definitions. Their
+#: ratio is the dependence length that the bootstrap must respect.
+_LABEL_HORIZON_SESSIONS = 21
+_REBALANCE_SESSIONS = 5
+_OVERLAP_BLOCK = max(1, _LABEL_HORIZON_SESSIONS // _REBALANCE_SESSIONS)
 
 #: A cross-section smaller than this cannot support a rank correlation.
 MIN_NAMES_PER_DATE = 10
@@ -114,11 +122,38 @@ def fold_series(
         })
 
     per_date = _rank_ic_by_date(block, target).dropna()
+
+    # A confidence interval on the pooled IC.
+    #
+    # The surface reported a point estimate, which invites reading a mean of
+    # 0.03 as though its precision were known. The block bootstrap is what makes
+    # the interval honest here: labels span 21 sessions and rebalances are 5
+    # apart, so consecutive observations share roughly four fifths of their
+    # outcome. An i.i.d. bootstrap on dependent draws produces an interval far
+    # too narrow — understating uncertainty in exactly the direction that
+    # flatters a result.
+    interval = bootstrap_interval(
+        per_date.to_numpy(), block=_OVERLAP_BLOCK, samples=2000, seed=0,
+    )
+
     return {
         "status": "ok",
         "model_id": model_id,
         "target": target,
         "folds": folds,
+        "pooled_ic": {
+            **interval,
+            "method": (
+                f"moving-block bootstrap, block={_OVERLAP_BLOCK} periods, "
+                "2000 resamples, 95% interval"
+            ),
+            "why_blocked": (
+                f"labels span {_LABEL_HORIZON_SESSIONS} sessions against a "
+                f"{_REBALANCE_SESSIONS}-session rebalance, so consecutive "
+                "observations overlap and are not independent"
+            ),
+            "observations": int(len(per_date)),
+        },
         "ic_by_date": [
             {"date": str(d), "ic": float(v)} for d, v in per_date.items()
         ],
