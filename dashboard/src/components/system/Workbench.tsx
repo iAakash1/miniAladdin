@@ -33,7 +33,7 @@ const GOTO: Record<string, string> = {
   c: '/terminal/command', s: '/terminal/analyze', f: '/terminal/factorlab',
   g: '/terminal/signals', m: '/terminal/lab', v: '/terminal/evidence',
   x: '/terminal/experiments', b: '/terminal/book', r: '/terminal/risk',
-  d: '/terminal/data', y: '/terminal/handbook',
+  d: '/terminal/data', y: '/terminal/handbook', p: '/terminal/performance',
   o: '/terminal/providers', n: '/terminal/provenance', k: '/terminal/covariance',
 }
 
@@ -59,6 +59,7 @@ export const WORKBENCH: { group: string; items: { href: string; label: string; k
     items: [
       { href: '/terminal/lab', label: 'Models', key: 'm' },
       { href: '/terminal/evidence', label: 'Evidence', key: 'v' },
+      { href: '/terminal/performance', label: 'Performance', key: 'p' },
       { href: '/terminal/experiments', label: 'Experiments', key: 'x' },
     ],
   },
