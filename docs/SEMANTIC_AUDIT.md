@@ -128,6 +128,85 @@ The invalid *result* is refused instead.
 
 ---
 
+### 5. Reported turnover and the reported cost rate did not reconcile
+
+Costs are charged on the round-trip notional `sum|dw|`, which is right —
+replacing a 100%-gross book end to end trades 200% of capital. Turnover was
+reported one-way, `sum|dw|/2`, which is also standard. Neither formula is wrong.
+
+The **interface** was. A reader multiplying displayed turnover by the displayed
+6 bps got $600 on a full replacement of a $1m book against the $1,200 actually
+charged, with nothing on any surface saying the two sat on different bases.
+
+**Fix.** No convention changed and no recorded number moved. `assumptions()` now
+declares `charged_on`, the reporting convention, `rate_bps`, `slippage_bps`
+(a real parameter that was absent from the published assumptions), and the
+reconciling identity. Reports carry `turnover_round_trip` and
+`cost_rate_bps_of_traded_notional`, which now equals the declared rate.
+
+### 6. Two more variance clamps, one of them driving leverage
+
+The covariance defect had siblings, each written independently:
+
+| site | clamp | result |
+|---|---|---|
+| `risk/engine.py` | `sqrt(max(v, 0.0))` | zero risk (fixed earlier) |
+| `optimizer.py:544` | `sqrt(max(v, 0.0))` | zero ex-ante volatility |
+| `optimizer.py:293` | `sqrt(max(w'Cw, 1e-24))` | divides by 1e-12 |
+
+The ex-ante one is worst because something divides by it. On 20,000 random books
+over an indefinite covariance, **1,576 reported an ex-ante volatility of exactly
+zero** and 445 a positive but understated one. Volatility targeting scales by
+`target/realised`, so a 10% target against an understated 0.012% **levers the
+book 832×**. When the value was exactly zero, `realised > 0` skipped the scaling
+in silence and nothing said the requested target had not been applied.
+
+The risk-parity floor was self-defeating: 1e-24 passed the `> 0` check
+immediately below it.
+
+**Fix.** `portfolio/psd.py` is now the single implementation, with a
+**scale-aware** tolerance — an absolute threshold is meaningless when daily
+equity variances sit near 1e-4.
+
+### 7. The factor independence verdict was built on a fill
+
+`analyse_redundancy` fills unobserved factor pairs with zero correlation. The
+fill is unavoidable. The comment calling it *conservative* was not: understating
+redundancy **overstates independence**, which is the direction the verdict
+flatters. Six factors correlated 0.9 have 1.19 effective factors; blank twelve of
+fifteen pairs and they report **3.31**, rising monotonically with each pair
+removed.
+
+**Fix.** The fill stays — nothing honest replaces it — but coverage travels with
+the number, and below 75% the verdict is withheld rather than computed from the
+fill.
+
+### 8. Session dates were read off UTC
+
+Daily bars arrive as an epoch stamp and their session date was read in UTC. That
+is right for a US venue **only because Eastern is behind UTC**. A stamp after
+20:00 ET has already crossed midnight UTC (a 20:01 bar on 14 June was dated
+15 June), and any venue east of UTC inverts the sign — midnight in Tokyo is
+15:00 UTC the previous day.
+
+**Fix.** `pit.calendar` owns `EXCHANGE_TIMEZONE` and `session_date_from_epoch`.
+No historical bar moves: Polygon stamps at midnight ET and a test asserts old and
+new readings agree across both 2024 DST transitions, with a further test proving
+the offset really changes between them.
+
+### 9. Regression residuals used the wrong degrees of freedom
+
+`residual_volatility` used `np.std(residuals, ddof=1)`. A regression residual is
+not a sample mean deviation: fitting k coefficients consumes k degrees of
+freedom. Dividing by n−1 understates idiosyncratic risk by 1.2% at n=250 against
+six factors, **21% at n=20** — and understated residual risk makes a book look
+better explained by its factors than it is. Feeds no gate.
+
+The HAC estimator applies no finite-sample `n/(n−k)` correction. Both conventions
+exist, so it is **documented rather than changed** — omitting it makes every t
+larger by `sqrt(n/(n−k))`, 1.4% at n=250. The classical fallback path *does* use
+n−k, so the two paths scale differently.
+
 ## False alarms — investigated, correct as they stand
 
 Recorded so the same ground is not re-ploughed.
@@ -143,8 +222,40 @@ Recorded so the same ground is not re-ploughed.
 | "the declared 10 bp" vs a 5 bp default half-spread | Looked like a declared/applied mismatch | "10 bp" is the 10 bp **half-spread** row of the cost sweep, a *stricter* assumption than the default. Conservative. |
 | Cost model bps conversion | A factor of 100 or 10,000 here is catastrophic | `bps / 10000.0` throughout; the impact path's ×10000 then ÷10000 is a round trip for reporting in bps |
 | `cost_fraction = cost.total / capital` | Dividing by capital twice is the classic error | Correct: `traded = Σ|Δw| × capital`, so the fraction is `Σ|Δw| × bps/1e4` |
+| Deflated-Sharpe denominator clamp `max(denominator, 1e-12)` | A clamped variance would inflate DSR, and DSR is a promotion gate | Already fails closed: `denominator <= 0` returns `deflated_probability=None` with a note, so the clamped value never reaches a reported number |
+| Only one `resample` in the codebase | `mean()` where compounding is intended is the classic error | `(1+r).groupby(period).prod() - 1` — correctly geometric |
+| Benchmark-relative metrics (`tracking_error`, `information_ratio`, `capm_alpha`) | A missing benchmark date becoming zero | All use `join="inner"` with `.dropna()`, and each reports the surviving observation count |
+| `macro.py` `rolling(504, min_periods=252)` volatility percentile | Partial window presented as full | Same as the drawdown peak: a floor, not a truncated lookback |
 
 ---
+
+## Capability added this pass
+
+Gaps against the source corpus that could be closed honestly — every one a
+deterministic transformation of data already present, none requiring new data.
+
+| Capability | Why it was missing and what it adds |
+|---|---|
+| **EVaR / EDaR** | Coherent tail measures. EVaR is the tightest Chernoff bound on VaR and sits above CVaR by construction, so the pair brackets the tail rather than describing it with one average. Minimised in log space, since `exp(L/z)` overflows for the small `z` the optimiser probes and an overflow reads as an unbounded tail. |
+| **Gini mean difference** | Dispersion with no distributional assumption, via the O(n log n) rank identity. Verified against the normal and uniform closed forms. |
+| **Omega ratio** | Uses the whole distribution, separating series a Sharpe ratio cannot. Returns None when nothing falls below the threshold, rather than a huge number reading as a spectacular result. |
+| **Lower partial moments** | Explicit threshold, because "downside" means nothing until someone says below what. |
+| **Diversification ratio** | Closed form, correct at both limits (1 for identical names, √k for k independent ones). |
+| **Named covariance estimators** | `empirical` (complete-case), `ledoit_wolf`, `exponentially_weighted` — all PSD by construction, which the pairwise default is not. The default is untouched; these are chosen, not substituted. |
+
+## Refused, with the measurement behind the refusal
+
+**Effective number of bets.** The standard principal-axis construction is *not a
+function of its inputs*. For k equal-variance uncorrelated names the covariance
+is σ²·I and every orthonormal basis is an eigenbasis: ten independent names
+return **10.000** under one basis and **3.770** under another, with the
+covariance unchanged. Sample noise picks the basis in practice, so ten
+independent names measured from 4,000 observations report **6.50**. A number that
+moves with an arbitrary rotation can call a concentrated book diversified.
+Meucci's minimum-torsion rotation is the fix; it is not implemented from memory.
+
+This was found by testing against a known limit rather than against the
+implementation — the only reason it surfaced.
 
 ## Semantic invariants now enforced in code
 
@@ -154,33 +265,44 @@ Recorded so the same ground is not re-ploughed.
   constant, and never with floor division.
 - `periods_per_year` and `holding_periods` carry no defaults; a wrong value is
   invisible in the output.
-- A covariance that cannot describe a real book is refused, not clamped.
+- A covariance that cannot describe a real book is refused, not clamped, by one
+  scale-aware implementation rather than three floors.
 - Zero risk and unmeasurable risk are distinguishable in the output.
+- A cost rate and a turnover figure published together must reconcile.
+- A calendar date is resolved in the venue's timezone, never in UTC.
+- A regression residual is divided by n−k.
+- A claim about independence is withheld when most pairs were never observed.
 
 ## Remaining audit surface
 
-Not yet swept: timezone handling on the ingestion boundary; resampling
-semantics (`label`/`closed` on any downsample); small-sample behaviour of the
-PBO/CSCV path; the bootstrap's block construction under a non-integer
-horizon/step ratio.
+Swept and clean: resampling (one site, correctly geometric), index alignment on
+the benchmark path (inner joins throughout, observation counts reported),
+degrees of freedom (consistent `ddof=1` for sample statistics).
+
+Not yet swept: small-sample behaviour of the PBO/CSCV path; the bootstrap's
+block construction under a non-integer horizon/step ratio; provider-level
+missingness on the ingestion boundary.
 
 Ranked suspects for the next pass, by flattering-direction risk:
 
-1. Turnover is reported one-way (`Σ|Δw| / 2`) while costs are charged on the
-   full `Σ|Δw|`. Each convention is defensible alone, but a reader reconciling
-   the two reported figures infers a cost rate 2× the real one.
-2. `np.log1p(returns).fillna(0.0).cumsum()` in `macro.py` treats a missing
+1. `np.log1p(returns).fillna(0.0).cumsum()` in `macro.py` treats a missing
    market day as a flat day. Defensible — NaN would destroy the path — but it
    understates volatility across a gap and is not annotated.
-3. Pairwise covariance admits pairs with very short shared history at full
-   confidence. Now refused when it produces an invalid matrix, but a thin-but-
-   valid estimate is still reported without a coverage figure.
+2. Pairwise covariance admits pairs with very short shared history at full
+   confidence. Now refused when it produces an invalid matrix, and named
+   alternatives exist, but a thin-but-valid pairwise estimate is still reported
+   without a coverage figure.
+3. Partial first and last buckets in the monthly aggregation are presented
+   beside complete months with no marker.
+4. The `turnover_tolerable <= 30x` gate reads the one-way figure. Defensible,
+   but the gate text does not say which basis, and the study code is under a
+   do-not-modify constraint.
 
 ---
 
 ## Verification
 
-1472 tests pass. Diff over `experiments/`, `artifacts/`, `data/research/` and
+1,639 tests pass. Diff over `experiments/`, `artifacts/`, `data/research/` and
 `src/quant/study/heavy.py` is empty. EXP-007 still reads NO PRODUCTION
 CANDIDATE, failing `survives_search_size` at t=2.81 against the 3.38 required
 for 1,029 cumulative trials. The holdout is untouched, the contract is
