@@ -221,7 +221,11 @@ def run_backtest(
                 "gross_return": gross,
                 "cost_return": cost_fraction,
                 "net_return": gross - cost_fraction,
+                # One-way, and named so at every aggregate below. The cost model
+                # charges the ROUND-TRIP notional, so these two differ by exactly
+                # 2x and reporting only one of them makes the cost unreconcilable.
                 "turnover": float(delta.abs().sum()) / 2.0,
+                "turnover_round_trip": float(delta.abs().sum()),
                 "gross_exposure": float(weights.abs().sum()),
                 "net_exposure": float(weights.sum()),
                 "commission": cost.commission,
@@ -342,6 +346,18 @@ def performance_metrics(periods: pd.DataFrame, *, periods_per_year: float) -> di
     out["mean_cost_bps_per_period"] = float(costs.mean() * 10000)
     out["mean_turnover"] = float(pd.to_numeric(periods["turnover"], errors="coerce").mean())
     out["annualised_turnover"] = float(out["mean_turnover"] * periods_per_year)
+    # The same quantities on the basis the cost model actually charges. Declared
+    # rather than left for the reader to infer: turnover x rate reproduces the
+    # cost only on the round-trip figure.
+    out["turnover_convention"] = "one-way (sum|delta_w| / 2)"
+    out["mean_turnover_round_trip"] = 2.0 * out["mean_turnover"]
+    out["annualised_turnover_round_trip"] = 2.0 * out["annualised_turnover"]
+    out["cost_rate_bps_of_traded_notional"] = (
+        float(costs.sum() / periods["turnover_round_trip"].sum() * 10000)
+        if "turnover_round_trip" in periods
+        and float(pd.to_numeric(periods["turnover_round_trip"], errors="coerce").sum()) > 0
+        else None
+    )
     out["mean_names"] = float(pd.to_numeric(periods["names"], errors="coerce").mean())
     out["mean_gross_exposure"] = float(
         pd.to_numeric(periods["gross_exposure"], errors="coerce").mean()

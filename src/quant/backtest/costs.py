@@ -184,6 +184,24 @@ class SimpleCostModel:
         return {
             "commission_bps": self.commission_bps,
             "half_spread_bps": self.half_spread_bps,
+            "slippage_bps": self.slippage_bps,
+            "rate_bps": self.commission_bps + self.half_spread_bps + self.slippage_bps,
+            # Without this line the rate is unreconcilable. Costs are charged on
+            # the ROUND-TRIP notional, sum|dw| * capital: replacing a 100%-gross
+            # book end to end trades 200% of capital, not 100%. Reported turnover
+            # is the one-way convention, sum|dw|/2, so
+            #
+            #     cost_return = 2 * turnover_one_way * rate_bps / 10_000
+            #
+            # and multiplying the reported turnover by the reported rate gives
+            # exactly half the cost actually charged.
+            "charged_on": "round-trip traded notional = sum|delta_w| * capital",
+            "turnover_convention_in_reports": "one-way = sum|delta_w| / 2",
+            "reconciliation": (
+                "cost_return = turnover_round_trip * rate_bps / 10000 "
+                "= 2 * turnover * rate_bps / 10000 (impact excluded, which is "
+                "non-linear in traded notional)"
+            ),
             "impact_coefficient": self.impact_coefficient,
             "impact_law": "coefficient * sqrt(traded_notional / daily_dollar_volume)",
             "execution": (
