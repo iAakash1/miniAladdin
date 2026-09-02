@@ -250,7 +250,15 @@ def attribute_returns(
         betas={name: float(value) for name, value in zip(available, coefficients[1:])},
         beta_t_stats={name: float(value) for name, value in zip(available, t_stats[1:])},
         r_squared=r_squared,
-        residual_volatility=float(np.std(residuals, ddof=1) * np.sqrt(periods_per_year)),
+        # n - k, not n - 1. A regression residual is not a sample mean deviation:
+        # fitting k coefficients consumes k degrees of freedom, and dividing by
+        # n - 1 understates idiosyncratic risk — 1.2% at 250 observations against
+        # six factors, but 21% at 20. Understated residual volatility makes a book
+        # look better explained by its factors than it is.
+        residual_volatility=float(
+            np.sqrt(float(residuals @ residuals) / max(1, len(residuals) - X.shape[1]))
+            * np.sqrt(periods_per_year)
+        ),
         periods_per_year=periods_per_year,
         newey_west_lags=lags,
         factors_used=available,
@@ -271,6 +279,13 @@ def _newey_west_tstats(
     covariance when the HAC estimate is not positive definite, which is reported
     rather than silently substituted — and which is conservative in the useful
     direction, since it can only be smaller if the autocorrelation is negative.
+
+    No finite-sample `n / (n - k)` correction is applied to `S`. Both conventions
+    appear in the literature and this is the plain asymptotic form. Stating it
+    because it is not neutral: omitting the correction makes every t-statistic
+    larger by `sqrt(n / (n - k))` — 1.4% at 250 observations against six factors,
+    6.4% at 60. The classical fallback below does use `n - k`, so the two paths
+    scale differently and a result that switched between them would move.
     """
     n, k = X.shape
     xtx_inverse = np.linalg.pinv(X.T @ X)
