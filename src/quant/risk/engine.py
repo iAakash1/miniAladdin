@@ -42,6 +42,7 @@ from enum import Enum
 from typing import Any, Optional
 
 from src.quant.portfolio import psd
+from src.quant.risk import coherent
 from src.quant.portfolio.psd import NotPositiveSemiDefinite  # re-exported
 import numpy as np
 import pandas as pd
@@ -84,6 +85,8 @@ class SeriesUnit(str, Enum):
 RETURN_ONLY_METRICS: frozenset[str] = frozenset({
     "sharpe", "sortino", "calmar", "ulcer_performance_index",
     "capm_alpha", "information_ratio",
+    # Both are defined against a threshold in return units; a rank has none.
+    "omega", "semi_variance",
 })
 
 
@@ -764,6 +767,84 @@ def cvar_historical(returns: pd.Series, *, confidence: float = 0.95) -> RiskMetr
     )
 
 
+def entropic_var(returns: pd.Series, *, confidence: float = 0.95) -> RiskMetric:
+    """EVaR: the tightest Chernoff bound on VaR, and coherent where VaR is not.
+
+    Sits above CVaR by construction, so the pair brackets the tail rather than
+    describing it with a single average. Reported as a positive magnitude, like
+    the other tail measures here.
+    """
+    series = _clean(returns)
+    method = f"entropic_var_{confidence:.0%}"
+    if len(series) < MIN_OBSERVATIONS:
+        return _insufficient("entropic_var", method, len(series))
+    value = coherent.entropic_value_at_risk(series, confidence=confidence)
+    if value is None:
+        return RiskMetric("entropic_var", None, method, len(series),
+                          caveat="the entropic bound did not converge")
+    return RiskMetric(
+        "entropic_var", abs(value), method, len(series),
+        caveat="Upper bound on VaR; always at or above CVaR at the same level.",
+    )
+
+
+def entropic_drawdown_risk(
+    returns: pd.Series, *, confidence: float = 0.95, compound: bool = True
+) -> RiskMetric:
+    """EDaR: the entropic bound applied to the drawdown path."""
+    series = _chronological(returns, "entropic_drawdown_risk")
+    method = f"entropic_drawdown_{confidence:.0%}"
+    if len(series) < MIN_OBSERVATIONS:
+        return _insufficient("entropic_drawdown_risk", method, len(series))
+    path = drawdown_series(series, compound=compound)
+    value = coherent.entropic_drawdown_at_risk(path, confidence=confidence)
+    if value is None:
+        return RiskMetric("entropic_drawdown_risk", None, method, len(series),
+                          caveat="the entropic bound did not converge")
+    return RiskMetric("entropic_drawdown_risk", abs(value), method, len(series))
+
+
+def gini_dispersion(returns: pd.Series) -> RiskMetric:
+    """Expected absolute gap between two independent draws.
+
+    Assumes no distributional shape, unlike the standard deviation beside it.
+    """
+    series = _clean(returns)
+    if len(series) < MIN_OBSERVATIONS:
+        return _insufficient("gini_dispersion", "gini_mean_difference", len(series))
+    value = coherent.gini_mean_difference(series)
+    if value is None:
+        return _insufficient("gini_dispersion", "gini_mean_difference", len(series))
+    return RiskMetric("gini_dispersion", value, "gini_mean_difference", len(series))
+
+
+def omega(returns: pd.Series, *, threshold: float = 0.0) -> RiskMetric:
+    """Probability-weighted gains over losses about a threshold."""
+    series = _clean(returns)
+    method = f"omega_at_{threshold:g}"
+    if len(series) < MIN_OBSERVATIONS:
+        return _insufficient("omega", method, len(series))
+    value = coherent.omega_ratio(series, threshold=threshold)
+    if value is None:
+        return RiskMetric(
+            "omega", None, method, len(series),
+            caveat="no observation fell below the threshold, so the ratio is unbounded",
+        )
+    return RiskMetric("omega", value, method, len(series))
+
+
+def semi_variance(returns: pd.Series, *, threshold: float = 0.0) -> RiskMetric:
+    """Second lower partial moment about an explicit threshold."""
+    series = _clean(returns)
+    method = f"lower_partial_moment_2_at_{threshold:g}"
+    if len(series) < MIN_OBSERVATIONS:
+        return _insufficient("semi_variance", method, len(series))
+    value = coherent.lower_partial_moment(series, threshold=threshold, order=2)
+    if value is None:
+        return _insufficient("semi_variance", method, len(series))
+    return RiskMetric("semi_variance", value, method, len(series))
+
+
 # ── relative ─────────────────────────────────────────────────────────────────
 
 
@@ -985,6 +1066,11 @@ METHODOLOGY: dict[str, tuple[Unit, Annualisation, tuple[str, ...]]] = {
     "average_drawdown": (_RET, _NONE, _SERIES),
     # magnitudes: reported positive, so a consumer never renders "-VaR".
     "ulcer_index": (_MAG, _NONE, _SERIES),
+    "entropic_var_95": (_MAG, _NONE, _SERIES),
+    "entropic_drawdown_risk_95": (_MAG, _NONE, _SERIES),
+    "gini_dispersion": (_RET, _NONE, _SERIES),
+    "semi_variance": (_RET, _NONE, _SERIES),
+    "omega": (_R, _NONE, _SERIES),
     "drawdown_at_risk_95": (_MAG, _NONE, _SERIES),
     "conditional_drawdown_at_risk_95": (_MAG, _NONE, _SERIES),
     "worst_realization": (_MAG, _NONE, _SERIES),
@@ -1103,6 +1189,15 @@ def analyse(
         "cvar_historical_95": cvar_historical(returns, confidence=0.95),
         "var_historical_99": var_historical(returns, confidence=0.99),
         "cvar_historical_99": cvar_historical(returns, confidence=0.99),
+        # Entropic bounds. EVaR brackets the tail from above where CVaR gives
+        # only its average, and EDaR does the same for the drawdown path.
+        "entropic_var_95": entropic_var(returns, confidence=0.95),
+        "entropic_drawdown_risk_95": entropic_drawdown_risk(
+            returns, confidence=0.95, compound=compound),
+        # Shape, without assuming one.
+        "gini_dispersion": gini_dispersion(returns),
+        "semi_variance": semi_variance(returns),
+        "omega": omega(returns),
     }
     report.metrics = _suppress_inapplicable(report.metrics, series_unit)
     report.metrics = _with_methodology(
