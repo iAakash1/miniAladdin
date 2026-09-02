@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 
 import Workbench from '@/components/system/Workbench'
 import GateMatrix from '@/components/terminal/models/GateMatrix'
+import ValidationLadder from '@/components/terminal/models/ValidationLadder'
 import { Panel } from '@/components/system'
 
 export const metadata: Metadata = {
@@ -44,6 +45,7 @@ export default function GatesPage() {
         </>
       }
     >
+      <ValidationLadder />
       <GateMatrix />
     </Workbench>
   )
