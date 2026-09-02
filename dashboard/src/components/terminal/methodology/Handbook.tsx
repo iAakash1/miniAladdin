@@ -12,7 +12,9 @@
 
 import { useEffect, useMemo, useState } from 'react'
 
-import { Panel, Section, StateBlock, Status, Strip, Table, Value, type Column } from '@/components/system'
+import { Panel, Section, StateBlock, Status, Strip, Value } from '@/components/system'
+import { DataTable, type DataColumn } from '@/components/system/DataTable'
+import { recordVisit } from '@/lib/research/history'
 
 interface Entry {
   name: string
@@ -54,7 +56,6 @@ export default function Handbook() {
   const [book, setBook] = useState<Book | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
-  const [query, setQuery] = useState('')
 
   useEffect(() => {
     let alive = true
@@ -65,21 +66,16 @@ export default function Handbook() {
     return () => { alive = false }
   }, [])
 
-  const rows = useMemo(() => {
-    if (!book) return []
-    const q = query.trim().toLowerCase()
-    if (!q) return book.entries
-    return book.entries.filter(
-      (e) => e.name.includes(q) || (e.purpose ?? '').toLowerCase().includes(q) || e.unit.includes(q),
-    )
-  }, [book, query])
+  // Filtering lives in the table now, so the page keeps one search affordance
+  // rather than two that disagree about what they match.
+  const rows = useMemo(() => book?.entries ?? [], [book])
 
-  const columns: Column<Entry>[] = useMemo(() => [
-    { key: 'name', header: 'Measure', width: '22%', render: (e) => <span style={{ fontFamily: 'var(--font-mono)' }}>{e.name}</span> },
-    { key: 'unit', header: 'Unit', width: '12%', render: (e) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{UNIT_LABEL[e.unit] ?? e.unit}</span> },
-    { key: 'ann', header: 'Annualisation', width: '13%', render: (e) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{ANN_LABEL[e.annualisation] ?? e.annualisation}</span> },
-    { key: 'ret', header: 'Needs return units', width: '13%', render: (e) => <Status state={e.return_units_required ? 'blocked' : 'recorded'} label={e.return_units_required ? 'yes' : 'no'} /> },
-    { key: 'purpose', header: 'Purpose', render: (e) => <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-muted)' }}>{e.purpose ?? '—'}</span> },
+  const columns: DataColumn<Entry>[] = useMemo(() => [
+    { key: 'name', header: 'Measure', width: '22%', sort: (e) => e.name, text: (e) => e.name, render: (e) => <span style={{ fontFamily: 'var(--font-mono)' }}>{e.name}</span> },
+    { key: 'unit', header: 'Unit', width: '12%', sort: (e) => e.unit, text: (e) => e.unit, render: (e) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{UNIT_LABEL[e.unit] ?? e.unit}</span> },
+    { key: 'ann', header: 'Annualisation', width: '13%', sort: (e) => e.annualisation, text: (e) => e.annualisation, render: (e) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{ANN_LABEL[e.annualisation] ?? e.annualisation}</span> },
+    { key: 'ret', header: 'Needs return units', width: '13%', sort: (e) => (e.return_units_required ? 1 : 0), render: (e) => <Status state={e.return_units_required ? 'blocked' : 'recorded'} label={e.return_units_required ? 'yes' : 'no'} /> },
+    { key: 'purpose', header: 'Purpose', text: (e) => `${e.purpose ?? ''} ${e.fails_when ?? ''}`, render: (e) => <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-muted)' }}>{e.purpose ?? '—'}</span> },
   ], [])
 
   if (error) {
@@ -105,22 +101,16 @@ export default function Handbook() {
         title="Measures"
         subtitle={`${rows.length} of ${book.total}`}
         flush
-        actions={
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="filter"
-            aria-label="Filter measures"
-            className="sys-focusable"
-            style={{
-              font: '400 var(--t-meta)/1 var(--font-mono)',
-              padding: '3px 6px', border: '1px solid var(--rule)',
-              background: 'var(--p-panel)', color: 'var(--ink)', width: 140,
-            }}
-          />
-        }
       >
-        <Table columns={columns} rows={rows} rowKey={(e) => e.name} density="compact" selectedKey={selected ?? undefined} onSelect={(e) => setSelected(e.name)} />
+        <DataTable
+          columns={columns} rows={rows} rowKey={(e) => e.name}
+          density="compact" filterPlaceholder="filter measures"
+          selectedKey={selected ?? undefined}
+          onSelect={(e) => {
+            setSelected(e.name)
+            recordVisit({ kind: 'method', id: e.name, label: e.name, detail: e.unit })
+          }}
+        />
       </Panel>
 
       {entry ? (

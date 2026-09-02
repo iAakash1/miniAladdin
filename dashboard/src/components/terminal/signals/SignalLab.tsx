@@ -16,7 +16,9 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 
-import { Panel, Section, StateBlock, Status, Strip, Table, Value, type Column } from '@/components/system'
+import { Panel, Section, StateBlock, Status, Strip, Value } from '@/components/system'
+import { DataTable, type DataColumn } from '@/components/system/DataTable'
+import { recordVisit } from '@/lib/research/history'
 
 interface Finalist {
   config_id: string
@@ -91,14 +93,20 @@ export default function SignalLab() {
 
   const finalists = useMemo(() => data?.finalists ?? [], [data])
 
-  const columns: Column<Finalist>[] = useMemo(() => [
-    { key: 'id', header: 'Config', width: '20%', render: (f) => <span style={{ fontFamily: 'var(--font-mono)' }}>{f.config_id}</span> },
-    { key: 'family', header: 'Family', width: '18%', render: (f) => f.family ?? '—' },
-    { key: 'arm', header: 'Arm', width: '14%', render: (f) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{f.arm ?? '—'}</span> },
-    { key: 'stage', header: 'Stage', width: '16%', render: (f) => <Status state="recorded" label={f.stage ?? 'recorded'} /> },
+  const columns: DataColumn<Finalist>[] = useMemo(() => [
+    { key: 'id', header: 'Config', width: '20%', sort: (f) => f.config_id, text: (f) => f.config_id, render: (f) => <span style={{ fontFamily: 'var(--font-mono)' }}>{f.config_id}</span> },
+    { key: 'family', header: 'Family', width: '18%', sort: (f) => f.family ?? null, text: (f) => f.family ?? '', render: (f) => f.family ?? '—' },
+    { key: 'arm', header: 'Arm', width: '14%', sort: (f) => f.arm ?? null, text: (f) => f.arm ?? '', render: (f) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{f.arm ?? '—'}</span> },
+    { key: 'stage', header: 'Stage', width: '16%', sort: (f) => f.stage ?? null, text: (f) => f.stage ?? '', render: (f) => <Status state="recorded" label={f.stage ?? 'recorded'} /> },
     {
       key: 'ic', header: 'Mean IC', unit: 'rank corr.', numeric: true,
+      sort: (f) => num(data?.economics?.[f.config_id]?.mean_ic),
       render: (f) => <Value value={num(data?.economics?.[f.config_id]?.mean_ic)} digits={4} signed tone title="A rank correlation between prediction and forward rank. Not a return." />,
+    },
+    {
+      key: 'dsr', header: 'Deflated Sharpe', unit: 'probability', numeric: true, optional: true,
+      sort: (f) => num(data?.significance?.[f.config_id]?.deflated_sharpe?.deflated_probability),
+      render: (f) => <Value value={num(data?.significance?.[f.config_id]?.deflated_sharpe?.deflated_probability)} digits={4} />,
     },
   ], [data])
 
@@ -133,7 +141,16 @@ export default function SignalLab() {
       </Panel>
 
       <Panel title="Finalists" subtitle={`${finalists.length} survived the search`} flush>
-        <Table columns={columns} rows={finalists} rowKey={(f) => f.config_id} density="compact" selectedKey={selected ?? undefined} onSelect={(f) => setSelected(f.config_id)} />
+        <DataTable
+          columns={columns} rows={finalists} rowKey={(f) => f.config_id}
+          density="compact" filterPlaceholder="filter configurations"
+          initialSort={{ key: 'ic', direction: 'desc' }}
+          selectedKey={selected ?? undefined}
+          onSelect={(f) => {
+            setSelected(f.config_id)
+            recordVisit({ kind: 'signal', id: f.config_id, label: f.config_id, detail: f.family })
+          }}
+        />
       </Panel>
 
       {selected ? (

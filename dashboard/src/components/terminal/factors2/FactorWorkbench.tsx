@@ -19,7 +19,10 @@
 
 import { useEffect, useMemo, useState } from 'react'
 
-import { Panel, Section, StateBlock, Status, Strip, Table, Value, type Column } from '@/components/system'
+import { Panel, Section, StateBlock, Status, Strip, Value } from '@/components/system'
+import { DataTable, type DataColumn } from '@/components/system/DataTable'
+import { BarRows } from '@/components/system/charts'
+import { recordVisit } from '@/lib/research/history'
 
 interface FactorEvaluation {
   factor: string
@@ -99,18 +102,20 @@ export default function FactorWorkbench() {
 
   const factors = useMemo(() => lab?.factors ?? [], [lab])
 
-  const columns: Column<FactorEvaluation>[] = useMemo(() => [
-    { key: 'f', header: 'Factor', width: '18%', render: (f) => <span style={{ fontFamily: 'var(--font-mono)' }}>{f.factor}</span> },
-    { key: 'ic', header: 'Mean IC', unit: 'rank corr.', numeric: true, render: (f) => <Value value={f.mean_ic} digits={4} signed tone /> },
-    { key: 't', header: 'IC t-stat', unit: 'Newey-West', numeric: true, render: (f) => <Value value={f.t_stat} digits={2} signed /> },
-    { key: 'nt', header: 'Naive t', unit: 'uncorrected', numeric: true, render: (f) => <Value value={f.naive_t_stat} digits={2} signed title="Before correcting for label overlap" /> },
+  const columns: DataColumn<FactorEvaluation>[] = useMemo(() => [
+    { key: 'f', header: 'Factor', width: '18%', sort: (f) => f.factor, text: (f) => f.factor, render: (f) => <span style={{ fontFamily: 'var(--font-mono)' }}>{f.factor}</span> },
+    { key: 'ic', header: 'Mean IC', unit: 'rank corr.', numeric: true, sort: (f) => f.mean_ic, render: (f) => <Value value={f.mean_ic} digits={4} signed tone /> },
+    { key: 't', header: 'IC t-stat', unit: 'Newey-West', numeric: true, sort: (f) => f.t_stat, render: (f) => <Value value={f.t_stat} digits={2} signed /> },
+    { key: 'nt', header: 'Naive t', unit: 'uncorrected', numeric: true, sort: (f) => f.naive_t_stat, render: (f) => <Value value={f.naive_t_stat} digits={2} signed title="Before correcting for label overlap" /> },
     {
-      key: 'inf', header: 'Overlap inflation', unit: '×', numeric: true,
+      key: 'inf', header: 'Overlap inflation', unit: '×', numeric: true, sort: (f) => f.overlap_inflation,
       render: (f) => <Value value={f.overlap_inflation} digits={2} tone title="How much the uncorrected t overstated significance" />,
     },
-    { key: 'lags', header: 'Lags', numeric: true, render: (f) => <Value value={f.newey_west_lags} digits={0} /> },
-    { key: 'hr', header: 'Hit rate', numeric: true, render: (f) => <Value value={f.hit_rate} digits={3} /> },
-    { key: 'sig', header: 'Significant', width: '11%', render: (f) => <Status state={f.significant ? 'candidate' : 'blocked'} label={f.significant ? 'yes' : 'no'} /> },
+    { key: 'lags', header: 'Lags', numeric: true, sort: (f) => f.newey_west_lags, render: (f) => <Value value={f.newey_west_lags} digits={0} /> },
+    { key: 'hr', header: 'Hit rate', numeric: true, sort: (f) => f.hit_rate, render: (f) => <Value value={f.hit_rate} digits={3} /> },
+    { key: 'tmb', header: 'Top minus bottom', numeric: true, optional: true, sort: (f) => f.top_minus_bottom, render: (f) => <Value value={f.top_minus_bottom} digits={4} signed tone /> },
+    { key: 'dates', header: 'Dates', numeric: true, optional: true, sort: (f) => f.dates, render: (f) => <Value value={f.dates} digits={0} /> },
+    { key: 'sig', header: 'Significant', width: '11%', sort: (f) => (f.significant ? 1 : 0), render: (f) => <Status state={f.significant ? 'candidate' : 'blocked'} label={f.significant ? 'yes' : 'no'} /> },
   ], [])
 
   if (error) {
@@ -173,7 +178,16 @@ export default function FactorWorkbench() {
       ) : null}
 
       <Panel title="Factor evaluations" subtitle={`${factors.length} factors`} flush>
-        <Table columns={columns} rows={factors} rowKey={(f) => f.factor} density="compact" selectedKey={selected ?? undefined} onSelect={(f) => setSelected(f.factor)} />
+        <DataTable
+          columns={columns} rows={factors} rowKey={(f) => f.factor}
+          density="compact" filterPlaceholder="filter factors"
+          initialSort={{ key: 't', direction: 'desc' }}
+          selectedKey={selected ?? undefined}
+          onSelect={(f) => {
+            setSelected(f.factor)
+            recordVisit({ kind: 'factor', id: f.factor, label: f.factor, detail: f.significant ? 'significant' : 'not significant' })
+          }}
+        />
       </Panel>
 
       {sel ? (
@@ -209,6 +223,25 @@ export default function FactorWorkbench() {
           </div>
         </Panel>
       ) : null}
+
+      <Panel title="Overlap inflation across factors" subtitle="uncorrected t over corrected t">
+        <BarRows
+          unit="×"
+          rows={[...factors]
+            .sort((a, b) => b.overlap_inflation - a.overlap_inflation)
+            .map((f) => ({
+              label: f.factor,
+              value: f.overlap_inflation,
+              note: `naive ${f.naive_t_stat.toFixed(2)} → corrected ${f.t_stat.toFixed(2)} at ${f.newey_west_lags} lags`,
+            }))}
+        />
+        <p style={{ margin: 'var(--d-2) 0 0', fontSize: 'var(--t-meta)', color: 'var(--ink-muted)', lineHeight: 'var(--lh-body)', maxWidth: '86ch' }}>
+          Every factor here is measured on the same overlapping label, so a large
+          inflation is not a property of the factor — it is the correction the
+          uncorrected statistic never applied. Reading a naive t on any of these
+          would overstate significance by this multiple.
+        </p>
+      </Panel>
 
       <Panel
         title="Redundancy"
