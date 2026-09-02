@@ -18,11 +18,19 @@ from src.quant.validation.metrics import bootstrap_interval
 from src.services import quant_series
 
 
-def test_the_block_matches_the_label_overlap():
-    """The block is derived from the experiment design, not chosen."""
-    assert quant_series._LABEL_HORIZON_SESSIONS == 21
-    assert quant_series._REBALANCE_SESSIONS == 5
-    assert quant_series._OVERLAP_BLOCK == 4
+def test_the_block_is_derived_from_the_experiment_not_hardcoded():
+    """The service must not carry its own copy of the label horizon.
+
+    It did, as `21 // 5`, and the floor was wrong — see
+    tests/quant/test_label_geometry.py.
+    """
+    assert not hasattr(quant_series, "_LABEL_HORIZON_SESSIONS")
+    assert not hasattr(quant_series, "_OVERLAP_BLOCK")
+
+    served = quant_series.fold_series("EXP-006", "gradient_boosting")
+    if served.get("status") != "ok":
+        pytest.skip("EXP-006 predictions not present in this checkout")
+    assert served["label_geometry"]["block_length"] == 5
 
 
 def test_a_blocked_bootstrap_is_wider_than_an_iid_one_on_dependent_data():
@@ -80,4 +88,7 @@ def test_the_served_interval_is_consistent_with_the_recorded_ic():
     assert pooled["lower"] < pooled["point"] < pooled["upper"]
     assert pooled["observations"] > 100
     assert "moving-block" in pooled["method"]
-    assert "overlap" in pooled["why_blocked"]
+    # The justification is derived from the label geometry, so it names the
+    # actual horizon and cadence rather than restating a generic sentence.
+    assert "21-session" in pooled["why_blocked"]
+    assert "every 5 sessions" in pooled["why_blocked"]

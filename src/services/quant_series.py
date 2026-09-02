@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import logging
 import threading
+import json
 from pathlib import Path
 
 from src.quant.validation.metrics import bootstrap_interval
@@ -41,12 +42,6 @@ import pandas as pd
 logger = logging.getLogger("omnisignal.services.quant_series")
 
 DEFAULT_ROOT = Path("experiments")
-
-#: Label horizon and rebalance cadence, from the experiment definitions. Their
-#: ratio is the dependence length that the bootstrap must respect.
-_LABEL_HORIZON_SESSIONS = 21
-_REBALANCE_SESSIONS = 5
-_OVERLAP_BLOCK = max(1, _LABEL_HORIZON_SESSIONS // _REBALANCE_SESSIONS)
 
 #: A cross-section smaller than this cannot support a rank correlation.
 MIN_NAMES_PER_DATE = 10
@@ -72,6 +67,40 @@ def _predictions(root: Path, experiment_id: str, target: str) -> Optional[pd.Dat
         _cache.clear()          # one artifact at a time; this is a UI cache
         _cache[key] = frame
     return frame
+
+
+def _label_geometry(experiment_id: str, target: str, root: Path | str):
+    """Label geometry from the experiment definition, or None if unavailable.
+
+    Read from the study rather than assumed: the horizon lives in the target
+    name and the cadence in `step_sessions`, so both follow the experiment they
+    describe instead of a constant that can fall out of step with it.
+    """
+    from src.quant.labels.geometry import geometry_for
+
+    step, embargo = None, 0
+    try:
+        from src.quant.study.experiment import get_experiment
+
+        definition = get_experiment(experiment_id)
+        step, embargo = definition.step_sessions, definition.embargo_sessions
+    except Exception:  # noqa: BLE001 — fall back to the artifact below
+        pass
+
+    if step is None:
+        try:
+            payload = json.loads(
+                (Path(root).parent / "experiments" / experiment_id / "metrics.json")
+                .read_text(encoding="utf-8")
+            )
+            dataset = payload.get("dataset") or {}
+            step = int(dataset.get("step_sessions") or 0) or None
+        except Exception:  # noqa: BLE001
+            return None
+
+    if not step:
+        return None
+    return geometry_for(target, step_sessions=step, embargo_sessions=embargo)
 
 
 def _rank_ic_by_date(block: pd.DataFrame, target: str) -> pd.Series:
@@ -132,8 +161,15 @@ def fold_series(
     # outcome. An i.i.d. bootstrap on dependent draws produces an interval far
     # too narrow — understating uncertainty in exactly the direction that
     # flatters a result.
+    # Derived from the experiment, not hardcoded. The first version of this
+    # carried `21 // 5` as module constants in a service, where they could drift
+    # from the study they described — and the floor was wrong: it left
+    # dependence inside the resample and narrowed the interval, which is the
+    # direction that flatters.
+    geometry = _label_geometry(experiment_id, target, root)
+    block = geometry.block_length if geometry else 1
     interval = bootstrap_interval(
-        per_date.to_numpy(), block=_OVERLAP_BLOCK, samples=2000, seed=0,
+        per_date.to_numpy(), block=block, samples=2000, seed=0,
     )
 
     return {
@@ -144,16 +180,21 @@ def fold_series(
         "pooled_ic": {
             **interval,
             "method": (
-                f"moving-block bootstrap, block={_OVERLAP_BLOCK} periods, "
+                f"moving-block bootstrap, block={block} periods, "
                 "2000 resamples, 95% interval"
             ),
             "why_blocked": (
-                f"labels span {_LABEL_HORIZON_SESSIONS} sessions against a "
-                f"{_REBALANCE_SESSIONS}-session rebalance, so consecutive "
-                "observations overlap and are not independent"
+                geometry.as_dict()["why"] if geometry
+                else "block length could not be derived; resampled i.i.d."
             ),
             "observations": int(len(per_date)),
         },
+        # The dependence structure the label imposes, derived from the study.
+        # It explains the purge, the embargo and the bootstrap block in one
+        # place instead of three hand-derived numbers.
+        "label_geometry": (
+            geometry.as_dict(observations=int(len(per_date))) if geometry else None
+        ),
         "ic_by_date": [
             {"date": str(d), "ic": float(v)} for d, v in per_date.items()
         ],
