@@ -21,7 +21,10 @@
 
 import { useEffect, useState } from 'react'
 
+import Link from 'next/link'
+
 import { Panel, StateBlock, Status, Strip, Value } from '@/components/system'
+import { BarRows } from '@/components/system/charts'
 
 interface Metric {
   value: number | null
@@ -208,6 +211,23 @@ export default function RiskWorkbench() {
         { label: 'Omega', value: metrics.omega?.value ?? null, digits: 3 },
       ]} />
 
+      <Panel title="Where this leads">
+        <div style={{ display: 'flex', gap: 'var(--d-2)', flexWrap: 'wrap' }}>
+          <Link href="/terminal/covariance" className="sys-btn" style={{ textDecoration: 'none' }}>
+            Which covariance produced this
+          </Link>
+          <Link href="/terminal/book" className="sys-btn" style={{ textDecoration: 'none' }}>
+            The book it is measured on
+          </Link>
+          <Link href="/terminal/handbook" className="sys-btn" style={{ textDecoration: 'none' }}>
+            How each measure is computed
+          </Link>
+          <Link href="/terminal/performance" className="sys-btn" style={{ textDecoration: 'none' }}>
+            The path behind the drawdown
+          </Link>
+        </div>
+      </Panel>
+
       {data.risk_contributions_unavailable ? (
         <Panel title="Risk decomposition" state="unavailable">
           <StateBlock
@@ -227,6 +247,40 @@ export default function RiskWorkbench() {
       ) : null}
 
       <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))' }}>
+        <Panel title="The tail, three ways" subtitle="ordered by construction">
+          <BarRows
+            unit="loss magnitude"
+            rows={[
+              { label: 'VaR 95', value: metrics.var_historical_95?.value ?? null, note: 'the empirical quantile' },
+              { label: 'CVaR 95', value: metrics.cvar_historical_95?.value ?? null, note: 'the average beyond it' },
+              { label: 'EVaR 95', value: metrics.entropic_var_95?.value ?? null, note: 'the tightest bound above that' },
+              { label: 'Worst', value: metrics.worst_realization?.value ?? null, note: 'the single worst observed period' },
+            ]}
+          />
+          <p style={{ margin: 'var(--d-2) 0 0', fontSize: 'var(--t-meta)', color: 'var(--ink-muted)', lineHeight: 'var(--lh-body)' }}>
+            The first three rise by construction, so the gap between them is the
+            information: a wide spread means the tail is heavier than a quantile
+            alone can express.
+          </p>
+        </Panel>
+
+        <Panel title="Drawdown, four ways" subtitle="depth against path">
+          <BarRows
+            unit="loss magnitude"
+            rows={[
+              { label: 'Max DD', value: Math.abs(metrics.max_drawdown?.value ?? Number.NaN) || null, note: 'the deepest single decline' },
+              { label: 'Average DD', value: Math.abs(metrics.average_drawdown?.value ?? Number.NaN) || null, note: 'mean of the path, zeros included' },
+              { label: 'Ulcer', value: metrics.ulcer_index?.value ?? null, note: 'root mean square of the path' },
+              { label: 'CDaR 95', value: metrics.conditional_drawdown_at_risk_95?.value ?? null, note: 'mean beyond the 95th percentile' },
+              { label: 'EDaR 95', value: metrics.entropic_drawdown_risk_95?.value ?? null, note: 'entropic bound on the path' },
+            ]}
+          />
+          <p style={{ margin: 'var(--d-2) 0 0', fontSize: 'var(--t-meta)', color: 'var(--ink-muted)', lineHeight: 'var(--lh-body)' }}>
+            A large gap between maximum and average drawdown says one decline
+            dominates; a small gap says the book is underwater most of the time.
+          </p>
+        </Panel>
+
         {GROUPS.map((g) => (
           <Panel key={g.title} title={g.title} flush>
             <p style={{

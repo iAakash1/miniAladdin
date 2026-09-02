@@ -19,9 +19,12 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import {
-  Panel, Provenance, Section, StateBlock, Status, Strip, Table, Value,
-  type Column, type ResearchState,
+  Panel, Provenance, Section, StateBlock, Status, Strip, Value,
+  type ResearchState,
 } from '@/components/system'
+import { DataTable, type DataColumn } from '@/components/system/DataTable'
+import { Histogram } from '@/components/system/charts'
+import { recordVisit } from '@/lib/research/history'
 
 interface Feature {
   name: string
@@ -96,39 +99,43 @@ export default function DataWorkbench() {
     return () => { alive = false }
   }, [])
 
-  const datasetColumns: Column<Dataset>[] = useMemo(() => [
-    { key: 'id', header: 'Dataset', width: '22%', render: (d) => <span style={{ fontFamily: 'var(--font-mono)' }}>{d.dataset_id}</span> },
-    { key: 'source', header: 'Source', width: '14%', render: (d) => d.source },
+  const datasetColumns: DataColumn<Dataset>[] = useMemo(() => [
+    { key: 'id', header: 'Dataset', width: '22%', sort: (d) => d.dataset_id, text: (d) => d.dataset_id, render: (d) => <span style={{ fontFamily: 'var(--font-mono)' }}>{d.dataset_id}</span> },
+    { key: 'source', header: 'Source', width: '14%', sort: (d) => d.source, text: (d) => d.source, render: (d) => d.source },
     {
-      key: 'pit', header: 'Point in time', width: '16%',
+      key: 'pit', header: 'Point in time', width: '16%', sort: (d) => d.point_in_time, text: (d) => d.point_in_time,
       render: (d) => <Status state={pitState(d.point_in_time)} label={d.point_in_time} />,
     },
     {
-      key: 'surv', header: 'Survivorship', width: '16%',
+      key: 'surv', header: 'Survivorship', width: '16%', sort: (d) => d.survivorship, text: (d) => d.survivorship,
       render: (d) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{d.survivorship}</span>,
     },
-    { key: 'ingest', header: 'Ingestion', width: '14%', render: (d) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{d.ingestion ?? '—'}</span> },
-    { key: 'cols', header: 'Columns', unit: 'count', numeric: true, render: (d) => <Value value={d.columns?.length ?? null} digits={0} /> },
+    { key: 'ingest', header: 'Ingestion', width: '14%', sort: (d) => d.ingestion ?? null, text: (d) => d.ingestion ?? '', render: (d) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{d.ingestion ?? '—'}</span> },
+    { key: 'cols', header: 'Columns', unit: 'count', numeric: true, sort: (d) => d.columns?.length ?? null, render: (d) => <Value value={d.columns?.length ?? null} digits={0} /> },
   ], [])
 
-  const featureColumns: Column<Feature>[] = useMemo(() => [
-    { key: 'name', header: 'Feature', width: '22%', render: (f) => <span style={{ fontFamily: 'var(--font-mono)' }}>{f.name}</span> },
-    { key: 'group', header: 'Group', width: '14%', render: (f) => f.group },
+  const featureColumns: DataColumn<Feature>[] = useMemo(() => [
+    { key: 'name', header: 'Feature', width: '22%', sort: (f) => f.name, text: (f) => `${f.name} ${f.description}`, render: (f) => <span style={{ fontFamily: 'var(--font-mono)' }}>{f.name}</span> },
+    { key: 'group', header: 'Group', width: '14%', sort: (f) => f.group, text: (f) => f.group, render: (f) => f.group },
     {
-      key: 'pit', header: 'PIT safe', width: '12%',
+      key: 'pit', header: 'PIT safe', width: '12%', sort: (f) => (f.point_in_time_safe ? 1 : 0),
       render: (f) => <Status state={f.point_in_time_safe ? 'recorded' : 'blocked'} label={f.point_in_time_safe ? 'safe' : 'unsafe'} />,
     },
     {
-      key: 'lookback', header: 'Lookback', unit: 'sessions', numeric: true,
+      key: 'lookback', header: 'Lookback', unit: 'sessions', numeric: true, sort: (f) => f.lookback_sessions,
       render: (f) => <Value value={f.lookback_sessions} digits={0} title="Sessions of history the feature reads" />,
     },
     {
-      key: 'lag', header: 'Availability lag', unit: 'sessions', numeric: true,
+      key: 'lag', header: 'Availability lag', unit: 'sessions', numeric: true, sort: (f) => f.availability_lag_sessions,
       render: (f) => <Value value={f.availability_lag_sessions} digits={0} title="Sessions between the observation and the moment it could be known" />,
     },
     {
-      key: 'xs', header: 'Cross-sectional', width: '12%',
+      key: 'xs', header: 'Cross-sectional', width: '12%', sort: (f) => (f.cross_sectional ? 1 : 0),
       render: (f) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{f.cross_sectional ? 'yes' : 'no'}</span>,
+    },
+    {
+      key: 'dir', header: 'Direction', width: '12%', optional: true, sort: (f) => f.direction ?? null,
+      render: (f) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{f.direction ?? '—'}</span>,
     },
   ], [])
 
@@ -190,25 +197,65 @@ export default function DataWorkbench() {
         }
       >
         {tab === 'datasets' ? (
-          <Table
+          <DataTable
             columns={datasetColumns}
             rows={datasets.datasets}
             rowKey={(d) => d.dataset_id}
             density="compact"
+            filterPlaceholder="filter datasets"
             selectedKey={selected ?? undefined}
-            onSelect={(d) => setSelected(d.dataset_id)}
+            onSelect={(d) => {
+              setSelected(d.dataset_id)
+              recordVisit({ kind: 'dataset', id: d.dataset_id, label: d.dataset_id, detail: d.source })
+            }}
           />
         ) : (
-          <Table
+          <DataTable
             columns={featureColumns}
             rows={features.features}
             rowKey={(f) => f.name}
             density="compact"
+            filterPlaceholder="filter features"
+            initialSort={{ key: 'lookback', direction: 'desc' }}
             selectedKey={selected ?? undefined}
-            onSelect={(f) => setSelected(f.name)}
+            onSelect={(f) => {
+              setSelected(f.name)
+              recordVisit({ kind: 'feature', id: f.name, label: f.name, detail: f.group })
+            }}
           />
         )}
       </Panel>
+
+      {tab === 'features' ? (
+        <Panel
+          title="Lookback distribution"
+          subtitle="the warm-up every model inherits"
+        >
+          <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'minmax(0,1.4fr) minmax(0,1fr)' }}>
+            <Histogram
+              values={features.features
+                .map((f) => f.lookback_sessions)
+                .filter((v): v is number => typeof v === 'number' && Number.isFinite(v))}
+              unit="sessions of history read"
+              bins={18}
+              title=""
+              marks={features.max_lookback_sessions
+                ? [{ at: features.max_lookback_sessions, label: 'max', color: 'var(--e-warn)' }]
+                : undefined}
+            />
+            <Section title="Why the longest one matters">
+              <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
+                A panel cannot produce a complete feature row until every feature
+                has its history, so the longest lookback in the registry — currently
+                {' '}{features.max_lookback_sessions ?? '—'} sessions — sets the warm-up
+                before any model can score its first observation. Adding one
+                long-lookback feature costs that much data from the front of every
+                experiment.
+              </p>
+            </Section>
+          </div>
+        </Panel>
+      ) : null}
 
       {selectedDataset ? (
         <Panel title="Dataset" subtitle={selectedDataset.dataset_id} state={pitState(selectedDataset.point_in_time)}>
