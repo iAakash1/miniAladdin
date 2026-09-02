@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 
 import Workbench from '@/components/system/Workbench'
+import Coverage from '@/components/terminal/data/Coverage'
 import DataWorkbench from '@/components/terminal/data/DataWorkbench'
 import { Panel, Provenance, Section } from '@/components/system'
 
@@ -62,6 +63,7 @@ export default function DataPage() {
       }
     >
       <DataWorkbench />
+      <Coverage />
     </Workbench>
   )
 }
