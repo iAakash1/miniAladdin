@@ -20,10 +20,13 @@
 
 import { useEffect, useMemo, useState } from 'react'
 
+import Link from 'next/link'
+
 import {
-  Panel, Section, StateBlock, Status, Strip, Table, Value,
-  type Column, type ResearchState,
+  Panel, Section, StateBlock, Status, Strip, Value, type ResearchState,
 } from '@/components/system'
+import { DataTable, type DataColumn } from '@/components/system/DataTable'
+import { recordVisit } from '@/lib/research/history'
 
 interface LeaderboardRow {
   key: string
@@ -144,15 +147,17 @@ export default function EvidenceChain() {
     return () => { alive = false }
   }, [])
 
-  const columns: Column<LeaderboardRow>[] = useMemo(() => [
-    { key: 'model', header: 'Model', width: '26%', render: (r) => <span style={{ fontFamily: 'var(--font-mono)' }}>{r.model_id}</span> },
-    { key: 'label', header: 'Label', width: '14%', render: (r) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{r.label}</span> },
-    { key: 'status', header: 'Status', width: '14%', render: (r) => <Status state={statusState(r.status)} label={r.status} /> },
-    { key: 'ic', header: 'Mean IC', numeric: true, render: (r) => <Value value={r.mean_ic} digits={4} signed tone /> },
-    { key: 't', header: 'IC t-stat', unit: 'Newey-West', numeric: true, render: (r) => <Value value={r.ic_t_stat} digits={2} signed /> },
-    { key: 'ns', header: 'Net Sharpe', unit: 'after costs', numeric: true, render: (r) => <Value value={r.net_sharpe} digits={3} signed tone /> },
-    { key: 'dd', header: 'Max DD', numeric: true, render: (r) => <Value value={r.max_drawdown} digits={3} tone /> },
-    { key: 'to', header: 'Turnover', unit: 'ann. one-way', numeric: true, render: (r) => <Value value={r.annualised_turnover} digits={2} unit="×" /> },
+  const columns: DataColumn<LeaderboardRow>[] = useMemo(() => [
+    { key: 'model', header: 'Model', width: '26%', sort: (r) => r.model_id, text: (r) => r.model_id, render: (r) => <span style={{ fontFamily: 'var(--font-mono)' }}>{r.model_id}</span> },
+    { key: 'label', header: 'Label', width: '14%', sort: (r) => r.label, text: (r) => r.label, render: (r) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{r.label}</span> },
+    { key: 'status', header: 'Status', width: '14%', sort: (r) => r.status, text: (r) => r.status, render: (r) => <Status state={statusState(r.status)} label={r.status} /> },
+    { key: 'ic', header: 'Mean IC', numeric: true, sort: (r) => r.mean_ic, render: (r) => <Value value={r.mean_ic} digits={4} signed tone /> },
+    { key: 't', header: 'IC t-stat', unit: 'Newey-West', numeric: true, sort: (r) => r.ic_t_stat, render: (r) => <Value value={r.ic_t_stat} digits={2} signed /> },
+    { key: 'ns', header: 'Net Sharpe', unit: 'after costs', numeric: true, sort: (r) => r.net_sharpe, render: (r) => <Value value={r.net_sharpe} digits={3} signed tone /> },
+    { key: 'dd', header: 'Max DD', numeric: true, sort: (r) => r.max_drawdown, render: (r) => <Value value={r.max_drawdown} digits={3} tone /> },
+    { key: 'to', header: 'Turnover', unit: 'ann. one-way', numeric: true, sort: (r) => r.annualised_turnover, render: (r) => <Value value={r.annualised_turnover} digits={2} unit="×" /> },
+    { key: 'fold', header: 'Fold IC positive', numeric: true, optional: true, sort: (r) => r.fold_ic_positive_rate, render: (r) => <Value value={r.fold_ic_positive_rate} digits={3} /> },
+    { key: 'cagr', header: 'Net CAGR', numeric: true, optional: true, sort: (r) => r.net_cagr, render: (r) => <Value value={r.net_cagr} digits={4} signed tone /> },
   ], [])
 
   if (error) {
@@ -190,14 +195,25 @@ export default function EvidenceChain() {
         title="Registry"
         subtitle={`${registry.leaderboard.length} entries · ${registry.summary.labels.join(', ')}`}
         flush
+        actions={
+          <div style={{ display: 'flex', gap: 'var(--d-1)' }}>
+            <Link href="/terminal/gates" className="sys-btn" style={{ textDecoration: 'none' }}>gate matrix</Link>
+            <Link href="/terminal/compare" className="sys-btn" style={{ textDecoration: 'none' }}>compare</Link>
+          </div>
+        }
       >
-        <Table
+        <DataTable
           columns={columns}
           rows={registry.leaderboard}
           rowKey={(r) => r.key}
           density="compact"
+          filterPlaceholder="filter models"
+          initialSort={{ key: 't', direction: 'desc' }}
           selectedKey={selected ?? undefined}
-          onSelect={(r) => setSelected(r.key)}
+          onSelect={(r) => {
+            setSelected(r.key)
+            recordVisit({ kind: 'model', id: r.model_id, label: r.model_id, detail: r.label, state: r.status })
+          }}
         />
       </Panel>
 

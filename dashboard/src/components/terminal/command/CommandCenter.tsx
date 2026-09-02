@@ -14,7 +14,9 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
-import { Panel, StateBlock, Status, Strip, Table, Value, type Column, type ResearchState } from '@/components/system'
+import { Panel, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
+import { DataTable, type DataColumn } from '@/components/system/DataTable'
+import { recordVisit } from '@/lib/research/history'
 
 interface Status_ {
   deployment_status?: string
@@ -75,16 +77,26 @@ export default function CommandCenter() {
     return () => { alive = false }
   }, [])
 
-  const expColumns: Column<ExperimentRow>[] = [
+  const expColumns: DataColumn<ExperimentRow>[] = [
     {
       key: 'id', header: 'Experiment', width: '18%',
-      render: (r) => <Link href={`/terminal/experiments?id=${r.experiment_id}`} style={{ color: 'inherit', fontFamily: 'var(--font-mono)' }}>{r.experiment_id}</Link>,
+      sort: (r) => r.experiment_id, text: (r) => r.experiment_id,
+      render: (r) => (
+        <Link
+          href={`/terminal/experiments?id=${r.experiment_id}`}
+          style={{ color: 'inherit', fontFamily: 'var(--font-mono)' }}
+          onClick={() => recordVisit({ kind: 'experiment', id: r.experiment_id, label: r.experiment_id })}
+        >
+          {r.experiment_id}
+        </Link>
+      ),
     },
     {
       key: 'status', header: 'State', width: '16%',
+      sort: (r) => (r.void ? 'void' : r.status ?? ''), text: (r) => (r.void ? 'void' : r.status ?? ''),
       render: (r) => <Status state={r.void ? 'unavailable' : 'recorded'} label={r.void ? 'void' : (r.status ?? 'recorded')} />,
     },
-    { key: 'detail', header: 'Detail', render: (r) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{r.detail ?? r.void_reason ?? '—'}</span> },
+    { key: 'detail', header: 'Detail', text: (r) => `${r.detail ?? ''} ${r.void_reason ?? ''}`, render: (r) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{r.detail ?? r.void_reason ?? '—'}</span> },
   ]
 
   const failedGates = (selection?.verdict?.gates ?? []).filter((g) => !g.passed)
@@ -193,8 +205,22 @@ export default function CommandCenter() {
 
       <Panel title="Experiments" subtitle={experiments ? `${experiments.length} recorded` : undefined} flush>
         {experiments
-          ? <Table columns={expColumns} rows={experiments} rowKey={(r) => r.experiment_id} density="compact" />
+          ? <DataTable columns={expColumns} rows={experiments} rowKey={(r) => r.experiment_id} density="compact" filterPlaceholder="filter" />
           : <StateBlock state="waking" title="Reading experiments" />}
+      </Panel>
+
+      <Panel title="Start here">
+        <div style={{ display: 'flex', gap: 'var(--d-2)', flexWrap: 'wrap' }}>
+          <Link href="/terminal/gates" className="sys-btn" style={{ textDecoration: 'none' }}>Which gate blocks everything</Link>
+          <Link href="/terminal/signals" className="sys-btn" style={{ textDecoration: 'none' }}>How many ideas were tried</Link>
+          <Link href="/terminal/covariance" className="sys-btn" style={{ textDecoration: 'none' }}>How much risk depends on the estimator</Link>
+          <Link href="/terminal/data" className="sys-btn" style={{ textDecoration: 'none' }}>What the data contract says</Link>
+          <Link href="/terminal/provenance" className="sys-btn" style={{ textDecoration: 'none' }}>Where a prediction came from</Link>
+          <Link href="/terminal/memos" className="sys-btn" style={{ textDecoration: 'none' }}>Write it down</Link>
+        </div>
+        <p style={{ margin: 'var(--d-2) 0 0', fontSize: 'var(--t-micro)', color: 'var(--ink-faint)' }}>
+          Press ⌘K to search every object, or ? for the keyboard map.
+        </p>
       </Panel>
 
       {errors.length ? (

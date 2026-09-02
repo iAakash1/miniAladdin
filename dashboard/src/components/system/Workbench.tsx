@@ -25,6 +25,7 @@ import { usePathname, useRouter } from 'next/navigation'
 
 import { Status, type ResearchState } from './index'
 import Palette, { applyStoredDensity } from './Palette'
+import Shortcuts from './Shortcuts'
 import { usePinnedObjects, useRecentObjects } from '@/lib/research/history'
 import { KINDS, href as objectHref } from '@/lib/research/objects'
 
@@ -142,6 +143,7 @@ export default function Workbench({
   return (
     <div className="wb">
       <Palette />
+      <Shortcuts />
       <nav className={`wb-rail${navOpen ? ' is-open' : ''}`} aria-label="Workbench">
         {WORKBENCH.map((section) => (
           <div className="wb-group" key={section.group}>
@@ -208,6 +210,26 @@ export default function Workbench({
               title="Search objects and commands"
             >
               search <kbd style={{ font: '400 var(--t-micro)/1 var(--font-mono)', opacity: 0.7 }}>⌘K</kbd>
+            </button>
+            <button
+              className="sys-btn"
+              onClick={() => {
+                const order = ['compact', 'default', 'comfortable']
+                const el = document.documentElement
+                const next = order[(order.indexOf(el.getAttribute('data-density') ?? 'default') + 1) % order.length]
+                el.setAttribute('data-density', next)
+                try { window.localStorage.setItem('ma.density', next) } catch { /* ignore */ }
+              }}
+              title="Cycle information density"
+            >
+              density
+            </button>
+            <button
+              className="sys-btn"
+              onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: '?' }))}
+              title="Keyboard shortcuts"
+            >
+              ?
             </button>
             {actions}
             {context ? (

@@ -13,7 +13,9 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 
-import { Panel, StateBlock, Status, Strip, Table, Value, type Column } from '@/components/system'
+import { Panel, StateBlock, Status, Strip, Value } from '@/components/system'
+import { DataTable, type DataColumn } from '@/components/system/DataTable'
+import { recordVisit } from '@/lib/research/history'
 
 interface Row {
   experiment_id: string
@@ -67,10 +69,10 @@ export default function ExperimentRegistry() {
     return () => { alive = false }
   }, [selected])
 
-  const columns: Column<Row>[] = useMemo(() => [
-    { key: 'id', header: 'Experiment', width: '18%', render: (r) => <span style={{ fontFamily: 'var(--font-mono)' }}>{r.experiment_id}</span> },
-    { key: 'state', header: 'State', width: '14%', render: (r) => <Status state={r.void ? 'unavailable' : 'recorded'} label={r.void ? 'void' : (r.status ?? 'recorded')} /> },
-    { key: 'detail', header: 'Detail', render: (r) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{r.detail ?? r.void_reason ?? '—'}</span> },
+  const columns: DataColumn<Row>[] = useMemo(() => [
+    { key: 'id', header: 'Experiment', width: '18%', sort: (r) => r.experiment_id, text: (r) => r.experiment_id, render: (r) => <span style={{ fontFamily: 'var(--font-mono)' }}>{r.experiment_id}</span> },
+    { key: 'state', header: 'State', width: '14%', sort: (r) => (r.void ? 'void' : r.status ?? ''), text: (r) => (r.void ? 'void' : r.status ?? ''), render: (r) => <Status state={r.void ? 'unavailable' : 'recorded'} label={r.void ? 'void' : (r.status ?? 'recorded')} /> },
+    { key: 'detail', header: 'Detail', text: (r) => `${r.detail ?? ''} ${r.void_reason ?? ''}`, render: (r) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{r.detail ?? r.void_reason ?? '—'}</span> },
   ], [])
 
   if (error) {
@@ -93,7 +95,15 @@ export default function ExperimentRegistry() {
       ]} />
 
       <Panel title="Registry" subtitle={`${rows.length} recorded`} flush>
-        <Table columns={columns} rows={rows} rowKey={(r) => r.experiment_id} density="compact" selectedKey={selected ?? undefined} onSelect={(r) => setSelected(r.experiment_id)} />
+        <DataTable
+          columns={columns} rows={rows} rowKey={(r) => r.experiment_id}
+          density="compact" filterPlaceholder="filter experiments"
+          selectedKey={selected ?? undefined}
+          onSelect={(r) => {
+            setSelected(r.experiment_id)
+            recordVisit({ kind: 'experiment', id: r.experiment_id, label: r.experiment_id, detail: r.void ? 'void' : r.status })
+          }}
+        />
       </Panel>
 
       {!selected ? (
