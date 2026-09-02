@@ -163,7 +163,16 @@ def build(
 
     # Book-level outcome series, in RANK units.
     series = (sub[weights.index] * weights).sum(axis=1)
-    report = risk.analyse(series, weights=weights, panel=sub, compound=False)
+    # The book-level series is in RANK units, so metrics that presuppose returns
+    # are refused rather than computed under a name that would misdescribe them.
+    # compound=False for the same reason: compounding a rank once produced a
+    # +6,553% "equity curve".
+    report = risk.analyse(
+        series, weights=weights, panel=sub, compound=False,
+        series_unit=risk.SeriesUnit.RANK,
+        # The series is one observation per rebalance date, not per session.
+        frequency="rebalance period",
+    )
 
     cost_model = SimpleCostModel(commission_bps=1.0, half_spread_bps=10.0, slippage_bps=2.0)
     breakdown = cost_model.charge(weights.abs(), capital=1_000_000.0)

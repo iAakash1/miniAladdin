@@ -36,7 +36,9 @@ from __future__ import annotations
 
 import logging
 import warnings
+import dataclasses
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Optional
 
 import numpy as np
@@ -53,6 +55,94 @@ MIN_OBSERVATIONS = 60
 KURTOSIS_WARNING = 3.0
 
 
+class SeriesUnit(str, Enum):
+    """What the input series actually measures.
+
+    This exists because it was wrong. The portfolio surface builds a book-level
+    outcome series in *cross-sectional rank* units — correctly, since the
+    project's primary target is a rank — and passed it to `analyse`, which
+    computed a "Sharpe ratio" from it. A Sharpe of a rank series is not a Sharpe:
+    the numerator is not a return, the denominator is not a volatility, and
+    annualising it by 252 asserts a period length the series does not have.
+
+    Metrics that presuppose returns now refuse on a non-return series rather
+    than producing a number that looks like a Sharpe and is not one.
+    """
+
+    RETURN = "return"      #: periodic returns, as decimal fractions
+    RANK = "rank"          #: cross-sectional rank, typically in [-1, 1]
+    OTHER = "other"        #: some other quantity; return semantics do not apply
+
+
+#: Metrics whose definition presupposes the input is a return series.
+#:
+#: Dispersion and drawdown-path measures are still meaningful on a rank series —
+#: a rank book has a dispersion and it has an underwater path — so they are not
+#: suppressed. These are the ones whose *name* would be a false claim.
+RETURN_ONLY_METRICS: frozenset[str] = frozenset({
+    "sharpe", "sortino", "calmar", "ulcer_performance_index",
+    "capm_alpha", "information_ratio",
+})
+
+
+class Unit(str, Enum):
+    """What a number is measured in.
+
+    Encoded as data rather than left to a label. Unit ambiguity is a standard
+    way financial systems produce wrong answers quietly: a ratio rendered with a
+    percent sign, a per-period figure read as annual, a magnitude read as a
+    signed return. A consumer that knows the unit cannot make those mistakes by
+    accident.
+    """
+
+    RATIO = "ratio"                #: dimensionless, e.g. Sharpe
+    RETURN = "return"              #: a return, as a decimal fraction
+    RETURN_MAGNITUDE = "return_magnitude"  #: a loss reported positive, e.g. VaR
+    ANNUALISED_RETURN = "annualised_return"
+    ANNUALISED_VOL = "annualised_volatility"
+    COUNT = "count"
+    PERIODS = "periods"
+
+
+class Annualisation(str, Enum):
+    """How, if at all, a per-period figure was scaled to a year."""
+
+    NONE = "none"                        #: reported per period as measured
+    SQRT_TIME = "sqrt_periods_per_year"  #: dispersion, scaled by sqrt(T)
+    LINEAR = "periods_per_year"          #: a mean, scaled by T
+    GEOMETRIC = "geometric_compounded"   #: a growth rate, compounded
+
+
+#: Methodology as structured metadata rather than prose.
+#:
+#: A method string alone ("mean_over_std_annualised") tells a reader what was
+#: done only if they already know the convention. These fields say it outright,
+#: which is what lets the UI render a number with the context that makes it
+#: falsifiable: what it is, in what unit, over what frequency, scaled how, from
+#: which input.
+@dataclass(frozen=True)
+class Methodology:
+    method: str
+    unit: Unit
+    annualisation: Annualisation = Annualisation.NONE
+    #: Observation frequency of the input series, when it is known.
+    frequency: Optional[str] = None
+    #: Periods-per-year used for any scaling. None when nothing was scaled.
+    periods_per_year: Optional[float] = None
+    #: What the number was computed from.
+    inputs: tuple[str, ...] = ()
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "method": self.method,
+            "unit": self.unit.value,
+            "annualisation": self.annualisation.value,
+            "frequency": self.frequency,
+            "periods_per_year": self.periods_per_year,
+            "inputs": list(self.inputs),
+        }
+
+
 @dataclass(frozen=True)
 class RiskMetric:
     """One number, its method, and what would invalidate it."""
@@ -62,14 +152,21 @@ class RiskMetric:
     method: str
     observations: int
     caveat: Optional[str] = None
+    #: Structured methodology. Optional so existing constructors keep working;
+    #: `as_dict` falls back to the method string when it is absent.
+    methodology: Optional[Methodology] = None
 
     def as_dict(self) -> dict[str, Any]:
-        return {
+        payload: dict[str, Any] = {
             "value": None if self.value is None else round(self.value, 6),
+            # Kept for compatibility: every existing consumer reads this.
             "method": self.method,
             "observations": self.observations,
             "caveat": self.caveat,
         }
+        if self.methodology is not None:
+            payload["methodology"] = self.methodology.as_dict()
+        return payload
 
 
 def _clean(returns: pd.Series) -> pd.Series:
@@ -763,6 +860,104 @@ class RiskReport:
         }
 
 
+#: Structured methodology per metric, in one place.
+#:
+#: Declared here rather than at each of the two dozen call sites: a single table
+#: is the thing that can be reviewed for consistency, and it cannot drift from
+#: itself. `analyse` attaches these on the way out, so every served metric
+#: carries its unit, its annualisation convention and its inputs.
+_R = Unit.RATIO
+_RET = Unit.RETURN
+_MAG = Unit.RETURN_MAGNITUDE
+_AVOL = Unit.ANNUALISED_VOL
+_NONE, _SQRT, _LIN, _GEO = (
+    Annualisation.NONE, Annualisation.SQRT_TIME,
+    Annualisation.LINEAR, Annualisation.GEOMETRIC,
+)
+_SERIES = ("portfolio_return_series",)
+_VS_BENCH = ("portfolio_return_series", "benchmark_return_series")
+
+METHODOLOGY: dict[str, tuple[Unit, Annualisation, tuple[str, ...]]] = {
+    # dispersion
+    "volatility": (_AVOL, _SQRT, _SERIES),
+    "downside_deviation": (_AVOL, _SQRT, _SERIES),
+    "mean_absolute_deviation": (_RET, _NONE, _SERIES),
+    # risk-adjusted performance
+    "sharpe": (_R, _SQRT, _SERIES),
+    "sortino": (_R, _SQRT, _SERIES),
+    "calmar": (_R, _GEO, _SERIES),
+    "ulcer_performance_index": (_R, _LIN, _SERIES),
+    # drawdown. Signed: a drawdown is negative and is reported that way.
+    "max_drawdown": (_RET, _NONE, _SERIES),
+    "average_drawdown": (_RET, _NONE, _SERIES),
+    # magnitudes: reported positive, so a consumer never renders "-VaR".
+    "ulcer_index": (_MAG, _NONE, _SERIES),
+    "drawdown_at_risk_95": (_MAG, _NONE, _SERIES),
+    "conditional_drawdown_at_risk_95": (_MAG, _NONE, _SERIES),
+    "worst_realization": (_MAG, _NONE, _SERIES),
+    "var_historical_95": (_MAG, _NONE, _SERIES),
+    "var_parametric_95": (_MAG, _NONE, _SERIES),
+    "cvar_historical_95": (_MAG, _NONE, _SERIES),
+    "var_historical_99": (_MAG, _NONE, _SERIES),
+    "cvar_historical_99": (_MAG, _NONE, _SERIES),
+    # benchmark-relative
+    "beta": (_R, _NONE, _VS_BENCH),
+    "tracking_error": (_AVOL, _SQRT, _VS_BENCH),
+    "information_ratio": (_R, _SQRT, _VS_BENCH),
+    "capm_alpha": (Unit.ANNUALISED_RETURN, _LIN, _VS_BENCH),
+}
+
+
+def _suppress_inapplicable(
+    metrics: dict[str, RiskMetric], series_unit: SeriesUnit,
+) -> dict[str, RiskMetric]:
+    """Blank the metrics whose definition the input does not support.
+
+    The value is cleared and the reason is stated. Returning None with an
+    explanation is the honest outcome; returning the arithmetic under a name
+    that means something else is not.
+    """
+    if series_unit is SeriesUnit.RETURN:
+        return metrics
+    out: dict[str, RiskMetric] = {}
+    for name, metric in metrics.items():
+        if name in RETURN_ONLY_METRICS:
+            out[name] = dataclasses.replace(
+                metric, value=None,
+                caveat=(
+                    f"NOT APPLICABLE — the input is a {series_unit.value} series, "
+                    f"not returns. {name} presupposes a return series; computing it "
+                    "here would produce a number under a name that means something else."
+                ),
+            )
+        else:
+            out[name] = metric
+    return out
+
+
+def _with_methodology(
+    metrics: dict[str, RiskMetric], *, periods_per_year: float, frequency: Optional[str],
+) -> dict[str, RiskMetric]:
+    """Attach structured methodology to every metric that has an entry."""
+    out: dict[str, RiskMetric] = {}
+    for name, metric in metrics.items():
+        spec = METHODOLOGY.get(name)
+        if spec is None:
+            out[name] = metric
+            continue
+        unit, annualisation, inputs = spec
+        out[name] = dataclasses.replace(metric, methodology=Methodology(
+            method=metric.method,
+            unit=unit,
+            annualisation=annualisation,
+            frequency=frequency,
+            # None when nothing was scaled, so the field is never a decoration.
+            periods_per_year=None if annualisation is Annualisation.NONE else periods_per_year,
+            inputs=inputs,
+        ))
+    return out
+
+
 def analyse(
     returns: pd.Series,
     *,
@@ -773,6 +968,8 @@ def analyse(
     periods_per_year: float = 252.0,
     compound: bool = True,
     risk_free: float = 0.0,
+    frequency: Optional[str] = None,
+    series_unit: SeriesUnit = SeriesUnit.RETURN,
 ) -> RiskReport:
     """The full report for one strategy's return series and current book.
 
@@ -814,6 +1011,10 @@ def analyse(
         "var_historical_99": var_historical(returns, confidence=0.99),
         "cvar_historical_99": cvar_historical(returns, confidence=0.99),
     }
+    report.metrics = _suppress_inapplicable(report.metrics, series_unit)
+    report.metrics = _with_methodology(
+        report.metrics, periods_per_year=periods_per_year, frequency=frequency)
+
     # Shape first: every Gaussian metric above depends on it, and the caveat
     # says so when the tails are fat.
     report.tables["distribution"] = distribution(returns)
@@ -827,6 +1028,9 @@ def analyse(
             returns, benchmark, periods_per_year=periods_per_year)
         report.metrics["capm_alpha"] = capm_alpha(
             returns, benchmark, periods_per_year=periods_per_year, risk_free=risk_free)
+        report.metrics = _suppress_inapplicable(report.metrics, series_unit)
+        report.metrics = _with_methodology(
+            report.metrics, periods_per_year=periods_per_year, frequency=frequency)
 
     if weights is not None and len(weights):
         report.tables["exposure"] = exposure(weights)
