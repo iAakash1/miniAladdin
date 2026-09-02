@@ -40,6 +40,7 @@ const GROUPS: { title: string; keys: { combo: string; action: string }[] }[] = [
       { combo: 'g n', action: 'Provenance' },
       { combo: 'g y', action: 'Handbook' },
       { combo: 'g e', action: 'Memos' },
+      { combo: 'g t', action: 'Timeline' },
     ],
   },
   {
