@@ -61,6 +61,30 @@ interface PortfolioView {
     risk_contributions?: Array<{
       symbol: string; weight: number; marginal: number; component: number; share: number
     }>
+    /** Shape of the return distribution. Decides whether the Gaussian metrics
+     *  beside it may be read at face value. */
+    distribution?: {
+      observations: number
+      mean: number | null
+      median: number | null
+      std: number | null
+      skew: number | null
+      excess_kurtosis: number | null
+      gaussian_reasonable: boolean | null
+      caveat?: string | null
+    }
+    /** Depth alone hides what a drawdown costs; duration and recovery do not. */
+    drawdown_profile?: {
+      observations: number
+      max_drawdown: number | null
+      peak_index: string | null
+      trough_index: string | null
+      drawdown_periods: number | null
+      recovery_periods: number | null
+      recovered: boolean | null
+      method: string
+      caveat?: string | null
+    }
   }
   cost?: {
     breakdown?: Record<string, number>
@@ -209,6 +233,74 @@ export default function PortfolioRisk({
         never averaged: they answer the same question under different assumptions,
         and on this data they disagree.
       </p>
+
+      {/* ── distribution shape ──────────────────────────────────────────────
+          Placed immediately under the metrics because it is what decides
+          whether the Gaussian ones above may be read at face value. A
+          parametric VaR on a series with excess kurtosis of 40 is not wrong
+          arithmetic — it is the right arithmetic on an assumption the data
+          does not support, and the caveat says so. */}
+      {risk.distribution ? (
+        <>
+          <h4 className="qr-subhead">
+            Return distribution
+            {risk.distribution.gaussian_reasonable === false ? (
+              <span className="tp-status tp-status--warn">FAT TAILS</span>
+            ) : null}
+          </h4>
+          <dl className="qr-grid qr-grid--tight">
+            <div><dt>mean</dt><dd className="num">{f(risk.distribution.mean, 6)}</dd></div>
+            <div><dt>median</dt><dd className="num">{f(risk.distribution.median, 6)}</dd></div>
+            <div><dt>std</dt><dd className="num">{f(risk.distribution.std, 6)}</dd></div>
+            <div><dt>skew</dt><dd className="num">{f(risk.distribution.skew, 3)}</dd></div>
+            <div>
+              <dt>excess kurtosis</dt>
+              <dd className="num">{f(risk.distribution.excess_kurtosis, 2)}</dd>
+            </div>
+            <div><dt>observations</dt><dd className="num">{risk.distribution.observations}</dd></div>
+          </dl>
+          {risk.distribution.caveat ? (
+            <p className="body-copy u-note">{risk.distribution.caveat}</p>
+          ) : null}
+        </>
+      ) : null}
+
+      {/* ── drawdown, with duration ──────────────────────────────────────────
+          Depth alone hides what a drawdown costs. A 12% decline recovered in
+          four periods and one still underwater at the end of the sample are
+          different facts, and only the second is reported as unrecovered. */}
+      {risk.drawdown_profile ? (
+        <>
+          <h4 className="qr-subhead">Worst drawdown</h4>
+          <dl className="qr-grid qr-grid--tight">
+            <div>
+              <dt>depth</dt>
+              <dd className="num">{f(risk.drawdown_profile.max_drawdown, 4)}</dd>
+            </div>
+            <div>
+              <dt>peak → trough</dt>
+              <dd className="num">
+                {risk.drawdown_profile.drawdown_periods ?? '—'} periods
+              </dd>
+            </div>
+            <div>
+              <dt>recovery</dt>
+              <dd className="num">
+                {risk.drawdown_profile.recovered
+                  ? `${risk.drawdown_profile.recovery_periods} periods`
+                  : 'not recovered'}
+              </dd>
+            </div>
+            <div>
+              <dt>trough</dt>
+              <dd className="num">{risk.drawdown_profile.trough_index ?? '—'}</dd>
+            </div>
+          </dl>
+          {risk.drawdown_profile.caveat ? (
+            <p className="body-copy u-note">{risk.drawdown_profile.caveat}</p>
+          ) : null}
+        </>
+      ) : null}
 
       {/* ── weights + risk contribution ── */}
       <h4 className="qr-subhead">Book — largest positions by weight</h4>
