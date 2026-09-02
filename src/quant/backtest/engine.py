@@ -346,10 +346,19 @@ def performance_metrics(periods: pd.DataFrame, *, periods_per_year: float) -> di
     out["mean_gross_exposure"] = float(
         pd.to_numeric(periods["gross_exposure"], errors="coerce").mean()
     )
+    # Only defined when there IS gross profit to take a share of. The
+    # denominator was previously an absolute value, which made a strategy that
+    # lost 10% gross and paid 5% in costs report 0.50 — the same number as one
+    # that turned +10% into +5%, and reading exactly like a healthy strategy
+    # giving up half its edge. The ratio also improved as the strategy lost
+    # more, and PRODUCTION_THRESHOLDS treats it as a maximum, so a gross-losing
+    # candidate could clear a gate whose stated purpose is to catch strategies
+    # that are really transaction-cost bets. Undefined is the honest answer;
+    # `thresholds_not_met` counts a missing value as unmet, so this fails closed.
+    gross_total = float(pd.to_numeric(periods["gross_return"], errors="coerce").sum())
+    out["gross_total_return"] = gross_total
     out["cost_share_of_gross"] = (
-        float(abs(costs.sum()) / abs(periods["gross_return"].sum()))
-        if abs(periods["gross_return"].sum()) > 1e-12
-        else None
+        float(costs.sum() / gross_total) if gross_total > 1e-12 else None
     )
     return out
 
