@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 
 import Workbench from '@/components/system/Workbench'
+import SignalDiagnostics from '@/components/terminal/signals/SignalDiagnostics'
 import SignalLab from '@/components/terminal/signals/SignalLab'
 import { Panel } from '@/components/system'
 
@@ -45,6 +46,7 @@ export default function SignalsPage() {
       }
     >
       <SignalLab />
+      <SignalDiagnostics experiment="EXP-006" model="gradient_boosting" />
     </Workbench>
   )
 }
