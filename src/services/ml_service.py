@@ -32,6 +32,7 @@ evidence:
 from __future__ import annotations
 
 import json
+import math
 import logging
 import threading
 import time
@@ -134,6 +135,40 @@ class MLUnavailable(RuntimeError):
     """Raised when no study artifact exists. Never substituted with an estimate."""
 
 
+def _finite(value: Any) -> Any:
+    """Replace non-finite floats with None, everywhere in a parsed payload.
+
+    A study artifact can legitimately contain NaN. `deflated_sharpe` on a model
+    with twelve observations is the case that prompted this: the routine
+    correctly refuses a verdict — `deflated_probability` and `significant` are
+    already null, with a note reading "fewer than 30 periods" — but the inputs
+    it could not compute stay NaN.
+
+    Two reasons those cannot travel further.
+
+    NaN is not JSON. `json.dumps` refuses it, so one unreachable statistic on
+    one baseline model took the entire label report to a 500 and every surface
+    reading it went blank. An endpoint that fails completely because a single
+    number could not be computed is worse than one that says so.
+
+    And null is what this codebase already means by "not computed". It is the
+    convention every envelope uses, and this same dict already applies it to its
+    own verdict fields — so a NaN becoming null says exactly what the
+    surrounding data says, in the form the rest of the product reads.
+
+    Zero is emphatically not the substitute. A Sharpe of NaN means the statistic
+    could not be formed; a Sharpe of 0.0 means it was formed and came out flat,
+    which is a measurement this model never produced.
+    """
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+    if isinstance(value, dict):
+        return {k: _finite(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_finite(v) for v in value]
+    return value
+
+
 def _read_json(path: Path) -> Any:
     key = str(path)
     now = time.time()
@@ -147,7 +182,7 @@ def _read_json(path: Path) -> Any:
         if entry and entry[0] > now and entry[1] == mtime:
             return entry[2]
 
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload = _finite(json.loads(path.read_text(encoding="utf-8")))
     with _lock:
         _cache[key] = (now + CACHE_TTL_SECONDS, mtime, payload)
     return payload
@@ -183,7 +218,7 @@ def _newest_valid_experiment(root: Optional[Path] = None) -> Optional[tuple[str,
         if not artifact.is_file():
             continue
         try:
-            payload = json.loads(artifact.read_text(encoding="utf-8"))
+            payload = _finite(json.loads(artifact.read_text(encoding="utf-8")))
         except (json.JSONDecodeError, OSError):
             continue
         experiment_id = (payload.get("experiment") or {}).get("experiment_id")
