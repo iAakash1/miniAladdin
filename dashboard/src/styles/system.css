@@ -1287,3 +1287,38 @@ button.sys-num--live:focus-visible {
   /* The path is context, not navigation. It is the first thing to go. */
   .sys-crumbs { display: none; }
 }
+
+/* ── row actions ─────────────────────────────────────────────────────────
+   A row is an object, and an object has things you can do to it. The column
+   is always present and only its contents fade in — a column that appears on
+   hover reflows the row under the pointer and moves the cell the reader was
+   about to click. */
+
+.sys-actions-col {
+  width: 46px;
+  padding-left: var(--d-2) !important;
+  padding-right: 0 !important;
+}
+
+.sys-row-actions {
+  display: inline-flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity var(--t-fast) var(--ease);
+}
+tr:hover .sys-row-actions,
+tr:focus-within .sys-row-actions,
+tr[data-selected='true'] .sys-row-actions { opacity: 1; }
+
+.sys-row-action {
+  width: 18px; height: 18px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--rule);
+  background: var(--p-panel);
+  color: var(--ink-faint);
+  font: 500 9px/1 var(--font-mono);
+  cursor: pointer;
+  transition: border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+.sys-row-action:hover { border-color: var(--accent); color: var(--accent); }
+.sys-row-action:focus-visible { outline: 1px solid var(--rule-focus); outline-offset: 1px; opacity: 1; }

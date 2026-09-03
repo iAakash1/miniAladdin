@@ -24,7 +24,7 @@ import Link from 'next/link'
 
 import { Grid, Panel, Section, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
-import { recordVisit } from '@/lib/research/history'
+import { recordVisit, togglePin } from '@/lib/research/history'
 import { ObjectHeader, StripSkeleton, TableSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
 import Inspector from '@/components/system/Inspector'
 import type { ResearchObject } from '@/lib/research/objects'
@@ -315,6 +315,16 @@ export default function EvidenceChain() {
             recordVisit(obj)
             setInspecting(obj)
           }}
+          actions={[
+            {
+              label: 'Inspect', glyph: 'i', title: 'Open the inspector without leaving the table',
+              onAct: (r) => setInspecting({ kind: 'model', id: r.model_id, label: r.model_id, detail: r.label, state: r.status }),
+            },
+            {
+              label: 'Pin', glyph: '◆', title: 'Pin to the rail',
+              onAct: (r) => togglePin({ kind: 'model', id: r.model_id, label: r.model_id, detail: r.label, state: r.status }),
+            },
+          ]}
         />
       </Panel>
 

@@ -32,9 +32,17 @@ export interface DataColumn<T> {
 
 type Direction = 'asc' | 'desc'
 
+export interface RowAction<T> {
+  label: string
+  /** Shown on the button. One or two characters. */
+  glyph: string
+  onAct: (row: T) => void
+  title?: string
+}
+
 export function DataTable<T>({
   columns, rows, rowKey, density = 'compact', onSelect, selectedKey,
-  filterPlaceholder = 'filter', empty, initialSort, toolbar,
+  filterPlaceholder = 'filter', empty, initialSort, toolbar, actions,
 }: {
   columns: DataColumn<T>[]
   rows: T[]
@@ -46,6 +54,14 @@ export function DataTable<T>({
   empty?: ReactNode
   initialSort?: { key: string; direction: Direction }
   toolbar?: ReactNode
+  /**
+   * Per-row actions, revealed on hover in a column that is always present.
+   *
+   * Always present matters: a column that appears on hover reflows the row
+   * under the pointer, which moves the cell the reader was about to click.
+   * The column holds its width and only its contents fade in.
+   */
+  actions?: RowAction<T>[]
 }) {
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState<{ key: string; direction: Direction } | null>(initialSort ?? null)
@@ -209,6 +225,24 @@ export function DataTable<T>({
                       }
                     }}
                   >
+                    {actions?.length ? (
+                      <td className="sys-actions-col">
+                        <span className="sys-row-actions">
+                          {actions.map((a) => (
+                            <button
+                              key={a.label}
+                              type="button"
+                              className="sys-row-action"
+                              title={a.title ?? a.label}
+                              aria-label={a.label}
+                              onClick={(e) => { e.stopPropagation(); a.onAct(row) }}
+                            >
+                              {a.glyph}
+                            </button>
+                          ))}
+                        </span>
+                      </td>
+                    ) : null}
                     {visible.map((c) => (
                       <td key={c.key} className={c.numeric ? 'num' : undefined}>{c.render(row)}</td>
                     ))}
