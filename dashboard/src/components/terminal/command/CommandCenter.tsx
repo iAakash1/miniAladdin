@@ -189,9 +189,9 @@ export default function CommandCenter() {
       </Panel>
 
       <ObjectHeader
-        glyph="⌘"
-        name="Command"
-        kind="what deserves attention"
+        glyph="⊘"
+        name="Deployment"
+        kind="what stands between this research and a deployed model"
         state={verdictState}
         detail={selection?.verdict?.status ?? deployment}
         facts={[
