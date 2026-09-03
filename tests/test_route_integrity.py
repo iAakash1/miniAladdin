@@ -91,3 +91,51 @@ def test_the_shortcut_sheet_documents_only_wired_keys() -> None:
     documented_but_dead = documented - wired
     assert documented_but_dead == set(), f"documented but not wired: {sorted(documented_but_dead)}"
     assert undocumented_but_wired == set(), f"wired but undocumented: {sorted(undocumented_but_wired)}"
+
+
+def _palette() -> dict[str, tuple[str, str]]:
+    """The command palette's navigation entries, keyed by shortcut hint.
+
+    Returns {'s': ('Go to Securities', '/terminal/security'), ...}.
+    """
+    source = (ROOT / "dashboard" / "src" / "components" / "system" / "Palette.tsx").read_text()
+    entries = re.findall(r"go\('([^']+)',\s*'([^']+)',\s*'g ([a-z])'\)", source)
+    return {key: (label, href) for label, href, key in entries}
+
+
+def test_the_palette_and_the_navigation_agree() -> None:
+    """One command, one destination.
+
+    The palette shipped `Go to Securities → /terminal/analyze` while the sidebar
+    sent the same `g s` to `/terminal/security`. Both were live routes, so
+    nothing failed; the reader simply arrived somewhere else depending on how
+    they asked, and one of the two destinations still ran the old shell.
+
+    Two ways to reach one workspace must agree on where it is.
+    """
+    nav = _goto()
+    disagreements = [
+        (key, href, nav[key])
+        for key, (_, href) in _palette().items()
+        if key in nav and nav[key] != href
+    ]
+    assert disagreements == [], (
+        "palette and navigation disagree on where a shortcut goes "
+        f"(key, palette, nav): {disagreements}"
+    )
+
+
+def test_every_palette_destination_resolves() -> None:
+    dead = [
+        (key, href)
+        for key, (_, href) in _palette().items()
+        if not (APP / href.lstrip("/") / "page.tsx").is_file()
+    ]
+    assert dead == [], f"palette entries pointing at no page: {dead}"
+
+
+def test_the_palette_names_a_shortcut_that_exists() -> None:
+    """A hint promising `g s` when nothing handles `g s` teaches a wrong key."""
+    nav = _goto()
+    unwired = sorted(key for key in _palette() if key not in nav)
+    assert unwired == [], f"palette hints for unwired shortcuts: {unwired}"

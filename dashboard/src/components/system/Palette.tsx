@@ -96,7 +96,7 @@ export default function Palette() {
     })
     return [
       go('Go to Command', '/terminal/command', 'g c'),
-      go('Go to Securities', '/terminal/analyze', 'g s'),
+      go('Go to Securities', '/terminal/security', 'g s'),
       go('Go to Factors', '/terminal/factorlab', 'g f'),
       go('Go to Signals', '/terminal/signals', 'g g'),
       go('Go to Models', '/terminal/lab', 'g m'),
