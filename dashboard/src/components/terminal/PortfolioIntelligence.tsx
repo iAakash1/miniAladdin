@@ -192,11 +192,39 @@ const TONE_MAP: Record<string, StatusTone> = {
  *
  *  Scaled to the largest row rather than to 100%: a ten-name book has no row
  *  above 30%, and bars that never leave their first third convey nothing. */
-function WeightBar({ pct, max, tone = 'accent' }: { pct: number; max: number; tone?: string }) {
-  const ratio = max > 0 ? Math.min(1, pct / max) : 0
+/**
+ * A bar can only draw a number it has.
+ *
+ * An unmeasured share used to arrive here as zero, which drew an empty bar —
+ * and an empty bar in a list of contributions reads as "this position moved
+ * nothing", which is a measurement. It is not the same claim as "we do not
+ * know what this position contributed", and the second must not be able to
+ * masquerade as the first.
+ *
+ * An unknown share draws a hatched track instead of a fill, and says so to a
+ * screen reader.
+ */
+function WeightBar({ pct, max, tone = 'accent' }: {
+  pct: number | null | undefined
+  max: number | null | undefined
+  tone?: string
+}) {
+  const known = typeof pct === 'number' && Number.isFinite(pct)
+  const scale = typeof max === 'number' && Number.isFinite(max) && max > 0 ? max : null
+
+  if (!known || scale === null) {
+    return (
+      <span
+        className="pf-bar pf-bar--unknown"
+        role="img"
+        aria-label={known ? 'share not comparable: no scale' : 'share not measured'}
+        title={known ? 'No comparable scale for this row.' : 'This share was not measured.'}
+      />
+    )
+  }
   return (
     <span className={`pf-bar pf-bar--${tone}`}>
-      <span className="pf-bar__fill" style={{ transform: `scaleX(${ratio})` }} />
+      <span className="pf-bar__fill" style={{ transform: `scaleX(${Math.min(1, pct / scale)})` }} />
     </span>
   )
 }
@@ -586,8 +614,8 @@ export default function PortfolioIntelligence() {
                   <CompanyMark ticker={c.ticker} size={18} />
                   <span className="mono pf__row-name">{c.ticker}</span>
                   <WeightBar
-                    pct={c.share_of_movement_pct ?? 0}
-                    max={data.contributions?.[0]?.share_of_movement_pct ?? 100}
+                    pct={c.share_of_movement_pct}
+                    max={data.contributions?.[0]?.share_of_movement_pct}
                     tone={c.pnl >= 0 ? 'accent' : 'neg'}
                   />
                   <span className={`num pf__row-val pf__bench-val--${toneOf(c.pnl)}`}>

@@ -220,7 +220,7 @@ export default function SignalLab() {
 
           <Panel
             title="Deflated Sharpe"
-            state={dsr?.significant ? 'candidate' : 'blocked'}
+            state={dsr ? (dsr.significant ? 'candidate' : 'blocked') : 'unavailable'}
           >
             {dsr ? (
               <table className="sys-table sys-table--compact">

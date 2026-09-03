@@ -110,7 +110,7 @@ export default function ResearchContext({ experiment = 'EXP-006' }: { experiment
       <Panel
         title="Universe"
         subtitle={universe?.name}
-        state={universe?.point_in_time ? 'recorded' : 'blocked'}
+        state={universe?.point_in_time === undefined ? 'unavailable' : universe.point_in_time ? 'recorded' : 'blocked'}
       >
         <table className="sys-table sys-table--compact">
           <tbody>
@@ -122,7 +122,7 @@ export default function ResearchContext({ experiment = 'EXP-006' }: { experiment
             <tr>
               <td>Point in time</td>
               <td className="num">
-                <Status state={universe?.point_in_time ? 'recorded' : 'blocked'} label={String(universe?.point_in_time ?? 'unknown')} />
+                <Status state={universe?.point_in_time === undefined ? 'unavailable' : universe.point_in_time ? 'recorded' : 'blocked'} label={String(universe?.point_in_time ?? 'unknown')} />
               </td>
             </tr>
           </tbody>

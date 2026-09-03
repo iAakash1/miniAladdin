@@ -17,16 +17,37 @@ interface Row { model_id: string; label: string; status?: string }
 
 export default function ChainPicker({ label, model }: { label: string; model: string }) {
   const router = useRouter()
-  const [rows, setRows] = useState<Row[] | null>(null)
+  /**
+   * Three states, deliberately not two.
+   *
+   * A registry that could not be read and a registry holding nothing are
+   * different facts, and collapsing both to an empty array makes the second
+   * message a lie whenever the first is what happened — or the reverse. The
+   * third case is a response that arrived without a leaderboard at all, which
+   * is a malformed payload rather than an empty one.
+   */
+  const [state, setState] = useState<
+    | { status: 'reading' }
+    | { status: 'ready'; rows: Row[] }
+    | { status: 'malformed' }
+    | { status: 'failed'; detail: string }
+  >({ status: 'reading' })
 
   useEffect(() => {
     let alive = true
     fetch('/api/ml/registry')
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((d: { leaderboard?: Row[] }) => { if (alive) setRows(d.leaderboard ?? []) })
-      .catch(() => { if (alive) setRows([]) })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`the registry request returned ${r.status}`))))
+      .then((d: { leaderboard?: Row[] }) => {
+        if (!alive) return
+        setState(Array.isArray(d.leaderboard)
+          ? { status: 'ready', rows: d.leaderboard }
+          : { status: 'malformed' })
+      })
+      .catch((e: Error) => { if (alive) setState({ status: 'failed', detail: e.message }) })
     return () => { alive = false }
   }, [])
+
+  const rows = state.status === 'ready' ? state.rows : null
 
   const labels = useMemo(() => [...new Set((rows ?? []).map((r) => r.label))].sort(), [rows])
   const models = useMemo(
@@ -68,9 +89,21 @@ export default function ChainPicker({ label, model }: { label: string; model: st
         ) : null
       }
     >
-      {rows === null ? (
+      {state.status === 'reading' ? (
         <span className="sys-meta">reading the registry…</span>
-      ) : rows.length ? (
+      ) : state.status === 'failed' ? (
+        <StateBlock
+          state="unavailable"
+          title="The registry could not be read"
+          detail={`${state.detail}. The chain below still loads for the address given; only the picker is unavailable.`}
+        />
+      ) : state.status === 'malformed' ? (
+        <StateBlock
+          state="unavailable"
+          title="The registry responded without a leaderboard"
+          detail="The response arrived but did not carry the field this picker reads. That is a different failure from an empty registry, and no list is shown in its place."
+        />
+      ) : rows?.length ? (
         <p style={{ margin: 0, fontSize: 'var(--t-meta)', color: 'var(--ink-muted)', lineHeight: 'var(--lh-body)', maxWidth: '86ch' }}>
           {models.length} models are registered against {label}. The chain below is
           reconstructed from the artifact each one recorded, so a model with no
@@ -78,9 +111,9 @@ export default function ChainPicker({ label, model }: { label: string; model: st
         </p>
       ) : (
         <StateBlock
-          state="unavailable"
-          title="The registry could not be read"
-          detail="The chain below still loads for the address given; only the picker is unavailable."
+          state="recorded"
+          title="No models are registered"
+          detail="The registry was read and holds no entries. That is a measured emptiness, not a failure to look."
         />
       )}
     </Panel>

@@ -199,7 +199,7 @@ export default function ModelWorkbench() {
       <RegimePerformance byModel={regimes} />
 
       <Grid>
-        <Panel title="Guards" state={guards?.passed ? 'recorded' : 'blocked'} flush>
+        <Panel title="Guards" state={guards ? (guards.passed ? 'recorded' : 'blocked') : 'unavailable'} flush>
           {guards?.checks?.length ? (
             <table className="sys-table sys-table--compact">
               <thead><tr><th>Check</th><th>Result</th><th>Detail</th></tr></thead>

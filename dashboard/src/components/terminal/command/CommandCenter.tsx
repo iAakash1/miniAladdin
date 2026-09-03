@@ -105,6 +105,42 @@ export default function CommandCenter() {
   const deployState: ResearchState =
     deployment === 'NO_MODEL' ? 'unavailable' : deployment === 'SERVING' ? 'production' : 'unknown'
 
+  /**
+   * The verdict state, which must not be asserted from an absent fetch.
+   *
+   * `passed ? candidate : blocked` reads a missing selection as blocked. That
+   * is the right answer today and would still be printed on a day it was
+   * wrong — a verdict inferred from a failed request is not a verdict, and a
+   * panel that cannot tell "the gates rejected this" from "the gates could not
+   * be read" is a panel that will eventually say the first while meaning the
+   * second.
+   */
+  const verdictState: ResearchState =
+    selection?.verdict ? (selection.verdict.passed ? 'candidate' : 'blocked') : 'unavailable'
+
+  /**
+   * The firewall reads `contract_state`, not `contract_armed`.
+   *
+   * A false `contract_armed` means either "confirmed not armed" or "the
+   * contract could not be read", and those are not the same fact. The payload
+   * carries a three-valued `contract_state` for exactly this reason, and a
+   * holdout must never be described more confidently than it is known.
+   */
+  const firewall = status?.firewall?.contract_state
+  const firewallState: ResearchState =
+    firewall === 'ARMED' ? 'production'
+      : firewall === 'NOT_ARMED' ? 'blocked'
+        : 'unavailable'
+
+  /**
+   * A holdout that has not been touched is sealed, which is the good state. An
+   * unread holdout is neither — and rendering it as sealed is the single most
+   * flattering error this panel could make.
+   */
+  const holdoutTouched = selection?.holdout?.touched
+  const holdoutState: ResearchState =
+    holdoutTouched === undefined ? 'unavailable' : holdoutTouched ? 'unavailable' : 'blocked'
+
   return (
     <>
       {/* Blockers first. A headline figure above the reason it does not count
@@ -112,7 +148,7 @@ export default function CommandCenter() {
       <Panel
         title="Why nothing is promoted"
         subtitle={selection?.experiment ?? 'EXP-007'}
-        state={selection?.verdict?.passed ? 'candidate' : 'blocked'}
+        state={verdictState}
       >
         {selection?.verdict ? (
           <>
@@ -156,7 +192,7 @@ export default function CommandCenter() {
         glyph="⌘"
         name="Command"
         kind="what deserves attention"
-        state={selection?.verdict?.passed ? 'candidate' : 'blocked'}
+        state={verdictState}
         detail={selection?.verdict?.status ?? deployment}
         facts={[
           { label: 'Production', value: status?.production ?? null, digits: 0 },
@@ -192,7 +228,7 @@ export default function CommandCenter() {
 
         <Panel
           title="Firewall"
-          state={status?.firewall?.contract_armed ? 'production' : 'blocked'}
+          state={firewallState}
         >
           <table className="sys-table sys-table--compact">
             <tbody>
@@ -207,14 +243,17 @@ export default function CommandCenter() {
           ) : null}
         </Panel>
 
-        <Panel title="Holdout" state={selection?.holdout?.touched ? 'unavailable' : 'blocked'}>
+        <Panel title="Holdout" state={holdoutState}>
           <table className="sys-table sys-table--compact">
             <tbody>
               <tr><td>Touched</td><td className="num">{selection?.holdout?.touched === undefined ? '—' : String(selection.holdout.touched)}</td></tr>
             </tbody>
           </table>
           <p style={{ margin: 'var(--d-2) 0 0', fontSize: 'var(--t-meta)', color: 'var(--ink-muted)', lineHeight: 'var(--lh-body)' }}>
-            {selection?.holdout?.note ?? 'A sealed holdout is spent once. Until it is, no result measured on it exists.'}
+            {selection?.holdout?.note
+              ?? (holdoutTouched === undefined
+                ? 'The holdout state could not be read. It is not described as sealed on the strength of a failed request.'
+                : 'A sealed holdout is spent once. Until it is, no result measured on it exists.')}
           </p>
         </Panel>
       </Grid>

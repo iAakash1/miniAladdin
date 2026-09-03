@@ -4255,6 +4255,18 @@ a.hl-row:hover .hl-row__out { color: var(--accent); transform: translate(1px, -1
   transition: transform 300ms var(--ease-out);
 }
 .pf-bar--neg .pf-bar__fill { background: var(--neg); }
+
+/* An unmeasured share. Hatching rather than an empty track, because an empty
+   track is indistinguishable from a measured zero and the two are different
+   claims — "contributed nothing" against "we did not measure this". */
+.pf-bar--unknown {
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--faint) 0 1px,
+    transparent 1px 5px
+  );
+  opacity: 0.5;
+}
 @media (prefers-reduced-motion: reduce) { .pf-bar__fill { transition: none; } }
 
 /* Verdict mix: one bar segmented by capital share. Flex-grow carries the
