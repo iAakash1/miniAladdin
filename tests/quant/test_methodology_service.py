@@ -11,13 +11,27 @@ from src.quant.risk.engine import METHODOLOGY, MIN_OBSERVATIONS, RETURN_ONLY_MET
 from src.services.methodology_service import NOTES, handbook
 
 
-def test_every_reported_measure_appears() -> None:
-    names = {e["name"] for e in handbook()["entries"]}
+def test_every_engine_measure_appears() -> None:
+    names = {e["name"] for e in handbook()["entries"] if e["source"] == "risk_engine"}
     assert names == set(METHODOLOGY)
+
+
+def test_research_statistics_appear_and_are_flagged() -> None:
+    """The engine does not own IC, DSR, PBO or turnover, but the product
+    reports them — and a reader clicking one must not reach an empty
+    definition. They carry a source so it is clear which table defined them."""
+    from src.services.methodology_service import RESEARCH
+
+    entries = {e["name"]: e for e in handbook()["entries"]}
+    for name in RESEARCH:
+        assert name in entries, name
+        assert entries[name]["source"] == "research"
 
 
 def test_units_are_read_from_the_engine_not_restated() -> None:
     for entry in handbook()["entries"]:
+        if entry["source"] != "risk_engine":
+            continue
         unit, annualisation, inputs = METHODOLOGY[entry["name"]]
         assert entry["unit"] == unit.value
         assert entry["annualisation"] == annualisation.value
@@ -26,6 +40,8 @@ def test_units_are_read_from_the_engine_not_restated() -> None:
 
 def test_applicability_matches_the_engine_rule() -> None:
     for entry in handbook()["entries"]:
+        if entry["source"] != "risk_engine":
+            continue
         assert entry["return_units_required"] == (entry["name"] in RETURN_ONLY_METRICS)
 
 
@@ -48,8 +64,11 @@ def test_every_measure_states_its_purpose() -> None:
 
 def test_authored_prose_is_flagged_as_authored() -> None:
     """A reader must be able to tell derived fields from written ones."""
+    from src.services.methodology_service import RESEARCH
+
     for entry in handbook()["entries"]:
-        assert entry["documented"] is (entry["name"] in NOTES)
+        expected = entry["name"] in NOTES or entry["name"] in RESEARCH
+        assert entry["documented"] is expected
 
 
 def test_notes_do_not_describe_measures_the_engine_does_not_report() -> None:

@@ -153,8 +153,8 @@ export default function FactorWorkbench() {
       ),
     },
     { key: 'f', header: 'Factor', width: '18%', sort: (f) => f.factor, text: (f) => f.factor, render: (f) => <span style={{ fontFamily: 'var(--font-mono)' }}>{f.factor}</span> },
-    { key: 'ic', header: 'Mean IC', unit: 'rank corr.', numeric: true, sort: (f) => f.mean_ic, render: (f) => <Value value={f.mean_ic} digits={4} signed tone /> },
-    { key: 't', header: 'IC t-stat', unit: 'Newey-West', numeric: true, sort: (f) => f.t_stat, render: (f) => <Value value={f.t_stat} digits={2} signed /> },
+    { key: 'ic', header: 'Mean IC', unit: 'rank corr.', numeric: true, sort: (f) => f.mean_ic, render: (f) => <Value measure="mean_ic" value={f.mean_ic} digits={4} signed tone /> },
+    { key: 't', header: 'IC t-stat', unit: 'Newey-West', numeric: true, sort: (f) => f.t_stat, render: (f) => <Value measure="ic_t_stat" value={f.t_stat} digits={2} signed /> },
     { key: 'nt', header: 'Naive t', unit: 'uncorrected', numeric: true, sort: (f) => f.naive_t_stat, render: (f) => <Value value={f.naive_t_stat} digits={2} signed title="Before correcting for label overlap" /> },
     {
       key: 'inf', header: 'Overlap inflation', unit: '×', numeric: true, sort: (f) => f.overlap_inflation,

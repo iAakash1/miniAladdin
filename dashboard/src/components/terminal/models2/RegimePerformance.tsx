@@ -62,13 +62,13 @@ export default function RegimePerformance({
     {
       key: 'ic', header: 'Mean IC', unit: 'rank corr.', numeric: true, sort: (r) => n(r.mean_ic),
       render: (r) => (
-        <Value
+        <Value measure="mean_ic"
           value={n(r.mean_ic)} digits={5} signed tone
           title={r.mean_ic === null || r.mean_ic === undefined ? 'Not computed: too few dated observations in this regime' : undefined}
         />
       ),
     },
-    { key: 't', header: 'IC t', unit: 'Newey-West', numeric: true, sort: (r) => n(r.ic_t_stat), render: (r) => <Value value={n(r.ic_t_stat)} digits={3} signed /> },
+    { key: 't', header: 'IC t', unit: 'Newey-West', numeric: true, sort: (r) => n(r.ic_t_stat), render: (r) => <Value measure="ic_t_stat" value={n(r.ic_t_stat)} digits={3} signed /> },
     { key: 'hit', header: 'IC hit rate', unit: 'share', numeric: true, optional: true, sort: (r) => n(r.ic_hit_rate), render: (r) => <Value value={n(r.ic_hit_rate)} digits={3} /> },
     { key: 'edge', header: 'Directional edge', unit: 'share above 0.5', numeric: true, optional: true, sort: (r) => n(r.directional_edge), render: (r) => <Value value={n(r.directional_edge)} digits={4} signed tone /> },
     {
