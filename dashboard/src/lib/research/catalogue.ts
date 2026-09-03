@@ -50,10 +50,14 @@ export async function loadCatalogue(force = false): Promise<Catalogue> {
   inflight = (async () => {
     const groups = await Promise.all([
       collect('features', async () => {
-        const d = await json<{ features: { name: string; group?: string; point_in_time_safe?: boolean }[] }>('/api/ml/features')
+        const d = await json<{
+          features: { name: string; group?: string; point_in_time_safe?: boolean; lookback_sessions?: number | null }[]
+        }>('/api/ml/features')
         return (d.features ?? []).map((f) => ({
           kind: 'feature' as const, id: f.name, label: f.name,
-          detail: f.group, state: f.point_in_time_safe ? 'recorded' : 'blocked',
+          detail: [f.group, f.lookback_sessions ? `${f.lookback_sessions}d lookback` : null]
+            .filter(Boolean).join(' · ') || undefined,
+          state: f.point_in_time_safe ? 'recorded' : 'blocked',
         }))
       }, failed),
 
@@ -61,18 +65,33 @@ export async function loadCatalogue(force = false): Promise<Catalogue> {
         const d = await json<{ datasets: { dataset_id: string; source?: string; point_in_time?: string }[] }>('/api/ml/datasets')
         return (d.datasets ?? []).map((s) => ({
           kind: 'dataset' as const, id: s.dataset_id, label: s.dataset_id,
-          detail: s.source, state: 'recorded',
+          detail: [s.source, s.point_in_time].filter(Boolean).join(' · ') || undefined,
+          state: 'recorded',
         }))
       }, failed),
 
       collect('models', async () => {
-        const d = await json<{ leaderboard: { model_id: string; label?: string; status?: string }[] }>('/api/ml/registry')
+        const d = await json<{
+          leaderboard: {
+            model_id: string; label?: string; status?: string
+            mean_ic?: number | null; ic_t_stat?: number | null; net_sharpe?: number | null
+          }[]
+        }>('/api/ml/registry')
         const seen = new Set<string>()
         const out: ResearchObject[] = []
         for (const m of d.leaderboard ?? []) {
           if (seen.has(m.model_id)) continue
           seen.add(m.model_id)
-          out.push({ kind: 'model', id: m.model_id, label: m.model_id, detail: m.label, state: m.status })
+          // The headline figure travels with the result, so choosing between
+          // two models in the palette does not require opening both.
+          const ic = typeof m.mean_ic === 'number' && Number.isFinite(m.mean_ic)
+            ? `IC ${m.mean_ic >= 0 ? '+' : ''}${m.mean_ic.toFixed(4)}`
+            : null
+          out.push({
+            kind: 'model', id: m.model_id, label: m.model_id,
+            detail: [m.label, ic].filter(Boolean).join(' · ') || undefined,
+            state: m.status,
+          })
         }
         return out
       }, failed),
@@ -86,9 +105,12 @@ export async function loadCatalogue(force = false): Promise<Catalogue> {
       }, failed),
 
       collect('methodology', async () => {
-        const d = await json<{ entries: { name: string; unit?: string }[] }>('/api/quant/methodology')
+        const d = await json<{ entries: { name: string; unit?: string; annualisation?: string }[] }>('/api/quant/methodology')
         return (d.entries ?? []).map((m) => ({
-          kind: 'method' as const, id: m.name, label: m.name, detail: m.unit, state: 'recorded',
+          kind: 'method' as const, id: m.name, label: m.name,
+          detail: [m.unit, m.annualisation && m.annualisation !== 'none' ? m.annualisation.replace(/_/g, ' ') : null]
+            .filter(Boolean).join(' · ') || undefined,
+          state: 'recorded',
         }))
       }, failed),
 

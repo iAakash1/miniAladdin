@@ -18,6 +18,14 @@ import { useRouter } from 'next/navigation'
 import { loadCatalogue } from '@/lib/research/catalogue'
 import { recordVisit, usePinnedObjects, useRecentObjects } from '@/lib/research/history'
 import { KIND_ORDER, KINDS, href as objectHref, score, type ObjectKind, type ResearchObject } from '@/lib/research/objects'
+import { Status, type ResearchState } from './index'
+
+const STATE_MAP: Record<string, ResearchState> = {
+  live: 'live', recorded: 'recorded', stale: 'stale', waking: 'waking',
+  unavailable: 'unavailable', blocked: 'blocked', experimental: 'experimental',
+  production_candidate: 'candidate', validated: 'candidate',
+  production: 'production', retired: 'unavailable',
+}
 
 interface Command {
   id: string
@@ -254,6 +262,7 @@ export default function Palette() {
               )
             }
             const meta = KINDS[row.value.kind]
+            const state = row.value.state ? STATE_MAP[row.value.state] : undefined
             return (
               <button
                 key={row.key}
@@ -264,6 +273,9 @@ export default function Palette() {
                 <span className="pal-badge" aria-hidden>{meta.glyph}</span>
                 <span className="pal-label">{row.value.label}</span>
                 {row.value.detail ? <span className="pal-detail">{row.value.detail}</span> : null}
+                {/* State travels with the result. Choosing between a recorded
+                    model and a retired one should not need opening both. */}
+                {state ? <Status state={state} label={row.value.state} /> : null}
                 <span className="pal-hint">{meta.workspace}</span>
               </button>
             )
