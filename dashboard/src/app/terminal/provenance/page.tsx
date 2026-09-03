@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 
 import Workbench from '@/components/system/Workbench'
+import ChainPicker from '@/components/terminal/provenance/ChainPicker'
 import Lineage from '@/components/terminal/provenance/Lineage'
 import { Panel } from '@/components/system'
 
@@ -50,6 +51,7 @@ export default async function ProvenancePage({
         </>
       }
     >
+      <ChainPicker label={label} model={model} />
       <Lineage label={label} model={model} />
     </Workbench>
   )

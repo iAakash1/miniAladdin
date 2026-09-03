@@ -15,7 +15,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 
-import { DrawdownChart, Histogram, TimeSeries } from '@/components/system/charts'
+import { BarRows, DrawdownChart, Histogram, TimeSeries } from '@/components/system/charts'
 import { Panel, Section, StateBlock, Strip, Value } from '@/components/system'
 
 interface Period {
@@ -68,6 +68,47 @@ export default function SpreadCurve({ experiment, model }: { experiment: string;
     const take = window_ === '1y' ? perYear : perYear * 3
     return all.slice(-take)
   }, [curve, window_])
+
+  // Cost as a share of the gross earned so far, walked forward. A single
+  // total hides whether friction is eating a stable fraction or a growing one.
+  const costShare = useMemo(() => {
+    // Built by folding rather than by mutating accumulators, so the memo has no
+    // state that could survive a render and drift.
+    return periods.reduce<{ points: { x: string; y: number | null }[]; gross: number; cost: number }>(
+      (acc, p) => {
+        const gross = acc.gross + p.gross_period
+        const cost = acc.cost + p.cost
+        // Undefined until cumulative gross turns positive: a share of a loss is
+        // not a cost share, it is the same sign error the backtest summary had.
+        acc.points.push({ x: p.date, y: gross > 1e-9 ? cost / gross : null })
+        return { points: acc.points, gross, cost }
+      },
+      { points: [], gross: 0, cost: 0 },
+    ).points
+  }, [periods])
+
+  // Dispersion over one rebalance year, so a quiet stretch and a violent one
+  // are distinguishable on a curve that only shows their sum.
+  const rollingDispersion = useMemo(() => {
+    const w = 52
+    if (periods.length < w) return []
+    return periods.map((p, i) => {
+      if (i + 1 < w) return { x: p.date, y: null }
+      const slice = periods.slice(i + 1 - w, i + 1).map((q) => q.net_period)
+      const mean = slice.reduce((s, v) => s + v, 0) / w
+      const variance = slice.reduce((s, v) => s + (v - mean) ** 2, 0) / (w - 1)
+      return { x: p.date, y: Math.sqrt(variance) }
+    })
+  }, [periods])
+
+  const byYear = useMemo(() => {
+    const map = periods.reduce<Map<string, number>>((acc, p) => {
+      const y = p.date.slice(0, 4)
+      acc.set(y, (acc.get(y) ?? 0) + p.net_period)
+      return acc
+    }, new Map())
+    return [...map.entries()].sort()
+  }, [periods])
 
   if (error) {
     return <Panel title="Spread curve" state="unavailable"><StateBlock state="unavailable" title="The series could not be read" detail={`Request failed: ${error}.`} /></Panel>
@@ -157,6 +198,54 @@ export default function SpreadCurve({ experiment, model }: { experiment: string;
             unit="rank points per rebalance"
             height={150}
           />
+        </Panel>
+      </div>
+
+      <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))' }}>
+        <Panel title="Cost share of gross" subtitle="cumulative, walked forward">
+          <TimeSeries
+            series={[{ name: 'cost share', points: costShare, color: 'var(--e-neg)' }]}
+            unit="cumulative cost over cumulative gross"
+            method="both accumulated additively in rank points"
+            height={160}
+          />
+          <p style={{ margin: 'var(--d-2) 0 0', fontSize: 'var(--t-meta)', color: 'var(--ink-muted)', lineHeight: 'var(--lh-body)' }}>
+            A single total hides whether friction is eating a stable fraction of
+            the edge or a growing one. It is undefined wherever cumulative gross
+            has not yet turned positive, and it is left blank there rather than
+            plotted against a negative denominator.
+          </p>
+        </Panel>
+
+        <Panel title="Rolling dispersion" subtitle="52 rebalances">
+          {rollingDispersion.length ? (
+            <>
+              <TimeSeries
+                series={[{ name: 'dispersion', points: rollingDispersion, color: 'var(--ink)' }]}
+                unit="standard deviation of the per-period spread"
+                height={160}
+              />
+              <p style={{ margin: 'var(--d-2) 0 0', fontSize: 'var(--t-meta)', color: 'var(--ink-muted)', lineHeight: 'var(--lh-body)' }}>
+                A cumulative curve shows the sum and not the ride. Two stretches
+                reaching the same level through very different volatility look
+                identical above and are separated here.
+              </p>
+            </>
+          ) : (
+            <StateBlock state="unavailable" title="Too few periods for a rolling window" detail="Fewer than 52 rebalances are recorded, so no window is drawn." />
+          )}
+        </Panel>
+
+        <Panel title="By year" subtitle="net spread accumulated per calendar year">
+          <BarRows
+            unit="rank points"
+            rows={byYear.map(([year, value]) => ({ label: year, value }))}
+          />
+          <p style={{ margin: 'var(--d-2) 0 0', fontSize: 'var(--t-meta)', color: 'var(--ink-muted)', lineHeight: 'var(--lh-body)' }}>
+            The first and last years are usually partial. They are shown as
+            recorded rather than annualised, since scaling a partial year to a
+            full one invents observations that were never made.
+          </p>
         </Panel>
       </div>
 
