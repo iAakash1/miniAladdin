@@ -48,6 +48,21 @@ export interface CompareSubject {
   label: string
   detail?: string
   data: Record<string, unknown>
+  /**
+   * What the subject's numbers are measured against — its prediction target,
+   * its horizon, its units. Two subjects with different bases are not
+   * comparable, however identically their fields are named.
+   *
+   * A mean IC against `fwd_rank_21` is a rank correlation over a 21-session
+   * cross-sectional rank. A mean IC against `fwd_ret_21` is a correlation with
+   * a return. Both are "mean_ic", both are dimensionless, and subtracting one
+   * from the other produces a number with no meaning whatsoever — which will
+   * nonetheless be rendered in green if it happens to be positive.
+   *
+   * Leave it undefined and every subject is assumed commensurable, which is
+   * correct when a caller is comparing like with like by construction.
+   */
+  basis?: string
 }
 
 type Outcome = 'better' | 'worse' | 'same' | 'incomparable'
@@ -93,12 +108,29 @@ export function Compare({
         <thead>
           <tr>
             <th style={{ position: 'sticky', left: 0, zIndex: 3, background: 'var(--p-sunken)', minWidth: 150 }}>Metric</th>
-            {subjects.map((s) => (
-              <th key={s.id} className="num" style={{ minWidth: 118 }}>
-                {s.label}
-                {s.id === baseline.id ? <span className="unit">baseline</span> : s.detail ? <span className="unit">{s.detail}</span> : null}
-              </th>
-            ))}
+            {subjects.map((s) => {
+              // Incomparability is a property of the column, not of each row in
+              // it. Saying so once in the header beats repeating it against
+              // every metric, which is a phrase a reader stops seeing by the
+              // third line and a table that then looks merely broken.
+              const off = s.id !== baseline.id
+                && s.basis !== undefined && baseline.basis !== undefined
+                && s.basis !== baseline.basis
+              return (
+                <th key={s.id} className="num" style={{ minWidth: 118 }} data-incomparable={off ? '' : undefined}>
+                  {s.label}
+                  {s.id === baseline.id ? <span className="unit">baseline</span> : s.detail ? <span className="unit">{s.detail}</span> : null}
+                  {off ? (
+                    <span
+                      className="unit sys-incomparable"
+                      title={`Measured against ${s.basis}; the baseline is measured against ${baseline.basis}. The two are not on one scale, so no differences are shown in this column.`}
+                    >
+                      not comparable with the baseline
+                    </span>
+                  ) : null}
+                </th>
+              )
+            })}
           </tr>
         </thead>
         <tbody>
@@ -124,15 +156,22 @@ export function Compare({
                     {subjects.map((s) => {
                       const v = f.value(s.data)
                       const isBase = s.id === baseline.id
-                      const o = isBase ? 'same' : outcome(v, base, f.direction ?? 'none')
-                      const delta = v !== null && base !== null && !isBase ? v - base : null
+                      // A subject measured against a different target is not
+                      // comparable to the baseline, so no delta is formed and
+                      // no better/worse verdict is claimed.
+                      const commensurable =
+                        s.basis === undefined || baseline.basis === undefined || s.basis === baseline.basis
+                      const o = isBase || !commensurable ? 'same' : outcome(v, base, f.direction ?? 'none')
+                      const delta = commensurable && v !== null && base !== null && !isBase ? v - base : null
                       const cls = o === 'better' ? 'sys-pos' : o === 'worse' ? 'sys-neg' : ''
                       return (
                         <td key={s.id} className="num">
                           <span className={cls}>
                             {f.display ? f.display(s.data) : fmt(v, f.kind, f.digits)}
                           </span>
-                          {delta !== null ? (
+                          {/* No delta and no verdict; the column header says
+                              why, once. */}
+                          {!isBase && !commensurable ? null : delta !== null ? (
                             <span
                               className="sys-meta"
                               style={{ marginLeft: 5, color: o === 'better' ? 'var(--e-pos)' : o === 'worse' ? 'var(--e-neg)' : 'var(--ink-faint)' }}

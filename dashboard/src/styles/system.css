@@ -1672,3 +1672,10 @@ tr[data-selected='true'] .sys-row-actions { opacity: 1; }
   white-space: nowrap;
   border: 0;
 }
+
+/* A comparison column measured against a different basis. Stated once in the
+   header rather than against every row: a phrase repeated down a table is one
+   a reader stops seeing by the third line, and the table then looks broken
+   rather than careful. */
+.sys-incomparable { color: var(--s-blocked); }
+.sys-table th[data-incomparable] { border-bottom-color: var(--s-blocked); }

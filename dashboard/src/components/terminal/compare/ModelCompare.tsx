@@ -93,7 +93,18 @@ export default function ModelCompare() {
   const subjects: CompareSubject[] = picked
     .map((k) => rows.find((r) => r.key === k))
     .filter((r): r is Row => Boolean(r))
-    .map((r) => ({ id: r.key, label: r.model_id, detail: r.label, data: r as unknown as Record<string, unknown> }))
+    // The label is the prediction target, and it is the basis these numbers
+    // are measured against. A mean IC against fwd_rank_21 and one against
+    // fwd_ret_21 are both dimensionless and both called "mean_ic"; subtracting
+    // one from the other gives a number with no meaning, which would still be
+    // painted green whenever it came out positive.
+    .map((r) => ({
+      id: r.key,
+      label: r.model_id,
+      detail: r.label,
+      basis: r.label,
+      data: r as unknown as Record<string, unknown>,
+    }))
 
   return (
     <>
