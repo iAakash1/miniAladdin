@@ -19,10 +19,11 @@
  * think to doubt.
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { Status } from '@/components/system'
 import type { ResearchState } from '@/components/system'
+import { failed, observed, staleNote, type Observed } from '@/lib/observation'
 
 interface Status {
   deployment_status?: string
@@ -36,29 +37,49 @@ interface Status {
 type Fact = { label: string; state: ResearchState; detail: string }
 
 export default function SystemRail() {
-  const [state, setState] = useState<
-    { status: 'reading' } | { status: 'ready'; data: Status } | { status: 'unavailable' }
-  >({ status: 'reading' })
+  const [reading, setReading] = useState(true)
+  const [obs, setObs] = useState<Observed<Status> | null>(null)
+  // The last success survives a failure so the rail can say what it last saw.
+  // Held in a ref as well as state because the failure handler needs the
+  // previous value without re-running on every change of it.
+  const last = useRef<Observed<Status> | null>(null)
 
   useEffect(() => {
     let alive = true
-    fetch('/api/quant/status')
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((d: Status) => { if (alive) setState({ status: 'ready', data: d }) })
-      .catch(() => { if (alive) setState({ status: 'unavailable' }) })
-    return () => { alive = false }
+    const read = () => {
+      fetch('/api/quant/status')
+        .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`the status request returned ${r.status}`))))
+        .then((d: Status) => {
+          if (!alive) return
+          const next = observed(d)
+          last.current = next
+          setObs(next)
+          setReading(false)
+        })
+        .catch((e: Error) => {
+          if (!alive) return
+          setObs(failed(last.current, e.message))
+          setReading(false)
+        })
+    }
+    read()
+    // Re-read periodically so a recovered backend returns the rail to a
+    // current reading rather than leaving a remembered one on screen for the
+    // rest of the session.
+    const timer = window.setInterval(read, 30_000)
+    return () => { alive = false; window.clearInterval(timer) }
   }, [])
 
   const facts: Fact[] = (() => {
-    if (state.status === 'reading') {
+    if (reading || obs === null) {
       return [
         { label: 'Production', state: 'waking', detail: 'reading' },
         { label: 'Holdout', state: 'waking', detail: 'reading' },
         { label: 'Registry', state: 'waking', detail: 'reading' },
       ]
     }
-    if (state.status === 'unavailable') {
-      // Not "none armed", not "sealed", not a count. Three honest unknowns.
+    if (obs.state === 'unavailable') {
+      // Nothing was ever read. Not "none armed", not "sealed", not a count.
       return [
         { label: 'Production', state: 'unavailable', detail: 'cannot be read' },
         { label: 'Holdout', state: 'unavailable', detail: 'cannot be read' },
@@ -66,7 +87,22 @@ export default function SystemRail() {
       ]
     }
 
-    const d = state.data
+    if (obs.state === 'last-observed' && obs.value !== null) {
+      // A remembered reading, labelled as one. It carries the time it was read
+      // — not the time the request failed — and every entry says "last seen",
+      // so a stale figure cannot be mistaken for a live one.
+      const p = obs.value.production
+      const t = obs.value.holdout?.touched
+      const n = obs.value.total_entries
+      const note = (render: string) => staleNote(obs, () => render) ?? 'last seen'
+      return [
+        { label: 'Production', state: 'stale', detail: note(p ? `${p} armed` : 'none armed') },
+        { label: 'Holdout', state: 'stale', detail: note(t ? 'spent' : 'sealed') },
+        { label: 'Registry', state: 'stale', detail: note(n === null || n === undefined ? 'unread' : `${n} entries`) },
+      ]
+    }
+
+    const d = obs.value as Status
     const production = d.production
     const armed = d.firewall?.contract_state
     const touched = d.holdout?.touched
