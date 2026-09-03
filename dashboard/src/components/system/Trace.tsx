@@ -125,8 +125,16 @@ export function Trace({ label = 'fwd_rank_21', model = 'gradient_boosting' }: {
     ...(state.entry?.candidate_thresholds_not_met ?? {}),
     ...(state.entry?.thresholds_not_met ?? {}),
   }
-  const unmetNames = Object.keys(unmet)
+  // Measured failures first. A number that missed is the concrete finding; a
+  // gate that was never measured is a gap in the record, and burying the first
+  // under six of the second is how the actionable line gets skipped.
+  const unmetNames = Object.keys(unmet).sort((a, b) => {
+    const am = typeof unmet[a] === 'number' ? 0 : 1
+    const bm = typeof unmet[b] === 'number' ? 0 : 1
+    return am - bm
+  })
   const stopped = unmetNames.length > 0
+  const unmeasured = unmetNames.filter((g) => typeof unmet[g] !== 'number')
 
   return (
     <>
@@ -194,11 +202,15 @@ export function Trace({ label = 'fwd_rank_21', model = 'gradient_boosting' }: {
                         label={measured ? 'FAILED' : 'NOT RECORDED'}
                       />
                     </div>
-                    <p className="sys-trace__detail">
-                      {measured
-                        ? <>Observed <span className="sys-mono">{value}</span>, which does not meet the threshold.</>
-                        : <>No value was recorded. Absent evidence is not passing evidence, so the gate is unmet — but this needs a measurement, not a better model.</>}
-                    </p>
+                    {/* Only a measured failure carries a line of its own. The
+                        unmeasured ones share one explanation below, because
+                        seven copies of the same sentence is a paragraph a
+                        reader stops seeing. */}
+                    {measured ? (
+                      <p className="sys-trace__detail">
+                        Observed <span className="sys-mono">{value}</span>, which does not meet the threshold.
+                      </p>
+                    ) : null}
                   </li>
                 )
               })}
@@ -213,11 +225,20 @@ export function Trace({ label = 'fwd_rank_21', model = 'gradient_boosting' }: {
                 </p>
               </li>
             </ol>
+            {unmeasured.length ? (
+              <Prose caution>
+                {unmeasured.length === 1 ? 'One gate was' : `${unmeasured.length} gates were`}{' '}
+                never measured. Absent evidence is not passing evidence, so
+                {unmeasured.length === 1 ? ' it stays' : ' they stay'} unmet — but
+                {unmeasured.length === 1 ? ' it needs' : ' they need'} a
+                measurement rather than a better model, and treating an unmeasured
+                gate as passed is how an unmeasured model reaches production.
+              </Prose>
+            ) : null}
             <Prose caution>
               A measured failure and an unrecorded one both leave a gate unmet,
-              and they call for different work. The first needs a better model.
-              The second needs a measurement, and treating it as passing is how
-              an unmeasured model reaches production.
+              and they call for opposite work. The first needs a better model.
+              The second needs somebody to run the measurement.
             </Prose>
           </>
         ) : (
