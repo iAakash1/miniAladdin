@@ -13,11 +13,13 @@
  */
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 
 import { Sparkline, TimeSeries } from '@/components/system/charts'
 import { Panel, Section, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
 import { recordVisit } from '@/lib/research/history'
+import Disclosure, { type FilingsBlock, type Headline } from './Disclosure'
 
 interface SymbolView {
   symbol: string
@@ -53,16 +55,20 @@ interface Analysis {
   sentimentScore?: number | null
   sentimentLabel?: string | null
   headlineCount?: number
+  headlines?: Headline[]
+  filings?: FilingsBlock | null
   mode?: string
 }
 
-type Tab = 'overview' | 'market' | 'risk' | 'research' | 'data'
+type Tab = 'overview' | 'market' | 'risk' | 'research' | 'disclosure' | 'relationships' | 'data'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'market', label: 'Market' },
   { id: 'risk', label: 'Risk' },
   { id: 'research', label: 'Research' },
+  { id: 'disclosure', label: 'Disclosure' },
+  { id: 'relationships', label: 'Relationships' },
   { id: 'data', label: 'Data' },
 ]
 
@@ -252,6 +258,23 @@ export default function SecurityWorkspace({ symbol }: { symbol: string }) {
             instruction and not a return. The deployment status is shown beside it
             on every render rather than as a caveat further down the page.
           </p>
+        </Panel>
+      ) : null}
+
+      {tab === 'disclosure' ? (
+        <Disclosure filings={analysis?.filings} headlines={analysis?.headlines} symbol={symbol} />
+      ) : null}
+
+      {tab === 'relationships' ? (
+        <Panel title="Relationships" subtitle="typed, with provider and confidence">
+          <p style={{ margin: '0 0 var(--d-3)', fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)', maxWidth: '84ch' }}>
+            Every relationship this company has is a provider assertion carrying a
+            confidence and a validity window, not a measurement. The graph is
+            traversable — each neighbour opens its own connections.
+          </p>
+          <Link href={`/terminal/relationships?symbol=${encodeURIComponent(symbol)}`} className="sys-btn" style={{ textDecoration: 'none' }}>
+            Open the relationship graph for {symbol}
+          </Link>
         </Panel>
       ) : null}
 
