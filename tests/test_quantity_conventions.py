@@ -101,3 +101,41 @@ def test_no_kind_converts_a_value() -> None:
     body = source[source.index("export function format("):]
     assert "* 100" not in body
     assert "/ 100" not in body
+
+
+def test_a_count_is_never_rendered_signed() -> None:
+    """`digits: 0` alone falls through to the signed, toned default.
+
+    The default kind is `ratio`, which is signed and coloured by sign. A count
+    rendered through it comes out as "+0 candidates" and "+34 retired" — a
+    plus sign on a population, which reads as a change rather than a total, and
+    a green tint on a retirement count.
+
+    Every integer count must name `kind: 'count'`. Two hundred and twenty-seven
+    call sites did not.
+    """
+    import re
+
+    ui = ROOT / "dashboard" / "src" / "components"
+    offenders: list[str] = []
+
+    # A metric literal carrying digits: 0 with no kind, sign or tone.
+    metric = re.compile(r"\{[^{}]*\bdigits: 0\b[^{}]*\}")
+    # A <Value> with digits={0} and nothing else to steer it.
+    element = re.compile(r"<Value\b[^>]*digits=\{0\}[^>]*/>")
+
+    for path in sorted(ui.rglob("*.tsx")):
+        text = path.read_text()
+        for line_no, line in enumerate(text.splitlines(), 1):
+            for pattern in (metric, element):
+                for match in pattern.finditer(line):
+                    hit = match.group(0)
+                    if "kind" in hit or "signed" in hit or "tone" in hit:
+                        continue
+                    offenders.append(f"{path.relative_to(ROOT)}:{line_no} {hit[:80]}")
+
+    assert offenders == [], (
+        "counts rendered through the signed default — add kind: 'count':\n  "
+        + "\n  ".join(offenders[:20])
+        + (f"\n  ...and {len(offenders) - 20} more" if len(offenders) > 20 else "")
+    )

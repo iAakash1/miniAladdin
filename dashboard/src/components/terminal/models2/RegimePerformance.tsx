@@ -57,8 +57,8 @@ export default function RegimePerformance({
       key: 'share', header: 'Share of sample', unit: 'share', numeric: true, sort: (r) => n(r.share),
       render: (r) => <Value value={n(r.share)} digits={4} />,
     },
-    { key: 'obs', header: 'Observations', numeric: true, sort: (r) => n(r.observations), render: (r) => <Value value={n(r.observations)} digits={0} /> },
-    { key: 'dates', header: 'Dates', numeric: true, sort: (r) => n(r.dates), render: (r) => <Value value={n(r.dates)} digits={0} /> },
+    { key: 'obs', header: 'Observations', numeric: true, sort: (r) => n(r.observations), render: (r) => <Value value={n(r.observations)} kind="count" /> },
+    { key: 'dates', header: 'Dates', numeric: true, sort: (r) => n(r.dates), render: (r) => <Value value={n(r.dates)} kind="count" /> },
     {
       key: 'ic', header: 'Mean IC', unit: 'rank corr.', numeric: true, sort: (r) => n(r.mean_ic),
       render: (r) => (

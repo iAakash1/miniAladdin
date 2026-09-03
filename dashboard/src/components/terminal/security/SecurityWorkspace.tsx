@@ -355,9 +355,9 @@ export default function SecurityWorkspace({ symbol }: { symbol: string }) {
             <table className="sys-table sys-table--compact">
               <tbody>
                 <tr><td>Pipeline mode</td><td className="num">{analysis?.mode ?? '—'}</td></tr>
-                <tr><td>Headlines</td><td className="num"><Value value={n(analysis?.headlineCount)} digits={0} /></td></tr>
+                <tr><td>Headlines</td><td className="num"><Value value={n(analysis?.headlineCount)} kind="count" /></td></tr>
                 <tr><td>Sentiment</td><td className="num">{analysis?.sentimentLabel ?? '—'}</td></tr>
-                <tr><td>Price points</td><td className="num"><Value value={prices?.length ?? null} digits={0} /></td></tr>
+                <tr><td>Price points</td><td className="num"><Value value={prices?.length ?? null} kind="count" /></td></tr>
               </tbody>
             </table>
           </Panel>

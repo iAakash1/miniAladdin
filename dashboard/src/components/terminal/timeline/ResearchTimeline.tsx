@@ -141,19 +141,19 @@ export default function ResearchTimeline() {
         detail={events.length ? `${events[events.length - 1].at.slice(0, 10)} → ${events[0].at.slice(0, 10)}` : undefined}
         facts={[
           { label: 'Events', value: events.length, digits: 0 , kind: 'count'},
-          { label: 'Days', value: byDay.length, digits: 0 },
-          { label: 'Registrations', value: events.filter((e) => e.what === 'registered').length, digits: 0 },
+          { label: 'Days', value: byDay.length, digits: 0, kind: 'count' },
+          { label: 'Registrations', value: events.filter((e) => e.what === 'registered').length, digits: 0, kind: 'count' },
           { label: 'Memos', value: localMemos.length, digits: 0 , kind: 'count'},
         ]}
       />
 
       <Strip metrics={[
         { label: 'Events', value: events.length, digits: 0 , kind: 'count'},
-        { label: 'Days', value: byDay.length, digits: 0 },
-        { label: 'Models registered', value: events.filter((e) => e.what === 'registered').length, digits: 0 },
+        { label: 'Days', value: byDay.length, digits: 0, kind: 'count' },
+        { label: 'Models registered', value: events.filter((e) => e.what === 'registered').length, digits: 0, kind: 'count' },
         { label: 'Memos', value: localMemos.length, digits: 0 , kind: 'count'},
-        { label: 'First', value: events.length ? events[events.length - 1].at.slice(0, 10) : null, digits: 0 },
-        { label: 'Last', value: events.length ? events[0].at.slice(0, 10) : null, digits: 0 },
+        { label: 'First', value: events.length ? events[events.length - 1].at.slice(0, 10) : null, digits: 0, kind: 'count' },
+        { label: 'Last', value: events.length ? events[0].at.slice(0, 10) : null, digits: 0, kind: 'count' },
       ]} />
 
       <Toolbar>

@@ -79,7 +79,7 @@ export default function CrossSection({
   const ranks = active ? crossSection?.factors[active] ?? [] : []
 
   const rankColumns: DataColumn<RankRow>[] = useMemo(() => [
-    { key: 'rank', header: 'Rank', numeric: true, width: '8%', sort: (r) => r.rank, render: (r) => <Value value={r.rank} digits={0} /> },
+    { key: 'rank', header: 'Rank', numeric: true, width: '8%', sort: (r) => r.rank, render: (r) => <Value value={r.rank} kind="count" /> },
     {
       key: 'sym', header: 'Symbol', width: '16%', sort: (r) => r.symbol, text: (r) => r.symbol,
       render: (r) => (
@@ -105,7 +105,7 @@ export default function CrossSection({
   ], [])
 
   const screenColumns: DataColumn<ScreenRow>[] = useMemo(() => [
-    { key: 'rank', header: 'Rank', numeric: true, width: '8%', sort: (r) => r.rank, render: (r) => <Value value={r.rank} digits={0} /> },
+    { key: 'rank', header: 'Rank', numeric: true, width: '8%', sort: (r) => r.rank, render: (r) => <Value value={r.rank} kind="count" /> },
     {
       key: 'sym', header: 'Symbol', width: '14%', sort: (r) => r.symbol, text: (r) => r.symbol,
       render: (r) => (
@@ -125,7 +125,7 @@ export default function CrossSection({
       key: 'conv', header: 'Conviction', width: '13%', sort: (r) => r.conviction, text: (r) => r.conviction,
       render: (r) => <Status state={CONVICTION[r.conviction] ?? 'unknown'} label={r.conviction} />,
     },
-    { key: 'used', header: 'Factors used', numeric: true, sort: (r) => r.factors_used, render: (r) => <Value value={r.factors_used} digits={0} /> },
+    { key: 'used', header: 'Factors used', numeric: true, sort: (r) => r.factors_used, render: (r) => <Value value={r.factors_used} kind="count" /> },
     { key: 'best', header: 'Strongest', width: '14%', optional: true, sort: (r) => r.strongest ?? null, render: (r) => <span className="sys-meta sys-meta--strong">{r.strongest ?? '—'}</span> },
     { key: 'worst', header: 'Weakest', width: '14%', optional: true, sort: (r) => r.weakest ?? null, render: (r) => <span className="sys-meta sys-meta--strong">{r.weakest ?? '—'}</span> },
   ], [])
@@ -195,9 +195,9 @@ export default function CrossSection({
       {screen?.rows?.length ? (
         <>
           <Strip metrics={[
-            { label: 'Names screened', value: screen.rows.length, digits: 0 },
-            { label: 'Aligned', value: aligned, digits: 0, title: 'Factors point the same way' },
-            { label: 'Conflicted', value: conflicted, digits: 0, title: 'Factors disagree; the composite averages that disagreement away' },
+            { label: 'Names screened', value: screen.rows.length, digits: 0, kind: 'count' },
+            { label: 'Aligned', value: aligned, digits: 0, kind: 'count', title: 'Factors point the same way' },
+            { label: 'Conflicted', value: conflicted, digits: 0, kind: 'count', title: 'Factors disagree; the composite averages that disagreement away' },
             { label: 'Composite spread', value: n(screen.dispersion?.composite_spread), digits: 4 },
             { label: 'Mean agreement', value: n(screen.dispersion?.mean_agreement), digits: 3 },
           ]} />
@@ -249,7 +249,7 @@ export default function CrossSection({
                     </td>
                   </tr>
                   <tr><td>Unexplained share</td><td className="num"><Value value={n(attribution.unexplained_share)} digits={4} /></td></tr>
-                  <tr><td>Median names</td><td className="num"><Value value={n(attribution.names_median)} digits={0} /></td></tr>
+                  <tr><td>Median names</td><td className="num"><Value value={n(attribution.names_median)} kind="count" /></td></tr>
                 </tbody>
               </table>
               <p style={{ margin: 'var(--d-2) 0 0', fontSize: 'var(--t-meta)', color: 'var(--ink-muted)', lineHeight: 'var(--lh-body)' }}>

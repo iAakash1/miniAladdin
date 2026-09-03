@@ -98,8 +98,8 @@ const COMPARE_FIELDS: CompareField[] = [
   { key: 'std_ic', label: 'std_ic', group: 'Stability', direction: 'lower-better', value: (r) => num(r.std_ic) },
   { key: 'hit_rate', label: 'hit_rate', group: 'Stability', direction: 'higher-better', value: (r) => num(r.hit_rate), digits: 3 },
   { key: 'top_minus_bottom', label: 'top_minus_bottom', group: 'Spread', direction: 'higher-better', value: (r) => num(r.top_minus_bottom) },
-  { key: 'dates', label: 'dates', group: 'Coverage', direction: 'none', value: (r) => num(r.dates), digits: 0 },
-  { key: 'names_median', label: 'names_median', group: 'Coverage', direction: 'none', value: (r) => num(r.names_median), digits: 0 },
+  { key: 'dates', label: 'dates', group: 'Coverage', direction: 'none', value: (r) => num(r.dates), digits: 0, kind: 'count' },
+  { key: 'names_median', label: 'names_median', group: 'Coverage', direction: 'none', value: (r) => num(r.names_median), digits: 0, kind: 'count' },
 ]
 
 export default function FactorWorkbench() {
@@ -160,10 +160,10 @@ export default function FactorWorkbench() {
       key: 'inf', header: 'Overlap inflation', unit: '×', numeric: true, sort: (f) => f.overlap_inflation,
       render: (f) => <Value value={f.overlap_inflation} digits={2} tone title="How much the uncorrected t overstated significance" />,
     },
-    { key: 'lags', header: 'Lags', unit: 'Newey-West', numeric: true, sort: (f) => f.newey_west_lags, render: (f) => <Value value={f.newey_west_lags} digits={0} /> },
+    { key: 'lags', header: 'Lags', unit: 'Newey-West', numeric: true, sort: (f) => f.newey_west_lags, render: (f) => <Value value={f.newey_west_lags} kind="count" /> },
     { key: 'hr', header: 'Hit rate', unit: 'share', numeric: true, sort: (f) => f.hit_rate, render: (f) => <Value value={f.hit_rate} digits={3} /> },
     { key: 'tmb', header: 'Top minus bottom', unit: 'rank spread', numeric: true, optional: true, sort: (f) => f.top_minus_bottom, render: (f) => <Value value={f.top_minus_bottom} digits={4} signed tone /> },
-    { key: 'dates', header: 'Dates', numeric: true, optional: true, sort: (f) => f.dates, render: (f) => <Value value={f.dates} digits={0} /> },
+    { key: 'dates', header: 'Dates', numeric: true, optional: true, sort: (f) => f.dates, render: (f) => <Value value={f.dates} kind="count" /> },
     { key: 'sig', header: 'Significant', width: '11%', sort: (f) => (f.significant ? 1 : 0), render: (f) => <Status state={f.significant ? 'candidate' : 'blocked'} label={f.significant ? 'yes' : 'no'} /> },
   ], [picked])
 
@@ -213,7 +213,7 @@ export default function FactorWorkbench() {
         detail={lab.window ? `${lab.window.start} → ${lab.window.end}` : undefined}
         facts={[
           { label: 'Factors', value: factors.length, digits: 0 , kind: 'count'},
-          { label: 'Significant', value: factors.filter((f) => f.significant).length, digits: 0 },
+          { label: 'Significant', value: factors.filter((f) => f.significant).length, digits: 0, kind: 'count' },
           { label: 'Dates', value: lab.window?.observation_dates ?? null, digits: 0 , kind: 'count'},
           { label: 'Horizon', value: lab.window?.horizon_days ?? null, digits: 0, unit: 'd' , kind: 'sessions'},
           { label: 'Step', value: lab.window?.step_days ?? null, digits: 0, unit: 'd' , kind: 'sessions'},
@@ -241,9 +241,9 @@ export default function FactorWorkbench() {
 
       <Strip metrics={[
         { label: 'Factors', value: factors.length, digits: 0 , kind: 'count'},
-        { label: 'Significant', value: factors.filter((f) => f.significant).length, digits: 0 },
-        { label: 'Universe', value: lab.universe?.name ?? null, digits: 0 },
-        { label: 'Observation dates', value: lab.window?.observation_dates ?? null, digits: 0 },
+        { label: 'Significant', value: factors.filter((f) => f.significant).length, digits: 0, kind: 'count' },
+        { label: 'Universe', value: lab.universe?.name ?? null, digits: 0, kind: 'count' },
+        { label: 'Observation dates', value: lab.window?.observation_dates ?? null, digits: 0, kind: 'count' },
         { label: 'Horizon', value: lab.window?.horizon_days ?? null, digits: 0, unit: 'd' , kind: 'sessions'},
         { label: 'Step', value: lab.window?.step_days ?? null, digits: 0, unit: 'd' , kind: 'sessions'},
         { label: 'Build', value: lab.build_seconds ?? null, digits: 1, unit: 's' , kind: 'seconds'},
@@ -314,9 +314,9 @@ export default function FactorWorkbench() {
                   <tr><td>Corrected t</td><td className="num"><Value value={sel.t_stat} digits={3} signed /></td></tr>
                   <tr><td>Naive t</td><td className="num"><Value value={sel.naive_t_stat} digits={3} signed /></td></tr>
                   <tr><td>Overlap inflation</td><td className="num"><Value value={sel.overlap_inflation} digits={3} unit="×" /></td></tr>
-                  <tr><td>Newey-West lags</td><td className="num"><Value value={sel.newey_west_lags} digits={0} /></td></tr>
-                  <tr><td>Observation dates</td><td className="num"><Value value={sel.dates} digits={0} /></td></tr>
-                  <tr><td>Median names</td><td className="num"><Value value={sel.names_median} digits={0} /></td></tr>
+                  <tr><td>Newey-West lags</td><td className="num"><Value value={sel.newey_west_lags} kind="count" /></td></tr>
+                  <tr><td>Observation dates</td><td className="num"><Value value={sel.dates} kind="count" /></td></tr>
+                  <tr><td>Median names</td><td className="num"><Value value={sel.names_median} kind="count" /></td></tr>
                   <tr><td>Top minus bottom</td><td className="num"><Value value={sel.top_minus_bottom} digits={4} signed tone /></td></tr>
                 </tbody>
               </table>
@@ -376,11 +376,11 @@ export default function FactorWorkbench() {
           <>
             <Strip metrics={[
               { label: 'Effective factors', value: r.effective_factors, digits: 2, title: 'Counting positions overstates breadth whenever factors move together' },
-              { label: 'Nominal factors', value: r.factors.length, digits: 0 },
-              { label: 'Pairs observed', value: r.measured_pairs ?? null, digits: 0 },
-              { label: 'Pairs total', value: r.total_pairs ?? null, digits: 0 },
+              { label: 'Nominal factors', value: r.factors.length, digits: 0, kind: 'count' },
+              { label: 'Pairs observed', value: r.measured_pairs ?? null, digits: 0, kind: 'count' },
+              { label: 'Pairs total', value: r.total_pairs ?? null, digits: 0, kind: 'count' },
               { label: 'Pair coverage', value: r.pair_coverage ?? null, digits: 3, title: 'Unobserved pairs enter as zero correlation, which overstates independence' },
-              { label: 'Redundant pairs', value: r.redundant_pairs.length, digits: 0 },
+              { label: 'Redundant pairs', value: r.redundant_pairs.length, digits: 0, kind: 'count' },
             ]} />
             <p style={{ margin: 'var(--d-3) 0 0', fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink)' }}>
               {r.assessment}

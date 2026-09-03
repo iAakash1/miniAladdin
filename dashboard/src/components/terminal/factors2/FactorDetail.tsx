@@ -112,7 +112,7 @@ export default function FactorDetail({
                     <td>Decayed</td>
                     <td className="num"><Status state={stability.decayed ? 'blocked' : 'recorded'} label={String(stability.decayed)} /></td>
                   </tr>
-                  <tr><td>Sign flips</td><td className="num"><Value value={n(stability.sign_flips)} digits={0} title="How often the rolling IC changed sign" /></td></tr>
+                  <tr><td>Sign flips</td><td className="num"><Value value={n(stability.sign_flips)} kind="count" title="How often the rolling IC changed sign" /></td></tr>
                   <tr>
                     <td>Concentration</td>
                     <td className="num"><Value value={n(stability.concentration)} digits={4} title="How much of the total IC came from a small number of periods" /></td>

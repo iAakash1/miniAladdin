@@ -208,20 +208,20 @@ export default function MarketWorkspace() {
         detail={data.generated_at ? `generated ${data.generated_at.slice(0, 19)}${data.cached ? ', cached' : ''}` : undefined}
         facts={[
           { label: 'Breadth', value: n(b.breadth_score), digits: 3, tone: true },
-          { label: 'Above 50d', value: above, digits: 0 },
-          { label: 'Sectors', value: count, digits: 0 },
-          { label: 'Regime', value: regime ?? null, digits: 0 },
+          { label: 'Above 50d', value: above, digits: 0, kind: 'count' },
+          { label: 'Sectors', value: count, digits: 0, kind: 'count' },
+          { label: 'Regime', value: regime ?? null, digits: 0, kind: 'count' },
           { label: 'Events', value: data.events?.length ?? null, digits: 0 , kind: 'count'},
         ]}
       />
 
       <Strip metrics={[
         { label: 'Breadth score', value: n(b.breadth_score), digits: 3, tone: true, title: b.explain ?? undefined },
-        { label: 'Sectors above 50d', value: above, digits: 0 },
-        { label: 'Sectors tracked', value: count, digits: 0 },
-        { label: 'Regime', value: regime ?? null, digits: 0 },
-        { label: 'Events ahead', value: data.events?.length ?? null, digits: 0 },
-        { label: 'Served', value: data.cached ? 'cached' : 'fresh', digits: 0 },
+        { label: 'Sectors above 50d', value: above, digits: 0, kind: 'count' },
+        { label: 'Sectors tracked', value: count, digits: 0, kind: 'count' },
+        { label: 'Regime', value: regime ?? null, digits: 0, kind: 'count' },
+        { label: 'Events ahead', value: data.events?.length ?? null, digits: 0, kind: 'count' },
+        { label: 'Served', value: data.cached ? 'cached' : 'fresh', digits: 0, kind: 'count' },
       ]} />
 
       {/* Before the detail: what moved since this reader last looked. A daily
@@ -358,7 +358,7 @@ export default function MarketWorkspace() {
                 {data.events.map((e, i) => (
                   <tr key={`${e.date}-${i}`}>
                     <td className="num">{e.date}</td>
-                    <td className="num"><Value value={n(e.days_away)} digits={0} unit="d" /></td>
+                    <td className="num"><Value value={n(e.days_away)} kind="count" unit="d" /></td>
                     <td><span className="sys-meta sys-meta--strong">{e.type ?? '—'}</span></td>
                     <td style={{ whiteSpace: 'normal' }} title={e.explain}>{e.title ?? '—'}</td>
                     <td><Status state={importanceState(e.importance)} label={e.importance ?? 'unknown'} /></td>

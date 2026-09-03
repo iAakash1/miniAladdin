@@ -183,7 +183,7 @@ export default function Fundamentals({
             <Strip metrics={Object.entries(technicals.regimes).map(([k, v]) => ({
               label: k,
               value: typeof v === 'string' ? v : (v?.label ?? v?.state ?? '—'),
-              digits: 0,
+              digits: 0, kind: 'count',
               title: typeof v === 'object' ? v?.note : undefined,
             }))} />
           ) : null}
@@ -198,7 +198,7 @@ export default function Fundamentals({
                     <tr><td>Distance to support</td><td className="num"><Value value={n(technicals.levels.support_distance_pct)} digits={4} signed tone /></td></tr>
                     <tr><td>Resistance</td><td className="num"><Value value={n(technicals.levels.resistance)} digits={2} /></td></tr>
                     <tr><td>Distance to resistance</td><td className="num"><Value value={n(technicals.levels.resistance_distance_pct)} digits={4} signed tone /></td></tr>
-                    <tr><td>Lookback</td><td className="num"><Value value={n(technicals.levels.lookback_days)} digits={0} unit="d" /></td></tr>
+                    <tr><td>Lookback</td><td className="num"><Value value={n(technicals.levels.lookback_days)} kind="count" unit="d" /></td></tr>
                   </tbody>
                 </table>
                 <p style={{ margin: 'var(--d-2) 0 0', fontSize: 'var(--t-micro)', color: 'var(--ink-faint)', lineHeight: 'var(--lh-body)' }}>
@@ -266,7 +266,7 @@ export default function Fundamentals({
                   <tbody>
                     <tr><td>Buy ratio</td><td className="num"><Value value={n(rec.buy_ratio)} digits={3} /></td></tr>
                     <tr><td>Trend</td><td className="num">{rec.trend ?? '—'}</td></tr>
-                    <tr><td>Over</td><td className="num"><Value value={n(rec.months)} digits={0} unit="mo" /></td></tr>
+                    <tr><td>Over</td><td className="num"><Value value={n(rec.months)} kind="count" unit="mo" /></td></tr>
                   </tbody>
                 </table>
               </Section>
@@ -276,8 +276,8 @@ export default function Fundamentals({
               <Section title="Earnings surprises">
                 <table className="sys-table sys-table--compact">
                   <tbody>
-                    <tr><td>Quarters</td><td className="num"><Value value={n(street.surprises.quarters)} digits={0} /></td></tr>
-                    <tr><td>Beats</td><td className="num"><Value value={n(street.surprises.beats)} digits={0} /></td></tr>
+                    <tr><td>Quarters</td><td className="num"><Value value={n(street.surprises.quarters)} kind="count" /></td></tr>
+                    <tr><td>Beats</td><td className="num"><Value value={n(street.surprises.beats)} kind="count" /></td></tr>
                     <tr><td>Average surprise</td><td className="num"><Value value={n(street.surprises.avg_surprise_pct)} digits={3} signed tone /></td></tr>
                     <tr><td>Last surprise</td><td className="num"><Value value={n(street.surprises.last_surprise_pct)} digits={3} signed tone /></td></tr>
                     <tr><td>Last period</td><td className="num">{street.surprises.last_period ?? '—'}</td></tr>

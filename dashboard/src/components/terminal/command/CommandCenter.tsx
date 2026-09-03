@@ -195,21 +195,23 @@ export default function CommandCenter() {
         state={verdictState}
         detail={selection?.verdict?.status ?? deployment}
         facts={[
-          { label: 'Production', value: status?.production ?? null, digits: 0 },
-          { label: 'Candidates', value: status?.candidates ?? null, digits: 0 },
+          { label: 'Production', value: status?.production ?? null, digits: 0, kind: 'count' },
+          { label: 'Candidates', value: status?.candidates ?? null, digits: 0, kind: 'count' },
           { label: 'Registered', value: status?.total_entries ?? null, digits: 0 , kind: 'count'},
           { label: 'Experiments', value: experiments?.length ?? null, digits: 0 , kind: 'count'},
-          { label: 'Unmet gates', value: failedGates.length || null, digits: 0 },
+          { label: 'Unmet gates', value: failedGates.length || null, digits: 0, kind: 'count' },
         ]}
       />
 
+      {/* The masthead already carries production, candidates, registered and
+          experiments. Repeating them forty pixels below was the same six
+          numbers twice, which teaches a reader to skip one of the two rows and
+          then to skip both. The strip keeps only what the masthead does not
+          say: how the registry's population divides. */}
       <Strip metrics={[
-        { label: 'Production', value: status?.production ?? null, digits: 0, title: 'Models armed and serving' },
-        { label: 'Candidates', value: status?.candidates ?? null, digits: 0 },
-        { label: 'Validated', value: status?.validated ?? null, digits: 0 },
-        { label: 'Registered', value: status?.total_entries ?? null, digits: 0 , kind: 'count'},
-        { label: 'Retired', value: status?.retired ?? null, digits: 0 },
-        { label: 'Experiments', value: experiments?.length ?? null, digits: 0 , kind: 'count'},
+        { label: 'Validated', value: status?.validated ?? null, digits: 0, kind: 'count', title: 'Cleared the validation gates; not promoted' },
+        { label: 'Retired', value: status?.retired ?? null, digits: 0, kind: 'count', title: 'Withdrawn from consideration' },
+        { label: 'Registered', value: status?.total_entries ?? null, digits: 0, kind: 'count', title: 'Every entry the registry holds' },
       ]} />
 
       <Grid>
@@ -235,7 +237,7 @@ export default function CommandCenter() {
               <tr><td>Contract</td><td className="num">{status?.firewall?.contract_state ?? '—'}</td></tr>
               <tr><td>Armed</td><td className="num">{status?.firewall?.contract_armed === undefined ? '—' : String(status.firewall.contract_armed)}</td></tr>
               <tr><td>Engaged</td><td className="num">{status?.firewall?.engaged === undefined ? '—' : String(status.firewall.engaged)}</td></tr>
-              <tr><td>Breaches prevented</td><td className="num"><Value value={status?.firewall?.breaches_prevented ?? null} digits={0} /></td></tr>
+              <tr><td>Breaches prevented</td><td className="num"><Value value={status?.firewall?.breaches_prevented ?? null} kind="count" /></td></tr>
             </tbody>
           </table>
           {status?.firewall?.headline ? (

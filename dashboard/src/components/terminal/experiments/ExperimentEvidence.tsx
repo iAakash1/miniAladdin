@@ -102,7 +102,7 @@ export default function ExperimentEvidence({
   const models = useMemo(() => Object.keys(costSensitivity ?? {}), [costSensitivity])
 
   const foldColumns: DataColumn<Fold>[] = [
-    { key: 'i', header: 'Fold', numeric: true, width: '8%', sort: (f) => f.index, render: (f) => <Value value={f.index} digits={0} /> },
+    { key: 'i', header: 'Fold', numeric: true, width: '8%', sort: (f) => f.index, render: (f) => <Value value={f.index} kind="count" /> },
     { key: 'tr', header: 'Train', width: '22%', sort: (f) => f.train_start, render: (f) => <span className="sys-meta sys-meta--strong">{f.train_start} → {f.train_end}</span> },
     {
       key: 'gap', header: 'Gap', unit: 'sessions', numeric: true, sort: (f) => n(f.gap_sessions),
@@ -114,8 +114,8 @@ export default function ExperimentEvidence({
         />
       ),
     },
-    { key: 'hz', header: 'Horizon', unit: 'sessions', numeric: true, sort: (f) => n(f.label_horizon_sessions), render: (f) => <Value value={n(f.label_horizon_sessions)} digits={0} /> },
-    { key: 'emb', header: 'Embargo', unit: 'sessions', numeric: true, sort: (f) => n(f.embargo_sessions), render: (f) => <Value value={n(f.embargo_sessions)} digits={0} /> },
+    { key: 'hz', header: 'Horizon', unit: 'sessions', numeric: true, sort: (f) => n(f.label_horizon_sessions), render: (f) => <Value value={n(f.label_horizon_sessions)} kind="count" /> },
+    { key: 'emb', header: 'Embargo', unit: 'sessions', numeric: true, sort: (f) => n(f.embargo_sessions), render: (f) => <Value value={n(f.embargo_sessions)} kind="count" /> },
     { key: 'val', header: 'Validate', width: '22%', sort: (f) => f.validation_start, render: (f) => <span className="sys-meta sys-meta--strong">{f.validation_start} → {f.validation_end}</span> },
     {
       key: 'safe', header: 'Gap covers horizon', width: '13%',
@@ -156,7 +156,7 @@ export default function ExperimentEvidence({
                     <td style={{ fontFamily: 'var(--font-mono)' }} title={c.description}>{c.control}</td>
                     <td className="num"><Value value={n(c.mean_ic)} digits={5} signed /></td>
                     <td className="num"><Value value={n(c.t_stat)} digits={3} signed /></td>
-                    <td className="num"><Value value={n(c.observations)} digits={0} /></td>
+                    <td className="num"><Value value={n(c.observations)} kind="count" /></td>
                     <td><span className="sys-meta sys-meta--strong">{c.blocking ? 'yes' : 'no'}</span></td>
                     <td>
                       {c.passed === undefined
@@ -183,10 +183,10 @@ export default function ExperimentEvidence({
       {integrity ? (
         <Panel title="Leakage check" state={integrity.clean ? 'recorded' : 'blocked'}>
           <Strip metrics={[
-            { label: 'Comparisons', value: n(integrity.comparisons), digits: 0 },
-            { label: 'Rows compared', value: n(integrity.rows_compared), digits: 0 },
-            { label: 'Columns compared', value: n(integrity.columns_compared), digits: 0 },
-            { label: 'Failures', value: integrity.failed?.length ?? 0, digits: 0 },
+            { label: 'Comparisons', value: n(integrity.comparisons), digits: 0, kind: 'count' },
+            { label: 'Rows compared', value: n(integrity.rows_compared), digits: 0, kind: 'count' },
+            { label: 'Columns compared', value: n(integrity.columns_compared), digits: 0, kind: 'count' },
+            { label: 'Failures', value: integrity.failed?.length ?? 0, digits: 0, kind: 'count' },
           ]} />
           <p style={{ margin: 'var(--d-3) 0 0', fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)', maxWidth: '86ch' }}>
             The panel was rebuilt as of {integrity.cutoffs?.join(', ') ?? 'several cutoffs'} and
@@ -276,9 +276,9 @@ export default function ExperimentEvidence({
               </div>
               <table className="sys-table sys-table--compact">
                 <tbody>
-                  <tr><td>Configurations</td><td className="num"><Value value={n(pbo.configurations)} digits={0} /></td></tr>
-                  <tr><td>Splits evaluated</td><td className="num"><Value value={n(pbo.splits_evaluated)} digits={0} /></td></tr>
-                  <tr><td>Blocks</td><td className="num"><Value value={n(pbo.blocks)} digits={0} /></td></tr>
+                  <tr><td>Configurations</td><td className="num"><Value value={n(pbo.configurations)} kind="count" /></td></tr>
+                  <tr><td>Splits evaluated</td><td className="num"><Value value={n(pbo.splits_evaluated)} kind="count" /></td></tr>
+                  <tr><td>Blocks</td><td className="num"><Value value={n(pbo.blocks)} kind="count" /></td></tr>
                   <tr><td>Median logit</td><td className="num"><Value value={n(pbo.median_logit)} digits={4} signed /></td></tr>
                 </tbody>
               </table>

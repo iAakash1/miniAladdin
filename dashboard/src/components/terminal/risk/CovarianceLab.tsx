@@ -81,7 +81,7 @@ export default function CovarianceLab() {
     },
     {
       key: 'cond', header: 'Condition', unit: 'λmax/λmin', numeric: true, sort: (r) => r.condition_number,
-      render: (r) => <Value value={r.condition_number} digits={0} title="Large means near-singular in some direction, where an optimiser puts its least justified bets" />,
+      render: (r) => <Value value={r.condition_number} kind="count" title="Large means near-singular in some direction, where an optimiser puts its least justified bets" />,
     },
     {
       key: 'shrink', header: 'Shrinkage', unit: 'intensity 0 to 1', numeric: true, sort: (r) => r.shrinkage,
@@ -153,20 +153,20 @@ export default function CovarianceLab() {
         detail={spread !== null ? `${(spread * 100).toFixed(1)}% volatility spread across methods` : undefined}
         facts={[
           { label: 'Estimators', value: rows.length, digits: 0 , kind: 'count'},
-          { label: 'Names', value: data.panel?.names ?? null, digits: 0 },
+          { label: 'Names', value: data.panel?.names ?? null, digits: 0, kind: 'count' },
           { label: 'Rows', value: data.panel?.rows ?? null, digits: 0 , kind: 'count'},
-          { label: 'Complete', value: data.panel?.complete_rows ?? null, digits: 0, title: 'Rows with no missing name' },
-          { label: 'Not PSD', value: rows.filter((r) => !r.positive_semi_definite).length, digits: 0 },
+          { label: 'Complete', value: data.panel?.complete_rows ?? null, digits: 0, kind: 'count', title: 'Rows with no missing name' },
+          { label: 'Not PSD', value: rows.filter((r) => !r.positive_semi_definite).length, digits: 0, kind: 'count' },
         ]}
       />
 
       <Strip metrics={[
         { label: 'Estimators', value: rows.length, digits: 0 , kind: 'count'},
-        { label: 'Names', value: data.panel?.names ?? null, digits: 0 },
-        { label: 'Observations', value: data.panel?.rows ?? null, digits: 0 },
-        { label: 'Complete rows', value: data.panel?.complete_rows ?? null, digits: 0, title: 'Rows with no missing name. Complete-case estimators use only these.' },
+        { label: 'Names', value: data.panel?.names ?? null, digits: 0, kind: 'count' },
+        { label: 'Observations', value: data.panel?.rows ?? null, digits: 0, kind: 'count' },
+        { label: 'Complete rows', value: data.panel?.complete_rows ?? null, digits: 0, kind: 'count', title: 'Rows with no missing name. Complete-case estimators use only these.' },
         { label: 'Volatility spread', value: spread, digits: 4, tone: true, title: 'How much the reported portfolio volatility moves purely from the estimator chosen' },
-        { label: 'Not PSD', value: rows.filter((r) => !r.positive_semi_definite).length, digits: 0 },
+        { label: 'Not PSD', value: rows.filter((r) => !r.positive_semi_definite).length, digits: 0, kind: 'count' },
       ]} />
 
       {spread !== null && spread > 0.02 ? (
@@ -217,8 +217,8 @@ export default function CovarianceLab() {
           <table className="sys-table sys-table--compact">
             <tbody>
               <tr><td>Note</td><td style={{ whiteSpace: 'normal', fontSize: 'var(--t-meta)', color: 'var(--ink-muted)' }}>{chosen.note ?? '—'}</td></tr>
-              <tr><td>Non-finite entries</td><td className="num"><Value value={chosen.non_finite_entries} digits={0} /></td></tr>
-              <tr><td>Names</td><td className="num"><Value value={chosen.names} digits={0} /></td></tr>
+              <tr><td>Non-finite entries</td><td className="num"><Value value={chosen.non_finite_entries} kind="count" /></td></tr>
+              <tr><td>Names</td><td className="num"><Value value={chosen.names} kind="count" /></td></tr>
               {chosen.unusable_reason ? (
                 <tr><td>Refused</td><td style={{ whiteSpace: 'normal', fontSize: 'var(--t-meta)', color: 'var(--e-neg)' }}>{chosen.unusable_reason}</td></tr>
               ) : null}

@@ -115,7 +115,7 @@ export default function DataWorkbench() {
       render: (d) => <span className="sys-meta sys-meta--strong">{d.survivorship}</span>,
     },
     { key: 'ingest', header: 'Ingestion', width: '14%', sort: (d) => d.ingestion ?? null, text: (d) => d.ingestion ?? '', render: (d) => <span className="sys-meta sys-meta--strong">{d.ingestion ?? '—'}</span> },
-    { key: 'cols', header: 'Columns', unit: 'count', numeric: true, sort: (d) => d.columns?.length ?? null, render: (d) => <Value value={d.columns?.length ?? null} digits={0} /> },
+    { key: 'cols', header: 'Columns', unit: 'count', numeric: true, sort: (d) => d.columns?.length ?? null, render: (d) => <Value value={d.columns?.length ?? null} kind="count" /> },
   ], [])
 
   const featureColumns: DataColumn<Feature>[] = useMemo(() => [
@@ -127,11 +127,11 @@ export default function DataWorkbench() {
     },
     {
       key: 'lookback', header: 'Lookback', unit: 'sessions', numeric: true, sort: (f) => f.lookback_sessions,
-      render: (f) => <Value value={f.lookback_sessions} digits={0} title="Sessions of history the feature reads" />,
+      render: (f) => <Value value={f.lookback_sessions} kind="count" title="Sessions of history the feature reads" />,
     },
     {
       key: 'lag', header: 'Availability lag', unit: 'sessions', numeric: true, sort: (f) => f.availability_lag_sessions,
-      render: (f) => <Value value={f.availability_lag_sessions} digits={0} title="Sessions between the observation and the moment it could be known" />,
+      render: (f) => <Value value={f.availability_lag_sessions} kind="count" title="Sessions between the observation and the moment it could be known" />,
     },
     {
       key: 'xs', header: 'Cross-sectional', width: '12%', sort: (f) => (f.cross_sectional ? 1 : 0),
@@ -246,21 +246,21 @@ export default function DataWorkbench() {
         detail={`${datasets.total} datasets · ${features.feature_count} features`}
         facts={[
           { label: 'Datasets', value: datasets.total, digits: 0 , kind: 'count'},
-          { label: 'Admissible', value: datasets.training_admissible, digits: 0 },
-          { label: 'Gated', value: datasets.gated?.length ?? 0, digits: 0 },
+          { label: 'Admissible', value: datasets.training_admissible, digits: 0, kind: 'count' },
+          { label: 'Gated', value: datasets.gated?.length ?? 0, digits: 0, kind: 'count' },
           { label: 'Features', value: features.feature_count, digits: 0 , kind: 'count'},
-          { label: 'PIT unsafe', value: features.unsafe_features?.length ?? 0, digits: 0 },
+          { label: 'PIT unsafe', value: features.unsafe_features?.length ?? 0, digits: 0, kind: 'count' },
           { label: 'Max lookback', value: features.max_lookback_sessions, digits: 0, unit: 'sess' , kind: 'sessions'},
         ]}
       />
 
       <Strip metrics={[
         { label: 'Datasets', value: datasets.total, digits: 0 , kind: 'count'},
-        { label: 'Training admissible', value: datasets.training_admissible, digits: 0, title: 'Datasets whose point-in-time and survivorship classification permit training use' },
-        { label: 'Gated', value: datasets.gated?.length ?? 0, digits: 0, title: 'Available but withheld from training' },
-        { label: 'Excluded', value: datasets.excluded?.length ?? 0, digits: 0 },
+        { label: 'Training admissible', value: datasets.training_admissible, digits: 0, kind: 'count', title: 'Datasets whose point-in-time and survivorship classification permit training use' },
+        { label: 'Gated', value: datasets.gated?.length ?? 0, digits: 0, kind: 'count', title: 'Available but withheld from training' },
+        { label: 'Excluded', value: datasets.excluded?.length ?? 0, digits: 0, kind: 'count' },
         { label: 'Features', value: features.feature_count, digits: 0 , kind: 'count'},
-        { label: 'PIT unsafe', value: features.unsafe_features?.length ?? 0, digits: 0, title: 'Features that could not be computed from information available at the time' },
+        { label: 'PIT unsafe', value: features.unsafe_features?.length ?? 0, digits: 0, kind: 'count', title: 'Features that could not be computed from information available at the time' },
         { label: 'Max lookback', value: features.max_lookback_sessions, digits: 0, unit: 'sess', title: 'The longest history any registered feature reads. Sets the minimum warm-up before any model can score.' , kind: 'sessions'},
       ]} />
 
@@ -375,9 +375,9 @@ export default function DataWorkbench() {
             detail={selectedDataset.point_in_time}
             object={{ kind: 'dataset', id: selectedDataset.dataset_id, label: selectedDataset.dataset_id, detail: selectedDataset.source }}
             facts={[
-              { label: 'Columns', value: selectedDataset.columns?.length ?? null, digits: 0 },
-              { label: 'Survivorship', value: selectedDataset.survivorship, digits: 0 },
-              { label: 'Ingestion', value: selectedDataset.ingestion ?? null, digits: 0 },
+              { label: 'Columns', value: selectedDataset.columns?.length ?? null, digits: 0, kind: 'count' },
+              { label: 'Survivorship', value: selectedDataset.survivorship, digits: 0, kind: 'count' },
+              { label: 'Ingestion', value: selectedDataset.ingestion ?? null, digits: 0, kind: 'count' },
             ]}
             actions={
               <button className="sys-btn" onClick={() => setSelected(null)}>clear</button>
@@ -425,10 +425,10 @@ export default function DataWorkbench() {
             detail={selectedFeature.point_in_time_safe ? 'point-in-time safe' : 'not point-in-time safe'}
             object={{ kind: 'feature', id: selectedFeature.name, label: selectedFeature.name, detail: selectedFeature.group }}
             facts={[
-              { label: 'Lookback', value: selectedFeature.lookback_sessions, digits: 0, unit: 'sess', title: 'History this feature reads' },
-              { label: 'Availability lag', value: selectedFeature.availability_lag_sessions, digits: 0, unit: 'sess', title: 'Between the observation and the moment it could be known' },
-              { label: 'Cross-sectional', value: selectedFeature.cross_sectional ? 'yes' : 'no', digits: 0 },
-              { label: 'Direction', value: selectedFeature.direction ?? null, digits: 0 },
+              { label: 'Lookback', value: selectedFeature.lookback_sessions, digits: 0, kind: 'count', unit: 'sess', title: 'History this feature reads' },
+              { label: 'Availability lag', value: selectedFeature.availability_lag_sessions, digits: 0, kind: 'count', unit: 'sess', title: 'Between the observation and the moment it could be known' },
+              { label: 'Cross-sectional', value: selectedFeature.cross_sectional ? 'yes' : 'no', digits: 0, kind: 'count' },
+              { label: 'Direction', value: selectedFeature.direction ?? null, digits: 0, kind: 'count' },
             ]}
             actions={
               <button className="sys-btn" onClick={() => setSelected(null)}>clear</button>

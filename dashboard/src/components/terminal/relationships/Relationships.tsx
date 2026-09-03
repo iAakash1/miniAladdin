@@ -109,7 +109,7 @@ export default function Relationships({ initialSymbol = 'AAPL' }: { initialSymbo
       ),
     },
     { key: 'type', header: 'Type', width: '16%', sort: (x) => x.type, text: (x) => x.type, render: (x) => <span className="sys-meta sys-meta--strong">{x.type}</span> },
-    { key: 'deg', header: 'Connections', numeric: true, sort: (x) => degree.get(x.id) ?? 0, render: (x) => <Value value={degree.get(x.id) ?? 0} digits={0} /> },
+    { key: 'deg', header: 'Connections', numeric: true, sort: (x) => degree.get(x.id) ?? 0, render: (x) => <Value value={degree.get(x.id) ?? 0} kind="count" /> },
     { key: 'desc', header: 'Description', text: (x) => x.description ?? '', render: (x) => <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-muted)' }}>{x.description ?? '—'}</span> },
   ], [nodeTypes, degree])
 
@@ -215,11 +215,11 @@ export default function Relationships({ initialSymbol = 'AAPL' }: { initialSymbo
           <Strip metrics={[
             { label: 'Nodes', value: nodes.length, digits: 0 , kind: 'count'},
             { label: 'Edges', value: edges.length, digits: 0 , kind: 'count'},
-            { label: 'Of total edges', value: allEdges.length, digits: 0 },
+            { label: 'Of total edges', value: allEdges.length, digits: 0, kind: 'count' },
             { label: 'Density', value: n(a.density), digits: 4, title: 'Edges present over edges possible' },
             { label: 'Mean confidence', value: n(a.avg_confidence), digits: 3 },
-            { label: 'Node types', value: nodeTypes.length, digits: 0 },
-            { label: 'Relationship types', value: availableEdgeTypes.length, digits: 0 },
+            { label: 'Node types', value: nodeTypes.length, digits: 0, kind: 'count' },
+            { label: 'Relationship types', value: availableEdgeTypes.length, digits: 0, kind: 'count' },
           ]} />
 
           <Panel
@@ -283,7 +283,7 @@ export default function Relationships({ initialSymbol = 'AAPL' }: { initialSymbo
                       <tr><td>Label</td><td className="num" style={{ textAlign: 'left' }}>{selected.label}</td></tr>
                       <tr><td>Type</td><td className="num" style={{ textAlign: 'left' }}>{selected.type}</td></tr>
                       <tr><td>Id</td><td className="num" style={{ textAlign: 'left', fontSize: 'var(--t-micro)', wordBreak: 'break-all' }}>{selected.id}</td></tr>
-                      <tr><td>Connections</td><td className="num"><Value value={degree.get(selected.id) ?? 0} digits={0} /></td></tr>
+                      <tr><td>Connections</td><td className="num"><Value value={degree.get(selected.id) ?? 0} kind="count" /></td></tr>
                     </tbody>
                   </table>
                 </Section>
@@ -362,7 +362,7 @@ export default function Relationships({ initialSymbol = 'AAPL' }: { initialSymbo
                           <span style={{ display: 'inline-block', width: 7, height: 7, background: typeTone(t, nodeTypes), marginRight: 6 }} />
                           {t}
                         </td>
-                        <td className="num"><Value value={c} digits={0} /></td>
+                        <td className="num"><Value value={c} kind="count" /></td>
                       </tr>
                     ))}
                   </tbody>
@@ -374,7 +374,7 @@ export default function Relationships({ initialSymbol = 'AAPL' }: { initialSymbo
                 <table className="sys-table sys-table--compact">
                   <tbody>
                     {Object.entries(a.edge_types).sort((x, y) => y[1] - x[1]).map(([t, c]) => (
-                      <tr key={t}><td>{t}</td><td className="num"><Value value={c} digits={0} /></td></tr>
+                      <tr key={t}><td>{t}</td><td className="num"><Value value={c} kind="count" /></td></tr>
                     ))}
                   </tbody>
                 </table>
@@ -385,7 +385,7 @@ export default function Relationships({ initialSymbol = 'AAPL' }: { initialSymbo
                 <table className="sys-table sys-table--compact">
                   <tbody>
                     {Object.entries(a.provider_coverage).sort((x, y) => y[1] - x[1]).map(([t, c]) => (
-                      <tr key={t}><td>{t}</td><td className="num"><Value value={c} digits={0} /></td></tr>
+                      <tr key={t}><td>{t}</td><td className="num"><Value value={c} kind="count" /></td></tr>
                     ))}
                   </tbody>
                 </table>

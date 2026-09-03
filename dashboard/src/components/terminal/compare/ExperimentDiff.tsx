@@ -232,12 +232,12 @@ export default function ExperimentDiff() {
       ) : (
         <>
           <Strip metrics={[
-            { label: 'Fields compared', value: rows.length, digits: 0 },
-            { label: 'Same', value: counts.same, digits: 0 },
-            { label: 'Changed', value: counts.changed, digits: 0 },
-            { label: 'Added', value: counts.added, digits: 0 },
-            { label: 'Removed', value: counts.removed, digits: 0 },
-            { label: 'Not recorded either side', value: counts.absent, digits: 0 },
+            { label: 'Fields compared', value: rows.length, digits: 0, kind: 'count' },
+            { label: 'Same', value: counts.same, digits: 0, kind: 'count' },
+            { label: 'Changed', value: counts.changed, digits: 0, kind: 'count' },
+            { label: 'Added', value: counts.added, digits: 0, kind: 'count' },
+            { label: 'Removed', value: counts.removed, digits: 0, kind: 'count' },
+            { label: 'Not recorded either side', value: counts.absent, digits: 0, kind: 'count' },
           ]} />
 
           <Panel title="Difference" subtitle={`${left} → ${right}`} flush>
@@ -286,8 +286,8 @@ export default function ExperimentDiff() {
               <tbody>
                 <tr>
                   <td>Trials for correction</td>
-                  <td className="num"><Value value={a.trials_used_for_correction ?? null} digits={0} /></td>
-                  <td className="num"><Value value={b.trials_used_for_correction ?? null} digits={0} /></td>
+                  <td className="num"><Value value={a.trials_used_for_correction ?? null} kind="count" /></td>
+                  <td className="num"><Value value={b.trials_used_for_correction ?? null} kind="count" /></td>
                 </tr>
               </tbody>
             </table>

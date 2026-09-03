@@ -114,11 +114,11 @@ export default function ResearchContext({ experiment = 'EXP-006' }: { experiment
       >
         <table className="sys-table sys-table--compact">
           <tbody>
-            <tr><td>Members per snapshot</td><td className="num"><Value value={universe?.size ?? null} digits={0} /></td></tr>
-            <tr><td>Snapshots</td><td className="num"><Value value={universe?.snapshots ?? null} digits={0} /></td></tr>
+            <tr><td>Members per snapshot</td><td className="num"><Value value={universe?.size ?? null} kind="count" /></td></tr>
+            <tr><td>Snapshots</td><td className="num"><Value value={universe?.snapshots ?? null} kind="count" /></td></tr>
             <tr><td>Window</td><td className="num">{universe?.start ?? '—'} → {universe?.end ?? '—'}</td></tr>
-            <tr><td>Unique members ever</td><td className="num"><Value value={universe?.unique_members ?? null} digits={0} /></td></tr>
-            <tr><td>Ever exited</td><td className="num"><Value value={universe?.ever_exited ?? null} digits={0} /></td></tr>
+            <tr><td>Unique members ever</td><td className="num"><Value value={universe?.unique_members ?? null} kind="count" /></td></tr>
+            <tr><td>Ever exited</td><td className="num"><Value value={universe?.ever_exited ?? null} kind="count" /></td></tr>
             <tr>
               <td>Point in time</td>
               <td className="num">

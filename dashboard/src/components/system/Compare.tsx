@@ -18,6 +18,7 @@
 'use client'
 
 import type { ReactNode } from 'react'
+import { format, type Kind } from '@/lib/quantity'
 
 export type Direction = 'higher-better' | 'lower-better' | 'none'
 
@@ -32,6 +33,13 @@ export interface CompareField {
   /** Optional display override; defaults to the numeric value. */
   display?: (row: Record<string, unknown>) => ReactNode
   digits?: number
+  /**
+   * What kind of quantity this is. Precision, sign handling and unit come from
+   * the shared number system, so a Sharpe reads the same in a comparison as it
+   * does in the table the reader arrived from. `digits` still overrides it for
+   * the rare field the kinds do not describe.
+   */
+  kind?: Kind
   group?: string
 }
 
@@ -52,9 +60,12 @@ function outcome(a: number | null, b: number | null, direction: Direction): Outc
   return (direction === 'higher-better') === higher ? 'better' : 'worse'
 }
 
-function fmt(v: number | null, digits: number): string {
+function fmt(v: number | null, kind: Kind | undefined, digits: number | undefined): string {
   if (v === null) return '—'
-  return v.toFixed(digits)
+  // A field naming its kind goes through the shared system. One naming only
+  // digits keeps its own precision, which is what the older call sites expect.
+  if (kind) return format(v, kind, digits === undefined ? undefined : { digits }).text
+  return v.toFixed(digits ?? 4)
 }
 
 export function Compare({
@@ -119,7 +130,7 @@ export function Compare({
                       return (
                         <td key={s.id} className="num">
                           <span className={cls}>
-                            {f.display ? f.display(s.data) : fmt(v, f.digits ?? 4)}
+                            {f.display ? f.display(s.data) : fmt(v, f.kind, f.digits)}
                           </span>
                           {delta !== null ? (
                             <span
@@ -129,7 +140,7 @@ export function Compare({
                                 ? `${o} than the baseline`
                                 : 'no declared direction: this difference is not better or worse'}
                             >
-                              {delta >= 0 ? '+' : ''}{delta.toFixed(f.digits ?? 4)}
+                              {delta >= 0 ? '+' : ''}{fmt(delta, f.kind, f.digits).replace(/^\+/, '')}
                             </span>
                           ) : !isBase && (v === null || base === null) ? (
                             <span className="sys-meta sys-null" style={{ marginLeft: 5 }} title="one side did not record this; an absent value is not a match and not a zero">

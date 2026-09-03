@@ -158,11 +158,11 @@ export default function PortfolioWorkbench() {
         detail={data.as_of ? `as of ${data.as_of}` : undefined}
         facts={[
           { label: 'Positions', value: weights.length, digits: 0 , kind: 'count'},
-          { label: 'Long', value: longs.length, digits: 0 },
-          { label: 'Short', value: shorts.length, digits: 0 },
+          { label: 'Long', value: longs.length, digits: 0, kind: 'count' },
+          { label: 'Short', value: shorts.length, digits: 0, kind: 'count' },
           { label: 'Gross', value: gross, digits: 3 },
           { label: 'Net', value: net, digits: 3, signed: true, tone: true },
-          { label: 'Method', value: data.method ?? null, digits: 0 },
+          { label: 'Method', value: data.method ?? null, digits: 0, kind: 'count' },
         ]}
         actions={
           <>
@@ -208,11 +208,11 @@ export default function PortfolioWorkbench() {
 
       <Strip metrics={[
         { label: 'Positions', value: weights.length, digits: 0 , kind: 'count'},
-        { label: 'Long', value: longs.length, digits: 0 },
-        { label: 'Short', value: shorts.length, digits: 0 },
+        { label: 'Long', value: longs.length, digits: 0, kind: 'count' },
+        { label: 'Short', value: shorts.length, digits: 0, kind: 'count' },
         { label: 'Gross exposure', value: gross, digits: 4, title: 'Sum of absolute weights. The size of the bet.' },
         { label: 'Net exposure', value: net, digits: 4, signed: true, tone: true, title: 'Sum of signed weights. Near zero for a dollar-neutral book.' },
-        { label: 'Method', value: data.method ?? null, digits: 0 },
+        { label: 'Method', value: data.method ?? null, digits: 0, kind: 'count' },
       ]} />
 
       {data.risk_contributions_unavailable ? (
@@ -270,7 +270,7 @@ export default function PortfolioWorkbench() {
           <Section title="Effective breadth">
             <table className="sys-table sys-table--compact">
               <tbody>
-                <tr><td>Positions</td><td className="num"><Value value={weights.length} digits={0} /></td></tr>
+                <tr><td>Positions</td><td className="num"><Value value={weights.length} kind="count" /></td></tr>
                 <tr>
                   <td>Herfindahl</td>
                   <td className="num"><Value value={herfindahl} digits={5} title="Sum of squared gross weight shares" /></td>

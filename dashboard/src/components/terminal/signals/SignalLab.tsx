@@ -141,11 +141,11 @@ export default function SignalLab() {
         state={data.verdict?.passed ? 'candidate' : 'blocked'}
         detail={data.verdict?.status}
         facts={[
-          { label: 'Cumulative trials', value: mt.cumulative_trials ?? null, digits: 0, title: 'What every significance claim is corrected against' },
-          { label: 'This search', value: mt.new_trials ?? null, digits: 0 },
+          { label: 'Cumulative trials', value: mt.cumulative_trials ?? null, digits: 0, kind: 'count', title: 'What every significance claim is corrected against' },
+          { label: 'This search', value: mt.new_trials ?? null, digits: 0, kind: 'count' },
           { label: 'Expected max |t|', value: mt.expected_max_abs_t_under_null ?? null, digits: 2 },
-          { label: 'Finalists', value: finalists.length, digits: 0 },
-          { label: 'Unmet gates', value: data.verdict?.failed?.length ?? null, digits: 0 },
+          { label: 'Finalists', value: finalists.length, digits: 0, kind: 'count' },
+          { label: 'Unmet gates', value: data.verdict?.failed?.length ?? null, digits: 0, kind: 'count' },
         ]}
       />
 
@@ -176,9 +176,9 @@ export default function SignalLab() {
       {/* The account of how many ideas were tried comes before any result. */}
       <Panel title="Multiple testing" subtitle={data.experiment} state="recorded">
         <Strip metrics={[
-          { label: 'Prior trials', value: mt.prior_trials ?? null, digits: 0 },
-          { label: 'This search', value: mt.new_trials ?? null, digits: 0 },
-          { label: 'Cumulative', value: mt.cumulative_trials ?? null, digits: 0, title: 'The count every significance claim is corrected against' },
+          { label: 'Prior trials', value: mt.prior_trials ?? null, digits: 0, kind: 'count' },
+          { label: 'This search', value: mt.new_trials ?? null, digits: 0, kind: 'count' },
+          { label: 'Cumulative', value: mt.cumulative_trials ?? null, digits: 0, kind: 'count', title: 'The count every significance claim is corrected against' },
           { label: 'Expected max |t| under null', value: mt.expected_max_abs_t_under_null ?? null, digits: 2, title: 'The best of this many zero-skill configurations would reach roughly this t by chance' },
           { label: 'Bonferroni 5%', value: mt.bonferroni_threshold_5pct ?? null, digits: 2 },
         ]} />
@@ -208,7 +208,7 @@ export default function SignalLab() {
             <table className="sys-table sys-table--compact">
               <tbody>
                 <tr><td>Target</td><td className="num">{econ?.target ?? '—'}</td></tr>
-                <tr><td>Features</td><td className="num"><Value value={num(econ?.feature_count)} digits={0} /></td></tr>
+                <tr><td>Features</td><td className="num"><Value value={num(econ?.feature_count)} kind="count" /></td></tr>
                 <tr><td>Mean IC</td><td className="num"><Value value={num(econ?.mean_ic)} digits={4} signed tone /></td></tr>
               </tbody>
             </table>
@@ -228,8 +228,8 @@ export default function SignalLab() {
                   <tr><td>Observed Sharpe</td><td className="num"><Value value={num(dsr.observed_sharpe)} digits={4} signed /></td></tr>
                   <tr><td>Expected max under null</td><td className="num"><Value value={num(dsr.expected_max_sharpe_under_null)} digits={4} /></td></tr>
                   <tr><td>Deflated probability</td><td className="num"><Value value={num(dsr.deflated_probability)} digits={4} /></td></tr>
-                  <tr><td>Trials</td><td className="num"><Value value={num(dsr.trials)} digits={0} /></td></tr>
-                  <tr><td>Observations</td><td className="num"><Value value={num(dsr.observations)} digits={0} /></td></tr>
+                  <tr><td>Trials</td><td className="num"><Value value={num(dsr.trials)} kind="count" /></td></tr>
+                  <tr><td>Observations</td><td className="num"><Value value={num(dsr.observations)} kind="count" /></td></tr>
                   <tr><td>Skew</td><td className="num"><Value value={num(dsr.skew)} digits={3} signed /></td></tr>
                   <tr><td>Excess kurtosis</td><td className="num"><Value value={num(dsr.excess_kurtosis)} digits={3} /></td></tr>
                   <tr><td>Variance source</td><td className="num">{dsr.variance_source ?? '—'}</td></tr>
@@ -253,7 +253,7 @@ export default function SignalLab() {
                   {Object.entries(finalists.find((f) => f.config_id === selected)!.params ?? {}).map(([k, v]) => (
                     <tr key={k}>
                       <td style={{ fontFamily: 'var(--font-mono)' }}>{k}</td>
-                      <td className="num">{typeof v === 'number' ? <Value value={v} digits={0} /> : String(v)}</td>
+                      <td className="num">{typeof v === 'number' ? <Value value={v} kind="count" /> : String(v)}</td>
                     </tr>
                   ))}
                 </tbody>

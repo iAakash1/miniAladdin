@@ -110,15 +110,15 @@ export default function ExperimentRegistry() {
         detail={`${live} valid · ${rows.length - live} void`}
         facts={[
           { label: 'Experiments', value: rows.length, digits: 0 , kind: 'count'},
-          { label: 'Valid', value: live, digits: 0 },
-          { label: 'Void', value: rows.length - live, digits: 0, title: 'Invalidated, and kept in the record rather than removed from it' },
+          { label: 'Valid', value: live, digits: 0, kind: 'count' },
+          { label: 'Void', value: rows.length - live, digits: 0, kind: 'count', title: 'Invalidated, and kept in the record rather than removed from it' },
         ]}
       />
 
       <Strip metrics={[
         { label: 'Experiments', value: rows.length, digits: 0 , kind: 'count'},
-        { label: 'Valid', value: live, digits: 0 },
-        { label: 'Void', value: rows.length - live, digits: 0, title: 'Invalidated, and kept in the record rather than removed from it' },
+        { label: 'Valid', value: live, digits: 0, kind: 'count' },
+        { label: 'Void', value: rows.length - live, digits: 0, kind: 'count', title: 'Invalidated, and kept in the record rather than removed from it' },
       ]} />
 
       <Panel title="Registry" subtitle={`${rows.length} recorded`} flush>
@@ -158,9 +158,9 @@ export default function ExperimentRegistry() {
               <tbody>
                 <tr><td>Generated</td><td className="num">{detail.data.generated_at ?? '—'}</td></tr>
                 <tr><td>Fingerprint</td><td className="num" style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)' }}>{detail.data.fingerprint ?? '—'}</td></tr>
-                <tr><td>Features used</td><td className="num"><Value value={detail.data.features_used?.length ?? null} digits={0} /></td></tr>
-                <tr><td>Dataset sources</td><td className="num"><Value value={detail.data.dataset_sources?.length ?? null} digits={0} /></td></tr>
-                <tr><td>Folds</td><td className="num"><Value value={detail.data.fold_rows?.length ?? null} digits={0} /></td></tr>
+                <tr><td>Features used</td><td className="num"><Value value={detail.data.features_used?.length ?? null} kind="count" /></td></tr>
+                <tr><td>Dataset sources</td><td className="num"><Value value={detail.data.dataset_sources?.length ?? null} kind="count" /></td></tr>
+                <tr><td>Folds</td><td className="num"><Value value={detail.data.fold_rows?.length ?? null} kind="count" /></td></tr>
               </tbody>
             </table>
           </Panel>
@@ -188,7 +188,7 @@ export default function ExperimentRegistry() {
                       <tr key={`${d.dataset_id}-${d.role ?? ''}`}>
                         <td style={{ fontFamily: 'var(--font-mono)' }}>{d.dataset_id}</td>
                         <td>{d.role ?? '—'}</td>
-                        <td className="num"><Value value={d.rows ?? null} digits={0} /></td>
+                        <td className="num"><Value value={d.rows ?? null} kind="count" /></td>
                         <td className="num">{d.min_date ?? '—'}</td>
                         <td className="num">{d.max_date ?? '—'}</td>
                         <td><span className="sys-meta sys-meta--strong">{d.point_in_time_status ?? '—'}</span></td>

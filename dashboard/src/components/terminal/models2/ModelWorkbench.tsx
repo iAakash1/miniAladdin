@@ -86,7 +86,7 @@ export default function ModelWorkbench() {
 
   const columns: Column<LabelRow>[] = [
     { key: 'label', header: 'Label', width: '16%', render: (r) => <span className="sys-mono">{r.label}</span> },
-    { key: 'h', header: 'Horizon', unit: 'sessions', numeric: true, render: (r) => <Value value={n(r.horizon_sessions)} digits={0} /> },
+    { key: 'h', header: 'Horizon', unit: 'sessions', numeric: true, render: (r) => <Value value={n(r.horizon_sessions)} kind="count" /> },
     { key: 'model', header: 'Best model', width: '18%', render: (r) => r.best_model ?? '—' },
     { key: 'vic', header: 'Validation IC', unit: 'rank corr.', numeric: true, render: (r) => <Value measure="mean_ic" kind="ic" value={n(r.mean_ic)} digits={4} signed tone /> },
     { key: 'tic', header: 'Train IC', unit: 'rank corr.', numeric: true, render: (r) => <Value measure="mean_ic" kind="ic" value={n(r.train_mean_ic)} digits={4} signed /> },
@@ -133,8 +133,8 @@ export default function ModelWorkbench() {
           { label: 'Symbols', value: n(ds.symbols), digits: 0 , kind: 'count'},
           { label: 'Dates', value: n(ds.dates), digits: 0 , kind: 'count'},
           { label: 'Features', value: n(data.feature_count), digits: 0 , kind: 'count'},
-          { label: 'Labels', value: labels.length, digits: 0 },
-          { label: 'Guards', value: guards?.passed ? 'pass' : 'fail', digits: 0 },
+          { label: 'Labels', value: labels.length, digits: 0, kind: 'count' },
+          { label: 'Guards', value: guards?.passed ? 'pass' : 'fail', digits: 0, kind: 'count' },
         ]}
       />
 
@@ -143,9 +143,9 @@ export default function ModelWorkbench() {
         { label: 'Symbols', value: n(ds.symbols), digits: 0 , kind: 'count'},
         { label: 'Dates', value: n(ds.dates), digits: 0 , kind: 'count'},
         { label: 'Features', value: n(data.feature_count), digits: 0 , kind: 'count'},
-        { label: 'Labels', value: labels.length, digits: 0 },
-        { label: 'From', value: ds.start ?? null, digits: 0 },
-        { label: 'To', value: ds.end ?? null, digits: 0 },
+        { label: 'Labels', value: labels.length, digits: 0, kind: 'count' },
+        { label: 'From', value: ds.start ?? null, digits: 0, kind: 'count' },
+        { label: 'To', value: ds.end ?? null, digits: 0, kind: 'count' },
       ]} />
 
       <Panel
@@ -188,7 +188,7 @@ export default function ModelWorkbench() {
                 <tbody>
                   <tr><td>Deflated Sharpe probability</td><td className="num"><Value value={n(row.deflated_sharpe_probability)} digits={4} /></td></tr>
                   <tr><td>Alpha significant</td><td className="num">{row.alpha_significant === undefined || row.alpha_significant === null ? '—' : String(row.alpha_significant)}</td></tr>
-                  <tr><td>Experiments on this label</td><td className="num"><Value value={n(row.experiments)} digits={0} /></td></tr>
+                  <tr><td>Experiments on this label</td><td className="num"><Value value={n(row.experiments)} kind="count" /></td></tr>
                 </tbody>
               </table>
             </Section>

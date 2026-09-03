@@ -97,7 +97,7 @@ export default function Disclosure({
       render: (f) => (
         <Value
           value={f.report_date && f.filed_at ? Math.round((Date.parse(f.filed_at) - Date.parse(f.report_date)) / 86_400_000) : null}
-          digits={0}
+          kind="count"
           title="Days between the period a filing covers and the day it became public. This is the availability lag any point-in-time feature built from it must respect."
         />
       ),
@@ -126,7 +126,7 @@ export default function Disclosure({
       render: (h) => (
         <Value
           value={h.corroboratedBy?.length ?? 0}
-          digits={0}
+          kind="count"
           title={h.corroboratedBy?.length ? `Also carried by: ${h.corroboratedBy.join(', ')}` : 'Carried by one vendor only'}
         />
       ),
@@ -147,11 +147,11 @@ export default function Disclosure({
   return (
     <>
       <Strip metrics={[
-        { label: 'Filings', value: rows.length || null, digits: 0 },
-        { label: 'Restatements', value: restatements.length, digits: 0, title: 'Later filings that revised an earlier number' },
-        { label: 'Longest filing lag', value: worstLag, digits: 0, unit: 'd', title: 'The availability lag any point-in-time feature built from these must respect' },
-        { label: 'Headlines', value: news.length || null, digits: 0 },
-        { label: 'Multi-vendor stories', value: news.filter((h) => (h.corroboratedBy?.length ?? 0) > 1).length || null, digits: 0 },
+        { label: 'Filings', value: rows.length || null, digits: 0, kind: 'count' },
+        { label: 'Restatements', value: restatements.length, digits: 0, kind: 'count', title: 'Later filings that revised an earlier number' },
+        { label: 'Longest filing lag', value: worstLag, digits: 0, kind: 'count', unit: 'd', title: 'The availability lag any point-in-time feature built from these must respect' },
+        { label: 'Headlines', value: news.length || null, digits: 0, kind: 'count' },
+        { label: 'Multi-vendor stories', value: news.filter((h) => (h.corroboratedBy?.length ?? 0) > 1).length || null, digits: 0, kind: 'count' },
       ]} />
 
       {restatements.length ? (
@@ -180,9 +180,9 @@ export default function Disclosure({
                     <tr key={`${r.concept ?? r.label}-${r.period_end}-${i}`}>
                       <td style={{ fontFamily: 'var(--font-mono)' }} title={r.concept}>{r.label}</td>
                       <td className="num">{r.period_end?.slice(0, 10)}</td>
-                      <td className="num"><Value value={n(r.original_value)} digits={0} unit={r.unit ?? undefined} /></td>
+                      <td className="num"><Value value={n(r.original_value)} kind="count" unit={r.unit ?? undefined} /></td>
                       <td className="num">{r.original_filed?.slice(0, 10) ?? '—'}</td>
-                      <td className="num"><Value value={n(r.revised_value)} digits={0} /></td>
+                      <td className="num"><Value value={n(r.revised_value)} kind="count" /></td>
                       <td className="num">{r.revised_filed?.slice(0, 10) ?? '—'}</td>
                       <td className="num"><Value value={delta} digits={0} signed tone /></td>
                     </tr>
@@ -243,7 +243,7 @@ export default function Disclosure({
                 {Object.entries(filings.by_form).sort((a, b) => b[1] - a[1]).map(([form, count]) => (
                   <tr key={form}>
                     <td style={{ fontFamily: 'var(--font-mono)' }}>{form}</td>
-                    <td className="num"><Value value={count} digits={0} /></td>
+                    <td className="num"><Value value={count} kind="count" /></td>
                   </tr>
                 ))}
               </tbody>

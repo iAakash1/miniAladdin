@@ -169,12 +169,12 @@ export default function Lineage({ label, model }: { label: string; model: string
                             <tr key={`${r.dataset_id}-${r.role ?? ''}`}>
                               <td style={{ fontFamily: 'var(--font-mono)' }}>{r.dataset_id}</td>
                               <td>{r.role ?? '—'}</td>
-                              <td className="num"><Value value={r.rows ?? null} digits={0} /></td>
+                              <td className="num"><Value value={r.rows ?? null} kind="count" /></td>
                               <td className="num">{r.min_date ?? '—'}</td>
                               <td className="num">{r.max_date ?? '—'}</td>
                               <td><span className="sys-meta sys-meta--strong">{r.point_in_time_status ?? '—'}</span></td>
                               <td><span className="sys-meta sys-meta--strong">{r.survivorship_status ?? '—'}</span></td>
-                              <td className="num"><Value value={r.partitions ?? null} digits={0} /></td>
+                              <td className="num"><Value value={r.partitions ?? null} kind="count" /></td>
                               <td><span className="sys-meta sys-meta--strong">{r.retrieved_at?.slice(0, 19) ?? '—'}</span></td>
                             </tr>
                           ))}

@@ -222,7 +222,7 @@ function MetricTable({ keys, metrics }: { keys: [string, string][]; metrics: Rec
                   {m.method}
                 </span>
               </td>
-              <td className="num"><Value value={m.observations} digits={0} /></td>
+              <td className="num"><Value value={m.observations} kind="count" /></td>
             </tr>
           )
         })}

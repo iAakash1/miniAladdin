@@ -93,12 +93,12 @@ export default function Coverage() {
   return (
     <>
       <Strip metrics={[
-        { label: 'Sources', value: sources.length, digits: 0 },
-        { label: 'With a range', value: dated.length, digits: 0 },
-        { label: 'Earliest', value: new Date(bounds!.first).toISOString().slice(0, 10), digits: 0 },
-        { label: 'Latest', value: new Date(bounds!.last).toISOString().slice(0, 10), digits: 0 },
-        { label: 'Union', value: totalDays, digits: 0, unit: 'd' },
-        { label: 'Usable intersection', value: usableDays, digits: 0, unit: 'd', title: 'A panel can only start once every source has, and must end when the first one stops' },
+        { label: 'Sources', value: sources.length, digits: 0, kind: 'count' },
+        { label: 'With a range', value: dated.length, digits: 0, kind: 'count' },
+        { label: 'Earliest', value: new Date(bounds!.first).toISOString().slice(0, 10), digits: 0, kind: 'count' },
+        { label: 'Latest', value: new Date(bounds!.last).toISOString().slice(0, 10), digits: 0, kind: 'count' },
+        { label: 'Union', value: totalDays, digits: 0, kind: 'count', unit: 'd' },
+        { label: 'Usable intersection', value: usableDays, digits: 0, kind: 'count', unit: 'd', title: 'A panel can only start once every source has, and must end when the first one stops' },
       ]} />
 
       <Panel
@@ -187,8 +187,8 @@ export default function Coverage() {
                 <tr key={`${s.dataset_id}-${s.role ?? ''}`}>
                   <td style={{ fontFamily: 'var(--font-mono)' }}>{s.dataset_id}</td>
                   <td>{s.role ?? '—'}</td>
-                  <td className="num"><Value value={s.rows ?? null} digits={0} /></td>
-                  <td className="num"><Value value={s.partitions ?? null} digits={0} /></td>
+                  <td className="num"><Value value={s.rows ?? null} kind="count" /></td>
+                  <td className="num"><Value value={s.partitions ?? null} kind="count" /></td>
                   <td className="num">{s.min_date ?? <span className="sys-null">—</span>}</td>
                   <td className="num">{s.max_date ?? <span className="sys-null">—</span>}</td>
                   <td><Status state={pitState(s.point_in_time_status)} label={s.point_in_time_status ?? 'unknown'} /></td>

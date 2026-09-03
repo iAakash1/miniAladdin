@@ -201,11 +201,11 @@ export default function EvidenceChain() {
         detail={`${registry.summary.entries} entries · ${registry.summary.labels.join(', ')}`}
         facts={[
           { label: 'Registered', value: registry.summary.entries, digits: 0 , kind: 'count'},
-          { label: 'Experimental', value: by.experimental ?? 0, digits: 0 },
-          { label: 'Validated', value: by.validated ?? 0, digits: 0 },
-          { label: 'Candidates', value: by.production_candidate ?? 0, digits: 0 },
-          { label: 'Production', value: by.production ?? 0, digits: 0 },
-          { label: 'Retired', value: by.retired ?? 0, digits: 0 },
+          { label: 'Experimental', value: by.experimental ?? 0, digits: 0, kind: 'count' },
+          { label: 'Validated', value: by.validated ?? 0, digits: 0, kind: 'count' },
+          { label: 'Candidates', value: by.production_candidate ?? 0, digits: 0, kind: 'count' },
+          { label: 'Production', value: by.production ?? 0, digits: 0, kind: 'count' },
+          { label: 'Retired', value: by.retired ?? 0, digits: 0, kind: 'count' },
         ]}
         actions={
           <>
@@ -283,11 +283,11 @@ export default function EvidenceChain() {
 
       <Strip metrics={[
         { label: 'Registered', value: registry.summary.entries, digits: 0 , kind: 'count'},
-        { label: 'Experimental', value: by.experimental ?? 0, digits: 0, title: 'Measured, but not promotable' },
-        { label: 'Validated', value: by.validated ?? 0, digits: 0 },
-        { label: 'Candidates', value: by.production_candidate ?? 0, digits: 0, title: 'Cleared development gates; holdout not yet spent' },
-        { label: 'Production', value: by.production ?? 0, digits: 0, title: 'Armed and serving' },
-        { label: 'Retired', value: by.retired ?? 0, digits: 0 },
+        { label: 'Experimental', value: by.experimental ?? 0, digits: 0, kind: 'count', title: 'Measured, but not promotable' },
+        { label: 'Validated', value: by.validated ?? 0, digits: 0, kind: 'count' },
+        { label: 'Candidates', value: by.production_candidate ?? 0, digits: 0, kind: 'count', title: 'Cleared development gates; holdout not yet spent' },
+        { label: 'Production', value: by.production ?? 0, digits: 0, kind: 'count', title: 'Armed and serving' },
+        { label: 'Retired', value: by.retired ?? 0, digits: 0, kind: 'count' },
       ]} />
 
       <Panel
@@ -385,11 +385,11 @@ export default function EvidenceChain() {
                 <tbody>
                   <tr><td>Label</td><td className="num">{entry.label}</td></tr>
                   <tr><td>Task</td><td className="num">{entry.task ?? '—'}</td></tr>
-                  <tr><td>Features</td><td className="num"><Value value={Array.isArray(entry.features) ? entry.features.length : entry.features ?? null} digits={0} /></td></tr>
+                  <tr><td>Features</td><td className="num"><Value value={Array.isArray(entry.features) ? entry.features.length : entry.features ?? null} kind="count" /></td></tr>
                   <tr><td>Dataset version</td><td className="num">{entry.dataset_version ?? '—'}</td></tr>
                   <tr><td>Training start</td><td className="num">{entry.training_start ?? '—'}</td></tr>
                   <tr><td>Training end</td><td className="num">{entry.training_end ?? '—'}</td></tr>
-                  <tr><td>Seed</td><td className="num"><Value value={entry.seed ?? null} digits={0} /></td></tr>
+                  <tr><td>Seed</td><td className="num"><Value value={entry.seed ?? null} kind="count" /></td></tr>
                 </tbody>
               </table>
             </Panel>

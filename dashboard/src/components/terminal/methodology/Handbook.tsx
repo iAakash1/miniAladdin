@@ -108,15 +108,15 @@ export default function Handbook({ initialMeasure }: { initialMeasure?: string }
         detail="generated from the engine's own methodology table"
         facts={[
           { label: 'Measures', value: book.total, digits: 0 , kind: 'count'},
-          { label: 'With failure conditions', value: book.documented, digits: 0 },
-          { label: 'Minimum observations', value: book.minimum_observations, digits: 0 },
+          { label: 'With failure conditions', value: book.documented, digits: 0, kind: 'count' },
+          { label: 'Minimum observations', value: book.minimum_observations, digits: 0, kind: 'count' },
         ]}
       />
 
       <Strip metrics={[
         { label: 'Measures', value: book.total, digits: 0 , kind: 'count'},
-        { label: 'With failure conditions', value: book.documented, digits: 0 },
-        { label: 'Minimum observations', value: book.minimum_observations, digits: 0, title: 'Below this a measure reports nothing rather than a number its sample cannot support' },
+        { label: 'With failure conditions', value: book.documented, digits: 0, kind: 'count' },
+        { label: 'Minimum observations', value: book.minimum_observations, digits: 0, kind: 'count', title: 'Below this a measure reports nothing rather than a number its sample cannot support' },
       ]} />
 
       <Toolbar>
@@ -154,7 +154,7 @@ export default function Handbook({ initialMeasure }: { initialMeasure?: string }
                   <tr><td>Unit</td><td className="num">{UNIT_LABEL[entry.unit] ?? entry.unit}</td></tr>
                   <tr><td>Annualisation</td><td className="num">{ANN_LABEL[entry.annualisation] ?? entry.annualisation}</td></tr>
                   <tr><td>Needs return units</td><td className="num">{entry.return_units_required ? 'yes' : 'no'}</td></tr>
-                  <tr><td>Minimum observations</td><td className="num"><Value value={entry.minimum_observations} digits={0} /></td></tr>
+                  <tr><td>Minimum observations</td><td className="num"><Value value={entry.minimum_observations} kind="count" /></td></tr>
                   <tr><td>Inputs</td><td className="num">{entry.inputs.join(', ') || '—'}</td></tr>
                 </tbody>
               </table>

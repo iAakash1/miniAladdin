@@ -128,18 +128,18 @@ export default function GateMatrix() {
         state={universal.length ? 'blocked' : 'recorded'}
         detail={universal.length ? `${universal.length} gates no model has cleared` : 'every gate cleared by at least one model'}
         facts={[
-          { label: 'Entries', value: entries.length, digits: 0 },
+          { label: 'Entries', value: entries.length, digits: 0, kind: 'count' },
           { label: 'Gates', value: gates.length, digits: 0 , kind: 'count'},
-          { label: 'Cleared by none', value: universal.length, digits: 0 },
-          { label: 'Eligible', value: eligible, digits: 0 },
+          { label: 'Cleared by none', value: universal.length, digits: 0, kind: 'count' },
+          { label: 'Eligible', value: eligible, digits: 0, kind: 'count' },
         ]}
       />
 
       <Strip metrics={[
-        { label: 'Entries', value: entries.length, digits: 0 },
+        { label: 'Entries', value: entries.length, digits: 0, kind: 'count' },
         { label: 'Gates', value: gates.length, digits: 0 , kind: 'count'},
-        { label: 'Cleared by none', value: universal.length, digits: 0, title: 'Gates no registered model has met — a structural constraint, not a model property' },
-        { label: 'Eligible for something', value: eligible, digits: 0 },
+        { label: 'Cleared by none', value: universal.length, digits: 0, kind: 'count', title: 'Gates no registered model has met — a structural constraint, not a model property' },
+        { label: 'Eligible for something', value: eligible, digits: 0, kind: 'count' },
       ]} />
 
       {universal.length ? (
@@ -155,8 +155,8 @@ export default function GateMatrix() {
               {universal.map((u) => (
                 <tr key={u.gate}>
                   <td style={{ fontFamily: 'var(--font-mono)' }}>{u.gate}</td>
-                  <td className="num sys-neg"><Value value={u.failed} digits={0} /> failed</td>
-                  <td className="num sys-null"><Value value={u.unrecorded} digits={0} /> never measured</td>
+                  <td className="num sys-neg"><Value value={u.failed} kind="count" /> failed</td>
+                  <td className="num sys-null"><Value value={u.unrecorded} kind="count" /> never measured</td>
                 </tr>
               ))}
             </tbody>

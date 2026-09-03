@@ -138,9 +138,9 @@ export default function Calibration({ symbol }: { symbol: string }) {
         { label: 'IC', value: n(data.ic), digits: 4, signed: true, tone: true , kind: 'ic'},
         { label: 'Baseline 12-1 IC', value: n(data.baseline_12_1_ic), digits: 4, signed: true, title: 'The 1993 momentum baseline this must beat to be worth anything' },
         { label: 'Hit rate', value: n(data.hit_rate), digits: 3 },
-        { label: 'Directional samples', value: n(data.directional_samples), digits: 0 },
+        { label: 'Directional samples', value: n(data.directional_samples), digits: 0, kind: 'count' },
         { label: 'Time invested', value: n(data.time_invested_pct), digits: 3 },
-        { label: 'Verdict flips', value: n(data.recent?.verdict_flips_last6), digits: 0, title: 'Changes of direction in the last six observations' },
+        { label: 'Verdict flips', value: n(data.recent?.verdict_flips_last6), digits: 0, kind: 'count', title: 'Changes of direction in the last six observations' },
       ]} />
 
       <Toolbar>
@@ -196,7 +196,7 @@ export default function Calibration({ symbol }: { symbol: string }) {
                     <td className="num"><Value value={n(c.expected)} digits={3} /></td>
                     <td className="num"><Value value={n(c.actual)} digits={3} /></td>
                     <td className="num"><Value value={n(c.actual) !== null && n(c.expected) !== null ? c.actual - c.expected : null} digits={3} signed tone /></td>
-                    <td className="num"><Value value={c.n} digits={0} /></td>
+                    <td className="num"><Value value={c.n} kind="count" /></td>
                   </tr>
                 ))}
               </tbody>
@@ -223,8 +223,8 @@ export default function Calibration({ symbol }: { symbol: string }) {
                     return (
                       <tr key={v}>
                         <td><Status state={v === 'long' ? 'candidate' : v === 'short' ? 'blocked' : 'recorded'} label={v} /></td>
-                        <td className="num"><Value value={row.up} digits={0} /></td>
-                        <td className="num"><Value value={row.down} digits={0} /></td>
+                        <td className="num"><Value value={row.up} kind="count" /></td>
+                        <td className="num"><Value value={row.down} kind="count" /></td>
                         <td className="num">
                           <Value
                             value={correct !== null && total > 0 ? correct / total : null}
@@ -325,7 +325,7 @@ export default function Calibration({ symbol }: { symbol: string }) {
                     <td style={{ fontFamily: 'var(--font-mono)' }}>{f}</td>
                     <td className="num"><Value value={n(d.ic)} digits={4} signed tone /></td>
                     <td className="num"><Value value={n(d.sign_stability)} digits={3} title="How often this factor kept the same sign" /></td>
-                    <td className="num"><Value value={d.samples} digits={0} /></td>
+                    <td className="num"><Value value={d.samples} kind="count" /></td>
                   </tr>
                 ))}
             </tbody>

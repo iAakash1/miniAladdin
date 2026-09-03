@@ -102,18 +102,18 @@ export default function ProviderMatrix() {
         kind="who supplies what"
         state={failed.length ? 'stale' : 'live'}
         facts={[
-          { label: 'Providers', value: providers.length || null, digits: 0 },
-          { label: 'Capabilities', value: capabilities.length || null, digits: 0 },
-          { label: 'Reporting', value: healthRows.length || null, digits: 0 },
-          { label: 'Deduplicated', value: health?.deduplicated_requests ?? null, digits: 0 },
+          { label: 'Providers', value: providers.length || null, digits: 0, kind: 'count' },
+          { label: 'Capabilities', value: capabilities.length || null, digits: 0, kind: 'count' },
+          { label: 'Reporting', value: healthRows.length || null, digits: 0, kind: 'count' },
+          { label: 'Deduplicated', value: health?.deduplicated_requests ?? null, digits: 0, kind: 'count' },
         ]}
       />
 
       <Strip metrics={[
-        { label: 'Providers', value: providers.length || null, digits: 0 },
-        { label: 'Capabilities', value: capabilities.length || null, digits: 0 },
-        { label: 'Health reported', value: healthRows.length || null, digits: 0 },
-        { label: 'Deduplicated requests', value: health?.deduplicated_requests ?? null, digits: 0, title: 'Requests served from an in-flight identical call rather than repeated' },
+        { label: 'Providers', value: providers.length || null, digits: 0, kind: 'count' },
+        { label: 'Capabilities', value: capabilities.length || null, digits: 0, kind: 'count' },
+        { label: 'Health reported', value: healthRows.length || null, digits: 0, kind: 'count' },
+        { label: 'Deduplicated requests', value: health?.deduplicated_requests ?? null, digits: 0, kind: 'count', title: 'Requests served from an in-flight identical call rather than repeated' },
       ]} />
 
       {failed.length ? (
@@ -200,10 +200,10 @@ export default function ProviderMatrix() {
                   <tr key={e.name ?? JSON.stringify(e).slice(0, 24)}>
                     <td style={{ fontFamily: 'var(--font-mono)' }}>{e.name ?? '—'}</td>
                     <td><Status state={healthState(e)} label={e.state ?? (e.healthy === true ? 'healthy' : e.healthy === false ? 'failing' : 'unknown')} /></td>
-                    <td className="num"><Value value={e.calls ?? null} digits={0} /></td>
-                    <td className="num"><Value value={e.failures ?? null} digits={0} /></td>
-                    <td className="num"><Value value={e.consecutive_failures ?? null} digits={0} /></td>
-                    <td className="num"><Value value={e.cooldown_seconds ?? null} digits={0} unit="s" /></td>
+                    <td className="num"><Value value={e.calls ?? null} kind="count" /></td>
+                    <td className="num"><Value value={e.failures ?? null} kind="count" /></td>
+                    <td className="num"><Value value={e.consecutive_failures ?? null} kind="count" /></td>
+                    <td className="num"><Value value={e.cooldown_seconds ?? null} kind="count" unit="s" /></td>
                     <td><span className="sys-meta sys-meta--strong">{e.last_error ?? '—'}</span></td>
                   </tr>
                 ))}

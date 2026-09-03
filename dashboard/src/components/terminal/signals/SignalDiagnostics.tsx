@@ -104,14 +104,14 @@ export default function SignalDiagnostics({ experiment, model }: { experiment: s
   }, [ic, smooth, data])
 
   const foldColumns: DataColumn<Fold>[] = [
-    { key: 'fold', header: 'Fold', numeric: true, sort: (f) => f.fold, render: (f) => <Value value={f.fold} digits={0} /> },
+    { key: 'fold', header: 'Fold', numeric: true, sort: (f) => f.fold, render: (f) => <Value value={f.fold} kind="count" /> },
     { key: 'window', header: 'Window', width: '22%', sort: (f) => f.start, text: (f) => `${f.start} ${f.end}`, render: (f) => <span className="sys-meta sys-meta--strong">{f.start} → {f.end}</span> },
     { key: 'ic', header: 'Mean IC', unit: 'rank corr.', numeric: true, sort: (f) => f.mean_ic, render: (f) => <Value measure="mean_ic" kind="ic" value={f.mean_ic} digits={4} signed tone /> },
     { key: 'med', header: 'Median IC', unit: 'rank corr.', numeric: true, sort: (f) => f.median_ic, render: (f) => <Value measure="mean_ic" kind="ic" value={f.median_ic} digits={4} signed /> },
     { key: 'std', header: 'IC dispersion', unit: 'std of IC', numeric: true, sort: (f) => f.std_ic, render: (f) => <Value value={f.std_ic} digits={4} /> },
     { key: 'pos', header: 'Positive rate', unit: 'share', numeric: true, sort: (f) => f.positive_rate, render: (f) => <Value value={f.positive_rate} digits={3} /> },
-    { key: 'dates', header: 'Dates', numeric: true, sort: (f) => f.dates, render: (f) => <Value value={f.dates} digits={0} /> },
-    { key: 'obs', header: 'Observations', numeric: true, optional: true, sort: (f) => f.observations, render: (f) => <Value value={f.observations} digits={0} /> },
+    { key: 'dates', header: 'Dates', numeric: true, sort: (f) => f.dates, render: (f) => <Value value={f.dates} kind="count" /> },
+    { key: 'obs', header: 'Observations', numeric: true, optional: true, sort: (f) => f.observations, render: (f) => <Value value={f.observations} kind="count" /> },
   ]
 
   if (error) return <Panel title="Diagnostics" state="unavailable"><StateBlock state="unavailable" title="The fold series could not be read" detail={error} /></Panel>
@@ -139,11 +139,11 @@ export default function SignalDiagnostics({ experiment, model }: { experiment: s
         <Strip metrics={[
           { label: 'Horizon', value: g.horizon_sessions ?? null, digits: 0, unit: 'sess' , kind: 'sessions'},
           { label: 'Step', value: g.step_sessions ?? null, digits: 0, unit: 'sess' , kind: 'sessions'},
-          { label: 'Overlap', value: g.overlapping_sessions ?? null, digits: 0, unit: 'sess' },
+          { label: 'Overlap', value: g.overlapping_sessions ?? null, digits: 0, kind: 'count', unit: 'sess' },
           { label: 'Overlap fraction', value: g.overlap_fraction ?? null, digits: 3 },
-          { label: 'Bootstrap block', value: g.block_length ?? null, digits: 0, title: 'Consecutive observations resampled together, because they share label windows' },
-          { label: 'Purge', value: g.purge_sessions ?? null, digits: 0, unit: 'sess' },
-          { label: 'Embargo', value: g.embargo_sessions ?? null, digits: 0, unit: 'sess' },
+          { label: 'Bootstrap block', value: g.block_length ?? null, digits: 0, kind: 'count', title: 'Consecutive observations resampled together, because they share label windows' },
+          { label: 'Purge', value: g.purge_sessions ?? null, digits: 0, kind: 'count', unit: 'sess' },
+          { label: 'Embargo', value: g.embargo_sessions ?? null, digits: 0, kind: 'count', unit: 'sess' },
         ]} />
         {g.why ? (
           <p style={{ margin: 'var(--d-3) 0 0', fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)', maxWidth: '86ch' }}>
@@ -164,8 +164,8 @@ export default function SignalDiagnostics({ experiment, model }: { experiment: s
                 <tr><td>Lower</td><td className="num"><Value value={p.lower ?? null} digits={5} signed /></td></tr>
                 <tr><td>Upper</td><td className="num"><Value value={p.upper ?? null} digits={5} signed /></td></tr>
                 <tr><td>Confidence</td><td className="num"><Value value={p.confidence ?? null} digits={2} /></td></tr>
-                <tr><td>Block length</td><td className="num"><Value value={p.block ?? null} digits={0} /></td></tr>
-                <tr><td>Resamples</td><td className="num"><Value value={p.samples ?? null} digits={0} /></td></tr>
+                <tr><td>Block length</td><td className="num"><Value value={p.block ?? null} kind="count" /></td></tr>
+                <tr><td>Resamples</td><td className="num"><Value value={p.samples ?? null} kind="count" /></td></tr>
                 <tr>
                   <td>Excludes zero</td>
                   <td className="num">

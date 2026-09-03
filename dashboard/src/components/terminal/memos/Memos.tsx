@@ -63,19 +63,19 @@ export default function Memos({ initialId }: { initialId?: string }) {
         detail="stored in this browser only"
         facts={[
           { label: 'Memos', value: all.length, digits: 0 , kind: 'count'},
-          { label: 'Drafts', value: all.filter((m) => m.status === 'draft').length, digits: 0 },
-          { label: 'Open', value: all.filter((m) => m.status === 'open').length, digits: 0 },
-          { label: 'Resolved', value: all.filter((m) => m.status === 'resolved').length, digits: 0 },
-          { label: 'References', value: all.reduce((s, m) => s + m.references.length, 0), digits: 0 },
+          { label: 'Drafts', value: all.filter((m) => m.status === 'draft').length, digits: 0, kind: 'count' },
+          { label: 'Open', value: all.filter((m) => m.status === 'open').length, digits: 0, kind: 'count' },
+          { label: 'Resolved', value: all.filter((m) => m.status === 'resolved').length, digits: 0, kind: 'count' },
+          { label: 'References', value: all.reduce((s, m) => s + m.references.length, 0), digits: 0, kind: 'count' },
         ]}
       />
 
       <Strip metrics={[
         { label: 'Memos', value: all.length, digits: 0 , kind: 'count'},
-        { label: 'Drafts', value: all.filter((m) => m.status === 'draft').length, digits: 0 },
-        { label: 'Open', value: all.filter((m) => m.status === 'open').length, digits: 0 },
-        { label: 'Resolved', value: all.filter((m) => m.status === 'resolved').length, digits: 0 },
-        { label: 'References', value: all.reduce((s, m) => s + m.references.length, 0), digits: 0 },
+        { label: 'Drafts', value: all.filter((m) => m.status === 'draft').length, digits: 0, kind: 'count' },
+        { label: 'Open', value: all.filter((m) => m.status === 'open').length, digits: 0, kind: 'count' },
+        { label: 'Resolved', value: all.filter((m) => m.status === 'resolved').length, digits: 0, kind: 'count' },
+        { label: 'References', value: all.reduce((s, m) => s + m.references.length, 0), digits: 0, kind: 'count' },
       ]} />
 
       <Toolbar>
