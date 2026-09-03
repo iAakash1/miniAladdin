@@ -21,6 +21,7 @@ import { KIND_ORDER, KINDS, href as objectHref, score, type ObjectKind, type Res
 import { Status, type ResearchState } from './index'
 import { buildRows, selectableRows } from '@/lib/palette-rows'
 import { ALL_DESTINATIONS } from '@/lib/destinations'
+import { describeQuery, matchesStructure, parseQuery } from '@/lib/research/query'
 
 const STATE_MAP: Record<string, ResearchState> = {
   live: 'live', recorded: 'recorded', stale: 'stale', waking: 'waking',
@@ -111,12 +112,21 @@ export default function Palette() {
     ]
   }, [router])
 
+  // The state words currently in play, from the objects themselves. Models
+  // arrive as experimental and retired — the registry's vocabulary, not the
+  // interface's — and a hardcoded list would not understand either.
+  const objectStates = useMemo(
+    () => new Set(objects.map((o) => o.state).filter((s): s is string => Boolean(s))),
+    [objects],
+  )
+
   const results = useMemo(() => {
     const q = query.trim()
     if (!q) {
       return {
         commands: commands.slice(0, 6),
         grouped: new Map<ObjectKind, ResearchObject[]>(),
+        describes: null as string | null,
       }
     }
     const rankedCommands = commands
@@ -126,11 +136,24 @@ export default function Palette() {
       .slice(0, 5)
       .map((r) => r.c)
 
-    const ranked = objects
-      .map((o) => ({ o, s: Math.max(score(q, o.label), score(q, o.detail ?? '') * 0.4) }))
-      .filter((r) => r.s > 0)
-      .sort((a, b) => b.s - a.s)
-      .slice(0, 40)
+    /* A query may name a kind, a research state, or both — "blocked models",
+       "stale datasets", "experiments". Those are answered exactly from what
+       every object already carries, rather than fuzzily matched against a
+       string no object is called.
+
+       Whatever is left over is matched against names as before. A query that
+       is purely structural has no text to rank on, so its results keep their
+       natural order instead of being sorted by a score of zero. */
+    const parsed = parseQuery(q, objectStates)
+    const eligible = objects.filter((o) => matchesStructure(o, parsed))
+
+    const ranked = parsed.structural
+      ? eligible.slice(0, 40).map((o) => ({ o, s: 1 }))
+      : eligible
+        .map((o) => ({ o, s: Math.max(score(parsed.text, o.label), score(parsed.text, o.detail ?? '') * 0.4) }))
+        .filter((r) => r.s > 0)
+        .sort((a, b) => b.s - a.s)
+        .slice(0, 40)
 
     const grouped = new Map<ObjectKind, ResearchObject[]>()
     for (const { o } of ranked) {
@@ -138,8 +161,8 @@ export default function Palette() {
       list.push(o)
       grouped.set(o.kind, list)
     }
-    return { commands: rankedCommands, grouped }
-  }, [query, objects, commands])
+    return { commands: rankedCommands, grouped, describes: describeQuery(parsed) }
+  }, [query, objects, commands, objectStates])
 
   /**
    * One render-ready list: section headers and selectable rows together, with
