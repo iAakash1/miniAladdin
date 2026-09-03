@@ -162,7 +162,7 @@ export default function PortfolioWorkbench() {
           { label: 'Short', value: shorts.length, digits: 0, kind: 'count' },
           { label: 'Gross', value: gross, digits: 4, kind: 'magnitude', title: 'Sum of absolute weights. The size of the bet, and never negative.' },
           { label: 'Net', value: net, digits: 4, kind: 'weight', title: 'Sum of signed weights. Near zero for a dollar-neutral book.' },
-          { label: 'Method', value: data.method ?? null, digits: 0 },
+          { label: 'Method', value: data.method ?? null },
         ]}
         actions={
           <>

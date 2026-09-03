@@ -128,7 +128,7 @@ export default function ModelValidation({ ticker }: { ticker: string }) {
         <Strip metrics={[
           { label: 'Information coefficient', value: data.ic, kind: 'ic' },
           { label: 'Baseline 12-1 IC', value: data.baseline_12_1_ic ?? null, kind: 'ic' },
-          { label: 'Hit rate', value: data.hit_rate, kind: 'share' },
+          { label: 'Hit rate', value: data.hit_rate, kind: 'percent' },
           { label: 'Samples', value: data.samples, kind: 'count' },
           { label: 'Sharpe', value: (data.strategy?.sharpe ?? null) as number | null, kind: 'sharpe' },
         ]} />

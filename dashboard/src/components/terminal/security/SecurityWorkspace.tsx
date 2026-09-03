@@ -169,7 +169,7 @@ export default function SecurityWorkspace({ symbol }: { symbol: string }) {
         </ToolbarGroup>
         <ToolbarSpacer />
         <span className="sys-meta">
-          {analysis?.mode ? `pipeline ${analysis.mode}` : failures.length ? `${failures.length} sources unavailable` : ''}
+          {analysis?.mode ? `pipeline ${analysis.mode}` : failures.length ? `${failures.length} source${failures.length === 1 ? '' : 's'} unavailable` : ''}
         </span>
       </Toolbar>
 

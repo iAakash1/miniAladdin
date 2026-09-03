@@ -37,6 +37,7 @@ export type Kind =
   | 'tstat'         // a test statistic
   | 'probability'   // bounded [0, 1], compared against a threshold
   | 'share'         // a fraction of a whole
+  | 'percent'       // already expressed in percent — never multiplied here
   | 'return'        // a return in the series' own units
   | 'magnitude'     // a loss reported positive
   | 'volatility'    // annualised dispersion
@@ -83,6 +84,12 @@ export const SPECS: Record<Kind, Spec> = {
   // clearly on one side of one.
   probability: { digits: 4, signed: false, tone: false },
   share:       { digits: 3, signed: false, tone: false },
+  // For payload fields that already arrive as percentages — a hit rate of 61.0
+  // means 61%, not 6100%. The formatter adds the unit and never multiplies:
+  // a value that has to be scaled to be true is a value the caller converted,
+  // and hiding that conversion in here is how 0.61 and 61.0 end up rendering
+  // identically from two different call sites.
+  percent:     { digits: 1, signed: false, unit: '%', tone: false },
 
   return:      { digits: 4, signed: true,  unit: 'ret', tone: true },
   magnitude:   { digits: 4, signed: false, tone: false },
