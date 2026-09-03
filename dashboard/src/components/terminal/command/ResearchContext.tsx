@@ -99,7 +99,11 @@ export default function ResearchContext({ experiment = 'EXP-006' }: { experiment
             ) : null}
           </>
         ) : (
-          <StateBlock state="unavailable" title="No regime distribution recorded" />
+          <StateBlock
+            state="unavailable"
+            title="No regime distribution recorded"
+            detail="This experiment stored no regime classification, so what market conditions its evidence was gathered in is unknown."
+          />
         )}
       </Panel>
 

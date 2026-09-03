@@ -292,7 +292,11 @@ export default function ExperimentEvidence({
 
       {!controlRows.length && !folds.length && !models.length && !pbo ? (
         <Panel title="Evidence">
-          <StateBlock state="unavailable" title="This experiment recorded no controls, folds or sensitivity" />
+          <StateBlock
+            state="unavailable"
+            title="This experiment recorded no controls, folds or sensitivity"
+            detail="Older runs predate these checks. Their absence is a fact about the run, not about the strategy — and an experiment without negative controls cannot be read as having passed them."
+          />
         </Panel>
       ) : null}
     </>

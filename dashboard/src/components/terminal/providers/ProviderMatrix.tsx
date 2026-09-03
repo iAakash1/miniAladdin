@@ -127,7 +127,11 @@ export default function ProviderMatrix() {
         {!caps ? (
           <TableSkeleton rows={8} columns={6} />
         ) : !providers.length ? (
-          <StateBlock state="unavailable" title="No provider declares a capability" />
+          <StateBlock
+            state="unavailable"
+            title="No provider declares a capability"
+            detail="The matrix is introspected from the vendor clients. An empty one means no client is registered, not that no vendor can supply anything."
+          />
         ) : (
           <div className="sys-scroll-x">
             <table className="sys-table sys-table--compact">
@@ -165,7 +169,11 @@ export default function ProviderMatrix() {
         {!health ? (
           <TableSkeleton rows={5} columns={7} />
         ) : !healthRows.length ? (
-          <StateBlock state="unavailable" title="No provider reported health" />
+          <StateBlock
+            state="unavailable"
+            title="No provider reported health"
+            detail="Health is recorded as calls are made. A provider that has not been called in this process has nothing to report yet."
+          />
         ) : (
           <div className="sys-scroll-x">
             <table className="sys-table sys-table--compact">

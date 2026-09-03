@@ -409,7 +409,11 @@ export default function FactorWorkbench() {
               </table>
             ) : null}
           </>
-        ) : <StateBlock state="unavailable" title="No redundancy analysis was produced" />}
+        ) : <StateBlock
+            state="unavailable"
+            title="No redundancy analysis was produced"
+            detail="Redundancy needs at least two factors observed on shared dates. Where the build could not form that, no independence estimate is given rather than one computed from a fill."
+          />}
       </Panel>
 
       <CrossSection

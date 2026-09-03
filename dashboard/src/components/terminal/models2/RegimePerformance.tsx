@@ -89,7 +89,11 @@ export default function RegimePerformance({
   if (!models.length) {
     return (
       <Panel title="Regime performance" state="unavailable">
-        <StateBlock state="unavailable" title="No regime breakdown recorded" />
+        <StateBlock
+          state="unavailable"
+          title="No regime breakdown recorded"
+          detail="This experiment did not break its results out by market regime, so whether the edge was earned across conditions or in one of them is unknown here."
+        />
       </Panel>
     )
   }

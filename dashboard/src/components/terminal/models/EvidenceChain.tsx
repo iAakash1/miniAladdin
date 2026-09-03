@@ -356,7 +356,11 @@ export default function EvidenceChain() {
                 </Section>
               </div>
             ) : (
-              <StateBlock state="candidate" title="No unmet gate is recorded for this entry" />
+              <StateBlock
+                state="candidate"
+                title="No unmet gate is recorded for this entry"
+                detail="Either every threshold was met, or none was evaluated. The registry does not distinguish those, so this is not on its own evidence of clearance."
+              />
             )}
             <p style={{ marginTop: 'var(--d-3)', marginBottom: 0, fontSize: 'var(--t-meta)', color: 'var(--ink-faint)', lineHeight: 'var(--lh-body)', maxWidth: '80ch' }}>
               A gate with no recorded value counts as unmet. Absent evidence is not

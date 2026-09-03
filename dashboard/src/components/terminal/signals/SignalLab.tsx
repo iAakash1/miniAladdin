@@ -236,7 +236,11 @@ export default function SignalLab() {
                   <tr><td>Significant</td><td className="num">{dsr.significant === undefined ? '—' : String(dsr.significant)}</td></tr>
                 </tbody>
               </table>
-            ) : <StateBlock state="unavailable" title="No deflated Sharpe recorded for this configuration" />}
+            ) : <StateBlock
+              state="unavailable"
+              title="No deflated Sharpe recorded for this configuration"
+              detail="The deflation needs the trial-Sharpe dispersion. Where the search did not record it, no probability is reported rather than one computed from a substitute."
+            />}
             {dsr?.note ? (
               <p style={{ margin: 'var(--d-2) 0 0', fontSize: 'var(--t-meta)', color: 'var(--ink-muted)', lineHeight: 'var(--lh-body)' }}>{dsr.note}</p>
             ) : null}
@@ -254,7 +258,11 @@ export default function SignalLab() {
                   ))}
                 </tbody>
               </table>
-            ) : <StateBlock state="unavailable" title="No parameters recorded" />}
+            ) : <StateBlock
+              state="unavailable"
+              title="No parameters recorded"
+              detail="The search artifact stored this configuration by identifier without its hyperparameters."
+            />}
           </Panel>
         </Grid>
       ) : null}

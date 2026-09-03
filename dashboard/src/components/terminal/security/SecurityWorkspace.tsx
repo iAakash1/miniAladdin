@@ -179,7 +179,11 @@ export default function SecurityWorkspace({ symbol }: { symbol: string }) {
                 unit="close, unadjusted unless the source says otherwise"
                 height={170}
               />
-            ) : <StateBlock state={failures.some((f) => f.startsWith('prices')) ? 'unavailable' : 'waking'} title="No price series" />}
+            ) : <StateBlock
+                state={failures.some((f) => f.startsWith('prices')) ? 'unavailable' : 'waking'}
+                title="No price series"
+                detail={failures.find((f) => f.startsWith('prices')) ?? 'The price request has not returned yet.'}
+              />}
           </Panel>
           <Panel title="Valuation">
             <table className="sys-table sys-table--compact">
@@ -210,7 +214,11 @@ export default function SecurityWorkspace({ symbol }: { symbol: string }) {
                 unit="close"
                 height={260}
               />
-            ) : <StateBlock state="unavailable" title="No price series" />}
+            ) : <StateBlock
+                state="unavailable"
+                title="No price series"
+                detail="No vendor returned daily bars for this name in the window queried. Nothing is plotted in their place."
+              />}
           </Panel>
           <Panel title="Volume">
             {prices?.length ? (
@@ -219,7 +227,11 @@ export default function SecurityWorkspace({ symbol }: { symbol: string }) {
                 unit="shares"
                 height={150}
               />
-            ) : <StateBlock state="unavailable" title="No volume series" />}
+            ) : <StateBlock
+                state="unavailable"
+                title="No volume series"
+                detail="The price response carried no volume field. Some vendors omit it for some names."
+              />}
           </Panel>
         </>
       ) : null}
@@ -256,7 +268,11 @@ export default function SecurityWorkspace({ symbol }: { symbol: string }) {
                 <Sparkline values={closes} width={280} height={54} />
                 <span className="sys-meta">trailing close, {closes.length} sessions</span>
               </div>
-            ) : <StateBlock state="unavailable" title="No series" />}
+            ) : <StateBlock
+                state="unavailable"
+                title="No series"
+                detail="A sparkline needs at least two closes; fewer were returned."
+              />}
           </Panel>
         </Grid>
       ) : null}

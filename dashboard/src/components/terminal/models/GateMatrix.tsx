@@ -109,7 +109,11 @@ export default function GateMatrix() {
       </>
     )
   }
-  if (!gates.length) return <Panel title="Gate matrix" state="unavailable"><StateBlock state="unavailable" title="No gate outcomes are recorded" /></Panel>
+  if (!gates.length) return <Panel title="Gate matrix" state="unavailable"><StateBlock
+      state="unavailable"
+      title="No gate outcomes are recorded"
+      detail="No registry entry carries a threshold result for this scope. Nothing has been evaluated against it rather than everything having passed."
+    /></Panel>
 
   const universal = tally.filter((t) => t.met === 0)
   const eligible = entries.filter((e) => (e.eligible_for ?? []).length > 0).length

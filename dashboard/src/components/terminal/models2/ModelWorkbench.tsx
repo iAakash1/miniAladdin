@@ -213,7 +213,11 @@ export default function ModelWorkbench() {
                 ))}
               </tbody>
             </table>
-          ) : <StateBlock state="unavailable" title="No guard results recorded" />}
+          ) : <StateBlock
+              state="unavailable"
+              title="No guard results recorded"
+              detail="The study artifact stored no guard block. The guards may not have run, and their absence is not a pass."
+            />}
         </Panel>
 
         <Panel title="Dataset">
