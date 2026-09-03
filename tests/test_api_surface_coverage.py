@@ -31,7 +31,6 @@ INTERNAL: dict[str, str] = {
     "/api/metrics": "latency percentiles scraped by the host, not read in the product",
     "/api/graph/expand": "called by the graph explorer through a query builder, not by path",
     "/api/graph/path": "same",
-    "/api/quant/latest": "superseded by /api/quant/selection, which carries the verdict too",
     "/api/quant/features": "an alias of /api/ml/features; the UI calls the ml route",
     "/api/quant/datasets": "an alias of /api/ml/datasets; the UI calls the ml route",
     "/api/ml/capabilities": "mirrors /api/providers/capabilities, which is the one surfaced",
@@ -64,6 +63,12 @@ def _is_referenced(endpoint: str, haystack: str) -> bool:
 
     Templated segments are stripped: the UI builds those by interpolation, so
     the constant prefix is the only part that can appear literally.
+
+    This is deliberately generous. It cannot distinguish a direct call from a
+    sibling path sharing a prefix, so it can say an endpoint is reachable when
+    only its neighbour is. That direction is the safe one: the test exists to
+    catch endpoints with NO surface, and a false "reachable" is caught by
+    reading, while a false "orphan" would train people to ignore the failure.
     """
     prefix = endpoint.split("{")[0].rstrip("/")
     return prefix in haystack
@@ -114,6 +119,10 @@ def test_internal_entries_carry_a_reason() -> None:
         "/api/providers/capabilities",
         "/api/providers/health",
         "/api/quant/covariance",
+        "/api/quant/latest",
+        "/api/dashboard",
+        "/api/graph/workspace",
+        "/api/backtest/{ticker}",
     ],
 )
 def test_the_endpoints_the_redesign_surfaced_stay_surfaced(endpoint: str) -> None:

@@ -185,21 +185,49 @@ replace so the two can be compared before anything is deleted.
 
 ## Built
 
-- Design system: tokens, type scale, density scale, status vocabulary, table
-  and panel primitives, responsive states, focus states.
-- Workbench shell with research-state rail.
-- **Data** — dataset and feature contracts, on two previously unused endpoints.
-- **Evidence** — the registry as an evidence chain, unmet gates as the headline.
-- **Risk** — 23 measures grouped by the question each answers.
+The migration is finished. Every legacy surface that carried analysis has been
+rebuilt on the workbench primitives, and the navigation no longer has a group
+named for the age of its contents.
 
-## Not yet migrated
+**Twenty-four workspaces in six groups.**
 
-Command, Securities, Factors, Signals, Models, Portfolio, Experiments and
-Methodology still run on the old shell. They work; they have not been rebuilt.
+| Group | Workspaces |
+|---|---|
+| Observe | Command, Market, Securities, Relationships |
+| Explain | Factors, Signals |
+| Validate | Models, Evidence, Gates, Calibration, Performance, Experiments, Compare, Difference |
+| Allocate | Book, Risk, Covariance, Watchlists |
+| Verify | Data, Providers, Provenance, Handbook |
+| Record | Memos, Timeline |
 
-Also pending: endpoints for the covariance estimators and diversification ratio
-added in this session's harvest, the provenance-chain and provider-matrix
-surfaces, and the analyst memo.
+### Migrated, not deleted
+
+| Legacy surface | Where it lives now |
+|---|---|
+| Market dashboard | **Market** — breadth as a series, sectors as a sortable table, momentum dispersion |
+| Knowledge graph | **Relationships** — radial by hop distance, confidence as a query filter |
+| Headlines, filings | **Securities → Disclosure** — with restatements and computed filing lag |
+| Ratios, technicals, street | **Securities → Fundamentals** — grouped by what each number is a claim about |
+| Factor cross-section, screen | **Factors** — with conviction read before the composite |
+| Factor IC, stability, spread | **Factors** — halves and sign flips beside the mean |
+| Single-name validation | **Calibration** — calibration, confusion, population stability |
+| Positions | **Watchlists** — renamed, because it manages the user's own lists, not the book |
+
+### Infrastructure
+
+Object model over thirteen kinds with declared edges · universal search over six
+sources · command palette · seven SVG chart types · analytical table with
+null-last sorting · object inspector · three density modes · `g`-prefixed
+navigation with a keyboard sheet · recents, pins and saved views on
+`useSyncExternalStore` · comparison engine · research notebook.
+
+### Newly surfaced backend
+
+Provenance chain, feature registry, dataset contracts, model registry, provider
+matrix, negative controls, leakage check, fold geometry, cost sensitivity, PBO,
+regime performance, covariance estimators, methodology handbook.
+
+**45 endpoints: 31 surfaced, 14 internal — each with a stated reason.**
 
 ## Refused
 
