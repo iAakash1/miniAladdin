@@ -14,6 +14,8 @@
 
 import { useMemo, useState, type ReactNode } from 'react'
 
+import { useChartCursor } from './ChartCursor'
+
 export interface DataColumn<T> {
   key: string
   header: string
@@ -44,7 +46,7 @@ export interface RowAction<T> {
 
 export function DataTable<T>({
   columns, rows, rowKey, density = 'compact', onSelect, selectedKey,
-  filterPlaceholder = 'filter', empty, initialSort, toolbar, actions,
+  filterPlaceholder = 'filter', empty, initialSort, toolbar, actions, focusKey,
 }: {
   columns: DataColumn<T>[]
   rows: T[]
@@ -64,8 +66,19 @@ export function DataTable<T>({
    * The column holds its width and only its contents fade in.
    */
   actions?: RowAction<T>[]
+  /**
+   * Ties this table to the shared series focus. Given a row, return the name
+   * of the series it corresponds to in the charts on this screen. Pointing at
+   * a row lifts that series out of every chart, and vice versa.
+   *
+   * The name must be the one the chart uses. Focus matches by name rather than
+   * position precisely so that a table sorted differently from the chart still
+   * points at the same thing.
+   */
+  focusKey?: (row: T) => string | null
 }) {
   const [query, setQuery] = useState('')
+  const cursor = useChartCursor()
   const [sort, setSort] = useState<{ key: string; direction: Direction } | null>(initialSort ?? null)
   const [hidden, setHidden] = useState<Set<string>>(
     () => new Set(columns.filter((c) => c.optional).map((c) => c.key)),
@@ -214,10 +227,14 @@ export function DataTable<T>({
             <tbody>
               {sorted.map((row, index) => {
                 const key = rowKey(row)
+                const focus = focusKey?.(row) ?? null
                 return (
                   <tr
                     key={key}
                     data-selected={selectedKey === key}
+                    data-focus={focus !== null && focus === cursor.focus ? '' : undefined}
+                    onPointerEnter={focus === null ? undefined : () => cursor.setFocus(focus)}
+                    onPointerLeave={focus === null ? undefined : () => cursor.setFocus(null)}
                     tabIndex={onSelect ? 0 : undefined}
                     style={onSelect ? { cursor: 'pointer' } : undefined}
                     onClick={onSelect ? () => onSelect(row) : undefined}

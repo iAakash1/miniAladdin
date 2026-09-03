@@ -25,6 +25,8 @@ import { TimeSeries } from '@/components/system/charts'
 import { Panel, Prose, Section, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 
+import { useChartCursor } from '@/components/system/ChartCursor'
+
 interface Control {
   control: string
   description?: string
@@ -94,6 +96,7 @@ export default function ExperimentEvidence({
   costSensitivity?: Record<string, CostPoint[]> | null
   pbo?: Pbo | null
 }) {
+  const cursor = useChartCursor()
   const controlRows = useMemo(() => controls?.controls ?? [], [controls])
   const folds = useMemo(() => plan?.folds ?? [], [plan])
   const models = useMemo(() => Object.keys(costSensitivity ?? {}), [costSensitivity])
@@ -243,8 +246,13 @@ export default function ExperimentEvidence({
               </thead>
               <tbody>
                 {models.flatMap((m) => (costSensitivity?.[m] ?? []).map((p, i) => (
-                  <tr key={`${m}-${p.half_spread_bps}-${i}`}>
-                    <td style={{ fontFamily: 'var(--font-mono)' }}>{m}</td>
+                  <tr
+                    key={`${m}-${p.half_spread_bps}-${i}`}
+                    data-focus={cursor.focus === m ? '' : undefined}
+                    onPointerEnter={() => cursor.setFocus(m)}
+                    onPointerLeave={() => cursor.setFocus(null)}
+                  >
+                    <td className="sys-mono">{m}</td>
                     <td className="num"><Value value={n(p.half_spread_bps)} digits={1} unit="bp" /></td>
                     <td className="num"><Value value={n(p.gross_sharpe)} digits={3} signed tone /></td>
                     <td className="num"><Value value={n(p.net_sharpe)} digits={3} signed tone /></td>

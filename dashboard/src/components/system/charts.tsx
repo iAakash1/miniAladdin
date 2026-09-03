@@ -182,6 +182,9 @@ export function TimeSeries({
   // the input changes underneath it.
   const { from, to } = bounds(view, total)
   const zoomed = to - from < total - 1
+  // A chart only reacts to a focus it actually contains. Otherwise pointing at
+  // a model in one panel would grey out every unrelated chart on the screen.
+  const known = cursor.focus !== null && series.some((s) => s.name === cursor.focus)
 
   const shown = useMemo(
     () => series.filter((s) => !hidden.includes(s.name)),
@@ -265,6 +268,9 @@ export function TimeSeries({
                     className="sys-meta sys-legend"
                     aria-pressed={!off}
                     onClick={() => setHidden((h) => (h.includes(s.name) ? h.filter((x) => x !== s.name) : [...h, s.name]))}
+                    onPointerEnter={() => cursor.setFocus(s.name)}
+                    onPointerLeave={() => cursor.setFocus(null)}
+                    data-focus={cursor.focus === s.name ? '' : undefined}
                     title={off ? `show ${s.name}` : `hide ${s.name} — the vertical axis will rescale`}
                   >
                     <span
@@ -296,7 +302,7 @@ export function TimeSeries({
       <svg
         viewBox={`0 0 ${W} ${H}`} width="100%" height={H} role="img"
         aria-label={title ?? 'time series'}
-        onPointerLeave={() => { setHover(null); setDrag(null); cursor.set(null) }}
+        onPointerLeave={() => { setHover(null); setDrag(null); cursor.set(null); cursor.setFocus(null) }}
         onPointerDown={(e) => {
           const i = indexAt(e.clientX, e.target as SVGElement)
           if (i === null) return
@@ -349,17 +355,25 @@ export function TimeSeries({
           />
         ) : null}
 
-        {sliced.map((s) => (
-          <path
-            key={s.name}
-            d={path(s.points)}
-            fill="none"
-            stroke={s.color ?? 'var(--ink)'}
-            strokeWidth={1.4}
-            strokeDasharray={s.dashed ? '3 2' : undefined}
-            vectorEffect="non-scaling-stroke"
-          />
-        ))}
+        {sliced.map((s) => {
+          // Focus dims the rest rather than hiding them. The point of lifting
+          // one model out of six is to see it *against* the other five; drop
+          // them and the reader loses the only comparison worth making.
+          const dimmed = cursor.focus !== null && cursor.focus !== s.name && known
+          return (
+            <path
+              key={s.name}
+              d={path(s.points)}
+              fill="none"
+              stroke={s.color ?? 'var(--ink)'}
+              strokeWidth={cursor.focus === s.name ? 2.2 : 1.4}
+              strokeDasharray={s.dashed ? '3 2' : undefined}
+              opacity={dimmed ? 0.22 : 1}
+              vectorEffect="non-scaling-stroke"
+              onPointerEnter={() => cursor.setFocus(s.name)}
+            />
+          )
+        })}
 
         {drag && Math.abs(drag.to - drag.from) >= MIN_SPAN ? (
           <g>

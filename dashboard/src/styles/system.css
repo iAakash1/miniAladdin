@@ -1491,3 +1491,14 @@ tr[data-selected='true'] .sys-row-actions { opacity: 1; }
   font-size: var(--t-micro);
   min-height: 0; line-height: 1.6;
 }
+
+/* A row under the shared focus. Deliberately weaker than selection: selection
+   is a decision the reader made, focus is only where their pointer
+   happens to be, and the two must not compete for the same attention. */
+.sys-table tbody tr[data-focus] {
+  background: var(--p-raised);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+/* The legend entry for the focused series. */
+.sys-legend[data-focus] { border-bottom-color: var(--accent); }
