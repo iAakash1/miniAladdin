@@ -1694,3 +1694,70 @@ tr[data-selected='true'] .sys-row-actions { opacity: 1; }
   color: var(--ink-faint);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+
+/* ── security search ─────────────────────────────────────────────────────
+   The way into the product. It lives in the shell, is always visible, and is
+   the widest single control on the screen — because typing a ticker is the
+   most common thing anyone does here, and the chrome should say so. */
+
+.sec-search { position: relative; flex: 1; max-width: 30rem; display: flex; align-items: center; }
+
+.sec-search__input {
+  width: 100%;
+  background: var(--p-sunken);
+  border: 1px solid var(--rule);
+  color: var(--ink);
+  font-size: var(--t-body);
+  padding: var(--d-1) var(--d-6) var(--d-1) var(--d-2);
+  border-radius: 0;
+}
+.sec-search__input::placeholder { color: var(--ink-faint); }
+.sec-search__input:focus-visible { outline: none; border-color: var(--accent); }
+/* The native clear affordance is a different shape on every platform and reads
+   as a stray mark in a dense header. */
+.sec-search__input::-webkit-search-cancel-button { display: none; }
+
+.sec-search__hint {
+  position: absolute; right: var(--d-2);
+  font-size: var(--t-micro); color: var(--ink-faint);
+  pointer-events: none;
+}
+
+.sec-search__panel {
+  position: absolute; top: calc(100% + 2px); left: 0; right: 0; z-index: 60;
+  background: var(--p-panel);
+  border: 1px solid var(--rule-strong);
+  max-height: 22rem; overflow-y: auto;
+  display: flex; flex-direction: column;
+}
+
+.sec-search__head {
+  font-size: var(--t-micro); letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--ink-faint);
+  padding: var(--d-2) var(--d-2) var(--d-1);
+}
+
+.sec-search__row {
+  display: flex; align-items: baseline; gap: var(--d-2);
+  width: 100%; text-align: left;
+  background: none; border: 0; color: inherit; cursor: pointer;
+  padding: var(--d-1) var(--d-2);
+  border-left: 2px solid transparent;
+}
+.sec-search__row.is-active { background: var(--p-raised); border-left-color: var(--accent); }
+
+.sec-search__sym {
+  font-family: var(--font-mono); font-size: var(--t-body); color: var(--ink);
+  min-width: 4.5rem;
+}
+.sec-search__name {
+  flex: 1; font-size: var(--t-meta); color: var(--ink-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.sec-search__via { font-size: var(--t-micro); color: var(--ink-faint); }
+
+.sec-search__note {
+  padding: var(--d-2);
+  font-size: var(--t-meta); color: var(--ink-muted); line-height: var(--lh-body);
+  display: flex; flex-direction: column; gap: var(--d-1);
+}

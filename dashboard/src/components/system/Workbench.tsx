@@ -33,6 +33,7 @@ import MetricInspector from './MetricInspector'
 import { usePinnedObjects, useRecentObjects } from '@/lib/research/history'
 import { KINDS, href as objectHref } from '@/lib/research/objects'
 import SystemRail from './SystemRail'
+import SecuritySearch from './SecuritySearch'
 import { DESTINATIONS, GOTO } from '@/lib/destinations'
 
 
@@ -167,6 +168,12 @@ export default function Workbench({
             <h1 className="sys-title">{title}</h1>
             {subtitle ? <span className="sys-meta">{subtitle}</span> : null}
           </div>
+          {/* Typing a ticker is the most common thing anyone does here, so it
+              gets the widest control in the chrome and sits in the shell rather
+              than inside a workspace — the workflow it serves is the first
+              thing a user does, and should not require arriving somewhere
+              first. */}
+          <SecuritySearch />
           {/* How the reader got here, which the title cannot say. */}
           <Breadcrumb />
           <div className="wb-head-actions">
