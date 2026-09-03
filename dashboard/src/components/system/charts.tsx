@@ -15,6 +15,9 @@
 
 import { useId, useMemo, useState, type ReactNode } from 'react'
 
+import { bounds, commit, MIN_SPAN, type Window } from '@/lib/chart-window'
+import { format, type Kind } from '@/lib/quantity'
+
 import { useChartCursor } from './ChartCursor'
 
 export interface Point {
@@ -150,7 +153,7 @@ export function Sparkline({
 /* ── time series ───────────────────────────────────────────────────────── */
 
 export function TimeSeries({
-  series, height = 190, unit, method, title, zeroLine = false, band,
+  series, height = 190, unit, method, title, zeroLine = false, band, kind = 'ratio',
 }: {
   series: { name: string; points: Point[]; color?: string; dashed?: boolean }[]
   height?: number
@@ -160,22 +163,52 @@ export function TimeSeries({
   zeroLine?: boolean
   /** An optional confidence band, drawn behind the lines. */
   band?: { points: Point[]; upper: (number | null)[]; lower: (number | null)[] }
+  /** How the readout should render values. Defaults to a bare ratio. */
+  kind?: Kind
 }) {
   const [hover, setHover] = useState<number | null>(null)
+  // A selection in progress, in whole indices. Null while the pointer is up.
+  const [drag, setDrag] = useState<Window | null>(null)
+  // The committed window. Null means the whole history, which is the state a
+  // chart must return to by default and after any change of input.
+  const [view, setView] = useState<Window | null>(null)
+  const [hidden, setHidden] = useState<string[]>([])
   const cursor = useChartCursor()
   const id = useId()
 
-  const all = useMemo(
-    () => series.flatMap((s) => s.points.map((p) => p.y)).filter((v): v is number => v !== null && Number.isFinite(v)),
-    [series],
-  )
-  const bandValues = useMemo(
-    () => (band ? [...band.upper, ...band.lower].filter((v): v is number => v !== null && Number.isFinite(v)) : []),
-    [band],
-  )
+  const total = series[0]?.points.length ?? 0
+  // See lib/chart-window: a window of indices is only meaningful against the
+  // series it was drawn on, and is discarded rather than reinterpreted when
+  // the input changes underneath it.
+  const { from, to } = bounds(view, total)
+  const zoomed = to - from < total - 1
 
-  const n = series[0]?.points.length ?? 0
-  if (!n || !all.length) return <ChartFrame title={title} unit={unit} method={method} height={height} empty>{null}</ChartFrame>
+  const shown = useMemo(
+    () => series.filter((s) => !hidden.includes(s.name)),
+    [series, hidden],
+  )
+  const sliced = useMemo(
+    () => shown.map((s) => ({ ...s, points: s.points.slice(from, to + 1) })),
+    [shown, from, to],
+  )
+  const all = useMemo(
+    () => sliced.flatMap((s) => s.points.map((p) => p.y)).filter((v): v is number => v !== null && Number.isFinite(v)),
+    [sliced],
+  )
+  const bandValues = useMemo(() => {
+    if (!band) return []
+    return [...band.upper.slice(from, to + 1), ...band.lower.slice(from, to + 1)]
+      .filter((v): v is number => v !== null && Number.isFinite(v))
+  }, [band, from, to])
+
+  const n = sliced[0]?.points.length ?? 0
+  if (!total || !n || !all.length) {
+    return (
+      <ChartFrame title={title} unit={unit} method={method} height={height} empty>
+        {null}
+      </ChartFrame>
+    )
+  }
 
   const [lo, hi] = extent([...all, ...bandValues, ...(zeroLine ? [0] : [])])
   const W = 640
@@ -197,7 +230,7 @@ export function TimeSeries({
   }
 
   const ticks = niceTicks(lo, hi, 4)
-  const labels = series[0].points
+  const labels = sliced[0].points
 
   // The shared cursor is a date, not an index: these charts have different
   // lengths and start points, and an index would align the ninth observation
@@ -207,36 +240,83 @@ export function TimeSeries({
     : -1
   const marked = hover ?? (shared >= 0 ? shared : null)
 
+  /** Pointer x to a whole index within the visible window. */
+  const indexAt = (clientX: number, el: SVGElement): number | null => {
+    const rect = el.ownerSVGElement?.getBoundingClientRect()
+    if (!rect) return null
+    const rel = ((clientX - rect.left) / rect.width) * W
+    const i = Math.round(((rel - PAD.left) / iw) * (n - 1))
+    return i >= 0 && i < n ? i : null
+  }
+
   return (
     <ChartFrame
       title={title} unit={unit} method={method}
       footer={
-        series.length > 1 ? (
-          <div style={{ display: 'flex', gap: 'var(--d-3)', flexWrap: 'wrap' }}>
-            {series.map((s) => (
-              <span key={s.name} className="sys-meta" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ width: 8, height: 2, background: s.color ?? 'var(--ink)' }} />
-                {s.name}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 'var(--d-3)', flexWrap: 'wrap' }}>
+          {series.length > 1 ? (
+            <div style={{ display: 'flex', gap: 'var(--d-3)', flexWrap: 'wrap' }}>
+              {series.map((s) => {
+                const off = hidden.includes(s.name)
+                return (
+                  <button
+                    key={s.name}
+                    type="button"
+                    className="sys-meta sys-legend"
+                    aria-pressed={!off}
+                    onClick={() => setHidden((h) => (h.includes(s.name) ? h.filter((x) => x !== s.name) : [...h, s.name]))}
+                    title={off ? `show ${s.name}` : `hide ${s.name} — the vertical axis will rescale`}
+                  >
+                    <span
+                      className="sys-legend__key"
+                      style={{ background: off ? 'transparent' : (s.color ?? 'var(--ink)'), borderColor: s.color ?? 'var(--ink)' }}
+                    />
+                    <span style={{ opacity: off ? 0.45 : 1, textDecoration: off ? 'line-through' : 'none' }}>{s.name}</span>
+                  </button>
+                )
+              })}
+            </div>
+          ) : <span />}
+          {zoomed ? (
+            <span className="sys-meta" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--d-2)' }}>
+              {/* A zoomed chart says so. Without this line a reader can take a
+                  local drawdown for the whole history, and the axis rescales
+                  under a window, which makes a mild move look severe. */}
+              <span style={{ color: 'var(--accent)' }}>
+                windowed · {n} of {total} observations · axis rescaled
               </span>
-            ))}
-          </div>
-        ) : null
+              <button type="button" className="sys-btn sys-btn--micro" onClick={() => setView(null)}>
+                full range
+              </button>
+            </span>
+          ) : null}
+        </div>
       }
     >
       <svg
         viewBox={`0 0 ${W} ${H}`} width="100%" height={H} role="img"
         aria-label={title ?? 'time series'}
-        onMouseLeave={() => { setHover(null); cursor.set(null) }}
-        onMouseMove={(e) => {
-          const rect = (e.target as SVGElement).ownerSVGElement?.getBoundingClientRect()
-          if (!rect) return
-          const rel = ((e.clientX - rect.left) / rect.width) * W
-          const i = Math.round(((rel - PAD.left) / iw) * (n - 1))
-          const next = i >= 0 && i < n ? i : null
-          setHover(next)
-          cursor.set(next === null ? null : String(labels[next]?.x ?? ''))
+        onPointerLeave={() => { setHover(null); setDrag(null); cursor.set(null) }}
+        onPointerDown={(e) => {
+          const i = indexAt(e.clientX, e.target as SVGElement)
+          if (i === null) return
+          ;(e.target as SVGElement).ownerSVGElement?.setPointerCapture?.(e.pointerId)
+          setDrag({ from: i, to: i })
         }}
-        style={{ display: 'block', cursor: 'crosshair' }}
+        onPointerMove={(e) => {
+          const i = indexAt(e.clientX, e.target as SVGElement)
+          setHover(i)
+          cursor.set(i === null ? null : String(labels[i]?.x ?? ''))
+          if (drag && i !== null) setDrag({ from: drag.from, to: i })
+        }}
+        onPointerUp={() => {
+          if (!drag) return
+          setDrag(null)
+          const next = commit(drag, from, total)
+          if (next) setView(next)
+        }}
+        onDoubleClick={() => setView(null)}
+        style={{ display: 'block', cursor: drag ? 'ew-resize' : 'crosshair', touchAction: 'none' }}
       >
         {ticks.map((t) => (
           <g key={t}>
@@ -252,16 +332,24 @@ export function TimeSeries({
 
         {band ? (
           <path
-            d={[
-              ...band.upper.map((v, i) => (v === null ? '' : `${i === 0 ? 'M' : 'L'}${px(i)},${py(v)}`)),
-              ...band.lower.map((v, i) => (v === null ? '' : `L${px(band.lower.length - 1 - i)},${py(band.lower[band.lower.length - 1 - i] as number)}`)),
-              'Z',
-            ].filter(Boolean).join(' ')}
+            d={(() => {
+              const up = band.upper.slice(from, to + 1)
+              const dn = band.lower.slice(from, to + 1)
+              return [
+                ...up.map((v, i) => (v === null ? '' : `${i === 0 ? 'M' : 'L'}${px(i)},${py(v)}`)),
+                ...dn.map((_, i) => {
+                  const j = dn.length - 1 - i
+                  const v = dn[j]
+                  return v === null ? '' : `L${px(j)},${py(v)}`
+                }),
+                'Z',
+              ].filter(Boolean).join(' ')
+            })()}
             fill="var(--ink-faint)" opacity={0.12} stroke="none"
           />
         ) : null}
 
-        {series.map((s) => (
+        {sliced.map((s) => (
           <path
             key={s.name}
             d={path(s.points)}
@@ -273,7 +361,20 @@ export function TimeSeries({
           />
         ))}
 
-        {marked !== null ? (
+        {drag && Math.abs(drag.to - drag.from) >= MIN_SPAN ? (
+          <g>
+            <rect
+              x={px(Math.min(drag.from, drag.to))}
+              width={Math.abs(px(drag.to) - px(drag.from))}
+              y={PAD.top} height={ih}
+              fill="var(--accent)" opacity={0.1}
+            />
+            <line x1={px(drag.from)} x2={px(drag.from)} y1={PAD.top} y2={H - PAD.bottom} stroke="var(--accent)" strokeWidth={1} />
+            <line x1={px(drag.to)} x2={px(drag.to)} y1={PAD.top} y2={H - PAD.bottom} stroke="var(--accent)" strokeWidth={1} />
+          </g>
+        ) : null}
+
+        {marked !== null && !drag ? (
           <g>
             {/* Solid when this chart owns the cursor, dashed when it is
                 following another — so the reader can tell which chart they are
@@ -284,7 +385,7 @@ export function TimeSeries({
               strokeDasharray={hover === null ? '3 3' : undefined}
               opacity={hover === null ? 0.7 : 1}
             />
-            {series.map((s) => {
+            {sliced.map((s) => {
               const p = s.points[marked]
               if (!p || p.y === null) return null
               return <circle key={`${id}-${s.name}`} cx={px(marked)} cy={py(p.y)} r={2.5} fill={s.color ?? 'var(--ink)'} />
@@ -301,9 +402,12 @@ export function TimeSeries({
         {marked !== null ? (
           <text x={W / 2} y={H - 4} textAnchor="middle" fontSize={9} fill="var(--ink)" fontFamily="var(--font-mono)">
             {String(labels[marked]?.x ?? '')}
-            {series.map((s) => {
+            {sliced.map((s) => {
               const v = s.points[marked]?.y
-              return v === null || v === undefined ? '' : `  ${s.name} ${v.toFixed(4)}`
+              // The readout goes through the same number system as every other
+              // value on screen. A chart that prints four decimals where the
+              // table beside it prints two reads as a different measurement.
+              return v === null || v === undefined ? '' : `  ${s.name} ${format(v, kind).text}`
             }).join('')}
           </text>
         ) : null}

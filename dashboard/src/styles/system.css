@@ -1463,3 +1463,31 @@ tr[data-selected='true'] .sys-row-actions { opacity: 1; }
    same gap every time. */
 .sys-stack { display: flex; flex-direction: column; gap: var(--d-3); }
 .sys-stack--tight { gap: var(--d-2); }
+
+/* ── chart interaction ───────────────────────────────────────────────────
+   A legend entry is a control, so it has to look like one — but quietly. The
+   reader's attention belongs on the plot, and a row of buttons under a chart
+   that shout for attention is a row of buttons that get clicked by accident. */
+
+.sys-legend {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: none; border: 0; padding: 0;
+  font: inherit; color: inherit; cursor: pointer;
+  border-bottom: 1px solid transparent;
+}
+.sys-legend:hover { border-bottom-color: var(--rule-strong); }
+.sys-legend:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+
+/* Filled when the series is drawn, hollow when it is hidden. The outline stays
+   so the reader can see a series exists and has been switched off, rather than
+   the entry simply going grey and reading as disabled. */
+.sys-legend__key {
+  width: 8px; height: 8px; flex: none;
+  border: 1px solid var(--ink);
+}
+
+.sys-btn--micro {
+  padding: 0 var(--d-1);
+  font-size: var(--t-micro);
+  min-height: 0; line-height: 1.6;
+}
