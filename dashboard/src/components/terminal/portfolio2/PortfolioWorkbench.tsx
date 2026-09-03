@@ -7,6 +7,12 @@
  *
  * Risk lives in its own workspace and is linked to rather than duplicated here.
  * Two implementations of the same table eventually disagree.
+ *
+ * The allocator is selectable, and that is the argument rather than a
+ * convenience. A reader who suspects the construction is what makes the signal
+ * look poor can change it and watch the answer stay poor. Equal weight is in
+ * the list for the same reason — it does no estimation, so it has no estimation
+ * error to blame, and a signal that cannot beat it has not shown anything.
  */
 'use client'
 
@@ -19,6 +25,7 @@ import { BarRows, Histogram } from '@/components/system/charts'
 import { recordVisit } from '@/lib/research/history'
 import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
 
+interface Method { name: string; description: string }
 interface Weight { symbol: string; weight: number; side: string; signal?: number | null; risk_share: number | null }
 interface Payload {
   status: string
@@ -40,17 +47,39 @@ interface Payload {
 }
 
 export default function PortfolioWorkbench() {
-  const [data, setData] = useState<Payload | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  // The response is tagged with the allocator it was requested for. A result
+  // for a method the reader has already moved on from is ignored at render
+  // rather than cleared inside the effect, which keeps the loading state
+  // truthful without a synchronous setState during the effect.
+  const [result, setResult] = useState<{ method: string; data?: Payload; error?: string } | null>(null)
+  const [methods, setMethods] = useState<Method[]>([])
+  const [method, setMethod] = useState('risk_parity')
 
   useEffect(() => {
     let alive = true
-    fetch('/api/quant/portfolio')
+    fetch('/api/quant/portfolio/methods')
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((d: Payload) => { if (alive) setData(d) })
-      .catch((e: Error) => { if (alive) setError(e.message) })
+      .then((d: { methods?: Method[] } | Method[]) => {
+        if (alive) setMethods(Array.isArray(d) ? d : (d.methods ?? []))
+      })
+      // The allocator list failing is not a reason to hide the book. The
+      // current allocator still renders; the reader just cannot switch.
+      .catch(() => { if (alive) setMethods([]) })
     return () => { alive = false }
   }, [])
+
+  useEffect(() => {
+    let alive = true
+    fetch(`/api/quant/portfolio?method=${encodeURIComponent(method)}`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((d: Payload) => { if (alive) setResult({ method, data: d }) })
+      .catch((e: Error) => { if (alive) setResult({ method, error: e.message }) })
+    return () => { alive = false }
+  }, [method])
+
+  const current = result?.method === method ? result : null
+  const data = current?.data ?? null
+  const error = current?.error ?? null
 
   if (error) {
     return (
@@ -135,8 +164,47 @@ export default function PortfolioWorkbench() {
           { label: 'Net', value: net, digits: 3, signed: true, tone: true },
           { label: 'Method', value: data.method ?? null, digits: 0 },
         ]}
-        actions={<Link href="/terminal/risk" className="sys-btn">risk</Link>}
+        actions={
+          <>
+            {methods.length ? (
+              <label className="sys-run">
+                <span className="sys-label">Allocator</span>
+                <select
+                  className="sys-input"
+                  value={method}
+                  onChange={(e) => setMethod(e.target.value)}
+                  title="Change how the book is constructed from the same signal"
+                >
+                  {methods.map((m) => (
+                    <option key={m.name} value={m.name}>{m.name.replace(/_/g, ' ')}</option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+            <Link href="/terminal/risk" className="sys-btn">risk</Link>
+          </>
+        }
       />
+
+      {/* What the selected allocator assumes, in its own words. Reading a book
+          without knowing whether its construction ignores correlation, or will
+          short, or consumes an expected-return vector it did not create, is
+          reading a result without its method. */}
+      {methods.find((m) => m.name === (data.method ?? method)) ? (
+        <Panel title="What this allocator assumes" state="recorded">
+          <Prose>
+            <strong className="sys-mono">{(data.method ?? method).replace(/_/g, ' ')}</strong>
+            {' — '}
+            {methods.find((m) => m.name === (data.method ?? method))?.description}
+          </Prose>
+          <Prose size="tight">
+            Changing the allocator rebuilds the book from the same signal. If the
+            result stays poor across every construction, the construction is not
+            what is wrong with it — and equal weight is in this list because it
+            does no estimation, so it has no estimation error to blame.
+          </Prose>
+        </Panel>
+      ) : null}
 
       <Strip metrics={[
         { label: 'Positions', value: weights.length, digits: 0 , kind: 'count'},
