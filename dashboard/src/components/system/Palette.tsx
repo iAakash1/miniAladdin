@@ -20,6 +20,7 @@ import { recordVisit, usePinnedObjects, useRecentObjects } from '@/lib/research/
 import { KIND_ORDER, KINDS, href as objectHref, score, type ObjectKind, type ResearchObject } from '@/lib/research/objects'
 import { Status, type ResearchState } from './index'
 import { buildRows, selectableRows } from '@/lib/palette-rows'
+import { ALL_DESTINATIONS } from '@/lib/destinations'
 
 const STATE_MAP: Record<string, ResearchState> = {
   live: 'live', recorded: 'recorded', stale: 'stale', waking: 'waking',
@@ -32,6 +33,12 @@ interface Command {
   id: string
   label: string
   hint?: string
+  /**
+   * What the destination answers. A palette result should carry enough for a
+   * reader to decide whether to open it — a list of twenty-four workspace
+   * names is a list they have to already know.
+   */
+  note?: string
   run: () => void
 }
 
@@ -92,21 +99,14 @@ export default function Palette() {
   }, [open])
 
   const commands: Command[] = useMemo(() => {
-    const go = (label: string, path: string, hint: string): Command => ({
-      id: `go:${path}`, label, hint, run: () => router.push(path),
+    const go = (label: string, path: string, hint: string, note?: string): Command => ({
+      id: `go:${path}`, label, hint, note, run: () => router.push(path),
     })
     return [
-      go('Go to Command', '/terminal/command', 'g c'),
-      go('Go to Securities', '/terminal/security', 'g s'),
-      go('Go to Factors', '/terminal/factorlab', 'g f'),
-      go('Go to Signals', '/terminal/signals', 'g g'),
-      go('Go to Models', '/terminal/lab', 'g m'),
-      go('Go to Evidence', '/terminal/evidence', 'g v'),
-      go('Go to Experiments', '/terminal/experiments', 'g x'),
-      go('Go to Book', '/terminal/book', 'g b'),
-      go('Go to Risk', '/terminal/risk', 'g r'),
-      go('Go to Data', '/terminal/data', 'g d'),
-      go('Go to Handbook', '/terminal/handbook', 'g y'),
+      // Every navigation command comes from the destination registry, so the
+      // palette cannot offer a route the sidebar does not have — or send the
+      // reader somewhere else for the same label.
+      ...ALL_DESTINATIONS.map((d) => go(`Go to ${d.label}`, d.href, `g ${d.key}`, d.answers)),
       { id: 'density', label: 'Cycle information density', hint: 'compact / default / comfortable', run: cycleDensity },
     ]
   }, [router])
@@ -226,6 +226,10 @@ export default function Palette() {
                 >
                   <span className="pal-badge" aria-hidden>→</span>
                   <span className="pal-label">{row.value.label}</span>
+                  {/* What the destination answers, so a reader choosing
+                      between twenty-four workspace names has something to
+                      choose on besides recognising the name. */}
+                  {row.value.note ? <span className="pal-note">{row.value.note}</span> : null}
                   {row.value.hint ? <kbd className="pal-hint">{row.value.hint}</kbd> : null}
                 </button>
               )

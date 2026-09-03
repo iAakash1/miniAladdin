@@ -33,85 +33,17 @@ import MetricInspector from './MetricInspector'
 import { usePinnedObjects, useRecentObjects } from '@/lib/research/history'
 import { KINDS, href as objectHref } from '@/lib/research/objects'
 import SystemRail from './SystemRail'
+import { DESTINATIONS, GOTO } from '@/lib/destinations'
 
-/** `g` then a letter jumps between workspaces. Inert while typing. */
-const GOTO: Record<string, string> = {
-  c: '/terminal/command', s: '/terminal/security', j: '/terminal/market', h: '/terminal/relationships', f: '/terminal/factorlab',
-  g: '/terminal/signals', m: '/terminal/lab', v: '/terminal/evidence',
-  x: '/terminal/experiments', b: '/terminal/book', r: '/terminal/risk',
-  d: '/terminal/data', y: '/terminal/handbook', p: '/terminal/performance',
-  o: '/terminal/providers', n: '/terminal/provenance', k: '/terminal/covariance',
-  w: '/terminal/compare', a: '/terminal/gates', e: '/terminal/memos', t: '/terminal/timeline',
-  q: '/terminal/diff',
-  z: '/terminal/portfolio',
-  u: '/terminal/calibration',
-}
 
 /* Navigation follows the research loop, not the backend modules. The groups
-   are the questions a researcher actually moves between. */
-/** A glyph column keeps the eye on a fixed left edge down the list, instead of
- *  tracking a ragged one made of word lengths. */
-export const WORKBENCH: {
-  group: string
-  items: { href: string; label: string; key: string; glyph: string }[]
-}[] = [
-  {
-    group: 'Observe',
-    items: [
-      { href: '/terminal/command', label: 'Command', glyph: '⌘', key: 'c' },
-      { href: '/terminal/market', label: 'Market', glyph: 'M', key: 'j' },
-      { href: '/terminal/security', label: 'Securities', glyph: 'T', key: 's' },
-      { href: '/terminal/relationships', label: 'Relationships', glyph: '◇', key: 'h' },
-    ],
-  },
-  {
-    group: 'Explain',
-    items: [
-      { href: '/terminal/factorlab', label: 'Factors', glyph: 'K', key: 'f' },
-      { href: '/terminal/signals', label: 'Signals', glyph: 'S', key: 'g' },
-    ],
-  },
-  {
-    group: 'Validate',
-    items: [
-      { href: '/terminal/lab', label: 'Models', glyph: 'µ', key: 'm' },
-      { href: '/terminal/evidence', label: 'Evidence', glyph: 'E', key: 'v' },
-      { href: '/terminal/gates', label: 'Gates', glyph: '⊟', key: 'a' },
-      { href: '/terminal/calibration', label: 'Calibration', glyph: 'C', key: 'u' },
-      { href: '/terminal/performance', label: 'Performance', glyph: '∿', key: 'p' },
-      { href: '/terminal/experiments', label: 'Experiments', glyph: 'X', key: 'x' },
-      { href: '/terminal/compare', label: 'Compare', glyph: '⇄', key: 'w' },
-      { href: '/terminal/diff', label: 'Difference', glyph: 'Δ', key: 'q' },
-    ],
-  },
-  {
-    group: 'Allocate',
-    items: [
-      { href: '/terminal/book', label: 'Book', glyph: 'B', key: 'b' },
-      { href: '/terminal/risk', label: 'Risk', glyph: 'R', key: 'r' },
-      { href: '/terminal/covariance', label: 'Covariance', glyph: 'Σ', key: 'k' },
-      // A user's own lists and holdings. A different object from the research
-      // book, which is why both exist and neither is named for the other.
-      { href: '/terminal/portfolio', label: 'Watchlists', glyph: 'W', key: 'z' },
-    ],
-  },
-  {
-    group: 'Verify',
-    items: [
-      { href: '/terminal/data', label: 'Data', glyph: 'D', key: 'd' },
-      { href: '/terminal/providers', label: 'Providers', glyph: 'V', key: 'o' },
-      { href: '/terminal/provenance', label: 'Provenance', glyph: '⤳', key: 'n' },
-      { href: '/terminal/handbook', label: 'Handbook', glyph: 'H', key: 'y' },
-    ],
-  },
-  {
-    group: 'Record',
-    items: [
-      { href: '/terminal/memos', label: 'Memos', glyph: 'N', key: 'e' },
-      { href: '/terminal/timeline', label: 'Timeline', glyph: '│', key: 't' },
-    ],
-  },
-]
+   are the questions a researcher actually moves between.
+
+   Both the list and the chord map come from lib/destinations, which is the one
+   place either is declared. Four hand-maintained copies of the same
+   destinations is how the palette and the sidebar ended up disagreeing about
+   where Securities lives. */
+export const WORKBENCH = DESTINATIONS
 
 export interface RailState {
   label: string

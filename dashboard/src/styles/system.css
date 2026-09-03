@@ -1685,3 +1685,12 @@ tr[data-selected='true'] .sys-row-actions { opacity: 1; }
    see it, rather than as a badge on the frame they have already stopped
    reading. */
 .sys-axis-warning { color: var(--s-blocked); }
+
+/* The question a palette destination answers. Quiet enough that the name still
+   leads, present enough to choose on. */
+.pal-note {
+  flex: 1;
+  font-size: var(--t-micro);
+  color: var(--ink-faint);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
