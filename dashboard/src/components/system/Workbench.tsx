@@ -109,7 +109,14 @@ export default function Workbench({
       <MetricInspector />
       <nav className={`wb-rail${navOpen ? ' is-open' : ''}`} aria-label="Workbench">
         {WORKBENCH.map((section) => (
-          <div className="wb-group" key={section.group}>
+          <div
+            className="wb-group"
+            key={section.group}
+            /* The first group is where a session starts and returns. Marking it
+               is the difference between a terminal and a list of twenty-four
+               equally weighted admin links. */
+            data-primary={section.group === 'Terminal' ? '' : undefined}
+          >
             <div className="sys-label wb-group-label">{section.group}</div>
             {section.items.map((item) => {
               const active = pathname === item.href

@@ -1815,3 +1815,21 @@ tr[data-selected='true'] .sys-row-actions { opacity: 1; }
   border: 1px solid var(--rule-strong);
   color: var(--ink);
 }
+
+/* ── navigation hierarchy ────────────────────────────────────────────────
+   Twenty-four destinations at one weight is an admin sidebar. The group a
+   session starts and returns to reads slightly heavier; the rest recede. The
+   difference is deliberately small — a terminal's navigation should be
+   scannable, not decorated. */
+
+.wb-group[data-primary] .wb-label { color: var(--ink); }
+.wb-group[data-primary] .wb-group-label { color: var(--ink-muted); }
+/* A rule under the primary group separates the daily surfaces from the
+   analytical ones without adding a heading nobody reads. */
+.wb-group[data-primary] {
+  padding-bottom: var(--d-2);
+  margin-bottom: var(--d-2);
+  border-bottom: 1px solid var(--rule-strong);
+}
+.wb-group:not([data-primary]) .wb-label { color: var(--ink-muted); }
+.wb-group:not([data-primary]) a[aria-current='page'] .wb-label { color: var(--ink); }

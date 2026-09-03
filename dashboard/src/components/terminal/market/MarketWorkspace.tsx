@@ -57,7 +57,11 @@ interface Breadth {
   sectors_above_50d?: number | null
   sector_count?: number | null
   breadth_score?: number | null
-  history?: { date: string; value: number }[] | number[]
+  /* As the dashboard sends it: ninety points of {date, score}. This was
+     declared as {date, value}, so both readers below discarded the whole
+     series — the breadth chart said "no observations" beside a panel whose
+     own caption described the ninety days it was not drawing. */
+  history?: { date: string; score: number }[] | number[]
   explain?: string | null
   leadership?: string | null
   laggard?: string | null
@@ -104,7 +108,7 @@ export default function MarketWorkspace() {
     if (typeof h[0] === 'number') {
       return (h as number[]).map((v, i) => ({ x: i, y: v }))
     }
-    return (h as { date: string; value: number }[]).map((p) => ({ x: p.date, y: p.value }))
+    return (h as { date: string; score: number }[]).map((p) => ({ x: p.date, y: p.score }))
   }, [data])
 
   const columns: DataColumn<Sector>[] = useMemo(() => [
@@ -176,12 +180,13 @@ export default function MarketWorkspace() {
   const mappable: { breadth: MapBreadth; sectors: SectorRow[] } | null = (() => {
     const rows = data.sectors ?? []
     if (!rows.length || b.breadth_score === undefined) return null
-    // The map plots `score`; this payload may carry `value` or bare numbers.
-    // A series in the wrong shape is converted, never reinterpreted.
+    // The map plots {date, score} and so does the payload. Bare numbers carry
+    // no dates and cannot be plotted against one, so they are refused rather
+    // than given an index masquerading as a date.
     const raw = b.history ?? []
-    const history = raw.every((h): h is { date: string; value: number } =>
-      typeof h === 'object' && h !== null && 'date' in h && 'value' in h)
-      ? raw.map((h) => ({ date: h.date, score: h.value }))
+    const history = raw.every((h): h is { date: string; score: number } =>
+      typeof h === 'object' && h !== null && 'date' in h && 'score' in h)
+      ? raw
       : undefined
     const complete = rows.filter((r): r is Sector & { history: number[] } => {
       const h = (r as { history?: unknown }).history
