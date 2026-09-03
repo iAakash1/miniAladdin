@@ -4,7 +4,7 @@ import Workbench from '@/components/system/Workbench'
 import Watchlist from '@/components/terminal/watchlist/Watchlist'
 import RecentSecurities from '@/components/terminal/home/RecentSecurities'
 import ResearchStatus from '@/components/terminal/home/ResearchStatus'
-import MarketWorkspace from '@/components/terminal/market/MarketWorkspace'
+import MarketSummary from '@/components/terminal/home/MarketSummary'
 import { Grid, Panel } from '@/components/system'
 
 export const metadata: Metadata = {
@@ -60,9 +60,11 @@ export default function TerminalHome() {
         <RecentSecurities />
       </Grid>
 
-      {/* What the market is doing, from the same dashboard payload the market
-          workspace reads. */}
-      <MarketWorkspace />
+      {/* The summary, not the workspace. Home embedded the whole market page —
+          breadth history, the sector map, the events table, leadership, the
+          ninety-day chart — which is a good workspace and far too much for a
+          screen whose job is to say what matters right now. */}
+      <MarketSummary />
 
       {/* One line. The archive is a link away. */}
       <ResearchStatus />

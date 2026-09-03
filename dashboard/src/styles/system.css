@@ -429,6 +429,15 @@
   color: var(--ink);
   display: flex;
   align-items: center;
+  /* A strip cell is a fixed fraction of the row, and most of what goes in one
+     is a number that fits. A text value does not always — "Consumer Defensive"
+     ran out of its cell and into the regime beside it, so the two read as one
+     word. Clipped with the full text on hover, rather than allowed to overrun
+     a neighbour. */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .sys-strip-item .u {
   font: 400 var(--t-micro) / 1 var(--font-mono);

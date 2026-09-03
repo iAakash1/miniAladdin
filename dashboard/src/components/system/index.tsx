@@ -217,7 +217,9 @@ export function Strip({ metrics }: { metrics: StripMetric[] }) {
       {metrics.map((m) => (
         <div className="sys-strip-item" key={m.label}>
           <span className="k" title={m.label}>{m.label}</span>
-          <span className="v">
+          {/* The full value on hover, since a long text value is clipped to
+              keep it out of the cell beside it. */}
+          <span className="v" title={typeof m.value === 'string' ? m.value : undefined}>
             <Value
               value={m.value} kind={m.kind} unit={m.unit} digits={m.digits}
               signed={m.signed} tone={m.tone} title={m.title}

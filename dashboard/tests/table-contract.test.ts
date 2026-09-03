@@ -78,10 +78,12 @@ test('every hand-built table in the product is accounted for', () => {
      38 → 39 for the security profile, whose company and coverage tables are
      header-less two-column field lists — a <th> reading "field" and "value"
      there would be noise — beside a filings table that does carry headers.
+     39 → 40 for the home market summary's index tape: five headers against
+     five cells, checked in the DOM.
      Every one was read in the rendered DOM before this number moved. */
   assert.equal(
-    handBuilt.length, 39,
-    `hand-built tables changed from 39 to ${handBuilt.length}. Route the new one ` +
+    handBuilt.length, 40,
+    `hand-built tables changed from 40 to ${handBuilt.length}. Route the new one ` +
     'through DataTable, or check its alignment in the rendered DOM and update ' +
     'this count deliberately.',
   )
