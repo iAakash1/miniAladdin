@@ -26,6 +26,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { Status, type ResearchState } from './index'
 import Palette, { applyStoredDensity } from './Palette'
 import Shortcuts from './Shortcuts'
+import { ChartCursorProvider } from './ChartCursor'
 import { MetricProvider } from './MetricContext'
 import MetricInspector from './MetricInspector'
 import { usePinnedObjects, useRecentObjects } from '@/lib/research/history'
@@ -166,6 +167,7 @@ export default function Workbench({
   return (
     // Mounted once. There is no second path for inspecting a number.
     <MetricProvider>
+    <ChartCursorProvider>
     <div className="wb">
       <Palette />
       <Shortcuts />
@@ -292,6 +294,7 @@ export default function Workbench({
         ) : null}
       </div>
     </div>
+    </ChartCursorProvider>
     </MetricProvider>
   )
 }

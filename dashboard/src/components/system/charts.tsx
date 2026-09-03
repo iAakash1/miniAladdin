@@ -15,6 +15,8 @@
 
 import { useId, useMemo, useState, type ReactNode } from 'react'
 
+import { useChartCursor } from './ChartCursor'
+
 export interface Point {
   /** x is a date string or an index. Rendering treats it as ordinal. */
   x: string | number
@@ -160,6 +162,7 @@ export function TimeSeries({
   band?: { points: Point[]; upper: (number | null)[]; lower: (number | null)[] }
 }) {
   const [hover, setHover] = useState<number | null>(null)
+  const cursor = useChartCursor()
   const id = useId()
 
   const all = useMemo(
@@ -196,6 +199,14 @@ export function TimeSeries({
   const ticks = niceTicks(lo, hi, 4)
   const labels = series[0].points
 
+  // The shared cursor is a date, not an index: these charts have different
+  // lengths and start points, and an index would align the ninth observation
+  // of one series with the ninth of another and call that the same moment.
+  const shared = cursor.at !== null
+    ? labels.findIndex((p) => String(p.x) === cursor.at)
+    : -1
+  const marked = hover ?? (shared >= 0 ? shared : null)
+
   return (
     <ChartFrame
       title={title} unit={unit} method={method}
@@ -215,13 +226,15 @@ export function TimeSeries({
       <svg
         viewBox={`0 0 ${W} ${H}`} width="100%" height={H} role="img"
         aria-label={title ?? 'time series'}
-        onMouseLeave={() => setHover(null)}
+        onMouseLeave={() => { setHover(null); cursor.set(null) }}
         onMouseMove={(e) => {
           const rect = (e.target as SVGElement).ownerSVGElement?.getBoundingClientRect()
           if (!rect) return
           const rel = ((e.clientX - rect.left) / rect.width) * W
           const i = Math.round(((rel - PAD.left) / iw) * (n - 1))
-          setHover(i >= 0 && i < n ? i : null)
+          const next = i >= 0 && i < n ? i : null
+          setHover(next)
+          cursor.set(next === null ? null : String(labels[next]?.x ?? ''))
         }}
         style={{ display: 'block', cursor: 'crosshair' }}
       >
@@ -260,13 +273,21 @@ export function TimeSeries({
           />
         ))}
 
-        {hover !== null ? (
+        {marked !== null ? (
           <g>
-            <line x1={px(hover)} x2={px(hover)} y1={PAD.top} y2={H - PAD.bottom} stroke="var(--rule-focus)" strokeWidth={1} />
+            {/* Solid when this chart owns the cursor, dashed when it is
+                following another — so the reader can tell which chart they are
+                driving from the one they are reading. */}
+            <line
+              x1={px(marked)} x2={px(marked)} y1={PAD.top} y2={H - PAD.bottom}
+              stroke="var(--accent)" strokeWidth={1}
+              strokeDasharray={hover === null ? '3 3' : undefined}
+              opacity={hover === null ? 0.7 : 1}
+            />
             {series.map((s) => {
-              const p = s.points[hover]
+              const p = s.points[marked]
               if (!p || p.y === null) return null
-              return <circle key={`${id}-${s.name}`} cx={px(hover)} cy={py(p.y)} r={2.5} fill={s.color ?? 'var(--ink)'} />
+              return <circle key={`${id}-${s.name}`} cx={px(marked)} cy={py(p.y)} r={2.5} fill={s.color ?? 'var(--ink)'} />
             })}
           </g>
         ) : null}
@@ -277,11 +298,11 @@ export function TimeSeries({
         <text x={W - PAD.right} y={H - 4} textAnchor="end" fontSize={9} fill="var(--ink-faint)" fontFamily="var(--font-mono)">
           {String(labels[n - 1]?.x ?? '')}
         </text>
-        {hover !== null ? (
+        {marked !== null ? (
           <text x={W / 2} y={H - 4} textAnchor="middle" fontSize={9} fill="var(--ink)" fontFamily="var(--font-mono)">
-            {String(labels[hover]?.x ?? '')}
+            {String(labels[marked]?.x ?? '')}
             {series.map((s) => {
-              const v = s.points[hover]?.y
+              const v = s.points[marked]?.y
               return v === null || v === undefined ? '' : `  ${s.name} ${v.toFixed(4)}`
             }).join('')}
           </text>
