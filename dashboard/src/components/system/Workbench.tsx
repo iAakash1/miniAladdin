@@ -31,7 +31,7 @@ import { KINDS, href as objectHref } from '@/lib/research/objects'
 
 /** `g` then a letter jumps between workspaces. Inert while typing. */
 const GOTO: Record<string, string> = {
-  c: '/terminal/command', s: '/terminal/security', j: '/terminal/market', f: '/terminal/factorlab',
+  c: '/terminal/command', s: '/terminal/security', j: '/terminal/market', h: '/terminal/relationships', f: '/terminal/factorlab',
   g: '/terminal/signals', m: '/terminal/lab', v: '/terminal/evidence',
   x: '/terminal/experiments', b: '/terminal/book', r: '/terminal/risk',
   d: '/terminal/data', y: '/terminal/handbook', p: '/terminal/performance',
@@ -39,7 +39,7 @@ const GOTO: Record<string, string> = {
   w: '/terminal/compare', a: '/terminal/gates', e: '/terminal/memos', t: '/terminal/timeline',
   q: '/terminal/diff',
   i: '/terminal/analyze', l: '/terminal/factors', z: '/terminal/portfolio',
-  u: '/terminal/validation', h: '/terminal/graph',
+  u: '/terminal/validation',
 }
 
 /* Navigation follows the research loop, not the backend modules. The groups
@@ -51,6 +51,7 @@ export const WORKBENCH: { group: string; items: { href: string; label: string; k
       { href: '/terminal/command', label: 'Command', key: 'c' },
       { href: '/terminal/market', label: 'Market', key: 'j' },
       { href: '/terminal/security', label: 'Securities', key: 's' },
+      { href: '/terminal/relationships', label: 'Relationships', key: 'h' },
     ],
   },
   {
@@ -93,7 +94,7 @@ export const WORKBENCH: { group: string; items: { href: string; label: string; k
       { href: '/terminal/factors', label: 'Factor lab', key: 'l' },
       { href: '/terminal/portfolio', label: 'Positions', key: 'z' },
       { href: '/terminal/validation', label: 'Validation', key: 'u' },
-      { href: '/terminal/graph', label: 'Graph', key: 'h' },
+
     ],
   },
   {

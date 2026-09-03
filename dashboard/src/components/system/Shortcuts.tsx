@@ -25,6 +25,7 @@ const GROUPS: { title: string; keys: { combo: string; action: string }[] }[] = [
       { combo: 'g c', action: 'Command' },
       { combo: 'g j', action: 'Market' },
       { combo: 'g s', action: 'Securities' },
+      { combo: 'g h', action: 'Relationships' },
       { combo: 'g f', action: 'Factors' },
       { combo: 'g g', action: 'Signals' },
       { combo: 'g m', action: 'Models' },
@@ -47,7 +48,7 @@ const GROUPS: { title: string; keys: { combo: string; action: string }[] }[] = [
       { combo: 'g l', action: 'Factor lab — cross-section and screen' },
       { combo: 'g z', action: 'Positions' },
       { combo: 'g u', action: 'Validation' },
-      { combo: 'g h', action: 'Graph' },
+
     ],
   },
   {
