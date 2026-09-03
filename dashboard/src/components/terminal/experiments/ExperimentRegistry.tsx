@@ -13,7 +13,7 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 
-import { Panel, StateBlock, Status, Strip, Value } from '@/components/system'
+import { Panel, StateBlock, Status, Value } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
 import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
@@ -115,11 +115,7 @@ export default function ExperimentRegistry() {
         ]}
       />
 
-      <Strip metrics={[
-        { label: 'Experiments', value: rows.length, digits: 0 , kind: 'count'},
-        { label: 'Valid', value: live, digits: 0, kind: 'count' },
-        { label: 'Void', value: rows.length - live, digits: 0, kind: 'count', title: 'Invalidated, and kept in the record rather than removed from it' },
-      ]} />
+      
 
       <Panel title="Registry" subtitle={`${rows.length} recorded`} flush>
         <DataTable

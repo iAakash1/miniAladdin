@@ -603,12 +603,19 @@ export function Matrix({
 /* ── horizontal contribution bars ──────────────────────────────────────── */
 
 export function BarRows({
-  rows, unit, title, max,
+  rows, unit, title, max, kind = 'ratio',
 }: {
   rows: { label: string; value: number | null; note?: string }[]
   unit?: string
   title?: string
   max?: number
+  /**
+   * How the row values should read. A count of 129 configurations printed as
+   * "129.0000" claims a precision the quantity does not have, and four decimals
+   * on an integer is the clearest possible way to say a number was never
+   * thought about.
+   */
+  kind?: Kind
 }) {
   const finite = rows.map((r) => r.value).filter((v): v is number => v !== null && Number.isFinite(v))
   if (!finite.length) return <ChartFrame title={title} unit={unit} empty>{null}</ChartFrame>
@@ -641,7 +648,7 @@ export function BarRows({
                 )}
               </div>
               <span className="sys-num" style={{ fontSize: 'var(--t-meta)' }}>
-                {v === null ? <span className="sys-null">—</span> : v.toFixed(4)}
+                {v === null ? <span className="sys-null">—</span> : format(v, kind).text}
               </span>
             </div>
           )

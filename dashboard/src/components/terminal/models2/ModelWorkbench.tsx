@@ -139,11 +139,6 @@ export default function ModelWorkbench() {
       />
 
       <Strip metrics={[
-        { label: 'Rows', value: n(ds.rows), digits: 0 , kind: 'count'},
-        { label: 'Symbols', value: n(ds.symbols), digits: 0 , kind: 'count'},
-        { label: 'Dates', value: n(ds.dates), digits: 0 , kind: 'count'},
-        { label: 'Features', value: n(data.feature_count), digits: 0 , kind: 'count'},
-        { label: 'Labels', value: labels.length, digits: 0, kind: 'count' },
         { label: 'From', value: ds.start ?? null, digits: 0, kind: 'count' },
         { label: 'To', value: ds.end ?? null, digits: 0, kind: 'count' },
       ]} />

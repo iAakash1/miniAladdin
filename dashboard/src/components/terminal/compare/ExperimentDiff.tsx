@@ -232,13 +232,10 @@ export default function ExperimentDiff() {
       ) : (
         <>
           <Strip metrics={[
-            { label: 'Fields compared', value: rows.length, digits: 0, kind: 'count' },
-            { label: 'Same', value: counts.same, digits: 0, kind: 'count' },
-            { label: 'Changed', value: counts.changed, digits: 0, kind: 'count' },
-            { label: 'Added', value: counts.added, digits: 0, kind: 'count' },
-            { label: 'Removed', value: counts.removed, digits: 0, kind: 'count' },
-            { label: 'Not recorded either side', value: counts.absent, digits: 0, kind: 'count' },
-          ]} />
+        { label: 'Fields compared', value: rows.length, digits: 0, kind: 'count' },
+        { label: 'Same', value: counts.same, digits: 0, kind: 'count' },
+        { label: 'Not recorded either side', value: counts.absent, digits: 0, kind: 'count' },
+      ]} />
 
           <Panel title="Difference" subtitle={`${left} → ${right}`} flush>
             <div className="sys-scroll-x">

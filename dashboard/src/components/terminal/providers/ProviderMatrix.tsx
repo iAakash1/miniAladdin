@@ -110,8 +110,6 @@ export default function ProviderMatrix() {
       />
 
       <Strip metrics={[
-        { label: 'Providers', value: providers.length || null, digits: 0, kind: 'count' },
-        { label: 'Capabilities', value: capabilities.length || null, digits: 0, kind: 'count' },
         { label: 'Health reported', value: healthRows.length || null, digits: 0, kind: 'count' },
         { label: 'Deduplicated requests', value: health?.deduplicated_requests ?? null, digits: 0, kind: 'count', title: 'Requests served from an in-flight identical call rather than repeated' },
       ]} />

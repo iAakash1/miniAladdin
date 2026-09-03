@@ -240,13 +240,8 @@ export default function FactorWorkbench() {
       </Toolbar>
 
       <Strip metrics={[
-        { label: 'Factors', value: factors.length, digits: 0 , kind: 'count'},
-        { label: 'Significant', value: factors.filter((f) => f.significant).length, digits: 0, kind: 'count' },
         { label: 'Universe', value: lab.universe?.name ?? null, digits: 0, kind: 'count' },
         { label: 'Observation dates', value: lab.window?.observation_dates ?? null, digits: 0, kind: 'count' },
-        { label: 'Horizon', value: lab.window?.horizon_days ?? null, digits: 0, unit: 'd' , kind: 'sessions'},
-        { label: 'Step', value: lab.window?.step_days ?? null, digits: 0, unit: 'd' , kind: 'sessions'},
-        { label: 'Build', value: lab.build_seconds ?? null, digits: 1, unit: 's' , kind: 'seconds'},
       ]} />
 
       {lab.degraded?.length ? (

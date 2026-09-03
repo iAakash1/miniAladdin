@@ -139,3 +139,38 @@ def test_the_palette_names_a_shortcut_that_exists() -> None:
     nav = _goto()
     unwired = sorted(key for key in _palette() if key not in nav)
     assert unwired == [], f"palette hints for unwired shortcuts: {unwired}"
+
+
+def test_a_workspace_does_not_print_the_same_number_twice() -> None:
+    """The masthead and the strip beneath it must not repeat a figure.
+
+    Twenty workspaces carried the same labels in both — five of them repeated
+    every single number, forty pixels apart. Two rows saying the same thing
+    teach a reader to skip one of them, and then to skip both, which costs the
+    strip the one job it has.
+
+    The masthead states the object's headline facts. The strip is for what the
+    masthead does not say.
+    """
+    import re
+
+    ui = ROOT / "dashboard" / "src" / "components" / "terminal"
+    offenders: list[str] = []
+
+    for path in sorted(ui.rglob("*.tsx")):
+        text = path.read_text()
+        if "<ObjectHeader" not in text or "<Strip" not in text:
+            continue
+        facts = re.search(r"facts=\{\[(.*?)\]\}", text, re.S)
+        strip = re.search(r"<Strip metrics=\{\[(.*?)\]\}", text, re.S)
+        if not facts or not strip:
+            continue
+        labels = lambda blob: {m.group(1) for m in re.finditer(r"label: '([^']+)'", blob)}
+        repeated = sorted(labels(facts.group(1)) & labels(strip.group(1)))
+        if repeated:
+            offenders.append(f"{path.relative_to(ROOT)}: {', '.join(repeated)}")
+
+    assert offenders == [], (
+        "these workspaces print the same figure in the masthead and the strip:\n  "
+        + "\n  ".join(offenders)
+    )

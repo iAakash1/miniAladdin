@@ -22,7 +22,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import Link from 'next/link'
 
-import { Grid, Panel, Section, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
+import { Grid, Panel, Section, StateBlock, Status, Value, type ResearchState } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit, togglePin } from '@/lib/research/history'
 import { ObjectHeader, StripSkeleton, TableSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
@@ -281,14 +281,7 @@ export default function EvidenceChain() {
         </ToolbarGroup>
       </Toolbar>
 
-      <Strip metrics={[
-        { label: 'Registered', value: registry.summary.entries, digits: 0 , kind: 'count'},
-        { label: 'Experimental', value: by.experimental ?? 0, digits: 0, kind: 'count', title: 'Measured, but not promotable' },
-        { label: 'Validated', value: by.validated ?? 0, digits: 0, kind: 'count' },
-        { label: 'Candidates', value: by.production_candidate ?? 0, digits: 0, kind: 'count', title: 'Cleared development gates; holdout not yet spent' },
-        { label: 'Production', value: by.production ?? 0, digits: 0, kind: 'count', title: 'Armed and serving' },
-        { label: 'Retired', value: by.retired ?? 0, digits: 0, kind: 'count' },
-      ]} />
+      
 
       <Panel
         title="Registry"

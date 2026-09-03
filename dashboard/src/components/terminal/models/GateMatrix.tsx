@@ -136,9 +136,6 @@ export default function GateMatrix() {
       />
 
       <Strip metrics={[
-        { label: 'Entries', value: entries.length, digits: 0, kind: 'count' },
-        { label: 'Gates', value: gates.length, digits: 0 , kind: 'count'},
-        { label: 'Cleared by none', value: universal.length, digits: 0, kind: 'count', title: 'Gates no registered model has met — a structural constraint, not a model property' },
         { label: 'Eligible for something', value: eligible, digits: 0, kind: 'count' },
       ]} />
 

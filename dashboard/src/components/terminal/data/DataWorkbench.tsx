@@ -255,13 +255,8 @@ export default function DataWorkbench() {
       />
 
       <Strip metrics={[
-        { label: 'Datasets', value: datasets.total, digits: 0 , kind: 'count'},
         { label: 'Training admissible', value: datasets.training_admissible, digits: 0, kind: 'count', title: 'Datasets whose point-in-time and survivorship classification permit training use' },
-        { label: 'Gated', value: datasets.gated?.length ?? 0, digits: 0, kind: 'count', title: 'Available but withheld from training' },
         { label: 'Excluded', value: datasets.excluded?.length ?? 0, digits: 0, kind: 'count' },
-        { label: 'Features', value: features.feature_count, digits: 0 , kind: 'count'},
-        { label: 'PIT unsafe', value: features.unsafe_features?.length ?? 0, digits: 0, kind: 'count', title: 'Features that could not be computed from information available at the time' },
-        { label: 'Max lookback', value: features.max_lookback_sessions, digits: 0, unit: 'sess', title: 'The longest history any registered feature reads. Sets the minimum warm-up before any model can score.' , kind: 'sessions'},
       ]} />
 
       <Toolbar>

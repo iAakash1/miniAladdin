@@ -215,6 +215,7 @@ export default function SearchLab({ experimentId = 'EXP-007' }: { experimentId?:
         {data.stages?.length ? (
           <div style={{ marginTop: 'var(--d-4)' }}>
             <BarRows
+              kind="count"
               rows={data.stages.map((s) => ({
                 label: STAGE_LABEL[s.stage] ?? s.stage,
                 value: s.evaluated,

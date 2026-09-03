@@ -16,7 +16,7 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 
-import { Panel, Prose, StateBlock, Strip } from '@/components/system'
+import { Panel, Prose, StateBlock } from '@/components/system'
 import { ObjectHeader, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
 import { addReference, createMemo, deleteMemo, removeReference, updateMemo, useMemos, type Memo } from '@/lib/research/memos'
 import { usePinnedObjects, useRecentObjects } from '@/lib/research/history'
@@ -70,13 +70,7 @@ export default function Memos({ initialId }: { initialId?: string }) {
         ]}
       />
 
-      <Strip metrics={[
-        { label: 'Memos', value: all.length, digits: 0 , kind: 'count'},
-        { label: 'Drafts', value: all.filter((m) => m.status === 'draft').length, digits: 0, kind: 'count' },
-        { label: 'Open', value: all.filter((m) => m.status === 'open').length, digits: 0, kind: 'count' },
-        { label: 'Resolved', value: all.filter((m) => m.status === 'resolved').length, digits: 0, kind: 'count' },
-        { label: 'References', value: all.reduce((s, m) => s + m.references.length, 0), digits: 0, kind: 'count' },
-      ]} />
+      
 
       <Toolbar>
         <ToolbarGroup label="trace">

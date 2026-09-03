@@ -211,7 +211,6 @@ export default function CommandCenter() {
       <Strip metrics={[
         { label: 'Validated', value: status?.validated ?? null, digits: 0, kind: 'count', title: 'Cleared the validation gates; not promoted' },
         { label: 'Retired', value: status?.retired ?? null, digits: 0, kind: 'count', title: 'Withdrawn from consideration' },
-        { label: 'Registered', value: status?.total_entries ?? null, digits: 0, kind: 'count', title: 'Every entry the registry holds' },
       ]} />
 
       <Grid>

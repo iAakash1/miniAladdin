@@ -161,12 +161,9 @@ export default function CovarianceLab() {
       />
 
       <Strip metrics={[
-        { label: 'Estimators', value: rows.length, digits: 0 , kind: 'count'},
-        { label: 'Names', value: data.panel?.names ?? null, digits: 0, kind: 'count' },
         { label: 'Observations', value: data.panel?.rows ?? null, digits: 0, kind: 'count' },
         { label: 'Complete rows', value: data.panel?.complete_rows ?? null, digits: 0, kind: 'count', title: 'Rows with no missing name. Complete-case estimators use only these.' },
         { label: 'Volatility spread', value: spread, digits: 4, tone: true, title: 'How much the reported portfolio volatility moves purely from the estimator chosen' },
-        { label: 'Not PSD', value: rows.filter((r) => !r.positive_semi_definite).length, digits: 0, kind: 'count' },
       ]} />
 
       {spread !== null && spread > 0.02 ? (

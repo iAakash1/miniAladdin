@@ -173,10 +173,7 @@ export default function SpreadCurve({ experiment, model }: { experiment: string;
       </Toolbar>
 
       <Strip metrics={[
-        { label: 'Periods', value: s.periods ?? null, digits: 0 , kind: 'count'},
         { label: 'Gross cumulative', value: s.gross_cumulative ?? null, digits: 3, unit: 'rank pts', signed: true },
-        { label: 'Net cumulative', value: s.net_cumulative ?? null, digits: 3, unit: 'rank pts', signed: true, tone: true },
-        { label: 'Cost paid', value: s.total_cost ?? null, digits: 4, unit: 'rank pts' },
         { label: 'Mean turnover', value: s.mean_turnover ?? null, digits: 4, title: 'One-way. Costs are charged on the round-trip figure, which is twice this.' , kind: 'multiple'},
         { label: 'Net max drawdown', value: s.net_max_drawdown_rank_points ?? null, digits: 3, unit: 'rank pts', tone: true },
       ]} />

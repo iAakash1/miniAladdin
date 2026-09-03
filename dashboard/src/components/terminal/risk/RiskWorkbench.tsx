@@ -290,12 +290,8 @@ export default function RiskWorkbench() {
       />
 
       <Strip metrics={[
-        { label: 'Volatility', value: metrics.volatility?.value ?? null, digits: 4, unit: 'ann.', method: 'volatility' , kind: 'volatility'},
-        { label: 'CVaR 95', value: metrics.cvar_historical_95?.value ?? null, digits: 4, method: 'cvar_historical_95' , kind: 'magnitude'},
-        { label: 'EVaR 95', value: metrics.entropic_var_95?.value ?? null, digits: 4, method: 'entropic_var_95', title: 'Upper bound on VaR; at or above CVaR by construction' , kind: 'magnitude'},
         { label: 'Max drawdown', value: metrics.max_drawdown?.value ?? null, digits: 4, tone: true, method: 'max_drawdown' , kind: 'drawdown'},
         { label: 'Ulcer index', value: metrics.ulcer_index?.value ?? null, digits: 4, method: 'ulcer_index' , kind: 'magnitude'},
-        { label: 'Sharpe', value: metrics.sharpe?.value ?? null, digits: 3, signed: true, tone: true, method: 'sharpe' , kind: 'sharpe'},
         { label: 'Omega', value: metrics.omega?.value ?? null, digits: 3, method: 'omega' , kind: 'ratio'},
       ]} />
 

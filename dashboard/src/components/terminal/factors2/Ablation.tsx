@@ -152,6 +152,7 @@ export default function Ablation({ experimentId = 'EXP-005' }: { experimentId?: 
         {usable.length ? (
           <div style={{ marginTop: 'var(--d-4)' }}>
             <BarRows
+              kind="ic"
               rows={usable.map((a) => ({
                 label: a.arm,
                 value: a.best_ic as number,

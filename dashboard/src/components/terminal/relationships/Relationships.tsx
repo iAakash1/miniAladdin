@@ -213,14 +213,9 @@ export default function Relationships({ initialSymbol = 'AAPL' }: { initialSymbo
           />
 
           <Strip metrics={[
-            { label: 'Nodes', value: nodes.length, digits: 0 , kind: 'count'},
-            { label: 'Edges', value: edges.length, digits: 0 , kind: 'count'},
-            { label: 'Of total edges', value: allEdges.length, digits: 0, kind: 'count' },
-            { label: 'Density', value: n(a.density), digits: 4, title: 'Edges present over edges possible' },
-            { label: 'Mean confidence', value: n(a.avg_confidence), digits: 3 },
-            { label: 'Node types', value: nodeTypes.length, digits: 0, kind: 'count' },
-            { label: 'Relationship types', value: availableEdgeTypes.length, digits: 0, kind: 'count' },
-          ]} />
+        { label: 'Of total edges', value: allEdges.length, digits: 0, kind: 'count' },
+        { label: 'Relationship types', value: availableEdgeTypes.length, digits: 0, kind: 'count' },
+      ]} />
 
           <Panel
             title="Graph"

@@ -219,7 +219,6 @@ export default function MarketWorkspace() {
         { label: 'Breadth score', value: n(b.breadth_score), digits: 3, tone: true, title: b.explain ?? undefined },
         { label: 'Sectors above 50d', value: above, digits: 0, kind: 'count' },
         { label: 'Sectors tracked', value: count, digits: 0, kind: 'count' },
-        { label: 'Regime', value: regime ?? null, digits: 0, kind: 'count' },
         { label: 'Events ahead', value: data.events?.length ?? null, digits: 0, kind: 'count' },
         { label: 'Served', value: data.cached ? 'cached' : 'fresh', digits: 0, kind: 'count' },
       ]} />

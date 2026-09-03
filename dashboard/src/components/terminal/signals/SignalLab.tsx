@@ -176,12 +176,11 @@ export default function SignalLab() {
       {/* The account of how many ideas were tried comes before any result. */}
       <Panel title="Multiple testing" subtitle={data.experiment} state="recorded">
         <Strip metrics={[
-          { label: 'Prior trials', value: mt.prior_trials ?? null, digits: 0, kind: 'count' },
-          { label: 'This search', value: mt.new_trials ?? null, digits: 0, kind: 'count' },
-          { label: 'Cumulative', value: mt.cumulative_trials ?? null, digits: 0, kind: 'count', title: 'The count every significance claim is corrected against' },
-          { label: 'Expected max |t| under null', value: mt.expected_max_abs_t_under_null ?? null, digits: 2, title: 'The best of this many zero-skill configurations would reach roughly this t by chance' },
-          { label: 'Bonferroni 5%', value: mt.bonferroni_threshold_5pct ?? null, digits: 2 },
-        ]} />
+        { label: 'Prior trials', value: mt.prior_trials ?? null, digits: 0, kind: 'count' },
+        { label: 'Cumulative', value: mt.cumulative_trials ?? null, digits: 0, kind: 'count', title: 'The count every significance claim is corrected against' },
+        { label: 'Expected max |t| under null', value: mt.expected_max_abs_t_under_null ?? null, digits: 2, title: 'The best of this many zero-skill configurations would reach roughly this t by chance' },
+        { label: 'Bonferroni 5%', value: mt.bonferroni_threshold_5pct ?? null, digits: 2 },
+      ]} />
         {mt.interpretation ? (
           <p style={{ margin: 'var(--d-3) 0 0', fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)', maxWidth: '86ch' }}>
             {mt.interpretation}
