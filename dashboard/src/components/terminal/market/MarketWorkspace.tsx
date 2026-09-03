@@ -25,6 +25,9 @@ import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
 import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
 import WhatChanged from './WhatChanged'
+import MarketMap from './MarketMap'
+import type { SectorRow } from '@/lib/dashboardInsights'
+import type { MapBreadth } from './MarketMap'
 
 interface Sector {
   symbol: string
@@ -153,6 +156,42 @@ export default function MarketWorkspace() {
   }
 
   const b = data.breadth ?? {}
+
+  /* The market map needs complete rows: a price, a volatility, an above-50d
+     flag, a verdict and — the one this workspace's payload type does not even
+     name — ninety rebased closes per sector. Anything short of that is refused
+     rather than coerced, because a sector drawn without its line reads as a
+     flat sector rather than a missing one. */
+  const mappable: { breadth: MapBreadth; sectors: SectorRow[] } | null = (() => {
+    const rows = data.sectors ?? []
+    if (!rows.length || b.breadth_score === undefined) return null
+    // The map plots `score`; this payload may carry `value` or bare numbers.
+    // A series in the wrong shape is converted, never reinterpreted.
+    const raw = b.history ?? []
+    const history = raw.every((h): h is { date: string; value: number } =>
+      typeof h === 'object' && h !== null && 'date' in h && 'value' in h)
+      ? raw.map((h) => ({ date: h.date, score: h.value }))
+      : undefined
+    const complete = rows.filter((r): r is Sector & { history: number[] } => {
+      const h = (r as { history?: unknown }).history
+      return Array.isArray(h) && h.length > 1
+        && typeof r.price === 'number'
+        && typeof r.volatility === 'number'
+        && typeof r.above_50d === 'boolean'
+    })
+    if (complete.length !== rows.length) return null
+    return {
+      breadth: {
+        breadth_score: b.breadth_score ?? null,
+        sectors_above_50d: b.sectors_above_50d,
+        sector_count: b.sector_count,
+        explain: b.explain,
+        history,
+        indexes: b.indexes?.map((i) => ({ symbol: i.symbol, price: i.price, change_1d: i.change })),
+      },
+      sectors: complete.map((r) => ({ ...r, verdict: r.verdict ?? '' })) as SectorRow[],
+    }
+  })()
   const above = n(b.sectors_above_50d)
   const count = n(b.sector_count)
   const regime = typeof data.macro?.regime === 'string'
@@ -190,6 +229,18 @@ export default function MarketWorkspace() {
           reconstruct it from six panels is making them do arithmetic the
           product already has the data to do. */}
       <WhatChanged data={data} />
+
+      {/* Eleven sectors on a shared rebased scale. A number says where a
+          sector ended; the line says how it got there, and a sector up four
+          percent in a straight line is not the same market as one up four
+          percent after a twelve percent round trip.
+
+          The map draws a sparkline per sector from `history`, which this
+          workspace's own payload type does not even declare — so the rows are
+          checked for it rather than cast into the shape the map wants. A map
+          with three of eleven sectors missing their line is a map that reports
+          a flat sector as a quiet one. */}
+      {mappable ? <MarketMap breadth={mappable.breadth} sectors={mappable.sectors} /> : null}
 
       <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)' }}>
         <Panel title="Breadth" subtitle={b.explain ? undefined : 'share of sectors above their 50-day average'} state="live">

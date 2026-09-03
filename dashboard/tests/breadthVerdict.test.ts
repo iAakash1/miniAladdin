@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { readScore } from '../src/components/terminal/BreadthHeatmap'
+import { readScore } from '../src/components/terminal/market/MarketMap'
 
 /* The score is a number; readScore is what turns it into a conclusion. It is
    the only real logic in the breadth panel, so it is the part worth pinning. */

@@ -17,7 +17,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import type { BacktestData } from './ValidationView'
+import type { BacktestData } from '@/lib/backtest'
 
 const AXIS_TICK = { fill: 'var(--faint)', fontSize: 10, fontFamily: 'var(--font-mono)' }
 

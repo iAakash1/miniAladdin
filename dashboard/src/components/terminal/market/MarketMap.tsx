@@ -36,7 +36,27 @@ import CompanyMark from '@/components/ui/CompanyMark'
 import Link from 'next/link'
 import { Fragment, useMemo, useState } from 'react'
 import Tooltip from '@/components/ui/Tooltip'
-import { type Breadth, type SectorRow } from '@/lib/dashboardInsights'
+import { type SectorRow } from '@/lib/dashboardInsights'
+
+/**
+ * Exactly what this map reads, and nothing more.
+ *
+ * It previously took the full dashboard `Breadth`, which meant every caller had
+ * to produce fields the map never touches — and the one caller that could not
+ * was reaching for a cast to get past it. A component that declares its real
+ * requirements can be handed real data.
+ */
+export interface MapBreadth {
+  breadth_score: number | null
+  sectors_above_50d?: number | null
+  sector_count?: number | null
+  explain?: string | null
+  /** Breadth through time. The component reads `score`, so a payload carrying
+   *  `value` or bare numbers is a different series and must be converted by the
+   *  caller rather than guessed at here. */
+  history?: { date: string; score: number }[]
+  indexes?: { symbol: string; price?: number | null; change_1d?: number | null }[]
+}
 
 /* ── interpretation ───────────────────────────────────────────────────────── */
 
@@ -90,7 +110,7 @@ const signed = (v: number | null, digits = 1) =>
 /* ── the read: score, verdict, trend ──────────────────────────────────────── */
 
 function BreadthRead({ breadth, verdict, positive21, positive63, total }: {
-  breadth: Breadth; verdict: Verdict
+  breadth: MapBreadth; verdict: Verdict
   positive21: number; positive63: number; total: number
 }) {
   const history = useMemo(() => breadth.history ?? [], [breadth.history])
@@ -319,8 +339,8 @@ function SectorMap({ sectors, active, onActive }: {
 
 /* ── panel ────────────────────────────────────────────────────────────────── */
 
-export default function BreadthHeatmap({ breadth, sectors }: {
-  breadth: Breadth; sectors: SectorRow[]
+export default function MarketMap({ breadth, sectors }: {
+  breadth: MapBreadth; sectors: SectorRow[]
 }) {
   const [active, setActive] = useState<string | null>(null)
 
@@ -339,11 +359,11 @@ export default function BreadthHeatmap({ breadth, sectors }: {
           <span className="mm-head__sub">{sectors.length} sectors · 90 sessions · rebased to 100</span>
         </div>
         <div className="mm-tape">
-          {breadth.indexes.map((i) => (
+          {(breadth.indexes ?? []).map((i) => (
             <span key={i.symbol} className="mm-tape__item">
               <span className="mm-tape__sym">{i.symbol}</span>
               <span className="mm-tape__px">{i.price}</span>
-              {i.change_1d !== null && (
+              {typeof i.change_1d === 'number' && (
                 <span style={{ color: i.change_1d >= 0 ? 'var(--pos)' : 'var(--neg)' }}>
                   {signed(i.change_1d, 2)}
                 </span>

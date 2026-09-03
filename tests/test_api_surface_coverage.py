@@ -33,6 +33,10 @@ INTERNAL: dict[str, str] = {
     "/api/graph/path": "same",
     "/api/quant/features": "an alias of /api/ml/features; the UI calls the ml route",
     "/api/quant/datasets": "an alias of /api/ml/datasets; the UI calls the ml route",
+    "/api/quant/registry": (
+        "a strict subset of /api/ml/registry, which the gate matrix renders; its "
+        "one unique field, the promotion note, is stated on the Gates workspace"
+    ),
     "/api/ml/capabilities": "mirrors /api/providers/capabilities, which is the one surfaced",
     "/api/research/providers/health": "duplicate of /api/providers/health",
     "/api/factors/universes": "populates a control inside the factor workspace, not a page",
