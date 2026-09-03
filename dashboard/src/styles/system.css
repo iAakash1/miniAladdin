@@ -1525,3 +1525,25 @@ tr[data-selected='true'] .sys-row-actions { opacity: 1; }
    that most arms did not improve anything. */
 .sys-panel-inset[data-tone='pass'] { border-left-color: var(--e-pos); }
 .sys-panel-inset[data-tone='fail'] { border-left-color: var(--e-neg); }
+
+/* ── reason lists ────────────────────────────────────────────────────────
+   Why a verdict was reached, or what a result cannot support. A marker rather
+   than a bullet, because these read as a list of findings rather than as
+   prose broken into pieces. */
+
+.sys-reasons {
+  list-style: none;
+  margin: var(--d-3) 0 0;
+  padding: 0;
+  display: flex; flex-direction: column; gap: var(--d-2);
+  font-size: var(--t-meta);
+  line-height: var(--lh-body);
+  color: var(--ink-muted);
+  max-width: 82ch;
+}
+.sys-reasons li {
+  padding-left: var(--d-3);
+  border-left: 2px solid var(--rule);
+}
+/* A flagged failure mode is the one thing on its panel worth reading first. */
+.sys-reasons--flagged li { border-left-color: var(--e-neg); color: var(--ink); }

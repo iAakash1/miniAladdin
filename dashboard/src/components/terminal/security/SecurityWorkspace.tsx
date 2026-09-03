@@ -22,6 +22,7 @@ import { recordVisit } from '@/lib/research/history'
 import { ObjectHeader, Segmented, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
 import Disclosure, { type FilingsBlock, type Headline } from './Disclosure'
 import Fundamentals from './Fundamentals'
+import ModelValidation from './ModelValidation'
 
 interface SymbolView {
   symbol: string
@@ -65,7 +66,7 @@ interface Analysis {
   mode?: string
 }
 
-type Tab = 'overview' | 'market' | 'fundamentals' | 'risk' | 'research' | 'disclosure' | 'relationships' | 'data'
+type Tab = 'overview' | 'market' | 'fundamentals' | 'risk' | 'research' | 'record' | 'disclosure' | 'relationships' | 'data'
 
 const TABS: { value: Tab; label: string }[] = [
   { value: 'overview', label: 'Overview' },
@@ -73,6 +74,9 @@ const TABS: { value: Tab; label: string }[] = [
   { value: 'fundamentals', label: 'Fundamentals' },
   { value: 'risk', label: 'Risk' },
   { value: 'research', label: 'Research' },
+  // Sits directly after Research on purpose. Research says what the model
+  // thinks of this name; Record says how that has gone.
+  { value: 'record', label: 'Record' },
   { value: 'disclosure', label: 'Disclosure' },
   { value: 'relationships', label: 'Relationships' },
   { value: 'data', label: 'Data' },
@@ -319,6 +323,13 @@ export default function SecurityWorkspace({ symbol }: { symbol: string }) {
             </Link>
           </div>
         </Panel>
+      ) : null}
+
+      {tab === 'record' ? (
+        /* Everything in the other tabs describes the security. This describes
+           our record against it, which is the less comfortable question and the
+           one a reader needs before acting on any score elsewhere on the page. */
+        <ModelValidation ticker={symbol} />
       ) : null}
 
       {tab === 'disclosure' ? (
