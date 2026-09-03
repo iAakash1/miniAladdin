@@ -91,7 +91,7 @@ export const WORKBENCH: { group: string; items: { href: string; label: string; k
     group: 'Deep',
     items: [
       { href: '/terminal/analyze', label: 'Report', key: 'i' },
-      { href: '/terminal/portfolio', label: 'Positions', key: 'z' },
+      { href: '/terminal/portfolio', label: 'Watchlists', key: 'z' },
       { href: '/terminal/calibration', label: 'Calibration', key: 'u' },
 
     ],

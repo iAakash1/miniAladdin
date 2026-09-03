@@ -20,6 +20,7 @@ import { Sparkline, TimeSeries } from '@/components/system/charts'
 import { Panel, Section, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
 import { recordVisit } from '@/lib/research/history'
 import Disclosure, { type FilingsBlock, type Headline } from './Disclosure'
+import Fundamentals from './Fundamentals'
 
 interface SymbolView {
   symbol: string
@@ -57,14 +58,18 @@ interface Analysis {
   headlineCount?: number
   headlines?: Headline[]
   filings?: FilingsBlock | null
+  ratios?: Record<string, number | undefined> | null
+  technicalIntelligence?: Record<string, unknown> | null
+  streetIntelligence?: Record<string, unknown> | null
   mode?: string
 }
 
-type Tab = 'overview' | 'market' | 'risk' | 'research' | 'disclosure' | 'relationships' | 'data'
+type Tab = 'overview' | 'market' | 'fundamentals' | 'risk' | 'research' | 'disclosure' | 'relationships' | 'data'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'market', label: 'Market' },
+  { id: 'fundamentals', label: 'Fundamentals' },
   { id: 'risk', label: 'Risk' },
   { id: 'research', label: 'Research' },
   { id: 'disclosure', label: 'Disclosure' },
@@ -197,6 +202,14 @@ export default function SecurityWorkspace({ symbol }: { symbol: string }) {
             ) : <StateBlock state="unavailable" title="No volume series" />}
           </Panel>
         </>
+      ) : null}
+
+      {tab === 'fundamentals' ? (
+        <Fundamentals
+          ratios={analysis?.ratios}
+          technicals={analysis?.technicalIntelligence as never}
+          street={analysis?.streetIntelligence as never}
+        />
       ) : null}
 
       {tab === 'risk' ? (
