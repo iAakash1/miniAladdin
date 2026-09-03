@@ -23,6 +23,7 @@ import { Panel, Section, StateBlock, Status, Strip, Value } from '@/components/s
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { BarRows } from '@/components/system/charts'
 import { recordVisit } from '@/lib/research/history'
+import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
 import CrossSection, { type Attribution, type RankRow, type ScreenRow } from './CrossSection'
 import FactorDetail, { type Portfolio, type Stability } from './FactorDetail'
 import { Compare, CompareLegend, type CompareField, type CompareSubject } from '@/components/system/Compare'
@@ -168,7 +169,14 @@ export default function FactorWorkbench() {
   if (error) {
     return <Panel title="Factors" state="unavailable"><StateBlock state="unavailable" title="The factor lab could not be reached" detail={`Request failed: ${error}.`} /></Panel>
   }
-  if (!lab) return <Panel title="Factors" state="waking"><StateBlock state="waking" title="Contacting the factor lab" /></Panel>
+  if (!lab) {
+    return (
+      <>
+        <StripSkeleton items={7} />
+        <Panel title="Factor evaluations" state="waking" flush><TableSkeleton rows={10} columns={8} /></Panel>
+      </>
+    )
+  }
 
   if (lab.status === 'error') {
     return <Panel title="Factors" state="unavailable"><StateBlock state="unavailable" title="The build failed" detail={lab.error} /></Panel>
@@ -196,6 +204,22 @@ export default function FactorWorkbench() {
 
   return (
     <>
+      <ObjectHeader
+        glyph="K"
+        name="Factors"
+        kind={lab.universe?.name ? `universe ${lab.universe.name}` : 'factor laboratory'}
+        state={lab.degraded?.length ? 'stale' : 'recorded'}
+        detail={lab.window ? `${lab.window.start} → ${lab.window.end}` : undefined}
+        facts={[
+          { label: 'Factors', value: factors.length, digits: 0 },
+          { label: 'Significant', value: factors.filter((f) => f.significant).length, digits: 0 },
+          { label: 'Dates', value: lab.window?.observation_dates ?? null, digits: 0 },
+          { label: 'Horizon', value: lab.window?.horizon_days ?? null, digits: 0, unit: 'd' },
+          { label: 'Step', value: lab.window?.step_days ?? null, digits: 0, unit: 'd' },
+          { label: 'Build', value: lab.build_seconds ?? null, digits: 1, unit: 's' },
+        ]}
+      />
+
       <Strip metrics={[
         { label: 'Factors', value: factors.length, digits: 0 },
         { label: 'Significant', value: factors.filter((f) => f.significant).length, digits: 0 },

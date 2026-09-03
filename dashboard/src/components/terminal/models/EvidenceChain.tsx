@@ -25,6 +25,7 @@ import Link from 'next/link'
 import { Grid, Panel, Section, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
+import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
 import Inspector from '@/components/system/Inspector'
 import type { ResearchObject } from '@/lib/research/objects'
 
@@ -173,7 +174,12 @@ export default function EvidenceChain() {
     )
   }
   if (!registry) {
-    return <Panel title="Model registry" state="waking"><StateBlock state="waking" title="Reading the registry" /></Panel>
+    return (
+      <>
+        <StripSkeleton />
+        <Panel title="Registry" state="waking" flush><TableSkeleton rows={12} columns={8} /></Panel>
+      </>
+    )
   }
 
   const entry = registry.entries.find((e) => e.key === selected)
@@ -187,6 +193,28 @@ export default function EvidenceChain() {
 
   return (
     <>
+      <ObjectHeader
+        glyph="E"
+        name="Evidence"
+        kind="model registry and promotion gates"
+        state={by.production ? 'production' : by.production_candidate ? 'candidate' : 'blocked'}
+        detail={`${registry.summary.entries} entries · ${registry.summary.labels.join(', ')}`}
+        facts={[
+          { label: 'Registered', value: registry.summary.entries, digits: 0 },
+          { label: 'Experimental', value: by.experimental ?? 0, digits: 0 },
+          { label: 'Validated', value: by.validated ?? 0, digits: 0 },
+          { label: 'Candidates', value: by.production_candidate ?? 0, digits: 0 },
+          { label: 'Production', value: by.production ?? 0, digits: 0 },
+          { label: 'Retired', value: by.retired ?? 0, digits: 0 },
+        ]}
+        actions={
+          <>
+            <Link href="/terminal/gates" className="sys-btn" style={{ textDecoration: 'none' }}>gates</Link>
+            <Link href="/terminal/compare" className="sys-btn" style={{ textDecoration: 'none' }}>compare</Link>
+          </>
+        }
+      />
+
       {inspecting && inspectedEntry ? (
         <Inspector
           object={inspecting}

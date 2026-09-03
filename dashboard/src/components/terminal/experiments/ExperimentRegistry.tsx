@@ -16,6 +16,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Panel, StateBlock, Status, Strip, Value } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
+import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
 import ExperimentEvidence from './ExperimentEvidence'
 
 interface Row {
@@ -88,12 +89,32 @@ export default function ExperimentRegistry() {
       </Panel>
     )
   }
-  if (!rows) return <Panel title="Experiments" state="waking"><StateBlock state="waking" title="Reading the registry" /></Panel>
+  if (!rows) {
+    return (
+      <>
+        <StripSkeleton items={3} />
+        <Panel title="Registry" state="waking" flush><TableSkeleton rows={6} columns={3} /></Panel>
+      </>
+    )
+  }
 
   const live = rows.filter((r) => !r.void).length
 
   return (
     <>
+      <ObjectHeader
+        glyph="X"
+        name="Experiments"
+        kind="the research record"
+        state="recorded"
+        detail={`${live} valid · ${rows.length - live} void`}
+        facts={[
+          { label: 'Experiments', value: rows.length, digits: 0 },
+          { label: 'Valid', value: live, digits: 0 },
+          { label: 'Void', value: rows.length - live, digits: 0, title: 'Invalidated, and kept in the record rather than removed from it' },
+        ]}
+      />
+
       <Strip metrics={[
         { label: 'Experiments', value: rows.length, digits: 0 },
         { label: 'Valid', value: live, digits: 0 },

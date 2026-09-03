@@ -19,6 +19,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Grid, Panel, Section, StateBlock, Status, Strip, Value } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
+import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
 import { EnvelopeGrid, type Envelope } from '@/components/system/EnvelopeMetric'
 
 interface Finalist {
@@ -115,7 +116,14 @@ export default function SignalLab() {
   if (error) {
     return <Panel title="Signal lab" state="unavailable"><StateBlock state="unavailable" title="The search record could not be read" detail={`Request failed: ${error}.`} /></Panel>
   }
-  if (!data) return <Panel title="Signal lab" state="waking"><StateBlock state="waking" title="Reading the search record" /></Panel>
+  if (!data) {
+    return (
+      <>
+        <StripSkeleton items={5} />
+        <Panel title="Finalists" state="waking" flush><TableSkeleton rows={6} columns={6} /></Panel>
+      </>
+    )
+  }
   if (data.available === false) {
     return <Panel title="Signal lab" state="unavailable"><StateBlock state="unavailable" title="No search record is available" detail="Nothing is shown in its place." /></Panel>
   }
@@ -126,6 +134,21 @@ export default function SignalLab() {
 
   return (
     <>
+      <ObjectHeader
+        glyph="S"
+        name="Signals"
+        kind={data.experiment ? `search record · ${data.experiment}` : 'search record'}
+        state={data.verdict?.passed ? 'candidate' : 'blocked'}
+        detail={data.verdict?.status}
+        facts={[
+          { label: 'Cumulative trials', value: mt.cumulative_trials ?? null, digits: 0, title: 'What every significance claim is corrected against' },
+          { label: 'This search', value: mt.new_trials ?? null, digits: 0 },
+          { label: 'Expected max |t|', value: mt.expected_max_abs_t_under_null ?? null, digits: 2 },
+          { label: 'Finalists', value: finalists.length, digits: 0 },
+          { label: 'Unmet gates', value: data.verdict?.failed?.length ?? null, digits: 0 },
+        ]}
+      />
+
       {data.envelopes && Object.keys(data.envelopes).length ? (
         <Panel
           title="Decision figures"

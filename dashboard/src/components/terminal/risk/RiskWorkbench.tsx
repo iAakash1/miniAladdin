@@ -25,6 +25,7 @@ import Link from 'next/link'
 
 import { Grid, Panel, StateBlock, Status, Strip, Value } from '@/components/system'
 import { BarRows } from '@/components/system/charts'
+import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
 
 interface Metric {
   value: number | null
@@ -238,7 +239,16 @@ export default function RiskWorkbench() {
     )
   }
   if (!data) {
-    return <Panel title="Risk" state="waking"><StateBlock state="waking" title="Computing the risk report" /></Panel>
+    return (
+      <>
+        <StripSkeleton items={7} />
+        <Grid>
+          {['Dispersion', 'Tail', 'Drawdown', 'Risk-adjusted'].map((g) => (
+            <Panel key={g} title={g} state="waking" flush><TableSkeleton rows={5} columns={4} /></Panel>
+          ))}
+        </Grid>
+      </>
+    )
   }
 
   const metrics = data.risk?.metrics ?? {}
@@ -246,6 +256,22 @@ export default function RiskWorkbench() {
 
   return (
     <>
+      <ObjectHeader
+        glyph="R"
+        name="Risk"
+        kind={data.model_id ? `${data.model_id} · ${data.target ?? ''}` : 'research book'}
+        state={data.risk_contributions_unavailable ? 'blocked' : 'recorded'}
+        detail={data.as_of ? `as of ${data.as_of}` : undefined}
+        facts={[
+          { label: 'Volatility', value: metrics.volatility?.value ?? null, digits: 3, unit: 'ann.' },
+          { label: 'CVaR 95', value: metrics.cvar_historical_95?.value ?? null, digits: 4 },
+          { label: 'EVaR 95', value: metrics.entropic_var_95?.value ?? null, digits: 4 },
+          { label: 'Max DD', value: metrics.max_drawdown?.value ?? null, digits: 3, tone: true },
+          { label: 'Sharpe', value: metrics.sharpe?.value ?? null, digits: 2, signed: true, tone: true },
+          { label: 'Measures', value: Object.keys(metrics).length, digits: 0 },
+        ]}
+      />
+
       <Strip metrics={[
         { label: 'Volatility', value: metrics.volatility?.value ?? null, digits: 4, unit: 'ann.' },
         { label: 'CVaR 95', value: metrics.cvar_historical_95?.value ?? null, digits: 4 },

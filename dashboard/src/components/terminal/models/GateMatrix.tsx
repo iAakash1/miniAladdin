@@ -15,6 +15,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { Panel, StateBlock, Strip, Value } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
+import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
 
 interface Entry {
   key: string
@@ -100,7 +101,14 @@ export default function GateMatrix() {
   ]
 
   if (error) return <Panel title="Gate matrix" state="unavailable"><StateBlock state="unavailable" title="The registry could not be read" detail={error} /></Panel>
-  if (!registry) return <Panel title="Gate matrix" state="waking"><StateBlock state="waking" title="Reading the registry" /></Panel>
+  if (!registry) {
+    return (
+      <>
+        <StripSkeleton items={4} />
+        <Panel title="Gates" state="waking" flush><TableSkeleton rows={8} columns={5} /></Panel>
+      </>
+    )
+  }
   if (!gates.length) return <Panel title="Gate matrix" state="unavailable"><StateBlock state="unavailable" title="No gate outcomes are recorded" /></Panel>
 
   const universal = tally.filter((t) => t.met === 0)
@@ -108,6 +116,20 @@ export default function GateMatrix() {
 
   return (
     <>
+      <ObjectHeader
+        glyph="⊟"
+        name="Gates"
+        kind="what blocks promotion, across the programme"
+        state={universal.length ? 'blocked' : 'recorded'}
+        detail={universal.length ? `${universal.length} gates no model has cleared` : 'every gate cleared by at least one model'}
+        facts={[
+          { label: 'Entries', value: entries.length, digits: 0 },
+          { label: 'Gates', value: gates.length, digits: 0 },
+          { label: 'Cleared by none', value: universal.length, digits: 0 },
+          { label: 'Eligible', value: eligible, digits: 0 },
+        ]}
+      />
+
       <Strip metrics={[
         { label: 'Entries', value: entries.length, digits: 0 },
         { label: 'Gates', value: gates.length, digits: 0 },

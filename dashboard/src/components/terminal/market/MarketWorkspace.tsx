@@ -23,6 +23,7 @@ import { BarRows, TimeSeries } from '@/components/system/charts'
 import { Grid, Panel, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
+import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
 
 interface Sector {
   symbol: string
@@ -141,7 +142,14 @@ export default function MarketWorkspace() {
       </Panel>
     )
   }
-  if (!data) return <Panel title="Market" state="waking"><StateBlock state="waking" title="Reading market data" /></Panel>
+  if (!data) {
+    return (
+      <>
+        <StripSkeleton />
+        <Panel title="Sectors" state="waking" flush><TableSkeleton rows={11} columns={6} /></Panel>
+      </>
+    )
+  }
 
   const b = data.breadth ?? {}
   const above = n(b.sectors_above_50d)
@@ -152,6 +160,21 @@ export default function MarketWorkspace() {
 
   return (
     <>
+      <ObjectHeader
+        glyph="M"
+        name="Market"
+        kind="live vendor data, not point-in-time"
+        state="live"
+        detail={data.generated_at ? `generated ${data.generated_at.slice(0, 19)}${data.cached ? ', cached' : ''}` : undefined}
+        facts={[
+          { label: 'Breadth', value: n(b.breadth_score), digits: 3, tone: true },
+          { label: 'Above 50d', value: above, digits: 0 },
+          { label: 'Sectors', value: count, digits: 0 },
+          { label: 'Regime', value: regime ?? null, digits: 0 },
+          { label: 'Events', value: data.events?.length ?? null, digits: 0 },
+        ]}
+      />
+
       <Strip metrics={[
         { label: 'Breadth score', value: n(b.breadth_score), digits: 3, tone: true, title: b.explain ?? undefined },
         { label: 'Sectors above 50d', value: above, digits: 0 },
