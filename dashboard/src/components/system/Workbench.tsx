@@ -26,6 +26,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { Status, type ResearchState } from './index'
 import Palette, { applyStoredDensity } from './Palette'
 import Shortcuts from './Shortcuts'
+import Breadcrumb from './Breadcrumb'
 import { ChartCursorProvider } from './ChartCursor'
 import { MetricProvider } from './MetricContext'
 import MetricInspector from './MetricInspector'
@@ -233,6 +234,8 @@ export default function Workbench({
             <h1 className="sys-title">{title}</h1>
             {subtitle ? <span className="sys-meta">{subtitle}</span> : null}
           </div>
+          {/* How the reader got here, which the title cannot say. */}
+          <Breadcrumb />
           <div className="wb-head-actions">
             <button
               className="sys-btn"
