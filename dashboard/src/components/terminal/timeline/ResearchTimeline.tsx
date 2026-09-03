@@ -27,7 +27,16 @@ interface Entry {
   status: string
   created_at?: string
   updated_at?: string
-  status_history?: { status: string; at?: string; note?: string }[]
+  /**
+   * A recorded transition, in the registry's own shape: where the model moved
+   * from, where it moved to, when, and why.
+   *
+   * This was declared as `{ status, note }`, which no row carries. Every
+   * transition rendered as "status → undefined" with no reason and the wrong
+   * state colour — well-formed markup describing nothing, on the one workspace
+   * whose entire job is to say what happened.
+   */
+  status_history?: { at?: string; from?: string; to?: string; reason?: string }[]
 }
 
 interface Event {
@@ -84,10 +93,15 @@ export default function ResearchTimeline() {
         })
       }
       for (const h of e.status_history ?? []) {
-        if (!h.at) continue
+        if (!h.at || !h.to) continue
         out.push({
           at: h.at, kind: 'model', id: e.model_id, label: e.model_id,
-          what: `status → ${h.status}`, detail: h.note, state: statusState(h.status),
+          // Both ends of the transition. "retired" alone does not say what it
+          // was retired from, and a move out of production is a different
+          // event from a move out of experimental.
+          what: h.from ? `${h.from} → ${h.to}` : `→ ${h.to}`,
+          detail: h.reason,
+          state: statusState(h.to),
         })
       }
     }
