@@ -13,6 +13,8 @@
 import type { ReactNode } from 'react'
 
 import { Status, Value, type ResearchState } from './index'
+import { Relations } from './Relations'
+import type { ResearchObject } from '@/lib/research/objects'
 
 /* ── object header ──────────────────────────────────────────────────────── */
 
@@ -27,7 +29,7 @@ export interface HeaderFact {
 }
 
 export function ObjectHeader({
-  glyph, name, kind, state, detail, facts, actions,
+  glyph, name, kind, state, detail, facts, actions, object,
 }: {
   /** One or two characters. The object kind's mark. */
   glyph: string
@@ -38,6 +40,11 @@ export function ObjectHeader({
   /** Up to six. More than that is a metric strip, not an identity. */
   facts?: HeaderFact[]
   actions?: ReactNode
+  /**
+   * When given, the masthead shows what this object connects to — counts
+   * computed by inverting what the artifacts record, not inferred.
+   */
+  object?: ResearchObject
 }) {
   return (
     <header className="sys-object">
@@ -50,6 +57,7 @@ export function ObjectHeader({
             {state ? <Status state={state} /> : null}
             {detail ? <span className="sys-meta">{detail}</span> : null}
           </div>
+          {object ? <Relations object={object} /> : null}
         </div>
       </div>
 

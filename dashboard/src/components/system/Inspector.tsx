@@ -18,6 +18,7 @@ import Link from 'next/link'
 import { Status, type ResearchState } from './index'
 import { recordVisit, togglePin, usePinnedObjects } from '@/lib/research/history'
 import { KINDS, href as objectHref, neighbours, type ResearchObject } from '@/lib/research/objects'
+import { Relations } from './Relations'
 
 export interface InspectorField {
   label: string
@@ -94,7 +95,15 @@ export default function Inspector({
         ))}
 
         <section>
-          <div className="sys-label" style={{ marginBottom: 'var(--d-2)' }}>Related</div>
+          <div className="sys-label" style={{ marginBottom: 'var(--d-2)' }}>Connected</div>
+          {/* Counts from the artifacts, above the kinds from the pipeline. One
+              says what this object actually touches; the other says what its
+              kind can touch. Both are useful and they are not the same. */}
+          <Relations object={object} />
+        </section>
+
+        <section>
+          <div className="sys-label" style={{ marginBottom: 'var(--d-2)' }}>Related kinds</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--d-1)' }}>
             {neighbours(object.kind).map((k) => (
               <Link key={k.kind} href={k.href('')} className="sys-btn" style={{ textDecoration: 'none' }}>

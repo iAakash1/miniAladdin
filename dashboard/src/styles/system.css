@@ -1198,3 +1198,44 @@ button.sys-num--live:focus-visible {
   outline-offset: 2px;
   border-bottom-color: var(--accent);
 }
+
+/* ── relations ───────────────────────────────────────────────────────────
+   Nearby objects, on the masthead. A count is what turns a name into a node:
+   "used by 4 models" is the difference between a row in a catalogue and
+   something load-bearing. */
+
+.sys-relations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--d-1);
+  margin-top: var(--d-2);
+}
+
+.sys-relation {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 3px 7px;
+  border: 1px solid var(--rule);
+  background: var(--p-panel);
+  text-decoration: none;
+  transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+.sys-relation:hover { border-color: var(--accent); background: var(--accent-wash); }
+
+.sys-relation__verb {
+  font: 400 var(--t-micro) / 1 var(--font-sans);
+  color: var(--ink-faint);
+  text-transform: lowercase;
+}
+.sys-relation__count {
+  font: 500 var(--t-body) / 1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.sys-relation__kind {
+  font: 400 var(--t-micro) / 1 var(--font-sans);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
