@@ -1396,3 +1396,13 @@ tr[data-selected='true'] .sys-row-actions { opacity: 1; }
     --rule: #ccc; --rule-strong: #999;
   }
 }
+
+/* The keyboard hint. Shown once under a table rather than as a legend per
+   row, and it fades where there is no room for it. */
+.sys-kbd-hint {
+  margin-left: auto;
+  color: var(--ink-faint);
+  font-size: var(--t-micro);
+  white-space: nowrap;
+}
+@media (max-width: 1024px) { .sys-kbd-hint { display: none; } }

@@ -38,6 +38,8 @@ export interface RowAction<T> {
   glyph: string
   onAct: (row: T) => void
   title?: string
+  /** Single key that fires this action on the focused row. Optional. */
+  key?: string
 }
 
 export function DataTable<T>({
@@ -132,6 +134,11 @@ export function DataTable<T>({
         <span className="sys-meta">
           {sorted.length === rows.length ? `${rows.length} rows` : `${sorted.length} of ${rows.length}`}
         </span>
+        {onSelect ? (
+          <span className="sys-meta sys-kbd-hint" aria-hidden>
+            j k move · ⏎ open{actions?.some((a) => a.key) ? ` · ${actions.filter((a) => a.key).map((a) => `${a.key} ${a.label.toLowerCase()}`).join(' · ')}` : ''}
+          </span>
+        ) : null}
         {sort ? (
           <button className="sys-btn" onClick={() => setSort(null)}>clear sort</button>
         ) : null}
@@ -215,13 +222,38 @@ export function DataTable<T>({
                     style={onSelect ? { cursor: 'pointer' } : undefined}
                     onClick={onSelect ? () => onSelect(row) : undefined}
                     onKeyDown={(e) => {
-                      if (!onSelect) return
-                      if (e.key === 'Enter') { e.preventDefault(); onSelect(row) }
-                      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                      // j/k alongside the arrows. A researcher who lives in a
+                      // terminal reaches for those without thinking, and the
+                      // arrows alone make the table feel like a web page.
+                      const down = e.key === 'ArrowDown' || e.key === 'j'
+                      const up = e.key === 'ArrowUp' || e.key === 'k'
+                      const rows = e.currentTarget.parentElement?.children
+
+                      if (down || up) {
                         e.preventDefault()
-                        const delta = e.key === 'ArrowDown' ? 1 : -1
-                        const next = (e.currentTarget.parentElement?.children[index + delta] as HTMLElement | undefined)
+                        const next = rows?.[index + (down ? 1 : -1)] as HTMLElement | undefined
                         next?.focus()
+                        return
+                      }
+                      if (e.key === 'Home' || e.key === 'g') {
+                        e.preventDefault()
+                        ;(rows?.[0] as HTMLElement | undefined)?.focus()
+                        return
+                      }
+                      if (e.key === 'End' || e.key === 'G') {
+                        e.preventDefault()
+                        ;(rows?.[rows.length - 1] as HTMLElement | undefined)?.focus()
+                        return
+                      }
+                      if (!onSelect) return
+                      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(row) }
+                      // A shortcut only fires where the action exists. A key
+                      // that silently does nothing is worse than no key.
+                      if (actions?.length) {
+                        const shortcut = actions.find(
+                          (a) => a.key && a.key.toLowerCase() === e.key.toLowerCase(),
+                        )
+                        if (shortcut) { e.preventDefault(); shortcut.onAct(row) }
                       }
                     }}
                   >
@@ -233,7 +265,7 @@ export function DataTable<T>({
                               key={a.label}
                               type="button"
                               className="sys-row-action"
-                              title={a.title ?? a.label}
+                              title={a.key ? `${a.title ?? a.label}  (${a.key})` : (a.title ?? a.label)}
                               aria-label={a.label}
                               onClick={(e) => { e.stopPropagation(); a.onAct(row) }}
                             >

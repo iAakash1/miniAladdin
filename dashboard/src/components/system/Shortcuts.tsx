@@ -59,10 +59,14 @@ const GROUPS: { title: string; keys: { combo: string; action: string }[] }[] = [
   {
     title: 'In a table',
     keys: [
-      { combo: '↑ ↓', action: 'Move between rows' },
-      { combo: '⏎', action: 'Select the focused row' },
+      { combo: 'j  /  ↓', action: 'Next row' },
+      { combo: 'k  /  ↑', action: 'Previous row' },
+      { combo: 'g  /  Home', action: 'First row' },
+      { combo: 'G  /  End', action: 'Last row' },
+      { combo: '⏎  /  Space', action: 'Open the focused row' },
+      { combo: 'i', action: 'Inspect it, where the table offers that' },
+      { combo: 'p', action: 'Pin it, where the table offers that' },
       { combo: 'Tab', action: 'Reach the sort control on a column header' },
-      { combo: 'Space', action: 'Toggle the sort on a focused header' },
     ],
   },
 ]

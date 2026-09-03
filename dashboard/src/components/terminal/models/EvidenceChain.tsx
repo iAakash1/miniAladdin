@@ -317,11 +317,11 @@ export default function EvidenceChain() {
           }}
           actions={[
             {
-              label: 'Inspect', glyph: 'i', title: 'Open the inspector without leaving the table',
+              label: 'Inspect', glyph: 'i', key: 'i', title: 'Open the inspector without leaving the table',
               onAct: (r) => setInspecting({ kind: 'model', id: r.model_id, label: r.model_id, detail: r.label, state: r.status }),
             },
             {
-              label: 'Pin', glyph: '◆', title: 'Pin to the rail',
+              label: 'Pin', glyph: '◆', key: 'p', title: 'Pin to the rail',
               onAct: (r) => togglePin({ kind: 'model', id: r.model_id, label: r.model_id, detail: r.label, state: r.status }),
             },
           ]}
