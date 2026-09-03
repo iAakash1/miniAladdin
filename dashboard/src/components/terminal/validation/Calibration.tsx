@@ -126,7 +126,7 @@ export default function Calibration({ symbol }: { symbol: string }) {
         detail={data.period ? `${data.period.start} → ${data.period.end}` : undefined}
         facts={[
           { label: 'Samples', value: n(data.samples), digits: 0 , kind: 'count'},
-          { label: 'IC', value: n(data.ic), digits: 4, signed: true, tone: true , kind: 'ic'},
+          { label: 'IC', value: n(data.ic), digits: 4, signed: true, tone: true , kind: 'ic', method: 'mean_ic' },
           { label: 'Baseline IC', value: n(data.baseline_12_1_ic), digits: 4, signed: true },
           { label: 'Hit rate', value: n(data.hit_rate), kind: 'percent' },
           { label: 'PSI', value: psi, digits: 3 },

@@ -156,8 +156,8 @@ export default function SpreadCurve({ experiment, model }: { experiment: string;
           { label: 'Periods', value: s.periods ?? null, digits: 0 , kind: 'count'},
           { label: 'Net cumulative', value: s.net_cumulative ?? null, digits: 2, unit: 'rp', signed: true, tone: true },
           { label: 'Cost paid', value: s.total_cost ?? null, digits: 3, unit: 'rp' },
-          { label: 'Turnover', value: s.mean_turnover ?? null, digits: 3 , kind: 'multiple'},
-          { label: 'Max DD', value: s.net_max_drawdown_rank_points ?? null, digits: 2, unit: 'rp', tone: true , kind: 'drawdown'},
+          { label: 'Turnover', value: s.mean_turnover ?? null, digits: 3 , kind: 'multiple', method: 'annualised_turnover' },
+          { label: 'Max DD', value: s.net_max_drawdown_rank_points ?? null, digits: 2, unit: 'rp', tone: true , kind: 'drawdown', method: 'max_drawdown' },
         ]}
       />
 

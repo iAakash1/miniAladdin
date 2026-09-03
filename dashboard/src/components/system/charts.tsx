@@ -19,6 +19,7 @@ import { bounds, commit, MIN_SPAN, type Window } from '@/lib/chart-window'
 import { format, type Kind } from '@/lib/quantity'
 
 import { useChartCursor } from './ChartCursor'
+import { Value } from './index'
 
 export interface Point {
   /** x is a date string or an index. Rendering treats it as ordinal. */
@@ -659,7 +660,13 @@ export function Matrix({
 export function BarRows({
   rows, unit, title, max, kind = 'ratio',
 }: {
-  rows: { label: string; value: number | null; note?: string }[]
+  rows: {
+    label: string
+    value: number | null
+    note?: string
+    /** Documented measure name. Makes the row's value inspectable. */
+    method?: string
+  }[]
   unit?: string
   title?: string
   max?: number
@@ -702,7 +709,14 @@ export function BarRows({
                 )}
               </div>
               <span className="sys-num" style={{ fontSize: 'var(--t-meta)' }}>
-                {v === null ? <span className="sys-null">—</span> : format(v, kind).text}
+                {v === null ? (
+                  <span className="sys-null">—</span>
+                ) : (
+                  // Routed through Value rather than formatted here, so a row
+                  // naming a documented measure becomes inspectable like every
+                  // other figure in the product.
+                  <Value value={v} kind={kind} measure={r.method} title={r.note} />
+                )}
               </span>
             </div>
           )

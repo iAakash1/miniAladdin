@@ -157,12 +157,12 @@ export default function SignalLab() {
         >
           <EnvelopeGrid
             metrics={[
-              { label: 'IC t-stat', envelope: data.envelopes.ic_t_stat, digits: 3, signed: true },
-              { label: 'Gross Sharpe', envelope: data.envelopes.gross_sharpe, digits: 4, signed: true, tone: true },
-              { label: 'Net Sharpe', envelope: data.envelopes.net_sharpe, digits: 4, signed: true, tone: true },
+              { label: 'IC t-stat', envelope: data.envelopes.ic_t_stat, digits: 3, signed: true, method: 'ic_t_stat' },
+              { label: 'Gross Sharpe', envelope: data.envelopes.gross_sharpe, digits: 4, signed: true, tone: true, method: 'sharpe' },
+              { label: 'Net Sharpe', envelope: data.envelopes.net_sharpe, digits: 4, signed: true, tone: true, method: 'net_sharpe' },
               { label: 'Alpha t-stat', envelope: data.envelopes.alpha_t_stat, digits: 3, signed: true },
               { label: 'Deflated Sharpe', envelope: data.envelopes.deflated_sharpe_probability, digits: 4 },
-              { label: 'PBO', envelope: data.envelopes.pbo, digits: 4 },
+              { label: 'PBO', envelope: data.envelopes.pbo, digits: 4, method: 'pbo' },
             ]}
           />
           <p style={{ margin: 'var(--d-3) 0 0', fontSize: 'var(--t-meta)', color: 'var(--ink-muted)', lineHeight: 'var(--lh-body)', maxWidth: '86ch' }}>

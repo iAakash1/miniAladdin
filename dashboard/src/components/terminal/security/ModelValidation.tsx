@@ -126,11 +126,11 @@ export default function ModelValidation({ ticker }: { ticker: string }) {
         asOf={data.period ? `${data.period.start} → ${data.period.end}` : undefined}
       >
         <Strip metrics={[
-          { label: 'Information coefficient', value: data.ic, kind: 'ic' },
+          { label: 'Information coefficient', value: data.ic, kind: 'ic', method: 'mean_ic' },
           { label: 'Baseline 12-1 IC', value: data.baseline_12_1_ic ?? null, kind: 'ic' },
           { label: 'Hit rate', value: data.hit_rate, kind: 'percent' },
           { label: 'Samples', value: data.samples, kind: 'count' },
-          { label: 'Sharpe', value: (data.strategy?.sharpe ?? null) as number | null, kind: 'sharpe' },
+          { label: 'Sharpe', value: (data.strategy?.sharpe ?? null) as number | null, kind: 'sharpe', method: 'sharpe' },
         ]} />
 
         {/* The verdict never travels without the reasons behind it. */}

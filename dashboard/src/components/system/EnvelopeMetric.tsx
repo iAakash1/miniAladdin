@@ -39,13 +39,19 @@ const STATUS_MAP: Record<string, ResearchState> = {
 }
 
 export function EnvelopeMetric({
-  label, envelope, digits = 4, signed = false, tone = false, verdict,
+  label, envelope, digits = 4, signed = false, tone = false, verdict, method,
 }: {
   label: string
   envelope: Envelope | null | undefined
   digits?: number
   signed?: boolean
   tone?: boolean
+  /**
+   * Documented measure name. An envelope already carries where a value came
+   * from and when; naming the measure adds what it is and what would make it
+   * wrong, which is the half the envelope cannot supply.
+   */
+  method?: string
   /**
    * Whether this value clears the threshold it is measured against. Distinct
    * from the envelope's status: one says where the number came from, the other
@@ -79,7 +85,7 @@ export function EnvelopeMetric({
         title="Open this number's envelope"
       >
         {numeric !== null
-          ? <Value value={numeric} digits={digits} signed={signed} tone={tone} unit={envelope.unit ?? undefined} />
+          ? <Value value={numeric} digits={digits} signed={signed} tone={tone} unit={envelope.unit ?? undefined} measure={method} />
           : <span className="sys-num">{String(envelope.value ?? '—')}</span>}
         <span className="env-caret" aria-hidden>{open ? '−' : '+'}</span>
       </button>
@@ -134,7 +140,15 @@ export function EnvelopeMetric({
 export function EnvelopeGrid({
   metrics,
 }: {
-  metrics: { label: string; envelope: Envelope | null | undefined; digits?: number; signed?: boolean; tone?: boolean }[]
+  metrics: {
+    label: string
+    envelope: Envelope | null | undefined
+    digits?: number
+    signed?: boolean
+    tone?: boolean
+    /** Documented measure name, so the figure can explain itself. */
+    method?: string
+  }[]
 }) {
   return (
     <div className="env-grid">

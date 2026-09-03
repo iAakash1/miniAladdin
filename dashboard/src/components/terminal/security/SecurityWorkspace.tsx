@@ -145,10 +145,10 @@ export default function SecurityWorkspace({ symbol }: { symbol: string }) {
         facts={[
           { label: 'Price', value: n(analysis?.price), digits: 2 , kind: 'currency'},
           { label: '21d', value: n(analysis?.return21d), digits: 4, signed: true, tone: true },
-          { label: 'Volatility', value: n(analysis?.volatility), digits: 3, unit: 'ann.' , kind: 'volatility'},
-          { label: 'Sharpe', value: n(analysis?.sharpe), digits: 2, signed: true, tone: true , kind: 'sharpe'},
-          { label: 'Max DD', value: n(analysis?.maxDrawdown), digits: 3, tone: true , kind: 'drawdown'},
-          { label: 'Beta', value: n(analysis?.beta), digits: 2 },
+          { label: 'Volatility', value: n(analysis?.volatility), digits: 3, unit: 'ann.' , kind: 'volatility', method: 'volatility' },
+          { label: 'Sharpe', value: n(analysis?.sharpe), digits: 2, signed: true, tone: true , kind: 'sharpe', method: 'sharpe' },
+          { label: 'Max DD', value: n(analysis?.maxDrawdown), digits: 3, tone: true , kind: 'drawdown', method: 'max_drawdown' },
+          { label: 'Beta', value: n(analysis?.beta), digits: 2, method: 'beta' },
         ]}
         actions={
           <>

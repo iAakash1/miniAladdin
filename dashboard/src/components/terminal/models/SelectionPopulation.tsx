@@ -163,7 +163,7 @@ export default function SelectionPopulation({ label = 'fwd_rank_21' }: { label?:
               { label: 'Experiments', value: dist.experiments, kind: 'count' },
               { label: 'Best', value: dist.best, kind: 'ic' },
               { label: 'Median', value: dist.median, kind: 'ic' },
-              { label: 'Worst', value: dist.worst, kind: 'ic' },
+              { label: 'Worst', value: dist.worst, kind: 'ic', method: 'worst_realization' },
               { label: 'Dispersion', value: dist.std, kind: 'ic' },
               { label: 'Above zero', value: dist.above_zero, kind: 'count' },
             ]} />

@@ -280,11 +280,11 @@ export default function RiskWorkbench() {
         state={data.risk_contributions_unavailable ? 'blocked' : 'recorded'}
         detail={data.as_of ? `as of ${data.as_of}` : undefined}
         facts={[
-          { label: 'Volatility', value: metrics.volatility?.value ?? null, digits: 3, unit: 'ann.', title: 'Annualised standard deviation of the book return series' , kind: 'volatility'},
-          { label: 'CVaR 95', value: metrics.cvar_historical_95?.value ?? null, digits: 4, title: 'Mean loss beyond the empirical 95% quantile' , kind: 'magnitude'},
-          { label: 'EVaR 95', value: metrics.entropic_var_95?.value ?? null, digits: 4, title: 'Entropic bound; at or above CVaR by construction' , kind: 'magnitude'},
-          { label: 'Max DD', value: metrics.max_drawdown?.value ?? null, digits: 3, tone: true, title: 'Worst peak-to-trough decline on the wealth path' , kind: 'drawdown'},
-          { label: 'Sharpe', value: metrics.sharpe?.value ?? null, digits: 2, signed: true, tone: true, title: 'Excess return per unit of volatility' , kind: 'sharpe'},
+          { label: 'Volatility', value: metrics.volatility?.value ?? null, digits: 3, unit: 'ann.', title: 'Annualised standard deviation of the book return series' , kind: 'volatility', method: 'volatility' },
+          { label: 'CVaR 95', value: metrics.cvar_historical_95?.value ?? null, digits: 4, title: 'Mean loss beyond the empirical 95% quantile' , kind: 'magnitude', method: 'cvar_historical_95' },
+          { label: 'EVaR 95', value: metrics.entropic_var_95?.value ?? null, digits: 4, title: 'Entropic bound; at or above CVaR by construction' , kind: 'magnitude', method: 'entropic_var_95' },
+          { label: 'Max DD', value: metrics.max_drawdown?.value ?? null, digits: 3, tone: true, title: 'Worst peak-to-trough decline on the wealth path' , kind: 'drawdown', method: 'max_drawdown' },
+          { label: 'Sharpe', value: metrics.sharpe?.value ?? null, digits: 2, signed: true, tone: true, title: 'Excess return per unit of volatility' , kind: 'sharpe', method: 'sharpe' },
           { label: 'Measures', value: Object.keys(metrics).length, digits: 0 , kind: 'count'},
         ]}
       />
@@ -331,10 +331,10 @@ export default function RiskWorkbench() {
           <BarRows
             unit="loss magnitude"
             rows={[
-              { label: 'VaR 95', value: metrics.var_historical_95?.value ?? null, note: 'the empirical quantile' },
-              { label: 'CVaR 95', value: metrics.cvar_historical_95?.value ?? null, note: 'the average beyond it' },
-              { label: 'EVaR 95', value: metrics.entropic_var_95?.value ?? null, note: 'the tightest bound above that' },
-              { label: 'Worst', value: metrics.worst_realization?.value ?? null, note: 'the single worst observed period' },
+              { label: 'VaR 95', value: metrics.var_historical_95?.value ?? null, note: 'the empirical quantile', method: 'var_historical_95' },
+              { label: 'CVaR 95', value: metrics.cvar_historical_95?.value ?? null, note: 'the average beyond it', method: 'cvar_historical_95' },
+              { label: 'EVaR 95', value: metrics.entropic_var_95?.value ?? null, note: 'the tightest bound above that', method: 'entropic_var_95' },
+              { label: 'Worst', value: metrics.worst_realization?.value ?? null, note: 'the single worst observed period', method: 'worst_realization' },
             ]}
           />
           <p style={{ margin: 'var(--d-2) 0 0', fontSize: 'var(--t-meta)', color: 'var(--ink-muted)', lineHeight: 'var(--lh-body)' }}>
@@ -348,7 +348,7 @@ export default function RiskWorkbench() {
           <BarRows
             unit="loss magnitude"
             rows={[
-              { label: 'Max DD', value: Math.abs(metrics.max_drawdown?.value ?? Number.NaN) || null, note: 'the deepest single decline' },
+              { label: 'Max DD', value: Math.abs(metrics.max_drawdown?.value ?? Number.NaN) || null, note: 'the deepest single decline', method: 'max_drawdown' },
               { label: 'Average DD', value: Math.abs(metrics.average_drawdown?.value ?? Number.NaN) || null, note: 'mean of the path, zeros included' },
               { label: 'Ulcer', value: metrics.ulcer_index?.value ?? null, note: 'root mean square of the path' },
               { label: 'CDaR 95', value: metrics.conditional_drawdown_at_risk_95?.value ?? null, note: 'mean beyond the 95th percentile' },

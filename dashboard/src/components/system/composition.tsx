@@ -29,6 +29,16 @@ export interface HeaderFact {
   signed?: boolean
   tone?: boolean
   title?: string
+  /**
+   * The documented measure this figure is, by its handbook name. Makes the
+   * masthead fact inspectable: a reader can ask what it is, how it was
+   * produced and what would make it wrong.
+   *
+   * These are the headline numbers on a workspace, which makes them the ones a
+   * reader is most likely to quote elsewhere — and therefore the ones that
+   * least deserve to be unexplainable.
+   */
+  method?: string
 }
 
 export function ObjectHeader({
@@ -73,6 +83,7 @@ export function ObjectHeader({
                 <Value
                   value={f.value} kind={f.kind} unit={f.unit} digits={f.digits}
                   signed={f.signed} tone={f.tone} title={f.title}
+                  measure={f.method}
                 />
               </span>
             </div>
