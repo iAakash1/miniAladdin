@@ -358,7 +358,24 @@ export default function DataWorkbench() {
       ) : null}
 
       {selectedDataset ? (
-        <Panel title="Dataset" subtitle={selectedDataset.dataset_id} state={pitState(selectedDataset.point_in_time)}>
+        <>
+          <ObjectHeader
+            glyph="D"
+            name={selectedDataset.dataset_id}
+            kind={`dataset · ${selectedDataset.source}`}
+            state={pitState(selectedDataset.point_in_time)}
+            detail={selectedDataset.point_in_time}
+            object={{ kind: 'dataset', id: selectedDataset.dataset_id, label: selectedDataset.dataset_id, detail: selectedDataset.source }}
+            facts={[
+              { label: 'Columns', value: selectedDataset.columns?.length ?? null, digits: 0 },
+              { label: 'Survivorship', value: selectedDataset.survivorship, digits: 0 },
+              { label: 'Ingestion', value: selectedDataset.ingestion ?? null, digits: 0 },
+            ]}
+            actions={
+              <button className="sys-btn" onClick={() => setSelected(null)}>clear</button>
+            }
+          />
+        <Panel title="Contract" subtitle={selectedDataset.dataset_id} state={pitState(selectedDataset.point_in_time)}>
           <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)' }}>
             <Section title="Classification">
               <Provenance steps={[
@@ -387,11 +404,30 @@ export default function DataWorkbench() {
             </Section>
           </div>
         </Panel>
+        </>
       ) : null}
 
       {selectedFeature ? (
+        <>
+          <ObjectHeader
+            glyph="F"
+            name={selectedFeature.name}
+            kind={`feature · ${selectedFeature.group}`}
+            state={selectedFeature.point_in_time_safe ? 'recorded' : 'blocked'}
+            detail={selectedFeature.point_in_time_safe ? 'point-in-time safe' : 'not point-in-time safe'}
+            object={{ kind: 'feature', id: selectedFeature.name, label: selectedFeature.name, detail: selectedFeature.group }}
+            facts={[
+              { label: 'Lookback', value: selectedFeature.lookback_sessions, digits: 0, unit: 'sess', title: 'History this feature reads' },
+              { label: 'Availability lag', value: selectedFeature.availability_lag_sessions, digits: 0, unit: 'sess', title: 'Between the observation and the moment it could be known' },
+              { label: 'Cross-sectional', value: selectedFeature.cross_sectional ? 'yes' : 'no', digits: 0 },
+              { label: 'Direction', value: selectedFeature.direction ?? null, digits: 0 },
+            ]}
+            actions={
+              <button className="sys-btn" onClick={() => setSelected(null)}>clear</button>
+            }
+          />
         <Panel
-          title="Feature"
+          title="Definition"
           subtitle={selectedFeature.name}
           state={selectedFeature.point_in_time_safe ? 'recorded' : 'blocked'}
         >
@@ -426,6 +462,7 @@ export default function DataWorkbench() {
             </Section>
           </div>
         </Panel>
+        </>
       ) : null}
 
       {!selected ? (
