@@ -924,3 +924,152 @@ a:focus-visible {
 
 .env-body { margin-top: var(--d-2); width: 100%; }
 .env-body td { border-bottom: 1px solid var(--rule); }
+
+/* ── object header ───────────────────────────────────────────────────────
+   The identity block at the top of any object workspace. Full-bleed against
+   the workspace padding so it reads as a masthead rather than as the first
+   panel in a stack of panels. */
+
+.sys-object {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--d-4);
+  padding: var(--d-3) var(--d-4);
+  margin: calc(var(--d-4) * -1) calc(var(--d-4) * -1) 0;
+  border-bottom: 1px solid var(--rule-strong);
+  background: var(--p-raised);
+  flex-wrap: wrap;
+}
+
+.sys-object-id { display: flex; align-items: center; gap: var(--d-3); min-width: 0; }
+
+.sys-object-glyph {
+  width: 30px; height: 30px; flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--rule-strong);
+  font: 500 13px/1 var(--font-mono);
+  color: var(--ink-muted);
+}
+
+.sys-object-name {
+  font: 500 var(--t-title) / 1.05 var(--font-mono);
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin: 0;
+}
+
+.sys-object-sub {
+  display: flex; align-items: center; gap: var(--d-2);
+  margin-top: 3px; flex-wrap: wrap;
+}
+
+.sys-object-facts {
+  display: flex; align-items: stretch; gap: 0;
+  margin-left: auto; flex-wrap: wrap;
+  border-left: 1px solid var(--rule);
+}
+.sys-object-fact {
+  padding: 0 var(--d-3);
+  border-right: 1px solid var(--rule);
+  min-width: 84px;
+}
+.sys-object-fact .k {
+  display: block;
+  font: 500 var(--t-micro) / 1 var(--font-sans);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 3px;
+  white-space: nowrap;
+}
+.sys-object-fact .v {
+  display: block;
+  font: 500 var(--t-value) / 1 var(--font-mono);
+  font-variant-numeric: tabular-nums slashed-zero;
+  color: var(--ink);
+}
+
+@media (max-width: 860px) {
+  .sys-object-facts { margin-left: 0; border-left: 0; }
+}
+
+/* ── toolbar ─────────────────────────────────────────────────────────────
+   Contextual controls for one workspace. Sits directly under the object
+   header or at the top of the workspace, full-bleed, so controls are on the
+   chrome plane and never mistaken for content. */
+
+.sys-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--d-2);
+  padding: var(--d-2) var(--d-4);
+  margin: 0 calc(var(--d-4) * -1);
+  border-bottom: 1px solid var(--rule);
+  background: var(--p-raised);
+  flex-wrap: wrap;
+  min-height: 34px;
+}
+.sys-toolbar--top { margin-top: calc(var(--d-4) * -1); }
+.sys-toolbar-group { display: flex; align-items: center; gap: var(--d-1); }
+.sys-toolbar-sep { width: 1px; align-self: stretch; background: var(--rule); margin: 0 var(--d-1); }
+.sys-toolbar-spacer { margin-left: auto; }
+
+/* ── skeleton ────────────────────────────────────────────────────────────
+   Loading that preserves the shape of what is coming. A generic spinner tells
+   the reader nothing; a skeleton in the shape of a table tells them a table is
+   arriving and stops the layout jumping when it does.
+
+   The shimmer is slow and low-contrast on purpose — a fast one reads as an
+   error state, and a terminal full of them would be unusable. */
+
+.sys-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--p-sunken) 0%,
+    color-mix(in srgb, var(--p-sunken) 55%, var(--rule)) 50%,
+    var(--p-sunken) 100%
+  );
+  background-size: 200% 100%;
+  animation: sys-shimmer 1.8s ease-in-out infinite;
+}
+
+@keyframes sys-shimmer {
+  0% { background-position: 200% 0 }
+  100% { background-position: -200% 0 }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sys-skeleton { animation: none; background: var(--p-sunken); }
+}
+
+.sys-skeleton-row {
+  height: var(--row-compact);
+  border-bottom: 1px solid var(--rule);
+  display: flex; align-items: center; gap: var(--d-3);
+  padding: 0 var(--d-2);
+}
+.sys-skeleton-cell { height: 8px; }
+
+/* ── method badge ────────────────────────────────────────────────────────
+   A superscript affordance next to a metric. Invisible until the row is
+   hovered, so a dense table is not peppered with icons, but always reachable
+   by keyboard. */
+
+.sys-method {
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  width: 13px; height: 13px;
+  margin-left: 4px;
+  border: 1px solid var(--rule);
+  color: var(--ink-faint);
+  font: 500 8px/1 var(--font-mono);
+  background: transparent;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+  vertical-align: middle;
+}
+tr:hover .sys-method,
+.sys-panel:hover .sys-method,
+.sys-method:focus-visible { opacity: 1; }
+.sys-method:hover { border-color: var(--accent); color: var(--accent); }

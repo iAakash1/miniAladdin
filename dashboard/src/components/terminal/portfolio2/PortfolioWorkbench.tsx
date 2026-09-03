@@ -17,6 +17,7 @@ import { Grid, Panel, Section, StateBlock, Status, Strip, Value } from '@/compon
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { BarRows, Histogram } from '@/components/system/charts'
 import { recordVisit } from '@/lib/research/history'
+import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
 
 interface Weight { symbol: string; weight: number; side: string; signal?: number | null; risk_share: number | null }
 interface Payload {
@@ -58,7 +59,16 @@ export default function PortfolioWorkbench() {
       </Panel>
     )
   }
-  if (!data) return <Panel title="Book" state="waking"><StateBlock state="waking" title="Constructing the book" /></Panel>
+  if (!data) {
+    return (
+      <>
+        <StripSkeleton />
+        <Panel title="Book" subtitle="constructing from the latest predictions" state="waking" flush>
+          <TableSkeleton rows={10} columns={5} />
+        </Panel>
+      </>
+    )
+  }
 
   const weights = data.weights ?? []
   const longs = weights.filter((w) => w.weight > 0)
@@ -111,6 +121,23 @@ export default function PortfolioWorkbench() {
 
   return (
     <>
+      <ObjectHeader
+        glyph="B"
+        name="Book"
+        kind={[data.model_id, data.target].filter(Boolean).join(' · ') || 'research allocation'}
+        state={data.status === 'ok' ? 'recorded' : 'unavailable'}
+        detail={data.as_of ? `as of ${data.as_of}` : undefined}
+        facts={[
+          { label: 'Positions', value: weights.length, digits: 0 },
+          { label: 'Long', value: longs.length, digits: 0 },
+          { label: 'Short', value: shorts.length, digits: 0 },
+          { label: 'Gross', value: gross, digits: 3 },
+          { label: 'Net', value: net, digits: 3, signed: true, tone: true },
+          { label: 'Method', value: data.method ?? null, digits: 0 },
+        ]}
+        actions={<Link href="/terminal/risk" className="sys-btn" style={{ textDecoration: 'none' }}>risk</Link>}
+      />
+
       <Strip metrics={[
         { label: 'Positions', value: weights.length, digits: 0 },
         { label: 'Long', value: longs.length, digits: 0 },

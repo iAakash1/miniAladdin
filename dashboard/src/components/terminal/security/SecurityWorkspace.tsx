@@ -17,8 +17,9 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 
 import { Sparkline, TimeSeries } from '@/components/system/charts'
-import { Grid, Panel, Section, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
+import { Grid, Panel, Section, StateBlock, Status, Value, type ResearchState } from '@/components/system'
 import { recordVisit } from '@/lib/research/history'
+import { ObjectHeader, Segmented, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
 import Disclosure, { type FilingsBlock, type Headline } from './Disclosure'
 import Fundamentals from './Fundamentals'
 
@@ -66,15 +67,15 @@ interface Analysis {
 
 type Tab = 'overview' | 'market' | 'fundamentals' | 'risk' | 'research' | 'disclosure' | 'relationships' | 'data'
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'market', label: 'Market' },
-  { id: 'fundamentals', label: 'Fundamentals' },
-  { id: 'risk', label: 'Risk' },
-  { id: 'research', label: 'Research' },
-  { id: 'disclosure', label: 'Disclosure' },
-  { id: 'relationships', label: 'Relationships' },
-  { id: 'data', label: 'Data' },
+const TABS: { value: Tab; label: string }[] = [
+  { value: 'overview', label: 'Overview' },
+  { value: 'market', label: 'Market' },
+  { value: 'fundamentals', label: 'Fundamentals' },
+  { value: 'risk', label: 'Risk' },
+  { value: 'research', label: 'Research' },
+  { value: 'disclosure', label: 'Disclosure' },
+  { value: 'relationships', label: 'Relationships' },
+  { value: 'data', label: 'Data' },
 ]
 
 const n = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null)
@@ -131,23 +132,42 @@ export default function SecurityWorkspace({ symbol }: { symbol: string }) {
 
   return (
     <>
-      <Strip metrics={[
-        { label: 'Price', value: n(analysis?.price), digits: 2 },
-        { label: '5d return', value: n(analysis?.return5d), digits: 4, signed: true, tone: true },
-        { label: '21d return', value: n(analysis?.return21d), digits: 4, signed: true, tone: true },
-        { label: 'Volatility', value: n(analysis?.volatility), digits: 4, unit: 'ann.' },
-        { label: 'Sharpe', value: n(analysis?.sharpe), digits: 3, signed: true, tone: true },
-        { label: 'Max drawdown', value: n(analysis?.maxDrawdown), digits: 4, tone: true },
-        { label: 'Beta', value: n(analysis?.beta), digits: 3 },
-      ]} />
+      <ObjectHeader
+        glyph="T"
+        name={symbol}
+        kind={analysis?.sector ? `security · ${analysis.sector}` : 'security'}
+        state={view ? deploymentState(view.deployment_status) : 'waking'}
+        detail={analysis?.companyName}
+        facts={[
+          { label: 'Price', value: n(analysis?.price), digits: 2 },
+          { label: '21d', value: n(analysis?.return21d), digits: 4, signed: true, tone: true },
+          { label: 'Volatility', value: n(analysis?.volatility), digits: 3, unit: 'ann.' },
+          { label: 'Sharpe', value: n(analysis?.sharpe), digits: 2, signed: true, tone: true },
+          { label: 'Max DD', value: n(analysis?.maxDrawdown), digits: 3, tone: true },
+          { label: 'Beta', value: n(analysis?.beta), digits: 2 },
+        ]}
+        actions={
+          <>
+            <Link href={`/terminal/calibration?symbol=${encodeURIComponent(symbol)}`} className="sys-btn" style={{ textDecoration: 'none' }}>calibration</Link>
+            <Link href={`/terminal/relationships?symbol=${encodeURIComponent(symbol)}`} className="sys-btn" style={{ textDecoration: 'none' }}>relationships</Link>
+          </>
+        }
+      />
 
-      <div className="sys-seg" role="tablist" aria-label="Security views">
-        {TABS.map((t) => (
-          <button key={t.id} role="tab" aria-selected={tab === t.id} className="sys-btn" onClick={() => setTab(t.id)}>
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <Toolbar>
+        <ToolbarGroup label="view">
+          <Segmented<Tab>
+            options={TABS}
+            value={tab}
+            onChange={setTab}
+            label="Security views"
+          />
+        </ToolbarGroup>
+        <ToolbarSpacer />
+        <span className="sys-meta">
+          {analysis?.mode ? `pipeline ${analysis.mode}` : failures.length ? `${failures.length} sources unavailable` : ''}
+        </span>
+      </Toolbar>
 
       {tab === 'overview' ? (
         <Grid>

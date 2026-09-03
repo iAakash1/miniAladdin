@@ -17,6 +17,7 @@ import { useEffect, useState } from 'react'
 import { Matrix } from '@/components/system/charts'
 import { Panel, StateBlock, Status, Strip, Value } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
+import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
 
 interface Row {
   estimator: string
@@ -111,7 +112,16 @@ export default function CovarianceLab() {
   if (error) {
     return <Panel title="Covariance" state="unavailable"><StateBlock state="unavailable" title="The comparison could not be read" detail={`Request failed: ${error}.`} /></Panel>
   }
-  if (!data) return <Panel title="Covariance" state="waking"><StateBlock state="waking" title="Estimating four covariance matrices" /></Panel>
+  if (!data) {
+    return (
+      <>
+        <StripSkeleton items={6} />
+        <Panel title="Estimators" subtitle="estimating on the book's panel" state="waking" flush>
+          <TableSkeleton rows={4} columns={8} />
+        </Panel>
+      </>
+    )
+  }
   if (data.status !== 'ok' || !data.estimators?.length) {
     return <Panel title="Covariance" state="unavailable"><StateBlock state="unavailable" title="No book to estimate on" detail={data.message} /></Panel>
   }
@@ -124,6 +134,21 @@ export default function CovarianceLab() {
 
   return (
     <>
+      <ObjectHeader
+        glyph="Σ"
+        name="Covariance"
+        kind="four estimators, one panel"
+        state={rows.some((r) => !r.positive_semi_definite) ? 'blocked' : 'recorded'}
+        detail={spread !== null ? `${(spread * 100).toFixed(1)}% volatility spread across methods` : undefined}
+        facts={[
+          { label: 'Estimators', value: rows.length, digits: 0 },
+          { label: 'Names', value: data.panel?.names ?? null, digits: 0 },
+          { label: 'Rows', value: data.panel?.rows ?? null, digits: 0 },
+          { label: 'Complete', value: data.panel?.complete_rows ?? null, digits: 0, title: 'Rows with no missing name' },
+          { label: 'Not PSD', value: rows.filter((r) => !r.positive_semi_definite).length, digits: 0 },
+        ]}
+      />
+
       <Strip metrics={[
         { label: 'Estimators', value: rows.length, digits: 0 },
         { label: 'Names', value: data.panel?.names ?? null, digits: 0 },
