@@ -17,7 +17,7 @@ import Link from 'next/link'
 
 import { GraphView, typeTone, type GraphEdge, type GraphNode } from '@/components/system/GraphView'
 import { Grid, Panel, Section, StateBlock, Strip, Value } from '@/components/system'
-import { ChartSkeleton, StripSkeleton } from '@/components/system/composition'
+import { ChartSkeleton, ObjectHeader, StripSkeleton } from '@/components/system/composition'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
 
@@ -191,6 +191,27 @@ export default function Relationships({ initialSymbol = 'AAPL' }: { initialSymbo
         </Panel>
       ) : (
         <>
+          <ObjectHeader
+            glyph="◇"
+            name={symbol}
+            kind="relationship graph"
+            state="recorded"
+            detail={`${hops} hop${hops > 1 ? 's' : ''} · ${edges.length} of ${allEdges.length} edges shown`}
+            object={{ kind: 'security', id: symbol, label: symbol }}
+            facts={[
+              { label: 'Nodes', value: nodes.length, kind: 'count' },
+              { label: 'Edges', value: edges.length, kind: 'count' },
+              { label: 'Density', value: n(a.density), kind: 'share' },
+              { label: 'Mean confidence', value: n(a.avg_confidence), kind: 'share' },
+              { label: 'Node types', value: nodeTypes.length, kind: 'count' },
+            ]}
+            actions={
+              <Link href={`/terminal/security?symbol=${encodeURIComponent(symbol)}`} className="sys-btn" style={{ textDecoration: 'none' }}>
+                open security
+              </Link>
+            }
+          />
+
           <Strip metrics={[
             { label: 'Nodes', value: nodes.length, digits: 0 , kind: 'count'},
             { label: 'Edges', value: edges.length, digits: 0 , kind: 'count'},

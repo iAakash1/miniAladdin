@@ -9,12 +9,14 @@
  */
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 
 import { Compare, CompareLegend, type CompareField, type CompareSubject } from '@/components/system/Compare'
 import { Panel, StateBlock, Status } from '@/components/system'
-import { TableSkeleton } from '@/components/system/composition'
+import { ObjectHeader, TableSkeleton } from '@/components/system/composition'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
+import { recordVisit } from '@/lib/research/history'
 
 interface Row {
   key: string
@@ -95,6 +97,26 @@ export default function ModelCompare() {
 
   return (
     <>
+      <ObjectHeader
+        glyph="⇄"
+        name="Compare"
+        kind="model against model"
+        state={subjects.length >= 2 ? 'recorded' : 'unknown'}
+        detail={subjects.length >= 2 ? `${subjects[0].label} is the baseline` : 'choose two or more'}
+        facts={[
+          { label: 'Registered', value: rows.length, kind: 'count' },
+          { label: 'Selected', value: picked.length, kind: 'count' },
+          { label: 'Fields', value: FIELDS.length, kind: 'count' },
+        ]}
+        actions={
+          <>
+            <Link href="/terminal/evidence" className="sys-btn" style={{ textDecoration: 'none' }}>evidence</Link>
+            <Link href="/terminal/gates" className="sys-btn" style={{ textDecoration: 'none' }}>gates</Link>
+            <Link href="/terminal/diff" className="sys-btn" style={{ textDecoration: 'none' }}>difference</Link>
+          </>
+        }
+      />
+
       <Panel
         title="Select models"
         subtitle={picked.length ? `${picked.length} selected` : 'choose two or more'}
@@ -105,7 +127,10 @@ export default function ModelCompare() {
           columns={columns} rows={rows} rowKey={(r) => r.key}
           density="compact" filterPlaceholder="filter models"
           initialSort={{ key: 'ic', direction: 'desc' }}
-          onSelect={(r) => setPicked((p) => (p.includes(r.key) ? p.filter((k) => k !== r.key) : [...p, r.key]))}
+          onSelect={(r) => {
+            recordVisit({ kind: 'model', id: r.model_id, label: r.model_id, detail: r.label, state: r.status })
+            setPicked((p) => (p.includes(r.key) ? p.filter((k) => k !== r.key) : [...p, r.key]))
+          }}
         />
       </Panel>
 

@@ -12,9 +12,12 @@
  */
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 
-import { Panel, StateBlock, Status, Strip, Value } from '@/components/system'
+import { Panel, Status, Strip, Value } from '@/components/system'
+import { recordVisit } from '@/lib/research/history'
+import { ObjectHeader, TableSkeleton } from '@/components/system/composition'
 
 interface Detail {
   experiment_id?: string
@@ -103,6 +106,8 @@ export default function ExperimentDiff() {
     }
     load(left, setA)
     load(right, setB)
+    recordVisit({ kind: 'experiment', id: left, label: left })
+    recordVisit({ kind: 'experiment', id: right, label: right })
     return () => { alive = false }
   }, [left, right])
 
@@ -170,6 +175,26 @@ export default function ExperimentDiff() {
 
   return (
     <>
+      <ObjectHeader
+        glyph="Δ"
+        name="Difference"
+        kind="experiment against experiment"
+        state={a && b ? 'recorded' : 'waking'}
+        detail={`${left} → ${right}`}
+        facts={[
+          { label: 'Fields', value: rows.length || null, kind: 'count' },
+          { label: 'Changed', value: counts.changed || null, kind: 'count' },
+          { label: 'Added', value: counts.added || null, kind: 'count' },
+          { label: 'Removed', value: counts.removed || null, kind: 'count' },
+        ]}
+        actions={
+          <>
+            <Link href="/terminal/experiments" className="sys-btn" style={{ textDecoration: 'none' }}>experiments</Link>
+            <Link href="/terminal/compare" className="sys-btn" style={{ textDecoration: 'none' }}>compare models</Link>
+          </>
+        }
+      />
+
       <Panel
         title="Select"
         actions={
@@ -201,7 +226,7 @@ export default function ExperimentDiff() {
       ) : null}
 
       {!a || !b ? (
-        <Panel title="Difference" state="waking"><StateBlock state="waking" title="Reading both experiments" /></Panel>
+        <Panel title="Difference" state="waking" flush><TableSkeleton rows={12} columns={4} /></Panel>
       ) : (
         <>
           <Strip metrics={[
