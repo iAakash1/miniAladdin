@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 
 import Workbench from '@/components/system/Workbench'
+import SecurityView from '@/components/terminal/security/SecurityView'
 import SecurityWorkspace from '@/components/terminal/security/SecurityWorkspace'
-import SymbolPicker from '@/components/terminal/security/SymbolPicker'
 import { Panel } from '@/components/system'
 
 export const metadata: Metadata = {
@@ -21,7 +21,7 @@ export default async function SecurityPage({
   return (
     <Workbench
       title={symbol || 'Security'}
-      subtitle={symbol ? 'one name, five questions' : undefined}
+      subtitle={symbol ? 'price first, research below' : undefined}
       rail={[
         { label: 'Valuation', state: 'live', detail: 'current, not point-in-time' },
       ]}
@@ -29,9 +29,10 @@ export default async function SecurityPage({
         <>
           <Panel title="What this answers">
             <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
-              What this name is, how it has moved, what risk it carries, what the
-              research pipeline says about it, and which of those are
-              point-in-time.
+              What this name is doing, first. Identity, price and history load
+              from the market providers in under a second; the research layer is
+              an order of magnitude slower and sits below rather than in front
+              of it.
             </p>
           </Panel>
           <Panel title="Ticker identity">
@@ -51,8 +52,16 @@ export default async function SecurityPage({
         </>
       }
     >
-      <SymbolPicker current={symbol} />
-      {symbol ? <SecurityWorkspace symbol={symbol} /> : null}
+      {symbol ? (
+        <>
+          {/* Price and chart lead, from the market providers, in well under a
+              second. */}
+          <SecurityView symbol={symbol} />
+          {/* The research reading of the same name, below the market data
+              rather than in front of it. */}
+          <SecurityWorkspace symbol={symbol} />
+        </>
+      ) : null}
     </Workbench>
   )
 }

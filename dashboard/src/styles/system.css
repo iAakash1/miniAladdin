@@ -1761,3 +1761,57 @@ tr[data-selected='true'] .sys-row-actions { opacity: 1; }
   font-size: var(--t-meta); color: var(--ink-muted); line-height: var(--lh-body);
   display: flex; flex-direction: column; gap: var(--d-1);
 }
+
+/* A watchlist row. The symbol is the only thing that leads; everything else
+   is a number that should line up with the number above it. */
+.wl__sym {
+  font-family: var(--font-mono);
+  color: var(--ink);
+  border-bottom: 1px solid transparent;
+}
+.wl__sym:hover { border-bottom-color: var(--rule-strong); }
+.wl tbody tr:hover { background: var(--p-raised); }
+/* The remove control is present in every row and should not compete with the
+   prices; it surfaces on hover and on keyboard focus. */
+.wl tbody td:last-child .sys-btn { opacity: 0; transition: opacity 90ms linear; }
+.wl tbody tr:hover td:last-child .sys-btn,
+.wl tbody td:last-child .sys-btn:focus-visible { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .wl tbody td:last-child .sys-btn { transition: none; }
+}
+
+/* A watchlist row. The symbol leads; everything else is a number that should
+   line up with the number above it. */
+.wl__sym {
+  font-family: var(--font-mono);
+  color: var(--ink);
+  border-bottom: 1px solid transparent;
+}
+.wl__sym:hover { border-bottom-color: var(--rule-strong); }
+.wl tbody tr:hover { background: var(--p-raised); }
+/* The remove control sits in every row and must not compete with the prices;
+   it surfaces on hover and on keyboard focus. */
+.wl tbody td:last-child .sys-btn { opacity: 0; transition: opacity 90ms linear; }
+.wl tbody tr:hover td:last-child .sys-btn,
+.wl tbody td:last-child .sys-btn:focus-visible { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .wl tbody td:last-child .sys-btn { transition: none; }
+}
+
+/* Research status on the home screen: one line, not a workspace. */
+.home-research {
+  display: flex; align-items: baseline; gap: var(--d-3); flex-wrap: wrap;
+}
+
+/* Research status on the home screen: one line, not a workspace. */
+.home-research { display: flex; align-items: baseline; gap: var(--d-3); flex-wrap: wrap; }
+
+/* An inline key reference in prose — distinct from the hint chip in the
+   chrome, which is positioned rather than inline. */
+.sys-kbd {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  padding: 0 var(--d-1);
+  border: 1px solid var(--rule-strong);
+  color: var(--ink);
+}

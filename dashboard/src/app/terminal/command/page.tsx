@@ -1,51 +1,71 @@
 import type { Metadata } from 'next'
 
 import Workbench from '@/components/system/Workbench'
-import CommandCenter from '@/components/terminal/command/CommandCenter'
-import ResearchContext from '@/components/terminal/command/ResearchContext'
-import { Panel, Provenance } from '@/components/system'
+import Watchlist from '@/components/terminal/watchlist/Watchlist'
+import RecentSecurities from '@/components/terminal/home/RecentSecurities'
+import ResearchStatus from '@/components/terminal/home/ResearchStatus'
+import MarketWorkspace from '@/components/terminal/market/MarketWorkspace'
+import { Grid, Panel } from '@/components/system'
 
 export const metadata: Metadata = {
-  title: 'Command — miniAladdin',
-  description: 'What deserves attention: blockers, research state, holdout, firewall and recorded experiments.',
+  title: 'Terminal — miniAladdin',
+  description: 'What you are watching, what the market is doing, and where you left off.',
 }
 
-export default function CommandPage() {
+/**
+ * The way in.
+ *
+ * This screen used to lead with the research programme: NO PRODUCTION
+ * CANDIDATE at full weight, a gate table, a registry population, an
+ * explanation of why a net Sharpe placed above its blockers is an invitation
+ * to read the Sharpe and stop.
+ *
+ * Every word of that is true and it was the wrong first screen. A terminal
+ * opens on what you are watching and what has moved. The research status is a
+ * line — honest, unsoftened, and one link from the archive that holds the
+ * eight gates and the reasons.
+ */
+export default function TerminalHome() {
   return (
     <Workbench
-      title="Command"
-      subtitle="what deserves attention"
-      rail={[
-        { label: 'Cost', state: 'recorded', detail: '1 bp + 5 bp half-spread' },
-      ]}
+      title="Terminal"
+      subtitle="what you are watching"
       context={
         <>
-          <Panel title="What this answers">
+          <Panel title="Start here">
             <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
-              What is standing between the current research and a promoted model,
-              stated before any headline figure.
+              Type a ticker or a company name in the search box above, or press{' '}
+              <kbd className="sys-kbd">/</kbd> from anywhere. Apple, AAPL, NVDA —
+              the symbol database covers most listed US names.
             </p>
           </Panel>
-          <Panel title="Why blockers come first">
+          <Panel title="Where prices come from">
             <p style={{ margin: 0, fontSize: 'var(--t-meta)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
-              A net Sharpe placed above the reason it does not count is an
-              invitation to read the Sharpe and stop. The gate that failed is the
-              more important number, so it is the one at the top.
+              Quotes and history come from the market providers directly, not
+              from the research dataset. A security works whether or not any
+              experiment has ever scored it.
             </p>
           </Panel>
-          <Panel title="Where to go next">
-            <Provenance steps={[
-              { label: 'Evidence', value: 'the full gate chain', href: '/terminal/evidence' },
-              { label: 'Experiments', value: 'the registry', href: '/terminal/experiments' },
-              { label: 'Risk', value: 'what can hurt the book', href: '/terminal/risk' },
-              { label: 'Data', value: 'where the numbers came from', href: '/terminal/data' },
-            ]} />
+          <Panel title="Watchlists are local">
+            <p style={{ margin: 0, fontSize: 'var(--t-meta)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
+              Kept in this browser and keyed on the ticker. They do not follow
+              you to another machine, and clearing site data clears them.
+            </p>
           </Panel>
         </>
       }
     >
-      <CommandCenter />
-      <ResearchContext />
+      <Grid>
+        <Watchlist />
+        <RecentSecurities />
+      </Grid>
+
+      {/* What the market is doing, from the same dashboard payload the market
+          workspace reads. */}
+      <MarketWorkspace />
+
+      {/* One line. The archive is a link away. */}
+      <ResearchStatus />
     </Workbench>
   )
 }

@@ -77,7 +77,17 @@ export function timeAgo(iso: string | null | undefined): string {
   if (m < 60) return `${m}m ago`
   const h = Math.floor(m / 60)
   if (h < 24) return `${h}h ago`
-  const d = Math.floor(h / 24)
+  /* Past a day, count calendar days rather than elapsed 24-hour blocks.
+     Rounding alone does not hold the invariant it was chosen for: two stamps
+     on one date can be 23 hours apart, which moves a floored day count by one,
+     which can cross a rounding boundary. Eleven days and ten-and-a-bit days
+     both fall on the same date and came out "2w ago" and "1w ago" — visible
+     only when the page was opened near midnight, which is exactly the kind of
+     bug that survives review.
+     Counting from local midnight makes two timestamps on one date produce the
+     same number by construction, at every coarser unit. */
+  const midnight = (ms: number) => { const x = new Date(ms); x.setHours(0, 0, 0, 0); return x.getTime() }
+  const d = Math.max(1, Math.round((midnight(Date.now()) - midnight(t)) / 86_400_000))
   if (d < 7) return `${d}d ago`
   // Stays relative all the way out. The previous fallback returned
   // `toLocaleDateString` with the same options as `fmtDate`, so the very

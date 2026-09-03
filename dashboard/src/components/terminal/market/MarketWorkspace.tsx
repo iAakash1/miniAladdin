@@ -20,7 +20,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 
 import { BarRows, TimeSeries } from '@/components/system/charts'
-import { Grid, Panel, Prose, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
+import { Grid, Panel, Prose, StateBlock, Status, Value, type ResearchState } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
 import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
@@ -42,7 +42,18 @@ interface Sector {
 }
 
 interface Breadth {
-  indexes?: { symbol: string; name?: string; price?: number | null; change?: number | null }[]
+  /* As the dashboard payload actually shapes it. The table read `change`,
+     which no row carries, so every index showed an em dash where its move
+     should be — and its price rendered signed and green, because a bare
+     `digits` falls through to the signed, toned default. */
+  indexes?: {
+    symbol: string
+    name?: string
+    price?: number | null
+    change_1d?: number | null
+    change_1w?: number | null
+    source?: string | null
+  }[]
   sectors_above_50d?: number | null
   sector_count?: number | null
   breadth_score?: number | null
@@ -187,7 +198,10 @@ export default function MarketWorkspace() {
         sector_count: b.sector_count,
         explain: b.explain,
         history,
-        indexes: b.indexes?.map((i) => ({ symbol: i.symbol, price: i.price, change_1d: i.change })),
+        // The map's tape reads change_1d, and so does the payload. It was
+        // mapping from `i.change`, which no row carries, so every index on the
+        // tape rendered without its move.
+        indexes: b.indexes?.map((i) => ({ symbol: i.symbol, price: i.price, change_1d: i.change_1d })),
       },
       sectors: complete.map((r) => ({ ...r, verdict: r.verdict ?? '' })) as SectorRow[],
     }
@@ -207,7 +221,7 @@ export default function MarketWorkspace() {
         state="live"
         detail={data.generated_at ? `generated ${data.generated_at.slice(0, 19)}${data.cached ? ', cached' : ''}` : undefined}
         facts={[
-          { label: 'Breadth', value: n(b.breadth_score), digits: 3, tone: true },
+          { label: 'Breadth', value: n(b.breadth_score), kind: 'percent', digits: 0, title: b.explain ?? undefined },
           { label: 'Above 50d', value: above, digits: 0, kind: 'count' },
           { label: 'Sectors', value: count, digits: 0, kind: 'count' },
           { label: 'Regime', value: regime ?? null, digits: 0, kind: 'count' },
@@ -215,13 +229,6 @@ export default function MarketWorkspace() {
         ]}
       />
 
-      <Strip metrics={[
-        { label: 'Breadth score', value: n(b.breadth_score), digits: 3, tone: true, title: b.explain ?? undefined },
-        { label: 'Sectors above 50d', value: above, digits: 0, kind: 'count' },
-        { label: 'Sectors tracked', value: count, digits: 0, kind: 'count' },
-        { label: 'Events ahead', value: data.events?.length ?? null, digits: 0, kind: 'count' },
-        { label: 'Served', value: data.cached ? 'cached' : 'fresh', digits: 0, kind: 'count' },
-      ]} />
 
       {/* Before the detail: what moved since this reader last looked. A daily
           user opens a market page to find the delta, and making them
@@ -275,12 +282,23 @@ export default function MarketWorkspace() {
             <div style={{ marginTop: 'var(--d-3)' }}>
               <div className="sys-label" style={{ marginBottom: 'var(--d-1)' }}>Indexes</div>
               <table className="sys-table sys-table--compact">
+                <thead>
+                  <tr>
+                    <th>Index</th>
+                    <th className="num">Last</th>
+                    <th className="num">1 day</th>
+                    <th className="num">1 week</th>
+                    <th>Source</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {b.indexes.map((i) => (
                     <tr key={i.symbol}>
-                      <td style={{ fontFamily: 'var(--font-mono)' }}>{i.symbol}</td>
-                      <td className="num"><Value value={n(i.price)} digits={2} /></td>
-                      <td className="num"><Value value={n(i.change)} digits={4} signed tone /></td>
+                      <td className="sys-mono">{i.symbol}</td>
+                      <td className="num"><Value value={n(i.price)} kind="currency" /></td>
+                      <td className="num"><Value value={n(i.change_1d)} kind="percent" digits={2} signed tone /></td>
+                      <td className="num"><Value value={n(i.change_1w)} kind="percent" digits={2} signed tone /></td>
+                      <td><span className="sys-meta">{i.source ?? '—'}</span></td>
                     </tr>
                   ))}
                 </tbody>

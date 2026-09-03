@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 
 import Workbench from '@/components/system/Workbench'
+import CommandCenter from '@/components/terminal/command/CommandCenter'
+import ResearchContext from '@/components/terminal/command/ResearchContext'
 import EvidenceChain from '@/components/terminal/models/EvidenceChain'
 import SelectionPopulation from '@/components/terminal/models/SelectionPopulation'
 import { Panel, Provenance, Section } from '@/components/system'
@@ -55,6 +57,14 @@ export default function EvidencePage() {
         </>
       }
     >
+      {/* Why nothing is promoted, the deployment state, the firewall and the
+          holdout. This led the terminal until the terminal had a front door;
+          it belongs in the archive, where a reader has come specifically to
+          ask whether any of it can be believed. */}
+      <CommandCenter />
+      {/* What the research was run against: universe, point-in-time status,
+          coverage. */}
+      <ResearchContext />
       <EvidenceChain />
       {/* Whether the winner is skill or selection. A sorted leaderboard read
           on its own is an argument for its own top row, so the losers and the
