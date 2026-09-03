@@ -200,6 +200,16 @@ export function DataTable<T>({
           <table className={cls}>
             <thead>
               <tr>
+                {/* The row-actions column has a cell in every body row, so it
+                    needs a header cell too. Without one the browser lines each
+                    value up under the header to its left, and a reader sees net
+                    Sharpe sitting under MAX DD — every number in the table
+                    labelled as the wrong statistic. */}
+                {actions?.length ? (
+                  <th className="sys-actions-col" scope="col">
+                    <span className="sys-sr-only">Row actions</span>
+                  </th>
+                ) : null}
                 {visible.map((c) => {
                   const active = sort?.key === c.key
                   return (
