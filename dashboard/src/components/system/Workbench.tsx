@@ -44,61 +44,66 @@ const GOTO: Record<string, string> = {
 
 /* Navigation follows the research loop, not the backend modules. The groups
    are the questions a researcher actually moves between. */
-export const WORKBENCH: { group: string; items: { href: string; label: string; key: string }[] }[] = [
+/** A glyph column keeps the eye on a fixed left edge down the list, instead of
+ *  tracking a ragged one made of word lengths. */
+export const WORKBENCH: {
+  group: string
+  items: { href: string; label: string; key: string; glyph: string }[]
+}[] = [
   {
     group: 'Observe',
     items: [
-      { href: '/terminal/command', label: 'Command', key: 'c' },
-      { href: '/terminal/market', label: 'Market', key: 'j' },
-      { href: '/terminal/security', label: 'Securities', key: 's' },
-      { href: '/terminal/relationships', label: 'Relationships', key: 'h' },
+      { href: '/terminal/command', label: 'Command', glyph: '⌘', key: 'c' },
+      { href: '/terminal/market', label: 'Market', glyph: 'M', key: 'j' },
+      { href: '/terminal/security', label: 'Securities', glyph: 'T', key: 's' },
+      { href: '/terminal/relationships', label: 'Relationships', glyph: '◇', key: 'h' },
     ],
   },
   {
     group: 'Explain',
     items: [
-      { href: '/terminal/factorlab', label: 'Factors', key: 'f' },
-      { href: '/terminal/signals', label: 'Signals', key: 'g' },
+      { href: '/terminal/factorlab', label: 'Factors', glyph: 'K', key: 'f' },
+      { href: '/terminal/signals', label: 'Signals', glyph: 'S', key: 'g' },
     ],
   },
   {
     group: 'Validate',
     items: [
-      { href: '/terminal/lab', label: 'Models', key: 'm' },
-      { href: '/terminal/evidence', label: 'Evidence', key: 'v' },
-      { href: '/terminal/gates', label: 'Gates', key: 'a' },
-      { href: '/terminal/calibration', label: 'Calibration', key: 'u' },
-      { href: '/terminal/performance', label: 'Performance', key: 'p' },
-      { href: '/terminal/experiments', label: 'Experiments', key: 'x' },
-      { href: '/terminal/compare', label: 'Compare', key: 'w' },
-      { href: '/terminal/diff', label: 'Difference', key: 'q' },
+      { href: '/terminal/lab', label: 'Models', glyph: 'µ', key: 'm' },
+      { href: '/terminal/evidence', label: 'Evidence', glyph: 'E', key: 'v' },
+      { href: '/terminal/gates', label: 'Gates', glyph: '⊟', key: 'a' },
+      { href: '/terminal/calibration', label: 'Calibration', glyph: 'C', key: 'u' },
+      { href: '/terminal/performance', label: 'Performance', glyph: '∿', key: 'p' },
+      { href: '/terminal/experiments', label: 'Experiments', glyph: 'X', key: 'x' },
+      { href: '/terminal/compare', label: 'Compare', glyph: '⇄', key: 'w' },
+      { href: '/terminal/diff', label: 'Difference', glyph: 'Δ', key: 'q' },
     ],
   },
   {
     group: 'Allocate',
     items: [
-      { href: '/terminal/book', label: 'Book', key: 'b' },
-      { href: '/terminal/risk', label: 'Risk', key: 'r' },
-      { href: '/terminal/covariance', label: 'Covariance', key: 'k' },
+      { href: '/terminal/book', label: 'Book', glyph: 'B', key: 'b' },
+      { href: '/terminal/risk', label: 'Risk', glyph: 'R', key: 'r' },
+      { href: '/terminal/covariance', label: 'Covariance', glyph: 'Σ', key: 'k' },
       // A user's own lists and holdings. A different object from the research
       // book, which is why both exist and neither is named for the other.
-      { href: '/terminal/portfolio', label: 'Watchlists', key: 'z' },
+      { href: '/terminal/portfolio', label: 'Watchlists', glyph: 'W', key: 'z' },
     ],
   },
   {
     group: 'Verify',
     items: [
-      { href: '/terminal/data', label: 'Data', key: 'd' },
-      { href: '/terminal/providers', label: 'Providers', key: 'o' },
-      { href: '/terminal/provenance', label: 'Provenance', key: 'n' },
-      { href: '/terminal/handbook', label: 'Handbook', key: 'y' },
+      { href: '/terminal/data', label: 'Data', glyph: 'D', key: 'd' },
+      { href: '/terminal/providers', label: 'Providers', glyph: 'V', key: 'o' },
+      { href: '/terminal/provenance', label: 'Provenance', glyph: '⤳', key: 'n' },
+      { href: '/terminal/handbook', label: 'Handbook', glyph: 'H', key: 'y' },
     ],
   },
   {
     group: 'Record',
     items: [
-      { href: '/terminal/memos', label: 'Memos', key: 'e' },
-      { href: '/terminal/timeline', label: 'Timeline', key: 't' },
+      { href: '/terminal/memos', label: 'Memos', glyph: 'N', key: 'e' },
+      { href: '/terminal/timeline', label: 'Timeline', glyph: '│', key: 't' },
     ],
   },
 ]
@@ -173,8 +178,10 @@ export default function Workbench({
                   className={`wb-link${active ? ' is-active' : ''}`}
                   aria-current={active ? 'page' : undefined}
                   onClick={() => setNavOpen(false)}
+                  title={item.label}
                 >
-                  <span>{item.label}</span>
+                  <span className="wb-glyph" aria-hidden>{item.glyph}</span>
+                  <span className="wb-label">{item.label}</span>
                   <kbd className="wb-key">g {item.key}</kbd>
                 </Link>
               )
@@ -187,8 +194,8 @@ export default function Workbench({
             <div className="sys-label wb-group-label">Pinned</div>
             {pinned.slice(0, 6).map((o) => (
               <Link key={`p-${o.kind}-${o.id}`} href={objectHref(o)} className="wb-link" title={`${KINDS[o.kind].plural} · ${o.detail ?? ''}`}>
-                <span style={{ fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.label}</span>
-                <span className="wb-key" style={{ opacity: 1 }}>{KINDS[o.kind].glyph}</span>
+                <span className="wb-glyph" aria-hidden>{KINDS[o.kind].glyph}</span>
+                <span className="wb-label" style={{ fontFamily: 'var(--font-mono)' }}>{o.label}</span>
               </Link>
             ))}
           </div>
@@ -199,8 +206,8 @@ export default function Workbench({
             <div className="sys-label wb-group-label">Recent</div>
             {recent.slice(0, 6).map((o) => (
               <Link key={`r-${o.kind}-${o.id}`} href={objectHref(o)} className="wb-link" title={`${KINDS[o.kind].plural} · ${o.detail ?? ''}`}>
-                <span style={{ fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.label}</span>
-                <span className="wb-key" style={{ opacity: 1 }}>{KINDS[o.kind].glyph}</span>
+                <span className="wb-glyph" aria-hidden>{KINDS[o.kind].glyph}</span>
+                <span className="wb-label" style={{ fontFamily: 'var(--font-mono)' }}>{o.label}</span>
               </Link>
             ))}
           </div>

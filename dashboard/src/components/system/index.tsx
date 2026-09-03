@@ -96,19 +96,34 @@ export function Panel({
   flush?: boolean
 }) {
   return (
-    <section className="sys-panel">
+    // The state is emitted as a data attribute so the stylesheet can put a
+    // hairline of the state colour along the top edge. A blocked panel is then
+    // identifiable at a glance without a coloured background shouting all day.
+    <section className="sys-panel" data-state={state}>
       <header className="sys-panel-head">
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--d-2)', minWidth: 0 }}>
           <h2 className="sys-label" style={{ margin: 0 }}>{title}</h2>
           {subtitle ? <span className="sys-meta">{subtitle}</span> : null}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--d-2)', flex: 'none' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--d-2)', flex: 'none', marginLeft: 'auto' }}>
           {state ? <Status state={state} /> : null}
           {actions}
         </div>
       </header>
       <div className={`sys-panel-body${flush ? ' sys-panel-body--flush' : ''}`}>{children}</div>
     </section>
+  )
+}
+
+/** The standard workspace grid. Replaces per-page inline grid styles. */
+export function Grid({
+  children, variant,
+}: {
+  children: ReactNode
+  variant?: 'wide' | 'halves'
+}) {
+  return (
+    <div className={`sys-grid${variant ? ` sys-grid--${variant}` : ''}`}>{children}</div>
   )
 }
 

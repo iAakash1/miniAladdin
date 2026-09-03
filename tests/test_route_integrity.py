@@ -15,9 +15,12 @@ ROOT = Path(__file__).resolve().parents[1]
 WORKBENCH = ROOT / "dashboard" / "src" / "components" / "system" / "Workbench.tsx"
 APP = ROOT / "dashboard" / "src" / "app"
 
-#: One nav item: href, label and shortcut, in the order the file writes them.
+#: One nav item: href, label and shortcut. `glyph` sits between label and key
+#: and is skipped rather than captured — the check is about destinations, and
+#: pinning the exact field order would fail on every cosmetic edit.
 ITEM = re.compile(
-    r"\{\s*href:\s*'([^']+)',\s*label:\s*'([^']+)',\s*key:\s*'([a-z])'\s*\}"
+    r"\{\s*href:\s*'([^']+)',\s*label:\s*'([^']+)',"
+    r"(?:\s*glyph:\s*'[^']*',)?\s*key:\s*'([a-z])'\s*\}"
 )
 #: The `g`-prefixed jump table. The trailing segment is optional because the
 #: market surface is `/terminal` itself, with nothing after it.
