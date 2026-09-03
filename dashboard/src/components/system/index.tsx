@@ -138,6 +138,8 @@ export interface StripMetric {
   signed?: boolean
   tone?: boolean
   title?: string
+  /** Handbook key. Renders the badge that opens how this number is computed. */
+  method?: string
 }
 
 export function Strip({ metrics }: { metrics: StripMetric[] }) {
@@ -151,6 +153,19 @@ export function Strip({ metrics }: { metrics: StripMetric[] }) {
               value={m.value} unit={m.unit} digits={m.digits}
               signed={m.signed} tone={m.tone} title={m.title}
             />
+            {/* The badge that turns a figure into something you can ask about.
+                Hidden until the strip is hovered, so a row of metrics reads as
+                figures rather than as a row of controls. */}
+            {m.method ? (
+              <a
+                className="sys-method"
+                href={`/terminal/handbook?measure=${encodeURIComponent(m.method)}`}
+                title={`How ${m.label} is computed, and what makes it fail`}
+                aria-label={`Methodology for ${m.label}`}
+              >
+                ƒ
+              </a>
+            ) : null}
           </span>
         </div>
       ))}

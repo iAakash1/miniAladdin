@@ -263,23 +263,23 @@ export default function RiskWorkbench() {
         state={data.risk_contributions_unavailable ? 'blocked' : 'recorded'}
         detail={data.as_of ? `as of ${data.as_of}` : undefined}
         facts={[
-          { label: 'Volatility', value: metrics.volatility?.value ?? null, digits: 3, unit: 'ann.' },
-          { label: 'CVaR 95', value: metrics.cvar_historical_95?.value ?? null, digits: 4 },
-          { label: 'EVaR 95', value: metrics.entropic_var_95?.value ?? null, digits: 4 },
-          { label: 'Max DD', value: metrics.max_drawdown?.value ?? null, digits: 3, tone: true },
-          { label: 'Sharpe', value: metrics.sharpe?.value ?? null, digits: 2, signed: true, tone: true },
+          { label: 'Volatility', value: metrics.volatility?.value ?? null, digits: 3, unit: 'ann.', title: 'Annualised standard deviation of the book return series' },
+          { label: 'CVaR 95', value: metrics.cvar_historical_95?.value ?? null, digits: 4, title: 'Mean loss beyond the empirical 95% quantile' },
+          { label: 'EVaR 95', value: metrics.entropic_var_95?.value ?? null, digits: 4, title: 'Entropic bound; at or above CVaR by construction' },
+          { label: 'Max DD', value: metrics.max_drawdown?.value ?? null, digits: 3, tone: true, title: 'Worst peak-to-trough decline on the wealth path' },
+          { label: 'Sharpe', value: metrics.sharpe?.value ?? null, digits: 2, signed: true, tone: true, title: 'Excess return per unit of volatility' },
           { label: 'Measures', value: Object.keys(metrics).length, digits: 0 },
         ]}
       />
 
       <Strip metrics={[
-        { label: 'Volatility', value: metrics.volatility?.value ?? null, digits: 4, unit: 'ann.' },
-        { label: 'CVaR 95', value: metrics.cvar_historical_95?.value ?? null, digits: 4 },
-        { label: 'EVaR 95', value: metrics.entropic_var_95?.value ?? null, digits: 4, title: 'Upper bound on VaR; at or above CVaR by construction' },
-        { label: 'Max drawdown', value: metrics.max_drawdown?.value ?? null, digits: 4, tone: true },
-        { label: 'Ulcer index', value: metrics.ulcer_index?.value ?? null, digits: 4 },
-        { label: 'Sharpe', value: metrics.sharpe?.value ?? null, digits: 3, signed: true, tone: true },
-        { label: 'Omega', value: metrics.omega?.value ?? null, digits: 3 },
+        { label: 'Volatility', value: metrics.volatility?.value ?? null, digits: 4, unit: 'ann.', method: 'volatility' },
+        { label: 'CVaR 95', value: metrics.cvar_historical_95?.value ?? null, digits: 4, method: 'cvar_historical_95' },
+        { label: 'EVaR 95', value: metrics.entropic_var_95?.value ?? null, digits: 4, method: 'entropic_var_95', title: 'Upper bound on VaR; at or above CVaR by construction' },
+        { label: 'Max drawdown', value: metrics.max_drawdown?.value ?? null, digits: 4, tone: true, method: 'max_drawdown' },
+        { label: 'Ulcer index', value: metrics.ulcer_index?.value ?? null, digits: 4, method: 'ulcer_index' },
+        { label: 'Sharpe', value: metrics.sharpe?.value ?? null, digits: 3, signed: true, tone: true, method: 'sharpe' },
+        { label: 'Omega', value: metrics.omega?.value ?? null, digits: 3, method: 'omega' },
       ]} />
 
       <Panel title="Where this leads">

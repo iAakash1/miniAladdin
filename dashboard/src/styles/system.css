@@ -427,7 +427,8 @@
   font: 500 var(--t-value) / 1 var(--font-mono);
   font-variant-numeric: tabular-nums slashed-zero;
   color: var(--ink);
-  display: block;
+  display: flex;
+  align-items: center;
 }
 .sys-strip-item .u {
   font: 400 var(--t-micro) / 1 var(--font-mono);
@@ -1071,5 +1072,6 @@ a:focus-visible {
 }
 tr:hover .sys-method,
 .sys-panel:hover .sys-method,
+.sys-strip-item:hover .sys-method,
 .sys-method:focus-visible { opacity: 1; }
 .sys-method:hover { border-color: var(--accent); color: var(--accent); }

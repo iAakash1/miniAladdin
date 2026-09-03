@@ -142,8 +142,8 @@ export default function PortfolioWorkbench() {
         { label: 'Positions', value: weights.length, digits: 0 },
         { label: 'Long', value: longs.length, digits: 0 },
         { label: 'Short', value: shorts.length, digits: 0 },
-        { label: 'Gross exposure', value: gross, digits: 4 },
-        { label: 'Net exposure', value: net, digits: 4, signed: true, tone: true },
+        { label: 'Gross exposure', value: gross, digits: 4, title: 'Sum of absolute weights. The size of the bet.' },
+        { label: 'Net exposure', value: net, digits: 4, signed: true, tone: true, title: 'Sum of signed weights. Near zero for a dollar-neutral book.' },
         { label: 'Method', value: data.method ?? null, digits: 0 },
       ]} />
 
