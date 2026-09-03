@@ -25,7 +25,7 @@ import Link from 'next/link'
 
 import { Grid, Panel, StateBlock, Status, Strip, Value } from '@/components/system'
 import { BarRows } from '@/components/system/charts'
-import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
+import { ObjectHeader, StripSkeleton, TableSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
 
 interface Metric {
   value: number | null
@@ -282,22 +282,18 @@ export default function RiskWorkbench() {
         { label: 'Omega', value: metrics.omega?.value ?? null, digits: 3, method: 'omega' },
       ]} />
 
-      <Panel title="Where this leads">
-        <div style={{ display: 'flex', gap: 'var(--d-2)', flexWrap: 'wrap' }}>
-          <Link href="/terminal/covariance" className="sys-btn" style={{ textDecoration: 'none' }}>
-            Which covariance produced this
-          </Link>
-          <Link href="/terminal/book" className="sys-btn" style={{ textDecoration: 'none' }}>
-            The book it is measured on
-          </Link>
-          <Link href="/terminal/handbook" className="sys-btn" style={{ textDecoration: 'none' }}>
-            How each measure is computed
-          </Link>
-          <Link href="/terminal/performance" className="sys-btn" style={{ textDecoration: 'none' }}>
-            The path behind the drawdown
-          </Link>
-        </div>
-      </Panel>
+      <Toolbar>
+        <ToolbarGroup label="trace">
+          <Link href="/terminal/covariance" className="sys-btn" style={{ textDecoration: 'none' }}>covariance</Link>
+          <Link href="/terminal/book" className="sys-btn" style={{ textDecoration: 'none' }}>book</Link>
+          <Link href="/terminal/performance" className="sys-btn" style={{ textDecoration: 'none' }}>path</Link>
+          <Link href="/terminal/handbook" className="sys-btn" style={{ textDecoration: 'none' }}>handbook</Link>
+        </ToolbarGroup>
+        <ToolbarSpacer />
+        <span className="sys-meta">
+          {suppressed.length ? `${suppressed.length} measures suppressed` : `${Object.keys(metrics).length} measures reported`}
+        </span>
+      </Toolbar>
 
       {data.risk_contributions_unavailable ? (
         <Panel title="Risk decomposition" state="unavailable">

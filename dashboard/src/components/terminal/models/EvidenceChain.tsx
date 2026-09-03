@@ -25,7 +25,7 @@ import Link from 'next/link'
 import { Grid, Panel, Section, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
-import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
+import { ObjectHeader, StripSkeleton, TableSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
 import Inspector from '@/components/system/Inspector'
 import type { ResearchObject } from '@/lib/research/objects'
 
@@ -266,6 +266,20 @@ export default function EvidenceChain() {
           }
         />
       ) : null}
+
+      <Toolbar>
+        <ToolbarGroup label="source">
+          <span className="sys-meta" style={{ color: 'var(--ink)', fontFamily: 'var(--font-mono)' }}>
+            {registry.summary.path}
+          </span>
+        </ToolbarGroup>
+        <ToolbarSpacer />
+        <ToolbarGroup label="trace">
+          <Link href="/terminal/gates" className="sys-btn" style={{ textDecoration: 'none' }}>gate matrix</Link>
+          <Link href="/terminal/experiments" className="sys-btn" style={{ textDecoration: 'none' }}>experiments</Link>
+          <Link href="/terminal/provenance" className="sys-btn" style={{ textDecoration: 'none' }}>provenance</Link>
+        </ToolbarGroup>
+      </Toolbar>
 
       <Strip metrics={[
         { label: 'Registered', value: registry.summary.entries, digits: 0 },

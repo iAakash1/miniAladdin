@@ -17,13 +17,14 @@
  */
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 
 import { Panel, Section, StateBlock, Status, Strip, Value } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { BarRows } from '@/components/system/charts'
 import { recordVisit } from '@/lib/research/history'
-import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
+import { ObjectHeader, StripSkeleton, TableSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
 import CrossSection, { type Attribution, type RankRow, type ScreenRow } from './CrossSection'
 import FactorDetail, { type Portfolio, type Stability } from './FactorDetail'
 import { Compare, CompareLegend, type CompareField, type CompareSubject } from '@/components/system/Compare'
@@ -219,6 +220,24 @@ export default function FactorWorkbench() {
           { label: 'Build', value: lab.build_seconds ?? null, digits: 1, unit: 's' },
         ]}
       />
+
+      <Toolbar>
+        <ToolbarGroup label="universe">
+          <span className="sys-meta" style={{ color: 'var(--ink)', fontFamily: 'var(--font-mono)' }}>
+            {lab.universe?.name ?? '—'}
+          </span>
+        </ToolbarGroup>
+        <ToolbarGroup label="window">
+          <span className="sys-meta" style={{ color: 'var(--ink)' }}>
+            {lab.window ? `${lab.window.observation_dates} dates · ${lab.window.horizon_days}d horizon · ${lab.window.step_days}d step` : '—'}
+          </span>
+        </ToolbarGroup>
+        <ToolbarSpacer />
+        <ToolbarGroup label="trace">
+          <Link href="/terminal/signals" className="sys-btn" style={{ textDecoration: 'none' }}>signals</Link>
+          <Link href="/terminal/data" className="sys-btn" style={{ textDecoration: 'none' }}>features</Link>
+        </ToolbarGroup>
+      </Toolbar>
 
       <Strip metrics={[
         { label: 'Factors', value: factors.length, digits: 0 },
