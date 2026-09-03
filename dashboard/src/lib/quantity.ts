@@ -178,11 +178,26 @@ export function format(
   const magnitude = Math.abs(value)
   if (spec.exponentialBelow !== undefined && magnitude > 0 && magnitude < spec.exponentialBelow) {
     const text = value.toExponential(Math.max(1, digits - 1))
-    return { text: signed && value >= 0 ? `+${text}` : text, unit, tone, absent: false }
+    return { text: withSign(text, value, signed), unit, tone, absent: false }
   }
 
   const fixed = value.toFixed(digits)
-  return { text: signed && value >= 0 ? `+${fixed}` : fixed, unit, tone, absent: false }
+  return { text: withSign(fixed, value, signed), unit, tone, absent: false }
+}
+
+/**
+ * Prefix a sign, except on zero.
+ *
+ * A leading plus states a direction. Zero has none — it is the point the sign
+ * turns over — so "+0.00" claims something the measurement does not say. The
+ * same reasoning retired "+0" on counts; this is the general case, and it also
+ * covers a value that rounds to zero at the kind's precision, where the sign
+ * would be the only thing on screen suggesting which side of nothing it fell.
+ */
+function withSign(text: string, value: number, signed: boolean): string {
+  if (!signed || value < 0) return text
+  if (value === 0 || /^-?0(\.0*)?$/.test(text)) return text.replace(/^-/, '')
+  return `+${text}`
 }
 
 /** A date, rendered the one way this product renders dates. */
