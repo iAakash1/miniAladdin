@@ -23,17 +23,25 @@ test('a subject can declare what its numbers are measured against', () => {
   assert.match(COMPARE, /basis\?:\s*string/, 'CompareSubject has no basis')
 })
 
-test('a delta is only formed between subjects sharing a basis', () => {
+test('the comparison delegates the rule rather than reimplementing it', () => {
+  // It used to carry its own direction table and its own subtraction, so a
+  // metric's direction was a property of the screen rather than of the metric.
+  // Both now come from the semantic layer, which is what stops one workspace
+  // calling a rising drawdown an improvement while another calls it a
+  // regression.
+  assert.match(COMPARE, /from '@\/lib\/semantics'/, 'the comparison does not use the semantic layer')
+  assert.match(COMPARE, /delta\(v, base, self, against\)/, 'the difference is not computed semantically')
   assert.match(
     COMPARE,
-    /const commensurable\s*=[\s\S]*?s\.basis === baseline\.basis/,
-    'the delta is not gated on a shared basis',
+    /const commensurable = diff === null \|\| diff\.interpretation !== 'incomparable'/,
+    'comparability is decided somewhere other than the semantic layer',
   )
-  assert.match(
-    COMPARE,
-    /const delta = commensurable &&/,
-    'a delta can still be computed across incompatible bases',
-  )
+})
+
+test('the basis travels into the comparability decision', () => {
+  // Same kind, different prediction target, still incomparable.
+  assert.match(COMPARE, /basis: s\.basis/, 'the subject basis is not passed to the delta')
+  assert.match(COMPARE, /basis: baseline\.basis/, 'the baseline basis is not passed to the delta')
 })
 
 test('an incomparable cell says so instead of showing a number', () => {
@@ -43,12 +51,12 @@ test('an incomparable cell says so instead of showing a number', () => {
 })
 
 test('a better-or-worse verdict is withheld across bases', () => {
-  // `o` drives the colour. It must fall back to 'same' — no green, no red —
-  // when the two subjects are not on one scale.
+  // The outcome helper returns 'incomparable' straight from the semantic
+  // layer's own verdict, so no colour is claimed across incompatible scales.
   assert.match(
     COMPARE,
-    /const o = isBase \|\| !commensurable \? 'same'/,
-    'a better/worse verdict is still claimed across incompatible bases',
+    /if \(d\.interpretation === 'incomparable'\) return 'incomparable'/,
+    'a better/worse verdict can still be claimed across incompatible bases',
   )
 })
 
