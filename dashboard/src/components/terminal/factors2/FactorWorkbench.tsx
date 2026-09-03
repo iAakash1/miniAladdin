@@ -24,6 +24,7 @@ import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { BarRows } from '@/components/system/charts'
 import { recordVisit } from '@/lib/research/history'
 import CrossSection, { type Attribution, type RankRow, type ScreenRow } from './CrossSection'
+import FactorDetail, { type Portfolio, type Stability } from './FactorDetail'
 import { Compare, CompareLegend, type CompareField, type CompareSubject } from '@/components/system/Compare'
 
 interface FactorEvaluation {
@@ -40,6 +41,11 @@ interface FactorEvaluation {
   top_minus_bottom: number | null
   significant: boolean
   assessment: string
+  saturation?: number | null
+  quantiles?: number | null
+  ic_series?: Array<[string, number]>
+  stability?: Stability | null
+  portfolio?: Portfolio | null
 }
 
 interface Redundancy {
@@ -286,6 +292,17 @@ export default function FactorWorkbench() {
             </Section>
           </div>
         </Panel>
+      ) : null}
+
+      {sel ? (
+        <FactorDetail
+          factor={sel.factor}
+          icSeries={sel.ic_series}
+          stability={sel.stability}
+          portfolio={sel.portfolio}
+          saturation={sel.saturation}
+          quantiles={sel.quantiles}
+        />
       ) : null}
 
       <Panel title="Overlap inflation across factors" subtitle="uncorrected t over corrected t">

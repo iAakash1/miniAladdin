@@ -38,7 +38,7 @@ const GOTO: Record<string, string> = {
   o: '/terminal/providers', n: '/terminal/provenance', k: '/terminal/covariance',
   w: '/terminal/compare', a: '/terminal/gates', e: '/terminal/memos', t: '/terminal/timeline',
   q: '/terminal/diff',
-  i: '/terminal/analyze', l: '/terminal/factors', z: '/terminal/portfolio',
+  i: '/terminal/analyze', z: '/terminal/portfolio',
   u: '/terminal/validation',
 }
 
@@ -91,7 +91,6 @@ export const WORKBENCH: { group: string; items: { href: string; label: string; k
     group: 'Deep',
     items: [
       { href: '/terminal/analyze', label: 'Report', key: 'i' },
-      { href: '/terminal/factors', label: 'Factor lab', key: 'l' },
       { href: '/terminal/portfolio', label: 'Positions', key: 'z' },
       { href: '/terminal/validation', label: 'Validation', key: 'u' },
 
