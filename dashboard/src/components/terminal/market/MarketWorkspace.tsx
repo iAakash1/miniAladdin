@@ -24,6 +24,7 @@ import { Grid, Panel, Prose, StateBlock, Status, Strip, Value, type ResearchStat
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
 import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
+import WhatChanged from './WhatChanged'
 
 interface Sector {
   symbol: string
@@ -183,6 +184,12 @@ export default function MarketWorkspace() {
         { label: 'Events ahead', value: data.events?.length ?? null, digits: 0 },
         { label: 'Served', value: data.cached ? 'cached' : 'fresh', digits: 0 },
       ]} />
+
+      {/* Before the detail: what moved since this reader last looked. A daily
+          user opens a market page to find the delta, and making them
+          reconstruct it from six panels is making them do arithmetic the
+          product already has the data to do. */}
+      <WhatChanged data={data} />
 
       <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)' }}>
         <Panel title="Breadth" subtitle={b.explain ? undefined : 'share of sectors above their 50-day average'} state="live">
