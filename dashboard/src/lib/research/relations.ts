@@ -10,6 +10,22 @@
  * in a research network, and a feature used by nothing is a fact worth seeing —
  * it is either new or abandoned, and both are worth knowing before building on
  * it.
+ *
+ * Edges that are deliberately NOT here, having been looked for:
+ *
+ *  - **security → factor** and **security → signal.** No artifact names both
+ *    ends. A factor and a security are not related because the factor could be
+ *    computed for it; every factor could be computed for every security, which
+ *    makes the edge meaningless.
+ *  - **security → model.** The symbol endpoint carries a `model` field, and it
+ *    is null for the securities checked. An edge drawn from a null is an edge
+ *    invented to fill a section.
+ *  - **factor → feature** and **factor → experiment.** `/api/factors` reports
+ *    build progress, not a factor catalogue with lineage. There is nothing to
+ *    invert.
+ *
+ * Each of those would look plausible on screen. None is recorded, so none is
+ * drawn.
  */
 
 import type { ObjectKind, ResearchObject } from './objects'
@@ -32,6 +48,14 @@ interface RegistryEntry {
   dataset_sources?: { dataset_id: string }[]
 }
 
+/** What an experiment artifact names at both ends of an edge. */
+export interface ExperimentEdges {
+  experiment_id?: string
+  features_used?: string[]
+  dataset_sources?: { dataset_id: string }[]
+  leaderboard?: { model_id?: string }[]
+}
+
 interface Graph {
   /** feature name -> model ids that list it */
   featureToModels: Map<string, Set<string>>
@@ -46,6 +70,9 @@ interface Graph {
 
 let graph: Graph | null = null
 let inflight: Promise<Graph | null> | null = null
+/** Set once the registry has been asked and refused. Distinguishes a graph
+ *  that could not be built from one that has not been requested yet. */
+let failed: string | null = null
 
 function push(map: Map<string, Set<string>>, key: string, value: string): void {
   const set = map.get(key) ?? new Set<string>()
@@ -75,11 +102,13 @@ export async function loadGraph(): Promise<Graph | null> {
       }
 
       graph = { featureToModels, datasetToModels, labelToModels, models, loadedAt: Date.now() }
-    } catch {
+    } catch (e) {
       // Relationships are additive context. Their absence must not stop an
       // object rendering, and a count of zero would be a lie — so nothing is
-      // returned rather than an empty graph.
+      // returned rather than an empty graph, and the reason is kept so a
+      // surface can say "could not be read" instead of "none".
       graph = null
+      failed = e instanceof Error ? e.message : 'the registry request failed'
     }
     inflight = null
     return graph
@@ -89,6 +118,11 @@ export async function loadGraph(): Promise<Graph | null> {
 
 export function cachedGraph(): Graph | null {
   return graph
+}
+
+/** Why the graph is unavailable, or null if it was never asked or succeeded. */
+export function graphFailure(): string | null {
+  return failed
 }
 
 /** Relations for one object, or an empty list where none are recorded. */
@@ -157,6 +191,47 @@ export function relationsFor(object: ResearchObject, g: Graph | null): Relation[
         })
       }
     }
+  }
+
+  return out
+}
+
+/**
+ * Relations for an experiment, from its own artifact.
+ *
+ * Kept separate from the registry graph because the source is different: these
+ * edges come from the experiment's recorded run, not from inverting a registry.
+ * Passing an artifact that names none of them yields an empty list, which the
+ * caller must render as "none recorded" rather than as a failure.
+ */
+export function experimentRelations(artifact: ExperimentEdges | null): Relation[] {
+  if (!artifact) return []
+  const out: Relation[] = []
+
+  const features = artifact.features_used ?? []
+  if (features.length) {
+    out.push({
+      kind: 'feature', verb: 'trained on', count: features.length,
+      sample: features.slice(0, 5), href: '/terminal/data',
+    })
+  }
+
+  const datasets = [...new Set((artifact.dataset_sources ?? []).map((d) => d.dataset_id))]
+  if (datasets.length) {
+    out.push({
+      kind: 'dataset', verb: 'read', count: datasets.length,
+      sample: datasets.slice(0, 5), href: '/terminal/data',
+    })
+  }
+
+  const models = [...new Set(
+    (artifact.leaderboard ?? []).map((m) => m.model_id).filter((m): m is string => Boolean(m)),
+  )]
+  if (models.length) {
+    out.push({
+      kind: 'model', verb: 'evaluated', count: models.length,
+      sample: models.slice(0, 5), href: '/terminal/evidence',
+    })
   }
 
   return out

@@ -1547,3 +1547,42 @@ tr[data-selected='true'] .sys-row-actions { opacity: 1; }
 }
 /* A flagged failure mode is the one thing on its panel worth reading first. */
 .sys-reasons--flagged li { border-left-color: var(--e-neg); color: var(--ink); }
+
+/* ── related objects ─────────────────────────────────────────────────────
+   The count leads. A reader scanning this section is asking "how connected is
+   this thing", and the number answers that faster than the noun does. */
+
+.sys-related {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column;
+}
+.sys-related li {
+  display: flex; align-items: baseline; gap: var(--d-3); flex-wrap: wrap;
+  padding: var(--d-2) 0;
+  border-bottom: 1px solid var(--rule);
+}
+.sys-related li:last-child { border-bottom: 0; }
+
+.sys-related__link {
+  display: inline-flex; align-items: baseline; gap: var(--d-2);
+  color: inherit;
+  border-bottom: 1px solid transparent;
+}
+.sys-related__link:hover { border-bottom-color: var(--rule-strong); }
+.sys-related__link:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+
+.sys-related__count {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-lead);
+  color: var(--ink);
+}
+.sys-related__kind {
+  order: 2;
+  font-size: var(--t-meta);
+  color: var(--ink);
+  text-transform: lowercase;
+}
+.sys-related__count { order: 1; }
+.sys-related__verb { order: 0; font-size: var(--t-micro); color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.06em; }
+.sys-related__sample { font-size: var(--t-micro); color: var(--ink-faint); }

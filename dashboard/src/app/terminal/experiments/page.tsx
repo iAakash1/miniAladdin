@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import Workbench from '@/components/system/Workbench'
 import ExperimentRegistry from '@/components/terminal/experiments/ExperimentRegistry'
 import SearchLab from '@/components/terminal/experiments/SearchLab'
+import ExperimentRelations from '@/components/terminal/experiments/ExperimentRelations'
 import { Panel } from '@/components/system'
 
 export const metadata: Metadata = {
@@ -42,6 +43,7 @@ export default function ExperimentsPage() {
           A wide search always finds an impressive statistic; the only question
           is whether it beat what noise gives away for free. */}
       <SearchLab />
+      <ExperimentRelations />
     </Workbench>
   )
 }

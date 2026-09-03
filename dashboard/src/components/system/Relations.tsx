@@ -25,6 +25,10 @@ export function Relations({ object }: { object: ResearchObject }) {
 
   useEffect(() => {
     let alive = true
+    // A failed graph and an object with no edges both render nothing here,
+    // which is correct for a masthead strip: neither is worth a line of
+    // chrome. The distinction is drawn where a reader would act on it, in the
+    // Related objects section, which says which of the two happened.
     loadGraph().then((g) => { if (alive) setRelations(g ? relationsFor(object, g) : []) })
     return () => { alive = false }
   }, [object])
