@@ -261,7 +261,11 @@ export default function PortfolioWorkbench() {
                 ))}
               </tbody>
             </table>
-          ) : <StateBlock state="unavailable" title="No breakdown recorded" />}
+          ) : <StateBlock
+              state="unavailable"
+              title="No breakdown recorded"
+              detail="The cost model returned a total without its commission, spread, slippage and impact components — which happens when no trade was charged for this rebalance."
+            />}
         </Panel>
 
         <Panel title="Allocation">
@@ -280,7 +284,11 @@ export default function PortfolioWorkbench() {
                   ))}
               </tbody>
             </table>
-          ) : <StateBlock state="unavailable" title="No allocation diagnostics recorded" />}
+          ) : <StateBlock
+              state="unavailable"
+              title="No allocation diagnostics recorded"
+              detail="The optimiser returned weights without its constraint report, so which constraints bound and which were slack is unknown for this book."
+            />}
         </Panel>
       </Grid>
 
