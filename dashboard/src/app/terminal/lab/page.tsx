@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 
 import Workbench from '@/components/system/Workbench'
 import ModelWorkbench from '@/components/terminal/models2/ModelWorkbench'
+import DeployedModel from '@/components/terminal/models2/DeployedModel'
 import { Panel } from '@/components/system'
 
 export const metadata: Metadata = {
@@ -45,6 +46,10 @@ export default function LabPage() {
       }
     >
       <ModelWorkbench />
+      {/* What is actually deployed, and what it will say if you ask it. Kept
+          on the same page as the training evidence deliberately: a prediction
+          read without the fit that produced it is a number with no provenance. */}
+      <DeployedModel />
     </Workbench>
   )
 }

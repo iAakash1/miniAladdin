@@ -249,7 +249,7 @@ export function Strip({ metrics }: { metrics: StripMetric[] }) {
    never a silent zero. A gated capability says what it needs. */
 
 export function StateBlock({
-  state, title, detail, requires, coverage,
+  state, title, detail, requires, coverage, children,
 }: {
   state: ResearchState
   title: string
@@ -258,6 +258,8 @@ export function StateBlock({
   requires?: string[]
   /** What the current data actually covers. */
   coverage?: string
+  /** Further explanation. A blocked state usually needs more than one line. */
+  children?: ReactNode
 }) {
   return (
     <div style={{ padding: 'var(--d-5) var(--d-4)', textAlign: 'left' }}>
@@ -284,6 +286,7 @@ export function StateBlock({
           <div className="sys-meta">{coverage}</div>
         </div>
       ) : null}
+      {children ? <div style={{ marginTop: 'var(--d-3)' }}>{children}</div> : null}
       {requires?.length ? (
         <p style={{ marginTop: 'var(--d-3)', marginBottom: 0, fontSize: 'var(--t-meta)', color: 'var(--ink-faint)' }}>
           No synthetic values are shown in place of the missing data.
@@ -423,8 +426,14 @@ export function Metric({
   label, value, unit, method, tone = 'muted', lead = false,
 }: {
   label: string
-  /** Pre-formatted. The caller decides precision; this does not re-round. */
-  value: string
+  /**
+   * Prefer passing a <Value>, so precision comes from the quantity's kind
+   * rather than from this call site. A plain string is still accepted for
+   * things that are not quantities — an identifier, a date, a model key — but
+   * a number formatted by the caller is how two screens end up quoting the
+   * same statistic to different precision.
+   */
+  value: ReactNode
   unit?: string
   method?: string
   tone?: Tone

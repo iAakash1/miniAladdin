@@ -1502,3 +1502,9 @@ tr[data-selected='true'] .sys-row-actions { opacity: 1; }
 
 /* The legend entry for the focused series. */
 .sys-legend[data-focus] { border-bottom-color: var(--accent); }
+
+/* A single-field run row — the one place in the product that takes free text
+   and does something with it. Kept deliberately plain: this is a research
+   affordance, not a trading ticket, and a field styled like order entry would
+   be lying about what pressing the button does. */
+.sys-run { display: flex; align-items: center; gap: var(--d-2); flex-wrap: wrap; }
