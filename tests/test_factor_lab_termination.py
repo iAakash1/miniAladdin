@@ -188,7 +188,20 @@ def test_progress_is_monotonic_while_building(monkeypatch):
     try:
         payload = service.run("mega30")
         last = len(service.STAGES) - 1
-        for _ in range(400):
+        # A wall-clock budget, not an iteration count.
+        #
+        # This loop used to poll a fixed four hundred times at ten milliseconds
+        # apiece, which is ample when the machine is idle and not always ample
+        # when the rest of the suite is running: the worker sleeps between
+        # stages and the scheduler is free to leave it waiting. The test then
+        # failed on "never reached the final stage" — a statement about load,
+        # not about monotonicity, which is the property under test.
+        #
+        # The deadline is far longer than the work needs, and the loop still
+        # exits the moment the last stage is seen, so a genuine stall fails
+        # here rather than hanging.
+        deadline = time.monotonic() + 30.0
+        while time.monotonic() < deadline:
             if payload.get("status") != "building":
                 break
             seen.append(payload["stage_index"])
