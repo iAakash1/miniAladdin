@@ -17,7 +17,7 @@ import Link from 'next/link'
 import RegimePerformance, { type RegimeRow } from './RegimePerformance'
 import { useEffect, useState } from 'react'
 
-import { Grid, Panel, Section, StateBlock, Status, Strip, Table, Value, type Column } from '@/components/system'
+import { Grid, Panel, Prose, Section, StateBlock, Status, Strip, Table, Value, type Column } from '@/components/system'
 import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
 
 interface LabelRow {
@@ -177,13 +177,13 @@ export default function ModelWorkbench() {
               </table>
             </Section>
             <Section title="What the gap says">
-              <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
+              <Prose>
                 {retained === null
                   ? 'No training IC was recorded for this label, so the share of the fit that survived out of sample cannot be computed. Nothing is assumed in its place.'
                   : retained < 0.25
                     ? `Roughly ${(retained * 100).toFixed(0)}% of the training fit survived out of sample. That is mostly memorisation, and the validation figure should be read as the model's real signal — not as a good result with a caveat.`
                     : `Roughly ${(retained * 100).toFixed(0)}% of the training fit survived out of sample.`}
-              </p>
+              </Prose>
               <table className="sys-table sys-table--compact">
                 <tbody>
                   <tr><td>Deflated Sharpe probability</td><td className="num"><Value value={n(row.deflated_sharpe_probability)} digits={4} /></td></tr>

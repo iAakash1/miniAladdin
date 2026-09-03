@@ -22,7 +22,7 @@
 import { useMemo } from 'react'
 
 import { TimeSeries } from '@/components/system/charts'
-import { Panel, Section, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
+import { Panel, Prose, Section, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 
 interface Control {
@@ -276,15 +276,15 @@ export default function ExperimentEvidence({
               </table>
             </Section>
             <Section title="What it measures">
-              <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
+              <Prose>
                 {pbo.interpretation}
-              </p>
-              <p style={{ margin: 0, fontSize: 'var(--t-meta)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
+              </Prose>
+              <Prose size="tight">
                 This is the one measurement the leaderboard cannot make. A ranking
                 says which configuration scored best; this says whether scoring best
                 in-sample predicts anything out of sample at all. At 0.5 it does
                 not, and the ranking is then a list ordered by noise.
-              </p>
+              </Prose>
             </Section>
           </div>
         </Panel>

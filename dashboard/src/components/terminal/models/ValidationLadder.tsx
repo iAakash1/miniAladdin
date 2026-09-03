@@ -14,7 +14,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 
-import { Panel, StateBlock, Status, type ResearchState } from '@/components/system'
+import { Panel, Prose, StateBlock, Status, type ResearchState } from '@/components/system'
 import { TableSkeleton } from '@/components/system/composition'
 
 interface Entry {
@@ -136,13 +136,13 @@ export default function ValidationLadder() {
       </Panel>
 
       <Panel title="What the shape says">
-        <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)', maxWidth: '86ch' }}>
+        <Prose>
           {entries.length} models are registered and{' '}
           {rungs[0].at.length} sit on the first rung, with {retired} retired.
           {rungs[1].at.length + rungs[2].at.length + rungs[3].at.length === 0
             ? ' Nothing has been promoted past experimental. That is not a display problem — it is the state of the research, and the gate matrix shows which threshold is holding.'
             : ''}
-        </p>
+        </Prose>
         <p style={{ margin: 'var(--d-2) 0 0', fontSize: 'var(--t-meta)', color: 'var(--ink-faint)', lineHeight: 'var(--lh-body)' }}>
           An empty rung is drawn empty. A ladder that filled itself to look
           healthy would be the exact failure this product exists to avoid.

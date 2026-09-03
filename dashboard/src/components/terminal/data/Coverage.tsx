@@ -13,7 +13,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 
-import { Panel, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
+import { Panel, Prose, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
 import { StripSkeleton, TableSkeleton } from '@/components/system/composition'
 
 interface Source {
@@ -105,14 +105,14 @@ export default function Coverage() {
         title="Usable window"
         state={usableDays > 0 ? 'recorded' : 'blocked'}
       >
-        <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)', maxWidth: '86ch' }}>
+        <Prose>
           The sources together span {totalDays} days, but only{' '}
           <strong style={{ color: 'var(--ink)' }}>{usableDays} days</strong> are covered by all of
           them at once — {new Date(bounds!.usableFrom).toISOString().slice(0, 10)} to{' '}
           {new Date(bounds!.usableTo).toISOString().slice(0, 10)}. That intersection, not the
           union, bounds any experiment needing every source, and it is the figure no
           individual row shows.
-        </p>
+        </Prose>
       </Panel>
 
       <Panel title="Coverage" subtitle={`${dated.length} dated sources`} flush>

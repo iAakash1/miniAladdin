@@ -18,7 +18,7 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 
 import { BarRows, Histogram, Scatter } from '@/components/system/charts'
-import { Grid, Panel, Section, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
+import { Grid, Panel, Prose, Section, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
 
@@ -212,14 +212,14 @@ export default function CrossSection({
           </Panel>
 
           <Panel title="Reading the screen">
-            <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)', maxWidth: '86ch' }}>
+            <Prose>
               Conviction is the column to read before the composite. A name ranked
               highly by factors that agree and one ranked highly by factors that
               disagree are different propositions, and a composite score cannot
               separate them — averaging a disagreement produces a confident-looking
               number from an unresolved one. {conflicted} of {screen.rows.length}{' '}
               names here are conflicted.
-            </p>
+            </Prose>
           </Panel>
         </>
       ) : null}
@@ -255,11 +255,11 @@ export default function CrossSection({
               <p style={{ margin: 'var(--d-2) 0 0', fontSize: 'var(--t-meta)', color: 'var(--ink-muted)', lineHeight: 'var(--lh-body)' }}>
                 {attribution.assessment}
               </p>
-              <p style={{ margin: 0, fontSize: 'var(--t-micro)', color: 'var(--ink-faint)', lineHeight: 'var(--lh-body)' }}>
+              <Prose size="fine">
                 The unexplained share is the honest headline: it is the part of the
                 cross-section these factors do not account for, and it is usually
                 the larger number.
-              </p>
+              </Prose>
             </Section>
           </div>
         </Panel>

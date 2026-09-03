@@ -13,7 +13,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 
-import { Panel, Section, StateBlock, Status, Strip, Value } from '@/components/system'
+import { Panel, Prose, Section, StateBlock, Status, Strip, Value } from '@/components/system'
 import { ObjectHeader, StripSkeleton, TableSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
@@ -169,9 +169,9 @@ export default function Handbook({ initialMeasure }: { initialMeasure?: string }
                   {entry.purpose ?? '—'}
                 </p>
                 <div className="sys-label" style={{ fontSize: 'var(--t-micro)', marginBottom: 'var(--d-1)' }}>Fails when</div>
-                <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink)' }}>
+                <Prose tone="strong">
                   {entry.fails_when ?? '—'}
-                </p>
+                </Prose>
               </div>
             </Section>
           </div>
@@ -183,9 +183,9 @@ export default function Handbook({ initialMeasure }: { initialMeasure?: string }
       )}
 
       <Panel title="Why this page is generated">
-        <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)', maxWidth: '84ch' }}>
+        <Prose>
           {book.note}
-        </p>
+        </Prose>
       </Panel>
     </>
   )

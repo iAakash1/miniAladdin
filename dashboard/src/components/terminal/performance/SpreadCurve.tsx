@@ -17,7 +17,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 
 import { BarRows, DrawdownChart, Histogram, TimeSeries } from '@/components/system/charts'
-import { Grid, Panel, Section, StateBlock, Strip, Value } from '@/components/system'
+import { Grid, Panel, Prose, Section, StateBlock, Strip, Value } from '@/components/system'
 import { ChartSkeleton, ObjectHeader, StripSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
 
 interface Period {
@@ -141,9 +141,9 @@ export default function SpreadCurve({ experiment, model }: { experiment: string;
     <>
       {/* The unit warning is a panel, not a footnote. */}
       <Panel title="This is not an equity curve" state="experimental">
-        <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink)', maxWidth: '86ch' }}>
+        <Prose tone="strong">
           {String(curve.assumptions?.not_a_return_series ?? '')}
-        </p>
+        </Prose>
       </Panel>
 
       <ObjectHeader
@@ -303,16 +303,16 @@ export default function SpreadCurve({ experiment, model }: { experiment: string;
             </table>
           </Section>
           <Section title="What this curve is for">
-            <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
+            <Prose>
               Whether the signal separates the top quantile from the bottom, and
               whether that separation survives the friction of rebalancing. It is
               a diagnostic of the signal, not a statement about money.
-            </p>
-            <p style={{ margin: 0, fontSize: 'var(--t-meta)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
+            </Prose>
+            <Prose size="tight">
               Every Sharpe, return and cost figure quoted as evidence elsewhere in
               the product comes from the artifact&apos;s costed backtest, not from
               this curve.
-            </p>
+            </Prose>
           </Section>
         </div>
       </Panel>

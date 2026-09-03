@@ -17,7 +17,7 @@
 import { useMemo, useState } from 'react'
 
 import { BarRows } from '@/components/system/charts'
-import { Grid, Panel, StateBlock, Status, Value } from '@/components/system'
+import { Grid, Panel, Prose, StateBlock, Status, Value } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 
 export interface RegimeRow {
@@ -133,7 +133,7 @@ export default function RegimePerformance({
         </Panel>
 
         <Panel title="What this can support">
-          <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)', maxWidth: '78ch' }}>
+          <Prose>
             {supportable.length
               ? `${positive} of ${supportable.length} regimes with enough sample show a positive IC. `
               : 'No regime here holds enough of the sample to support a conclusion. '}
@@ -142,7 +142,7 @@ export default function RegimePerformance({
             thin ones are marked rather than dropped — hiding them would make a
             model that only worked in the dominant regime look like one that worked
             everywhere.
-          </p>
+          </Prose>
           <p style={{ margin: 'var(--d-2) 0 0', fontSize: 'var(--t-meta)', color: 'var(--ink-faint)', lineHeight: 'var(--lh-body)' }}>
             A null IC means the regime had too few dated observations to compute
             one. It is not a zero.

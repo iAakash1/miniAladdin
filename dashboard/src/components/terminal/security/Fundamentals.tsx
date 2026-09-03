@@ -19,7 +19,7 @@
 import { useMemo } from 'react'
 
 import { BarRows } from '@/components/system/charts'
-import { Grid, Panel, Section, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
+import { Grid, Panel, Prose, Section, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
 
 interface Ratios { [key: string]: number | undefined }
 
@@ -160,7 +160,7 @@ export default function Fundamentals({
           </Grid>
 
           <Panel title="Reading these">
-            <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)', maxWidth: '86ch' }}>
+            <Prose>
               Every key carries the period it covers, and the suffix is shown rather
               than stripped: a trailing-twelve-month margin and a five-year average
               are different measurements, and a display that called both
@@ -168,7 +168,7 @@ export default function Fundamentals({
               These are current vendor values — they describe the company now, are
               restated when a filing revises them, and cannot reconstruct what was
               knowable on a past date, which is why no factor is built from them.
-            </p>
+            </Prose>
           </Panel>
         </>
       ) : null}

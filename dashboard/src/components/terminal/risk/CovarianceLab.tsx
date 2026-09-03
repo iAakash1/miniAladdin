@@ -16,7 +16,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 
 import { Matrix } from '@/components/system/charts'
-import { Panel, StateBlock, Status, Strip, Value } from '@/components/system'
+import { Panel, Prose, StateBlock, Status, Strip, Value } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { ObjectHeader, StripSkeleton, TableSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
 
@@ -171,12 +171,12 @@ export default function CovarianceLab() {
 
       {spread !== null && spread > 0.02 ? (
         <Panel title="The estimator is a choice" state="stale">
-          <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)', maxWidth: '84ch' }}>
+          <Prose>
             Portfolio volatility moves by {(spread * 100).toFixed(1)}% across these
             four matrices, on identical returns and identical weights. Any single
             risk number quoted from this book carries that uncertainty and is not
             usually shown with it.
-          </p>
+          </Prose>
         </Panel>
       ) : null}
 
@@ -246,9 +246,9 @@ export default function CovarianceLab() {
       ) : null}
 
       <Panel title="Why the default is unchanged">
-        <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)', maxWidth: '84ch' }}>
+        <Prose>
           {data.note}
-        </p>
+        </Prose>
       </Panel>
     </>
   )

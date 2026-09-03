@@ -17,7 +17,7 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 
 import { Sparkline, TimeSeries } from '@/components/system/charts'
-import { Grid, Panel, Section, StateBlock, Status, Value, type ResearchState } from '@/components/system'
+import { Grid, Panel, Prose, Section, StateBlock, Status, Value, type ResearchState } from '@/components/system'
 import { recordVisit } from '@/lib/research/history'
 import { ObjectHeader, Segmented, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
 import Disclosure, { type FilingsBlock, type Headline } from './Disclosure'
@@ -297,9 +297,9 @@ export default function SecurityWorkspace({ symbol }: { symbol: string }) {
                 <span className="sys-title"><Value value={view.prediction} digits={6} signed /></span>
                 <Status state={deploymentState(view.deployment_status)} label={view.deployment_status} />
               </div>
-              <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)', maxWidth: '84ch' }}>
+              <Prose>
                 {view.disclosure ?? view.message}
-              </p>
+              </Prose>
             </>
           )}
           <p style={{ margin: 'var(--d-3) 0 0', fontSize: 'var(--t-meta)', color: 'var(--ink-faint)', lineHeight: 'var(--lh-body)', maxWidth: '84ch' }}>
@@ -352,18 +352,18 @@ export default function SecurityWorkspace({ symbol }: { symbol: string }) {
           </Panel>
           <Panel title="What is and is not point-in-time">
             <Section title="Point-in-time">
-              <p style={{ margin: 0, fontSize: 'var(--t-meta)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
+              <Prose size="tight">
                 The price and corporate-action history behind the research
                 pipeline. Its classification is published in the Data workspace.
-              </p>
+              </Prose>
             </Section>
             <Section title="Not point-in-time">
-              <p style={{ margin: 0, fontSize: 'var(--t-meta)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
+              <Prose size="tight">
                 Valuation ratios, analyst targets and sentiment on this page are
                 current vendor values. They describe today and cannot reconstruct
                 what was known on a past date, which is why no factor is built
                 from them.
-              </p>
+              </Prose>
             </Section>
           </Panel>
         </>

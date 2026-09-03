@@ -16,7 +16,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 
 import { GraphView, typeTone, type GraphEdge, type GraphNode } from '@/components/system/GraphView'
-import { Grid, Panel, Section, StateBlock, Strip, Value } from '@/components/system'
+import { Grid, Panel, Prose, Section, StateBlock, Strip, Value } from '@/components/system'
 import { ChartSkeleton, ObjectHeader, StripSkeleton } from '@/components/system/composition'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
@@ -288,9 +288,9 @@ export default function Relationships({ initialSymbol = 'AAPL' }: { initialSymbo
                   </table>
                 </Section>
                 <Section title="Description">
-                  <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
+                  <Prose>
                     {selected.description ?? 'No description recorded.'}
-                  </p>
+                  </Prose>
                 </Section>
               </div>
 

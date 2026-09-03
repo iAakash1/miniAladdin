@@ -1406,3 +1406,35 @@ tr[data-selected='true'] .sys-row-actions { opacity: 1; }
   white-space: nowrap;
 }
 @media (max-width: 1024px) { .sys-kbd-hint { display: none; } }
+
+/* ── prose ───────────────────────────────────────────────────────────────
+   Explanatory text inside a panel. This product argues with the reader in
+   several places — why a gate is unmet, why a fill is not conservative, why a
+   curve is not an equity curve — and that argument needs a reading measure.
+
+   Capped near 80 characters. Past that the eye loses the line return, and a
+   paragraph explaining why a number is untrustworthy is exactly the paragraph
+   a reader must not give up on. */
+
+.sys-prose {
+  margin: 0;
+  font-size: var(--t-body);
+  line-height: var(--lh-body);
+  color: var(--ink-muted);
+  max-width: 82ch;
+}
+
+.sys-prose--tight { font-size: var(--t-meta); }
+.sys-prose--fine { font-size: var(--t-micro); color: var(--ink-faint); }
+.sys-prose--strong { color: var(--ink); }
+
+/* A paragraph that carries a warning earns a rule, not a red background. A
+   coloured block behind text is read once and then ignored; a rule beside it
+   stays legible for eight hours. */
+.sys-prose--caution {
+  border-left: 2px solid var(--s-blocked);
+  padding-left: var(--d-3);
+  color: var(--ink);
+}
+
+.sys-prose + .sys-prose { margin-top: var(--d-2); }

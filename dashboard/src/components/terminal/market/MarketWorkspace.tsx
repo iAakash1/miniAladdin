@@ -20,7 +20,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 
 import { BarRows, TimeSeries } from '@/components/system/charts'
-import { Grid, Panel, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
+import { Grid, Panel, Prose, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
 import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
@@ -313,13 +313,13 @@ export default function MarketWorkspace() {
       ) : null}
 
       <Panel title="What this is, and is not">
-        <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)', maxWidth: '86ch' }}>
+        <Prose>
           Live vendor data, generated {data.generated_at?.slice(0, 19) ?? 'at an unrecorded time'}
           {data.cached ? ' and served from cache' : ''}. It is a different kind of
           number from the recorded research elsewhere in this product: it describes
           the market now, changes between one view and the next, and is not
           point-in-time. No factor and no experiment is built from it.
-        </p>
+        </Prose>
       </Panel>
     </>
   )

@@ -15,7 +15,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 
-import { Panel, StateBlock, Status, Strip, type ResearchState } from '@/components/system'
+import { Panel, Prose, StateBlock, Status, Strip, type ResearchState } from '@/components/system'
 import { ObjectHeader, StripSkeleton, TableSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
 import { useMemos } from '@/lib/research/memos'
 import { KINDS, href as objectHref, type ObjectKind } from '@/lib/research/objects'
@@ -236,14 +236,14 @@ export default function ResearchTimeline() {
       </Panel>
 
       <Panel title="What is and is not here">
-        <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)', maxWidth: '86ch' }}>
+        <Prose>
           Only timestamps that were actually recorded: model registrations, status
           changes where the registry captured one, and memos written in this
           browser. Experiment runs, data ingestions and backtests do not all carry
           an event timestamp in the artifacts, so they are absent rather than
           reconstructed from file modification times — an inferred timestamp on a
           research record is a fact the record does not contain.
-        </p>
+        </Prose>
       </Panel>
     </>
   )

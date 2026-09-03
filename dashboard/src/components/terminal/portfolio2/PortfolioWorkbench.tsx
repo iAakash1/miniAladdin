@@ -13,7 +13,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
-import { Grid, Panel, Section, StateBlock, Status, Strip, Value } from '@/components/system'
+import { Grid, Panel, Prose, Section, StateBlock, Status, Strip, Value } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { BarRows, Histogram } from '@/components/system/charts'
 import { recordVisit } from '@/lib/research/history'
@@ -294,7 +294,7 @@ export default function PortfolioWorkbench() {
 
       {data.note ? (
         <Panel title="Note">
-          <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>{data.note}</p>
+          <Prose>{data.note}</Prose>
         </Panel>
       ) : null}
     </>

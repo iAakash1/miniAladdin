@@ -16,7 +16,7 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 
-import { Panel, StateBlock, Strip } from '@/components/system'
+import { Panel, Prose, StateBlock, Strip } from '@/components/system'
 import { ObjectHeader, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
 import { addReference, createMemo, deleteMemo, removeReference, updateMemo, useMemos, type Memo } from '@/lib/research/memos'
 import { usePinnedObjects, useRecentObjects } from '@/lib/research/history'
@@ -235,11 +235,11 @@ export default function Memos({ initialId }: { initialId?: string }) {
             </Panel>
 
             <Panel title="Where these are stored">
-              <p style={{ margin: 0, fontSize: 'var(--t-meta)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)', maxWidth: '82ch' }}>
+              <Prose size="tight">
                 In this browser only. There is no memo backend, and presenting a
                 local notebook as shared storage would be a claim the product
                 cannot honour. Clearing site data clears these.
-              </p>
+              </Prose>
             </Panel>
           </div>
         ) : (

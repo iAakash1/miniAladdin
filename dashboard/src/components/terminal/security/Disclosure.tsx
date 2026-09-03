@@ -19,7 +19,7 @@
 
 import { useMemo, useState } from 'react'
 
-import { Panel, Section, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
+import { Panel, Prose, Section, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 
 export interface SecFiling {
@@ -254,13 +254,13 @@ export default function Disclosure({
 
       {news.length ? (
         <Panel title="Reading headlines">
-          <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)', maxWidth: '86ch' }}>
+          <Prose>
             The corroboration count is the useful column. A story one vendor ran is
             a different object from one three ran independently, and that count is
             the closest thing a headline feed has to verification. Tone is a
             vendor&apos;s classification, not a measurement, and no factor in this
             product is built from it.
-          </p>
+          </Prose>
         </Panel>
       ) : null}
     </>

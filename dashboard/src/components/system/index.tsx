@@ -454,3 +454,34 @@ export function signed(v: number | null | undefined, digits = 4): string {
   if (v === null || v === undefined || !Number.isFinite(v)) return '—'
   return `${v >= 0 ? '+' : ''}${v.toFixed(digits)}`
 }
+
+/* ── prose ──────────────────────────────────────────────────────────────
+   Explanatory text inside a panel, with a reading measure.
+
+   This product argues with the reader in a lot of places — why a gate is
+   unmet, why a zero-fill is not conservative, why a curve is not an equity
+   curve. Those arguments were being written as inline styles, thirty-eight
+   copies of the same declaration, which is how a paragraph ends up at a
+   different size on the screen that most needs it read.
+
+   A caution paragraph gets a rule rather than a coloured background. A block
+   of colour behind text is read once and then ignored; a rule beside it stays
+   legible for eight hours. */
+
+export function Prose({
+  children, size = 'body', tone, caution = false,
+}: {
+  children: ReactNode
+  size?: 'body' | 'tight' | 'fine'
+  tone?: 'strong'
+  /** For a paragraph the reader must not skip. */
+  caution?: boolean
+}) {
+  const classes = [
+    'sys-prose',
+    size !== 'body' ? `sys-prose--${size}` : '',
+    tone === 'strong' ? 'sys-prose--strong' : '',
+    caution ? 'sys-prose--caution' : '',
+  ].filter(Boolean).join(' ')
+  return <p className={classes}>{children}</p>
+}

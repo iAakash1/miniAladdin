@@ -18,7 +18,7 @@
 import { useMemo } from 'react'
 
 import { TimeSeries } from '@/components/system/charts'
-import { Panel, Section, StateBlock, Status, Strip, Value } from '@/components/system'
+import { Panel, Prose, Section, StateBlock, Status, Strip, Value } from '@/components/system'
 
 export interface Portfolio {
   buckets: number
@@ -123,7 +123,7 @@ export default function FactorDetail({
               </table>
             </Section>
             <Section title="Why halves matter more than the mean">
-              <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
+              <Prose>
                 {halves
                   ? `First half ${halves.first.toFixed(4)}, second half ${halves.second.toFixed(4)}. `
                   : ''}
@@ -131,10 +131,10 @@ export default function FactorDetail({
                 one that worked throughout, and one that worked early and stopped.
                 A mean over the whole history cannot separate them, which is why the
                 halves, the sign flips and the concentration are reported beside it.
-              </p>
-              <p style={{ margin: 0, fontSize: 'var(--t-meta)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
+              </Prose>
+              <Prose size="tight">
                 {stability.assessment}
-              </p>
+              </Prose>
             </Section>
           </div>
         </Panel>
@@ -182,15 +182,15 @@ export default function FactorDetail({
               </table>
             </Section>
             <Section title="What this is not">
-              <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
+              <Prose>
                 {portfolio.assessment}
-              </p>
-              <p style={{ margin: 0, fontSize: 'var(--t-meta)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
+              </Prose>
+              <Prose size="tight">
                 This is a quantile spread on one factor, not the research book. Its
                 Sharpe is a diagnostic of the factor and is not the evidence any
                 promotion rests on — that comes from the costed apparatus in
                 Evidence, measured against the cumulative trial count.
-              </p>
+              </Prose>
             </Section>
           </div>
         </Panel>

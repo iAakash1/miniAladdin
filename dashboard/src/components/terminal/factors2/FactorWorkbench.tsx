@@ -20,7 +20,7 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 
-import { Panel, Section, StateBlock, Status, Strip, Value } from '@/components/system'
+import { Panel, Prose, Section, StateBlock, Status, Strip, Value } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { BarRows } from '@/components/system/charts'
 import { recordVisit } from '@/lib/research/history'
@@ -322,16 +322,16 @@ export default function FactorWorkbench() {
               </table>
             </Section>
             <Section title="Reading it">
-              <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
+              <Prose>
                 {sel.assessment}
-              </p>
-              <p style={{ margin: 0, fontSize: 'var(--t-meta)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
+              </Prose>
+              <Prose size="tight">
                 The uncorrected t-statistic was {sel.naive_t_stat.toFixed(2)}; correcting
                 for {sel.newey_west_lags} lags of label overlap brings it to {sel.t_stat.toFixed(2)},
                 an inflation factor of {sel.overlap_inflation.toFixed(2)}×. Overlapping
                 labels share information, and a t-statistic that ignores that counts
                 the same evidence more than once.
-              </p>
+              </Prose>
             </Section>
           </div>
         </Panel>

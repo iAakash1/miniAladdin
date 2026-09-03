@@ -19,10 +19,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 
-import {
-  Panel, Provenance, Section, StateBlock, Status, Strip, Value,
-  type ResearchState,
-} from '@/components/system'
+import { Panel, Prose, Provenance, Section, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { ObjectHeader, StripSkeleton, TableSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
 import { Histogram } from '@/components/system/charts'
@@ -190,9 +187,9 @@ export default function DataWorkbench() {
         {
           title: 'Notes',
           body: (
-            <p style={{ margin: 0, fontSize: 'var(--t-meta)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
+            <Prose size="tight">
               {d.description ?? 'No description recorded.'}
-            </p>
+            </Prose>
           ),
         },
       ]
@@ -216,9 +213,9 @@ export default function DataWorkbench() {
         {
           title: 'Definition',
           body: (
-            <p style={{ margin: 0, fontSize: 'var(--t-meta)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
+            <Prose size="tight">
               {f.description}
-            </p>
+            </Prose>
           ),
         },
       ]
@@ -355,14 +352,14 @@ export default function DataWorkbench() {
                 : undefined}
             />
             <Section title="Why the longest one matters">
-              <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
+              <Prose>
                 A panel cannot produce a complete feature row until every feature
                 has its history, so the longest lookback in the registry — currently
                 {' '}{features.max_lookback_sessions ?? '—'} sessions — sets the warm-up
                 before any model can score its first observation. Adding one
                 long-lookback feature costs that much data from the front of every
                 experiment.
-              </p>
+              </Prose>
             </Section>
           </div>
         </Panel>
@@ -399,9 +396,9 @@ export default function DataWorkbench() {
               ]} />
             </Section>
             <Section title="Notes">
-              <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
+              <Prose>
                 {selectedDataset.description ?? '—'}
-              </p>
+              </Prose>
               {selectedDataset.point_in_time_note ? (
                 <p style={{ margin: 0, fontSize: 'var(--t-meta)', color: 'var(--ink-muted)', lineHeight: 'var(--lh-body)' }}>
                   <strong style={{ color: 'var(--ink)' }}>PIT: </strong>{selectedDataset.point_in_time_note}
@@ -455,9 +452,9 @@ export default function DataWorkbench() {
               ]} />
             </Section>
             <Section title="Definition">
-              <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
+              <Prose>
                 {selectedFeature.description}
-              </p>
+              </Prose>
               {selectedFeature.formula ? (
                 <pre style={{
                   margin: 0, padding: 'var(--d-2)', background: 'var(--p-sunken)',

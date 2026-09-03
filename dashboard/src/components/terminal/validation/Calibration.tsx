@@ -23,7 +23,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 
 import { BarRows, Histogram, Scatter, TimeSeries } from '@/components/system/charts'
-import { Grid, Panel, Section, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
+import { Grid, Panel, Prose, Section, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
 import { recordVisit } from '@/lib/research/history'
 import { ChartSkeleton, ObjectHeader, StripSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
 
@@ -156,9 +156,9 @@ export default function Calibration({ symbol }: { symbol: string }) {
 
       {data.scope_note ? (
         <Panel title="Scope" state="recorded">
-          <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)', maxWidth: '86ch' }}>
+          <Prose>
             {data.scope_note}
-          </p>
+          </Prose>
           {data.period ? (
             <p style={{ margin: 'var(--d-2) 0 0', fontSize: 'var(--t-meta)', color: 'var(--ink-faint)' }}>
               {data.period.start} → {data.period.end}

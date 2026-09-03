@@ -15,7 +15,7 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 
-import { Panel, StateBlock, Status, Strip, Value } from '@/components/system'
+import { Panel, Prose, StateBlock, Status, Strip, Value } from '@/components/system'
 import { recordVisit } from '@/lib/research/history'
 import { ObjectHeader, TableSkeleton } from '@/components/system/composition'
 
@@ -209,12 +209,12 @@ export default function ExperimentDiff() {
           </div>
         }
       >
-        <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)', maxWidth: '86ch' }}>
+        <Prose>
           Two experiments differ in many ways at once. Nothing below is presented
           as a cause: attributing a change in a result to any single difference is
           not something a diff can support, and a table of before-and-after
           numbers is an invitation to do exactly that.
-        </p>
+        </Prose>
       </Panel>
 
       {errors.length ? (
@@ -275,13 +275,13 @@ export default function ExperimentDiff() {
           </Panel>
 
           <Panel title="What a difference does not tell you">
-            <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)', maxWidth: '86ch' }}>
+            <Prose>
               If the trial count grew between these two, every significance claim
               in the later one is measured against a higher bar — the best of a
               larger search reaches a larger statistic by chance alone. A result
               that looks similar across the pair may therefore be weaker in the
               later experiment even where the number is unchanged.
-            </p>
+            </Prose>
             <table className="sys-table sys-table--compact" style={{ marginTop: 'var(--d-2)' }}>
               <tbody>
                 <tr>

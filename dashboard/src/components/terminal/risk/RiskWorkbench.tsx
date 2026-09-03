@@ -23,7 +23,7 @@ import { useEffect, useState } from 'react'
 
 import Link from 'next/link'
 
-import { Grid, Panel, StateBlock, Status, Strip, Value } from '@/components/system'
+import { Grid, Panel, Prose, StateBlock, Status, Strip, Value } from '@/components/system'
 import { BarRows } from '@/components/system/charts'
 import { ObjectHeader, StripSkeleton, TableSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
 
@@ -324,9 +324,9 @@ export default function RiskWorkbench() {
 
       {data.risk?.note ? (
         <Panel title="Note">
-          <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
+          <Prose>
             {data.risk.note}
-          </p>
+          </Prose>
         </Panel>
       ) : null}
 

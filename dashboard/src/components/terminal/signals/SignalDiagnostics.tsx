@@ -21,7 +21,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import { BarRows, Histogram, TimeSeries } from '@/components/system/charts'
-import { Grid, Panel, Section, StateBlock, Status, Strip, Value } from '@/components/system'
+import { Grid, Panel, Prose, Section, StateBlock, Status, Strip, Value } from '@/components/system'
 import { ChartSkeleton, StripSkeleton } from '@/components/system/composition'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 
@@ -178,15 +178,15 @@ export default function SignalDiagnostics({ experiment, model }: { experiment: s
             </table>
           </Section>
           <Section title="What the interval means">
-            <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
+            <Prose>
               Whether it excludes zero is the claim, not the point estimate. The
               resample is blocked at {p.block ?? '—'} consecutive observations
               because that many share a label window; resampling one at a time
               would treat dependent observations as independent and return an
               interval too narrow in the flattering direction.
-            </p>
+            </Prose>
             {p.why_blocked ? (
-              <p style={{ margin: 0, fontSize: 'var(--t-meta)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>{p.why_blocked}</p>
+              <Prose size="tight">{p.why_blocked}</Prose>
             ) : null}
           </Section>
         </div>

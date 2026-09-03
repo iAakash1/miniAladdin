@@ -13,7 +13,7 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 
 import { Compare, CompareLegend, type CompareField, type CompareSubject } from '@/components/system/Compare'
-import { Panel, StateBlock, Status } from '@/components/system'
+import { Panel, Prose, StateBlock, Status } from '@/components/system'
 import { ObjectHeader, TableSkeleton } from '@/components/system/composition'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
@@ -145,13 +145,13 @@ export default function ModelCompare() {
 
       {subjects.length >= 2 ? (
         <Panel title="Reading a comparison">
-          <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)', maxWidth: '86ch' }}>
+          <Prose>
             A better number on one metric is not a better model. These entries were
             selected from a search whose cumulative trial count is what any
             significance claim must be corrected against, and a model that leads on
             IC while recording no deflated Sharpe has not out-argued one that
             recorded a failing value — it has recorded less.
-          </p>
+          </Prose>
         </Panel>
       ) : null}
     </>
