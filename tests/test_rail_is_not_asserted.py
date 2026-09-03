@@ -48,28 +48,44 @@ def test_no_page_hardcodes_a_live_research_fact() -> None:
 
 
 def test_the_live_rail_reports_an_unreachable_backend_as_unreadable() -> None:
-    """Not "none armed", not "sealed", not a count — three honest unknowns."""
+    """Nothing ever read means no value at all — not a reassuring one."""
     source = RAIL.read_text()
     assert "cannot be read" in source, "the rail has no unreachable state"
 
-    # The branch taken when the status request fails, bounded by its own
-    # `return [ ... ]` rather than by the next bracket in the file — the ready
-    # branch below it legitimately says "none armed" when it has been told so.
-    start = source.index("if (state.status === 'unavailable')")
-    branch = source[start:]
-    branch = branch[: branch.index("return [")] + branch[
-        branch.index("return ["): branch.index("]", branch.index("return [")) + 1
-    ]
-
-    # Comments are stripped first. The branch's own comment names the words it
-    # refuses to print, and a test that reads prose rather than code would fail
-    # on the explanation for the behaviour it is checking.
-    code = re.sub(r"//[^\n]*", "", branch)
+    # The branch taken when nothing was ever successfully read. Bounded by its
+    # own `return [ ... ]`: the branches around it legitimately say "sealed"
+    # and "entries", one because it has just read them and one because it is
+    # explicitly reporting what was last seen.
+    start = source.index("if (obs.state === 'unavailable')")
+    tail = source[start:]
+    body = tail[tail.index("return ["): tail.index("]", tail.index("return [")) + 1]
+    code = re.sub(r"//[^\n]*", "", body)
 
     for lie in ("none armed", "sealed", "entries"):
         assert lie not in code, (
             f"the unreachable branch still claims {lie!r}; an unread fact is "
             f"not a reassuring one"
+        )
+
+
+def test_a_remembered_reading_is_labelled_and_timed() -> None:
+    """A stale value may be shown. It may not be shown as a current one."""
+    source = RAIL.read_text()
+
+    assert "last-observed" in source, "the rail cannot report a remembered reading"
+
+    start = source.index("if (obs.state === 'last-observed'")
+    tail = source[start:]
+    body = tail[tail.index("return ["): tail.index("]", tail.index("return [")) + 1]
+
+    # Every remembered entry carries the caveat, and none of them renders in a
+    # state that would let it sit where a current reading goes.
+    assert body.count("note(") == 3, "each remembered fact must carry the last-seen note"
+    assert "'stale'" in body, "a remembered reading must not render as current"
+    for current in ("'recorded'", "'production'", "'live'"):
+        assert current not in body, (
+            f"a remembered reading renders as {current}, which is a state that "
+            f"claims the value describes now"
         )
 
 
