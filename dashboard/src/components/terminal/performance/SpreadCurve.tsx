@@ -16,7 +16,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import { BarRows, DrawdownChart, Histogram, TimeSeries } from '@/components/system/charts'
-import { Panel, Section, StateBlock, Strip, Value } from '@/components/system'
+import { Grid, Panel, Section, StateBlock, Strip, Value } from '@/components/system'
 
 interface Period {
   date: string
@@ -169,7 +169,7 @@ export default function SpreadCurve({ experiment, model }: { experiment: string;
         />
       </Panel>
 
-      <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))' }}>
+      <Grid>
         <Panel title="Drawdown" subtitle="on the net spread path">
           <DrawdownChart points={periods.map((p) => ({ x: p.date, y: p.net_drawdown }))} title="" />
         </Panel>
@@ -199,9 +199,9 @@ export default function SpreadCurve({ experiment, model }: { experiment: string;
             height={150}
           />
         </Panel>
-      </div>
+      </Grid>
 
-      <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))' }}>
+      <Grid>
         <Panel title="Cost share of gross" subtitle="cumulative, walked forward">
           <TimeSeries
             series={[{ name: 'cost share', points: costShare, color: 'var(--e-neg)' }]}
@@ -247,7 +247,7 @@ export default function SpreadCurve({ experiment, model }: { experiment: string;
             full one invents observations that were never made.
           </p>
         </Panel>
-      </div>
+      </Grid>
 
       <Panel title="Assumptions" state="recorded">
         <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1.4fr)' }}>

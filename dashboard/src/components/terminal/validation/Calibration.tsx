@@ -22,7 +22,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import { BarRows, Histogram, Scatter, TimeSeries } from '@/components/system/charts'
-import { Panel, Section, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
+import { Grid, Panel, Section, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
 
 interface Backtest {
   ticker?: string
@@ -141,7 +141,7 @@ export default function Calibration({ symbol }: { symbol: string }) {
         </Panel>
       ) : null}
 
-      <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))' }}>
+      <Grid>
         {calibration.length ? (
           <Panel title="Calibration" subtitle="does a score mean what it says">
             <Scatter
@@ -233,7 +233,7 @@ export default function Calibration({ symbol }: { symbol: string }) {
             />
           </Panel>
         ) : null}
-      </div>
+      </Grid>
 
       {data.equity_curve && data.equity_curve.length > 2 ? (
         <Panel title="Strategy against buy and hold" subtitle={symbol} state="experimental">

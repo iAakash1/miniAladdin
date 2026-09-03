@@ -16,7 +16,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 
 import { GraphView, typeTone, type GraphEdge, type GraphNode } from '@/components/system/GraphView'
-import { Panel, Section, StateBlock, Strip, Value } from '@/components/system'
+import { Grid, Panel, Section, StateBlock, Strip, Value } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
 
@@ -326,7 +326,7 @@ export default function Relationships({ initialSymbol = 'AAPL' }: { initialSymbo
             />
           </Panel>
 
-          <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
+          <Grid variant="halves">
             {a.node_types ? (
               <Panel title="Node types">
                 <table className="sys-table sys-table--compact">
@@ -370,7 +370,7 @@ export default function Relationships({ initialSymbol = 'AAPL' }: { initialSymbo
                 </p>
               </Panel>
             ) : null}
-          </div>
+          </Grid>
         </>
       )}
     </>

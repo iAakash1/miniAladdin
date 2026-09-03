@@ -17,7 +17,7 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 
 import { Sparkline, TimeSeries } from '@/components/system/charts'
-import { Panel, Section, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
+import { Grid, Panel, Section, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
 import { recordVisit } from '@/lib/research/history'
 import Disclosure, { type FilingsBlock, type Headline } from './Disclosure'
 import Fundamentals from './Fundamentals'
@@ -150,7 +150,7 @@ export default function SecurityWorkspace({ symbol }: { symbol: string }) {
       </div>
 
       {tab === 'overview' ? (
-        <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
+        <Grid>
           {identity}
           <Panel title="Trailing year" subtitle={prices ? `${prices.length} sessions` : undefined}>
             {prices?.length ? (
@@ -178,7 +178,7 @@ export default function SecurityWorkspace({ symbol }: { symbol: string }) {
               past date.
             </p>
           </Panel>
-        </div>
+        </Grid>
       ) : null}
 
       {tab === 'market' ? (
@@ -213,7 +213,7 @@ export default function SecurityWorkspace({ symbol }: { symbol: string }) {
       ) : null}
 
       {tab === 'risk' ? (
-        <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
+        <Grid>
           <Panel title="Dispersion and drawdown">
             <table className="sys-table sys-table--compact">
               <tbody>
@@ -238,7 +238,7 @@ export default function SecurityWorkspace({ symbol }: { symbol: string }) {
               </div>
             ) : <StateBlock state="unavailable" title="No series" />}
           </Panel>
-        </div>
+        </Grid>
       ) : null}
 
       {tab === 'research' ? (

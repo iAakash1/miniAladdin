@@ -22,9 +22,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import Link from 'next/link'
 
-import {
-  Panel, Section, StateBlock, Status, Strip, Value, type ResearchState,
-} from '@/components/system'
+import { Grid, Panel, Section, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
 import Inspector from '@/components/system/Inspector'
@@ -325,7 +323,7 @@ export default function EvidenceChain() {
             </p>
           </Panel>
 
-          <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
+          <Grid variant="halves">
             <Panel title="Data & label">
               <table className="sys-table sys-table--compact">
                 <tbody>
@@ -362,11 +360,12 @@ export default function EvidenceChain() {
             </Panel>
 
             <Panel title="Leakage & reproducibility">
-              <Section title="Leakage evidence"><KeyValues data={entry.leakage_evidence} /></Section>
-              <div style={{ height: 'var(--d-3)' }} />
-              <Section title="Reproducibility"><KeyValues data={entry.reproducibility} /></Section>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--d-3)' }}>
+                <Section title="Leakage evidence"><KeyValues data={entry.leakage_evidence} /></Section>
+                <Section title="Reproducibility"><KeyValues data={entry.reproducibility} /></Section>
+              </div>
             </Panel>
-          </div>
+          </Grid>
         </>
       )}
     </>

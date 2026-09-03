@@ -14,7 +14,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
-import { Panel, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
+import { Grid, Panel, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
 
@@ -160,7 +160,7 @@ export default function CommandCenter() {
         { label: 'Experiments', value: experiments?.length ?? null, digits: 0 },
       ]} />
 
-      <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
+      <Grid>
         <Panel title="Deployment" state={deployState}>
           <table className="sys-table sys-table--compact">
             <tbody>
@@ -201,7 +201,7 @@ export default function CommandCenter() {
             {selection?.holdout?.note ?? 'A sealed holdout is spent once. Until it is, no result measured on it exists.'}
           </p>
         </Panel>
-      </div>
+      </Grid>
 
       <Panel title="Experiments" subtitle={experiments ? `${experiments.length} recorded` : undefined} flush>
         {experiments

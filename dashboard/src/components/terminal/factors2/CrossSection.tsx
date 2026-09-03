@@ -18,7 +18,7 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 
 import { BarRows, Histogram, Scatter } from '@/components/system/charts'
-import { Panel, Section, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
+import { Grid, Panel, Section, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
 
@@ -161,7 +161,7 @@ export default function CrossSection({
       ) : null}
 
       {ranks.length > 4 ? (
-        <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))' }}>
+        <Grid>
           <Panel title="Score distribution" subtitle={active ?? undefined}>
             <Histogram values={ranks.map((r) => r.score)} unit="factor score" title="" marks={[{ at: 0, label: '0', color: 'var(--rule-focus)' }]} />
           </Panel>
@@ -189,7 +189,7 @@ export default function CrossSection({
               />
             )}
           </Panel>
-        </div>
+        </Grid>
       ) : null}
 
       {screen?.rows?.length ? (

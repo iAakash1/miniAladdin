@@ -17,7 +17,7 @@ import Link from 'next/link'
 import RegimePerformance, { type RegimeRow } from './RegimePerformance'
 import { useEffect, useState } from 'react'
 
-import { Panel, Section, StateBlock, Status, Strip, Table, Value, type Column } from '@/components/system'
+import { Grid, Panel, Section, StateBlock, Status, Strip, Table, Value, type Column } from '@/components/system'
 
 interface LabelRow {
   label: string
@@ -174,7 +174,7 @@ export default function ModelWorkbench() {
 
       <RegimePerformance byModel={regimes} />
 
-      <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))' }}>
+      <Grid>
         <Panel title="Guards" state={guards?.passed ? 'recorded' : 'blocked'} flush>
           {guards?.checks?.length ? (
             <table className="sys-table sys-table--compact">
@@ -205,7 +205,7 @@ export default function ModelWorkbench() {
             <Link href="/terminal/data" className="sys-meta" style={{ color: 'var(--ink)' }}>Dataset and feature contracts →</Link>
           </p>
         </Panel>
-      </div>
+      </Grid>
     </>
   )
 }

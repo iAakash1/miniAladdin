@@ -23,7 +23,7 @@ import { useEffect, useState } from 'react'
 
 import Link from 'next/link'
 
-import { Panel, StateBlock, Status, Strip, Value } from '@/components/system'
+import { Grid, Panel, StateBlock, Status, Strip, Value } from '@/components/system'
 import { BarRows } from '@/components/system/charts'
 
 interface Metric {
@@ -291,7 +291,7 @@ export default function RiskWorkbench() {
         </Panel>
       ) : null}
 
-      <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))' }}>
+      <Grid>
         <Panel title="The tail, three ways" subtitle="ordered by construction">
           <BarRows
             unit="loss magnitude"
@@ -336,7 +336,7 @@ export default function RiskWorkbench() {
             <MetricTable keys={g.keys} metrics={metrics} />
           </Panel>
         ))}
-      </div>
+      </Grid>
 
       {suppressed.length ? (
         <Panel title="Not reported" subtitle={`${suppressed.length} measures`}>

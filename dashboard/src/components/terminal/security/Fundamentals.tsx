@@ -19,7 +19,7 @@
 import { useMemo } from 'react'
 
 import { BarRows } from '@/components/system/charts'
-import { Panel, Section, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
+import { Grid, Panel, Section, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
 
 interface Ratios { [key: string]: number | undefined }
 
@@ -129,7 +129,7 @@ export default function Fundamentals({
     <>
       {grouped.length ? (
         <>
-          <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
+          <Grid>
             {grouped.map((g) => (
               <Panel key={g.title} title={g.title} state="live">
                 <table className="sys-table sys-table--compact">
@@ -157,7 +157,7 @@ export default function Fundamentals({
                 ) : null}
               </Panel>
             ))}
-          </div>
+          </Grid>
 
           <Panel title="Reading these">
             <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)', maxWidth: '86ch' }}>
@@ -249,7 +249,7 @@ export default function Fundamentals({
 
       {street ? (
         <Panel title="Street" subtitle={rec?.period} state="live">
-          <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
+          <Grid variant="halves">
             {rec && recTotal > 0 ? (
               <Section title={`Recommendations · ${rec.analysts ?? recTotal} analysts`}>
                 <BarRows
@@ -297,7 +297,7 @@ export default function Fundamentals({
                 </table>
               </Section>
             ) : null}
-          </div>
+          </Grid>
 
           {street.findings?.length ? (
             <ul style={{ margin: 'var(--d-3) 0 0', paddingLeft: 'var(--d-4)', fontSize: 'var(--t-body)', color: 'var(--ink-muted)', lineHeight: 'var(--lh-body)' }}>

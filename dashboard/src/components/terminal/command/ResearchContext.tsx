@@ -20,7 +20,7 @@
 import { useEffect, useState } from 'react'
 
 import { BarRows } from '@/components/system/charts'
-import { Panel, Section, StateBlock, Status, Value } from '@/components/system'
+import { Grid, Panel, Section, StateBlock, Status, Value } from '@/components/system'
 
 interface Regimes {
   method?: string
@@ -71,7 +71,7 @@ export default function ResearchContext({ experiment = 'EXP-006' }: { experiment
     : null
 
   return (
-    <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))' }}>
+    <Grid>
       <Panel
         title="Regimes in the sample"
         subtitle={regimes?.method}
@@ -137,6 +137,6 @@ export default function ResearchContext({ experiment = 'EXP-006' }: { experiment
           </Section>
         ) : null}
       </Panel>
-    </div>
+    </Grid>
   )
 }

@@ -17,7 +17,7 @@
 import { useMemo, useState } from 'react'
 
 import { BarRows } from '@/components/system/charts'
-import { Panel, StateBlock, Status, Value } from '@/components/system'
+import { Grid, Panel, StateBlock, Status, Value } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 
 export interface RegimeRow {
@@ -116,7 +116,7 @@ export default function RegimePerformance({
         />
       </Panel>
 
-      <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))' }}>
+      <Grid>
         <Panel title="IC by regime" subtitle="thin regimes included, and marked">
           <BarRows
             unit="mean IC"
@@ -144,7 +144,7 @@ export default function RegimePerformance({
             one. It is not a zero.
           </p>
         </Panel>
-      </div>
+      </Grid>
     </>
   )
 }

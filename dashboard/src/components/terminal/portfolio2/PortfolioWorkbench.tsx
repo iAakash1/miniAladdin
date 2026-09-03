@@ -13,7 +13,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
-import { Panel, Section, StateBlock, Status, Strip, Value } from '@/components/system'
+import { Grid, Panel, Section, StateBlock, Status, Strip, Value } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { BarRows, Histogram } from '@/components/system/charts'
 import { recordVisit } from '@/lib/research/history'
@@ -145,7 +145,7 @@ export default function PortfolioWorkbench() {
         />
       </Panel>
 
-      <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))' }}>
+      <Grid>
         <Panel title="Largest positions" subtitle="by gross weight">
           <BarRows
             unit="weight"
@@ -255,7 +255,7 @@ export default function PortfolioWorkbench() {
             </table>
           ) : <StateBlock state="unavailable" title="No allocation diagnostics recorded" />}
         </Panel>
-      </div>
+      </Grid>
 
       {data.note ? (
         <Panel title="Note">

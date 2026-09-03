@@ -21,7 +21,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import { BarRows, Histogram, TimeSeries } from '@/components/system/charts'
-import { Panel, Section, StateBlock, Status, Strip, Value } from '@/components/system'
+import { Grid, Panel, Section, StateBlock, Status, Strip, Value } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 
 interface Fold {
@@ -209,7 +209,7 @@ export default function SignalDiagnostics({ experiment, model }: { experiment: s
         </p>
       </Panel>
 
-      <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))' }}>
+      <Grid>
         <Panel title="IC distribution">
           <Histogram
             values={ic.map((r) => r.ic)}
@@ -236,7 +236,7 @@ export default function SignalDiagnostics({ experiment, model }: { experiment: s
             sign are different objects, and the average cannot tell them apart.
           </p>
         </Panel>
-      </div>
+      </Grid>
 
       <Panel title="Folds" subtitle={`${folds.length} expanding windows`} flush>
         <DataTable

@@ -16,7 +16,7 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 
-import { Panel, Section, StateBlock, Status, Strip, Value } from '@/components/system'
+import { Grid, Panel, Section, StateBlock, Status, Strip, Value } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
 import { EnvelopeGrid, type Envelope } from '@/components/system/EnvelopeMetric'
@@ -180,7 +180,7 @@ export default function SignalLab() {
       </Panel>
 
       {selected ? (
-        <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))' }}>
+        <Grid>
           <Panel title="Signal quality" subtitle="rank units" state="recorded">
             <table className="sys-table sys-table--compact">
               <tbody>
@@ -233,7 +233,7 @@ export default function SignalLab() {
               </table>
             ) : <StateBlock state="unavailable" title="No parameters recorded" />}
           </Panel>
-        </div>
+        </Grid>
       ) : null}
 
       <Panel title="Verdict" state={data.verdict?.passed ? 'candidate' : 'blocked'}>

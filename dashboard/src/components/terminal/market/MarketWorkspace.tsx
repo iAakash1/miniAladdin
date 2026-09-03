@@ -20,7 +20,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 
 import { BarRows, TimeSeries } from '@/components/system/charts'
-import { Panel, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
+import { Grid, Panel, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
 
@@ -219,7 +219,7 @@ export default function MarketWorkspace() {
         />
       </Panel>
 
-      <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))' }}>
+      <Grid>
         <Panel title="Momentum dispersion" subtitle="63-day, by sector">
           <BarRows
             unit="63-day momentum"
@@ -242,11 +242,11 @@ export default function MarketWorkspace() {
               .map((s) => ({ label: s.symbol, value: n(s.volatility), note: s.name }))}
           />
         </Panel>
-      </div>
+      </Grid>
 
       {data.macro?.cards?.length ? (
         <Panel title="Macro" state="live" subtitle={data.macro.note ?? undefined}>
-          <div className="sys-strip" style={{ gridAutoFlow: 'row', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))' }}>
+          <div className="sys-strip sys-strip--wrap">
             {data.macro.cards.map((c, i) => (
               <div className="sys-strip-item" key={c.label ?? i}>
                 <span className="k">{c.label ?? '—'}</span>
