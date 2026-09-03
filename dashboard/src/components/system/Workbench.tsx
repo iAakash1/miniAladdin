@@ -67,6 +67,7 @@ export const WORKBENCH: { group: string; items: { href: string; label: string; k
       { href: '/terminal/lab', label: 'Models', key: 'm' },
       { href: '/terminal/evidence', label: 'Evidence', key: 'v' },
       { href: '/terminal/gates', label: 'Gates', key: 'a' },
+      { href: '/terminal/calibration', label: 'Calibration', key: 'u' },
       { href: '/terminal/performance', label: 'Performance', key: 'p' },
       { href: '/terminal/experiments', label: 'Experiments', key: 'x' },
       { href: '/terminal/compare', label: 'Compare', key: 'w' },
@@ -79,20 +80,9 @@ export const WORKBENCH: { group: string; items: { href: string; label: string; k
       { href: '/terminal/book', label: 'Book', key: 'b' },
       { href: '/terminal/risk', label: 'Risk', key: 'r' },
       { href: '/terminal/covariance', label: 'Covariance', key: 'k' },
-    ],
-  },
-  // The deep surfaces that predate the workbench and carry analysis the rebuilt
-  // workspaces do not: the full security report, the factor lab's cross-section
-  // and screen, the ownership and positions views, the knowledge graph. They are
-  // listed rather than deleted, because deleting working analysis to tidy an
-  // architecture is a bad trade, and rather than left unlinked, because a page
-  // nobody can reach is its own kind of debt.
-  {
-    group: 'Deep',
-    items: [
+      // A user's own lists and holdings. A different object from the research
+      // book, which is why both exist and neither is named for the other.
       { href: '/terminal/portfolio', label: 'Watchlists', key: 'z' },
-      { href: '/terminal/calibration', label: 'Calibration', key: 'u' },
-
     ],
   },
   {
@@ -102,6 +92,11 @@ export const WORKBENCH: { group: string; items: { href: string; label: string; k
       { href: '/terminal/providers', label: 'Providers', key: 'o' },
       { href: '/terminal/provenance', label: 'Provenance', key: 'n' },
       { href: '/terminal/handbook', label: 'Handbook', key: 'y' },
+    ],
+  },
+  {
+    group: 'Record',
+    items: [
       { href: '/terminal/memos', label: 'Memos', key: 'e' },
       { href: '/terminal/timeline', label: 'Timeline', key: 't' },
     ],
