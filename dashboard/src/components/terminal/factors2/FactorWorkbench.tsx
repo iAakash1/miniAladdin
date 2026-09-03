@@ -23,6 +23,7 @@ import { Panel, Section, StateBlock, Status, Strip, Value } from '@/components/s
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { BarRows } from '@/components/system/charts'
 import { recordVisit } from '@/lib/research/history'
+import CrossSection, { type Attribution, type RankRow, type ScreenRow } from './CrossSection'
 import { Compare, CompareLegend, type CompareField, type CompareSubject } from '@/components/system/Compare'
 
 interface FactorEvaluation {
@@ -62,6 +63,9 @@ interface Lab {
   universe?: { name: string; symbols?: string[]; point_in_time_membership?: boolean }
   window?: { start: string; end: string; observation_dates: number; step_days: number; horizon_days: number }
   factors?: FactorEvaluation[]
+  latest_cross_section?: { date: string; factors: Record<string, RankRow[]> } | null
+  screen?: { date: string; dispersion?: { composite_spread: number; mean_agreement: number }; rows: ScreenRow[] } | null
+  attribution?: Attribution | null
   redundancy?: Redundancy | null
   caveats?: string[]
   degraded?: Array<{ estimator: string; reason: string }>
@@ -347,6 +351,12 @@ export default function FactorWorkbench() {
           </>
         ) : <StateBlock state="unavailable" title="No redundancy analysis was produced" />}
       </Panel>
+
+      <CrossSection
+        crossSection={lab.latest_cross_section}
+        screen={lab.screen}
+        attribution={lab.attribution}
+      />
 
       {lab.caveats?.length ? (
         <Panel title="Caveats">
