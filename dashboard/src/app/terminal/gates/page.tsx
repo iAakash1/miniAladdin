@@ -16,10 +16,6 @@ export default function GatesPage() {
     <Workbench
       title="Gates"
       subtitle="what blocks everything"
-      rail={[
-        { label: 'Registry', state: 'recorded', detail: '103 entries' },
-        { label: 'Production', state: 'unavailable', detail: 'none armed' },
-      ]}
       context={
         <>
           <Panel title="What this answers">

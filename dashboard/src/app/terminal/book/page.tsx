@@ -16,7 +16,6 @@ export default function BookPage() {
       subtitle="what is held, and what it costs to hold it"
       rail={[
         { label: 'Book', state: 'recorded', detail: 'research allocation' },
-        { label: 'Production', state: 'unavailable', detail: 'none armed' },
         { label: 'Cost', state: 'recorded', detail: '1 bp + 5 bp half-spread' },
       ]}
       context={

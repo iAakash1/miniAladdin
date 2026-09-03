@@ -16,9 +16,6 @@ export default function CommandPage() {
       title="Command"
       subtitle="what deserves attention"
       rail={[
-        { label: 'Production', state: 'unavailable', detail: 'none armed' },
-        { label: 'Holdout', state: 'blocked', detail: 'sealed' },
-        { label: 'Registry', state: 'recorded', detail: '103 entries' },
         { label: 'Cost', state: 'recorded', detail: '1 bp + 5 bp half-spread' },
       ]}
       context={

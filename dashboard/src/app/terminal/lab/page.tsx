@@ -17,7 +17,6 @@ export default function LabPage() {
       subtitle="what was learned, and what survived"
       rail={[
         { label: 'Study', state: 'recorded', detail: 'recorded artifact' },
-        { label: 'Production', state: 'unavailable', detail: 'none armed' },
       ]}
       context={
         <>

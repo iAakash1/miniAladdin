@@ -32,6 +32,7 @@ import { MetricProvider } from './MetricContext'
 import MetricInspector from './MetricInspector'
 import { usePinnedObjects, useRecentObjects } from '@/lib/research/history'
 import { KINDS, href as objectHref } from '@/lib/research/objects'
+import SystemRail from './SystemRail'
 
 /** `g` then a letter jumps between workspaces. Inert while typing. */
 const GOTO: Record<string, string> = {
@@ -285,16 +286,21 @@ export default function Workbench({
           ) : null}
         </div>
 
-        {rail?.length ? (
-          <footer className="wb-status" aria-label="Research state">
-            {rail.map((r) => (
+        {/* Production, holdout and registry are global and live, so they are
+            rendered here rather than restated by each page. What a page passes
+            in `rail` is its own policy — the cost assumption in force, what a
+            confidence figure is not — which is genuinely static. */}
+        <footer className="wb-status" aria-label="Research state">
+          <SystemRail />
+          {rail?.length ? (
+            rail.map((r) => (
               <div className="wb-status-item" key={r.label} title={r.detail}>
                 <span className="sys-label wb-status-key">{r.label}</span>
                 <Status state={r.state} label={r.detail ?? r.state} />
               </div>
-            ))}
-          </footer>
-        ) : null}
+            ))
+          ) : null}
+        </footer>
       </div>
     </div>
     </ChartCursorProvider>

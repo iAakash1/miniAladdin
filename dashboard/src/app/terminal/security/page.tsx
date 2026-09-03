@@ -23,7 +23,6 @@ export default async function SecurityPage({
       title={symbol || 'Security'}
       subtitle={symbol ? 'one name, five questions' : undefined}
       rail={[
-        { label: 'Production', state: 'unavailable', detail: 'none armed' },
         { label: 'Valuation', state: 'live', detail: 'current, not point-in-time' },
       ]}
       context={

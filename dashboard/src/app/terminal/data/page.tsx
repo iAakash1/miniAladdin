@@ -17,8 +17,6 @@ export default function DataPage() {
       subtitle="dataset and feature contracts"
       rail={[
         { label: 'Catalogue', state: 'recorded', detail: 'published contract' },
-        { label: 'Holdout', state: 'blocked', detail: 'sealed' },
-        { label: 'Production', state: 'unavailable', detail: 'none armed' },
       ]}
       context={
         <>

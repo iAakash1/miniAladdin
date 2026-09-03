@@ -18,7 +18,6 @@ export default function ExperimentsPage() {
       subtitle="the research record"
       rail={[
         { label: 'Record', state: 'recorded', detail: 'immutable' },
-        { label: 'Holdout', state: 'blocked', detail: 'sealed' },
       ]}
       context={
         <>

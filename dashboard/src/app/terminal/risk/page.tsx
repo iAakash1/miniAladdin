@@ -16,7 +16,6 @@ export default function RiskPage() {
       subtitle="where the risk is"
       rail={[
         { label: 'Book', state: 'recorded', detail: 'research allocation' },
-        { label: 'Production', state: 'unavailable', detail: 'none armed' },
         { label: 'Cost', state: 'recorded', detail: '1 bp + 5 bp half-spread' },
       ]}
       context={

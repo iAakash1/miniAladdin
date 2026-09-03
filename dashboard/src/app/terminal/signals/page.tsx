@@ -17,7 +17,6 @@ export default function SignalsPage() {
       subtitle="does the idea work"
       rail={[
         { label: 'Search', state: 'recorded', detail: '1,029 cumulative trials' },
-        { label: 'Holdout', state: 'blocked', detail: 'sealed' },
       ]}
       context={
         <>

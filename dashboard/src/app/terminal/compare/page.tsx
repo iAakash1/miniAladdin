@@ -14,7 +14,6 @@ export default function ComparePage() {
     <Workbench
       title="Compare"
       subtitle="side by side"
-      rail={[{ label: 'Registry', state: 'recorded', detail: '103 entries' }]}
       context={
         <>
           <Panel title="What this answers">

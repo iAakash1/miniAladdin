@@ -15,11 +15,6 @@ export default function EvidencePage() {
     <Workbench
       title="Evidence"
       subtitle="model registry and promotion gates"
-      rail={[
-        { label: 'Registry', state: 'recorded', detail: '103 entries' },
-        { label: 'Production', state: 'unavailable', detail: 'none armed' },
-        { label: 'Holdout', state: 'blocked', detail: 'sealed' },
-      ]}
       context={
         <>
           <Panel title="What this answers">
