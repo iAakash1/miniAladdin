@@ -39,13 +39,20 @@ const STATUS_MAP: Record<string, ResearchState> = {
 }
 
 export function EnvelopeMetric({
-  label, envelope, digits = 4, signed = false, tone = false,
+  label, envelope, digits = 4, signed = false, tone = false, verdict,
 }: {
   label: string
   envelope: Envelope | null | undefined
   digits?: number
   signed?: boolean
   tone?: boolean
+  /**
+   * Whether this value clears the threshold it is measured against. Distinct
+   * from the envelope's status: one says where the number came from, the other
+   * says what it concluded. A recorded number can fail, and a stale one can
+   * pass — collapsing them into a single indicator loses which is which.
+   */
+  verdict?: 'pass' | 'fail'
 }) {
   const [open, setOpen] = useState(false)
 
@@ -77,6 +84,15 @@ export function EnvelopeMetric({
         <span className="env-caret" aria-hidden>{open ? '−' : '+'}</span>
       </button>
       <Status state={state} />
+      {verdict ? (
+        <span
+          className="sys-badge"
+          data-tone={verdict === 'pass' ? 'pass' : 'fail'}
+          title={verdict === 'pass' ? 'Clears its threshold' : 'Does not clear its threshold'}
+        >
+          {verdict}
+        </span>
+      ) : null}
 
       {open ? (
         <table className="sys-table sys-table--compact env-body">

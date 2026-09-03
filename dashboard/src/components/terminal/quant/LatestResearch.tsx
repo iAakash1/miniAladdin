@@ -17,9 +17,8 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { quantFetch } from '@/lib/quantApi'
-import {
-  EnvelopeMetric, Metric, MetricGrid, Panel, StateBlock,
-} from '@/components/terminal/primitives'
+import { Metric, MetricGrid, Panel, StateBlock } from '@/components/system'
+import { EnvelopeMetric } from '@/components/system/EnvelopeMetric'
 import type { SelectionState } from './searchTypes'
 
 const EXPERIMENT = 'EXP-007'
@@ -49,11 +48,11 @@ export default function LatestResearch() {
 
   if (failed) {
     return (
-      <Panel title="Latest research" subtitle={EXPERIMENT} status="UNAVAILABLE" statusTone="warn">
+      <Panel title="Latest research" subtitle={EXPERIMENT} badge="UNAVAILABLE" badgeTone="warn">
         <StateBlock
-          kind="offline"
-          what={`the ${EXPERIMENT} selection verdict`}
-          why={`${failed.message} ${failed.remedy} The served model's own evidence below is read from a committed artifact and is unaffected.`}
+          state="unavailable"
+          title={`Unavailable — the ${EXPERIMENT} selection verdict`}
+          detail={`${failed.message} ${failed.remedy} The served model's own evidence below is read from a committed artifact and is unaffected.`}
         />
       </Panel>
     )
@@ -62,19 +61,15 @@ export default function LatestResearch() {
   if (!state) {
     return (
       <Panel title="Latest research" subtitle={EXPERIMENT}>
-        <StateBlock kind="loading" what={`the ${EXPERIMENT} selection verdict`} />
+        <StateBlock state="waking" title={`Reading the ${EXPERIMENT} selection verdict`} />
       </Panel>
     )
   }
 
   if (!state.available || !state.verdict) {
     return (
-      <Panel title="Latest research" subtitle={EXPERIMENT} status="NOT SELECTED" statusTone="muted">
-        <StateBlock
-          kind="empty"
-          what={`a verdict for ${EXPERIMENT}`}
-          why={state.detail ?? 'The search completed but candidate selection has not been run.'}
-        />
+      <Panel title="Latest research" subtitle={EXPERIMENT} badge="NOT SELECTED" badgeTone="muted">
+        <StateBlock state="unavailable" title={`No data for a verdict for ${EXPERIMENT}`} detail={state.detail ?? 'The search completed but candidate selection has not been run.'} />
       </Panel>
     )
   }
@@ -95,8 +90,8 @@ export default function LatestResearch() {
     <Panel
       title="Latest research"
       subtitle={`${EXPERIMENT} · ${selected?.family ?? '—'}`}
-      status={verdict.status}
-      statusTone={verdict.passed ? 'pass' : 'fail'}
+      badge={verdict.status}
+      badgeTone={verdict.passed ? 'pass' : 'fail'}
       source="artifacts/experiments/EXP-007/final_selection.json"
       asOf={state.git_commit ? `commit ${state.git_commit.slice(0, 12)}` : undefined}
     >
@@ -122,11 +117,11 @@ export default function LatestResearch() {
       <MetricGrid>
         <EnvelopeMetric
           label="net Sharpe" envelope={env?.net_sharpe} digits={3}
-          status={(env?.net_sharpe?.value ?? -1) > 0 ? 'pass' : 'fail'}
+          verdict={(env?.net_sharpe?.value ?? -1) > 0 ? 'pass' : 'fail'}
         />
         <EnvelopeMetric
           label="IC t-stat" envelope={env?.ic_t_stat} digits={2}
-          status={
+          verdict={
             (env?.ic_t_stat?.value ?? 0) >
             (mt?.expected_max_abs_t_under_null ?? Infinity) ? 'pass' : 'fail'
           }
@@ -134,11 +129,11 @@ export default function LatestResearch() {
         <EnvelopeMetric
           label="deflated Sharpe p" envelope={env?.deflated_sharpe_probability}
           signed={false}
-          status={(env?.deflated_sharpe_probability?.value ?? 0) > 0.95 ? 'pass' : 'fail'}
+          verdict={(env?.deflated_sharpe_probability?.value ?? 0) > 0.95 ? 'pass' : 'fail'}
         />
         <EnvelopeMetric
           label="PBO" envelope={env?.pbo} digits={3} signed={false}
-          status={(env?.pbo?.value ?? 1) <= 0.2 ? 'pass' : 'fail'}
+          verdict={(env?.pbo?.value ?? 1) <= 0.2 ? 'pass' : 'fail'}
         />
         <Metric
           label="trials"
@@ -150,7 +145,7 @@ export default function LatestResearch() {
           value={num(economics?.annualised_turnover, 1)}
           unit="×"
           method="annualised, one-way"
-          status={(economics?.annualised_turnover as number ?? 99) <= 30 ? 'warn' : 'fail'}
+          tone={(economics?.annualised_turnover as number ?? 99) <= 30 ? 'warn' : 'fail'}
         />
       </MetricGrid>
 

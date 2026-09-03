@@ -1075,3 +1075,103 @@ tr:hover .sys-method,
 .sys-strip-item:hover .sys-method,
 .sys-method:focus-visible { opacity: 1; }
 .sys-method:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── metric ──────────────────────────────────────────────────────────────
+   A single figure with its method stated beneath it rather than hidden behind
+   a hover. For the handful of places where one number carries a whole
+   argument — a verdict, a gate outcome, a headline statistic — a methodology
+   the reader has to hunt for is one they will not read.
+
+   Everywhere else the strip's hover badge is right: a row of twenty figures
+   each with a line of prose under it is unreadable. The two exist because
+   density decides which is correct, not preference. */
+
+.sys-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: var(--d-2) var(--d-3);
+  border: 1px solid var(--rule);
+  background: var(--p-panel);
+  min-width: 0;
+  border-left-width: 2px;
+  border-left-color: var(--tone, var(--rule));
+}
+
+.sys-metric[data-tone='pass']  { --tone: var(--e-pos); }
+.sys-metric[data-tone='fail']  { --tone: var(--e-neg); }
+.sys-metric[data-tone='warn']  { --tone: var(--e-warn); }
+.sys-metric[data-tone='info']  { --tone: var(--accent); }
+.sys-metric[data-tone='muted'] { --tone: var(--rule-strong); }
+
+.sys-metric__label {
+  font: 500 var(--t-micro) / 1 var(--font-sans);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sys-metric__value {
+  font: 500 var(--t-value) / 1.1 var(--font-mono);
+  font-variant-numeric: tabular-nums slashed-zero;
+  color: var(--ink);
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.sys-metric--lead .sys-metric__value { font-size: var(--t-lead); }
+
+.sys-metric__unit {
+  font: 400 var(--t-micro) / 1 var(--font-mono);
+  font-style: normal;
+  color: var(--ink-faint);
+}
+
+.sys-metric__method {
+  font: 400 var(--t-micro) / var(--lh-body) var(--font-mono);
+  color: var(--ink-faint);
+}
+
+.sys-metrics {
+  display: grid;
+  gap: var(--d-2);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+/* ── panel footer and badge ──────────────────────────────────────────────
+   A panel that names its source answers "where did this come from" without
+   the reader leaving it — the cheapest provenance there is, which is why it
+   belongs on the panel rather than behind a drawer. */
+
+.sys-panel-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--d-3);
+  padding: var(--d-1) var(--d-3);
+  border-top: 1px solid var(--rule);
+  background: var(--p-sunken);
+  font: 400 var(--t-micro) / 1.5 var(--font-mono);
+  color: var(--ink-faint);
+}
+.sys-panel-foot b { font-weight: 500; color: var(--ink-muted); }
+
+/* Free text for a verdict a research state cannot express. Sits beside the
+   state chip rather than replacing it: one says where the number came from,
+   the other says what it concluded. */
+.sys-badge {
+  font: 500 var(--t-micro) / 1 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 6px;
+  border: 1px solid var(--tone, var(--rule-strong));
+  color: var(--tone, var(--ink-muted));
+  white-space: nowrap;
+}
+.sys-badge[data-tone='pass']  { --tone: var(--e-pos); }
+.sys-badge[data-tone='fail']  { --tone: var(--e-neg); }
+.sys-badge[data-tone='warn']  { --tone: var(--e-warn); }
+.sys-badge[data-tone='info']  { --tone: var(--accent); }
+.sys-badge[data-tone='muted'] { --tone: var(--rule-strong); }

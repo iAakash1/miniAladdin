@@ -15,6 +15,8 @@ import type { ReactNode } from 'react'
    The product's vocabulary for trust. Deliberately separate from sign: one
    says where a number came from, the other says whether it is good news. */
 
+export type Tone = 'pass' | 'fail' | 'warn' | 'info' | 'muted'
+
 export type ResearchState =
   | 'live' | 'recorded' | 'stale' | 'waking' | 'unavailable'
   | 'blocked' | 'experimental' | 'candidate' | 'production' | 'unknown'
@@ -85,20 +87,36 @@ export function Value({
 
 /* ── panel ────────────────────────────────────────────────────────────── */
 
+export interface PanelProvenance {
+  /** Where the panel's numbers came from. Rendered in the footer. */
+  source?: string | null
+  /** The date the data describes. */
+  asOf?: string | null
+  /** When it was fetched. Different from asOf, and the difference matters. */
+  retrievedAt?: string | null
+}
+
 export function Panel({
-  title, subtitle, actions, state, children, flush = false,
-}: {
+  title, subtitle, actions, state, badge, badgeTone = 'muted',
+  children, flush = false, source, asOf, retrievedAt,
+}: PanelProvenance & {
   title: string
   subtitle?: ReactNode
   actions?: ReactNode
+  /** Research state. Drives the hairline along the panel's top edge. */
   state?: ResearchState
+  /** Free text for a verdict a research state cannot express — "NOT SELECTED",
+   *  "3 OF 8 GATES". Sits beside the state rather than replacing it. */
+  badge?: string
+  badgeTone?: Tone
   children: ReactNode
   flush?: boolean
 }) {
+  // A panel that names its source in a footer answers "where did this come
+  // from" without the reader leaving it, which is the cheapest provenance
+  // there is and the reason it is on the panel rather than in a drawer.
+  const hasFooter = Boolean(source || asOf || retrievedAt)
   return (
-    // The state is emitted as a data attribute so the stylesheet can put a
-    // hairline of the state colour along the top edge. A blocked panel is then
-    // identifiable at a glance without a coloured background shouting all day.
     <section className="sys-panel" data-state={state}>
       <header className="sys-panel-head">
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--d-2)', minWidth: 0 }}>
@@ -106,11 +124,19 @@ export function Panel({
           {subtitle ? <span className="sys-meta">{subtitle}</span> : null}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--d-2)', flex: 'none', marginLeft: 'auto' }}>
+          {badge ? <span className="sys-badge" data-tone={badgeTone}>{badge}</span> : null}
           {state ? <Status state={state} /> : null}
           {actions}
         </div>
       </header>
       <div className={`sys-panel-body${flush ? ' sys-panel-body--flush' : ''}`}>{children}</div>
+      {hasFooter ? (
+        <footer className="sys-panel-foot">
+          {source ? <span>source <b>{source}</b></span> : null}
+          {asOf ? <span>as of <b>{asOf}</b></span> : null}
+          {retrievedAt ? <span>retrieved <b>{retrievedAt}</b></span> : null}
+        </footer>
+      ) : null}
     </section>
   )
 }
@@ -337,4 +363,49 @@ export function Section({ title, children }: { title: string; children: ReactNod
       {children}
     </div>
   )
+}
+
+/* ── metric ─────────────────────────────────────────────────────────────
+   One figure with its method stated beneath it, for the places where a single
+   number carries a whole argument — a verdict, a gate outcome, a headline
+   statistic. A methodology the reader has to hunt for is one they will not
+   read.
+
+   The strip's hover badge is right everywhere else: twenty figures each with a
+   line of prose underneath is unreadable. Density decides which is correct. */
+
+export function Metric({
+  label, value, unit, method, tone = 'muted', lead = false,
+}: {
+  label: string
+  /** Pre-formatted. The caller decides precision; this does not re-round. */
+  value: string
+  unit?: string
+  method?: string
+  tone?: Tone
+  lead?: boolean
+}) {
+  return (
+    <div className={`sys-metric${lead ? ' sys-metric--lead' : ''}`} data-tone={tone}>
+      <span className="sys-metric__label">{label}</span>
+      <span className="sys-metric__value">
+        {value}
+        {unit ? <em className="sys-metric__unit">{unit}</em> : null}
+      </span>
+      {method ? <span className="sys-metric__method">{method}</span> : null}
+    </div>
+  )
+}
+
+export function MetricGrid({ children }: { children: ReactNode }) {
+  return <div className="sys-metrics">{children}</div>
+}
+
+/** Formatting helpers the metric callers share. */
+export const dash = (v: unknown): string =>
+  v === null || v === undefined || (typeof v === 'number' && !Number.isFinite(v)) ? '—' : String(v)
+
+export function signed(v: number | null | undefined, digits = 4): string {
+  if (v === null || v === undefined || !Number.isFinite(v)) return '—'
+  return `${v >= 0 ? '+' : ''}${v.toFixed(digits)}`
 }

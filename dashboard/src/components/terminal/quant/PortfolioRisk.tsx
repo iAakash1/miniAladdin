@@ -22,7 +22,7 @@
 
 import { useEffect, useState } from 'react'
 import { StatusPill } from '@/components/ui/DataMarks'
-import { StateBlock } from '@/components/terminal/primitives'
+import { StateBlock } from '@/components/system'
 import { f, pct, sign } from '@/components/terminal/quant/format'
 import { quantFetch } from '@/lib/quantApi'
 
@@ -346,19 +346,7 @@ export default function PortfolioRisk({
           here previously meant "fully covered" and "quietly understated" alike. */}
       {risk.risk_contributions_coverage &&
        risk.risk_contributions_coverage.complete === false ? (
-        <StateBlock
-          kind="error"
-          what="a complete risk decomposition"
-          why={risk.risk_contributions_coverage.caveat ?? undefined}
-          action={
-            risk.risk_contributions_coverage.uncovered_symbols.length ? (
-              <span className="u-note">
-                No covariance row:{' '}
-                <code>{risk.risk_contributions_coverage.uncovered_symbols.join(', ')}</code>
-              </span>
-            ) : undefined
-          }
-        />
+        <StateBlock state="unavailable" title="Could not read a complete risk decomposition" detail={risk.risk_contributions_coverage.caveat ?? undefined} />
       ) : null}
 
       <h4 className="qr-subhead">Book — largest positions by weight</h4>

@@ -19,7 +19,7 @@
 
 import { useEffect, useState } from 'react'
 import { quantFetch } from '@/lib/quantApi'
-import { Panel, StateBlock } from '@/components/terminal/primitives'
+import { Panel, StateBlock } from '@/components/system'
 
 interface Gate {
   check: string
@@ -64,22 +64,22 @@ export default function PreflightGates() {
 
   if (failed) {
     return (
-      <Panel title="Holdout preflight" status="UNAVAILABLE" statusTone="warn">
-        <StateBlock kind="offline" what="the integrity gates" why={failed} />
+      <Panel title="Holdout preflight" badge="UNAVAILABLE" badgeTone="warn">
+        <StateBlock state="unavailable" title="Unavailable — the integrity gates" detail={failed} />
       </Panel>
     )
   }
   if (!state) {
     return (
       <Panel title="Holdout preflight">
-        <StateBlock kind="loading" what="the integrity gates" />
+        <StateBlock state="waking" title="Reading the integrity gates" />
       </Panel>
     )
   }
   if (!state.available) {
     return (
-      <Panel title="Holdout preflight" status="NO STUDY" statusTone="muted">
-        <StateBlock kind="empty" what="a study to gate" why={state.detail} />
+      <Panel title="Holdout preflight" badge="NO STUDY" badgeTone="muted">
+        <StateBlock state="unavailable" title="No data for a study to gate" detail={state.detail} />
       </Panel>
     )
   }
@@ -93,8 +93,8 @@ export default function PreflightGates() {
     <Panel
       title="Holdout preflight"
       subtitle={state.experiment_id ?? undefined}
-      status={blocking.length ? `${blocking.length} BLOCKING` : 'FAST GATES CLEAR'}
-      statusTone={blocking.length ? 'fail' : 'pass'}
+      badge={blocking.length ? `${blocking.length} BLOCKING` : 'FAST GATES CLEAR'}
+      badgeTone={blocking.length ? 'fail' : 'pass'}
       source={state.study_artifact}
       asOf={state.fingerprint ? `fingerprint ${state.fingerprint.slice(0, 12)}` : undefined}
     >
@@ -126,12 +126,7 @@ export default function PreflightGates() {
       {/* The omission is stated, not implied. A fast preflight is a read, not
           the gate the holdout runner requires. */}
       {state.contamination_probe && !state.contamination_probe.run ? (
-        <StateBlock
-          kind="locked"
-          what="the contamination probe"
-          why={state.contamination_probe.why}
-          action={<pre className="qs-command">{state.contamination_probe.command}</pre>}
-        />
+        <StateBlock state="blocked" title="Locked — the contamination probe" detail={state.contamination_probe.why} />
       ) : null}
 
       <p className="body-copy u-note">{state.note}</p>
