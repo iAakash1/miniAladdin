@@ -16,6 +16,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Panel, StateBlock, Status, Strip, Value } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
+import ExperimentEvidence from './ExperimentEvidence'
 
 interface Row {
   experiment_id: string
@@ -26,6 +27,11 @@ interface Row {
 }
 
 interface Detail {
+  integrity?: Record<string, unknown> | null
+  negative_controls?: { controls?: unknown[] } | null
+  walk_forward_plan?: Record<string, unknown> | null
+  cost_sensitivity?: Record<string, unknown[]> | null
+  probability_of_backtest_overfitting?: Record<string, unknown> | null
   experiment_id?: string
   void?: boolean
   void_reason?: string | null
@@ -137,6 +143,14 @@ export default function ExperimentRegistry() {
               </tbody>
             </table>
           </Panel>
+
+          <ExperimentEvidence
+            integrity={detail.data.integrity as never}
+            controls={detail.data.negative_controls as never}
+            plan={detail.data.walk_forward_plan as never}
+            costSensitivity={detail.data.cost_sensitivity as never}
+            pbo={detail.data.probability_of_backtest_overfitting as never}
+          />
 
           {detail.data.dataset_sources?.length ? (
             <Panel title="Dataset sources" subtitle="point-in-time and survivorship as recorded at run time" flush>
