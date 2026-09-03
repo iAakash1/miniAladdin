@@ -1322,3 +1322,77 @@ tr[data-selected='true'] .sys-row-actions { opacity: 1; }
 }
 .sys-row-action:hover { border-color: var(--accent); color: var(--accent); }
 .sys-row-action:focus-visible { outline: 1px solid var(--rule-focus); outline-offset: 1px; opacity: 1; }
+
+/* ── responsive ──────────────────────────────────────────────────────────
+   Desktop is primary and the terminal is not reflowed into a phone layout.
+   What changes at each width is what gets the space, in the order a
+   researcher can afford to lose it:
+
+     1440  everything
+     1280  the rail narrows; glyphs and labels both stay
+     1180  the context column becomes a drawer
+     1024  the rail collapses to glyphs; the workspace takes the width
+      860  the rail becomes a drawer too; density steps down one notch
+
+   Tables always scroll inside their own region rather than reflowing. A
+   research table with its columns stacked is not a smaller table, it is a
+   different and much worse object. */
+
+@media (max-width: 1440px) {
+  .wb { --rail-w: 196px; }
+}
+
+@media (max-width: 1280px) {
+  .wb { --rail-w: 178px; --context-w: 284px; }
+  /* Six facts on a masthead is right at full width and crowded here. The
+     last two are the least load-bearing by construction. */
+  .sys-object-fact:nth-child(n + 5) { display: none; }
+}
+
+@media (max-width: 1024px) {
+  /* The rail keeps its glyph column and drops its labels: a researcher who
+     has used the product for an hour navigates by position and mark, and the
+     workspace needs the width more than the words. */
+  .wb { --rail-w: 46px; }
+  .wb-label, .wb-key, .wb-group-label { display: none; }
+  .wb-link { justify-content: center; padding: 0; }
+  .wb-group + .wb-group { border-top: 1px solid var(--rule); padding-top: var(--d-2); margin-top: var(--d-2); }
+  .sys-object-facts { border-left: 0; margin-left: 0; width: 100%; }
+  .sys-toolbar { gap: var(--d-1); }
+}
+
+@media (max-width: 860px) {
+  /* One notch denser, because the space that is left has to carry the same
+     information. Not a different layout — the same one, tighter. */
+  .wb { --row-compact: 20px; --row-normal: 25px; }
+  .sys-object-name { font-size: var(--t-lead); }
+  .sys-object { padding: var(--d-2) var(--d-3); }
+  .sys-toolbar { padding: var(--d-2) var(--d-3); margin: 0 calc(var(--d-3) * -1); }
+  .wb-workspace { padding: var(--d-3); }
+  .sys-object { margin: calc(var(--d-3) * -1) calc(var(--d-3) * -1) 0; }
+}
+
+/* The context drawer is a panel, not a page. It keeps its width and slides. */
+@media (max-width: 1180px) {
+  .wb-context { box-shadow: var(--lift-drawer); }
+}
+
+/* Very wide screens: stop the workspace becoming a single enormous column.
+   Beyond about 1800px a table row is wider than the eye tracks in one pass. */
+@media (min-width: 1800px) {
+  .wb-workspace { max-width: 1720px; }
+}
+
+/* Print. A research memo or an evidence chain is a thing people print, and a
+   dark terminal on paper is unreadable and wastes toner. */
+@media print {
+  .wb { display: block; height: auto; }
+  .wb-rail, .wb-status, .wb-head-actions, .sys-toolbar, .sys-row-actions { display: none; }
+  .wb-workspace, .wb-context { overflow: visible; height: auto; }
+  .sys-panel { break-inside: avoid; border-color: #999; }
+  :root {
+    --p-base: #fff; --p-panel: #fff; --p-raised: #fff; --p-sunken: #f4f4f4;
+    --ink: #000; --ink-muted: #444; --ink-faint: #666;
+    --rule: #ccc; --rule-strong: #999;
+  }
+}

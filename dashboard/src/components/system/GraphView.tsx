@@ -161,7 +161,9 @@ export function GraphView({
         height={height}
         role="img"
         aria-label="relationship graph"
-        style={{ display: 'block', minWidth: 620 }}
+        // Scales to its container rather than forcing a scroll: a graph is
+        // readable at any width, unlike a table, so it should shrink.
+        style={{ display: 'block', minWidth: 0 }}
         onMouseLeave={() => setHovered(null)}
       >
         {/* Hop rings, so distance from the query is legible as geometry. */}

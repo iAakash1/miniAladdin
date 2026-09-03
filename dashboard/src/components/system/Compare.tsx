@@ -81,9 +81,9 @@ export function Compare({
       <table className="sys-table sys-table--compact">
         <thead>
           <tr>
-            <th style={{ position: 'sticky', left: 0, zIndex: 3, background: 'var(--p-sunken)', minWidth: 190 }}>Metric</th>
+            <th style={{ position: 'sticky', left: 0, zIndex: 3, background: 'var(--p-sunken)', minWidth: 150 }}>Metric</th>
             {subjects.map((s) => (
-              <th key={s.id} className="num" style={{ minWidth: 130 }}>
+              <th key={s.id} className="num" style={{ minWidth: 118 }}>
                 {s.label}
                 {s.id === baseline.id ? <span className="unit">baseline</span> : s.detail ? <span className="unit">{s.detail}</span> : null}
               </th>
