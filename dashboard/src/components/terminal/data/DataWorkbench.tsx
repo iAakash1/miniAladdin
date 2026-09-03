@@ -23,6 +23,7 @@ import {
   type ResearchState,
 } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
+import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
 import { Histogram } from '@/components/system/charts'
 import { recordVisit } from '@/lib/research/history'
 import Inspector, { type InspectorSection } from '@/components/system/Inspector'
@@ -157,7 +158,12 @@ export default function DataWorkbench() {
   }
 
   if (!features || !datasets) {
-    return <Panel title="Data catalogue" state="waking"><StateBlock state="waking" title="Reading the catalogue" /></Panel>
+    return (
+      <>
+        <StripSkeleton items={7} />
+        <Panel title="Catalogue" state="waking" flush><TableSkeleton rows={10} columns={6} /></Panel>
+      </>
+    )
   }
 
   const selectedDataset = datasets.datasets.find((d) => d.dataset_id === selected)
@@ -233,6 +239,22 @@ export default function DataWorkbench() {
           onClose={() => setInspecting(null)}
         />
       ) : null}
+
+      <ObjectHeader
+        glyph="D"
+        name="Data"
+        kind="dataset and feature contracts"
+        state="recorded"
+        detail={`${datasets.total} datasets · ${features.feature_count} features`}
+        facts={[
+          { label: 'Datasets', value: datasets.total, digits: 0 },
+          { label: 'Admissible', value: datasets.training_admissible, digits: 0 },
+          { label: 'Gated', value: datasets.gated?.length ?? 0, digits: 0 },
+          { label: 'Features', value: features.feature_count, digits: 0 },
+          { label: 'PIT unsafe', value: features.unsafe_features?.length ?? 0, digits: 0 },
+          { label: 'Max lookback', value: features.max_lookback_sessions, digits: 0, unit: 'sess' },
+        ]}
+      />
 
       <Strip metrics={[
         { label: 'Datasets', value: datasets.total, digits: 0 },

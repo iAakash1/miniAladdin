@@ -15,6 +15,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
 import { Grid, Panel, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
+import { ObjectHeader } from '@/components/system/composition'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
 
@@ -150,6 +151,21 @@ export default function CommandCenter() {
           <StateBlock state="waking" title="Reading the verdict" />
         )}
       </Panel>
+
+      <ObjectHeader
+        glyph="⌘"
+        name="Command"
+        kind="what deserves attention"
+        state={selection?.verdict?.passed ? 'candidate' : 'blocked'}
+        detail={selection?.verdict?.status ?? deployment}
+        facts={[
+          { label: 'Production', value: status?.production ?? null, digits: 0 },
+          { label: 'Candidates', value: status?.candidates ?? null, digits: 0 },
+          { label: 'Registered', value: status?.total_entries ?? null, digits: 0 },
+          { label: 'Experiments', value: experiments?.length ?? null, digits: 0 },
+          { label: 'Unmet gates', value: failedGates.length || null, digits: 0 },
+        ]}
+      />
 
       <Strip metrics={[
         { label: 'Production', value: status?.production ?? null, digits: 0, title: 'Models armed and serving' },

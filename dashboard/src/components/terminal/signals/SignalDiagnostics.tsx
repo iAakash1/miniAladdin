@@ -22,6 +22,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { BarRows, Histogram, TimeSeries } from '@/components/system/charts'
 import { Grid, Panel, Section, StateBlock, Status, Strip, Value } from '@/components/system'
+import { ChartSkeleton, StripSkeleton } from '@/components/system/composition'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 
 interface Fold {
@@ -114,7 +115,14 @@ export default function SignalDiagnostics({ experiment, model }: { experiment: s
   ]
 
   if (error) return <Panel title="Diagnostics" state="unavailable"><StateBlock state="unavailable" title="The fold series could not be read" detail={error} /></Panel>
-  if (!data) return <Panel title="Diagnostics" state="waking"><StateBlock state="waking" title="Reading fold results" /></Panel>
+  if (!data) {
+    return (
+      <>
+        <StripSkeleton items={7} />
+        <Panel title="Information coefficient through time" state="waking"><ChartSkeleton height={230} /></Panel>
+      </>
+    )
+  }
   if (data.status !== 'ok' || !data.folds?.length) {
     return <Panel title="Diagnostics" state="unavailable"><StateBlock state="unavailable" title="No fold results are recorded" detail={data.detail ?? data.note} /></Panel>
   }

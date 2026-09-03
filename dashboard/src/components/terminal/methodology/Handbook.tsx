@@ -13,6 +13,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import { Panel, Section, StateBlock, Status, Strip, Value } from '@/components/system'
+import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
 
@@ -85,12 +86,32 @@ export default function Handbook({ initialMeasure }: { initialMeasure?: string }
       </Panel>
     )
   }
-  if (!book) return <Panel title="Handbook" state="waking"><StateBlock state="waking" title="Reading the methodology table" /></Panel>
+  if (!book) {
+    return (
+      <>
+        <StripSkeleton items={3} />
+        <Panel title="Measures" state="waking" flush><TableSkeleton rows={12} columns={5} /></Panel>
+      </>
+    )
+  }
 
   const entry = book.entries.find((e) => e.name === selected)
 
   return (
     <>
+      <ObjectHeader
+        glyph="H"
+        name="Handbook"
+        kind="how every number is computed"
+        state="recorded"
+        detail="generated from the engine's own methodology table"
+        facts={[
+          { label: 'Measures', value: book.total, digits: 0 },
+          { label: 'With failure conditions', value: book.documented, digits: 0 },
+          { label: 'Minimum observations', value: book.minimum_observations, digits: 0 },
+        ]}
+      />
+
       <Strip metrics={[
         { label: 'Measures', value: book.total, digits: 0 },
         { label: 'With failure conditions', value: book.documented, digits: 0 },

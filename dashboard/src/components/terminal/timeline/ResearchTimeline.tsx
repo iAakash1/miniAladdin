@@ -16,6 +16,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 
 import { Panel, StateBlock, Status, Strip, type ResearchState } from '@/components/system'
+import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
 import { useMemos } from '@/lib/research/memos'
 import { KINDS, href as objectHref, type ObjectKind } from '@/lib/research/objects'
 
@@ -121,10 +122,31 @@ export default function ResearchTimeline() {
   const present = useMemo(() => [...new Set(events.map((e) => e.kind))], [events])
 
   if (error) return <Panel title="Timeline" state="unavailable"><StateBlock state="unavailable" title="The registry could not be read" detail={error} /></Panel>
-  if (!entries) return <Panel title="Timeline" state="waking"><StateBlock state="waking" title="Reading the record" /></Panel>
+  if (!entries) {
+    return (
+      <>
+        <StripSkeleton />
+        <Panel title="Timeline" state="waking" flush><TableSkeleton rows={10} columns={4} /></Panel>
+      </>
+    )
+  }
 
   return (
     <>
+      <ObjectHeader
+        glyph="│"
+        name="Timeline"
+        kind="what was recorded, and when"
+        state="recorded"
+        detail={events.length ? `${events[events.length - 1].at.slice(0, 10)} → ${events[0].at.slice(0, 10)}` : undefined}
+        facts={[
+          { label: 'Events', value: events.length, digits: 0 },
+          { label: 'Days', value: byDay.length, digits: 0 },
+          { label: 'Registrations', value: events.filter((e) => e.what === 'registered').length, digits: 0 },
+          { label: 'Memos', value: localMemos.length, digits: 0 },
+        ]}
+      />
+
       <Strip metrics={[
         { label: 'Events', value: events.length, digits: 0 },
         { label: 'Days', value: byDay.length, digits: 0 },

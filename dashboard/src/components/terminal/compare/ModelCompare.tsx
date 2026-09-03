@@ -13,6 +13,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { Compare, CompareLegend, type CompareField, type CompareSubject } from '@/components/system/Compare'
 import { Panel, StateBlock, Status } from '@/components/system'
+import { TableSkeleton } from '@/components/system/composition'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 
 interface Row {
@@ -83,7 +84,9 @@ export default function ModelCompare() {
   ], [picked])
 
   if (error) return <Panel title="Compare" state="unavailable"><StateBlock state="unavailable" title="The registry could not be read" detail={error} /></Panel>
-  if (!rows) return <Panel title="Compare" state="waking"><StateBlock state="waking" title="Reading the registry" /></Panel>
+  if (!rows) {
+    return <Panel title="Select models" state="waking" flush><TableSkeleton rows={10} columns={7} /></Panel>
+  }
 
   const subjects: CompareSubject[] = picked
     .map((k) => rows.find((r) => r.key === k))

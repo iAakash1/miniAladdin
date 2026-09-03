@@ -17,6 +17,7 @@ import Link from 'next/link'
 
 import { GraphView, typeTone, type GraphEdge, type GraphNode } from '@/components/system/GraphView'
 import { Grid, Panel, Section, StateBlock, Strip, Value } from '@/components/system'
+import { ChartSkeleton, StripSkeleton } from '@/components/system/composition'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
 
@@ -180,7 +181,10 @@ export default function Relationships({ initialSymbol = 'AAPL' }: { initialSymbo
           <StateBlock state="unavailable" title={`No graph for ${symbol}`} detail={`Request failed: ${error}. Nothing is drawn in its place.`} />
         </Panel>
       ) : !data ? (
-        <Panel title="Graph" state="waking"><StateBlock state="waking" title={`Building the graph for ${symbol}`} /></Panel>
+        <>
+          <StripSkeleton items={7} />
+          <Panel title="Graph" state="waking"><ChartSkeleton height={340} /></Panel>
+        </>
       ) : !allNodes.length ? (
         <Panel title="Graph" state="unavailable">
           <StateBlock state="unavailable" title={`No relationships recorded for ${symbol}`} detail={data.detail} />

@@ -23,6 +23,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { BarRows, Histogram, Scatter, TimeSeries } from '@/components/system/charts'
 import { Grid, Panel, Section, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
+import { ChartSkeleton, ObjectHeader, StripSkeleton } from '@/components/system/composition'
 
 interface Backtest {
   ticker?: string
@@ -97,7 +98,14 @@ export default function Calibration({ symbol }: { symbol: string }) {
   if (error) {
     return <Panel title="Validation" state="unavailable"><StateBlock state="unavailable" title={`No backtest for ${symbol}`} detail={`Request failed: ${error}.`} /></Panel>
   }
-  if (!data) return <Panel title="Validation" state="waking"><StateBlock state="waking" title={`Validating the engine on ${symbol}`} /></Panel>
+  if (!data) {
+    return (
+      <>
+        <StripSkeleton items={7} />
+        <Panel title="Rolling information coefficient" state="waking"><ChartSkeleton height={190} /></Panel>
+      </>
+    )
+  }
   if (data.error) {
     return <Panel title="Validation" state="unavailable"><StateBlock state="unavailable" title={`Validation refused for ${symbol}`} detail={data.error} /></Panel>
   }
@@ -107,6 +115,21 @@ export default function Calibration({ symbol }: { symbol: string }) {
 
   return (
     <>
+      <ObjectHeader
+        glyph="C"
+        name={symbol}
+        kind="calibration of the scoring engine"
+        state={psiState(psi)}
+        detail={data.period ? `${data.period.start} → ${data.period.end}` : undefined}
+        facts={[
+          { label: 'Samples', value: n(data.samples), digits: 0 },
+          { label: 'IC', value: n(data.ic), digits: 4, signed: true, tone: true },
+          { label: 'Baseline IC', value: n(data.baseline_12_1_ic), digits: 4, signed: true },
+          { label: 'Hit rate', value: n(data.hit_rate), digits: 3 },
+          { label: 'PSI', value: psi, digits: 3 },
+        ]}
+      />
+
       <Strip metrics={[
         { label: 'Samples', value: n(data.samples), digits: 0 },
         { label: 'IC', value: n(data.ic), digits: 4, signed: true, tone: true },

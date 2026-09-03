@@ -18,6 +18,7 @@ import RegimePerformance, { type RegimeRow } from './RegimePerformance'
 import { useEffect, useState } from 'react'
 
 import { Grid, Panel, Section, StateBlock, Status, Strip, Table, Value, type Column } from '@/components/system'
+import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
 
 interface LabelRow {
   label: string
@@ -100,7 +101,14 @@ export default function ModelWorkbench() {
   if (error) {
     return <Panel title="Models" state="unavailable"><StateBlock state="unavailable" title="The study could not be read" detail={`Request failed: ${error}.`} /></Panel>
   }
-  if (!data) return <Panel title="Models" state="waking"><StateBlock state="waking" title="Reading the study" /></Panel>
+  if (!data) {
+    return (
+      <>
+        <StripSkeleton items={7} />
+        <Panel title="Labels" state="waking" flush><TableSkeleton rows={4} columns={8} /></Panel>
+      </>
+    )
+  }
 
   const labels = data.labels ?? []
   const row = labels.find((l) => l.label === selected)
@@ -114,6 +122,22 @@ export default function ModelWorkbench() {
 
   return (
     <>
+      <ObjectHeader
+        glyph="µ"
+        name="Models"
+        kind="what was learned, and what survived"
+        state="experimental"
+        detail={data.experiment_id}
+        facts={[
+          { label: 'Rows', value: n(ds.rows), digits: 0 },
+          { label: 'Symbols', value: n(ds.symbols), digits: 0 },
+          { label: 'Dates', value: n(ds.dates), digits: 0 },
+          { label: 'Features', value: n(data.feature_count), digits: 0 },
+          { label: 'Labels', value: labels.length, digits: 0 },
+          { label: 'Guards', value: guards?.passed ? 'pass' : 'fail', digits: 0 },
+        ]}
+      />
+
       <Strip metrics={[
         { label: 'Rows', value: n(ds.rows), digits: 0 },
         { label: 'Symbols', value: n(ds.symbols), digits: 0 },

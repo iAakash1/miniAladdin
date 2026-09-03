@@ -17,6 +17,7 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 
 import { Panel, StateBlock, Strip } from '@/components/system'
+import { ObjectHeader } from '@/components/system/composition'
 import { addReference, createMemo, deleteMemo, removeReference, updateMemo, useMemos, type Memo } from '@/lib/research/memos'
 import { usePinnedObjects, useRecentObjects } from '@/lib/research/history'
 import { KINDS, href as objectHref, type ResearchObject } from '@/lib/research/objects'
@@ -54,6 +55,21 @@ export default function Memos({ initialId }: { initialId?: string }) {
 
   return (
     <>
+      <ObjectHeader
+        glyph="N"
+        name="Memos"
+        kind="what you concluded, and what it rests on"
+        state="recorded"
+        detail="stored in this browser only"
+        facts={[
+          { label: 'Memos', value: all.length, digits: 0 },
+          { label: 'Drafts', value: all.filter((m) => m.status === 'draft').length, digits: 0 },
+          { label: 'Open', value: all.filter((m) => m.status === 'open').length, digits: 0 },
+          { label: 'Resolved', value: all.filter((m) => m.status === 'resolved').length, digits: 0 },
+          { label: 'References', value: all.reduce((s, m) => s + m.references.length, 0), digits: 0 },
+        ]}
+      />
+
       <Strip metrics={[
         { label: 'Memos', value: all.length, digits: 0 },
         { label: 'Drafts', value: all.filter((m) => m.status === 'draft').length, digits: 0 },

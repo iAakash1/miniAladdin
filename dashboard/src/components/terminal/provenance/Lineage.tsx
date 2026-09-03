@@ -16,6 +16,7 @@
 import { useEffect, useState } from 'react'
 
 import { Panel, StateBlock, Status, Value, type ResearchState } from '@/components/system'
+import { TableSkeleton } from '@/components/system/composition'
 
 interface SourceRow {
   dataset_id: string
@@ -80,7 +81,9 @@ export default function Lineage({ label, model }: { label: string; model: string
       </Panel>
     )
   }
-  if (!chain) return <Panel title="Lineage" state="waking"><StateBlock state="waking" title="Reading the chain" /></Panel>
+  if (!chain) {
+    return <Panel title="Chain" state="waking" flush><TableSkeleton rows={7} columns={3} /></Panel>
+  }
   if (chain.status !== 'available' || !chain.chain?.length) {
     return (
       <Panel title="Lineage" state="unavailable">

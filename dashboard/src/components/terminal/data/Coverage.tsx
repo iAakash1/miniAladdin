@@ -14,6 +14,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import { Panel, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
+import { StripSkeleton, TableSkeleton } from '@/components/system/composition'
 
 interface Source {
   dataset_id: string
@@ -71,7 +72,14 @@ export default function Coverage() {
   if (error) {
     return <Panel title="Coverage" state="unavailable"><StateBlock state="unavailable" title="Sources could not be read" detail={error} /></Panel>
   }
-  if (!sources) return <Panel title="Coverage" state="waking"><StateBlock state="waking" title="Reading dataset sources" /></Panel>
+  if (!sources) {
+    return (
+      <>
+        <StripSkeleton />
+        <Panel title="Coverage" state="waking" flush><TableSkeleton rows={9} columns={5} /></Panel>
+      </>
+    )
+  }
   if (!dated.length) {
     return <Panel title="Coverage" state="unavailable"><StateBlock state="unavailable" title="No source carries a date range" detail="Nothing is drawn where a range was not recorded." /></Panel>
   }

@@ -15,6 +15,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import { Panel, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
+import { ObjectHeader, TableSkeleton } from '@/components/system/composition'
 
 interface Capability {
   capability?: string
@@ -94,6 +95,19 @@ export default function ProviderMatrix() {
 
   return (
     <>
+      <ObjectHeader
+        glyph="V"
+        name="Providers"
+        kind="who supplies what"
+        state={failed.length ? 'stale' : 'live'}
+        facts={[
+          { label: 'Providers', value: providers.length || null, digits: 0 },
+          { label: 'Capabilities', value: capabilities.length || null, digits: 0 },
+          { label: 'Reporting', value: healthRows.length || null, digits: 0 },
+          { label: 'Deduplicated', value: health?.deduplicated_requests ?? null, digits: 0 },
+        ]}
+      />
+
       <Strip metrics={[
         { label: 'Providers', value: providers.length || null, digits: 0 },
         { label: 'Capabilities', value: capabilities.length || null, digits: 0 },
@@ -111,7 +125,7 @@ export default function ProviderMatrix() {
 
       <Panel title="Capability matrix" subtitle={providers.length ? `${providers.length} providers × ${capabilities.length} capabilities` : undefined} flush>
         {!caps ? (
-          <StateBlock state="waking" title="Reading the capability matrix" />
+          <TableSkeleton rows={8} columns={6} />
         ) : !providers.length ? (
           <StateBlock state="unavailable" title="No provider declares a capability" />
         ) : (
@@ -149,7 +163,7 @@ export default function ProviderMatrix() {
 
       <Panel title="Provider health" subtitle={healthRows.length ? `${healthRows.length} reporting` : undefined} flush>
         {!health ? (
-          <StateBlock state="waking" title="Reading provider health" />
+          <TableSkeleton rows={5} columns={7} />
         ) : !healthRows.length ? (
           <StateBlock state="unavailable" title="No provider reported health" />
         ) : (

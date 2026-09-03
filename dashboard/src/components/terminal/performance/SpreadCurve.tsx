@@ -17,6 +17,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { BarRows, DrawdownChart, Histogram, TimeSeries } from '@/components/system/charts'
 import { Grid, Panel, Section, StateBlock, Strip, Value } from '@/components/system'
+import { ChartSkeleton, ObjectHeader, StripSkeleton } from '@/components/system/composition'
 
 interface Period {
   date: string
@@ -113,7 +114,14 @@ export default function SpreadCurve({ experiment, model }: { experiment: string;
   if (error) {
     return <Panel title="Spread curve" state="unavailable"><StateBlock state="unavailable" title="The series could not be read" detail={`Request failed: ${error}.`} /></Panel>
   }
-  if (!curve) return <Panel title="Spread curve" state="waking"><StateBlock state="waking" title="Reading the series" /></Panel>
+  if (!curve) {
+    return (
+      <>
+        <StripSkeleton />
+        <Panel title="Cumulative spread" state="waking"><ChartSkeleton height={230} /></Panel>
+      </>
+    )
+  }
   if (curve.status !== 'ok' || !periods.length) {
     return <Panel title="Spread curve" state="unavailable"><StateBlock state="unavailable" title="No series is recorded" detail={curve.detail} /></Panel>
   }
@@ -136,6 +144,21 @@ export default function SpreadCurve({ experiment, model }: { experiment: string;
           {String(curve.assumptions?.not_a_return_series ?? '')}
         </p>
       </Panel>
+
+      <ObjectHeader
+        glyph="∿"
+        name="Performance"
+        kind="quantile spread in rank points"
+        state="experimental"
+        detail={`${curve.model_id} · ${curve.target}`}
+        facts={[
+          { label: 'Periods', value: s.periods ?? null, digits: 0 },
+          { label: 'Net cumulative', value: s.net_cumulative ?? null, digits: 2, unit: 'rp', signed: true, tone: true },
+          { label: 'Cost paid', value: s.total_cost ?? null, digits: 3, unit: 'rp' },
+          { label: 'Turnover', value: s.mean_turnover ?? null, digits: 3 },
+          { label: 'Max DD', value: s.net_max_drawdown_rank_points ?? null, digits: 2, unit: 'rp', tone: true },
+        ]}
+      />
 
       <Strip metrics={[
         { label: 'Periods', value: s.periods ?? null, digits: 0 },

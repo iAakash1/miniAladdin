@@ -15,6 +15,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import { Panel, StateBlock, Status, type ResearchState } from '@/components/system'
+import { TableSkeleton } from '@/components/system/composition'
 
 interface Entry {
   key: string
@@ -64,7 +65,9 @@ export default function ValidationLadder() {
   const highest = [...rungs].reverse().find((r) => r.at.length)
 
   if (error) return <Panel title="Ladder" state="unavailable"><StateBlock state="unavailable" title="The registry could not be read" detail={error} /></Panel>
-  if (!registry) return <Panel title="Ladder" state="waking"><StateBlock state="waking" title="Reading the registry" /></Panel>
+  if (!registry) {
+    return <Panel title="Validation ladder" state="waking" flush><TableSkeleton rows={4} columns={3} /></Panel>
+  }
 
   return (
     <>
