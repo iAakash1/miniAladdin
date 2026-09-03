@@ -1,24 +1,33 @@
-'use client'
+import type { Metadata } from 'next'
 
-import { Suspense } from 'react'
-
+import Workbench from '@/components/system/Workbench'
 import GraphWorkspace from '@/components/terminal/GraphWorkspace'
-import TerminalShell from '@/components/terminal/TerminalShell'
-import Skeleton from '@/components/ui/Skeleton'
+import { Panel } from '@/components/system'
 
-/**
- * /terminal/graph — the Knowledge Graph Workspace. Every piece of state
- * (companies, depth, filters, as-of date) lives in the URL, so any
- * workspace is a permanent, shareable address, exactly like every other
- * research surface. Single-node exploration remains available at
- * /terminal/graph/explore.
- */
-export default function GraphPage() {
+export const metadata: Metadata = {
+  title: 'Graph — miniAladdin',
+  description: 'The relationship graph: what connects to what, and on whose authority.',
+}
+
+export default function Page() {
   return (
-    <TerminalShell loadingLabel="Loading graph…">
-      <Suspense fallback={<Skeleton height={420} />}>
-        <GraphWorkspace />
-      </Suspense>
-    </TerminalShell>
+    <Workbench title="Graph" subtitle="how things connect"
+      context={
+        <>
+          <Panel title="What this answers">
+            <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
+              Which entities are linked to which, by what kind of relationship, and where that link came from.
+            </p>
+          </Panel>
+          <Panel title="An edge is a claim">
+            <p style={{ margin: 0, fontSize: 'var(--t-meta)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
+              Every edge carries a provider and a confidence. A relationship asserted by one vendor and unconfirmed by another is drawn, but it is not the same fact as one both agree on.
+            </p>
+          </Panel>
+        </>
+      }
+    >
+      <GraphWorkspace />
+    </Workbench>
   )
 }
