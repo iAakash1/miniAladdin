@@ -152,7 +152,7 @@ export default function FactorWorkbench() {
         />
       ),
     },
-    { key: 'f', header: 'Factor', width: '18%', sort: (f) => f.factor, text: (f) => f.factor, render: (f) => <span style={{ fontFamily: 'var(--font-mono)' }}>{f.factor}</span> },
+    { key: 'f', header: 'Factor', width: '18%', sort: (f) => f.factor, text: (f) => f.factor, render: (f) => <span className="sys-mono">{f.factor}</span> },
     { key: 'ic', header: 'Mean IC', unit: 'rank corr.', numeric: true, sort: (f) => f.mean_ic, render: (f) => <Value measure="mean_ic" kind="ic" value={f.mean_ic} digits={4} signed tone /> },
     { key: 't', header: 'IC t-stat', unit: 'Newey-West', numeric: true, sort: (f) => f.t_stat, render: (f) => <Value measure="ic_t_stat" kind="tstat" value={f.t_stat} digits={2} signed /> },
     { key: 'nt', header: 'Naive t', unit: 'uncorrected', numeric: true, sort: (f) => f.naive_t_stat, render: (f) => <Value value={f.naive_t_stat} digits={2} signed title="Before correcting for label overlap" /> },
@@ -228,14 +228,14 @@ export default function FactorWorkbench() {
           </span>
         </ToolbarGroup>
         <ToolbarGroup label="window">
-          <span className="sys-meta" style={{ color: 'var(--ink)' }}>
+          <span className="sys-meta sys-meta--strong">
             {lab.window ? `${lab.window.observation_dates} dates · ${lab.window.horizon_days}d horizon · ${lab.window.step_days}d step` : '—'}
           </span>
         </ToolbarGroup>
         <ToolbarSpacer />
         <ToolbarGroup label="trace">
-          <Link href="/terminal/signals" className="sys-btn" style={{ textDecoration: 'none' }}>signals</Link>
-          <Link href="/terminal/data" className="sys-btn" style={{ textDecoration: 'none' }}>features</Link>
+          <Link href="/terminal/signals" className="sys-btn">signals</Link>
+          <Link href="/terminal/data" className="sys-btn">features</Link>
         </ToolbarGroup>
       </Toolbar>
 
@@ -259,7 +259,7 @@ export default function FactorWorkbench() {
               {lab.degraded.map((d) => (
                 <tr key={d.estimator}>
                   <td style={{ fontFamily: 'var(--font-mono)' }}>{d.estimator}</td>
-                  <td><span className="sys-meta" style={{ color: 'var(--ink)' }}>{d.reason}</span></td>
+                  <td><span className="sys-meta sys-meta--strong">{d.reason}</span></td>
                 </tr>
               ))}
             </tbody>

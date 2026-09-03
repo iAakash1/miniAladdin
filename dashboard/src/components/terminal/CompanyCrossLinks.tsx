@@ -58,7 +58,7 @@ export default function CompanyCrossLinks({ analysis }: { analysis: Analysis }) 
                   onClick={() => recordRecent(entity)}
                   title={entity.description}
                   className="btn btn--ghost btn--xs"
-                  style={{ border: '1px solid var(--line)', textDecoration: 'none' }}
+                  style={{ border: '1px solid var(--line)' }}
                 >
                   {entity.title}
                   <span className="label" style={{ fontSize: '0.5625rem', color: 'var(--faint)' }}>

@@ -110,8 +110,8 @@ export default function Lineage({ label, model }: { label: string; model: string
         ]}
         actions={
           <>
-            <Link href="/terminal/evidence" className="sys-btn" style={{ textDecoration: 'none' }}>evidence</Link>
-            <Link href="/terminal/data" className="sys-btn" style={{ textDecoration: 'none' }}>datasets</Link>
+            <Link href="/terminal/evidence" className="sys-btn">evidence</Link>
+            <Link href="/terminal/data" className="sys-btn">datasets</Link>
           </>
         }
       />
@@ -172,10 +172,10 @@ export default function Lineage({ label, model }: { label: string; model: string
                               <td className="num"><Value value={r.rows ?? null} digits={0} /></td>
                               <td className="num">{r.min_date ?? '—'}</td>
                               <td className="num">{r.max_date ?? '—'}</td>
-                              <td><span className="sys-meta" style={{ color: 'var(--ink)' }}>{r.point_in_time_status ?? '—'}</span></td>
-                              <td><span className="sys-meta" style={{ color: 'var(--ink)' }}>{r.survivorship_status ?? '—'}</span></td>
+                              <td><span className="sys-meta sys-meta--strong">{r.point_in_time_status ?? '—'}</span></td>
+                              <td><span className="sys-meta sys-meta--strong">{r.survivorship_status ?? '—'}</span></td>
                               <td className="num"><Value value={r.partitions ?? null} digits={0} /></td>
-                              <td><span className="sys-meta" style={{ color: 'var(--ink)' }}>{r.retrieved_at?.slice(0, 19) ?? '—'}</span></td>
+                              <td><span className="sys-meta sys-meta--strong">{r.retrieved_at?.slice(0, 19) ?? '—'}</span></td>
                             </tr>
                           ))}
                         </tbody>
@@ -194,7 +194,7 @@ export default function Lineage({ label, model }: { label: string; model: string
                                 ? <Value value={v} digits={4} />
                                 : v === null || v === undefined
                                   ? <span className="sys-null">—</span>
-                                  : <span className="sys-meta" style={{ color: 'var(--ink)' }}>
+                                  : <span className="sys-meta sys-meta--strong">
                                       {typeof v === 'object' ? JSON.stringify(v) : String(v)}
                                     </span>}
                             </td>

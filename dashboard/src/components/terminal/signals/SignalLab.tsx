@@ -97,9 +97,9 @@ export default function SignalLab() {
   const finalists = useMemo(() => data?.finalists ?? [], [data])
 
   const columns: DataColumn<Finalist>[] = useMemo(() => [
-    { key: 'id', header: 'Config', width: '20%', sort: (f) => f.config_id, text: (f) => f.config_id, render: (f) => <span style={{ fontFamily: 'var(--font-mono)' }}>{f.config_id}</span> },
+    { key: 'id', header: 'Config', width: '20%', sort: (f) => f.config_id, text: (f) => f.config_id, render: (f) => <span className="sys-mono">{f.config_id}</span> },
     { key: 'family', header: 'Family', width: '18%', sort: (f) => f.family ?? null, text: (f) => f.family ?? '', render: (f) => f.family ?? '—' },
-    { key: 'arm', header: 'Arm', width: '14%', sort: (f) => f.arm ?? null, text: (f) => f.arm ?? '', render: (f) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{f.arm ?? '—'}</span> },
+    { key: 'arm', header: 'Arm', width: '14%', sort: (f) => f.arm ?? null, text: (f) => f.arm ?? '', render: (f) => <span className="sys-meta sys-meta--strong">{f.arm ?? '—'}</span> },
     { key: 'stage', header: 'Stage', width: '16%', sort: (f) => f.stage ?? null, text: (f) => f.stage ?? '', render: (f) => <Status state="recorded" label={f.stage ?? 'recorded'} /> },
     {
       key: 'ic', header: 'Mean IC', unit: 'rank corr.', numeric: true,

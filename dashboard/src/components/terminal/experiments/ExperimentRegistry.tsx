@@ -77,9 +77,9 @@ export default function ExperimentRegistry() {
   }, [selected])
 
   const columns: DataColumn<Row>[] = useMemo(() => [
-    { key: 'id', header: 'Experiment', width: '18%', sort: (r) => r.experiment_id, text: (r) => r.experiment_id, render: (r) => <span style={{ fontFamily: 'var(--font-mono)' }}>{r.experiment_id}</span> },
+    { key: 'id', header: 'Experiment', width: '18%', sort: (r) => r.experiment_id, text: (r) => r.experiment_id, render: (r) => <span className="sys-mono">{r.experiment_id}</span> },
     { key: 'state', header: 'State', width: '14%', sort: (r) => (r.void ? 'void' : r.status ?? ''), text: (r) => (r.void ? 'void' : r.status ?? ''), render: (r) => <Status state={r.void ? 'unavailable' : 'recorded'} label={r.void ? 'void' : (r.status ?? 'recorded')} /> },
-    { key: 'detail', header: 'Detail', text: (r) => `${r.detail ?? ''} ${r.void_reason ?? ''}`, render: (r) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{r.detail ?? r.void_reason ?? '—'}</span> },
+    { key: 'detail', header: 'Detail', text: (r) => `${r.detail ?? ''} ${r.void_reason ?? ''}`, render: (r) => <span className="sys-meta sys-meta--strong">{r.detail ?? r.void_reason ?? '—'}</span> },
   ], [])
 
   if (error) {
@@ -149,7 +149,7 @@ export default function ExperimentRegistry() {
             title="Experiment"
             subtitle={detail.data.experiment_id ?? selected}
             state={detail.data.void ? 'unavailable' : 'recorded'}
-            actions={<Link href="/terminal/evidence" className="sys-meta" style={{ color: 'var(--ink)' }}>Evidence →</Link>}
+            actions={<Link href="/terminal/evidence" className="sys-meta sys-meta--strong">Evidence →</Link>}
           >
             {detail.data.void ? (
               <StateBlock state="unavailable" title="This experiment is void" detail={detail.data.void_reason ?? undefined} />
@@ -191,8 +191,8 @@ export default function ExperimentRegistry() {
                         <td className="num"><Value value={d.rows ?? null} digits={0} /></td>
                         <td className="num">{d.min_date ?? '—'}</td>
                         <td className="num">{d.max_date ?? '—'}</td>
-                        <td><span className="sys-meta" style={{ color: 'var(--ink)' }}>{d.point_in_time_status ?? '—'}</span></td>
-                        <td><span className="sys-meta" style={{ color: 'var(--ink)' }}>{d.survivorship_status ?? '—'}</span></td>
+                        <td><span className="sys-meta sys-meta--strong">{d.point_in_time_status ?? '—'}</span></td>
+                        <td><span className="sys-meta sys-meta--strong">{d.survivorship_status ?? '—'}</span></td>
                       </tr>
                     ))}
                   </tbody>

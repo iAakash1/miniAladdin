@@ -125,7 +125,7 @@ function KeyValues({ data }: { data: Record<string, unknown> | undefined }) {
                 ? <Value value={v} digits={4} />
                 : v === null || v === undefined
                   ? <span className="sys-null">—</span>
-                  : <span className="sys-meta" style={{ color: 'var(--ink)' }}>{String(v)}</span>}
+                  : <span className="sys-meta sys-meta--strong">{String(v)}</span>}
             </td>
           </tr>
         ))}
@@ -150,8 +150,8 @@ export default function EvidenceChain() {
   }, [])
 
   const columns: DataColumn<LeaderboardRow>[] = useMemo(() => [
-    { key: 'model', header: 'Model', width: '26%', sort: (r) => r.model_id, text: (r) => r.model_id, render: (r) => <span style={{ fontFamily: 'var(--font-mono)' }}>{r.model_id}</span> },
-    { key: 'label', header: 'Label', width: '14%', sort: (r) => r.label, text: (r) => r.label, render: (r) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{r.label}</span> },
+    { key: 'model', header: 'Model', width: '26%', sort: (r) => r.model_id, text: (r) => r.model_id, render: (r) => <span className="sys-mono">{r.model_id}</span> },
+    { key: 'label', header: 'Label', width: '14%', sort: (r) => r.label, text: (r) => r.label, render: (r) => <span className="sys-meta sys-meta--strong">{r.label}</span> },
     { key: 'status', header: 'Status', width: '14%', sort: (r) => r.status, text: (r) => r.status, render: (r) => <Status state={statusState(r.status)} label={r.status} /> },
     { key: 'ic', header: 'Mean IC', unit: 'rank corr.', numeric: true, sort: (r) => r.mean_ic, render: (r) => <Value measure="mean_ic" kind="ic" value={r.mean_ic} digits={4} signed tone /> },
     { key: 't', header: 'IC t-stat', unit: 'Newey-West', numeric: true, sort: (r) => r.ic_t_stat, render: (r) => <Value measure="ic_t_stat" kind="tstat" value={r.ic_t_stat} digits={2} signed /> },
@@ -209,8 +209,8 @@ export default function EvidenceChain() {
         ]}
         actions={
           <>
-            <Link href="/terminal/gates" className="sys-btn" style={{ textDecoration: 'none' }}>gates</Link>
-            <Link href="/terminal/compare" className="sys-btn" style={{ textDecoration: 'none' }}>compare</Link>
+            <Link href="/terminal/gates" className="sys-btn">gates</Link>
+            <Link href="/terminal/compare" className="sys-btn">compare</Link>
           </>
         }
       />
@@ -254,11 +254,11 @@ export default function EvidenceChain() {
           ]}
           actions={
             <>
-              <Link href="/terminal/gates" className="sys-btn" style={{ textDecoration: 'none' }}>gate matrix</Link>
-              <Link href="/terminal/compare" className="sys-btn" style={{ textDecoration: 'none' }}>compare</Link>
+              <Link href="/terminal/gates" className="sys-btn">gate matrix</Link>
+              <Link href="/terminal/compare" className="sys-btn">compare</Link>
               <Link
                 href={`/terminal/provenance?label=${encodeURIComponent(inspectedEntry.label)}&model=${encodeURIComponent(inspectedEntry.model_id)}`}
-                className="sys-btn" style={{ textDecoration: 'none' }}
+                className="sys-btn"
               >
                 provenance
               </Link>
@@ -275,9 +275,9 @@ export default function EvidenceChain() {
         </ToolbarGroup>
         <ToolbarSpacer />
         <ToolbarGroup label="trace">
-          <Link href="/terminal/gates" className="sys-btn" style={{ textDecoration: 'none' }}>gate matrix</Link>
-          <Link href="/terminal/experiments" className="sys-btn" style={{ textDecoration: 'none' }}>experiments</Link>
-          <Link href="/terminal/provenance" className="sys-btn" style={{ textDecoration: 'none' }}>provenance</Link>
+          <Link href="/terminal/gates" className="sys-btn">gate matrix</Link>
+          <Link href="/terminal/experiments" className="sys-btn">experiments</Link>
+          <Link href="/terminal/provenance" className="sys-btn">provenance</Link>
         </ToolbarGroup>
       </Toolbar>
 
@@ -296,8 +296,8 @@ export default function EvidenceChain() {
         flush
         actions={
           <div style={{ display: 'flex', gap: 'var(--d-1)' }}>
-            <Link href="/terminal/gates" className="sys-btn" style={{ textDecoration: 'none' }}>gate matrix</Link>
-            <Link href="/terminal/compare" className="sys-btn" style={{ textDecoration: 'none' }}>compare</Link>
+            <Link href="/terminal/gates" className="sys-btn">gate matrix</Link>
+            <Link href="/terminal/compare" className="sys-btn">compare</Link>
           </div>
         }
       >

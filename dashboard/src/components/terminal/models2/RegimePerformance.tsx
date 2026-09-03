@@ -51,7 +51,7 @@ export default function RegimePerformance({
   const columns: DataColumn<RegimeRow>[] = useMemo(() => [
     {
       key: 'regime', header: 'Regime', width: '20%', sort: (r) => r.regime, text: (r) => r.regime,
-      render: (r) => <span style={{ fontFamily: 'var(--font-mono)' }}>{r.regime.replace(/_/g, ' ')}</span>,
+      render: (r) => <span className="sys-mono">{r.regime.replace(/_/g, ' ')}</span>,
     },
     {
       key: 'share', header: 'Share of sample', unit: 'share', numeric: true, sort: (r) => n(r.share),

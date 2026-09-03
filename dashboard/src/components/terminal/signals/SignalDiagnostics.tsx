@@ -105,7 +105,7 @@ export default function SignalDiagnostics({ experiment, model }: { experiment: s
 
   const foldColumns: DataColumn<Fold>[] = [
     { key: 'fold', header: 'Fold', numeric: true, sort: (f) => f.fold, render: (f) => <Value value={f.fold} digits={0} /> },
-    { key: 'window', header: 'Window', width: '22%', sort: (f) => f.start, text: (f) => `${f.start} ${f.end}`, render: (f) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{f.start} → {f.end}</span> },
+    { key: 'window', header: 'Window', width: '22%', sort: (f) => f.start, text: (f) => `${f.start} ${f.end}`, render: (f) => <span className="sys-meta sys-meta--strong">{f.start} → {f.end}</span> },
     { key: 'ic', header: 'Mean IC', unit: 'rank corr.', numeric: true, sort: (f) => f.mean_ic, render: (f) => <Value measure="mean_ic" kind="ic" value={f.mean_ic} digits={4} signed tone /> },
     { key: 'med', header: 'Median IC', unit: 'rank corr.', numeric: true, sort: (f) => f.median_ic, render: (f) => <Value measure="mean_ic" kind="ic" value={f.median_ic} digits={4} signed /> },
     { key: 'std', header: 'IC dispersion', unit: 'std of IC', numeric: true, sort: (f) => f.std_ic, render: (f) => <Value value={f.std_ic} digits={4} /> },

@@ -135,7 +135,7 @@ export default function PortfolioWorkbench() {
           { label: 'Net', value: net, digits: 3, signed: true, tone: true },
           { label: 'Method', value: data.method ?? null, digits: 0 },
         ]}
-        actions={<Link href="/terminal/risk" className="sys-btn" style={{ textDecoration: 'none' }}>risk</Link>}
+        actions={<Link href="/terminal/risk" className="sys-btn">risk</Link>}
       />
 
       <Strip metrics={[
@@ -162,7 +162,7 @@ export default function PortfolioWorkbench() {
         subtitle={[data.model_id, data.target, data.as_of].filter(Boolean).join(' · ')}
         state={data.status === 'ok' ? 'recorded' : 'unavailable'}
         flush
-        actions={<Link href="/terminal/risk" className="sys-meta" style={{ color: 'var(--ink)' }}>Risk →</Link>}
+        actions={<Link href="/terminal/risk" className="sys-meta sys-meta--strong">Risk →</Link>}
       >
         <DataTable
           columns={columns} rows={weights} rowKey={(w) => w.symbol}
@@ -236,7 +236,7 @@ export default function PortfolioWorkbench() {
                     <td className="num" style={{ whiteSpace: 'normal', textAlign: 'left' }}>
                       {typeof v === 'number'
                         ? <Value value={v} digits={2} />
-                        : <span className="sys-meta" style={{ color: 'var(--ink)' }}>{String(v)}</span>}
+                        : <span className="sys-meta sys-meta--strong">{String(v)}</span>}
                     </td>
                   </tr>
                 ))}
@@ -278,7 +278,7 @@ export default function PortfolioWorkbench() {
                     <tr key={k}>
                       <td style={{ fontFamily: 'var(--font-mono)', width: '52%' }}>{k}</td>
                       <td className="num">
-                        {typeof v === 'number' ? <Value value={v} digits={4} /> : <span className="sys-meta" style={{ color: 'var(--ink)' }}>{String(v)}</span>}
+                        {typeof v === 'number' ? <Value value={v} digits={4} /> : <span className="sys-meta sys-meta--strong">{String(v)}</span>}
                       </td>
                     </tr>
                   ))}

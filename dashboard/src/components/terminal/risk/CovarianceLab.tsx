@@ -65,7 +65,7 @@ export default function CovarianceLab() {
     {
       key: 'est', header: 'Estimator', width: '20%',
       sort: (r) => r.estimator, text: (r) => r.estimator,
-      render: (r) => <span style={{ fontFamily: 'var(--font-mono)' }}>{r.estimator}</span>,
+      render: (r) => <span className="sys-mono">{r.estimator}</span>,
     },
     {
       key: 'psd', header: 'PSD', width: '10%', sort: (r) => (r.positive_semi_definite ? 1 : 0),
@@ -119,9 +119,9 @@ export default function CovarianceLab() {
         <StripSkeleton items={6} />
         <Toolbar>
         <ToolbarGroup label="trace">
-          <Link href="/terminal/risk" className="sys-btn" style={{ textDecoration: 'none' }}>risk</Link>
-          <Link href="/terminal/book" className="sys-btn" style={{ textDecoration: 'none' }}>book</Link>
-          <Link href="/terminal/handbook" className="sys-btn" style={{ textDecoration: 'none' }}>handbook</Link>
+          <Link href="/terminal/risk" className="sys-btn">risk</Link>
+          <Link href="/terminal/book" className="sys-btn">book</Link>
+          <Link href="/terminal/handbook" className="sys-btn">handbook</Link>
         </ToolbarGroup>
         <ToolbarSpacer />
         <span className="sys-meta">the estimator is a choice, not a property of the book</span>
@@ -194,7 +194,7 @@ export default function CovarianceLab() {
                 <tr key={r.estimator}>
                   <td style={{ fontFamily: 'var(--font-mono)' }}>{r.estimator}</td>
                   <td className="num sys-neg"><Value value={r.diversification_ratio} digits={4} /></td>
-                  <td><span className="sys-meta" style={{ color: 'var(--ink)' }}>{r.impossible_reason}</span></td>
+                  <td><span className="sys-meta sys-meta--strong">{r.impossible_reason}</span></td>
                 </tr>
               ))}
             </tbody>

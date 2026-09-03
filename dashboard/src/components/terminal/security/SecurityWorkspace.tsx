@@ -148,8 +148,8 @@ export default function SecurityWorkspace({ symbol }: { symbol: string }) {
         ]}
         actions={
           <>
-            <Link href={`/terminal/calibration?symbol=${encodeURIComponent(symbol)}`} className="sys-btn" style={{ textDecoration: 'none' }}>calibration</Link>
-            <Link href={`/terminal/relationships?symbol=${encodeURIComponent(symbol)}`} className="sys-btn" style={{ textDecoration: 'none' }}>relationships</Link>
+            <Link href={`/terminal/calibration?symbol=${encodeURIComponent(symbol)}`} className="sys-btn">calibration</Link>
+            <Link href={`/terminal/relationships?symbol=${encodeURIComponent(symbol)}`} className="sys-btn">relationships</Link>
           </>
         }
       />
@@ -308,13 +308,13 @@ export default function SecurityWorkspace({ symbol }: { symbol: string }) {
             on every render rather than as a caveat further down the page.
           </p>
           <div style={{ display: 'flex', gap: 'var(--d-2)', marginTop: 'var(--d-3)', flexWrap: 'wrap' }}>
-            <Link href={`/terminal/calibration?symbol=${encodeURIComponent(symbol)}`} className="sys-btn" style={{ textDecoration: 'none' }}>
+            <Link href={`/terminal/calibration?symbol=${encodeURIComponent(symbol)}`} className="sys-btn">
               Is the score calibrated?
             </Link>
-            <Link href={`/terminal/relationships?symbol=${encodeURIComponent(symbol)}`} className="sys-btn" style={{ textDecoration: 'none' }}>
+            <Link href={`/terminal/relationships?symbol=${encodeURIComponent(symbol)}`} className="sys-btn">
               What does it connect to?
             </Link>
-            <Link href="/terminal/evidence" className="sys-btn" style={{ textDecoration: 'none' }}>
+            <Link href="/terminal/evidence" className="sys-btn">
               Can the model be trusted?
             </Link>
           </div>
@@ -332,7 +332,7 @@ export default function SecurityWorkspace({ symbol }: { symbol: string }) {
             confidence and a validity window, not a measurement. The graph is
             traversable — each neighbour opens its own connections.
           </p>
-          <Link href={`/terminal/relationships?symbol=${encodeURIComponent(symbol)}`} className="sys-btn" style={{ textDecoration: 'none' }}>
+          <Link href={`/terminal/relationships?symbol=${encodeURIComponent(symbol)}`} className="sys-btn">
             Open the relationship graph for {symbol}
           </Link>
         </Panel>

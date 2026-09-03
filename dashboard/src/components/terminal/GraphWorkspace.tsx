@@ -269,7 +269,7 @@ export default function GraphWorkspace() {
               Snapshot ({state.snapshots.length})
             </button>
             <Link href="/terminal/sessions" className="btn btn--ghost btn--xs"
-                  style={{ border: '1px solid var(--line)', textDecoration: 'none' }}>
+                  style={{ border: '1px solid var(--line)' }}>
               All investigations
             </Link>
           </>
@@ -282,7 +282,7 @@ export default function GraphWorkspace() {
               Start investigation
             </button>
             <Link href="/terminal/sessions" className="btn btn--ghost btn--xs"
-                  style={{ border: '1px solid var(--line)', textDecoration: 'none' }}>
+                  style={{ border: '1px solid var(--line)' }}>
               Open existing
             </Link>
           </>
@@ -544,7 +544,7 @@ export default function GraphWorkspace() {
                 </button>
                 {selectedNode.route?.startsWith('/company/') && (
                   <Link href={selectedNode.route} className="btn btn--ghost btn--xs"
-                        style={{ border: '1px solid var(--line)', textDecoration: 'none' }}>
+                        style={{ border: '1px solid var(--line)' }}>
                     Open report
                   </Link>
                 )}

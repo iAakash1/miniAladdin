@@ -532,7 +532,7 @@ export default function PortfolioView() {
                         <Link
                           href={`/company/${ticker}`}
                           className="mono"
-                          style={{ fontWeight: 600, textDecoration: 'none', color: 'var(--text)' }}
+                          style={{ fontWeight: 600, color: 'var(--text)' }}
                         >
                           {ticker}
                         </Link>
@@ -601,7 +601,7 @@ export default function PortfolioView() {
                         <Link
                           href={`/company/${ticker}`}
                           className="btn btn--ghost btn--xs"
-                          style={{ textDecoration: 'none' }}
+                         
                         >
                           Explain
                         </Link>

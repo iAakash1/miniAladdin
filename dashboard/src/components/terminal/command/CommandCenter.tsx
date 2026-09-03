@@ -97,7 +97,7 @@ export default function CommandCenter() {
       sort: (r) => (r.void ? 'void' : r.status ?? ''), text: (r) => (r.void ? 'void' : r.status ?? ''),
       render: (r) => <Status state={r.void ? 'unavailable' : 'recorded'} label={r.void ? 'void' : (r.status ?? 'recorded')} />,
     },
-    { key: 'detail', header: 'Detail', text: (r) => `${r.detail ?? ''} ${r.void_reason ?? ''}`, render: (r) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{r.detail ?? r.void_reason ?? '—'}</span> },
+    { key: 'detail', header: 'Detail', text: (r) => `${r.detail ?? ''} ${r.void_reason ?? ''}`, render: (r) => <span className="sys-meta sys-meta--strong">{r.detail ?? r.void_reason ?? '—'}</span> },
   ]
 
   const failedGates = (selection?.verdict?.gates ?? []).filter((g) => !g.passed)
@@ -130,7 +130,7 @@ export default function CommandCenter() {
                     <tr key={g.gate}>
                       <td style={{ fontFamily: 'var(--font-mono)' }}>{g.gate}</td>
                       <td className="num sys-neg">{fmt(g.observed)}</td>
-                      <td><span className="sys-meta" style={{ color: 'var(--ink)' }}>{g.required}</span></td>
+                      <td><span className="sys-meta sys-meta--strong">{g.required}</span></td>
                     </tr>
                   ))}
                 </tbody>
@@ -142,7 +142,7 @@ export default function CommandCenter() {
               {selection.verdict.note}
             </p>
             <p style={{ marginTop: 'var(--d-2)', marginBottom: 0 }}>
-              <Link href="/terminal/evidence" className="sys-meta" style={{ color: 'var(--ink)' }}>Inspect the evidence chain →</Link>
+              <Link href="/terminal/evidence" className="sys-meta sys-meta--strong">Inspect the evidence chain →</Link>
             </p>
           </>
         ) : errors.some((e) => e.startsWith('selection')) ? (
@@ -227,12 +227,12 @@ export default function CommandCenter() {
 
       <Panel title="Start here">
         <div style={{ display: 'flex', gap: 'var(--d-2)', flexWrap: 'wrap' }}>
-          <Link href="/terminal/gates" className="sys-btn" style={{ textDecoration: 'none' }}>Which gate blocks everything</Link>
-          <Link href="/terminal/signals" className="sys-btn" style={{ textDecoration: 'none' }}>How many ideas were tried</Link>
-          <Link href="/terminal/covariance" className="sys-btn" style={{ textDecoration: 'none' }}>How much risk depends on the estimator</Link>
-          <Link href="/terminal/data" className="sys-btn" style={{ textDecoration: 'none' }}>What the data contract says</Link>
-          <Link href="/terminal/provenance" className="sys-btn" style={{ textDecoration: 'none' }}>Where a prediction came from</Link>
-          <Link href="/terminal/memos" className="sys-btn" style={{ textDecoration: 'none' }}>Write it down</Link>
+          <Link href="/terminal/gates" className="sys-btn">Which gate blocks everything</Link>
+          <Link href="/terminal/signals" className="sys-btn">How many ideas were tried</Link>
+          <Link href="/terminal/covariance" className="sys-btn">How much risk depends on the estimator</Link>
+          <Link href="/terminal/data" className="sys-btn">What the data contract says</Link>
+          <Link href="/terminal/provenance" className="sys-btn">Where a prediction came from</Link>
+          <Link href="/terminal/memos" className="sys-btn">Write it down</Link>
         </div>
         <p style={{ margin: 'var(--d-2) 0 0', fontSize: 'var(--t-micro)', color: 'var(--ink-faint)' }}>
           Press ⌘K to search every object, or ? for the keyboard map.

@@ -192,8 +192,8 @@ export default function Coverage() {
                   <td className="num">{s.min_date ?? <span className="sys-null">—</span>}</td>
                   <td className="num">{s.max_date ?? <span className="sys-null">—</span>}</td>
                   <td><Status state={pitState(s.point_in_time_status)} label={s.point_in_time_status ?? 'unknown'} /></td>
-                  <td><span className="sys-meta" style={{ color: 'var(--ink)' }}>{s.survivorship_status ?? '—'}</span></td>
-                  <td><span className="sys-meta" style={{ color: 'var(--ink)' }}>{s.retrieved_at?.slice(0, 10) ?? '—'}</span></td>
+                  <td><span className="sys-meta sys-meta--strong">{s.survivorship_status ?? '—'}</span></td>
+                  <td><span className="sys-meta sys-meta--strong">{s.retrieved_at?.slice(0, 10) ?? '—'}</span></td>
                 </tr>
               ))}
             </tbody>

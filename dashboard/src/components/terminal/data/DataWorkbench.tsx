@@ -104,7 +104,7 @@ export default function DataWorkbench() {
   }, [])
 
   const datasetColumns: DataColumn<Dataset>[] = useMemo(() => [
-    { key: 'id', header: 'Dataset', width: '22%', sort: (d) => d.dataset_id, text: (d) => d.dataset_id, render: (d) => <span style={{ fontFamily: 'var(--font-mono)' }}>{d.dataset_id}</span> },
+    { key: 'id', header: 'Dataset', width: '22%', sort: (d) => d.dataset_id, text: (d) => d.dataset_id, render: (d) => <span className="sys-mono">{d.dataset_id}</span> },
     { key: 'source', header: 'Source', width: '14%', sort: (d) => d.source, text: (d) => d.source, render: (d) => d.source },
     {
       key: 'pit', header: 'Point in time', width: '16%', sort: (d) => d.point_in_time, text: (d) => d.point_in_time,
@@ -112,14 +112,14 @@ export default function DataWorkbench() {
     },
     {
       key: 'surv', header: 'Survivorship', width: '16%', sort: (d) => d.survivorship, text: (d) => d.survivorship,
-      render: (d) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{d.survivorship}</span>,
+      render: (d) => <span className="sys-meta sys-meta--strong">{d.survivorship}</span>,
     },
-    { key: 'ingest', header: 'Ingestion', width: '14%', sort: (d) => d.ingestion ?? null, text: (d) => d.ingestion ?? '', render: (d) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{d.ingestion ?? '—'}</span> },
+    { key: 'ingest', header: 'Ingestion', width: '14%', sort: (d) => d.ingestion ?? null, text: (d) => d.ingestion ?? '', render: (d) => <span className="sys-meta sys-meta--strong">{d.ingestion ?? '—'}</span> },
     { key: 'cols', header: 'Columns', unit: 'count', numeric: true, sort: (d) => d.columns?.length ?? null, render: (d) => <Value value={d.columns?.length ?? null} digits={0} /> },
   ], [])
 
   const featureColumns: DataColumn<Feature>[] = useMemo(() => [
-    { key: 'name', header: 'Feature', width: '22%', sort: (f) => f.name, text: (f) => `${f.name} ${f.description}`, render: (f) => <span style={{ fontFamily: 'var(--font-mono)' }}>{f.name}</span> },
+    { key: 'name', header: 'Feature', width: '22%', sort: (f) => f.name, text: (f) => `${f.name} ${f.description}`, render: (f) => <span className="sys-mono">{f.name}</span> },
     { key: 'group', header: 'Group', width: '14%', sort: (f) => f.group, text: (f) => f.group, render: (f) => f.group },
     {
       key: 'pit', header: 'PIT safe', width: '12%', sort: (f) => (f.point_in_time_safe ? 1 : 0),
@@ -135,11 +135,11 @@ export default function DataWorkbench() {
     },
     {
       key: 'xs', header: 'Cross-sectional', width: '12%', sort: (f) => (f.cross_sectional ? 1 : 0),
-      render: (f) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{f.cross_sectional ? 'yes' : 'no'}</span>,
+      render: (f) => <span className="sys-meta sys-meta--strong">{f.cross_sectional ? 'yes' : 'no'}</span>,
     },
     {
       key: 'dir', header: 'Direction', width: '12%', optional: true, sort: (f) => f.direction ?? null,
-      render: (f) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{f.direction ?? '—'}</span>,
+      render: (f) => <span className="sys-meta sys-meta--strong">{f.direction ?? '—'}</span>,
     },
   ], [])
 
@@ -266,9 +266,9 @@ export default function DataWorkbench() {
 
       <Toolbar>
         <ToolbarGroup label="trace">
-          <Link href="/terminal/provenance" className="sys-btn" style={{ textDecoration: 'none' }}>provenance</Link>
-          <Link href="/terminal/providers" className="sys-btn" style={{ textDecoration: 'none' }}>providers</Link>
-          <Link href="/terminal/evidence" className="sys-btn" style={{ textDecoration: 'none' }}>models</Link>
+          <Link href="/terminal/provenance" className="sys-btn">provenance</Link>
+          <Link href="/terminal/providers" className="sys-btn">providers</Link>
+          <Link href="/terminal/evidence" className="sys-btn">models</Link>
         </ToolbarGroup>
         <ToolbarSpacer />
         <span className="sys-meta">point-in-time contracts, as published</span>

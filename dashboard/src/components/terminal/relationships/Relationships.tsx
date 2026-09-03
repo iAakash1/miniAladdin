@@ -104,11 +104,11 @@ export default function Relationships({ initialSymbol = 'AAPL' }: { initialSymbo
       render: (x) => (
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
           <span style={{ width: 7, height: 7, background: typeTone(x.type, nodeTypes), flex: 'none' }} />
-          <span style={{ fontFamily: 'var(--font-mono)' }}>{x.label}</span>
+          <span className="sys-mono">{x.label}</span>
         </span>
       ),
     },
-    { key: 'type', header: 'Type', width: '16%', sort: (x) => x.type, text: (x) => x.type, render: (x) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{x.type}</span> },
+    { key: 'type', header: 'Type', width: '16%', sort: (x) => x.type, text: (x) => x.type, render: (x) => <span className="sys-meta sys-meta--strong">{x.type}</span> },
     { key: 'deg', header: 'Connections', numeric: true, sort: (x) => degree.get(x.id) ?? 0, render: (x) => <Value value={degree.get(x.id) ?? 0} digits={0} /> },
     { key: 'desc', header: 'Description', text: (x) => x.description ?? '', render: (x) => <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-muted)' }}>{x.description ?? '—'}</span> },
   ], [nodeTypes, degree])
@@ -116,14 +116,14 @@ export default function Relationships({ initialSymbol = 'AAPL' }: { initialSymbo
   const edgeColumns: DataColumn<GraphEdge>[] = useMemo(() => {
     const label = (id: string) => allNodes.find((x) => x.id === id)?.label ?? id
     return [
-      { key: 'src', header: 'From', width: '22%', sort: (e) => label(e.source_id), text: (e) => label(e.source_id), render: (e) => <span style={{ fontFamily: 'var(--font-mono)' }}>{label(e.source_id)}</span> },
-      { key: 'type', header: 'Relationship', width: '18%', sort: (e) => e.type, text: (e) => e.type, render: (e) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{e.type}</span> },
-      { key: 'tgt', header: 'To', width: '22%', sort: (e) => label(e.target_id), text: (e) => label(e.target_id), render: (e) => <span style={{ fontFamily: 'var(--font-mono)' }}>{label(e.target_id)}</span> },
+      { key: 'src', header: 'From', width: '22%', sort: (e) => label(e.source_id), text: (e) => label(e.source_id), render: (e) => <span className="sys-mono">{label(e.source_id)}</span> },
+      { key: 'type', header: 'Relationship', width: '18%', sort: (e) => e.type, text: (e) => e.type, render: (e) => <span className="sys-meta sys-meta--strong">{e.type}</span> },
+      { key: 'tgt', header: 'To', width: '22%', sort: (e) => label(e.target_id), text: (e) => label(e.target_id), render: (e) => <span className="sys-mono">{label(e.target_id)}</span> },
       {
         key: 'conf', header: 'Confidence', unit: '0 to 1', numeric: true, sort: (e) => n(e.confidence),
         render: (e) => <Value value={n(e.confidence)} digits={2} title="How strongly the provider asserts this relationship" />,
       },
-      { key: 'prov', header: 'Provider', width: '14%', sort: (e) => e.provider ?? null, text: (e) => e.provider ?? '', render: (e) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{e.provider ?? '—'}</span> },
+      { key: 'prov', header: 'Provider', width: '14%', sort: (e) => e.provider ?? null, text: (e) => e.provider ?? '', render: (e) => <span className="sys-meta sys-meta--strong">{e.provider ?? '—'}</span> },
       { key: 'from', header: 'Valid from', optional: true, sort: (e) => e.valid_from ?? null, render: (e) => <span className="sys-meta">{e.valid_from ?? '—'}</span> },
       { key: 'to', header: 'Valid to', optional: true, sort: (e) => e.valid_to ?? null, render: (e) => <span className="sys-meta">{e.valid_to ?? 'open'}</span> },
       { key: 'obs', header: 'Observed', optional: true, sort: (e) => e.observed_at ?? null, render: (e) => <span className="sys-meta">{e.observed_at ?? '—'}</span> },
@@ -206,7 +206,7 @@ export default function Relationships({ initialSymbol = 'AAPL' }: { initialSymbo
               { label: 'Node types', value: nodeTypes.length, kind: 'count' },
             ]}
             actions={
-              <Link href={`/terminal/security?symbol=${encodeURIComponent(symbol)}`} className="sys-btn" style={{ textDecoration: 'none' }}>
+              <Link href={`/terminal/security?symbol=${encodeURIComponent(symbol)}`} className="sys-btn">
                 open security
               </Link>
             }
@@ -269,7 +269,7 @@ export default function Relationships({ initialSymbol = 'AAPL' }: { initialSymbo
                 selected.type === 'company' ? (
                   <Link
                     href={`/terminal/security?symbol=${encodeURIComponent(selected.id.split(':')[1] ?? '')}`}
-                    className="sys-btn" style={{ textDecoration: 'none' }}
+                    className="sys-btn"
                   >
                     open security
                   </Link>
@@ -306,7 +306,7 @@ export default function Relationships({ initialSymbol = 'AAPL' }: { initialSymbo
                         return (
                           <tr key={`${e.source_id}-${e.target_id}-${i}`}>
                             <td className="sys-meta" style={{ width: 22 }}>{outgoing ? '→' : '←'}</td>
-                            <td><span className="sys-meta" style={{ color: 'var(--ink)' }}>{e.type}</span></td>
+                            <td><span className="sys-meta sys-meta--strong">{e.type}</span></td>
                             <td>
                               <button
                                 className="sys-btn"
@@ -317,7 +317,7 @@ export default function Relationships({ initialSymbol = 'AAPL' }: { initialSymbo
                               </button>
                             </td>
                             <td className="num"><Value value={n(e.confidence)} digits={2} /></td>
-                            <td><span className="sys-meta" style={{ color: 'var(--ink)' }}>{e.provider ?? '—'}</span></td>
+                            <td><span className="sys-meta sys-meta--strong">{e.provider ?? '—'}</span></td>
                           </tr>
                         )
                       })}

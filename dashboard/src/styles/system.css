@@ -772,6 +772,10 @@ a:focus-visible {
    action, so the resting state is a hairline and the state change is a
    background rather than a colour wash. */
 
+/* A link rendered as a control is still a control. Seventy-one call sites were
+   each cancelling the underline inline; the rule belongs here. */
+a.sys-btn, a.sys-relation, a.sys-crumb, a.sys-method { text-decoration: none; }
+
 .sys-btn {
   display: inline-flex; align-items: center; gap: var(--d-1);
   font: 500 var(--t-micro) / 1 var(--font-sans);
@@ -1438,3 +1442,24 @@ tr[data-selected='true'] .sys-row-actions { opacity: 1; }
 }
 
 .sys-prose + .sys-prose { margin-top: var(--d-2); }
+
+/* ── inline utilities ────────────────────────────────────────────────────
+   A small, closed set. These exist because the alternative was the same three
+   declarations repeated across a hundred call sites, and a utility that is
+   named is one that can be changed in one place. Nothing is added here that
+   the design system does not already have a token for. */
+
+/* A value rendered in the numeric face inside otherwise-prose context. */
+.sys-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums slashed-zero;
+}
+
+/* Metadata that is the content rather than the annotation — a source name, a
+   classification, a status word read as a value. */
+.sys-meta--strong { color: var(--ink); }
+
+/* Vertical rhythm inside a panel body, where a stack of sections needs the
+   same gap every time. */
+.sys-stack { display: flex; flex-direction: column; gap: var(--d-3); }
+.sys-stack--tight { gap: var(--d-2); }

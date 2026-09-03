@@ -223,7 +223,7 @@ export default function GraphExplorer() {
               title={`No connections recorded for ${slice?.center.label ?? nodeId}`}
               description="This entity is in the graph but no provider has asserted a relationship for it yet. Open a company to explore a populated ecosystem."
               action={
-                <Link href="/terminal/graph?node=company:NVDA&label=NVDA" className="btn btn--secondary btn--sm" style={{ textDecoration: 'none' }}>
+                <Link href="/terminal/graph?node=company:NVDA&label=NVDA" className="btn btn--secondary btn--sm">
                   Explore NVDA
                 </Link>
               }
@@ -346,7 +346,7 @@ export default function GraphExplorer() {
                   Explore
                 </button>
                 {edges[active].node.route?.startsWith('/company/') && (
-                  <Link href={edges[active].node.route!} className="btn btn--ghost btn--sm" style={{ textDecoration: 'none' }}>
+                  <Link href={edges[active].node.route!} className="btn btn--ghost btn--sm">
                     Open report
                   </Link>
                 )}

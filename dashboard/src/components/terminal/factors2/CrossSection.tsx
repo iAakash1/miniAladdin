@@ -126,8 +126,8 @@ export default function CrossSection({
       render: (r) => <Status state={CONVICTION[r.conviction] ?? 'unknown'} label={r.conviction} />,
     },
     { key: 'used', header: 'Factors used', numeric: true, sort: (r) => r.factors_used, render: (r) => <Value value={r.factors_used} digits={0} /> },
-    { key: 'best', header: 'Strongest', width: '14%', optional: true, sort: (r) => r.strongest ?? null, render: (r) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{r.strongest ?? '—'}</span> },
-    { key: 'worst', header: 'Weakest', width: '14%', optional: true, sort: (r) => r.weakest ?? null, render: (r) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{r.weakest ?? '—'}</span> },
+    { key: 'best', header: 'Strongest', width: '14%', optional: true, sort: (r) => r.strongest ?? null, render: (r) => <span className="sys-meta sys-meta--strong">{r.strongest ?? '—'}</span> },
+    { key: 'worst', header: 'Weakest', width: '14%', optional: true, sort: (r) => r.weakest ?? null, render: (r) => <span className="sys-meta sys-meta--strong">{r.weakest ?? '—'}</span> },
   ], [])
 
   const conflicted = (screen?.rows ?? []).filter((r) => r.conviction === 'conflicted').length

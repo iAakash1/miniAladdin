@@ -163,10 +163,10 @@ export default function SpreadCurve({ experiment, model }: { experiment: string;
 
       <Toolbar>
         <ToolbarGroup label="trace">
-          <Link href="/terminal/evidence" className="sys-btn" style={{ textDecoration: 'none' }}>evidence</Link>
-          <Link href="/terminal/experiments" className="sys-btn" style={{ textDecoration: 'none' }}>experiment</Link>
-          <Link href="/terminal/risk" className="sys-btn" style={{ textDecoration: 'none' }}>risk</Link>
-          <Link href="/terminal/handbook" className="sys-btn" style={{ textDecoration: 'none' }}>handbook</Link>
+          <Link href="/terminal/evidence" className="sys-btn">evidence</Link>
+          <Link href="/terminal/experiments" className="sys-btn">experiment</Link>
+          <Link href="/terminal/risk" className="sys-btn">risk</Link>
+          <Link href="/terminal/handbook" className="sys-btn">handbook</Link>
         </ToolbarGroup>
         <ToolbarSpacer />
         <span className="sys-meta">rank points, not returns</span>
@@ -295,7 +295,7 @@ export default function SpreadCurve({ experiment, model }: { experiment: string;
                     <tr key={k}>
                       <td style={{ fontFamily: 'var(--font-mono)', width: '48%' }}>{k}</td>
                       <td className="num" style={{ textAlign: 'left', whiteSpace: 'normal' }}>
-                        {typeof v === 'number' ? <Value value={v} digits={2} /> : <span className="sys-meta" style={{ color: 'var(--ink)' }}>{String(v)}</span>}
+                        {typeof v === 'number' ? <Value value={v} digits={2} /> : <span className="sys-meta sys-meta--strong">{String(v)}</span>}
                       </td>
                     </tr>
                   ))}

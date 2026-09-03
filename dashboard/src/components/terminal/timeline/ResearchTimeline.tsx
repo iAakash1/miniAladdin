@@ -158,9 +158,9 @@ export default function ResearchTimeline() {
 
       <Toolbar>
         <ToolbarGroup label="trace">
-          <Link href="/terminal/evidence" className="sys-btn" style={{ textDecoration: 'none' }}>registry</Link>
-          <Link href="/terminal/experiments" className="sys-btn" style={{ textDecoration: 'none' }}>experiments</Link>
-          <Link href="/terminal/memos" className="sys-btn" style={{ textDecoration: 'none' }}>memos</Link>
+          <Link href="/terminal/evidence" className="sys-btn">registry</Link>
+          <Link href="/terminal/experiments" className="sys-btn">experiments</Link>
+          <Link href="/terminal/memos" className="sys-btn">memos</Link>
         </ToolbarGroup>
         <ToolbarSpacer />
         <span className="sys-meta">recorded timestamps only</span>
@@ -221,7 +221,7 @@ export default function ResearchTimeline() {
                           >
                             {e.label}
                           </Link>
-                          <span className="sys-meta" style={{ color: 'var(--ink)' }}>{e.what}</span>
+                          <span className="sys-meta sys-meta--strong">{e.what}</span>
                           <Status state={e.state} />
                         </div>
                         {e.detail ? <p className="lin-detail">{e.detail}</p> : null}

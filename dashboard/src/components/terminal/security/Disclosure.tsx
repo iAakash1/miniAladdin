@@ -85,7 +85,7 @@ export default function Disclosure({
   const news = useMemo(() => headlines ?? [], [headlines])
 
   const filingColumns: DataColumn<SecFiling>[] = useMemo(() => [
-    { key: 'form', header: 'Form', width: '10%', sort: (f) => f.form, text: (f) => f.form, render: (f) => <span style={{ fontFamily: 'var(--font-mono)' }}>{f.form}</span> },
+    { key: 'form', header: 'Form', width: '10%', sort: (f) => f.form, text: (f) => f.form, render: (f) => <span className="sys-mono">{f.form}</span> },
     { key: 'filed', header: 'Filed', width: '13%', sort: (f) => f.filed_at, render: (f) => <span className="sys-num">{f.filed_at?.slice(0, 10)}</span> },
     {
       key: 'report', header: 'Period end', unit: 'covered', width: '13%', sort: (f) => f.report_date ?? null,
@@ -106,7 +106,7 @@ export default function Disclosure({
     {
       key: 'link', header: '', width: '58px',
       render: (f) => f.url
-        ? <a className="sys-btn" href={f.url} target="_blank" rel="noreferrer noopener" style={{ textDecoration: 'none' }}>open</a>
+        ? <a className="sys-btn" href={f.url} target="_blank" rel="noreferrer noopener">open</a>
         : <span className="sys-null">—</span>,
     },
   ], [])
@@ -119,7 +119,7 @@ export default function Disclosure({
         ? <a href={h.url} target="_blank" rel="noreferrer noopener" style={{ color: 'inherit' }}>{h.title}</a>
         : h.title,
     },
-    { key: 'src', header: 'Source', width: '13%', sort: (h) => h.source ?? null, text: (h) => h.source ?? '', render: (h) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{h.source ?? '—'}</span> },
+    { key: 'src', header: 'Source', width: '13%', sort: (h) => h.source ?? null, text: (h) => h.source ?? '', render: (h) => <span className="sys-meta sys-meta--strong">{h.source ?? '—'}</span> },
     {
       key: 'corr', header: 'Corroborated', unit: 'vendors', numeric: true,
       sort: (h) => h.corroboratedBy?.length ?? 0,

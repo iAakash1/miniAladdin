@@ -101,7 +101,7 @@ export default function MarketWorkspace() {
           style={{ color: 'inherit' }}
           onClick={() => recordVisit({ kind: 'security', id: s.symbol, label: s.symbol, detail: s.name })}
         >
-          <span style={{ fontFamily: 'var(--font-mono)' }}>{s.symbol}</span>
+          <span className="sys-mono">{s.symbol}</span>
           <span className="sys-meta" style={{ marginLeft: 6 }}>{s.name}</span>
         </Link>
       ),
@@ -127,7 +127,7 @@ export default function MarketWorkspace() {
     },
     {
       key: 'src', header: 'Source', width: '12%', optional: true, sort: (s) => s.source ?? null,
-      render: (s) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{s.source ?? '—'}</span>,
+      render: (s) => <span className="sys-meta sys-meta--strong">{s.source ?? '—'}</span>,
     },
   ], [])
 
@@ -301,7 +301,7 @@ export default function MarketWorkspace() {
                   <tr key={`${e.date}-${i}`}>
                     <td className="num">{e.date}</td>
                     <td className="num"><Value value={n(e.days_away)} digits={0} unit="d" /></td>
-                    <td><span className="sys-meta" style={{ color: 'var(--ink)' }}>{e.type ?? '—'}</span></td>
+                    <td><span className="sys-meta sys-meta--strong">{e.type ?? '—'}</span></td>
                     <td style={{ whiteSpace: 'normal' }} title={e.explain}>{e.title ?? '—'}</td>
                     <td><Status state={importanceState(e.importance)} label={e.importance ?? 'unknown'} /></td>
                   </tr>

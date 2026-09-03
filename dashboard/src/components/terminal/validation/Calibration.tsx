@@ -145,10 +145,10 @@ export default function Calibration({ symbol }: { symbol: string }) {
 
       <Toolbar>
         <ToolbarGroup label="trace">
-          <Link href={`/terminal/security?symbol=${encodeURIComponent(symbol)}`} className="sys-btn" style={{ textDecoration: 'none' }}>security</Link>
-          <Link href={`/terminal/relationships?symbol=${encodeURIComponent(symbol)}`} className="sys-btn" style={{ textDecoration: 'none' }}>relationships</Link>
-          <Link href="/terminal/evidence" className="sys-btn" style={{ textDecoration: 'none' }}>model evidence</Link>
-          <Link href="/terminal/handbook" className="sys-btn" style={{ textDecoration: 'none' }}>handbook</Link>
+          <Link href={`/terminal/security?symbol=${encodeURIComponent(symbol)}`} className="sys-btn">security</Link>
+          <Link href={`/terminal/relationships?symbol=${encodeURIComponent(symbol)}`} className="sys-btn">relationships</Link>
+          <Link href="/terminal/evidence" className="sys-btn">model evidence</Link>
+          <Link href="/terminal/handbook" className="sys-btn">handbook</Link>
         </ToolbarGroup>
         <ToolbarSpacer />
         <span className="sys-meta">{data.samples ? `${data.samples} samples` : ''}</span>

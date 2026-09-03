@@ -126,8 +126,8 @@ export default function ProviderMatrix() {
 
       <Toolbar>
         <ToolbarGroup label="trace">
-          <Link href="/terminal/data" className="sys-btn" style={{ textDecoration: 'none' }}>datasets</Link>
-          <Link href="/terminal/provenance" className="sys-btn" style={{ textDecoration: 'none' }}>provenance</Link>
+          <Link href="/terminal/data" className="sys-btn">datasets</Link>
+          <Link href="/terminal/provenance" className="sys-btn">provenance</Link>
         </ToolbarGroup>
         <ToolbarSpacer />
         <span className="sys-meta">introspected from the vendor clients</span>
@@ -204,7 +204,7 @@ export default function ProviderMatrix() {
                     <td className="num"><Value value={e.failures ?? null} digits={0} /></td>
                     <td className="num"><Value value={e.consecutive_failures ?? null} digits={0} /></td>
                     <td className="num"><Value value={e.cooldown_seconds ?? null} digits={0} unit="s" /></td>
-                    <td><span className="sys-meta" style={{ color: 'var(--ink)' }}>{e.last_error ?? '—'}</span></td>
+                    <td><span className="sys-meta sys-meta--strong">{e.last_error ?? '—'}</span></td>
                   </tr>
                 ))}
               </tbody>

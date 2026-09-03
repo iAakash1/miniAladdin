@@ -369,7 +369,7 @@ export default function SessionsView() {
               title="No investigations yet"
               description="Name one above, or open the knowledge graph and choose “Start investigation”. From then on every entity you pin, every snapshot you take and every note you write is remembered here."
               action={
-                <Link href="/terminal/graph" className="btn btn--primary btn--sm" style={{ textDecoration: 'none' }}>
+                <Link href="/terminal/graph" className="btn btn--primary btn--sm">
                   Open the graph
                 </Link>
               }

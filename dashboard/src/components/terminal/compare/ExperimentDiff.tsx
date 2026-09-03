@@ -189,8 +189,8 @@ export default function ExperimentDiff() {
         ]}
         actions={
           <>
-            <Link href="/terminal/experiments" className="sys-btn" style={{ textDecoration: 'none' }}>experiments</Link>
-            <Link href="/terminal/compare" className="sys-btn" style={{ textDecoration: 'none' }}>compare models</Link>
+            <Link href="/terminal/experiments" className="sys-btn">experiments</Link>
+            <Link href="/terminal/compare" className="sys-btn">compare models</Link>
           </>
         }
       />

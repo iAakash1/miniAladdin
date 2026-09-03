@@ -80,9 +80,9 @@ export default function Memos({ initialId }: { initialId?: string }) {
 
       <Toolbar>
         <ToolbarGroup label="trace">
-          <Link href="/terminal/evidence" className="sys-btn" style={{ textDecoration: 'none' }}>evidence</Link>
-          <Link href="/terminal/experiments" className="sys-btn" style={{ textDecoration: 'none' }}>experiments</Link>
-          <Link href="/terminal/timeline" className="sys-btn" style={{ textDecoration: 'none' }}>timeline</Link>
+          <Link href="/terminal/evidence" className="sys-btn">evidence</Link>
+          <Link href="/terminal/experiments" className="sys-btn">experiments</Link>
+          <Link href="/terminal/timeline" className="sys-btn">timeline</Link>
         </ToolbarGroup>
         <ToolbarSpacer />
         <span className="sys-meta">stored in this browser only</span>
@@ -196,7 +196,7 @@ export default function Memos({ initialId }: { initialId?: string }) {
                         <td>
                           <Link href={objectHref(r)} style={{ color: 'inherit', fontFamily: 'var(--font-mono)' }}>{r.label}</Link>
                         </td>
-                        <td><span className="sys-meta" style={{ color: 'var(--ink)' }}>{KINDS[r.kind].workspace}</span></td>
+                        <td><span className="sys-meta sys-meta--strong">{KINDS[r.kind].workspace}</span></td>
                         <td className="num">
                           <button className="sys-btn" onClick={() => removeReference(selected.id, r)}>remove</button>
                         </td>

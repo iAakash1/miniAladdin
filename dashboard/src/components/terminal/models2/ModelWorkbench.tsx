@@ -85,7 +85,7 @@ export default function ModelWorkbench() {
   }, [])
 
   const columns: Column<LabelRow>[] = [
-    { key: 'label', header: 'Label', width: '16%', render: (r) => <span style={{ fontFamily: 'var(--font-mono)' }}>{r.label}</span> },
+    { key: 'label', header: 'Label', width: '16%', render: (r) => <span className="sys-mono">{r.label}</span> },
     { key: 'h', header: 'Horizon', unit: 'sessions', numeric: true, render: (r) => <Value value={n(r.horizon_sessions)} digits={0} /> },
     { key: 'model', header: 'Best model', width: '18%', render: (r) => r.best_model ?? '—' },
     { key: 'vic', header: 'Validation IC', unit: 'rank corr.', numeric: true, render: (r) => <Value measure="mean_ic" kind="ic" value={n(r.mean_ic)} digits={4} signed tone /> },
@@ -152,7 +152,7 @@ export default function ModelWorkbench() {
         title="Labels"
         subtitle={data.experiment_id}
         flush
-        actions={<Link href="/terminal/evidence" className="sys-meta" style={{ color: 'var(--ink)' }}>Evidence →</Link>}
+        actions={<Link href="/terminal/evidence" className="sys-meta sys-meta--strong">Evidence →</Link>}
       >
         <Table columns={columns} rows={labels} rowKey={(r) => r.label} density="compact" selectedKey={selected ?? undefined} onSelect={(r) => setSelected(r.label)} />
       </Panel>
@@ -208,7 +208,7 @@ export default function ModelWorkbench() {
                   <tr key={c.check}>
                     <td style={{ fontFamily: 'var(--font-mono)' }}>{c.check}</td>
                     <td><Status state={c.passed ? 'recorded' : 'blocked'} label={c.passed ? 'pass' : 'fail'} /></td>
-                    <td><span className="sys-meta" style={{ color: 'var(--ink)' }}>{c.detail ?? '—'}</span></td>
+                    <td><span className="sys-meta sys-meta--strong">{c.detail ?? '—'}</span></td>
                   </tr>
                 ))}
               </tbody>
@@ -230,7 +230,7 @@ export default function ModelWorkbench() {
             </tbody>
           </table>
           <p style={{ margin: 'var(--d-2) 0 0' }}>
-            <Link href="/terminal/data" className="sys-meta" style={{ color: 'var(--ink)' }}>Dataset and feature contracts →</Link>
+            <Link href="/terminal/data" className="sys-meta sys-meta--strong">Dataset and feature contracts →</Link>
           </p>
         </Panel>
       </Grid>

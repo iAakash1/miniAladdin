@@ -73,9 +73,9 @@ export default function Handbook({ initialMeasure }: { initialMeasure?: string }
   const rows = useMemo(() => book?.entries ?? [], [book])
 
   const columns: DataColumn<Entry>[] = useMemo(() => [
-    { key: 'name', header: 'Measure', width: '22%', sort: (e) => e.name, text: (e) => e.name, render: (e) => <span style={{ fontFamily: 'var(--font-mono)' }}>{e.name}</span> },
-    { key: 'unit', header: 'Unit', width: '12%', sort: (e) => e.unit, text: (e) => e.unit, render: (e) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{UNIT_LABEL[e.unit] ?? e.unit}</span> },
-    { key: 'ann', header: 'Annualisation', width: '13%', sort: (e) => e.annualisation, text: (e) => e.annualisation, render: (e) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{ANN_LABEL[e.annualisation] ?? e.annualisation}</span> },
+    { key: 'name', header: 'Measure', width: '22%', sort: (e) => e.name, text: (e) => e.name, render: (e) => <span className="sys-mono">{e.name}</span> },
+    { key: 'unit', header: 'Unit', width: '12%', sort: (e) => e.unit, text: (e) => e.unit, render: (e) => <span className="sys-meta sys-meta--strong">{UNIT_LABEL[e.unit] ?? e.unit}</span> },
+    { key: 'ann', header: 'Annualisation', width: '13%', sort: (e) => e.annualisation, text: (e) => e.annualisation, render: (e) => <span className="sys-meta sys-meta--strong">{ANN_LABEL[e.annualisation] ?? e.annualisation}</span> },
     { key: 'ret', header: 'Needs return units', width: '13%', sort: (e) => (e.return_units_required ? 1 : 0), render: (e) => <Status state={e.return_units_required ? 'blocked' : 'recorded'} label={e.return_units_required ? 'yes' : 'no'} /> },
     { key: 'purpose', header: 'Purpose', text: (e) => `${e.purpose ?? ''} ${e.fails_when ?? ''}`, render: (e) => <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-muted)' }}>{e.purpose ?? '—'}</span> },
   ], [])
@@ -121,9 +121,9 @@ export default function Handbook({ initialMeasure }: { initialMeasure?: string }
 
       <Toolbar>
         <ToolbarGroup label="trace">
-          <Link href="/terminal/risk" className="sys-btn" style={{ textDecoration: 'none' }}>risk</Link>
-          <Link href="/terminal/evidence" className="sys-btn" style={{ textDecoration: 'none' }}>evidence</Link>
-          <Link href="/terminal/signals" className="sys-btn" style={{ textDecoration: 'none' }}>signals</Link>
+          <Link href="/terminal/risk" className="sys-btn">risk</Link>
+          <Link href="/terminal/evidence" className="sys-btn">evidence</Link>
+          <Link href="/terminal/signals" className="sys-btn">signals</Link>
         </ToolbarGroup>
         <ToolbarSpacer />
         <span className="sys-meta">generated from the engine, so it cannot drift</span>

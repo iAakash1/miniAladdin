@@ -83,7 +83,7 @@ export default function CompanyEcosystem({ ticker }: { ticker: string }) {
                       key={member.id}
                       href={member.route}
                       className="btn btn--ghost btn--xs"
-                      style={{ border: '1px solid var(--line)', textDecoration: 'none' }}
+                      style={{ border: '1px solid var(--line)' }}
                     >
                       {content}
                     </Link>

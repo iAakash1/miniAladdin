@@ -218,7 +218,7 @@ function MetricTable({ keys, metrics }: { keys: [string, string][]; metrics: Rec
                 />
               </td>
               <td>
-                <span className="sys-meta" style={{ color: 'var(--ink)' }} title={m.caveat ?? undefined}>
+                <span className="sys-meta sys-meta--strong" title={m.caveat ?? undefined}>
                   {m.method}
                 </span>
               </td>
@@ -301,10 +301,10 @@ export default function RiskWorkbench() {
 
       <Toolbar>
         <ToolbarGroup label="trace">
-          <Link href="/terminal/covariance" className="sys-btn" style={{ textDecoration: 'none' }}>covariance</Link>
-          <Link href="/terminal/book" className="sys-btn" style={{ textDecoration: 'none' }}>book</Link>
-          <Link href="/terminal/performance" className="sys-btn" style={{ textDecoration: 'none' }}>path</Link>
-          <Link href="/terminal/handbook" className="sys-btn" style={{ textDecoration: 'none' }}>handbook</Link>
+          <Link href="/terminal/covariance" className="sys-btn">covariance</Link>
+          <Link href="/terminal/book" className="sys-btn">book</Link>
+          <Link href="/terminal/performance" className="sys-btn">path</Link>
+          <Link href="/terminal/handbook" className="sys-btn">handbook</Link>
         </ToolbarGroup>
         <ToolbarSpacer />
         <span className="sys-meta">
@@ -391,7 +391,7 @@ export default function RiskWorkbench() {
               {suppressed.map(([k, m]) => (
                 <tr key={k}>
                   <td style={{ fontFamily: 'var(--font-mono)' }}>{k}</td>
-                  <td><span className="sys-meta" style={{ color: 'var(--ink)' }}>{m.caveat ?? m.method}</span></td>
+                  <td><span className="sys-meta sys-meta--strong">{m.caveat ?? m.method}</span></td>
                 </tr>
               ))}
             </tbody>

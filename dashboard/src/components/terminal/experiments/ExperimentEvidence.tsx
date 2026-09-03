@@ -100,7 +100,7 @@ export default function ExperimentEvidence({
 
   const foldColumns: DataColumn<Fold>[] = [
     { key: 'i', header: 'Fold', numeric: true, width: '8%', sort: (f) => f.index, render: (f) => <Value value={f.index} digits={0} /> },
-    { key: 'tr', header: 'Train', width: '22%', sort: (f) => f.train_start, render: (f) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{f.train_start} → {f.train_end}</span> },
+    { key: 'tr', header: 'Train', width: '22%', sort: (f) => f.train_start, render: (f) => <span className="sys-meta sys-meta--strong">{f.train_start} → {f.train_end}</span> },
     {
       key: 'gap', header: 'Gap', unit: 'sessions', numeric: true, sort: (f) => n(f.gap_sessions),
       render: (f) => (
@@ -113,7 +113,7 @@ export default function ExperimentEvidence({
     },
     { key: 'hz', header: 'Horizon', unit: 'sessions', numeric: true, sort: (f) => n(f.label_horizon_sessions), render: (f) => <Value value={n(f.label_horizon_sessions)} digits={0} /> },
     { key: 'emb', header: 'Embargo', unit: 'sessions', numeric: true, sort: (f) => n(f.embargo_sessions), render: (f) => <Value value={n(f.embargo_sessions)} digits={0} /> },
-    { key: 'val', header: 'Validate', width: '22%', sort: (f) => f.validation_start, render: (f) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{f.validation_start} → {f.validation_end}</span> },
+    { key: 'val', header: 'Validate', width: '22%', sort: (f) => f.validation_start, render: (f) => <span className="sys-meta sys-meta--strong">{f.validation_start} → {f.validation_end}</span> },
     {
       key: 'safe', header: 'Gap covers horizon', width: '13%',
       sort: (f) => ((n(f.gap_sessions) ?? 0) >= (n(f.label_horizon_sessions) ?? 0) ? 1 : 0),
@@ -154,7 +154,7 @@ export default function ExperimentEvidence({
                     <td className="num"><Value value={n(c.mean_ic)} digits={5} signed /></td>
                     <td className="num"><Value value={n(c.t_stat)} digits={3} signed /></td>
                     <td className="num"><Value value={n(c.observations)} digits={0} /></td>
-                    <td><span className="sys-meta" style={{ color: 'var(--ink)' }}>{c.blocking ? 'yes' : 'no'}</span></td>
+                    <td><span className="sys-meta sys-meta--strong">{c.blocking ? 'yes' : 'no'}</span></td>
                     <td>
                       {c.passed === undefined
                         ? <span className="sys-null">—</span>
