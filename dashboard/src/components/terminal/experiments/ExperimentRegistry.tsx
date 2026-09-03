@@ -109,14 +109,14 @@ export default function ExperimentRegistry() {
         state="recorded"
         detail={`${live} valid · ${rows.length - live} void`}
         facts={[
-          { label: 'Experiments', value: rows.length, digits: 0 },
+          { label: 'Experiments', value: rows.length, digits: 0 , kind: 'count'},
           { label: 'Valid', value: live, digits: 0 },
           { label: 'Void', value: rows.length - live, digits: 0, title: 'Invalidated, and kept in the record rather than removed from it' },
         ]}
       />
 
       <Strip metrics={[
-        { label: 'Experiments', value: rows.length, digits: 0 },
+        { label: 'Experiments', value: rows.length, digits: 0 , kind: 'count'},
         { label: 'Valid', value: live, digits: 0 },
         { label: 'Void', value: rows.length - live, digits: 0, title: 'Invalidated, and kept in the record rather than removed from it' },
       ]} />

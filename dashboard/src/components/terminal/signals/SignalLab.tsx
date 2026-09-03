@@ -104,12 +104,12 @@ export default function SignalLab() {
     {
       key: 'ic', header: 'Mean IC', unit: 'rank corr.', numeric: true,
       sort: (f) => num(data?.economics?.[f.config_id]?.mean_ic),
-      render: (f) => <Value measure="mean_ic" value={num(data?.economics?.[f.config_id]?.mean_ic)} digits={4} signed tone title="A rank correlation between prediction and forward rank. Not a return." />,
+      render: (f) => <Value measure="mean_ic" kind="ic" value={num(data?.economics?.[f.config_id]?.mean_ic)} digits={4} signed tone title="A rank correlation between prediction and forward rank. Not a return." />,
     },
     {
       key: 'dsr', header: 'Deflated Sharpe', unit: 'probability', numeric: true, optional: true,
       sort: (f) => num(data?.significance?.[f.config_id]?.deflated_sharpe?.deflated_probability),
-      render: (f) => <Value measure="deflated_sharpe_probability" value={num(data?.significance?.[f.config_id]?.deflated_sharpe?.deflated_probability)} digits={4} />,
+      render: (f) => <Value measure="deflated_sharpe_probability" kind="probability" value={num(data?.significance?.[f.config_id]?.deflated_sharpe?.deflated_probability)} digits={4} />,
     },
   ], [data])
 

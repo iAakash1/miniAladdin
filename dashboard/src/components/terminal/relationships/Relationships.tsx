@@ -192,8 +192,8 @@ export default function Relationships({ initialSymbol = 'AAPL' }: { initialSymbo
       ) : (
         <>
           <Strip metrics={[
-            { label: 'Nodes', value: nodes.length, digits: 0 },
-            { label: 'Edges', value: edges.length, digits: 0 },
+            { label: 'Nodes', value: nodes.length, digits: 0 , kind: 'count'},
+            { label: 'Edges', value: edges.length, digits: 0 , kind: 'count'},
             { label: 'Of total edges', value: allEdges.length, digits: 0 },
             { label: 'Density', value: n(a.density), digits: 4, title: 'Edges present over edges possible' },
             { label: 'Mean confidence', value: n(a.avg_confidence), digits: 3 },

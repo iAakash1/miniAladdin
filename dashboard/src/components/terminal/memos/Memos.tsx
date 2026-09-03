@@ -62,7 +62,7 @@ export default function Memos({ initialId }: { initialId?: string }) {
         state="recorded"
         detail="stored in this browser only"
         facts={[
-          { label: 'Memos', value: all.length, digits: 0 },
+          { label: 'Memos', value: all.length, digits: 0 , kind: 'count'},
           { label: 'Drafts', value: all.filter((m) => m.status === 'draft').length, digits: 0 },
           { label: 'Open', value: all.filter((m) => m.status === 'open').length, digits: 0 },
           { label: 'Resolved', value: all.filter((m) => m.status === 'resolved').length, digits: 0 },
@@ -71,7 +71,7 @@ export default function Memos({ initialId }: { initialId?: string }) {
       />
 
       <Strip metrics={[
-        { label: 'Memos', value: all.length, digits: 0 },
+        { label: 'Memos', value: all.length, digits: 0 , kind: 'count'},
         { label: 'Drafts', value: all.filter((m) => m.status === 'draft').length, digits: 0 },
         { label: 'Open', value: all.filter((m) => m.status === 'open').length, digits: 0 },
         { label: 'Resolved', value: all.filter((m) => m.status === 'resolved').length, digits: 0 },

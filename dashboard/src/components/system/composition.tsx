@@ -13,6 +13,7 @@
 import type { ReactNode } from 'react'
 
 import { Status, Value, type ResearchState } from './index'
+import type { Kind } from '@/lib/quantity'
 import { Relations } from './Relations'
 import type { ResearchObject } from '@/lib/research/objects'
 
@@ -21,6 +22,8 @@ import type { ResearchObject } from '@/lib/research/objects'
 export interface HeaderFact {
   label: string
   value: number | string | null | undefined
+  /** Quantity kind. Decides precision and unit; see lib/quantity. */
+  kind?: Kind
   unit?: string
   digits?: number
   signed?: boolean
@@ -68,7 +71,7 @@ export function ObjectHeader({
               <span className="k" title={f.title}>{f.label}</span>
               <span className="v">
                 <Value
-                  value={f.value} unit={f.unit} digits={f.digits}
+                  value={f.value} kind={f.kind} unit={f.unit} digits={f.digits}
                   signed={f.signed} tone={f.tone} title={f.title}
                 />
               </span>

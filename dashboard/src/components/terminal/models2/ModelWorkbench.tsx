@@ -88,14 +88,14 @@ export default function ModelWorkbench() {
     { key: 'label', header: 'Label', width: '16%', render: (r) => <span style={{ fontFamily: 'var(--font-mono)' }}>{r.label}</span> },
     { key: 'h', header: 'Horizon', unit: 'sessions', numeric: true, render: (r) => <Value value={n(r.horizon_sessions)} digits={0} /> },
     { key: 'model', header: 'Best model', width: '18%', render: (r) => r.best_model ?? '—' },
-    { key: 'vic', header: 'Validation IC', unit: 'rank corr.', numeric: true, render: (r) => <Value measure="mean_ic" value={n(r.mean_ic)} digits={4} signed tone /> },
-    { key: 'tic', header: 'Train IC', unit: 'rank corr.', numeric: true, render: (r) => <Value measure="mean_ic" value={n(r.train_mean_ic)} digits={4} signed /> },
+    { key: 'vic', header: 'Validation IC', unit: 'rank corr.', numeric: true, render: (r) => <Value measure="mean_ic" kind="ic" value={n(r.mean_ic)} digits={4} signed tone /> },
+    { key: 'tic', header: 'Train IC', unit: 'rank corr.', numeric: true, render: (r) => <Value measure="mean_ic" kind="ic" value={n(r.train_mean_ic)} digits={4} signed /> },
     {
       key: 'gap', header: 'Gap', unit: 'train − val', numeric: true,
-      render: (r) => <Value measure="train_ic_gap" value={n(r.train_ic_gap)} digits={4} tone title="How much of the training fit did not survive out of sample" />,
+      render: (r) => <Value measure="train_ic_gap" kind="ic" value={n(r.train_ic_gap)} digits={4} tone title="How much of the training fit did not survive out of sample" />,
     },
-    { key: 't', header: 'IC t-stat', unit: 'Newey-West', numeric: true, render: (r) => <Value measure="ic_t_stat" value={n(r.ic_t_stat)} digits={2} signed /> },
-    { key: 'ns', header: 'Net Sharpe', unit: 'after costs', numeric: true, render: (r) => <Value measure="net_sharpe" value={n(r.net_sharpe)} digits={3} signed tone /> },
+    { key: 't', header: 'IC t-stat', unit: 'Newey-West', numeric: true, render: (r) => <Value measure="ic_t_stat" kind="tstat" value={n(r.ic_t_stat)} digits={2} signed /> },
+    { key: 'ns', header: 'Net Sharpe', unit: 'after costs', numeric: true, render: (r) => <Value measure="net_sharpe" kind="sharpe" value={n(r.net_sharpe)} digits={3} signed tone /> },
   ]
 
   if (error) {
@@ -129,20 +129,20 @@ export default function ModelWorkbench() {
         state="experimental"
         detail={data.experiment_id}
         facts={[
-          { label: 'Rows', value: n(ds.rows), digits: 0 },
-          { label: 'Symbols', value: n(ds.symbols), digits: 0 },
-          { label: 'Dates', value: n(ds.dates), digits: 0 },
-          { label: 'Features', value: n(data.feature_count), digits: 0 },
+          { label: 'Rows', value: n(ds.rows), digits: 0 , kind: 'count'},
+          { label: 'Symbols', value: n(ds.symbols), digits: 0 , kind: 'count'},
+          { label: 'Dates', value: n(ds.dates), digits: 0 , kind: 'count'},
+          { label: 'Features', value: n(data.feature_count), digits: 0 , kind: 'count'},
           { label: 'Labels', value: labels.length, digits: 0 },
           { label: 'Guards', value: guards?.passed ? 'pass' : 'fail', digits: 0 },
         ]}
       />
 
       <Strip metrics={[
-        { label: 'Rows', value: n(ds.rows), digits: 0 },
-        { label: 'Symbols', value: n(ds.symbols), digits: 0 },
-        { label: 'Dates', value: n(ds.dates), digits: 0 },
-        { label: 'Features', value: n(data.feature_count), digits: 0 },
+        { label: 'Rows', value: n(ds.rows), digits: 0 , kind: 'count'},
+        { label: 'Symbols', value: n(ds.symbols), digits: 0 , kind: 'count'},
+        { label: 'Dates', value: n(ds.dates), digits: 0 , kind: 'count'},
+        { label: 'Features', value: n(data.feature_count), digits: 0 , kind: 'count'},
         { label: 'Labels', value: labels.length, digits: 0 },
         { label: 'From', value: ds.start ?? null, digits: 0 },
         { label: 'To', value: ds.end ?? null, digits: 0 },

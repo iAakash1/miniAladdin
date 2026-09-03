@@ -128,7 +128,7 @@ export default function GateMatrix() {
         detail={universal.length ? `${universal.length} gates no model has cleared` : 'every gate cleared by at least one model'}
         facts={[
           { label: 'Entries', value: entries.length, digits: 0 },
-          { label: 'Gates', value: gates.length, digits: 0 },
+          { label: 'Gates', value: gates.length, digits: 0 , kind: 'count'},
           { label: 'Cleared by none', value: universal.length, digits: 0 },
           { label: 'Eligible', value: eligible, digits: 0 },
         ]}
@@ -136,7 +136,7 @@ export default function GateMatrix() {
 
       <Strip metrics={[
         { label: 'Entries', value: entries.length, digits: 0 },
-        { label: 'Gates', value: gates.length, digits: 0 },
+        { label: 'Gates', value: gates.length, digits: 0 , kind: 'count'},
         { label: 'Cleared by none', value: universal.length, digits: 0, title: 'Gates no registered model has met — a structural constraint, not a model property' },
         { label: 'Eligible for something', value: eligible, digits: 0 },
       ]} />

@@ -161,8 +161,8 @@ export default function CommandCenter() {
         facts={[
           { label: 'Production', value: status?.production ?? null, digits: 0 },
           { label: 'Candidates', value: status?.candidates ?? null, digits: 0 },
-          { label: 'Registered', value: status?.total_entries ?? null, digits: 0 },
-          { label: 'Experiments', value: experiments?.length ?? null, digits: 0 },
+          { label: 'Registered', value: status?.total_entries ?? null, digits: 0 , kind: 'count'},
+          { label: 'Experiments', value: experiments?.length ?? null, digits: 0 , kind: 'count'},
           { label: 'Unmet gates', value: failedGates.length || null, digits: 0 },
         ]}
       />
@@ -171,9 +171,9 @@ export default function CommandCenter() {
         { label: 'Production', value: status?.production ?? null, digits: 0, title: 'Models armed and serving' },
         { label: 'Candidates', value: status?.candidates ?? null, digits: 0 },
         { label: 'Validated', value: status?.validated ?? null, digits: 0 },
-        { label: 'Registered', value: status?.total_entries ?? null, digits: 0 },
+        { label: 'Registered', value: status?.total_entries ?? null, digits: 0 , kind: 'count'},
         { label: 'Retired', value: status?.retired ?? null, digits: 0 },
-        { label: 'Experiments', value: experiments?.length ?? null, digits: 0 },
+        { label: 'Experiments', value: experiments?.length ?? null, digits: 0 , kind: 'count'},
       ]} />
 
       <Grid>

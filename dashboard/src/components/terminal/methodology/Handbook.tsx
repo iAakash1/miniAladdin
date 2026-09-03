@@ -106,14 +106,14 @@ export default function Handbook({ initialMeasure }: { initialMeasure?: string }
         state="recorded"
         detail="generated from the engine's own methodology table"
         facts={[
-          { label: 'Measures', value: book.total, digits: 0 },
+          { label: 'Measures', value: book.total, digits: 0 , kind: 'count'},
           { label: 'With failure conditions', value: book.documented, digits: 0 },
           { label: 'Minimum observations', value: book.minimum_observations, digits: 0 },
         ]}
       />
 
       <Strip metrics={[
-        { label: 'Measures', value: book.total, digits: 0 },
+        { label: 'Measures', value: book.total, digits: 0 , kind: 'count'},
         { label: 'With failure conditions', value: book.documented, digits: 0 },
         { label: 'Minimum observations', value: book.minimum_observations, digits: 0, title: 'Below this a measure reports nothing rather than a number its sample cannot support' },
       ]} />

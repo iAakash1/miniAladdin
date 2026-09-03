@@ -171,7 +171,7 @@ export default function MarketWorkspace() {
           { label: 'Above 50d', value: above, digits: 0 },
           { label: 'Sectors', value: count, digits: 0 },
           { label: 'Regime', value: regime ?? null, digits: 0 },
-          { label: 'Events', value: data.events?.length ?? null, digits: 0 },
+          { label: 'Events', value: data.events?.length ?? null, digits: 0 , kind: 'count'},
         ]}
       />
 

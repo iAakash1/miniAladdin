@@ -122,8 +122,8 @@ export default function Calibration({ symbol }: { symbol: string }) {
         state={psiState(psi)}
         detail={data.period ? `${data.period.start} → ${data.period.end}` : undefined}
         facts={[
-          { label: 'Samples', value: n(data.samples), digits: 0 },
-          { label: 'IC', value: n(data.ic), digits: 4, signed: true, tone: true },
+          { label: 'Samples', value: n(data.samples), digits: 0 , kind: 'count'},
+          { label: 'IC', value: n(data.ic), digits: 4, signed: true, tone: true , kind: 'ic'},
           { label: 'Baseline IC', value: n(data.baseline_12_1_ic), digits: 4, signed: true },
           { label: 'Hit rate', value: n(data.hit_rate), digits: 3 },
           { label: 'PSI', value: psi, digits: 3 },
@@ -131,8 +131,8 @@ export default function Calibration({ symbol }: { symbol: string }) {
       />
 
       <Strip metrics={[
-        { label: 'Samples', value: n(data.samples), digits: 0 },
-        { label: 'IC', value: n(data.ic), digits: 4, signed: true, tone: true },
+        { label: 'Samples', value: n(data.samples), digits: 0 , kind: 'count'},
+        { label: 'IC', value: n(data.ic), digits: 4, signed: true, tone: true , kind: 'ic'},
         { label: 'Baseline 12-1 IC', value: n(data.baseline_12_1_ic), digits: 4, signed: true, title: 'The 1993 momentum baseline this must beat to be worth anything' },
         { label: 'Hit rate', value: n(data.hit_rate), digits: 3 },
         { label: 'Directional samples', value: n(data.directional_samples), digits: 0 },

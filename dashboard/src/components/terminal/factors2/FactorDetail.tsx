@@ -149,10 +149,10 @@ export default function FactorDetail({
           <Strip metrics={[
             { label: 'Annualised return', value: n(portfolio.annualised_return), digits: 4, signed: true, tone: true },
             { label: 'Annualised volatility', value: n(portfolio.annualised_volatility), digits: 4 },
-            { label: 'Sharpe', value: n(portfolio.sharpe), digits: 3, signed: true, tone: true },
-            { label: 'Max drawdown', value: n(portfolio.max_drawdown), digits: 4, tone: true },
+            { label: 'Sharpe', value: n(portfolio.sharpe), digits: 3, signed: true, tone: true , kind: 'sharpe'},
+            { label: 'Max drawdown', value: n(portfolio.max_drawdown), digits: 4, tone: true , kind: 'drawdown'},
             { label: 'Hit rate', value: n(portfolio.hit_rate), digits: 3 },
-            { label: 'Turnover', value: n(portfolio.turnover), digits: 3 },
+            { label: 'Turnover', value: n(portfolio.turnover), digits: 3 , kind: 'multiple'},
           ]} />
 
           {portfolio.equity_curve?.length > 2 ? (

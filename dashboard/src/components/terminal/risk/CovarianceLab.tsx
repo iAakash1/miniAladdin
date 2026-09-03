@@ -141,16 +141,16 @@ export default function CovarianceLab() {
         state={rows.some((r) => !r.positive_semi_definite) ? 'blocked' : 'recorded'}
         detail={spread !== null ? `${(spread * 100).toFixed(1)}% volatility spread across methods` : undefined}
         facts={[
-          { label: 'Estimators', value: rows.length, digits: 0 },
+          { label: 'Estimators', value: rows.length, digits: 0 , kind: 'count'},
           { label: 'Names', value: data.panel?.names ?? null, digits: 0 },
-          { label: 'Rows', value: data.panel?.rows ?? null, digits: 0 },
+          { label: 'Rows', value: data.panel?.rows ?? null, digits: 0 , kind: 'count'},
           { label: 'Complete', value: data.panel?.complete_rows ?? null, digits: 0, title: 'Rows with no missing name' },
           { label: 'Not PSD', value: rows.filter((r) => !r.positive_semi_definite).length, digits: 0 },
         ]}
       />
 
       <Strip metrics={[
-        { label: 'Estimators', value: rows.length, digits: 0 },
+        { label: 'Estimators', value: rows.length, digits: 0 , kind: 'count'},
         { label: 'Names', value: data.panel?.names ?? null, digits: 0 },
         { label: 'Observations', value: data.panel?.rows ?? null, digits: 0 },
         { label: 'Complete rows', value: data.panel?.complete_rows ?? null, digits: 0, title: 'Rows with no missing name. Complete-case estimators use only these.' },

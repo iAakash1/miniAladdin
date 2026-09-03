@@ -128,7 +128,7 @@ export default function PortfolioWorkbench() {
         state={data.status === 'ok' ? 'recorded' : 'unavailable'}
         detail={data.as_of ? `as of ${data.as_of}` : undefined}
         facts={[
-          { label: 'Positions', value: weights.length, digits: 0 },
+          { label: 'Positions', value: weights.length, digits: 0 , kind: 'count'},
           { label: 'Long', value: longs.length, digits: 0 },
           { label: 'Short', value: shorts.length, digits: 0 },
           { label: 'Gross', value: gross, digits: 3 },
@@ -139,7 +139,7 @@ export default function PortfolioWorkbench() {
       />
 
       <Strip metrics={[
-        { label: 'Positions', value: weights.length, digits: 0 },
+        { label: 'Positions', value: weights.length, digits: 0 , kind: 'count'},
         { label: 'Long', value: longs.length, digits: 0 },
         { label: 'Short', value: shorts.length, digits: 0 },
         { label: 'Gross exposure', value: gross, digits: 4, title: 'Sum of absolute weights. The size of the bet.' },

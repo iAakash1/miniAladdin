@@ -153,11 +153,11 @@ export default function EvidenceChain() {
     { key: 'model', header: 'Model', width: '26%', sort: (r) => r.model_id, text: (r) => r.model_id, render: (r) => <span style={{ fontFamily: 'var(--font-mono)' }}>{r.model_id}</span> },
     { key: 'label', header: 'Label', width: '14%', sort: (r) => r.label, text: (r) => r.label, render: (r) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{r.label}</span> },
     { key: 'status', header: 'Status', width: '14%', sort: (r) => r.status, text: (r) => r.status, render: (r) => <Status state={statusState(r.status)} label={r.status} /> },
-    { key: 'ic', header: 'Mean IC', unit: 'rank corr.', numeric: true, sort: (r) => r.mean_ic, render: (r) => <Value measure="mean_ic" value={r.mean_ic} digits={4} signed tone /> },
-    { key: 't', header: 'IC t-stat', unit: 'Newey-West', numeric: true, sort: (r) => r.ic_t_stat, render: (r) => <Value measure="ic_t_stat" value={r.ic_t_stat} digits={2} signed /> },
-    { key: 'ns', header: 'Net Sharpe', unit: 'after costs', numeric: true, sort: (r) => r.net_sharpe, render: (r) => <Value measure="net_sharpe" value={r.net_sharpe} digits={3} signed tone /> },
-    { key: 'dd', header: 'Max DD', unit: 'return', numeric: true, sort: (r) => r.max_drawdown, render: (r) => <Value measure="max_drawdown" value={r.max_drawdown} digits={3} tone /> },
-    { key: 'to', header: 'Turnover', unit: 'ann. one-way', numeric: true, sort: (r) => r.annualised_turnover, render: (r) => <Value measure="annualised_turnover" value={r.annualised_turnover} digits={2} unit="×" /> },
+    { key: 'ic', header: 'Mean IC', unit: 'rank corr.', numeric: true, sort: (r) => r.mean_ic, render: (r) => <Value measure="mean_ic" kind="ic" value={r.mean_ic} digits={4} signed tone /> },
+    { key: 't', header: 'IC t-stat', unit: 'Newey-West', numeric: true, sort: (r) => r.ic_t_stat, render: (r) => <Value measure="ic_t_stat" kind="tstat" value={r.ic_t_stat} digits={2} signed /> },
+    { key: 'ns', header: 'Net Sharpe', unit: 'after costs', numeric: true, sort: (r) => r.net_sharpe, render: (r) => <Value measure="net_sharpe" kind="sharpe" value={r.net_sharpe} digits={3} signed tone /> },
+    { key: 'dd', header: 'Max DD', unit: 'return', numeric: true, sort: (r) => r.max_drawdown, render: (r) => <Value measure="max_drawdown" kind="drawdown" value={r.max_drawdown} digits={3} tone /> },
+    { key: 'to', header: 'Turnover', unit: 'ann. one-way', numeric: true, sort: (r) => r.annualised_turnover, render: (r) => <Value measure="annualised_turnover" kind="multiple" value={r.annualised_turnover} digits={2} unit="×" /> },
     { key: 'fold', header: 'Fold IC positive', unit: 'share', numeric: true, optional: true, sort: (r) => r.fold_ic_positive_rate, render: (r) => <Value value={r.fold_ic_positive_rate} digits={3} /> },
     { key: 'cagr', header: 'Net CAGR', unit: 'ann. return', numeric: true, optional: true, sort: (r) => r.net_cagr, render: (r) => <Value value={r.net_cagr} digits={4} signed tone /> },
   ], [])
@@ -200,7 +200,7 @@ export default function EvidenceChain() {
         state={by.production ? 'production' : by.production_candidate ? 'candidate' : 'blocked'}
         detail={`${registry.summary.entries} entries · ${registry.summary.labels.join(', ')}`}
         facts={[
-          { label: 'Registered', value: registry.summary.entries, digits: 0 },
+          { label: 'Registered', value: registry.summary.entries, digits: 0 , kind: 'count'},
           { label: 'Experimental', value: by.experimental ?? 0, digits: 0 },
           { label: 'Validated', value: by.validated ?? 0, digits: 0 },
           { label: 'Candidates', value: by.production_candidate ?? 0, digits: 0 },
@@ -282,7 +282,7 @@ export default function EvidenceChain() {
       </Toolbar>
 
       <Strip metrics={[
-        { label: 'Registered', value: registry.summary.entries, digits: 0 },
+        { label: 'Registered', value: registry.summary.entries, digits: 0 , kind: 'count'},
         { label: 'Experimental', value: by.experimental ?? 0, digits: 0, title: 'Measured, but not promotable' },
         { label: 'Validated', value: by.validated ?? 0, digits: 0 },
         { label: 'Candidates', value: by.production_candidate ?? 0, digits: 0, title: 'Cleared development gates; holdout not yet spent' },

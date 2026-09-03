@@ -106,8 +106,8 @@ export default function SignalDiagnostics({ experiment, model }: { experiment: s
   const foldColumns: DataColumn<Fold>[] = [
     { key: 'fold', header: 'Fold', numeric: true, sort: (f) => f.fold, render: (f) => <Value value={f.fold} digits={0} /> },
     { key: 'window', header: 'Window', width: '22%', sort: (f) => f.start, text: (f) => `${f.start} ${f.end}`, render: (f) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{f.start} → {f.end}</span> },
-    { key: 'ic', header: 'Mean IC', unit: 'rank corr.', numeric: true, sort: (f) => f.mean_ic, render: (f) => <Value measure="mean_ic" value={f.mean_ic} digits={4} signed tone /> },
-    { key: 'med', header: 'Median IC', unit: 'rank corr.', numeric: true, sort: (f) => f.median_ic, render: (f) => <Value measure="mean_ic" value={f.median_ic} digits={4} signed /> },
+    { key: 'ic', header: 'Mean IC', unit: 'rank corr.', numeric: true, sort: (f) => f.mean_ic, render: (f) => <Value measure="mean_ic" kind="ic" value={f.mean_ic} digits={4} signed tone /> },
+    { key: 'med', header: 'Median IC', unit: 'rank corr.', numeric: true, sort: (f) => f.median_ic, render: (f) => <Value measure="mean_ic" kind="ic" value={f.median_ic} digits={4} signed /> },
     { key: 'std', header: 'IC dispersion', unit: 'std of IC', numeric: true, sort: (f) => f.std_ic, render: (f) => <Value value={f.std_ic} digits={4} /> },
     { key: 'pos', header: 'Positive rate', unit: 'share', numeric: true, sort: (f) => f.positive_rate, render: (f) => <Value value={f.positive_rate} digits={3} /> },
     { key: 'dates', header: 'Dates', numeric: true, sort: (f) => f.dates, render: (f) => <Value value={f.dates} digits={0} /> },
@@ -137,8 +137,8 @@ export default function SignalDiagnostics({ experiment, model }: { experiment: s
     <>
       <Panel title="Label geometry" subtitle={g.target} state="recorded">
         <Strip metrics={[
-          { label: 'Horizon', value: g.horizon_sessions ?? null, digits: 0, unit: 'sess' },
-          { label: 'Step', value: g.step_sessions ?? null, digits: 0, unit: 'sess' },
+          { label: 'Horizon', value: g.horizon_sessions ?? null, digits: 0, unit: 'sess' , kind: 'sessions'},
+          { label: 'Step', value: g.step_sessions ?? null, digits: 0, unit: 'sess' , kind: 'sessions'},
           { label: 'Overlap', value: g.overlapping_sessions ?? null, digits: 0, unit: 'sess' },
           { label: 'Overlap fraction', value: g.overlap_fraction ?? null, digits: 3 },
           { label: 'Bootstrap block', value: g.block_length ?? null, digits: 0, title: 'Consecutive observations resampled together, because they share label windows' },

@@ -12,6 +12,7 @@
 import type { ReactNode } from 'react'
 
 import { useMetrics, type MetricRef } from './MetricContext'
+import { format, type Kind } from '@/lib/quantity'
 
 /* ── research state ───────────────────────────────────────────────────────
    The product's vocabulary for trust. Deliberately separate from sign: one
@@ -49,9 +50,16 @@ export function Status({ state, label }: { state: ResearchState; label?: string 
 
 export interface ValueProps {
   value: number | string | null | undefined
-  /** Rendered small after the number. "bps", "×", "ann.", "21d". */
+  /**
+   * What kind of quantity this is. Decides precision, sign handling, unit and
+   * whether the sign carries meaning — so an information coefficient looks the
+   * same on every screen instead of carrying three decimals here and five
+   * there, which implies a precision the estimate does not have.
+   */
+  kind?: Kind
+  /** Rendered small after the number. Overrides the kind's own unit. */
   unit?: string
-  /** Decimal places. Ignored for string values. */
+  /** Overrides the kind's precision. For a headline figure, not an opt-out. */
   digits?: number
   /** Prefix a + on positives. For figures where direction is the point. */
   signed?: boolean
@@ -66,29 +74,34 @@ export interface ValueProps {
 }
 
 export function Value({
-  value, unit, digits = 2, signed = false, tone = false, title, measure, inspect,
+  value, kind, unit, digits, signed, tone, title, measure, inspect,
 }: ValueProps) {
   const metrics = useMetrics()
 
-  if (value === null || value === undefined || (typeof value === 'number' && !Number.isFinite(value))) {
+  // One formatter for every figure in the product. A component that reaches
+  // for toFixed is a component that will disagree with its neighbour.
+  const q = format(value, kind ?? 'ratio', {
+    digits,
+    signed,
+    unit,
+    tone,
+  })
+
+  if (q.absent) {
     // An em dash, never a zero. The audits found three places where invalid
     // mathematics rendered as 0.0 and read as a real measurement.
     return <span className="sys-num sys-null" title={title ?? 'no value'}>—</span>
   }
 
   const numeric = typeof value === 'number'
-  const text = numeric
-    ? `${signed && value >= 0 ? '+' : ''}${value.toFixed(digits)}`
-    : String(value)
-
-  const cls = tone && numeric
+  const cls = q.tone && numeric
     ? value > 0 ? 'sys-pos' : value < 0 ? 'sys-neg' : ''
     : ''
 
   const body = (
     <>
-      {text}
-      {unit ? <span className="u" style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-faint)', marginLeft: 3 }}>{unit}</span> : null}
+      {q.text}
+      {q.unit ? <span className="u" style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-faint)', marginLeft: 3 }}>{q.unit}</span> : null}
     </>
   )
 
@@ -96,14 +109,14 @@ export function Value({
   // method, the unit and what would make it wrong are one click away, and the
   // hover carries the one-line purpose so the common case needs no click.
   if (measure || inspect) {
-    const ref: MetricRef = inspect ?? { measure, label: title ?? measure ?? 'value', display: text, unit }
+    const ref: MetricRef = inspect ?? { measure, label: title ?? measure ?? 'value', display: q.text, unit: q.unit }
     const purpose = metrics.summary(ref.measure)
     return (
       <button
         type="button"
         className={`sys-num sys-num--live ${cls}`}
         title={purpose ? `${purpose}\n\nClick for method, source and failure conditions.` : title}
-        onClick={(e) => { e.stopPropagation(); metrics.inspect({ ...ref, display: text, unit: unit ?? ref.unit }) }}
+        onClick={(e) => { e.stopPropagation(); metrics.inspect({ ...ref, display: q.text, unit: q.unit ?? ref.unit }) }}
       >
         {body}
       </button>
@@ -187,6 +200,8 @@ export function Grid({
 export interface StripMetric {
   label: string
   value: number | string | null | undefined
+  /** Quantity kind. Decides precision and unit; see lib/quantity. */
+  kind?: Kind
   unit?: string
   digits?: number
   signed?: boolean
@@ -204,7 +219,7 @@ export function Strip({ metrics }: { metrics: StripMetric[] }) {
           <span className="k" title={m.label}>{m.label}</span>
           <span className="v">
             <Value
-              value={m.value} unit={m.unit} digits={m.digits}
+              value={m.value} kind={m.kind} unit={m.unit} digits={m.digits}
               signed={m.signed} tone={m.tone} title={m.title}
               measure={m.method}
               inspect={m.method ? { measure: m.method, label: m.label, display: '', unit: m.unit, note: m.title } : undefined}
