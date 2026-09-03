@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 
 import Workbench from '@/components/system/Workbench'
 import SecurityView from '@/components/terminal/security/SecurityView'
-import SecurityWorkspace from '@/components/terminal/security/SecurityWorkspace'
+import SecurityProfile from '@/components/terminal/security/SecurityProfile'
 import { Panel } from '@/components/system'
 
 export const metadata: Metadata = {
@@ -57,9 +57,16 @@ export default async function SecurityPage({
           {/* Price and chart lead, from the market providers, in well under a
               second. */}
           <SecurityView symbol={symbol} />
-          {/* The research reading of the same name, below the market data
-              rather than in front of it. */}
-          <SecurityWorkspace symbol={symbol} />
+          {/* Identity, filings and coverage, on their own clock. The research
+              endpoint fans out across every vendor and takes half a minute;
+              nothing above waits for it, and if it never arrives the page is
+              exactly as useful as it was a second after opening.
+
+              This replaced the older research workspace here, which rendered a
+              second and empty price chart above an identity table of em dashes
+              and a valuation table of em dashes — a broken duplicate of what
+              the view above already does from live providers. */}
+          <SecurityProfile symbol={symbol} />
         </>
       ) : null}
     </Workbench>

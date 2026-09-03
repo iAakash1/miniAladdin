@@ -72,14 +72,16 @@ test('every hand-built table in the product is accounted for', () => {
   const files = walk(join(ROOT, 'components'))
   const handBuilt = files.filter((f) => /className="sys-table/.test(readFileSync(f, 'utf8')))
 
-  /* Raised from 36 to 38 deliberately: the watchlist and the recent-securities
-     list are fixed-column price tables with no sorting or column controls, and
-     routing them through DataTable would add machinery neither needs. Both were
-     checked in the rendered DOM — six headers against six cells, three against
-     three — before this number moved. */
+  /* Raised deliberately, twice. 36 → 38 for the watchlist and the recent list:
+     fixed-column price tables with no sorting or column controls, checked in
+     the DOM at six headers against six cells and three against three.
+     38 → 39 for the security profile, whose company and coverage tables are
+     header-less two-column field lists — a <th> reading "field" and "value"
+     there would be noise — beside a filings table that does carry headers.
+     Every one was read in the rendered DOM before this number moved. */
   assert.equal(
-    handBuilt.length, 38,
-    `hand-built tables changed from 38 to ${handBuilt.length}. Route the new one ` +
+    handBuilt.length, 39,
+    `hand-built tables changed from 39 to ${handBuilt.length}. Route the new one ` +
     'through DataTable, or check its alignment in the rendered DOM and update ' +
     'this count deliberately.',
   )

@@ -1833,3 +1833,6 @@ tr[data-selected='true'] .sys-row-actions { opacity: 1; }
 }
 .wb-group:not([data-primary]) .wb-label { color: var(--ink-muted); }
 .wb-group:not([data-primary]) a[aria-current='page'] .wb-label { color: var(--ink); }
+
+/* News category counts: a row of small facts, not a row of chips. */
+.sec-cats { display: flex; gap: var(--d-3); flex-wrap: wrap; margin-top: var(--d-3); }
