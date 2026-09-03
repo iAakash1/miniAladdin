@@ -99,15 +99,15 @@ export default function PortfolioWorkbench() {
       ),
     },
     { key: 'side', header: 'Side', width: '12%', sort: (w) => w.side, text: (w) => w.side, render: (w) => <Status state={w.weight >= 0 ? 'recorded' : 'experimental'} label={w.side} /> },
-    { key: 'w', header: 'Weight', numeric: true, sort: (w) => w.weight, render: (w) => <Value value={w.weight} digits={6} signed tone /> },
-    { key: 'abs', header: 'Gross weight', numeric: true, optional: true, sort: (w) => Math.abs(w.weight), render: (w) => <Value value={Math.abs(w.weight)} digits={6} /> },
+    { key: 'w', header: 'Weight', unit: 'share of capital', numeric: true, sort: (w) => w.weight, render: (w) => <Value value={w.weight} digits={6} signed tone /> },
+    { key: 'abs', header: 'Gross weight', unit: 'share of capital', numeric: true, optional: true, sort: (w) => Math.abs(w.weight), render: (w) => <Value value={Math.abs(w.weight)} digits={6} /> },
     { key: 'sig', header: 'Signal', unit: 'rank', numeric: true, sort: (w) => w.signal ?? null, render: (w) => <Value value={w.signal ?? null} digits={6} signed /> },
     {
-      key: 'rc', header: 'Risk share', numeric: true, sort: (w) => w.risk_share,
+      key: 'rc', header: 'Risk share', unit: 'share of vol', numeric: true, sort: (w) => w.risk_share,
       render: (w) => <Value value={w.risk_share} digits={4} title={w.risk_share === null ? 'Not available: the covariance could not describe this book' : undefined} />,
     },
     {
-      key: 'ratio', header: 'Risk per unit weight', numeric: true, optional: true,
+      key: 'ratio', header: 'Risk per unit weight', unit: 'ratio', numeric: true, optional: true,
       sort: (w) => (w.risk_share !== null && Math.abs(w.weight) > 0 ? w.risk_share / Math.abs(w.weight) : null),
       render: (w) => (
         <Value

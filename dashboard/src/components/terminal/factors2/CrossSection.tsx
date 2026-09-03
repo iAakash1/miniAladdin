@@ -90,7 +90,7 @@ export default function CrossSection({
         >{r.symbol}</Link>
       ),
     },
-    { key: 'score', header: 'Score', numeric: true, sort: (r) => n(r.score), render: (r) => <Value value={n(r.score)} digits={4} signed tone /> },
+    { key: 'score', header: 'Score', unit: 'factor score', numeric: true, sort: (r) => n(r.score), render: (r) => <Value value={n(r.score)} digits={4} signed tone /> },
     { key: 'pct', header: 'Percentile', unit: 'in the universe', numeric: true, sort: (r) => n(r.percentile), render: (r) => <Value value={n(r.percentile)} digits={3} /> },
     {
       key: 'fwd', header: 'Forward return', unit: 'realised', numeric: true, sort: (r) => n(r.forward_return),
@@ -116,7 +116,7 @@ export default function CrossSection({
         >{r.symbol}</Link>
       ),
     },
-    { key: 'comp', header: 'Composite', numeric: true, sort: (r) => n(r.composite), render: (r) => <Value value={n(r.composite)} digits={4} signed tone /> },
+    { key: 'comp', header: 'Composite', unit: 'weighted score', numeric: true, sort: (r) => n(r.composite), render: (r) => <Value value={n(r.composite)} digits={4} signed tone /> },
     {
       key: 'agree', header: 'Agreement', unit: 'across factors', numeric: true, sort: (r) => n(r.agreement),
       render: (r) => <Value value={n(r.agreement)} digits={3} title="How much the contributing factors point the same way" />,

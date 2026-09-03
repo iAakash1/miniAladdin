@@ -106,10 +106,10 @@ export default function SignalDiagnostics({ experiment, model }: { experiment: s
   const foldColumns: DataColumn<Fold>[] = [
     { key: 'fold', header: 'Fold', numeric: true, sort: (f) => f.fold, render: (f) => <Value value={f.fold} digits={0} /> },
     { key: 'window', header: 'Window', width: '22%', sort: (f) => f.start, text: (f) => `${f.start} ${f.end}`, render: (f) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{f.start} → {f.end}</span> },
-    { key: 'ic', header: 'Mean IC', numeric: true, sort: (f) => f.mean_ic, render: (f) => <Value value={f.mean_ic} digits={4} signed tone /> },
-    { key: 'med', header: 'Median IC', numeric: true, sort: (f) => f.median_ic, render: (f) => <Value value={f.median_ic} digits={4} signed /> },
-    { key: 'std', header: 'IC dispersion', numeric: true, sort: (f) => f.std_ic, render: (f) => <Value value={f.std_ic} digits={4} /> },
-    { key: 'pos', header: 'Positive rate', numeric: true, sort: (f) => f.positive_rate, render: (f) => <Value value={f.positive_rate} digits={3} /> },
+    { key: 'ic', header: 'Mean IC', unit: 'rank corr.', numeric: true, sort: (f) => f.mean_ic, render: (f) => <Value value={f.mean_ic} digits={4} signed tone /> },
+    { key: 'med', header: 'Median IC', unit: 'rank corr.', numeric: true, sort: (f) => f.median_ic, render: (f) => <Value value={f.median_ic} digits={4} signed /> },
+    { key: 'std', header: 'IC dispersion', unit: 'std of IC', numeric: true, sort: (f) => f.std_ic, render: (f) => <Value value={f.std_ic} digits={4} /> },
+    { key: 'pos', header: 'Positive rate', unit: 'share', numeric: true, sort: (f) => f.positive_rate, render: (f) => <Value value={f.positive_rate} digits={3} /> },
     { key: 'dates', header: 'Dates', numeric: true, sort: (f) => f.dates, render: (f) => <Value value={f.dates} digits={0} /> },
     { key: 'obs', header: 'Observations', numeric: true, optional: true, sort: (f) => f.observations, render: (f) => <Value value={f.observations} digits={0} /> },
   ]

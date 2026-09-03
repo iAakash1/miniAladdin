@@ -160,9 +160,9 @@ export default function FactorWorkbench() {
       key: 'inf', header: 'Overlap inflation', unit: '×', numeric: true, sort: (f) => f.overlap_inflation,
       render: (f) => <Value value={f.overlap_inflation} digits={2} tone title="How much the uncorrected t overstated significance" />,
     },
-    { key: 'lags', header: 'Lags', numeric: true, sort: (f) => f.newey_west_lags, render: (f) => <Value value={f.newey_west_lags} digits={0} /> },
-    { key: 'hr', header: 'Hit rate', numeric: true, sort: (f) => f.hit_rate, render: (f) => <Value value={f.hit_rate} digits={3} /> },
-    { key: 'tmb', header: 'Top minus bottom', numeric: true, optional: true, sort: (f) => f.top_minus_bottom, render: (f) => <Value value={f.top_minus_bottom} digits={4} signed tone /> },
+    { key: 'lags', header: 'Lags', unit: 'Newey-West', numeric: true, sort: (f) => f.newey_west_lags, render: (f) => <Value value={f.newey_west_lags} digits={0} /> },
+    { key: 'hr', header: 'Hit rate', unit: 'share', numeric: true, sort: (f) => f.hit_rate, render: (f) => <Value value={f.hit_rate} digits={3} /> },
+    { key: 'tmb', header: 'Top minus bottom', unit: 'rank spread', numeric: true, optional: true, sort: (f) => f.top_minus_bottom, render: (f) => <Value value={f.top_minus_bottom} digits={4} signed tone /> },
     { key: 'dates', header: 'Dates', numeric: true, optional: true, sort: (f) => f.dates, render: (f) => <Value value={f.dates} digits={0} /> },
     { key: 'sig', header: 'Significant', width: '11%', sort: (f) => (f.significant ? 1 : 0), render: (f) => <Status state={f.significant ? 'candidate' : 'blocked'} label={f.significant ? 'yes' : 'no'} /> },
   ], [picked])

@@ -82,7 +82,7 @@ export default function GateMatrix() {
 
   const columns: DataColumn<{ gate: string; unrecorded: number; failed: number; met: number }>[] = [
     { key: 'gate', header: 'Gate', width: '30%', sort: (r) => r.gate, text: (r) => r.gate, render: (r) => <span style={{ fontFamily: 'var(--font-mono)' }}>{r.gate}</span> },
-    { key: 'met', header: 'Met', numeric: true, sort: (r) => r.met, render: (r) => <span className="sys-num sys-pos">{r.met}</span> },
+    { key: 'met', header: 'Met', unit: 'of all entries', numeric: true, sort: (r) => r.met, render: (r) => <span className="sys-num sys-pos">{r.met}</span> },
     { key: 'failed', header: 'Failed', unit: 'a number missed it', numeric: true, sort: (r) => r.failed, render: (r) => <span className="sys-num sys-neg">{r.failed}</span> },
     { key: 'unrec', header: 'Not recorded', unit: 'never measured', numeric: true, sort: (r) => r.unrecorded, render: (r) => <span className="sys-num sys-null">{r.unrecorded}</span> },
     {

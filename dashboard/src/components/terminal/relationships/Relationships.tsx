@@ -120,7 +120,7 @@ export default function Relationships({ initialSymbol = 'AAPL' }: { initialSymbo
       { key: 'type', header: 'Relationship', width: '18%', sort: (e) => e.type, text: (e) => e.type, render: (e) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{e.type}</span> },
       { key: 'tgt', header: 'To', width: '22%', sort: (e) => label(e.target_id), text: (e) => label(e.target_id), render: (e) => <span style={{ fontFamily: 'var(--font-mono)' }}>{label(e.target_id)}</span> },
       {
-        key: 'conf', header: 'Confidence', numeric: true, sort: (e) => n(e.confidence),
+        key: 'conf', header: 'Confidence', unit: '0 to 1', numeric: true, sort: (e) => n(e.confidence),
         render: (e) => <Value value={n(e.confidence)} digits={2} title="How strongly the provider asserts this relationship" />,
       },
       { key: 'prov', header: 'Provider', width: '14%', sort: (e) => e.provider ?? null, text: (e) => e.provider ?? '', render: (e) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{e.provider ?? '—'}</span> },

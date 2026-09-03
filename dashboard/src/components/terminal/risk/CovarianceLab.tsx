@@ -71,7 +71,7 @@ export default function CovarianceLab() {
       render: (r) => <Status state={r.positive_semi_definite ? 'recorded' : 'blocked'} label={r.positive_semi_definite ? 'yes' : 'no'} />,
     },
     {
-      key: 'eig', header: 'Min eigenvalue', numeric: true, sort: (r) => r.min_eigenvalue,
+      key: 'eig', header: 'Min eigenvalue', unit: 'variance units', numeric: true, sort: (r) => r.min_eigenvalue,
       render: (r) => (
         <span className={`sys-num${r.min_eigenvalue !== null && r.min_eigenvalue < 0 ? ' sys-neg' : ''}`}>
           {r.min_eigenvalue === null ? <span className="sys-null">—</span> : r.min_eigenvalue.toExponential(2)}
@@ -83,11 +83,11 @@ export default function CovarianceLab() {
       render: (r) => <Value value={r.condition_number} digits={0} title="Large means near-singular in some direction, where an optimiser puts its least justified bets" />,
     },
     {
-      key: 'shrink', header: 'Shrinkage', numeric: true, sort: (r) => r.shrinkage,
+      key: 'shrink', header: 'Shrinkage', unit: 'intensity 0 to 1', numeric: true, sort: (r) => r.shrinkage,
       render: (r) => <Value value={r.shrinkage} digits={3} />,
     },
     {
-      key: 'rows', header: 'Rows used', numeric: true, sort: (r) => r.complete_rows ?? r.observations,
+      key: 'rows', header: 'Rows used', unit: 'complete / total', numeric: true, sort: (r) => r.complete_rows ?? r.observations,
       render: (r) => (
         <span className="sys-num" title={r.complete_rows === null ? 'pairwise: each entry uses whichever rows that pair shares' : 'complete rows only'}>
           {r.complete_rows === null ? `${r.observations} pairwise` : `${r.complete_rows} / ${r.observations}`}
@@ -95,7 +95,7 @@ export default function CovarianceLab() {
       ),
     },
     {
-      key: 'vol', header: 'Portfolio vol', numeric: true, sort: (r) => r.portfolio_volatility,
+      key: 'vol', header: 'Portfolio vol', unit: 'per period', numeric: true, sort: (r) => r.portfolio_volatility,
       render: (r) => <Value value={r.portfolio_volatility} digits={6} />,
     },
     {

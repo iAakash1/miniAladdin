@@ -78,9 +78,9 @@ export default function ModelCompare() {
     { key: 'model', header: 'Model', width: '24%', sort: (r) => r.model_id, text: (r) => r.model_id, render: (r) => <span style={{ fontFamily: 'var(--font-mono)' }}>{r.model_id}</span> },
     { key: 'label', header: 'Label', width: '14%', sort: (r) => r.label, text: (r) => r.label, render: (r) => <span className="sys-meta" style={{ color: 'var(--ink)' }}>{r.label}</span> },
     { key: 'status', header: 'Status', width: '13%', sort: (r) => r.status, text: (r) => r.status, render: (r) => <Status state={r.status === 'retired' ? 'unavailable' : 'experimental'} label={r.status} /> },
-    { key: 'ic', header: 'Mean IC', numeric: true, sort: (r) => n(r.mean_ic), render: (r) => <span className="sys-num">{r.mean_ic?.toFixed(4) ?? '—'}</span> },
-    { key: 't', header: 'IC t', numeric: true, sort: (r) => n(r.ic_t_stat), render: (r) => <span className="sys-num">{r.ic_t_stat?.toFixed(2) ?? '—'}</span> },
-    { key: 'ns', header: 'Net Sharpe', numeric: true, sort: (r) => n(r.net_sharpe), render: (r) => <span className="sys-num">{r.net_sharpe?.toFixed(3) ?? '—'}</span> },
+    { key: 'ic', header: 'Mean IC', unit: 'rank corr.', numeric: true, sort: (r) => n(r.mean_ic), render: (r) => <span className="sys-num">{r.mean_ic?.toFixed(4) ?? '—'}</span> },
+    { key: 't', header: 'IC t', unit: 'Newey-West', numeric: true, sort: (r) => n(r.ic_t_stat), render: (r) => <span className="sys-num">{r.ic_t_stat?.toFixed(2) ?? '—'}</span> },
+    { key: 'ns', header: 'Net Sharpe', unit: 'after costs', numeric: true, sort: (r) => n(r.net_sharpe), render: (r) => <span className="sys-num">{r.net_sharpe?.toFixed(3) ?? '—'}</span> },
   ], [picked])
 
   if (error) return <Panel title="Compare" state="unavailable"><StateBlock state="unavailable" title="The registry could not be read" detail={error} /></Panel>

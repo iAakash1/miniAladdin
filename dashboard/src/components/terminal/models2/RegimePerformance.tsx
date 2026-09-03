@@ -54,13 +54,13 @@ export default function RegimePerformance({
       render: (r) => <span style={{ fontFamily: 'var(--font-mono)' }}>{r.regime.replace(/_/g, ' ')}</span>,
     },
     {
-      key: 'share', header: 'Share of sample', numeric: true, sort: (r) => n(r.share),
+      key: 'share', header: 'Share of sample', unit: 'share', numeric: true, sort: (r) => n(r.share),
       render: (r) => <Value value={n(r.share)} digits={4} />,
     },
     { key: 'obs', header: 'Observations', numeric: true, sort: (r) => n(r.observations), render: (r) => <Value value={n(r.observations)} digits={0} /> },
     { key: 'dates', header: 'Dates', numeric: true, sort: (r) => n(r.dates), render: (r) => <Value value={n(r.dates)} digits={0} /> },
     {
-      key: 'ic', header: 'Mean IC', numeric: true, sort: (r) => n(r.mean_ic),
+      key: 'ic', header: 'Mean IC', unit: 'rank corr.', numeric: true, sort: (r) => n(r.mean_ic),
       render: (r) => (
         <Value
           value={n(r.mean_ic)} digits={5} signed tone
@@ -68,9 +68,9 @@ export default function RegimePerformance({
         />
       ),
     },
-    { key: 't', header: 'IC t', numeric: true, sort: (r) => n(r.ic_t_stat), render: (r) => <Value value={n(r.ic_t_stat)} digits={3} signed /> },
-    { key: 'hit', header: 'IC hit rate', numeric: true, optional: true, sort: (r) => n(r.ic_hit_rate), render: (r) => <Value value={n(r.ic_hit_rate)} digits={3} /> },
-    { key: 'edge', header: 'Directional edge', numeric: true, optional: true, sort: (r) => n(r.directional_edge), render: (r) => <Value value={n(r.directional_edge)} digits={4} signed tone /> },
+    { key: 't', header: 'IC t', unit: 'Newey-West', numeric: true, sort: (r) => n(r.ic_t_stat), render: (r) => <Value value={n(r.ic_t_stat)} digits={3} signed /> },
+    { key: 'hit', header: 'IC hit rate', unit: 'share', numeric: true, optional: true, sort: (r) => n(r.ic_hit_rate), render: (r) => <Value value={n(r.ic_hit_rate)} digits={3} /> },
+    { key: 'edge', header: 'Directional edge', unit: 'share above 0.5', numeric: true, optional: true, sort: (r) => n(r.directional_edge), render: (r) => <Value value={n(r.directional_edge)} digits={4} signed tone /> },
     {
       key: 'thin', header: 'Supportable', width: '13%',
       sort: (r) => ((n(r.share) ?? 0) >= THIN_SHARE ? 1 : 0),

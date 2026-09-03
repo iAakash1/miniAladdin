@@ -106,7 +106,7 @@ export default function MarketWorkspace() {
         </Link>
       ),
     },
-    { key: 'price', header: 'Price', numeric: true, sort: (s) => n(s.price), render: (s) => <Value value={n(s.price)} digits={2} /> },
+    { key: 'price', header: 'Price', unit: 'currency', numeric: true, sort: (s) => n(s.price), render: (s) => <Value value={n(s.price)} digits={2} /> },
     {
       key: 's21', header: 'Strength', unit: '21d', numeric: true, sort: (s) => n(s.strength_21d),
       render: (s) => <Value value={n(s.strength_21d)} digits={4} signed tone />,
