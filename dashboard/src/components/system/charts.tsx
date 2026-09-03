@@ -152,10 +152,35 @@ export function Sparkline({
 
 /* ── time series ───────────────────────────────────────────────────────── */
 
+/**
+ * One line on a chart, and what it is.
+ *
+ * A series carries its own semantic kind because a chart may hold more than
+ * one, and two lines on a shared vertical axis are a claim that they are
+ * measured in the same thing. An information coefficient and a return are both
+ * small dimensionless-looking numbers; drawn together on one axis they look
+ * like a comparison and are not one.
+ */
+export interface Series {
+  name: string
+  points: Point[]
+  color?: string
+  dashed?: boolean
+  /** What this line measures. Falls back to the chart's kind. */
+  kind?: Kind
+  /** What it was measured against — a target, a horizon, a convention. */
+  basis?: string
+  /** The object that produced it, for inspection and navigation. */
+  object?: { kind: string; id: string; label?: string }
+  /** How it was computed, in one line. */
+  method?: string
+}
+
 export function TimeSeries({
   series, height = 190, unit, method, title, zeroLine = false, band, kind = 'ratio',
+  xLabel, frequency,
 }: {
-  series: { name: string; points: Point[]; color?: string; dashed?: boolean }[]
+  series: Series[]
   height?: number
   unit?: string
   method?: string
@@ -165,6 +190,10 @@ export function TimeSeries({
   band?: { points: Point[]; upper: (number | null)[]; lower: (number | null)[] }
   /** How the readout should render values. Defaults to a bare ratio. */
   kind?: Kind
+  /** What the horizontal axis is. Defaults to naming the observation dates. */
+  xLabel?: string
+  /** How often an observation occurs — daily, per fold, per rebalance. */
+  frequency?: string
 }) {
   const [hover, setHover] = useState<number | null>(null)
   // A selection in progress, in whole indices. Null while the pointer is up.
@@ -235,6 +264,16 @@ export function TimeSeries({
   const ticks = niceTicks(lo, hi, 4)
   const labels = sliced[0].points
 
+  /* Two lines on one vertical axis assert they are measured in the same
+     thing. Where the series disagree, the chart says so rather than drawing a
+     comparison the units do not support — an information coefficient and a
+     return are both small and dimensionless-looking, and sharing an axis makes
+     them look like the same quantity at different times. */
+  const kinds = [...new Set(shown.map((s) => s.kind ?? kind))]
+  const bases = [...new Set(shown.map((s) => s.basis).filter(Boolean))]
+  const mixedUnits = kinds.length > 1
+  const mixedBases = bases.length > 1
+
   // The shared cursor is a date, not an index: these charts have different
   // lengths and start points, and an index would align the ninth observation
   // of one series with the ninth of another and call that the same moment.
@@ -257,6 +296,13 @@ export function TimeSeries({
       title={title} unit={unit} method={method}
       footer={
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 'var(--d-3)', flexWrap: 'wrap' }}>
+          {mixedUnits || mixedBases ? (
+            <span className="sys-meta sys-axis-warning">
+              {mixedUnits
+                ? `one axis, ${kinds.length} different measures — these lines are not comparable to each other`
+                : `measured against ${bases.join(' and ')} — not the same scale`}
+            </span>
+          ) : null}
           {series.length > 1 ? (
             <div style={{ display: 'flex', gap: 'var(--d-3)', flexWrap: 'wrap' }}>
               {series.map((s) => {
@@ -407,6 +453,14 @@ export function TimeSeries({
           </g>
         ) : null}
 
+        {/* The axis names itself. A pair of dates at the ends says where the
+            window falls and not what the horizontal direction means, which for
+            a fold index or a spread sweep is not the same question. */}
+        {xLabel ? (
+          <text x={W / 2} y={11} textAnchor="middle" fontSize={9} fill="var(--ink-faint)" fontFamily="var(--font-mono)">
+            {xLabel}{frequency ? ` · ${frequency}` : ''}
+          </text>
+        ) : null}
         <text x={PAD.left} y={H - 4} fontSize={9} fill="var(--ink-faint)" fontFamily="var(--font-mono)">
           {String(labels[0]?.x ?? '')}
         </text>

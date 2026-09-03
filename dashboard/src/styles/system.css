@@ -1679,3 +1679,9 @@ tr[data-selected='true'] .sys-row-actions { opacity: 1; }
    rather than careful. */
 .sys-incomparable { color: var(--s-blocked); }
 .sys-table th[data-incomparable] { border-bottom-color: var(--s-blocked); }
+
+/* A chart drawing lines that are not comparable to one another. Stated in the
+   footer beside the legend, where a reader looking at which line is which will
+   see it, rather than as a badge on the frame they have already stopped
+   reading. */
+.sys-axis-warning { color: var(--s-blocked); }

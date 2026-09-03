@@ -228,10 +228,16 @@ export default function ExperimentEvidence({
           <TimeSeries
             series={models.slice(0, 6).map((m, i) => ({
               name: m,
+              kind: 'sharpe' as const,
+              object: { kind: 'model', id: m, label: m },
+              method: 'net Sharpe from the costed backtest at this half-spread',
               points: (costSensitivity?.[m] ?? []).map((p) => ({ x: `${p.half_spread_bps}bp`, y: n(p.net_sharpe) })),
               color: ['var(--ink)', 'var(--s-candidate)', 'var(--s-experimental)', 'var(--s-stale)', 'var(--s-live)', 'var(--ink-faint)'][i],
             }))}
-            unit="net Sharpe against half-spread"
+            unit="net Sharpe"
+            kind="sharpe"
+            xLabel="assumed half-spread"
+            frequency="one point per costing"
             method="the same backtest re-costed at each spread"
             zeroLine
             height={230}
