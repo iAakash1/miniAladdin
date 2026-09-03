@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 
 import Workbench from '@/components/system/Workbench'
 import EvidenceChain from '@/components/terminal/models/EvidenceChain'
+import SelectionPopulation from '@/components/terminal/models/SelectionPopulation'
 import { Panel, Provenance, Section } from '@/components/system'
 
 export const metadata: Metadata = {
@@ -60,6 +61,10 @@ export default function EvidencePage() {
       }
     >
       <EvidenceChain />
+      {/* Whether the winner is skill or selection. A sorted leaderboard read
+          on its own is an argument for its own top row, so the losers and the
+          distribution the winner was drawn from go on the same page. */}
+      <SelectionPopulation />
     </Workbench>
   )
 }
