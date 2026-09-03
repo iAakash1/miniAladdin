@@ -2,7 +2,8 @@ import type { Metadata } from 'next'
 
 import Workbench from '@/components/system/Workbench'
 import SecurityWorkspace from '@/components/terminal/security/SecurityWorkspace'
-import { Panel, StateBlock } from '@/components/system'
+import SymbolPicker from '@/components/terminal/security/SymbolPicker'
+import { Panel } from '@/components/system'
 
 export const metadata: Metadata = {
   title: 'Security — miniAladdin',
@@ -51,17 +52,8 @@ export default async function SecurityPage({
         </>
       }
     >
-      {symbol ? (
-        <SecurityWorkspace symbol={symbol} />
-      ) : (
-        <Panel title="Security">
-          <StateBlock
-            state="unknown"
-            title="No security selected"
-            detail="Open a name from the book, from search, or by adding ?symbol=TICKER to this address."
-          />
-        </Panel>
-      )}
+      <SymbolPicker current={symbol} />
+      {symbol ? <SecurityWorkspace symbol={symbol} /> : null}
     </Workbench>
   )
 }
