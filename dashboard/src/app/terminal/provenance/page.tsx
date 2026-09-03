@@ -4,6 +4,7 @@ import Workbench from '@/components/system/Workbench'
 import ChainPicker from '@/components/terminal/provenance/ChainPicker'
 import Lineage from '@/components/terminal/provenance/Lineage'
 import { Panel } from '@/components/system'
+import { Trace } from '@/components/system/Trace'
 
 export const metadata: Metadata = {
   title: 'Provenance — miniAladdin',
@@ -52,6 +53,7 @@ export default async function ProvenancePage({
       }
     >
       <ChainPicker label={label} model={model} />
+      <Trace label={label} model={model} />
       <Lineage label={label} model={model} />
     </Workbench>
   )

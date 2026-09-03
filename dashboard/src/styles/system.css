@@ -1586,3 +1586,75 @@ tr[data-selected='true'] .sys-row-actions { opacity: 1; }
 .sys-related__count { order: 1; }
 .sys-related__verb { order: 0; font-size: var(--t-micro); color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.06em; }
 .sys-related__sample { font-size: var(--t-micro); color: var(--ink-faint); }
+
+/* ── trace ───────────────────────────────────────────────────────────────
+   A chain read top to bottom. The connector is a rule rather than an arrow
+   glyph: an arrow per step is eight pieces of decoration saying the same
+   thing, and a continuous line says it once. */
+
+.sys-trace {
+  list-style: none;
+  margin: var(--d-4) 0 0;
+  padding: 0 0 0 var(--d-4);
+  position: relative;
+  border-left: 1px solid var(--rule-strong);
+}
+
+.sys-trace__step {
+  position: relative;
+  padding: 0 0 var(--d-4) 0;
+}
+.sys-trace__step:last-child { padding-bottom: 0; }
+
+/* The node on the line. Filled by default; the kind and outcome modifiers
+   below repaint it, so the chain's shape is readable before any text is. */
+.sys-trace__step::before {
+  content: '';
+  position: absolute;
+  left: calc(-1 * var(--d-4) - 4px);
+  top: 6px;
+  width: 7px; height: 7px;
+  background: var(--ink-faint);
+  border: 1px solid var(--p-base);
+}
+
+.sys-trace__step[data-kind='OBSERVED']::before { background: var(--s-recorded, var(--ink)); }
+.sys-trace__step[data-kind='DERIVED']::before { background: var(--ink-muted); }
+/* A model output is the one link in a lineage that is a guess. */
+.sys-trace__step[data-kind='MODEL_PREDICTED']::before { background: var(--s-experimental); }
+
+.sys-trace__step[data-outcome='failed']::before { background: var(--e-neg); }
+.sys-trace__step[data-outcome='unmeasured']::before {
+  background: var(--p-base);
+  border-color: var(--s-blocked);
+}
+.sys-trace__step[data-outcome='unreached']::before {
+  background: var(--p-base);
+  border-color: var(--ink-faint);
+}
+
+/* Past the stopping point the line itself goes quiet, so the eye can see how
+   far the chain got without reading a word of it. */
+.sys-trace--gates .sys-trace__step[data-outcome='unreached'] { opacity: 0.6; }
+
+.sys-trace__head {
+  display: flex; align-items: baseline; gap: var(--d-2); flex-wrap: wrap;
+  margin-bottom: var(--d-1);
+}
+.sys-trace__name {
+  font-size: var(--t-body);
+  color: var(--ink);
+}
+.sys-trace__detail {
+  margin: 0;
+  font-size: var(--t-meta);
+  line-height: var(--lh-body);
+  color: var(--ink-muted);
+  max-width: 82ch;
+}
+.sys-trace__kindnote {
+  margin: var(--d-1) 0 0;
+  font-size: var(--t-micro);
+  color: var(--ink-faint);
+  max-width: 82ch;
+}
