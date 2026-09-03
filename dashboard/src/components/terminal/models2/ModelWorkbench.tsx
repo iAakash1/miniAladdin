@@ -13,6 +13,8 @@
 'use client'
 
 import Link from 'next/link'
+
+import RegimePerformance, { type RegimeRow } from './RegimePerformance'
 import { useEffect, useState } from 'react'
 
 import { Panel, Section, StateBlock, Status, Strip, Table, Value, type Column } from '@/components/system'
@@ -56,6 +58,7 @@ export default function ModelWorkbench() {
   const [data, setData] = useState<Overview | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
+  const [regimes, setRegimes] = useState<Record<string, RegimeRow[]> | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -67,6 +70,16 @@ export default function ModelWorkbench() {
         setSelected(d.labels?.[0]?.label ?? null)
       })
       .catch((e: Error) => { if (alive) setError(e.message) })
+
+    // The regime breakdown lives on the experiment artifact rather than the
+    // overview, so it is fetched alongside rather than folded into it.
+    fetch('/api/quant/experiments/EXP-006')
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((d: { regime_performance?: Record<string, RegimeRow[]> }) => {
+        if (alive) setRegimes(d.regime_performance ?? null)
+      })
+      .catch(() => { /* the breakdown is additive; its absence is reported by its own panel */ })
+
     return () => { alive = false }
   }, [])
 
@@ -158,6 +171,8 @@ export default function ModelWorkbench() {
           </div>
         </Panel>
       ) : null}
+
+      <RegimePerformance byModel={regimes} />
 
       <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))' }}>
         <Panel title="Guards" state={guards?.passed ? 'recorded' : 'blocked'} flush>
