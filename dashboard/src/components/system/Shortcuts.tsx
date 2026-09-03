@@ -46,7 +46,7 @@ const GROUPS: { title: string; keys: { combo: string; action: string }[] }[] = [
       { combo: 'g t', action: 'Timeline' },
       { combo: 'g i', action: 'Report — full security analysis' },
       { combo: 'g z', action: 'Positions' },
-      { combo: 'g u', action: 'Validation' },
+      { combo: 'g u', action: 'Calibration' },
 
     ],
   },

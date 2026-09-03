@@ -258,6 +258,17 @@ export default function SecurityWorkspace({ symbol }: { symbol: string }) {
             instruction and not a return. The deployment status is shown beside it
             on every render rather than as a caveat further down the page.
           </p>
+          <div style={{ display: 'flex', gap: 'var(--d-2)', marginTop: 'var(--d-3)', flexWrap: 'wrap' }}>
+            <Link href={`/terminal/calibration?symbol=${encodeURIComponent(symbol)}`} className="sys-btn" style={{ textDecoration: 'none' }}>
+              Is the score calibrated?
+            </Link>
+            <Link href={`/terminal/relationships?symbol=${encodeURIComponent(symbol)}`} className="sys-btn" style={{ textDecoration: 'none' }}>
+              What does it connect to?
+            </Link>
+            <Link href="/terminal/evidence" className="sys-btn" style={{ textDecoration: 'none' }}>
+              Can the model be trusted?
+            </Link>
+          </div>
         </Panel>
       ) : null}
 
