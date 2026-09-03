@@ -1,6 +1,8 @@
 import { ClerkProvider } from '@clerk/nextjs'
 import type { Metadata } from 'next'
 
+import { EntitlementProvider } from '@/components/system/Entitlement'
+
 export const metadata: Metadata = {
   title: 'Company research',
   robots: { index: false, follow: false },
@@ -12,7 +14,11 @@ export const dynamic = 'force-dynamic'
 export default function CompanyLayout({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider>
-      <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}>{children}</div>
+      <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}>
+        {/* Same provider the terminal mounts. One implementation of session,
+            usage and the upgrade flow across both route trees. */}
+        <EntitlementProvider>{children}</EntitlementProvider>
+      </div>
     </ClerkProvider>
   )
 }

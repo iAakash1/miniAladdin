@@ -19,6 +19,7 @@ import { loadCatalogue } from '@/lib/research/catalogue'
 import { recordVisit, usePinnedObjects, useRecentObjects } from '@/lib/research/history'
 import { KIND_ORDER, KINDS, href as objectHref, score, type ObjectKind, type ResearchObject } from '@/lib/research/objects'
 import { Status, type ResearchState } from './index'
+import { buildRows, selectableRows } from '@/lib/palette-rows'
 
 const STATE_MAP: Record<string, ResearchState> = {
   live: 'live', recorded: 'recorded', stale: 'stale', waking: 'waking',
@@ -146,55 +147,23 @@ export default function Palette() {
    * counting during render means the keyboard index and the painted order can
    * never disagree.
    */
-  const rows = useMemo(() => {
-    type Row =
-      | { type: 'header'; key: string; label: string }
-      | { type: 'command'; key: string; index: number; value: Command }
-      | { type: 'object'; key: string; index: number; value: ResearchObject }
-    const out: Row[] = []
-    let index = 0
-
-    if (results.commands.length) {
-      out.push({ type: 'header', key: 'h:commands', label: 'Commands' })
-      for (const c of results.commands) {
-        out.push({ type: 'command', key: `c:${c.id}`, index, value: c })
-        index += 1
-      }
-    }
-
-    for (const k of KIND_ORDER) {
-      const list = results.grouped.get(k)
-      if (!list?.length) continue
-      out.push({ type: 'header', key: `h:${k}`, label: KINDS[k].plural })
-      for (const o of list) {
-        out.push({ type: 'object', key: `o:${o.kind}:${o.id}`, index, value: o })
-        index += 1
-      }
-    }
-
-    if (!query.trim()) {
-      if (pinned.length) {
-        out.push({ type: 'header', key: 'h:pinned', label: 'Pinned' })
-        for (const o of pinned.slice(0, 5)) {
-          out.push({ type: 'object', key: `p:${o.kind}:${o.id}`, index, value: o })
-          index += 1
-        }
-      }
-      if (recent.length) {
-        out.push({ type: 'header', key: 'h:recent', label: 'Recent' })
-        for (const o of recent.slice(0, 8)) {
-          out.push({ type: 'object', key: `r:${o.kind}:${o.id}`, index, value: o })
-          index += 1
-        }
-      }
-    }
-    return out
-  }, [results, query, pinned, recent])
-
-  const selectable = useMemo(
-    () => rows.filter((r): r is Extract<typeof r, { index: number }> => r.type !== 'header'),
-    [rows],
+  const rows = useMemo(
+    () => buildRows<Command, ResearchObject>({
+      commands: results.commands,
+      commandKey: (c) => c.id,
+      groups: KIND_ORDER.flatMap((k) => {
+        const items = results.grouped.get(k)
+        return items?.length ? [{ key: k, label: KINDS[k].plural, items }] : []
+      }),
+      objectKey: (o) => `${o.kind}:${o.id}`,
+      pinned: { label: 'Pinned', keyPrefix: 'p:', items: pinned.slice(0, 5) },
+      recent: { label: 'Recent', keyPrefix: 'r:', items: recent.slice(0, 8) },
+      showSuggestions: !query.trim(),
+    }),
+    [results, query, pinned, recent],
   )
+
+  const selectable = useMemo(() => selectableRows(rows), [rows])
 
   const cursor = cursorFor.query === query ? cursorFor.index : 0
   const setCursor = (next: number | ((c: number) => number)) =>

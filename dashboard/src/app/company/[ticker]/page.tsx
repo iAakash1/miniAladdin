@@ -4,8 +4,10 @@ import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
+import Workbench from '@/components/system/Workbench'
+import { useEntitlement, type EntitlementValue } from '@/components/system/Entitlement'
+import { Panel } from '@/components/system'
 import CompanyReport from '@/components/terminal/CompanyReport'
-import TerminalShell, { type TerminalShellContext } from '@/components/terminal/TerminalShell'
 import EmptyState from '@/components/ui/EmptyState'
 import ResearchLoader, { ANALYSIS_STAGES } from '@/components/ui/ResearchLoader'
 import { fetchAnalysis, fetchChart, normalizeAnalysis, normalizeChart } from '@/lib/api'
@@ -24,17 +26,38 @@ const TICKER_RE = /^[A-Z.^-]{1,8}$/
  */
 export default function CompanyPage() {
   return (
-    <TerminalShell loadingLabel="Loading research…">
-      {(shell) => <CompanyLoader shell={shell} />}
-    </TerminalShell>
+    <Workbench
+      title="Company research"
+      subtitle="a permanent URL for one security"
+      context={
+        <>
+          <Panel title="What this URL means">
+            <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
+              The URL is the research request. Visiting it runs the full
+              deterministic pipeline for that company, so it always means the
+              same thing — safe to bookmark, safe to share.
+            </p>
+          </Panel>
+          <Panel title="Where the model record lives">
+            <p style={{ margin: 0, fontSize: 'var(--t-meta)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
+              This report is what the pipeline says about the security. How well
+              the model has actually predicted it is a different question, and it
+              is the Record tab on the Securities workspace.
+            </p>
+          </Panel>
+        </>
+      }
+    >
+      <CompanyLoader />
+    </Workbench>
   )
 }
 
-function CompanyLoader({ shell }: { shell: TerminalShellContext }) {
+function CompanyLoader() {
   const params = useParams<{ ticker: string }>()
   const ticker = decodeURIComponent(params.ticker ?? '').toUpperCase()
   const fast = useSearchParams().get('fast') === '1'
-  const { isPro, requestUpgrade } = shell
+  const { resolved, isPro, requestUpgrade }: EntitlementValue = useEntitlement()
 
   const [state, setState] = useState<
     | { status: 'loading' }
@@ -53,6 +76,14 @@ function CompanyLoader({ shell }: { shell: TerminalShellContext }) {
 
   useEffect(() => {
     if (invalid) return
+    // Wait for the session before reading entitlement.
+    //
+    // The old shell rendered nothing until identity resolved, so `isPro` was
+    // never observed in its default state. This one does not block the page —
+    // which is better — but it means an unresolved entitlement reads as false,
+    // and starting the run here would charge a paying reader against the free
+    // daily limit and show them an upgrade prompt they do not need.
+    if (!resolved) return
     // One run per ticker per mount — period changes refetch only the chart.
     if (ranFor.current === ticker) return
     ranFor.current = ticker
@@ -117,7 +148,7 @@ function CompanyLoader({ shell }: { shell: TerminalShellContext }) {
     function release() {
       if (!delivered && ranFor.current === ticker) ranFor.current = null
     }
-  }, [ticker, fast, isPro, invalid, requestUpgrade])
+  }, [ticker, fast, resolved, isPro, invalid, requestUpgrade])
 
   if (invalid) {
     return (
@@ -136,7 +167,7 @@ function CompanyLoader({ shell }: { shell: TerminalShellContext }) {
   if (state.status === 'loading') {
     return (
       <ResearchLoader
-        title="Researching"
+        title={resolved ? 'Researching' : 'Checking your session'}
         subject={ticker}
         stages={ANALYSIS_STAGES}
         completed={done}
