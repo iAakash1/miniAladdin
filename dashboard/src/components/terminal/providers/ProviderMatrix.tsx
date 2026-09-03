@@ -13,9 +13,10 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 
 import { Panel, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
-import { ObjectHeader, TableSkeleton } from '@/components/system/composition'
+import { ObjectHeader, TableSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
 
 interface Capability {
   capability?: string
@@ -122,6 +123,15 @@ export default function ProviderMatrix() {
           </ul>
         </Panel>
       ) : null}
+
+      <Toolbar>
+        <ToolbarGroup label="trace">
+          <Link href="/terminal/data" className="sys-btn" style={{ textDecoration: 'none' }}>datasets</Link>
+          <Link href="/terminal/provenance" className="sys-btn" style={{ textDecoration: 'none' }}>provenance</Link>
+        </ToolbarGroup>
+        <ToolbarSpacer />
+        <span className="sys-meta">introspected from the vendor clients</span>
+      </Toolbar>
 
       <Panel title="Capability matrix" subtitle={providers.length ? `${providers.length} providers × ${capabilities.length} capabilities` : undefined} flush>
         {!caps ? (

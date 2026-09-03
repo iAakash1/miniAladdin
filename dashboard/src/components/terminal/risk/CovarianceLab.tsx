@@ -13,11 +13,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 
 import { Matrix } from '@/components/system/charts'
 import { Panel, StateBlock, Status, Strip, Value } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
-import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
+import { ObjectHeader, StripSkeleton, TableSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
 
 interface Row {
   estimator: string
@@ -116,7 +117,17 @@ export default function CovarianceLab() {
     return (
       <>
         <StripSkeleton items={6} />
-        <Panel title="Estimators" subtitle="estimating on the book's panel" state="waking" flush>
+        <Toolbar>
+        <ToolbarGroup label="trace">
+          <Link href="/terminal/risk" className="sys-btn" style={{ textDecoration: 'none' }}>risk</Link>
+          <Link href="/terminal/book" className="sys-btn" style={{ textDecoration: 'none' }}>book</Link>
+          <Link href="/terminal/handbook" className="sys-btn" style={{ textDecoration: 'none' }}>handbook</Link>
+        </ToolbarGroup>
+        <ToolbarSpacer />
+        <span className="sys-meta">the estimator is a choice, not a property of the book</span>
+      </Toolbar>
+
+      <Panel title="Estimators" subtitle="estimating on the book's panel" state="waking" flush>
           <TableSkeleton rows={4} columns={8} />
         </Panel>
       </>

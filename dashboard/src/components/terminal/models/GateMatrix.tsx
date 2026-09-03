@@ -12,10 +12,11 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 
 import { Panel, StateBlock, Strip, Value } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
-import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
+import { ObjectHeader, StripSkeleton, TableSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
 
 interface Entry {
   key: string
@@ -162,6 +163,16 @@ export default function GateMatrix() {
           </table>
         </Panel>
       ) : null}
+
+      <Toolbar>
+        <ToolbarGroup label="trace">
+          <Link href="/terminal/evidence" className="sys-btn" style={{ textDecoration: 'none' }}>evidence</Link>
+          <Link href="/terminal/experiments" className="sys-btn" style={{ textDecoration: 'none' }}>experiments</Link>
+          <Link href="/terminal/compare" className="sys-btn" style={{ textDecoration: 'none' }}>compare</Link>
+        </ToolbarGroup>
+        <ToolbarSpacer />
+        <span className="sys-meta">absent evidence is not passing evidence</span>
+      </Toolbar>
 
       <Panel
         title="Gates"

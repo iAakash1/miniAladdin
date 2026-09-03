@@ -11,9 +11,10 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 
 import { Panel, Section, StateBlock, Status, Strip, Value } from '@/components/system'
-import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
+import { ObjectHeader, StripSkeleton, TableSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
 
@@ -117,6 +118,16 @@ export default function Handbook({ initialMeasure }: { initialMeasure?: string }
         { label: 'With failure conditions', value: book.documented, digits: 0 },
         { label: 'Minimum observations', value: book.minimum_observations, digits: 0, title: 'Below this a measure reports nothing rather than a number its sample cannot support' },
       ]} />
+
+      <Toolbar>
+        <ToolbarGroup label="trace">
+          <Link href="/terminal/risk" className="sys-btn" style={{ textDecoration: 'none' }}>risk</Link>
+          <Link href="/terminal/evidence" className="sys-btn" style={{ textDecoration: 'none' }}>evidence</Link>
+          <Link href="/terminal/signals" className="sys-btn" style={{ textDecoration: 'none' }}>signals</Link>
+        </ToolbarGroup>
+        <ToolbarSpacer />
+        <span className="sys-meta">generated from the engine, so it cannot drift</span>
+      </Toolbar>
 
       <Panel
         title="Measures"

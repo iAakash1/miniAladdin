@@ -14,9 +14,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 
 import { Panel, StateBlock, Status, Value, type ResearchState } from '@/components/system'
-import { TableSkeleton } from '@/components/system/composition'
+import { ObjectHeader, TableSkeleton } from '@/components/system/composition'
 
 interface SourceRow {
   dataset_id: string
@@ -94,6 +95,27 @@ export default function Lineage({ label, model }: { label: string; model: string
 
   return (
     <>
+      <ObjectHeader
+        glyph="⤳"
+        name={`${label} · ${model}`}
+        kind="provenance chain"
+        state="recorded"
+        detail={`${chain.chain.length} stages from vendor observation to prediction`}
+        object={{ kind: 'model', id: model, label: model, detail: label }}
+        facts={[
+          { label: 'Stages', value: chain.chain.length, kind: 'count' },
+          { label: 'Observed', value: chain.chain.filter((c) => c.kind === 'OBSERVED').length, kind: 'count' },
+          { label: 'Derived', value: chain.chain.filter((c) => c.kind === 'DERIVED').length, kind: 'count' },
+          { label: 'Inferred', value: chain.chain.filter((c) => c.kind === 'MODEL_PREDICTED').length, kind: 'count' },
+        ]}
+        actions={
+          <>
+            <Link href="/terminal/evidence" className="sys-btn" style={{ textDecoration: 'none' }}>evidence</Link>
+            <Link href="/terminal/data" className="sys-btn" style={{ textDecoration: 'none' }}>datasets</Link>
+          </>
+        }
+      />
+
       <Panel title="Artifact" subtitle={`${label} · ${model}`} state="recorded">
         <table className="sys-table sys-table--compact">
           <tbody>

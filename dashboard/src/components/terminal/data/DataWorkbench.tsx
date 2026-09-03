@@ -17,13 +17,14 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 
 import {
   Panel, Provenance, Section, StateBlock, Status, Strip, Value,
   type ResearchState,
 } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
-import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
+import { ObjectHeader, StripSkeleton, TableSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
 import { Histogram } from '@/components/system/charts'
 import { recordVisit } from '@/lib/research/history'
 import Inspector, { type InspectorSection } from '@/components/system/Inspector'
@@ -265,6 +266,16 @@ export default function DataWorkbench() {
         { label: 'PIT unsafe', value: features.unsafe_features?.length ?? 0, digits: 0, title: 'Features that could not be computed from information available at the time' },
         { label: 'Max lookback', value: features.max_lookback_sessions, digits: 0, unit: 'sess', title: 'The longest history any registered feature reads. Sets the minimum warm-up before any model can score.' , kind: 'sessions'},
       ]} />
+
+      <Toolbar>
+        <ToolbarGroup label="trace">
+          <Link href="/terminal/provenance" className="sys-btn" style={{ textDecoration: 'none' }}>provenance</Link>
+          <Link href="/terminal/providers" className="sys-btn" style={{ textDecoration: 'none' }}>providers</Link>
+          <Link href="/terminal/evidence" className="sys-btn" style={{ textDecoration: 'none' }}>models</Link>
+        </ToolbarGroup>
+        <ToolbarSpacer />
+        <span className="sys-meta">point-in-time contracts, as published</span>
+      </Toolbar>
 
       <Panel
         title="Catalogue"

@@ -15,7 +15,7 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 
-import { Panel, Status, Strip, Value } from '@/components/system'
+import { Panel, StateBlock, Status, Strip, Value } from '@/components/system'
 import { recordVisit } from '@/lib/research/history'
 import { ObjectHeader, TableSkeleton } from '@/components/system/composition'
 
@@ -219,9 +219,11 @@ export default function ExperimentDiff() {
 
       {errors.length ? (
         <Panel title="Unavailable" state="unavailable">
-          <ul style={{ margin: 0, paddingLeft: 'var(--d-4)', fontSize: 'var(--t-meta)', color: 'var(--ink-muted)' }}>
-            {[...new Set(errors)].map((e) => <li key={e}>{e}</li>)}
-          </ul>
+          <StateBlock
+            state="unavailable"
+            title="One or both experiments could not be read"
+            detail={`${[...new Set(errors)].join('; ')}. A diff needs both sides; nothing is compared against a placeholder.`}
+          />
         </Panel>
       ) : null}
 

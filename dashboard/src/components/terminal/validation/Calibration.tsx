@@ -20,10 +20,12 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 
 import { BarRows, Histogram, Scatter, TimeSeries } from '@/components/system/charts'
 import { Grid, Panel, Section, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
-import { ChartSkeleton, ObjectHeader, StripSkeleton } from '@/components/system/composition'
+import { recordVisit } from '@/lib/research/history'
+import { ChartSkeleton, ObjectHeader, StripSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
 
 interface Backtest {
   ticker?: string
@@ -76,6 +78,7 @@ export default function Calibration({ symbol }: { symbol: string }) {
 
   useEffect(() => {
     let alive = true
+    recordVisit({ kind: 'security', id: symbol, label: symbol, detail: 'calibration' })
     const id = symbol
     fetch(`/api/backtest/${encodeURIComponent(id)}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
@@ -139,6 +142,17 @@ export default function Calibration({ symbol }: { symbol: string }) {
         { label: 'Time invested', value: n(data.time_invested_pct), digits: 3 },
         { label: 'Verdict flips', value: n(data.recent?.verdict_flips_last6), digits: 0, title: 'Changes of direction in the last six observations' },
       ]} />
+
+      <Toolbar>
+        <ToolbarGroup label="trace">
+          <Link href={`/terminal/security?symbol=${encodeURIComponent(symbol)}`} className="sys-btn" style={{ textDecoration: 'none' }}>security</Link>
+          <Link href={`/terminal/relationships?symbol=${encodeURIComponent(symbol)}`} className="sys-btn" style={{ textDecoration: 'none' }}>relationships</Link>
+          <Link href="/terminal/evidence" className="sys-btn" style={{ textDecoration: 'none' }}>model evidence</Link>
+          <Link href="/terminal/handbook" className="sys-btn" style={{ textDecoration: 'none' }}>handbook</Link>
+        </ToolbarGroup>
+        <ToolbarSpacer />
+        <span className="sys-meta">{data.samples ? `${data.samples} samples` : ''}</span>
+      </Toolbar>
 
       {data.scope_note ? (
         <Panel title="Scope" state="recorded">

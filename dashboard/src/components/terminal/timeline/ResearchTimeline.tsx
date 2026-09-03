@@ -16,7 +16,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 
 import { Panel, StateBlock, Status, Strip, type ResearchState } from '@/components/system'
-import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
+import { ObjectHeader, StripSkeleton, TableSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
 import { useMemos } from '@/lib/research/memos'
 import { KINDS, href as objectHref, type ObjectKind } from '@/lib/research/objects'
 
@@ -155,6 +155,16 @@ export default function ResearchTimeline() {
         { label: 'First', value: events.length ? events[events.length - 1].at.slice(0, 10) : null, digits: 0 },
         { label: 'Last', value: events.length ? events[0].at.slice(0, 10) : null, digits: 0 },
       ]} />
+
+      <Toolbar>
+        <ToolbarGroup label="trace">
+          <Link href="/terminal/evidence" className="sys-btn" style={{ textDecoration: 'none' }}>registry</Link>
+          <Link href="/terminal/experiments" className="sys-btn" style={{ textDecoration: 'none' }}>experiments</Link>
+          <Link href="/terminal/memos" className="sys-btn" style={{ textDecoration: 'none' }}>memos</Link>
+        </ToolbarGroup>
+        <ToolbarSpacer />
+        <span className="sys-meta">recorded timestamps only</span>
+      </Toolbar>
 
       <Panel
         title="Timeline"

@@ -17,7 +17,7 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 
 import { Panel, StateBlock, Strip } from '@/components/system'
-import { ObjectHeader } from '@/components/system/composition'
+import { ObjectHeader, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
 import { addReference, createMemo, deleteMemo, removeReference, updateMemo, useMemos, type Memo } from '@/lib/research/memos'
 import { usePinnedObjects, useRecentObjects } from '@/lib/research/history'
 import { KINDS, href as objectHref, type ResearchObject } from '@/lib/research/objects'
@@ -77,6 +77,16 @@ export default function Memos({ initialId }: { initialId?: string }) {
         { label: 'Resolved', value: all.filter((m) => m.status === 'resolved').length, digits: 0 },
         { label: 'References', value: all.reduce((s, m) => s + m.references.length, 0), digits: 0 },
       ]} />
+
+      <Toolbar>
+        <ToolbarGroup label="trace">
+          <Link href="/terminal/evidence" className="sys-btn" style={{ textDecoration: 'none' }}>evidence</Link>
+          <Link href="/terminal/experiments" className="sys-btn" style={{ textDecoration: 'none' }}>experiments</Link>
+          <Link href="/terminal/timeline" className="sys-btn" style={{ textDecoration: 'none' }}>timeline</Link>
+        </ToolbarGroup>
+        <ToolbarSpacer />
+        <span className="sys-meta">stored in this browser only</span>
+      </Toolbar>
 
       <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'minmax(220px, 300px) minmax(0, 1fr)', alignItems: 'start' }}>
         <Panel

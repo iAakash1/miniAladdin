@@ -14,10 +14,11 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 
 import { BarRows, DrawdownChart, Histogram, TimeSeries } from '@/components/system/charts'
 import { Grid, Panel, Section, StateBlock, Strip, Value } from '@/components/system'
-import { ChartSkeleton, ObjectHeader, StripSkeleton } from '@/components/system/composition'
+import { ChartSkeleton, ObjectHeader, StripSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
 
 interface Period {
   date: string
@@ -159,6 +160,17 @@ export default function SpreadCurve({ experiment, model }: { experiment: string;
           { label: 'Max DD', value: s.net_max_drawdown_rank_points ?? null, digits: 2, unit: 'rp', tone: true , kind: 'drawdown'},
         ]}
       />
+
+      <Toolbar>
+        <ToolbarGroup label="trace">
+          <Link href="/terminal/evidence" className="sys-btn" style={{ textDecoration: 'none' }}>evidence</Link>
+          <Link href="/terminal/experiments" className="sys-btn" style={{ textDecoration: 'none' }}>experiment</Link>
+          <Link href="/terminal/risk" className="sys-btn" style={{ textDecoration: 'none' }}>risk</Link>
+          <Link href="/terminal/handbook" className="sys-btn" style={{ textDecoration: 'none' }}>handbook</Link>
+        </ToolbarGroup>
+        <ToolbarSpacer />
+        <span className="sys-meta">rank points, not returns</span>
+      </Toolbar>
 
       <Strip metrics={[
         { label: 'Periods', value: s.periods ?? null, digits: 0 , kind: 'count'},
