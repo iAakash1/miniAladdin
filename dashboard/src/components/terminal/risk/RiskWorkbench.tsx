@@ -198,7 +198,24 @@ function MetricTable({ keys, metrics }: { keys: [string, string][]; metrics: Rec
                 ) : label}
               </td>
               <td className="num">
-                <Value value={m.value} digits={4} unit={unitFor(m)} title={title || undefined} />
+                {/* Every measure here has a handbook entry, so every figure on
+                    this page opens into its method and failure conditions. */}
+                <Value
+                  value={m.value}
+                  digits={4}
+                  unit={unitFor(m)}
+                  measure={handbook}
+                  inspect={{
+                    measure: handbook,
+                    label,
+                    display: '',
+                    unit: meth?.unit,
+                    method: m.method,
+                    status: 'recorded',
+                    note: m.caveat ?? undefined,
+                  }}
+                  title={title || undefined}
+                />
               </td>
               <td>
                 <span className="sys-meta" style={{ color: 'var(--ink)' }} title={m.caveat ?? undefined}>

@@ -26,6 +26,8 @@ import { usePathname, useRouter } from 'next/navigation'
 import { Status, type ResearchState } from './index'
 import Palette, { applyStoredDensity } from './Palette'
 import Shortcuts from './Shortcuts'
+import { MetricProvider } from './MetricContext'
+import MetricInspector from './MetricInspector'
 import { usePinnedObjects, useRecentObjects } from '@/lib/research/history'
 import { KINDS, href as objectHref } from '@/lib/research/objects'
 
@@ -162,9 +164,12 @@ export default function Workbench({
   }, [router])
 
   return (
+    // Mounted once. There is no second path for inspecting a number.
+    <MetricProvider>
     <div className="wb">
       <Palette />
       <Shortcuts />
+      <MetricInspector />
       <nav className={`wb-rail${navOpen ? ' is-open' : ''}`} aria-label="Workbench">
         {WORKBENCH.map((section) => (
           <div className="wb-group" key={section.group}>
@@ -287,5 +292,6 @@ export default function Workbench({
         ) : null}
       </div>
     </div>
+    </MetricProvider>
   )
 }

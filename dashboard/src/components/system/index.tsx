@@ -11,6 +11,8 @@
 
 import type { ReactNode } from 'react'
 
+import { useMetrics, type MetricRef } from './MetricContext'
+
 /* ── research state ───────────────────────────────────────────────────────
    The product's vocabulary for trust. Deliberately separate from sign: one
    says where a number came from, the other says whether it is good news. */
@@ -57,11 +59,17 @@ export interface ValueProps {
   tone?: boolean
   /** Shown on hover — method, frequency, period, source. */
   title?: string
+  /** Handbook key. Makes the figure inspectable. */
+  measure?: string
+  /** Full reference, when the caller knows more than the handbook does. */
+  inspect?: MetricRef
 }
 
 export function Value({
-  value, unit, digits = 2, signed = false, tone = false, title,
+  value, unit, digits = 2, signed = false, tone = false, title, measure, inspect,
 }: ValueProps) {
+  const metrics = useMetrics()
+
   if (value === null || value === undefined || (typeof value === 'number' && !Number.isFinite(value))) {
     // An em dash, never a zero. The audits found three places where invalid
     // mathematics rendered as 0.0 and read as a real measurement.
@@ -77,12 +85,32 @@ export function Value({
     ? value > 0 ? 'sys-pos' : value < 0 ? 'sys-neg' : ''
     : ''
 
-  return (
-    <span className={`sys-num ${cls}`} title={title}>
+  const body = (
+    <>
       {text}
       {unit ? <span className="u" style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-faint)', marginLeft: 3 }}>{unit}</span> : null}
-    </span>
+    </>
   )
+
+  // A figure that declares what it is becomes a control: the definition, the
+  // method, the unit and what would make it wrong are one click away, and the
+  // hover carries the one-line purpose so the common case needs no click.
+  if (measure || inspect) {
+    const ref: MetricRef = inspect ?? { measure, label: title ?? measure ?? 'value', display: text, unit }
+    const purpose = metrics.summary(ref.measure)
+    return (
+      <button
+        type="button"
+        className={`sys-num sys-num--live ${cls}`}
+        title={purpose ? `${purpose}\n\nClick for method, source and failure conditions.` : title}
+        onClick={(e) => { e.stopPropagation(); metrics.inspect({ ...ref, display: text, unit: unit ?? ref.unit }) }}
+      >
+        {body}
+      </button>
+    )
+  }
+
+  return <span className={`sys-num ${cls}`} title={title}>{body}</span>
 }
 
 /* ── panel ────────────────────────────────────────────────────────────── */
@@ -178,6 +206,8 @@ export function Strip({ metrics }: { metrics: StripMetric[] }) {
             <Value
               value={m.value} unit={m.unit} digits={m.digits}
               signed={m.signed} tone={m.tone} title={m.title}
+              measure={m.method}
+              inspect={m.method ? { measure: m.method, label: m.label, display: '', unit: m.unit, note: m.title } : undefined}
             />
             {/* The badge that turns a figure into something you can ask about.
                 Hidden until the strip is hovered, so a row of metrics reads as
