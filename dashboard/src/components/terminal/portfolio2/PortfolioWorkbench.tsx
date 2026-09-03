@@ -160,9 +160,9 @@ export default function PortfolioWorkbench() {
           { label: 'Positions', value: weights.length, digits: 0 , kind: 'count'},
           { label: 'Long', value: longs.length, digits: 0, kind: 'count' },
           { label: 'Short', value: shorts.length, digits: 0, kind: 'count' },
-          { label: 'Gross', value: gross, digits: 3 },
-          { label: 'Net', value: net, digits: 3, signed: true, tone: true },
-          { label: 'Method', value: data.method ?? null, digits: 0, kind: 'count' },
+          { label: 'Gross', value: gross, digits: 4, kind: 'magnitude', title: 'Sum of absolute weights. The size of the bet, and never negative.' },
+          { label: 'Net', value: net, digits: 4, kind: 'weight', title: 'Sum of signed weights. Near zero for a dollar-neutral book.' },
+          { label: 'Method', value: data.method ?? null, digits: 0 },
         ]}
         actions={
           <>
@@ -207,8 +207,6 @@ export default function PortfolioWorkbench() {
       ) : null}
 
       <Strip metrics={[
-        { label: 'Gross exposure', value: gross, digits: 4, title: 'Sum of absolute weights. The size of the bet.' },
-        { label: 'Net exposure', value: net, digits: 4, signed: true, tone: true, title: 'Sum of signed weights. Near zero for a dollar-neutral book.' },
       ]} />
 
       {data.risk_contributions_unavailable ? (
