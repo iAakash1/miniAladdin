@@ -19,6 +19,7 @@
 
 import type { ReactNode } from 'react'
 import { format, type Kind } from '@/lib/quantity'
+import { delta } from '@/lib/semantics'
 
 export type Direction = 'higher-better' | 'lower-better' | 'none'
 
@@ -67,12 +68,38 @@ export interface CompareSubject {
 
 type Outcome = 'better' | 'worse' | 'same' | 'incomparable'
 
-function outcome(a: number | null, b: number | null, direction: Direction): Outcome {
-  if (a === null || b === null) return 'incomparable'
-  if (a === b) return 'same'
-  if (direction === 'none') return 'same'
-  const higher = a > b
-  return (direction === 'higher-better') === higher ? 'better' : 'worse'
+/**
+ * Whether a value beats its baseline.
+ *
+ * The comparison used to carry its own direction table and its own
+ * subtraction. Both now come from the semantic layer, so a metric's direction
+ * is a property of the metric rather than of the screen it happens to be on —
+ * which is what stops one workspace calling a rising drawdown an improvement
+ * while another calls it a regression.
+ *
+ * A field may still declare a direction, and it wins. Some quantities carry a
+ * direction from their role rather than their kind: cost share of gross is a
+ * proportion, and proportions have no inherent better end, but a smaller one
+ * is unambiguously the better result here.
+ */
+function outcome(
+  a: number | null,
+  b: number | null,
+  field: CompareField,
+  other: { kind: Kind; basis?: string },
+  self: { kind: Kind; basis?: string },
+): Outcome {
+  const d = delta(a, b, self, other)
+  if (d.interpretation === 'incomparable') return 'incomparable'
+  if (d.interpretation === 'unchanged') return 'same'
+
+  if (field.direction && field.direction !== 'none') {
+    if (d.value === null) return 'incomparable'
+    return (field.direction === 'higher-better') === (d.value > 0) ? 'better' : 'worse'
+  }
+  return d.interpretation === 'better' ? 'better'
+    : d.interpretation === 'worse' ? 'worse'
+      : 'same'
 }
 
 function fmt(v: number | null, kind: Kind | undefined, digits: number | undefined): string {
@@ -159,10 +186,15 @@ export function Compare({
                       // A subject measured against a different target is not
                       // comparable to the baseline, so no delta is formed and
                       // no better/worse verdict is claimed.
-                      const commensurable =
-                        s.basis === undefined || baseline.basis === undefined || s.basis === baseline.basis
-                      const o = isBase || !commensurable ? 'same' : outcome(v, base, f.direction ?? 'none')
-                      const delta = commensurable && v !== null && base !== null && !isBase ? v - base : null
+                      // Comparability is decided by the semantic layer: same
+                      // class, same scale, same basis, and a kind whose
+                      // difference means anything at all.
+                      const self = { kind: f.kind ?? 'ratio' as Kind, basis: s.basis }
+                      const against = { kind: f.kind ?? 'ratio' as Kind, basis: baseline.basis }
+                      const diff = isBase ? null : delta(v, base, self, against)
+                      const commensurable = diff === null || diff.interpretation !== 'incomparable'
+                      const o = isBase ? 'same' : outcome(v, base, f, against, self)
+                      const deltaValue = diff?.value ?? null
                       const cls = o === 'better' ? 'sys-pos' : o === 'worse' ? 'sys-neg' : ''
                       return (
                         <td key={s.id} className="num">
@@ -171,7 +203,7 @@ export function Compare({
                           </span>
                           {/* No delta and no verdict; the column header says
                               why, once. */}
-                          {!isBase && !commensurable ? null : delta !== null ? (
+                          {!isBase && !commensurable ? null : deltaValue !== null ? (
                             <span
                               className="sys-meta"
                               style={{ marginLeft: 5, color: o === 'better' ? 'var(--e-pos)' : o === 'worse' ? 'var(--e-neg)' : 'var(--ink-faint)' }}
@@ -179,7 +211,12 @@ export function Compare({
                                 ? `${o} than the baseline`
                                 : 'no declared direction: this difference is not better or worse'}
                             >
-                              {delta >= 0 ? '+' : ''}{fmt(delta, f.kind, f.digits).replace(/^\+/, '')}
+                              {diff?.formatted?.text ?? fmt(deltaValue, f.kind, f.digits)}
+                              {diff?.kind === 'multiplicative' ? (
+                                // Without the unit, a ratio of 0.67 is
+                                // indistinguishable from a difference of 0.67.
+                                <span className="unit">×</span>
+                              ) : null}
                             </span>
                           ) : !isBase && (v === null || base === null) ? (
                             <span className="sys-meta sys-null" style={{ marginLeft: 5 }} title="one side did not record this; an absent value is not a match and not a zero">

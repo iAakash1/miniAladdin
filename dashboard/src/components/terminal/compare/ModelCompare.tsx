@@ -35,16 +35,30 @@ interface Row {
 
 const n = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null)
 
+/**
+ * Each field names its semantic kind, and the kind supplies precision,
+ * comparability and direction. A `direction` is stated only where the metric's
+ * role here differs from what its kind implies.
+ *
+ * max_drawdown was declared higher-better, which is the wrong way round —
+ * a drawdown closer to zero is the better outcome, and the field said the
+ * opposite. Its kind carries the right answer, so the declaration is gone
+ * rather than corrected: a fact stated in two places is a fact that can
+ * disagree with itself.
+ */
 const FIELDS: CompareField[] = [
-  { key: 'mean_ic', label: 'mean_ic', unit: 'rank corr.', group: 'Signal', direction: 'higher-better', value: (r) => n(r.mean_ic) },
-  { key: 'ic_t_stat', label: 'ic_t_stat', unit: 'Newey-West', group: 'Signal', direction: 'higher-better', value: (r) => n(r.ic_t_stat), digits: 2 },
-  { key: 'fold_ic_positive_rate', label: 'fold_ic_positive_rate', group: 'Signal', direction: 'higher-better', value: (r) => n(r.fold_ic_positive_rate), digits: 3 },
-  { key: 'net_sharpe', label: 'net_sharpe', unit: 'after costs', group: 'Portfolio', direction: 'higher-better', value: (r) => n(r.net_sharpe), digits: 3 },
-  { key: 'net_cagr', label: 'net_cagr', group: 'Portfolio', direction: 'higher-better', value: (r) => n(r.net_cagr), digits: 4 },
-  { key: 'max_drawdown', label: 'max_drawdown', group: 'Portfolio', direction: 'higher-better', value: (r) => n(r.max_drawdown), digits: 4 },
-  // No direction. More turnover is not worse without knowing the strategy.
-  { key: 'annualised_turnover', label: 'annualised_turnover', unit: 'one-way', group: 'Implementation', direction: 'none', value: (r) => n(r.annualised_turnover), digits: 2 },
-  { key: 'cost_share_of_gross', label: 'cost_share_of_gross', unit: '≤ 0.75 to pass', group: 'Implementation', direction: 'lower-better', value: (r) => n(r.cost_share_of_gross), digits: 4 },
+  { key: 'mean_ic', label: 'mean_ic', unit: 'rank corr.', group: 'Signal', kind: 'ic', value: (r) => n(r.mean_ic) },
+  { key: 'ic_t_stat', label: 'ic_t_stat', unit: 'Newey-West', group: 'Signal', kind: 'tstat', value: (r) => n(r.ic_t_stat) },
+  { key: 'fold_ic_positive_rate', label: 'fold_ic_positive_rate', group: 'Signal', kind: 'share', direction: 'higher-better', value: (r) => n(r.fold_ic_positive_rate) },
+  { key: 'net_sharpe', label: 'net_sharpe', unit: 'after costs', group: 'Portfolio', kind: 'sharpe', value: (r) => n(r.net_sharpe) },
+  { key: 'net_cagr', label: 'net_cagr', group: 'Portfolio', kind: 'return', value: (r) => n(r.net_cagr) },
+  { key: 'max_drawdown', label: 'max_drawdown', group: 'Portfolio', kind: 'drawdown', value: (r) => n(r.max_drawdown) },
+  // Turnover has no better end without knowing the strategy, and its kind
+  // agrees, so nothing is declared here.
+  { key: 'annualised_turnover', label: 'annualised_turnover', unit: 'one-way', group: 'Implementation', kind: 'multiple', value: (r) => n(r.annualised_turnover) },
+  // A proportion has no inherent direction; in this role a smaller share of
+  // gross eaten by cost is unambiguously better, so the field says so.
+  { key: 'cost_share_of_gross', label: 'cost_share_of_gross', unit: '≤ 0.75 to pass', group: 'Implementation', kind: 'share', direction: 'lower-better', value: (r) => n(r.cost_share_of_gross) },
 ]
 
 export default function ModelCompare() {

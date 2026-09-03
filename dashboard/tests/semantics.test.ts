@@ -8,7 +8,7 @@ import { strict as assert } from 'node:assert'
 import test from 'node:test'
 
 import { SPECS, type Kind } from '../src/lib/quantity'
-import { SEMANTICS, comparable, delta, semanticsOf, toneFor } from '../src/lib/semantics'
+import { SEMANTICS, comparable, delta, toneFor } from '../src/lib/semantics'
 import {
   formatCount, formatPercentage, formatProbability, formatShare, metric,
 } from '../src/lib/metric'
@@ -67,8 +67,15 @@ test('a difference is not an improvement', () => {
   // opposite news.
   assert.equal(delta(0.05, 0.03, { kind: 'ic' }).interpretation, 'better')
   assert.equal(delta(0.93, 0.20, { kind: 'probability' }).interpretation, 'no-direction')
-  assert.equal(delta(0.30, 0.10, { kind: 'drawdown' }).interpretation, 'worse')
-  assert.equal(delta(0.10, 0.30, { kind: 'drawdown' }).interpretation, 'better')
+  // Drawdowns are signed negative here — every max_drawdown the registry
+  // records is at or below zero — so a value nearer zero is the shallower
+  // decline and the better outcome. Written with positive drawdowns this
+  // assertion reads the other way, which is exactly the confusion the
+  // `magnitude` kind exists to keep separate.
+  assert.equal(delta(-0.30, -0.10, { kind: 'drawdown' }).interpretation, 'worse')
+  assert.equal(delta(-0.10, -0.30, { kind: 'drawdown' }).interpretation, 'better')
+  // The same loss reported positive inverts the direction.
+  assert.equal(delta(0.30, 0.10, { kind: 'magnitude' }).interpretation, 'worse')
 })
 
 test('a metric with no direction is never judged', () => {
@@ -109,7 +116,8 @@ test('tone follows direction, never sign', () => {
   assert.equal(toneFor(0.4, 'weight'), 'neutral')
   assert.equal(toneFor(0.05, 'ic'), 'positive')
   assert.equal(toneFor(-0.05, 'ic'), 'negative')
-  assert.equal(toneFor(0.3, 'drawdown'), 'negative', 'a larger drawdown is worse')
+  assert.equal(toneFor(-0.3, 'drawdown'), 'negative', 'a decline is not good news')
+  assert.equal(toneFor(0.3, 'magnitude'), 'negative', 'a loss reported positive is still a loss')
 })
 
 test('zero is never toned', () => {

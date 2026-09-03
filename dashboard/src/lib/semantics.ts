@@ -151,8 +151,15 @@ export const SEMANTICS: Record<Kind, Semantics> = {
     zeroMeans: 'no variation in the sample, which usually means too few observations',
   },
   drawdown: {
+    // Signed negative by convention, and the registry confirms it: every
+    // recorded max_drawdown is at or below zero. A drawdown nearer zero is
+    // therefore the better outcome, which makes this higher-better despite
+    // describing a loss. `magnitude` is the same quantity reported positive,
+    // and it is lower-better — the two must not be confused, because the
+    // direction inverts with the sign convention and nothing on screen says
+    // which convention a payload used.
     label: 'drawdown', class: 'loss',
-    direction: 'lower-better', delta: 'absolute', scale: 'unit',
+    direction: 'higher-better', delta: 'absolute', scale: 'unit',
     zeroMeans: 'the series never fell below a prior peak in this window',
   },
   weight: {
