@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 
 import Workbench from '@/components/system/Workbench'
 import FactorWorkbench from '@/components/terminal/factors2/FactorWorkbench'
+import Ablation from '@/components/terminal/factors2/Ablation'
 import { Panel } from '@/components/system'
 
 export const metadata: Metadata = {
@@ -47,6 +48,11 @@ export default function FactorLabPage() {
       }
     >
       <FactorWorkbench />
+      {/* Which data families earn their place. The answer this study reached is
+          that none of the added ones did, which is the most commercially
+          inconvenient result in it and therefore the one that gets a panel
+          rather than a footnote. */}
+      <Ablation />
     </Workbench>
   )
 }

@@ -1508,3 +1508,20 @@ tr[data-selected='true'] .sys-row-actions { opacity: 1; }
    affordance, not a trading ticket, and a field styled like order entry would
    be lying about what pressing the button does. */
 .sys-run { display: flex; align-items: center; gap: var(--d-2); flex-wrap: wrap; }
+
+/* ── inset block ─────────────────────────────────────────────────────────
+   A sub-unit inside a panel: one contrast, one arm, one comparison. It reads
+   as part of its panel rather than as a card floating on it — a rule on one
+   edge and a change of plane, no border box and no shadow. Stacking bordered
+   boxes inside bordered boxes is how a research page turns into a dashboard. */
+
+.sys-panel-inset {
+  background: var(--p-raised);
+  padding: var(--d-3);
+  border-left: 2px solid var(--rule-strong);
+}
+/* Tone marks the verdict, and only the edge carries it. A filled background
+   would make "no improvement" the loudest thing on a page whose whole point is
+   that most arms did not improve anything. */
+.sys-panel-inset[data-tone='pass'] { border-left-color: var(--e-pos); }
+.sys-panel-inset[data-tone='fail'] { border-left-color: var(--e-neg); }
