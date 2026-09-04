@@ -63,7 +63,6 @@ export default function SecurityView({ symbol }: { symbol: string }) {
   const [profile, setProfile] = useState<Settled<{ name?: string; exchange?: string }> | null>(null)
   useEffect(() => {
     let alive = true
-    setProfile(null)
     fetchResearch(symbol)
       .then((d) => { if (alive) setProfile({ for: symbol, value: (d as { profile?: { name?: string; exchange?: string } }).profile ?? {} }) })
       .catch(() => { /* identity already stands on the fast path */ })
@@ -76,7 +75,6 @@ export default function SecurityView({ symbol }: { symbol: string }) {
      on screen and is a truthful, if terse, way to name the company. */
   useEffect(() => {
     let alive = true
-    setIdentity(null)
     fetchIdentity(symbol)
       .then((v) => { if (alive) setIdentity({ for: symbol, value: v }) })
       .catch((e: Error) => { if (alive) setIdentity({ for: symbol, error: e.message }) })

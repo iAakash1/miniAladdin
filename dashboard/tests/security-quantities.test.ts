@@ -14,6 +14,7 @@ import test from 'node:test'
 
 import { format } from '../src/lib/quantity'
 import { ownershipConflict, windowShortfall } from '../src/lib/security'
+import { titleCase, venueLabel } from '../src/lib/text'
 
 const VIEW = readFileSync(
   new URL('../src/components/terminal/security/SecurityView.tsx', import.meta.url), 'utf8',
@@ -125,4 +126,45 @@ test('an unusable pair of dates is not an assertion of shortfall', () => {
   assert.equal(windowShortfall('5y', 'not a date', '2026-09-03'), null)
   // Reversed dates are a bug elsewhere, not a shortfall to announce here.
   assert.equal(windowShortfall('5y', '2026-09-03', '2024-09-04'), null)
+})
+
+/* Venue labels.
+
+   The vendor returns the full market description — "NASDAQ NMS - GLOBAL
+   MARKET" for Apple, "NEW YORK STOCK EXCHANGE" for Nike. Beside a ticker
+   those are too long to scan, and set in capitals beside a title-cased name
+   they shout. */
+test('a market description condenses to the venue', () => {
+  assert.equal(venueLabel('NASDAQ NMS - GLOBAL MARKET'), 'NASDAQ')
+  assert.equal(venueLabel('NEW YORK STOCK EXCHANGE'), 'NYSE')
+  assert.equal(venueLabel('NEW YORK STOCK EXCHANGE, INC.'), 'NYSE')
+})
+
+test('an unrecognised venue is passed through, never guessed at', () => {
+  // Abbreviating this would be inventing a claim about where it lists.
+  assert.equal(venueLabel('BOLSA MEXICANA DE VALORES'), 'BOLSA MEXICANA DE VALORES')
+  assert.equal(venueLabel('SOME REGIONAL EXCHANGE'), 'SOME REGIONAL EXCHANGE')
+})
+
+test('a missing exchange yields nothing rather than a placeholder', () => {
+  assert.equal(venueLabel(null), null)
+  assert.equal(venueLabel(undefined), null)
+  assert.equal(venueLabel('   '), null)
+})
+
+/* Company names arrive shouting and are set at 34px. */
+test('a legal name in capitals is cased for display', () => {
+  assert.equal(titleCase('APPLE INC'), 'Apple Inc.')
+  assert.equal(titleCase('MICROSOFT CORP'), 'Microsoft Corp.')
+})
+
+test('a name the provider already cased is left alone', () => {
+  // A provider that bothered to case its own name knows better than a rule.
+  assert.equal(titleCase('Apple Inc.'), 'Apple Inc.')
+  assert.equal(titleCase('lululemon athletica inc.'), 'lululemon athletica inc.')
+})
+
+test('stylings survive casing', () => {
+  assert.equal(titleCase('AT&T INC'), 'AT&T Inc.')
+  assert.equal(titleCase('3M CO'), '3M Co.')
 })

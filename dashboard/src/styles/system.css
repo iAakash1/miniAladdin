@@ -2048,3 +2048,56 @@ tr[data-selected='true'] .sys-row-actions { opacity: 1; }
   border-top: 0;
   margin-top: calc(var(--d-4) * -1);
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   The object index
+
+   A list of what the object beside it contains, with real counts. It is not a
+   table and not a nav menu: the label is the destination and the figure is
+   the reason to go there, so the two are set as a pair on one line with the
+   rule between rows doing the separating.
+   ───────────────────────────────────────────────────────────────────────── */
+
+.objidx { list-style: none; margin: 0; padding: 0; }
+
+.objidx__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--d-3);
+  padding: var(--d-2) 0;
+  border-bottom: 1px solid var(--rule);
+}
+.objidx__row:last-child { border-bottom: 0; }
+
+.objidx__k {
+  font: 400 var(--t-body) / 1 var(--font-sans);
+  color: var(--ink);
+  text-decoration: none;
+  min-width: 0;
+}
+a.objidx__k:hover { color: var(--accent); text-decoration: underline; }
+
+.objidx__v {
+  font: 500 var(--t-meta) / 1 var(--font-mono);
+  font-variant-numeric: tabular-nums slashed-zero;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+/* Absent is not zero. It reads quieter than a count, never redder. */
+.objidx__v--absent { color: var(--ink-faint); font-style: normal; }
+
+/* The row that is still arriving. No spinner and no skeleton bar — the label
+   is real and the value says what is happening, which is more information
+   than a grey rectangle. */
+.objidx__row--waiting .objidx__v { color: var(--s-waking); }
+
+.objidx__foot {
+  margin: var(--d-3) 0 0;
+  font: 400 var(--t-micro) / 1.45 var(--font-sans);
+  color: var(--ink-faint);
+}
+
+/* An anchored section must not land under the sticky header when jumped to. */
+[id^='sec-'] { scroll-margin-top: calc(var(--header-h) + var(--d-4)); }

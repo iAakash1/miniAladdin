@@ -19,22 +19,33 @@ const MINOR = new Set([
 
 /** Forms that are acronyms or stylings, not words, and stay exactly as given. */
 const KEEP = new Set([
-  'AB', 'AG', 'AI', 'AS', 'ASA', 'BV', 'CO', 'CORP', 'ETF', 'GMBH', 'II',
-  'III', 'IV', 'KGAA', 'LP', 'LLC', 'NV', 'PLC', 'REIT', 'SA', 'SE', 'SPA',
-  'USA', 'UK', 'US', 'VI', 'VII', 'AT&T', 'JPMORGAN', '3M',
+  'AB', 'AG', 'AI', 'AS', 'ASA', 'BV', 'ETF', 'GMBH', 'II', 'III', 'IV',
+  'KGAA', 'LP', 'LLC', 'NV', 'PLC', 'REIT', 'SA', 'SE', 'SPA', 'USA', 'UK',
+  'US', 'VI', 'VII', 'AT&T', '3M',
 ])
+
+/** Names whose own styling is internal capitalisation, not an acronym. */
+const STYLED: Record<string, string> = {
+  JPMORGAN: 'JPMorgan', MCDONALD: 'McDonald', MCDONALDS: 'McDonalds',
+  ISHARES: 'iShares', ETRADE: 'E*TRADE', EBAY: 'eBay', PAYPAL: 'PayPal',
+}
 
 /** Suffixes that read better abbreviated with a stop. */
 const SUFFIX: Record<string, string> = {
   INC: 'Inc.', CORP: 'Corp.', LTD: 'Ltd.', CO: 'Co.',
 }
 
-function word(raw: string, index: number): string {
+function word(raw: string, index: number, total: number): string {
   const bare = raw.replace(/[.,]$/, '')
   const trail = raw.slice(bare.length)
 
+  /* A corporate suffix is only a suffix at the end. "CO" closing a name is
+     "Co."; the same token opening one belongs to the name itself, as in
+     "CO OPERATIVE GROUP". Checked before KEEP, because CORP and CO would
+     otherwise be preserved verbatim and never abbreviate. */
+  if (index === total - 1 && SUFFIX[bare]) return SUFFIX[bare]
+  if (STYLED[bare]) return STYLED[bare] + trail
   if (KEEP.has(bare)) return bare + trail
-  if (SUFFIX[bare]) return SUFFIX[bare]
 
   // A token carrying digits or an ampersand is a styling — 3M, AT&T, S&P.
   if (/[0-9&]/.test(bare)) return bare + trail
@@ -61,7 +72,8 @@ export function titleCase(name: string): string {
   // Any lowercase letter means the source already cased it deliberately.
   if (/[a-z]/.test(trimmed)) return trimmed
 
-  return trimmed.split(/\s+/).map(word).join(' ')
+  const parts = trimmed.split(/\s+/)
+  return parts.map((w, i) => word(w, i, parts.length)).join(' ')
 }
 
 /**
@@ -91,5 +103,17 @@ export function venueLabel(exchange: string | null | undefined): string | null {
     .replace(/\s+(nms|ngs|ngm|cm|global (select )?market|capital market|composite)$/i, '')
     .trim()
 
-  return bare || raw
+  /* An exact, closed list. These four are the venues whose abbreviation is
+     universal in this context and cannot be mistaken for another exchange.
+     Anything not on it is returned as the vendor wrote it — a guessed
+     abbreviation is a claim about where a security lists, and that is exactly
+     the kind of invention this product does not make. Callers keep the full
+     string on hover either way. */
+  const known: Record<string, string> = {
+    'NEW YORK STOCK EXCHANGE': 'NYSE',
+    'NASDAQ': 'NASDAQ',
+    'LONDON STOCK EXCHANGE': 'LSE',
+    'TORONTO STOCK EXCHANGE': 'TSX',
+  }
+  return known[bare.toUpperCase()] ?? (bare || raw)
 }
