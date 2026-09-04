@@ -1867,3 +1867,20 @@ tr[data-selected='true'] .sys-row-actions { opacity: 1; }
   color: var(--ink-faint);
 }
 .fund tbody tr:hover { background: var(--p-raised); }
+
+/* ── security comparison ─────────────────────────────────────────────────
+   Two columns of figures against one column of labels. The heads carry the
+   live price so a valuation multiple is read next to what it is a multiple of. */
+
+.cmp-heads {
+  display: grid; grid-template-columns: 1fr 1fr; gap: var(--d-4);
+  padding-bottom: var(--d-3); margin-bottom: var(--d-3);
+  border-bottom: 1px solid var(--rule-strong);
+}
+.cmp-head { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cmp-head__sym { font-family: var(--font-mono); font-size: var(--t-lead); color: var(--ink); }
+.cmp-head__px { display: flex; gap: var(--d-2); align-items: baseline; }
+.cmp-group + .cmp-group { margin-top: var(--d-4); }
+.cmp-group__title { margin: 0 0 var(--d-1); color: var(--ink); }
+.cmp__k { color: var(--ink-muted); }
+.cmp tbody tr:hover { background: var(--p-raised); }

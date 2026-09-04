@@ -212,11 +212,11 @@ export function Compare({
                                 : 'no declared direction: this difference is not better or worse'}
                             >
                               {diff?.formatted?.text ?? fmt(deltaValue, f.kind, f.digits)}
-                              {diff?.kind === 'multiplicative' ? (
-                                // Without the unit, a ratio of 0.67 is
-                                // indistinguishable from a difference of 0.67.
-                                <span className="unit">×</span>
-                              ) : null}
+                              {/* A difference has its own unit — × for a ratio,
+                                  pp between two percentages. Without it a ratio
+                                  of 0.67 is indistinguishable from a difference
+                                  of 0.67. */}
+                              {diff?.unit ? <span className="unit">{diff.unit}</span> : null}
                             </span>
                           ) : !isBase && (v === null || base === null) ? (
                             <span className="sys-meta sys-null" style={{ marginLeft: 5 }} title="one side did not record this; an absent value is not a match and not a zero">

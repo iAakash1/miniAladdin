@@ -281,6 +281,18 @@ export interface Delta {
   /** The arithmetic, or null where none is meaningful. */
   value: number | null
   kind: DeltaKind
+  /**
+   * What the difference is measured in, which is not always what the operands
+   * are measured in.
+   *
+   * The gap between two percentages is percentage points, not percent: a
+   * margin going from 48.6% to 67.9% is +19.3pp, and calling that +19.3%
+   * describes a completely different quantity — a 19.3% relative increase
+   * would be 58.0%. And a multiplicative delta is a ratio, so it carries ×;
+   * without it, "0.74" between a P/E of 37 and one of 28 reads as an absolute
+   * difference of three quarters of a turn.
+   */
+  unit: string | null
   /** Rendered difference, already formatted. */
   formatted: Formatted | null
   /**
@@ -308,11 +320,11 @@ export function delta(
 ): Delta {
   const fit = comparable(a, b)
   if (!fit.ok) {
-    return { value: null, kind: 'none', formatted: null, interpretation: 'incomparable', reason: fit.reason }
+    return { value: null, kind: 'none', unit: null, formatted: null, interpretation: 'incomparable', reason: fit.reason }
   }
   if (!isFinite2(value) || !isFinite2(baseline)) {
     return {
-      value: null, kind: semanticsOf(a.kind).delta, formatted: null,
+      value: null, kind: semanticsOf(a.kind).delta, unit: null, formatted: null,
       interpretation: 'incomparable',
       reason: 'one side was not recorded, and a difference against a missing value is not zero',
     }
@@ -325,7 +337,7 @@ export function delta(
 
   if (raw === null) {
     return {
-      value: null, kind: s.delta, formatted: null, interpretation: 'incomparable',
+      value: null, kind: s.delta, unit: null, formatted: null, interpretation: 'incomparable',
       reason: 'the baseline is zero, so a multiple against it is undefined',
     }
   }
@@ -339,6 +351,7 @@ export function delta(
   return {
     value: raw,
     kind: s.delta,
+    unit: deltaUnit(a.kind, s.delta),
     formatted: format(raw, s.delta === 'multiplicative' ? 'multiple' : a.kind, { signed: s.delta !== 'multiplicative' }),
     interpretation,
   }
@@ -346,6 +359,22 @@ export function delta(
 
 function isFinite2(v: number | null | undefined): v is number {
   return typeof v === 'number' && Number.isFinite(v)
+}
+
+/**
+ * The unit a difference is expressed in.
+ *
+ * Deliberately not the operands' unit. Subtracting one percentage from
+ * another gives percentage points; dividing one multiple by another gives a
+ * ratio. Both are routinely mislabelled with the operands' unit, and both read
+ * as an entirely different quantity when they are.
+ */
+function deltaUnit(kind: Kind, deltaKind: DeltaKind): string | null {
+  if (deltaKind === 'multiplicative') return '×'
+  if (deltaKind === 'basis-points') return 'bp'
+  const scale = semanticsOf(kind).scale
+  if (scale === 'percent') return 'pp'
+  return null
 }
 
 /* ── tone ────────────────────────────────────────────────────────────────── */

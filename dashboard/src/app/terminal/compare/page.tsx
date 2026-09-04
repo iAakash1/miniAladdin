@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 
 import Workbench from '@/components/system/Workbench'
 import ModelCompare from '@/components/terminal/compare/ModelCompare'
+import SecurityCompare from '@/components/terminal/compare/SecurityCompare'
 import { Panel } from '@/components/system'
 
 export const metadata: Metadata = {
@@ -9,11 +10,19 @@ export const metadata: Metadata = {
   description: 'Side-by-side model comparison, with differences coloured only where the metric declares a direction.',
 }
 
-export default function ComparePage() {
+export default async function ComparePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ a?: string; b?: string }>
+}) {
+  const params = await searchParams
+  const a = (params.a ?? '').toUpperCase()
+  const b = (params.b ?? '').toUpperCase()
+
   return (
     <Workbench
       title="Compare"
-      subtitle="side by side"
+      subtitle={a && b ? `${a} against ${b}` : 'side by side'}
       context={
         <>
           <Panel title="What this answers">
@@ -38,6 +47,10 @@ export default function ComparePage() {
         </>
       }
     >
+      {/* Securities first: this is the comparison a reader arrives wanting.
+          The model comparison below it is research, and stays research. */}
+      {a && b ? <SecurityCompare a={a} b={b} /> : null}
+
       <ModelCompare />
     </Workbench>
   )

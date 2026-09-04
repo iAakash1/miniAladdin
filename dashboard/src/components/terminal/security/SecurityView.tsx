@@ -29,7 +29,7 @@ import { TimeSeries } from '@/components/system/charts'
 import { ObjectHeader } from '@/components/system/composition'
 import { fetchBars, type Bar } from '@/lib/security'
 import { useQuotes } from '@/lib/use-quotes'
-import { isWatched, toggleWatch } from '@/lib/symbols'
+import { isWatched, recentSnapshot, toggleWatch } from '@/lib/symbols'
 
 const RANGES = [
   { key: '1mo', label: '1M' },
@@ -51,6 +51,11 @@ export default function SecurityView({ symbol }: { symbol: string }) {
   const [watched, setWatched] = useState(false)
 
   useEffect(() => { setWatched(isWatched(symbol)) }, [symbol])
+
+  // The most recent other symbol this browser opened, as the default
+  // comparison partner. Null on a first visit, where the action is hidden
+  // rather than offered against nothing.
+  const against = recentSnapshot().find((s) => s !== symbol) ?? null
 
   useEffect(() => {
     const tag = `${symbol}:${range}`
@@ -91,14 +96,27 @@ export default function SecurityView({ symbol }: { symbol: string }) {
           { label: 'Bars', value: series.length || null, kind: 'count' },
         ]}
         actions={
-          <button
-            type="button"
-            className="sys-btn"
-            aria-pressed={watched}
-            onClick={() => { toggleWatch(symbol); setWatched(isWatched(symbol)) }}
-          >
-            {watched ? 'watching' : 'watch'}
-          </button>
+          <>
+            <button
+              type="button"
+              className="sys-btn"
+              aria-pressed={watched}
+              onClick={() => { toggleWatch(symbol); setWatched(isWatched(symbol)) }}
+            >
+              {watched ? 'watching' : 'watch'}
+            </button>
+            {/* Against the last other name opened in this browser. Comparison
+                needs a second security, and the one just looked at is the one
+                a reader most often means. */}
+            {against ? (
+              <a
+                className="sys-btn"
+                href={`/terminal/compare?a=${encodeURIComponent(symbol)}&b=${encodeURIComponent(against)}`}
+              >
+                compare with {against}
+              </a>
+            ) : null}
+          </>
         }
       />
 

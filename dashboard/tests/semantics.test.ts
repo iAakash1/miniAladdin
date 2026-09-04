@@ -220,3 +220,29 @@ test('beta is not signed', () => {
   // A beta of 1.09 is not "up 1.09"; there is no direction to state.
   assert.doesNotMatch(format(1.0942, 'multiple').text, /^\+/)
 })
+
+/* ── delta units ────────────────────────────────────────────────────────── */
+
+test('the gap between two percentages is percentage points', () => {
+  // A margin moving from 48.6% to 67.9% is +19.3pp. Calling that +19.3%
+  // describes a different quantity entirely — a 19.3% relative increase would
+  // land at 58.0%.
+  const d = delta(67.9, 48.6, { kind: 'percent' })
+  assert.equal(d.unit, 'pp')
+  assert.match(d.formatted?.text ?? '', /^\+19\.3/)
+})
+
+test('the gap between two multiples is a ratio, and says so', () => {
+  const d = delta(27.58, 37.32, { kind: 'multiple' })
+  assert.equal(d.kind, 'multiplicative')
+  assert.equal(d.unit, '×', 'a bare 0.74 between a P/E of 37 and one of 28 reads as an absolute difference')
+})
+
+test('a difference in a unitless kind carries no unit', () => {
+  assert.equal(delta(0.05, 0.03, { kind: 'ic' }).unit, null)
+  assert.equal(delta(1.4, 1.1, { kind: 'sharpe' }).unit, null)
+})
+
+test('a basis-point difference stays in basis points', () => {
+  assert.equal(delta(15, 10, { kind: 'bps' }).unit, 'bp')
+})

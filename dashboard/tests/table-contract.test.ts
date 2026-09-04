@@ -82,10 +82,12 @@ test('every hand-built table in the product is accounted for', () => {
      five cells, checked in the DOM.
      40 → 41 for the fundamentals panel: six header-less two-column ratio
      tables, one per group, all checked at two cells each.
+     41 → 42 for the security comparison: four grouped tables of four headers
+     against four cells, checked in the DOM against AAPL and MSFT.
      Every one was read in the rendered DOM before this number moved. */
   assert.equal(
-    handBuilt.length, 41,
-    `hand-built tables changed from 41 to ${handBuilt.length}. Route the new one ` +
+    handBuilt.length, 42,
+    `hand-built tables changed from 42 to ${handBuilt.length}. Route the new one ` +
     'through DataTable, or check its alignment in the rendered DOM and update ' +
     'this count deliberately.',
   )
