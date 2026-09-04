@@ -77,6 +77,47 @@ export interface MetricRef {
   filedAt?: string
 
   /**
+   * What the terminal is asserting by showing this number.
+   *
+   * The first link of the chain, and the one most products skip. A figure on
+   * screen is a claim — "Apple's market capitalisation is 4.73 trillion
+   * dollars" — and the rest of the chain exists to say how much weight it
+   * carries. Where this is absent the inspector says the claim was not
+   * recorded rather than inventing one from the label.
+   */
+  claim?: string
+
+  /**
+   * What was actually observed, as distinct from what is being claimed.
+   *
+   * These differ more often than they look like they should. The claim is
+   * "revenue was 215.64 billion dollars"; the observation is "one XBRL fact
+   * tagged Revenues in a 10-K for fiscal 2018". The claim is about a company;
+   * the observation is about a document.
+   */
+  observation?: string
+
+  /**
+   * What had to be true for the claim to follow from the observation.
+   *
+   * The step that turns a number into a judgement, and the one worth reading
+   * before trusting it — that the provider's field means what its name says,
+   * that the period matches the one requested, that no later filing
+   * supersedes it.
+   */
+  assumptions?: string[]
+
+  /**
+   * When this should not be trusted, for figures the handbook does not cover.
+   *
+   * The handbook carries `fails_when` for registered measures. Most numbers
+   * on screen are not registered measures, and "no failure conditions are
+   * recorded" is honest but unhelpful when the caller knows perfectly well
+   * what would break the figure.
+   */
+  failsWhen?: string[]
+
+  /**
    * How long a value of this kind may be reused before it is re-read. Names
    * the policy, not the age — "this is a snapshot, good for a minute" rather
    * than "this is 41 seconds old".

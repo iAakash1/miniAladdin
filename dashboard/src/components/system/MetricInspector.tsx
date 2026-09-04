@@ -63,6 +63,31 @@ export default function MetricInspector() {
       </header>
 
       <div className="sys-drawer-body">
+        {/* The chain reads claim → observation → source → method →
+            assumptions → failure. The middle three were already here as "how
+            it was produced"; these are the ends of it, and they are the ends
+            most products leave off. */}
+        {current.claim ? (
+          <section className="ev">
+            <div className="sys-label" style={{ marginBottom: 'var(--d-2)' }}>Claim</div>
+            <p className="ev__text">{current.claim}</p>
+          </section>
+        ) : null}
+
+        {current.observation ? (
+          <section className="ev">
+            <div className="sys-label" style={{ marginBottom: 'var(--d-2)' }}>Observation</div>
+            <p className="ev__text">{current.observation}</p>
+            {current.claim ? (
+              <p className="ev__aside">
+                The claim is about a company. The observation is about a
+                record of one, and the distance between them is what the rest
+                of this panel measures.
+              </p>
+            ) : null}
+          </section>
+        ) : null}
+
         <section>
           <div className="sys-label" style={{ marginBottom: 'var(--d-2)' }}>What this is</div>
           {def?.purpose ? (
@@ -181,10 +206,23 @@ export default function MetricInspector() {
           </table>
         </section>
 
+        {current.assumptions?.length ? (
+          <section className="ev">
+            <div className="sys-label" style={{ marginBottom: 'var(--d-2)' }}>What had to be true</div>
+            <ul className="ev__list">
+              {current.assumptions.map((a) => <li key={a}>{a}</li>)}
+            </ul>
+          </section>
+        ) : null}
+
         {/* The section nobody writes, given the strongest treatment on the page. */}
         <section>
           <div className="sys-label" style={{ marginBottom: 'var(--d-2)' }}>What would make it wrong</div>
-          {def?.fails_when ? (
+          {current.failsWhen?.length ? (
+            <ul className="ev__list ev__list--fail">
+              {current.failsWhen.map((f) => <li key={f}>{f}</li>)}
+            </ul>
+          ) : def?.fails_when ? (
             <p
               style={{
                 margin: 0, padding: 'var(--d-3)',

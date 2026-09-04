@@ -2790,3 +2790,33 @@ a.tape:hover .tape__sym { color: var(--accent); }
 }
 
 .fcmp__wide td { background: color-mix(in srgb, var(--s-stale) 5%, transparent); }
+
+/* ── the evidence chain ─────────────────────────────────────────────────── */
+
+.ev__text {
+  margin: 0;
+  font: 400 var(--t-body) / var(--lh-body) var(--font-sans);
+  color: var(--ink);
+}
+
+.ev__aside {
+  margin: var(--d-2) 0 0;
+  font: 400 var(--t-meta) / var(--lh-body) var(--font-sans);
+  color: var(--ink-faint);
+}
+
+.ev__list {
+  margin: 0;
+  padding-left: 1.05rem;
+  font: 400 var(--t-body) / var(--lh-body) var(--font-sans);
+  color: var(--ink);
+}
+.ev__list li + li { margin-top: var(--d-1); }
+
+/* Failure conditions supplied by the caller get the same rule the handbook's
+   do — the treatment belongs to the content, not to where it came from. */
+.ev__list--fail {
+  padding: var(--d-3) var(--d-3) var(--d-3) 1.4rem;
+  border-left: 2px solid var(--s-blocked);
+  background: var(--p-sunken);
+}

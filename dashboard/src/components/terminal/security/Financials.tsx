@@ -183,6 +183,17 @@ export default function Financials({ symbol }: { symbol: string }) {
                                 // When the company filed it — not when this
                                 // product fetched it.
                                 filedAt: f.filed,
+                                claim: `${concept} for fiscal ${y} was ${format(f.value, 'currency', { digits: 0 }).text}.`,
+                                observation: `One XBRL fact for this concept in a ${f.form ?? 'filing'} covering fiscal ${y}, filed ${f.filed ?? 'on an unrecorded date'}.`,
+                                assumptions: [
+                                  'The concept in the filing means what its label says — XBRL tags are chosen by the filer, not by a standard body.',
+                                  `No later filing restates fiscal ${y}. Restatements are filed as new facts and this shows the value as originally tagged.`,
+                                  'The fiscal year is the company’s own, not a calendar year.',
+                                ],
+                                failsWhen: [
+                                  'The company restated the period after filing, in which case a later fact supersedes this one.',
+                                  'The concept is sparsely tagged — several concepts here have coverage gaps of years, so the latest available fact may be far from current.',
+                                ],
                                 method: 'XBRL fact as filed — not restated, not derived',
                                 freshness: 'a filed fact does not go stale; it is superseded by a later filing',
                                 status: 'recorded',

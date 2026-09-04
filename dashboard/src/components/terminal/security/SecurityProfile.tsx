@@ -175,6 +175,22 @@ export default function SecurityProfile({ symbol }: { symbol: string }) {
           display,
           providers,
           conflict,
+          claim: `${label} is ${display}.`,
+          observation: providers?.length
+            ? `Reported by ${providers.length} vendor${providers.length === 1 ? '' : 's'}: ${providers.join(', ')}.`
+            : 'A single merged value; the engine did not record which vendors contributed.',
+          assumptions: [
+            'The vendors are describing the same entity — a ticker can be reassigned after a delisting.',
+            conflict
+              ? 'The merge produced one figure from observations that disagree; the reported value is not any single vendor’s number.'
+              : 'The vendors agree, so the merged value is also each of theirs.',
+          ],
+          failsWhen: [
+            'A vendor is stale — profile fields are refreshed far less often than quotes.',
+            conflict
+              ? 'The disagreement above is material to your use of the figure.'
+              : 'A vendor silently changes its definition of the field, which the merge cannot detect while they still agree.',
+          ],
           source: 'research engine, merged from the vendors below',
           retrievedAt: state.d.provenance?.generated_at,
           freshness: 'read once per session and shared with every panel on this page',
