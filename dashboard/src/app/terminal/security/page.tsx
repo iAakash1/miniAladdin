@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import Workbench from '@/components/system/Workbench'
 import SecurityView from '@/components/terminal/security/SecurityView'
 import SecurityProfile from '@/components/terminal/security/SecurityProfile'
+import Fundamentals2 from '@/components/terminal/security/Fundamentals2'
 import { Panel } from '@/components/system'
 
 export const metadata: Metadata = {
@@ -67,6 +68,11 @@ export default async function SecurityPage({
               and a valuation table of em dashes — a broken duplicate of what
               the view above already does from live providers. */}
           <SecurityProfile symbol={symbol} />
+          {/* The ratio surface the provider layer has carried all along and
+              the interface never showed: valuation multiples, margins,
+              returns, growth, leverage and ownership, each with the period it
+              describes. Shares one request with the profile above. */}
+          <Fundamentals2 symbol={symbol} />
         </>
       ) : null}
     </Workbench>

@@ -169,6 +169,22 @@ export function format(
   }
 
   if (kind === 'currency') {
+    /* Large amounts are abbreviated. A market capitalisation of
+       4,789,955,589,281 is thirteen digits that nobody reads as a number —
+       the eye counts commas to work out the magnitude, and gets it wrong.
+       $4.79T is the figure. The threshold is a million, below which the exact
+       amount is short enough to read and is what a price would be. */
+    const size = Math.abs(value)
+    if (size >= 1e6) {
+      const [scale, suffix] =
+        size >= 1e12 ? [1e12, 'T'] :
+        size >= 1e9 ? [1e9, 'B'] :
+        [1e6, 'M']
+      return {
+        text: `${(value / scale).toFixed(2)}${suffix}`,
+        unit, tone, absent: false,
+      }
+    }
     return {
       text: value.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits }),
       unit, tone, absent: false,

@@ -1845,3 +1845,25 @@ tr[data-selected='true'] .sys-row-actions { opacity: 1; }
 
 /* News category counts: a row of small facts, not a row of chips. */
 .sec-cats { display: flex; gap: var(--d-3); flex-wrap: wrap; margin-top: var(--d-3); }
+
+/* ── fundamentals ────────────────────────────────────────────────────────
+   Grouped columns rather than one long list. Twenty-eight ratios in a single
+   column is a wall; six short tables under headings can be scanned for the one
+   group a reader came for. */
+
+.fund-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+  gap: var(--d-4) var(--d-5);
+}
+.fund-group__title { margin: 0 0 var(--d-1); color: var(--ink); }
+.fund__k { color: var(--ink-muted); }
+/* The period sits with the label, not in a column of its own: it qualifies the
+   measurement rather than being a separate fact about it, and a TTM margin
+   beside a five-year average must not read as two versions of one number. */
+.fund__period {
+  display: block;
+  font-size: var(--t-micro);
+  color: var(--ink-faint);
+}
+.fund tbody tr:hover { background: var(--p-raised); }

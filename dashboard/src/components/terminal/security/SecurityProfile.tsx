@@ -20,6 +20,7 @@
 import { useEffect, useState } from 'react'
 
 import { Panel, Prose, StateBlock, Status, Value } from '@/components/system'
+import { fetchResearch } from '@/lib/research-cache'
 
 interface Profile {
   name?: string
@@ -72,12 +73,17 @@ export default function SecurityProfile({ symbol }: { symbol: string }) {
   >(null)
 
   useEffect(() => {
-    const c = new AbortController()
-    fetch(`/api/research/${encodeURIComponent(symbol)}`, { signal: c.signal })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`the research request returned ${r.status}`))))
-      .then((d: Research) => setSettled({ for: symbol, d }))
-      .catch((e: Error) => { if (e.name !== 'AbortError') setSettled({ for: symbol, error: e.message }) })
-    return () => c.abort()
+    let alive = true
+    // Shared with the fundamentals panel below, which needs the same payload.
+    // Three fan-outs for one company would be three sets of vendor rate limit
+    // spent on facts that arrive at three different times.
+    fetchResearch(symbol)
+      // The cache returns the whole response; this panel reads one part of
+      // it. The narrowing is here, at the boundary, rather than inside the
+      // shared fetch — which has no business knowing who wants what.
+      .then((d) => { if (alive) setSettled({ for: symbol, d: d as unknown as Research }) })
+      .catch((e: Error) => { if (alive) setSettled({ for: symbol, error: e.message }) })
+    return () => { alive = false }
   }, [symbol])
 
   const current = settled?.for === symbol ? settled : null

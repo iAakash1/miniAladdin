@@ -7,7 +7,7 @@
 import { strict as assert } from 'node:assert'
 import test from 'node:test'
 
-import { SPECS, type Kind } from '../src/lib/quantity'
+import { SPECS, format, type Kind } from '../src/lib/quantity'
 import { SEMANTICS, comparable, delta, toneFor } from '../src/lib/semantics'
 import {
   formatCount, formatPercentage, formatProbability, formatShare, metric,
@@ -192,4 +192,31 @@ test('a metric answers what it is and what would make it wrong', () => {
   assert.equal(m.comparableWith({ kind: 'ic', basis: 'fwd_ret_21' }).ok, false)
   assert.ok(m.failureConditions?.length)
   assert.ok(m.semantics.zeroMeans, 'an IC of zero should say what it means')
+})
+
+/* ── magnitude ──────────────────────────────────────────────────────────── */
+
+test('a large currency amount is abbreviated, not printed in full', () => {
+  // Apple's market capitalisation rendered as 4,789,955,589,281 — thirteen
+  // digits nobody reads as a number. The eye counts commas to find the
+  // magnitude and gets it wrong.
+  assert.equal(format(4_789_955_589_281, 'currency').text, '4.79T')
+  assert.equal(format(3_120_000_000, 'currency').text, '3.12B')
+  assert.equal(format(45_600_000, 'currency').text, '45.60M')
+})
+
+test('a price is not abbreviated', () => {
+  // The threshold is a million. Below it the exact amount is short enough to
+  // read, and is what a share price looks like.
+  assert.match(format(324.96, 'currency').text, /^324\.96$/)
+  assert.match(format(999_999, 'currency').text, /^999,999/)
+})
+
+test('a negative amount keeps its sign through abbreviation', () => {
+  assert.equal(format(-2_400_000_000, 'currency').text, '-2.40B')
+})
+
+test('beta is not signed', () => {
+  // A beta of 1.09 is not "up 1.09"; there is no direction to state.
+  assert.doesNotMatch(format(1.0942, 'multiple').text, /^\+/)
 })
