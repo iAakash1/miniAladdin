@@ -61,6 +61,7 @@ from src.providers.vendors.market_vendors import (  # noqa: F401 — PolygonVend
     TwelveDataVendor,
     YFinanceVendor,
 )
+from src.providers.vendors.massive_vendor import MassiveVendor
 from src.providers.vendors.news_vendors import GNewsVendor, NewsApiVendor, YahooRssVendor
 from src.providers.vendors.search_vendors import ExaVendor, TavilyVendor
 from src.providers.vendors.sec_vendor import SECVendor
@@ -74,6 +75,13 @@ class MarketDataProvider:
     SERIES_TTL = 300.0
 
     def __init__(self, cache: CacheBackend, flight: SingleFlight):
+        # Massive leads the price and history chains when a key is configured.
+        # It speaks Polygon's wire format, so it costs no new dialect, and it
+        # is the deployment's provisioned data source rather than a free tier.
+        # Without MASSIVE_API_KEY the base class reports it unavailable and
+        # every chain below skips it, so an unconfigured environment behaves
+        # exactly as it did before it existed.
+        self.massive = MassiveVendor()
         self.polygon = PolygonVendor()
         self.finnhub = FinnhubVendor()
         self.twelvedata = TwelveDataVendor()
@@ -96,6 +104,7 @@ class MarketDataProvider:
     def get_price(self, symbol: str, validate: bool = True) -> ProviderResult[PriceQuote]:
         symbol = symbol.upper()
         links = [
+            ChainLink(self.massive, lambda: self.massive.get_price(symbol)),
             ChainLink(self.tiingo, lambda: self.tiingo.get_price(symbol)),
             ChainLink(self.polygon, lambda: self.polygon.get_price(symbol)),
             ChainLink(self.finnhub, lambda: self.finnhub.get_price(symbol)),
@@ -118,6 +127,7 @@ class MarketDataProvider:
     def get_series(self, symbol: str, period: str = "3mo") -> ProviderResult[PriceSeries]:
         symbol = symbol.upper()
         links = [
+            ChainLink(self.massive, lambda: self.massive.get_series(symbol, period)),
             ChainLink(self.tiingo, lambda: self.tiingo.get_series(symbol, period)),
             ChainLink(self.polygon, lambda: self.polygon.get_series(symbol, period)),
             ChainLink(self.twelvedata, lambda: self.twelvedata.get_series(symbol, period)),
@@ -171,6 +181,7 @@ class FundamentalsProvider:
         # reference endpoint, yfinance's info payload (keyless, so it answers
         # when every authenticated vendor is rate-limited) and Tiingo's meta.
         # All reused from the market provider so each keeps one token bucket.
+        self.massive = market.massive if market else MassiveVendor()
         self.polygon = market.polygon if market else PolygonVendor()
         self.yfinance = market.yfinance if market else YFinanceVendor()
         self._company_chain = FallbackChain[CompanyProfile]("fund.company", cache, flight, self.TTL)
@@ -270,6 +281,7 @@ class FundamentalsProvider:
     def get_company(self, symbol: str) -> ProviderResult[CompanyProfile]:
         symbol = symbol.upper()
         links = [
+            ChainLink(self.massive, lambda: self.massive.get_company(symbol)),
             ChainLink(self.finnhub, lambda: self.finnhub.get_company(symbol)),
             ChainLink(self.polygon, lambda: self.polygon.get_company(symbol)),
             ChainLink(self.yfinance, lambda: self.yfinance.get_company(symbol)),
