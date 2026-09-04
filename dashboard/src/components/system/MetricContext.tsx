@@ -67,6 +67,16 @@ export interface MetricRef {
   }
 
   /**
+   * When the source document was filed, for a figure that comes from one.
+   *
+   * Distinct from `retrievedAt`, which is when this product fetched it. A
+   * 10-K fact carried both and only the fetch had a label — so a 2018 filing
+   * date rendered under the word "Retrieved", which says this product read it
+   * in 2018. It did not; the company filed it then.
+   */
+  filedAt?: string
+
+  /**
    * How long a value of this kind may be reused before it is re-read. Names
    * the policy, not the age — "this is a snapshot, good for a minute" rather
    * than "this is 41 seconds old".

@@ -168,6 +168,12 @@ export default function MetricInspector() {
                   <td style={{ whiteSpace: 'normal', fontSize: 'var(--t-meta)' }}>{current.freshness}</td>
                 </tr>
               ) : null}
+              {current.filedAt ? (
+                <tr>
+                  <td style={{ color: 'var(--ink-muted)' }}>Filed</td>
+                  <td className="num" style={{ textAlign: 'left' }}>{current.filedAt.slice(0, 10)}</td>
+                </tr>
+              ) : null}
               {current.retrievedAt ? (
                 <tr><td style={{ color: 'var(--ink-muted)' }}>Retrieved</td><td className="num" style={{ textAlign: 'left' }}>{current.retrievedAt.slice(0, 19)}</td></tr>
               ) : null}

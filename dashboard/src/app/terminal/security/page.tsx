@@ -4,6 +4,7 @@ import Workbench from '@/components/system/Workbench'
 import SecurityView from '@/components/terminal/security/SecurityView'
 import SecurityProfile from '@/components/terminal/security/SecurityProfile'
 import Fundamentals2 from '@/components/terminal/security/Fundamentals2'
+import Financials from '@/components/terminal/security/Financials'
 import SecurityResearch from '@/components/terminal/security/SecurityResearch'
 import SecurityContext from '@/components/terminal/security/SecurityContext'
 
@@ -49,6 +50,11 @@ export default async function SecurityPage({
               returns, growth, leverage and ownership, each with the period it
               describes. Shares one request with the profile above. */}
           <div id="sec-fundamentals"><Fundamentals2 symbol={symbol} /></div>
+          {/* Filed facts, kept separate from the ratio surface above. One is
+              what the company reported to the SEC; the other is computed by a
+              vendor. Putting them in one grid would make it impossible to say
+              which a given number is. */}
+          <div id="sec-financials"><Financials symbol={symbol} /></div>
           {/* Last. An analyst opening a name wants the price, the chart and the
               business before the quantitative programme — this sat third,
               above the company itself. */}

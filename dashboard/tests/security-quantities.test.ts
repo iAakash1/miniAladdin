@@ -198,3 +198,18 @@ test('an unlisted identifier is still passed through untouched', () => {
   assert.equal(venueLabel('XPAR'), 'XPAR')
   assert.equal(venueLabel('ZZZZ'), 'ZZZZ')
 })
+
+/* The merged profile is not deterministic. The same security came back as
+   "NASDAQ NMS - GLOBAL MARKET" on one read and the bare tier code "NMS" on
+   the next, depending on which vendor won the merge — so the security header
+   flipped between NASDAQ and NMS between page loads. Every spelling of one
+   venue has to resolve to one label or the header is unstable. */
+test('every spelling of one venue resolves to the same label', () => {
+  const nasdaq = ['NASDAQ NMS - GLOBAL MARKET', 'NASDAQ NMS', 'NASDAQ', 'XNAS', 'NMS', 'NCM', 'NGM']
+  const labels = new Set(nasdaq.map((v) => venueLabel(v)))
+  assert.equal(labels.size, 1, `one venue produced ${[...labels].join(', ')}`)
+  assert.equal([...labels][0], 'NASDAQ')
+
+  const nyse = ['NEW YORK STOCK EXCHANGE', 'NEW YORK STOCK EXCHANGE, INC.', 'XNYS', 'NYQ']
+  assert.equal(new Set(nyse.map((v) => venueLabel(v))).size, 1)
+})

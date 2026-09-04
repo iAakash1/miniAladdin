@@ -124,6 +124,13 @@ def test_a_count_is_never_rendered_signed() -> None:
     # A <Value> with digits={0} and nothing else to steer it.
     element = re.compile(r"<Value\b[^>]*digits=\{0\}[^>]*/>")
 
+    # `format(value, 'currency', { digits: 0 })` names its kind positionally,
+    # outside the braces this scans. That is steered, not a fall-through — the
+    # detector previously read only inside the literal and reported it as an
+    # unsteered count. Widened rather than relaxed: a bare `{ digits: 0 }` with
+    # no kind in either position is still caught.
+    positional_kind = re.compile(r"\bformat\(\s*[^,]+,\s*['\"][a-z_]+['\"]")
+
     for path in sorted(ui.rglob("*.tsx")):
         text = path.read_text()
         for line_no, line in enumerate(text.splitlines(), 1):
@@ -131,6 +138,8 @@ def test_a_count_is_never_rendered_signed() -> None:
                 for match in pattern.finditer(line):
                     hit = match.group(0)
                     if "kind" in hit or "signed" in hit or "tone" in hit:
+                        continue
+                    if positional_kind.search(line):
                         continue
                     offenders.append(f"{path.relative_to(ROOT)}:{line_no} {hit[:80]}")
 

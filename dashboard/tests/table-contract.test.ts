@@ -100,10 +100,18 @@ test('every hand-built table in the product is accounted for', () => {
      cells at source. That is weaker, and it is what is true. The DOM check is
      owed the first time a paper account is configured.
 
+     43 → 44 for the filed financials, and this one was checked in the DOM the
+     way the others were: nine headers against nine cells across all ten data
+     rows, with the three group headings spanning exactly nine columns so a
+     statement heading cannot shift the grid under the rows beneath it. The
+     column count is variable there — one concept column plus a column per
+     fiscal year actually filed — which is precisely why it was worth checking
+     rendered rather than read.
+
      Every other one was read in the rendered DOM before this number moved,
      and the one time it did not move. */
   assert.equal(
-    handBuilt.length, 43,
+    handBuilt.length, 44,
     `hand-built tables changed from 42 to ${handBuilt.length}. Route the new one ` +
     'through DataTable, or check its alignment in the rendered DOM and update ' +
     'this count deliberately.',

@@ -127,6 +127,12 @@ export function venueLabel(exchange: string | null | undefined): string | null {
        nothing. These are exact identifiers rather than guesses, which is
        the same standard the descriptions above are held to. */
     XNAS: 'NASDAQ', XNGS: 'NASDAQ', XNMS: 'NASDAQ', XNCM: 'NASDAQ',
+    /* Yahoo's own tier codes, which arrive bare. The merged profile is not
+       deterministic — the same security came back as "NASDAQ NMS - GLOBAL
+       MARKET" on one read and "NMS" on the next, depending on which vendor
+       won the merge — so the header flipped between NASDAQ and NMS between
+       page loads. NMS, NCM and NGM are NASDAQ tiers and nothing else. */
+    NMS: 'NASDAQ', NCM: 'NASDAQ', NGM: 'NASDAQ', NYQ: 'NYSE', PCX: 'NYSE Arca',
     XNYS: 'NYSE', ARCX: 'NYSE Arca', BATS: 'Cboe BZX',
     XLON: 'LSE', XTSE: 'TSX', XETR: 'Xetra', XTKS: 'Tokyo',
   }
