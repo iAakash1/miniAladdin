@@ -13,7 +13,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 import { loadCatalogue } from '@/lib/research/catalogue'
 import { recordVisit, usePinnedObjects, useRecentObjects } from '@/lib/research/history'
@@ -22,6 +22,8 @@ import { Status, type ResearchState } from './index'
 import { buildRows, selectableRows } from '@/lib/palette-rows'
 import { ALL_DESTINATIONS } from '@/lib/destinations'
 import { describeQuery, matchesStructure, parseQuery } from '@/lib/research/query'
+import { contextCommands } from '@/lib/context-commands'
+import { isWatched, recentSnapshot as recentSymbols, toggleWatch } from '@/lib/symbols'
 
 const STATE_MAP: Record<string, ResearchState> = {
   live: 'live', recorded: 'recorded', stale: 'stale', waking: 'waking',
@@ -64,6 +66,8 @@ function cycleDensity(): void {
 
 export default function Palette() {
   const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   // The cursor is stored with the query it belongs to and derived during
@@ -107,14 +111,36 @@ export default function Palette() {
     const go = (label: string, path: string, hint: string, note?: string): Command => ({
       id: `go:${path}`, label, hint, note, run: () => router.push(path),
     })
+    /* What the reader is standing on comes first. A palette that can only
+       navigate is a menu with a text box; the commands that earn the
+       shortcut are the ones that act on the object already open. */
+    const params: Record<string, string | undefined> = {}
+    searchParams.forEach((v, k) => { params[k] = v })
+    const symbol = (params.symbol ?? '').toUpperCase()
+
+    const contextual: Command[] = contextCommands({
+      pathname,
+      params,
+      recent: recentSymbols(),
+      watched: symbol ? isWatched(symbol) : false,
+    }).map((c) => ({
+      id: `ctx:${c.id}`,
+      label: c.label,
+      note: c.note,
+      run: c.href
+        ? () => router.push(c.href as string)
+        : () => { if (c.symbol) toggleWatch(c.symbol) },
+    }))
+
     return [
+      ...contextual,
       // Every navigation command comes from the destination registry, so the
       // palette cannot offer a route the sidebar does not have — or send the
       // reader somewhere else for the same label.
       ...ALL_DESTINATIONS.map((d) => go(`Go to ${d.label}`, d.href, `g ${d.key}`, d.answers)),
       { id: 'density', label: 'Cycle information density', hint: 'compact / default / comfortable', run: cycleDensity },
     ]
-  }, [router])
+  }, [router, pathname, searchParams])
 
   // The state words currently in play, from the objects themselves. Models
   // arrive as experimental and retired — the registry's vocabulary, not the
