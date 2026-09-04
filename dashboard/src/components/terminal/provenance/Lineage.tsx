@@ -18,6 +18,7 @@ import Link from 'next/link'
 
 import { Panel, StateBlock, Status, Value, type ResearchState } from '@/components/system'
 import { ObjectHeader, TableSkeleton } from '@/components/system/composition'
+import { readResource } from '@/lib/resource'
 
 interface SourceRow {
   dataset_id: string
@@ -68,9 +69,8 @@ export default function Lineage({ label, model }: { label: string; model: string
 
   useEffect(() => {
     let alive = true
-    fetch(`/api/ml/provenance/${encodeURIComponent(label)}/${encodeURIComponent(model)}`)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((d: Chain) => { if (alive) setChain(d) })
+    readResource<Chain>(`/api/ml/provenance/${encodeURIComponent(label)}/${encodeURIComponent(model)}`, 'artifact')
+      .then((d) => { if (alive) setChain(d) })
       .catch((e: Error) => { if (alive) setError(e.message) })
     return () => { alive = false }
   }, [label, model])

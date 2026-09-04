@@ -19,6 +19,7 @@ import { useEffect, useState } from 'react'
 
 import { Grid, Panel, Prose, Section, StateBlock, Status, Strip, Table, Value, type Column } from '@/components/system'
 import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
+import { readResource } from '@/lib/resource'
 
 interface LabelRow {
   label: string
@@ -74,9 +75,8 @@ export default function ModelWorkbench() {
 
     // The regime breakdown lives on the experiment artifact rather than the
     // overview, so it is fetched alongside rather than folded into it.
-    fetch('/api/quant/experiments/EXP-006')
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((d: { regime_performance?: Record<string, RegimeRow[]> }) => {
+    readResource<{ regime_performance?: Record<string, RegimeRow[]> }>('/api/quant/experiments/EXP-006', 'artifact')
+      .then((d) => {
         if (alive) setRegimes(d.regime_performance ?? null)
       })
       .catch(() => { /* the breakdown is additive; its absence is reported by its own panel */ })

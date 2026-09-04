@@ -12,6 +12,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { Panel, StateBlock } from '@/components/system'
+import { readResource } from '@/lib/resource'
 
 interface Row { model_id: string; label: string; status?: string }
 
@@ -35,9 +36,8 @@ export default function ChainPicker({ label, model }: { label: string; model: st
 
   useEffect(() => {
     let alive = true
-    fetch('/api/ml/registry')
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`the registry request returned ${r.status}`))))
-      .then((d: { leaderboard?: Row[] }) => {
+    readResource<{ leaderboard?: Row[] }>('/api/ml/registry', 'artifact')
+      .then((d) => {
         if (!alive) return
         setState(Array.isArray(d.leaderboard)
           ? { status: 'ready', rows: d.leaderboard }

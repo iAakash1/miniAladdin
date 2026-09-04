@@ -17,6 +17,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
 import { Panel, StateBlock, Status, Strip, Value } from '@/components/system'
+import { readResource } from '@/lib/resource'
 
 interface Index {
   symbol: string
@@ -44,12 +45,11 @@ export default function MarketSummary() {
   const [state, setState] = useState<{ d?: Dashboard; error?: string } | null>(null)
 
   useEffect(() => {
-    const c = new AbortController()
-    fetch('/api/dashboard', { signal: c.signal })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`the dashboard returned ${r.status}`))))
-      .then((d: Dashboard) => setState({ d }))
-      .catch((e: Error) => { if (e.name !== 'AbortError') setState({ error: e.message }) })
-    return () => c.abort()
+    let alive = true
+    readResource<Dashboard>('/api/dashboard', 'snapshot')
+      .then((d) => { if (alive) setState({ d }) })
+      .catch((e: Error) => { if (alive) setState({ error: e.message }) })
+    return () => { alive = false }
   }, [])
 
   const b = state?.d?.breadth

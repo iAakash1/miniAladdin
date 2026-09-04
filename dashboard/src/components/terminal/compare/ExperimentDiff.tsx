@@ -18,6 +18,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Panel, Prose, StateBlock, Status, Strip, Value } from '@/components/system'
 import { recordVisit } from '@/lib/research/history'
 import { ObjectHeader, TableSkeleton } from '@/components/system/composition'
+import { readResource } from '@/lib/resource'
 
 interface Detail {
   experiment_id?: string
@@ -89,8 +90,7 @@ export default function ExperimentDiff() {
 
   useEffect(() => {
     let alive = true
-    fetch('/api/quant/experiments')
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+    readResource<{ experiments?: { experiment_id: string }[] }>('/api/quant/experiments', 'artifact')
       .then((d) => { if (alive) setIds((d.experiments ?? []).map((e: { experiment_id: string }) => e.experiment_id)) })
       .catch((e: Error) => { if (alive) setErrors((p) => [...p, `list: ${e.message}`]) })
     return () => { alive = false }
@@ -99,9 +99,8 @@ export default function ExperimentDiff() {
   useEffect(() => {
     let alive = true
     const load = (id: string, set: (d: { id: string; data: Detail }) => void) => {
-      fetch(`/api/quant/experiments/${encodeURIComponent(id)}`)
-        .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-        .then((d: Detail) => { if (alive) set({ id, data: d }) })
+      readResource<Detail>(`/api/quant/experiments/${encodeURIComponent(id)}`, 'artifact')
+        .then((d) => { if (alive) set({ id, data: d }) })
         .catch((e: Error) => { if (alive) setErrors((p) => [...p, `${id}: ${e.message}`]) })
     }
     load(left, setA)

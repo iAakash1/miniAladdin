@@ -28,6 +28,7 @@ import { recordVisit, togglePin } from '@/lib/research/history'
 import { ObjectHeader, StripSkeleton, TableSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
 import Inspector from '@/components/system/Inspector'
 import type { ResearchObject } from '@/lib/research/objects'
+import { readResource } from '@/lib/resource'
 
 interface LeaderboardRow {
   key: string
@@ -142,9 +143,8 @@ export default function EvidenceChain() {
 
   useEffect(() => {
     let alive = true
-    fetch('/api/ml/registry')
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`registry ${r.status}`))))
-      .then((d: Registry) => { if (alive) setRegistry(d) })
+    readResource<Registry>('/api/ml/registry', 'artifact')
+      .then((d) => { if (alive) setRegistry(d) })
       .catch((e: Error) => { if (alive) setError(e.message) })
     return () => { alive = false }
   }, [])

@@ -21,6 +21,7 @@ import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
 import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
 import { EnvelopeGrid, type Envelope } from '@/components/system/EnvelopeMetric'
+import { readResource } from '@/lib/resource'
 
 interface Finalist {
   config_id: string
@@ -82,9 +83,8 @@ export default function SignalLab() {
 
   useEffect(() => {
     let alive = true
-    fetch('/api/quant/selection/EXP-007')
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((d: Selection) => {
+    readResource<Selection>('/api/quant/selection/EXP-007', 'artifact')
+      .then((d) => {
         if (!alive) return
         setData(d)
         const first = d.finalists?.[0]?.config_id ?? null

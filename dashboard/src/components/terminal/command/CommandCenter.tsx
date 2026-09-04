@@ -18,6 +18,7 @@ import { Grid, Panel, StateBlock, Status, Strip, Value, type ResearchState } fro
 import { ObjectHeader } from '@/components/system/composition'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
+import { readResource } from '@/lib/resource'
 
 interface Status_ {
   deployment_status?: string
@@ -71,9 +72,13 @@ export default function CommandCenter() {
     const fail = (what: string) => (e: Error) => { if (alive) setErrors((p) => [...p, `${what}: ${e.message}`]) }
     fetch('/api/quant/status').then((r) => r.ok ? r.json() : Promise.reject(new Error(String(r.status))))
       .then((d) => alive && setStatus(d)).catch(fail('status'))
-    fetch('/api/quant/experiments').then((r) => r.ok ? r.json() : Promise.reject(new Error(String(r.status))))
+    // The experiment list and the selection artifact are read by several other
+    // workspaces; the shared reader means opening the command centre after one
+    // of them costs nothing. The status above stays a direct read because the
+    // rail is polling it for liveness and a cached status is a stale one.
+    readResource<{ experiments?: ExperimentRow[] }>('/api/quant/experiments', 'artifact')
       .then((d) => alive && setExperiments(d.experiments ?? [])).catch(fail('experiments'))
-    fetch('/api/quant/selection/EXP-007').then((r) => r.ok ? r.json() : Promise.reject(new Error(String(r.status))))
+    readResource<Selection>('/api/quant/selection/EXP-007', 'artifact')
       .then((d) => alive && setSelection(d)).catch(fail('selection'))
     return () => { alive = false }
   }, [])

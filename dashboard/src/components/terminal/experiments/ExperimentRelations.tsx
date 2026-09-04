@@ -16,6 +16,7 @@ import { useEffect, useState } from 'react'
 import { Panel, Prose, StateBlock } from '@/components/system'
 import { KINDS } from '@/lib/research/objects'
 import { experimentRelations, type ExperimentEdges, type Relation } from '@/lib/research/relations'
+import { readResource } from '@/lib/resource'
 
 type State =
   | { status: 'reading' }
@@ -27,9 +28,8 @@ export default function ExperimentRelations({ experimentId = 'EXP-006' }: { expe
 
   useEffect(() => {
     let alive = true
-    fetch(`/api/quant/experiments/${encodeURIComponent(experimentId)}`)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`the artifact request returned ${r.status}`))))
-      .then((d: ExperimentEdges) => {
+    readResource<ExperimentEdges>(`/api/quant/experiments/${encodeURIComponent(experimentId)}`, 'artifact')
+      .then((d) => {
         if (alive) setState({ status: 'ready', relations: experimentRelations(d) })
       })
       .catch((e: Error) => { if (alive) setState({ status: 'unavailable', detail: e.message }) })

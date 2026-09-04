@@ -31,6 +31,7 @@ import { useEffect, useState } from 'react'
 
 import { Grid, Panel, Prose, StateBlock, Status, Value } from '@/components/system'
 import { BarRows } from '@/components/system/charts'
+import { readResource } from '@/lib/resource'
 
 interface ArmRow {
   arm: string
@@ -75,9 +76,8 @@ export default function Ablation({ experimentId = 'EXP-005' }: { experimentId?: 
 
   useEffect(() => {
     let alive = true
-    fetch(`/api/quant/experiments/${encodeURIComponent(experimentId)}`)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((d: Payload) => { if (alive) setData(d) })
+    readResource<Payload>(`/api/quant/experiments/${encodeURIComponent(experimentId)}`, 'artifact')
+      .then((d) => { if (alive) setData(d) })
       .catch((e: Error) => { if (alive) setError(e.message) })
     return () => { alive = false }
   }, [experimentId])

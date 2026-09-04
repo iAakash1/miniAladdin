@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import PageHeader from '@/components/ui/PageHeader'
 import EmptyState from '@/components/ui/EmptyState'
 import Skeleton from '@/components/ui/Skeleton'
@@ -14,6 +14,8 @@ import { notify } from '@/components/ui/Toasts'
 import { fmtPctRaw, timeAgo } from '@/lib/format'
 import PositionsPanel from '@/components/terminal/PositionsPanel'
 import PortfolioIntelligence from '@/components/terminal/PortfolioIntelligence'
+import { refreshQuotes } from '@/lib/quote-hub'
+import { useQuotes } from '@/lib/use-quotes'
 import {
   SUGGESTED_LISTS,
   type Watchlist,
@@ -25,14 +27,6 @@ import {
   useWatchlists,
   useWatchlistsStatus,
 } from '@/lib/watchlists'
-
-interface Quote {
-  price?: number
-  change_1d?: number | null
-  change_1w?: number | null
-  error?: string
-  stale?: boolean
-}
 
 const VERDICT_ORDER = ['Strong Sell', 'Sell', 'Hold', 'Buy', 'Strong Buy']
 
@@ -83,7 +77,7 @@ const STORAGE_ROWS: StorageRow[] = [
   { label: 'Portfolio positions', location: 'Cloud', detail: 'Shares and average cost, stored per account like watchlists.' },
   { label: 'Analysis history & saved reports', location: 'Cloud', detail: 'Every completed analysis is recorded automatically to your account — browse it in the Vault tab.' },
   { label: 'Verdict timeline (Analyze page)', location: 'Browser', detail: 'The per-ticker run-to-run diff shown under an analysis still lives in this browser’s local storage.' },
-  { label: 'Prices & quotes', location: 'Server (live)', detail: 'Fetched fresh from the provider chain each time you open this list or click Refresh — not cached in your browser between visits.' },
+  { label: 'Prices & quotes', location: 'Server (live)', detail: 'Read from the provider chain, shared with every other panel showing the same symbol, and re-read every 30 seconds or when you click Refresh. Held in memory for the session only — never stored between visits.' },
   { label: 'AI research narrative', location: 'Server (5 min cache)', detail: 'Briefly cached to avoid duplicate model calls; the full report is kept with each history row.' },
 ]
 
@@ -125,7 +119,7 @@ export interface SortState { key: SortKey | null; dir: 'asc' | 'desc' }
 
 interface SortableRow {
   ticker: string
-  quote?: { price?: number; change_1d?: number | null; change_1w?: number | null }
+  quote?: { price?: number | null; change_1d?: number | null; change_1w?: number | null }
   latest: { verdict: string; confidence: number; ts: string } | null
 }
 
@@ -217,45 +211,19 @@ export default function PortfolioView() {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [newName, setNewName] = useState('')
   const [addSymbol, setAddSymbol] = useState('')
-  const [quotes, setQuotes] = useState<Record<string, Quote>>({})
-  const [loadingQuotes, setLoadingQuotes] = useState(false)
-  const [quotesReload, setQuotesReload] = useState(0)
-  const [quotesFetchedAt, setQuotesFetchedAt] = useState<string | null>(null)
   const [sort, setSort] = useState<SortState>({ key: null, dir: 'desc' })
 
   const active: Watchlist | null =
     lists.find((list) => list.id === activeId) ?? lists[0] ?? null
-  const activeTickersKey = active?.tickers.join(',') ?? ''
 
-  useEffect(() => {
-    if (!activeTickersKey) {
-      queueMicrotask(() => setQuotes({}))
-      return undefined
-    }
-    const controller = new AbortController()
-    let alive = true
-    queueMicrotask(() => {
-      if (alive) setLoadingQuotes(true)
-    })
-    fetch(`/api/quotes?symbols=${encodeURIComponent(activeTickersKey)}`, { signal: controller.signal })
-      .then((response) => (response.ok ? response.json() : Promise.reject(new Error(String(response.status)))))
-      .then((json: { quotes: Record<string, Quote> }) => {
-        if (alive) {
-          setQuotes(json.quotes ?? {})
-          setQuotesFetchedAt(new Date().toISOString())
-        }
-      })
-      .catch((error: unknown) => {
-        if (alive && (error as Error).name !== 'AbortError') setQuotes({})
-      })
-      .finally(() => {
-        if (alive) setLoadingQuotes(false)
-      })
-    return () => {
-      alive = false
-      controller.abort()
-    }
-  }, [activeTickersKey, quotesReload])
+  /* This list reads prices from the shared hub rather than fetching its own.
+     It used to fetch once on mount and never again, so a watchlist left open
+     kept quoting a price the watchlist panel elsewhere had already replaced.
+     Two surfaces disagreeing about the last trade of one security is not a
+     cosmetic problem. */
+  const { quotes, at: quotesFetchedAt, loading: loadingQuotes } =
+    useQuotes(active?.tickers ?? [])
+
 
   /* ── ranking: analyzed first (verdict rank, then confidence), then by 1w momentum ── */
   const rows = useMemo(() => {
@@ -489,7 +457,7 @@ export default function PortfolioView() {
               <button
                 type="button"
                 className="btn btn--ghost btn--sm"
-                onClick={() => setQuotesReload((key) => key + 1)}
+                onClick={() => refreshQuotes()}
                 disabled={loadingQuotes || active.tickers.length === 0}
               >
                 {loadingQuotes ? 'Refreshing…' : 'Refresh quotes'}

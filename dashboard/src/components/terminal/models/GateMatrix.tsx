@@ -17,6 +17,7 @@ import Link from 'next/link'
 import { Panel, StateBlock, Strip, Value } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { ObjectHeader, StripSkeleton, TableSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
+import { readResource } from '@/lib/resource'
 
 interface Entry {
   key: string
@@ -49,9 +50,8 @@ export default function GateMatrix() {
 
   useEffect(() => {
     let alive = true
-    fetch('/api/ml/registry')
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((d: Registry) => { if (alive) setRegistry(d) })
+    readResource<Registry>('/api/ml/registry', 'artifact')
+      .then((d) => { if (alive) setRegistry(d) })
       .catch((e: Error) => { if (alive) setError(e.message) })
     return () => { alive = false }
   }, [])

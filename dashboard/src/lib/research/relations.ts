@@ -29,6 +29,7 @@
  */
 
 import type { ObjectKind, ResearchObject } from './objects'
+import { readResource } from '@/lib/resource'
 
 export interface Relation {
   kind: ObjectKind
@@ -85,9 +86,7 @@ export async function loadGraph(): Promise<Graph | null> {
   if (inflight) return inflight
   inflight = (async () => {
     try {
-      const r = await fetch('/api/ml/registry')
-      if (!r.ok) throw new Error(String(r.status))
-      const d: { entries?: RegistryEntry[] } = await r.json()
+      const d = await readResource<{ entries?: RegistryEntry[] }>('/api/ml/registry', 'artifact')
 
       const featureToModels = new Map<string, Set<string>>()
       const datasetToModels = new Map<string, Set<string>>()

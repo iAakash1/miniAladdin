@@ -13,7 +13,7 @@ import { strict as assert } from 'node:assert'
 import test, { beforeEach } from 'node:test'
 
 import {
-  demandedSymbols, quoteSnapshot, resetQuoteHub, subscribeQuotes,
+  demandedSymbols, quoteSnapshot, refreshQuotes, resetQuoteHub, subscribeQuotes,
 } from '../src/lib/quote-hub'
 
 let requests: string[] = []
@@ -121,4 +121,28 @@ test('the last unsubscribe stops the refresh', async () => {
   await settle()
   off()
   assert.deepEqual(demandedSymbols(), [])
+})
+
+/* The watchlist page carries a Refresh button. It used to re-run that page's
+   own fetch, which left every other panel on the old prices — the exact split
+   this hub exists to close. */
+test('an explicit refresh reads again and reaches every subscriber', async () => {
+  let seen = 0
+  const off = subscribeQuotes(['AAPL'], () => { seen += 1 })
+  await settle()
+  const afterMount = requests.length
+  const notified = seen
+
+  refreshQuotes()
+  await settle()
+
+  assert.equal(requests.length, afterMount + 1, 'the refresh did not issue a read')
+  assert.ok(seen > notified, 'the subscriber was not told about the new prices')
+  off()
+})
+
+test('a refresh with nobody subscribed asks for nothing', async () => {
+  refreshQuotes()
+  await settle()
+  assert.deepEqual(requests, [], 'a request went out for no symbols')
 })

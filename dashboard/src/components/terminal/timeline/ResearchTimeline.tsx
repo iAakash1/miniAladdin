@@ -19,6 +19,7 @@ import { Panel, Prose, StateBlock, Status, Strip, type ResearchState } from '@/c
 import { ObjectHeader, StripSkeleton, TableSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
 import { useMemos } from '@/lib/research/memos'
 import { KINDS, href as objectHref, type ObjectKind } from '@/lib/research/objects'
+import { readResource } from '@/lib/resource'
 
 interface Entry {
   key: string
@@ -67,8 +68,7 @@ export default function ResearchTimeline() {
 
   useEffect(() => {
     let alive = true
-    fetch('/api/ml/registry')
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+    readResource<{ entries?: Entry[] }>('/api/ml/registry', 'artifact')
       .then((d) => { if (alive) setEntries(d.entries ?? []) })
       .catch((e: Error) => { if (alive) setError(e.message) })
     return () => { alive = false }

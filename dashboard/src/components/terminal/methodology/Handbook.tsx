@@ -17,6 +17,7 @@ import { Panel, Prose, Section, StateBlock, Status, Value } from '@/components/s
 import { ObjectHeader, StripSkeleton, TableSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
+import { readResource } from '@/lib/resource'
 
 interface Entry {
   name: string
@@ -61,9 +62,8 @@ export default function Handbook({ initialMeasure }: { initialMeasure?: string }
 
   useEffect(() => {
     let alive = true
-    fetch('/api/quant/methodology')
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((d: Book) => { if (alive) setBook(d) })
+    readResource<Book>('/api/quant/methodology', 'reference')
+      .then((d) => { if (alive) setBook(d) })
       .catch((e: Error) => { if (alive) setError(e.message) })
     return () => { alive = false }
   }, [])

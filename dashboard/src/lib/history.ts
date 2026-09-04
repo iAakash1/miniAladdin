@@ -109,13 +109,19 @@ export function readHistorySnapshot(): Store {
   return snapshotStore()
 }
 
+/* One frozen value, not a fresh one per call. React compares the server
+   snapshot by identity and warns of an infinite render loop when a new object
+   comes back each time; on the server there is nothing stored, and "nothing"
+   is a constant. */
+const SERVER_STORE: Store = {}
+
 export function useHistory(ticker: string | null): AnalysisSnapshot[] {
-  const store = useSyncExternalStore(subscribe, snapshotStore, () => ({}) as Store)
+  const store = useSyncExternalStore(subscribe, snapshotStore, () => SERVER_STORE)
   return ticker ? (store[ticker.toUpperCase()] ?? []) : []
 }
 
 export function useAllHistory(): Store {
-  return useSyncExternalStore(subscribe, snapshotStore, () => ({}) as Store)
+  return useSyncExternalStore(subscribe, snapshotStore, () => SERVER_STORE)
 }
 
 /* ── recording ──────────────────────────────────────────────────────────── */

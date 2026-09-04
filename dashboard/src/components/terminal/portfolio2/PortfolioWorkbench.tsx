@@ -24,6 +24,7 @@ import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { BarRows, Histogram } from '@/components/system/charts'
 import { recordVisit } from '@/lib/research/history'
 import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
+import { readResource } from '@/lib/resource'
 
 interface Method { name: string; description: string }
 interface Weight { symbol: string; weight: number; side: string; signal?: number | null; risk_share: number | null }
@@ -57,9 +58,8 @@ export default function PortfolioWorkbench() {
 
   useEffect(() => {
     let alive = true
-    fetch('/api/quant/portfolio/methods')
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((d: { methods?: Method[] } | Method[]) => {
+    readResource<{ methods?: Method[] } | Method[]>('/api/quant/portfolio/methods', 'artifact')
+      .then((d) => {
         if (alive) setMethods(Array.isArray(d) ? d : (d.methods ?? []))
       })
       // The allocator list failing is not a reason to hide the book. The
@@ -70,9 +70,8 @@ export default function PortfolioWorkbench() {
 
   useEffect(() => {
     let alive = true
-    fetch(`/api/quant/portfolio?method=${encodeURIComponent(method)}`)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((d: Payload) => { if (alive) setResult({ method, data: d }) })
+    readResource<Payload>(`/api/quant/portfolio?method=${encodeURIComponent(method)}`, 'artifact')
+      .then((d) => { if (alive) setResult({ method, data: d }) })
       .catch((e: Error) => { if (alive) setResult({ method, error: e.message }) })
     return () => { alive = false }
   }, [method])

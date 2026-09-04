@@ -21,6 +21,7 @@ import { useEffect, useState } from 'react'
 
 import { BarRows } from '@/components/system/charts'
 import { Grid, Panel, Section, StateBlock, Status, Value } from '@/components/system'
+import { readResource } from '@/lib/resource'
 
 interface Regimes {
   method?: string
@@ -49,8 +50,7 @@ export default function ResearchContext({ experiment = 'EXP-006' }: { experiment
 
   useEffect(() => {
     let alive = true
-    fetch(`/api/quant/experiments/${encodeURIComponent(experiment)}`)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+    readResource<{ regimes?: Regimes | null; universe?: Universe | null }>(`/api/quant/experiments/${encodeURIComponent(experiment)}`, 'artifact')
       .then((d) => { if (alive) { setRegimes(d.regimes ?? null); setUniverse(d.universe ?? null) } })
       .catch((e: Error) => { if (alive) setError(e.message) })
     return () => { alive = false }

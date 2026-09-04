@@ -18,6 +18,7 @@ import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
 import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
 import ExperimentEvidence from './ExperimentEvidence'
+import { readResource } from '@/lib/resource'
 
 interface Row {
   experiment_id: string
@@ -58,8 +59,7 @@ export default function ExperimentRegistry() {
 
   useEffect(() => {
     let alive = true
-    fetch('/api/quant/experiments')
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+    readResource<{ experiments?: Row[] }>('/api/quant/experiments', 'artifact')
       .then((d) => { if (alive) setRows(d.experiments ?? []) })
       .catch((e: Error) => { if (alive) setError(e.message) })
     return () => { alive = false }
@@ -69,9 +69,8 @@ export default function ExperimentRegistry() {
     if (!selected) return
     let alive = true
     const id = selected
-    fetch(`/api/quant/experiments/${id}`)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((d: Detail) => { if (alive) setDetail({ id, data: d }) })
+    readResource<Detail>(`/api/quant/experiments/${id}`, 'artifact')
+      .then((d) => { if (alive) setDetail({ id, data: d }) })
       .catch((e: Error) => { if (alive) setDetailError({ id, message: e.message }) })
     return () => { alive = false }
   }, [selected])

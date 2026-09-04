@@ -12,6 +12,7 @@
  */
 
 import type { ResearchObject } from './objects'
+import { readResource, type Policy } from '@/lib/resource'
 
 export interface Catalogue {
   objects: ResearchObject[]
@@ -22,10 +23,11 @@ export interface Catalogue {
 let cache: Catalogue | null = null
 let inflight: Promise<Catalogue> | null = null
 
-async function json<T>(url: string): Promise<T> {
-  const r = await fetch(url)
-  if (!r.ok) throw new Error(String(r.status))
-  return r.json() as Promise<T>
+/* The catalogue reads six registries and artifacts, several of which a
+   workspace elsewhere on the screen is also reading. They go through the
+   shared reader so the palette costs nothing when the page already has them. */
+async function json<T>(url: string, policy: Policy = 'artifact'): Promise<T> {
+  return readResource<T>(url, policy)
 }
 
 async function collect(
@@ -105,7 +107,7 @@ export async function loadCatalogue(force = false): Promise<Catalogue> {
       }, failed),
 
       collect('methodology', async () => {
-        const d = await json<{ entries: { name: string; unit?: string; annualisation?: string }[] }>('/api/quant/methodology')
+        const d = await json<{ entries: { name: string; unit?: string; annualisation?: string }[] }>('/api/quant/methodology', 'reference')
         return (d.entries ?? []).map((m) => ({
           kind: 'method' as const, id: m.name, label: m.name,
           detail: [m.unit, m.annualisation && m.annualisation !== 'none' ? m.annualisation.replace(/_/g, ' ') : null]

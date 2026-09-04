@@ -28,6 +28,7 @@ import WhatChanged from './WhatChanged'
 import MarketMap from './MarketMap'
 import type { SectorRow } from '@/lib/dashboardInsights'
 import type { MapBreadth } from './MarketMap'
+import { readResource } from '@/lib/resource'
 
 interface Sector {
   symbol: string
@@ -93,9 +94,8 @@ export default function MarketWorkspace() {
 
   useEffect(() => {
     let alive = true
-    fetch('/api/dashboard')
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((d: Dashboard) => { if (alive) setData(d) })
+    readResource<Dashboard>('/api/dashboard', 'snapshot')
+      .then((d) => { if (alive) setData(d) })
       .catch((e: Error) => { if (alive) setError(e.message) })
     return () => { alive = false }
   }, [])
@@ -213,9 +213,20 @@ export default function MarketWorkspace() {
   })()
   const above = n(b.sectors_above_50d)
   const count = n(b.sector_count)
-  const regime = typeof data.macro?.regime === 'string'
-    ? data.macro.regime
-    : (data.macro?.regime as Record<string, unknown> | undefined)?.state as string | undefined
+  // The macro block records the regime as `status`, not `state`. Reading the
+  // wrong key rendered an em dash on the market page for a value the payload
+  // always carried — and the explanation, the curve reading and the recession
+  // flag alongside it were never shown at all.
+  const macroRegime = data.macro?.regime
+  const regimeObj = typeof macroRegime === 'object' && macroRegime !== null
+    ? macroRegime as Record<string, unknown>
+    : null
+  const regime = typeof macroRegime === 'string'
+    ? macroRegime
+    : typeof regimeObj?.status === 'string' ? regimeObj.status : undefined
+  const regimeExplain = typeof regimeObj?.explain === 'string' ? regimeObj.explain : undefined
+  const yieldCurve = typeof regimeObj?.yield_curve === 'string' ? regimeObj.yield_curve : undefined
+  const recessionWarning = regimeObj?.recession_warning === true
 
   return (
     <>
@@ -229,7 +240,7 @@ export default function MarketWorkspace() {
           { label: 'Breadth', value: n(b.breadth_score), kind: 'percent', digits: 0, title: b.explain ?? undefined },
           { label: 'Above 50d', value: above, digits: 0, kind: 'count' },
           { label: 'Sectors', value: count, digits: 0, kind: 'count' },
-          { label: 'Regime', value: regime ?? null, digits: 0, kind: 'count' },
+          { label: 'Regime', value: regime ?? null, digits: 0, kind: 'count', title: regimeExplain },
           { label: 'Events', value: data.events?.length ?? null, digits: 0 , kind: 'count'},
         ]}
       />
@@ -347,10 +358,38 @@ export default function MarketWorkspace() {
         </Panel>
       </Grid>
 
-      {data.macro?.cards?.length ? (
-        <Panel title="Macro" state="live" subtitle={data.macro.note ?? undefined}>
+      {data.macro?.cards?.length || regimeObj ? (
+        <Panel title="Macro" state="live" subtitle={data.macro?.note ?? undefined}>
+          {/* The regime is a composite the backend already explains. Showing
+              only its one-word verdict in the header discards the curve
+              reading, the recession flag and the rule that produced it. */}
+          {regimeObj ? (
+            <div className="sys-strip sys-strip--wrap" style={{ marginBottom: 'var(--d-2)' }}>
+              <div className="sys-strip-item">
+                <span className="k">Regime</span>
+                <span className="v"><span className="sys-num">{regime ?? '—'}</span></span>
+              </div>
+              <div className="sys-strip-item">
+                <span className="k">Yield curve</span>
+                <span className="v"><span className="sys-num">{yieldCurve ? yieldCurve.toUpperCase() : '—'}</span></span>
+              </div>
+              <div className="sys-strip-item">
+                <span className="k">Recession flag</span>
+                <span className="v"><span className="sys-num">{recessionWarning ? 'RAISED' : 'NOT RAISED'}</span></span>
+              </div>
+              {typeof regimeObj.risk_multiplier === 'number' ? (
+                <div className="sys-strip-item">
+                  <span className="k">Risk multiplier</span>
+                  <span className="v"><Value value={regimeObj.risk_multiplier} digits={2} kind="multiple" /></span>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+          {regimeExplain ? (
+            <p className="sys-prose sys-prose--tight" style={{ marginBottom: 'var(--d-2)' }}>{regimeExplain}</p>
+          ) : null}
           <div className="sys-strip sys-strip--wrap">
-            {data.macro.cards.map((c, i) => (
+            {(data.macro?.cards ?? []).map((c, i) => (
               <div className="sys-strip-item" key={c.label ?? i}>
                 <span className="k">{c.label ?? '—'}</span>
                 <span className="v">

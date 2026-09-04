@@ -32,6 +32,7 @@
 import { useEffect, useState } from 'react'
 
 import { Panel, Prose, StateBlock, Status } from '@/components/system'
+import { readResource } from '@/lib/resource'
 
 interface Stage {
   stage: string
@@ -91,10 +92,9 @@ export function Trace({ label = 'fwd_rank_21', model = 'gradient_boosting' }: {
     Promise.all([
       fetch(`/api/ml/provenance/${encodeURIComponent(label)}/${encodeURIComponent(model)}`)
         .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`provenance returned ${r.status}`)))),
-      fetch('/api/ml/registry')
-        .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`the registry returned ${r.status}`)))),
+      readResource<Registry>('/api/ml/registry', 'artifact'),
     ])
-      .then(([provenance, registry]: [Provenance, Registry]) => {
+      .then(([provenance, registry]) => {
         if (!alive) return
         const entry = (registry.entries ?? []).find(
           (e) => e.model_id === model && e.label === label,

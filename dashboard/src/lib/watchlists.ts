@@ -91,8 +91,14 @@ export function readWatchlistsSnapshot(): Watchlist[] {
   return lists
 }
 
+/* One frozen value, not a fresh one per call. React compares the server
+   snapshot by identity and warns of an infinite render loop when a new object
+   comes back each time; on the server there is nothing stored, and "nothing"
+   is a constant. */
+const SERVER_LISTS: Watchlist[] = []
+
 export function useWatchlists(): Watchlist[] {
-  return useSyncExternalStore(subscribe, () => lists, () => [] as Watchlist[])
+  return useSyncExternalStore(subscribe, () => lists, () => SERVER_LISTS)
 }
 
 export function useWatchlistsStatus(): WatchlistsStatus {

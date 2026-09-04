@@ -17,6 +17,7 @@ import { Panel, Prose, StateBlock, Status } from '@/components/system'
 import { ObjectHeader, TableSkeleton } from '@/components/system/composition'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
+import { readResource } from '@/lib/resource'
 
 interface Row {
   key: string
@@ -68,8 +69,7 @@ export default function ModelCompare() {
 
   useEffect(() => {
     let alive = true
-    fetch('/api/ml/registry')
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+    readResource<{ leaderboard?: Row[] }>('/api/ml/registry', 'artifact')
       .then((d) => { if (alive) setRows(d.leaderboard ?? []) })
       .catch((e: Error) => { if (alive) setError(e.message) })
     return () => { alive = false }

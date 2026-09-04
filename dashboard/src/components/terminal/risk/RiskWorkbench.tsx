@@ -26,6 +26,7 @@ import Link from 'next/link'
 import { Grid, Panel, Prose, StateBlock, Status, Strip, Value } from '@/components/system'
 import { BarRows } from '@/components/system/charts'
 import { ObjectHeader, StripSkeleton, TableSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
+import { readResource } from '@/lib/resource'
 
 interface Metric {
   value: number | null
@@ -237,9 +238,8 @@ export default function RiskWorkbench() {
 
   useEffect(() => {
     let alive = true
-    fetch('/api/quant/portfolio')
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`portfolio ${r.status}`))))
-      .then((d: PortfolioPayload) => { if (alive) setData(d) })
+    readResource<PortfolioPayload>('/api/quant/portfolio', 'artifact')
+      .then((d) => { if (alive) setData(d) })
       .catch((e: Error) => { if (alive) setError(e.message) })
     return () => { alive = false }
   }, [])

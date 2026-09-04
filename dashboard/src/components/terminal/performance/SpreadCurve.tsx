@@ -19,6 +19,7 @@ import Link from 'next/link'
 import { BarRows, DrawdownChart, Histogram, TimeSeries } from '@/components/system/charts'
 import { Grid, Panel, Prose, Section, StateBlock, Strip, Value } from '@/components/system'
 import { ChartSkeleton, ObjectHeader, StripSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
+import { readResource } from '@/lib/resource'
 
 interface Period {
   date: string
@@ -54,9 +55,8 @@ export default function SpreadCurve({ experiment, model }: { experiment: string;
 
   useEffect(() => {
     let alive = true
-    fetch(`/api/quant/experiments/${encodeURIComponent(experiment)}/series/${encodeURIComponent(model)}`)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((d: Curve) => { if (alive) setCurve(d) })
+    readResource<Curve>(`/api/quant/experiments/${encodeURIComponent(experiment)}/series/${encodeURIComponent(model)}`, 'artifact')
+      .then((d) => { if (alive) setCurve(d) })
       .catch((e: Error) => { if (alive) setError(e.message) })
     return () => { alive = false }
   }, [experiment, model])

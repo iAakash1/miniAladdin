@@ -19,6 +19,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
 import { Panel, Prose, Status } from '@/components/system'
+import { readResource } from '@/lib/resource'
 
 interface Selection {
   experiment?: string
@@ -32,9 +33,8 @@ export default function ResearchStatus() {
 
   useEffect(() => {
     let alive = true
-    fetch('/api/quant/selection/EXP-007')
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((d: Selection) => { if (alive) setState({ s: 'ready', d }) })
+    readResource<Selection>('/api/quant/selection/EXP-007', 'artifact')
+      .then((d) => { if (alive) setState({ s: 'ready', d }) })
       .catch(() => { if (alive) setState({ s: 'unavailable' }) })
     return () => { alive = false }
   }, [])

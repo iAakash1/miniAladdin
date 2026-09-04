@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation'
 
 import { Panel, StateBlock } from '@/components/system'
 import { useRecentObjects } from '@/lib/research/history'
+import { readResource } from '@/lib/resource'
 
 export default function SymbolPicker({ current }: { current?: string }) {
   const router = useRouter()
@@ -22,9 +23,8 @@ export default function SymbolPicker({ current }: { current?: string }) {
 
   useEffect(() => {
     let alive = true
-    fetch('/api/quant/portfolio')
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((d: { weights?: { symbol: string }[] }) => {
+    readResource<{ weights?: { symbol: string }[] }>('/api/quant/portfolio', 'artifact')
+      .then((d) => {
         if (alive) setBook((d.weights ?? []).map((w) => w.symbol))
       })
       .catch(() => { /* the book is a convenience here, not a requirement */ })

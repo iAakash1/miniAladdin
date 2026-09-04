@@ -20,6 +20,8 @@ import {
   type ReactNode,
 } from 'react'
 
+import { readResource } from '@/lib/resource'
+
 export interface MetricRef {
   /** Handbook key, when the engine defines one. */
   measure?: string
@@ -71,9 +73,7 @@ async function loadHandbook(): Promise<Map<string, HandbookEntry>> {
   if (inflight) return inflight
   inflight = (async () => {
     try {
-      const r = await fetch('/api/quant/methodology')
-      if (!r.ok) throw new Error(String(r.status))
-      const d: { entries?: HandbookEntry[] } = await r.json()
+      const d = await readResource<{ entries?: HandbookEntry[] }>('/api/quant/methodology', 'reference')
       cache = new Map((d.entries ?? []).map((e) => [e.name, e]))
     } catch {
       // A handbook that cannot be read must not stop a number rendering. The

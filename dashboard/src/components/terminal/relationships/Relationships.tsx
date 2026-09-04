@@ -20,6 +20,7 @@ import { Grid, Panel, Prose, Section, StateBlock, Strip, Value } from '@/compone
 import { ChartSkeleton, ObjectHeader, StripSkeleton } from '@/components/system/composition'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
+import { readResource } from '@/lib/resource'
 
 interface Analytics {
   nodes?: number
@@ -59,9 +60,8 @@ export default function Relationships({ initialSymbol = 'AAPL' }: { initialSymbo
     let alive = true
     const key = `${symbol}|${hops}`
     const params = new URLSearchParams({ symbols: symbol, hops: String(hops) })
-    fetch(`/api/graph/workspace?${params}`)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((d: Workspace) => { if (alive) setResult({ key, data: d }) })
+    readResource<Workspace>(`/api/graph/workspace?${params}`, 'artifact')
+      .then((d) => { if (alive) setResult({ key, data: d }) })
       .catch((e: Error) => { if (alive) setFailure({ key, message: e.message }) })
     return () => { alive = false }
   }, [symbol, hops])

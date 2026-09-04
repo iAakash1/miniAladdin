@@ -161,6 +161,18 @@ export function quoteServerSnapshot(): State {
   return SERVER
 }
 
+/**
+ * Read now rather than at the next tick.
+ *
+ * A reader who has just seen a price move elsewhere should not have to wait
+ * out the interval. Every subscriber receives the result, so a refresh
+ * requested by one panel updates all of them — which is the point: two panels
+ * quoting the same symbol must never disagree.
+ */
+export function refreshQuotes(): void {
+  void read()
+}
+
 /** Test seam. */
 export function resetQuoteHub(): void {
   stop()
