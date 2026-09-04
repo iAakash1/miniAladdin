@@ -152,6 +152,9 @@ export default function SecurityCompare({ a, b }: { a: string; b: string }) {
           groups.map((g) => (
             <section key={g} className="cmp-group">
               <h3 className="sys-label cmp-group__title">{g}</h3>
+              {/* Headers and numeric cells do not wrap, so on a narrow
+                  viewport the table is what scrolls — never the page. */}
+              <div className="sys-scroll-x">
               <table className="sys-table sys-table--compact cmp">
                 <thead>
                   <tr>
@@ -208,6 +211,7 @@ export default function SecurityCompare({ a, b }: { a: string; b: string }) {
                   })}
                 </tbody>
               </table>
+              </div>
             </section>
           ))
         )}
