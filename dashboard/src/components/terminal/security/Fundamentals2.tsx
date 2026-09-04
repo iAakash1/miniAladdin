@@ -29,6 +29,7 @@ import { useEffect, useState } from 'react'
 import { Panel, Prose, StateBlock, Value } from '@/components/system'
 import type { Kind } from '@/lib/quantity'
 import { fetchResearch } from '@/lib/research-cache'
+import { ownershipConflict } from '@/lib/security'
 
 interface Ratios {
   pe_ratio?: number | null
@@ -90,7 +91,7 @@ interface Row {
   title?: string
 }
 
-interface Group { title: string; note?: string; rows: Row[] }
+interface Group { title: string; note?: string; caution?: string; rows: Row[] }
 
 export default function Fundamentals2({ symbol }: { symbol: string }) {
   const [settled, setSettled] = useState<{ for: string; d?: Payload; error?: string } | null>(null)
@@ -133,6 +134,7 @@ export default function Fundamentals2({ symbol }: { symbol: string }) {
 
   const r = current.d?.ratios ?? {}
   const o = current.d?.ownership ?? {}
+  const ownershipCaution = ownershipConflict(o)
   const cap = current.d?.profile?.market_cap ?? null
 
   /* Kinds, per field, from the convention the payload actually uses.
@@ -199,6 +201,7 @@ export default function Fundamentals2({ symbol }: { symbol: string }) {
       title: 'Ownership',
       // The one place in this payload where percentages arrive as fractions.
       note: 'These arrive as fractions and are rendered as shares of one, not as the percentages above.',
+      caution: ownershipCaution ?? undefined,
       rows: [
         { label: 'Shares outstanding', value: o.shares_outstanding, kind: 'count' },
         { label: 'Float', value: o.float_shares, kind: 'count' },
@@ -256,6 +259,7 @@ export default function Fundamentals2({ symbol }: { symbol: string }) {
               </tbody>
             </table>
             {g.note ? <Prose size="fine">{g.note}</Prose> : null}
+            {g.caution ? <Prose size="fine" caution>{g.caution}</Prose> : null}
           </section>
         ))}
       </div>

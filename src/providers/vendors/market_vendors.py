@@ -27,7 +27,13 @@ from src.providers.schemas import (
     OwnershipData,
 )
 
-PERIOD_DAYS = {"1mo": 31, "3mo": 92, "6mo": 184, "1y": 366, "5y": 1830}
+# "max" was absent, so _period_to_days fell through to the 92-day default and
+# the longest window a caller could ask for returned the shortest series of
+# any named range. Matched to the tiingo table so the vendors agree.
+PERIOD_DAYS = {
+    "1mo": 31, "3mo": 92, "6mo": 184, "1y": 366,
+    "2y": 740, "5y": 1830, "max": 7300,
+}
 
 
 def _period_to_days(period: str) -> int:

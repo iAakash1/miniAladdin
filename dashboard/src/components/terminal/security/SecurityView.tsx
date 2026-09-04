@@ -24,10 +24,10 @@
 
 import { useEffect, useState } from 'react'
 
-import { Panel, StateBlock, Strip } from '@/components/system'
+import { Panel, StateBlock, Strip, Prose } from '@/components/system'
 import { TimeSeries } from '@/components/system/charts'
 import { ObjectHeader } from '@/components/system/composition'
-import { fetchBars, type Bar } from '@/lib/security'
+import { fetchBars, windowShortfall, type Bar } from '@/lib/security'
 import { useQuotes } from '@/lib/use-quotes'
 import { isWatched, recentSnapshot, toggleWatch } from '@/lib/symbols'
 
@@ -80,6 +80,10 @@ export default function SecurityView({ symbol }: { symbol: string }) {
   const windowChange = last?.close != null && first?.close != null && first.close !== 0
     ? ((last.close - first.close) / first.close) * 100
     : null
+
+  /* The range control names a window. When the provider cannot reach that far
+     back, the control is the only thing on screen still claiming it can. */
+  const shortfall = windowShortfall(range, first?.date, last?.date)
 
   return (
     <>
@@ -162,6 +166,7 @@ export default function SecurityView({ symbol }: { symbol: string }) {
               frequency="daily"
               height={260}
             />
+            {shortfall ? <Prose size="fine" caution>{shortfall}</Prose> : null}
             <Strip metrics={[
               { label: 'Window change', value: windowChange, kind: 'percent', digits: 2, signed: true, tone: true,
                 title: 'First to last close in the selected range' },

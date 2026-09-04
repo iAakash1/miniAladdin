@@ -153,3 +153,76 @@ export function rankSecurities(query: string, rows: SecurityIdentity[]): Securit
     .sort((a, b) => a.r - b.r || a.i - b.i)
     .map((x) => x.s)
 }
+
+/**
+ * Ownership figures a reader should not compare, and why.
+ *
+ * Vendors assemble an ownership block from more than one filing, and the
+ * pieces are not always measured over the same base. The case that shows up
+ * on real names is a multi-class issuer: the shares outstanding are reported
+ * for the listed class while the float spans every class, so the float comes
+ * back larger than the count it is nominally a subset of.
+ *
+ * Nothing is corrected here. Choosing which of two vendor figures to override
+ * would be inventing a number, and the reader is better served by knowing the
+ * pair disagrees than by a silently repaired one that looks authoritative.
+ *
+ * Returns null when the block is internally consistent, which is the ordinary
+ * case — of the large caps checked while writing this, only Alphabet trips it.
+ */
+export function ownershipConflict(o: {
+  shares_outstanding?: number | null
+  float_shares?: number | null
+}): string | null {
+  const shares = o.shares_outstanding
+  const float = o.float_shares
+  if (typeof shares !== 'number' || typeof float !== 'number') return null
+  if (!Number.isFinite(shares) || !Number.isFinite(float)) return null
+  if (float <= shares) return null
+  return 'The float above is larger than the shares outstanding, which cannot be true of a single share class. This usually means the two figures are measured on different bases — the count for the listed class against a float spanning every class. Treat them as two vendor figures, not as a pair to divide.'
+}
+
+/** Calendar days each named range asks for. Mirrors the provider's own table. */
+const RANGE_DAYS: Record<string, number> = {
+  '1mo': 31, '3mo': 92, '6mo': 184, '1y': 366, '2y': 740, '5y': 1830,
+}
+
+/**
+ * Whether the series that came back actually covers the range that was asked
+ * for, and if not, what to tell the reader.
+ *
+ * A vendor plan can cap how far back history goes. Asking for five years of
+ * AAPL returns 502 sessions — a little under two years — because the
+ * answering vendor's plan stops there. The chart is then correct about every
+ * point it draws and wrong about the one thing the control claims: the
+ * window. A reader comparing "5Y" across two names is comparing two windows
+ * neither of which is five years.
+ *
+ * The axis already carries the real dates. This says the quiet part: the
+ * range you selected is not the range you got.
+ *
+ * Returns null when the series covers the request, which is the ordinary case.
+ */
+export function windowShortfall(
+  range: string,
+  firstDate: string | null | undefined,
+  lastDate: string | null | undefined,
+): string | null {
+  const asked = RANGE_DAYS[range]
+  if (!asked || !firstDate || !lastDate) return null
+
+  const from = Date.parse(firstDate)
+  const to = Date.parse(lastDate)
+  if (!Number.isFinite(from) || !Number.isFinite(to) || to <= from) return null
+
+  const covered = (to - from) / 86_400_000
+  // A week of slack absorbs holidays and a range that begins on a weekend.
+  // Below 85% of the request the gap is structural, not calendar noise.
+  if (covered >= asked * 0.85 || covered >= asked - 7) return null
+
+  const years = covered / 365
+  const span = years >= 1.5
+    ? `${years.toFixed(1)} years`
+    : `${Math.round(covered / 30.4)} months`
+  return `History for this name begins ${firstDate}, so this window covers ${span} rather than the full range. The provider's plan limits how far back the series goes; the chart draws every session it was given.`
+}
