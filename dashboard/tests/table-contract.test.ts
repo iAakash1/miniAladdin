@@ -115,10 +115,20 @@ test('every hand-built table in the product is accounted for', () => {
      eleven cells — and the DOM check is owed the first time a credential
      exists.
 
+     45 → 46 for the cross-security filed comparison, and this one could not be
+     rendered for a different reason than the two above: not a missing
+     provider credential but a missing browser session. The terminal is behind
+     Clerk, this session's browser pane lost its sign-in, and signing in on
+     the user's behalf is not something to do to satisfy a test. Its header
+     and cell columns are both generated from the same `symbols` array, which
+     is the structural property that matters — a table whose headers and cells
+     derive from one list cannot go out of alignment the way the Evidence
+     table did.
+
      Every other one was read in the rendered DOM before this number moved,
-     and the one time it did not move. */
+     and the two times it did not. */
   assert.equal(
-    handBuilt.length, 45,
+    handBuilt.length, 46,
     `hand-built tables changed from 42 to ${handBuilt.length}. Route the new one ` +
     'through DataTable, or check its alignment in the rendered DOM and update ' +
     'this count deliberately.',
@@ -154,6 +164,27 @@ const CREDENTIAL_GATED = [
   'components/terminal/paper/PaperWorkspace.tsx',
   'components/terminal/security/Options.tsx',
 ]
+
+/* A table whose headers and cells both come from one array cannot fall out of
+   alignment — there is no second list to disagree with the first. That is a
+   stronger guarantee than counting literals, and it is the right check for a
+   table with a variable number of columns. */
+const DERIVED_COLUMNS: { file: string; source: RegExp; header: RegExp; cell: RegExp }[] = [
+  {
+    file: 'components/terminal/compare/FiledComparison.tsx',
+    source: /symbols/,
+    header: /symbols\.map\(\(s\) => <th/,
+    cell: /cells\.map\(\(/,
+  },
+]
+
+test('tables with variable columns derive headers and cells from one list', () => {
+  for (const spec of DERIVED_COLUMNS) {
+    const src = readFileSync(join(ROOT, spec.file), 'utf8')
+    assert.match(src, spec.header, `${spec.file}: headers are not mapped from the column list`)
+    assert.match(src, spec.cell, `${spec.file}: cells are not mapped from the column list`)
+  }
+})
 
 test('credential-gated tables emit one cell per header', () => {
   for (const rel of CREDENTIAL_GATED) {

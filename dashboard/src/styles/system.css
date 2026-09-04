@@ -2756,3 +2756,37 @@ a.tape:hover .tape__sym { color: var(--accent); }
   font: 400 var(--t-micro) / 1 var(--font-mono);
   color: var(--ink-faint);
 }
+
+/* ── filed financials, across securities ────────────────────────────────── */
+
+/* The value and its fiscal year are one cell, stacked. The year is not a
+   column header because a header would assert a shared period that these
+   securities do not have — Apple closes in September, Microsoft in June,
+   NVIDIA in January. */
+.fcmp__v { display: block; }
+.fcmp__fy {
+  display: block;
+  margin-top: 2px;
+  font: 400 var(--t-micro) / 1 var(--font-mono);
+  color: var(--ink-faint);
+}
+
+/* Years differ, but not alarmingly — adjacent fiscal calendars. */
+.fcmp__note {
+  margin-left: var(--d-2);
+  font: 400 var(--t-micro) / 1 var(--font-mono);
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+/* Years differ by three or more. This is the row that would mislead: the
+   Revenue row currently spans fiscal 2010 to fiscal 2026 across three
+   securities, and reading it as a comparison is off by a factor of four. */
+.fcmp__warn {
+  margin-left: var(--d-2);
+  font: 500 var(--t-micro) / 1 var(--font-mono);
+  color: var(--s-stale);
+  white-space: nowrap;
+}
+
+.fcmp__wide td { background: color-mix(in srgb, var(--s-stale) 5%, transparent); }

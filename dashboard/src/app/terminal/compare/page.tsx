@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import Workbench from '@/components/system/Workbench'
 import ModelCompare from '@/components/terminal/compare/ModelCompare'
 import SecurityCompare from '@/components/terminal/compare/SecurityCompare'
+import FiledComparison from '@/components/terminal/compare/FiledComparison'
 import { Panel, Prose } from '@/components/system'
 
 export const metadata: Metadata = {
@@ -74,22 +75,31 @@ function ModelContext() {
 export default async function ComparePage({
   searchParams,
 }: {
-  searchParams: Promise<{ a?: string; b?: string }>
+  searchParams: Promise<{ a?: string; b?: string; c?: string }>
 }) {
   const params = await searchParams
   const a = (params.a ?? '').toUpperCase()
   const b = (params.b ?? '').toUpperCase()
+  const c = (params.c ?? '').toUpperCase()
   const securities = Boolean(a && b)
+  // Duplicates would compare a security with itself, which is a row of zeros
+  // dressed as a finding.
+  const symbols = [...new Set([a, b, c].filter(Boolean))]
 
   return (
     <Workbench
       title="Compare"
-      subtitle={securities ? `${a} against ${b}` : 'model against model'}
+      subtitle={securities ? symbols.join(' · ') : 'model against model'}
       context={securities ? <SecurityContext /> : <ModelContext />}
     >
       {securities ? (
         <>
           <SecurityCompare a={a} b={b} />
+          {/* Filed facts across the set. Separate from the vendor ratios
+              above because the two answer different questions: one is what
+              the companies reported to the SEC, the other is what a vendor
+              computed. */}
+          <FiledComparison symbols={symbols} />
           <Panel title="Comparing models instead">
             <Prose size="tight">
               The research archive holds a model comparison over the same

@@ -231,6 +231,18 @@ export interface Comparability {
   ok: boolean
   /** Why not, phrased for a reader rather than for a log. */
   reason?: string
+  /**
+   * Comparable, but something differs that the reader has to be told.
+   *
+   * The distinction from `reason` is the whole point. A price-to-earnings
+   * against a margin is not a comparison and refusing it is correct. Apple's
+   * fiscal 2025 revenue against Microsoft's fiscal 2024 revenue *is* a
+   * comparison — of the same metric, on the same basis, in the same unit —
+   * it is simply a comparison of two different years, and a reader who is
+   * told that can use it. Refusing it would withhold something useful;
+   * showing it silently would assert the years are the same.
+   */
+  caveat?: string
 }
 
 /**
@@ -243,8 +255,8 @@ export interface Comparability {
  * mean different things in fact.
  */
 export function comparable(
-  a: { kind: Kind; basis?: string },
-  b: { kind: Kind; basis?: string },
+  a: { kind: Kind; basis?: string; period?: string },
+  b: { kind: Kind; basis?: string; period?: string },
 ): Comparability {
   const sa = semanticsOf(a.kind)
   const sb = semanticsOf(b.kind)
@@ -270,6 +282,28 @@ export function comparable(
       reason: `measured against ${a.basis} and ${b.basis}, which are not the same scale`,
     }
   }
+
+  /* Two observations of one metric over different windows. Still the same
+     measurement on the same basis, so the comparison holds — but the reader
+     is comparing two periods, and nothing else on the row would say so. */
+  if (a.period !== undefined && b.period !== undefined && a.period !== b.period) {
+    return {
+      ok: true,
+      caveat: `${a.period} against ${b.period} — different periods, not the same observation`,
+    }
+  }
+
+  /* One side declares a period and the other does not. That is not a
+     mismatch to report as a difference between two known windows; it is not
+     knowing what the second one covers, which is worse. */
+  if ((a.period === undefined) !== (b.period === undefined)) {
+    const known = a.period ?? b.period
+    return {
+      ok: true,
+      caveat: `one side covers ${known} and the other does not say which period it covers`,
+    }
+  }
+
   return { ok: true }
 }
 
@@ -303,6 +337,13 @@ export interface Delta {
   interpretation: Interpretation
   /** Present only when the two could not be compared. */
   reason?: string
+  /**
+   * Present when the two *were* compared but something about them differs
+   * that the reader must be told — most often that the observations cover
+   * different periods. A difference carrying a caveat is still a difference;
+   * it is just not a difference between like and like.
+   */
+  caveat?: string
 }
 
 /**
@@ -315,8 +356,11 @@ export interface Delta {
 export function delta(
   value: number | null | undefined,
   baseline: number | null | undefined,
-  a: { kind: Kind; basis?: string },
-  b: { kind: Kind; basis?: string } = a,
+  // Periods travel with the operands, not with the caller's intent: a
+  // difference between two windows is a different claim from a difference
+  // within one, and only the operands know which this is.
+  a: { kind: Kind; basis?: string; period?: string },
+  b: { kind: Kind; basis?: string; period?: string } = a,
 ): Delta {
   const fit = comparable(a, b)
   if (!fit.ok) {
@@ -376,6 +420,9 @@ export function delta(
     unit: deltaUnit(a.kind, s.delta),
     formatted,
     interpretation,
+    // Survives the arithmetic. A period mismatch does not stop the
+    // subtraction; it changes what the answer means.
+    caveat: fit.caveat,
   }
 }
 
