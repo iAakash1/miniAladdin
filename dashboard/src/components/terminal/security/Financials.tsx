@@ -114,6 +114,34 @@ export default function Financials({ symbol }: { symbol: string }) {
 
   const latestYear = years[0]
 
+  /* Assets = Liabilities + Equity is an identity. It holds exactly in any
+     filed balance sheet, or the filing would not have been accepted. Running
+     it over these facts fails, and by margins that are not rounding — 51% of
+     assets for one security in one year.
+
+     What that means is that the three concepts for a labelled fiscal year are
+     not drawn from one reconciled context: different periods, different XBRL
+     contexts, or a concept mapped to a tag that does not mean what its label
+     says. It does not make any single fact wrong, and it does make arithmetic
+     across them invalid.
+
+     So the check runs in front of the reader rather than in a document. A
+     panel that quietly displays facts failing an accounting identity is
+     inviting exactly the cross-concept arithmetic the identity just proved
+     unsafe. */
+  const balance = years.map((y) => {
+    const a = xbrl['Total assets']?.find((f) => f.fiscal_year === y)?.value
+    const l = xbrl['Total liabilities']?.find((f) => f.fiscal_year === y)?.value
+    const e = xbrl['Shareholders’ equity']?.find((f) => f.fiscal_year === y)?.value
+    if (typeof a !== 'number' || typeof l !== 'number' || typeof e !== 'number' || !a) return null
+    const gap = a - (l + e)
+    return { year: y, gap, pct: Math.abs(gap) / a * 100 }
+  }).filter((b): b is { year: number; gap: number; pct: number } => b !== null)
+
+  // A tenth of a per cent is presentation rounding in a filing. Anything
+  // above that is a reconciliation problem.
+  const unbalanced = balance.filter((b) => b.pct > 0.1)
+
   return (
     <Panel
       title="Filed financials"
@@ -212,6 +240,31 @@ export default function Financials({ symbol }: { symbol: string }) {
           })}
         </table>
       </div>
+
+      {unbalanced.length ? (
+        <div className="fin__identity">
+          <div className="sys-label">These facts do not reconcile</div>
+          <p>
+            Assets should equal liabilities plus equity in every filed balance
+            sheet. Across {unbalanced.length === 1 ? 'one year' : `${unbalanced.length} years`} here they do not
+            {unbalanced.length ? `, by up to ${Math.max(...unbalanced.map((b) => b.pct)).toFixed(1)}% of assets` : ''}.
+          </p>
+          <ul>
+            {unbalanced.slice(0, 3).map((b) => (
+              <li key={b.year}>
+                FY{b.year}: assets less liabilities and equity leaves{' '}
+                <Value value={b.gap} kind="currency" digits={0} signed /> — {b.pct.toFixed(1)}% of assets
+              </li>
+            ))}
+          </ul>
+          <p>
+            Each figure above is a real filed fact. Together they are not a
+            reconciled statement, which means the concepts for one labelled
+            year are not all drawn from the same context. Read them
+            individually; do not compute across them.
+          </p>
+        </div>
+      ) : null}
 
       <Prose size="fine">
         Facts as filed with the SEC, by the company&apos;s own fiscal year — not

@@ -2820,3 +2820,24 @@ a.tape:hover .tape__sym { color: var(--accent); }
   border-left: 2px solid var(--s-blocked);
   background: var(--p-sunken);
 }
+
+/* The accounting identity, when it fails. Ruled in the blocked colour rather
+   than the stale one: a stale figure is old, and this is a figure that cannot
+   be combined with its neighbours at all. */
+.fin__identity {
+  margin: var(--d-3) 0 0;
+  padding: var(--d-3);
+  border-left: 2px solid var(--s-blocked);
+  background: var(--p-sunken);
+}
+.fin__identity p {
+  margin: var(--d-2) 0 0;
+  font: 400 var(--t-body) / var(--lh-body) var(--font-sans);
+  color: var(--ink);
+}
+.fin__identity ul {
+  margin: var(--d-2) 0 0;
+  padding-left: 1.1rem;
+  font: 400 var(--t-meta) / var(--lh-body) var(--font-mono);
+  color: var(--ink-muted);
+}

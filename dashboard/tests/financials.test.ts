@@ -68,3 +68,47 @@ test('the drawer shows the figure the way the cell does', () => {
 test('no facts is an absence, not an assertion that none were filed', () => {
   assert.match(FIN, /not a statement that the company filed nothing/)
 })
+
+/* The accounting identity, and why nothing is derived from these facts.
+
+   Assets = Liabilities + Equity holds exactly in any filed balance sheet.
+   Across the audited securities it fails — 51% of assets for NVDA FY2026,
+   12% for MSFT, 4% for AAPL FY2023 — which means the concepts for a labelled
+   year are not drawn from one reconciled context.
+
+   That does not make any single fact wrong. It makes arithmetic across them
+   invalid, and it is why this panel derives nothing. */
+test('the balance identity is checked, not assumed', () => {
+  assert.match(FIN, /Total liabilities/)
+  assert.match(FIN, /Shareholders/)
+  assert.match(FIN, /a - \(l \+ e\)/, 'the identity is not actually computed')
+})
+
+test('a failure is shown to the reader, not left in a document', () => {
+  assert.match(FIN, /do not reconcile/i)
+  assert.match(FIN, /do not compute across them/i)
+})
+
+test('presentation rounding is not reported as a reconciliation failure', () => {
+  // A tenth of a per cent is rounding in a filing. Flagging it would train
+  // the reader to ignore the warning.
+  assert.match(FIN, /pct > 0\.1/)
+})
+
+test('nothing is derived from facts that fail the identity', () => {
+  // The brief asked for derived metrics with declared formulas. The honest
+  // answer here is that the inputs do not reconcile, so a derived figure
+  // would be a wrong number carrying a citation.
+  const code = FIN.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '')
+  for (const derived of ['margin', 'freeCashFlow', 'fcf', 'growth', 'cagr', 'ratio']) {
+    assert.doesNotMatch(code, new RegExp(`const ${derived}`, 'i'),
+      `${derived} is being derived from facts that fail the balance identity`)
+  }
+})
+
+test('a concept absent for one security is not rendered as zero', () => {
+  // NVDA returns no Dividends paid. NVIDIA does pay one, so that is a tagging
+  // gap — rendering it as zero would assert something false about the company.
+  assert.match(FIN, /No fact for this year/)
+  assert.doesNotMatch(FIN, /\?\?\s*0\b/, 'a missing fact falls back to zero somewhere')
+})
