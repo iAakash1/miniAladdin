@@ -148,3 +148,45 @@ def test_a_count_is_never_rendered_signed() -> None:
         + "\n  ".join(offenders[:20])
         + (f"\n  ...and {len(offenders) - 20} more" if len(offenders) > 20 else "")
     )
+
+
+def test_one_payload_carries_two_scales_and_the_ui_must_not_conflate_them() -> None:
+    """Ratios arrive as percentages; ownership arrives as fractions.
+
+    Verified against a live payload during the Phase 13 sweep:
+
+        gross_margin_ttm            48.65     a percentage
+        net_margin_ttm              27.62     a percentage
+        held_percent_institutions    0.66374  a fraction
+        held_percent_insiders        0.01648  a fraction
+
+    Both live in one research response, both have "percent" or "margin" in
+    their names, and they are on scales a hundred apart. A renderer that
+    multiplies fractions would report Apple's margin as 4,865%; one that does
+    not would report institutional ownership as 0.66%.
+
+    The product's answer is that `percent` never multiplies and `share` never
+    multiplies either — the scaling decision belongs to the one place that
+    knows which it is holding. This asserts the fundamentals panel keeps
+    ownership on the `share` kind and margins on `percent`, because the day
+    those swap is the day both are wrong and neither looks it.
+    """
+    import re
+
+    panel = (ROOT / "dashboard" / "src" / "components" / "terminal"
+             / "security" / "Fundamentals2.tsx").read_text()
+
+    def kind_for(label: str) -> str | None:
+        m = re.search(rf"label: '{re.escape(label)}'[^}}]*?kind: '([a-z]+)'", panel)
+        return m.group(1) if m else None
+
+    for label in ("Gross margin", "Operating margin", "Net margin"):
+        assert kind_for(label) == "percent", (
+            f"{label} is not on the percent kind; a fraction scale would be off by 100x"
+        )
+
+    for label in ("Held by institutions", "Held by insiders", "Short interest of float"):
+        assert kind_for(label) == "share", (
+            f"{label} is not on the share kind; the percent kind would report a "
+            f"fraction as a percentage"
+        )
