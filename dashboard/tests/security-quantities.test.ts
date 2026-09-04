@@ -42,12 +42,17 @@ test('session changes keep two decimals', () => {
   // and is the precision every quote screen gets right.
   assert.equal(format(-0.05, 'percent', { digits: 2 }).text, '-0.05')
   assert.equal(format(-0.05, 'percent', { digits: 1 }).text, '-0.1')
-  assert.match(VIEW, /change_1d[^}]*digits: 2/, 'the daily change is not at two decimals')
-  assert.match(VIEW, /change_1w[^}]*digits: 2/, 'the weekly change is not at two decimals')
+  // The instrument field renders both moves. The precision is the point, not
+  // the markup — these pin the digits wherever the field puts them.
+  assert.match(VIEW, /change_1d[^/]*digits=\{2\}/, 'the daily change is not at two decimals')
+  assert.match(VIEW, /change_1w[^/]*digits=\{2\}/, 'the weekly change is not at two decimals')
 })
 
 test('price is currency, not a bare ratio', () => {
-  assert.match(VIEW, /label: 'Last', value: price\?\.price \?\? null, kind: 'currency'/)
+  // The last price is the largest figure on the page and the one most likely
+  // to be read as a bare number. It goes through the currency kind so it
+  // carries its unit and its precision rather than the ratio default.
+  assert.match(VIEW, /format\(price\.price, 'currency'\)/)
 })
 
 /* Ownership blocks that cannot be true as stated.

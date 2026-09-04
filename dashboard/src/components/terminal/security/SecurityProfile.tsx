@@ -151,7 +151,17 @@ export default function SecurityProfile({ symbol }: { symbol: string }) {
   add('Currency', p.currency)
   if (typeof p.market_cap === 'number') add('Market cap', <Value value={p.market_cap} kind="currency" digits={0} />)
   if (typeof p.employees === 'number') add('Employees', <Value value={p.employees} kind="count" />)
-  if (typeof p.beta === 'number') add('Beta', <Value value={p.beta} kind="ratio" />)
+  // `ratio` signs and tones its value, so a beta of 1.085 rendered as a green
+  // "+1.085" — as though the stock had risen by it. Beta is a sensitivity, not
+  // a change: it has no sign to report and no direction that is good. The
+  // fundamentals panel already renders it as a multiple; this now agrees.
+  if (typeof p.beta === 'number') {
+    add('Beta', <Value
+      value={p.beta}
+      kind="multiple"
+      title="Against the vendor’s own benchmark, which it does not name"
+    />)
+  }
   add('Listed', p.ipo_date)
 
   return (

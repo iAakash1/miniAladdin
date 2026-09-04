@@ -24,10 +24,12 @@
 
 import { useEffect, useState } from 'react'
 
-import { Panel, StateBlock, Strip, Prose } from '@/components/system'
+import { Panel, StateBlock, Status, Strip, Prose, Value, type ResearchState } from '@/components/system'
 import { TimeSeries } from '@/components/system/charts'
-import { ObjectHeader } from '@/components/system/composition'
-import { fetchBars, windowShortfall, type Bar } from '@/lib/security'
+import { fetchBars, fetchIdentity, windowShortfall, type Bar, type SecurityIdentity } from '@/lib/security'
+import { format } from '@/lib/quantity'
+import { titleCase, venueLabel } from '@/lib/text'
+import { fetchResearch } from '@/lib/research-cache'
 import { useQuotes } from '@/lib/use-quotes'
 import { isWatched, recentSnapshot, toggleWatch } from '@/lib/symbols'
 
@@ -50,7 +52,36 @@ export default function SecurityView({ symbol }: { symbol: string }) {
   const [range, setRange] = useState('1y')
   const [watched, setWatched] = useState(false)
 
+  const [identity, setIdentity] = useState<Settled<SecurityIdentity | null> | null>(null)
+
   useEffect(() => { setWatched(isWatched(symbol)) }, [symbol])
+
+  /* The listing venue and the vendor's own casing of the name arrive with the
+     research payload — slow, but this is the same shared request the profile
+     panel below already issues, so reading it here costs no second fetch. The
+     field is complete without it and gains the venue when it lands. */
+  const [profile, setProfile] = useState<Settled<{ name?: string; exchange?: string }> | null>(null)
+  useEffect(() => {
+    let alive = true
+    setProfile(null)
+    fetchResearch(symbol)
+      .then((d) => { if (alive) setProfile({ for: symbol, value: (d as { profile?: { name?: string; exchange?: string } }).profile ?? {} }) })
+      .catch(() => { /* identity already stands on the fast path */ })
+    return () => { alive = false }
+  }, [symbol])
+
+  /* The company's name, from the symbol database rather than the research
+     payload. Half a second against twenty-five, and the name is the first
+     thing a reader looks for. A failure here is silent: the ticker is already
+     on screen and is a truthful, if terse, way to name the company. */
+  useEffect(() => {
+    let alive = true
+    setIdentity(null)
+    fetchIdentity(symbol)
+      .then((v) => { if (alive) setIdentity({ for: symbol, value: v }) })
+      .catch((e: Error) => { if (alive) setIdentity({ for: symbol, error: e.message }) })
+    return () => { alive = false }
+  }, [symbol])
 
   // The most recent other symbol this browser opened, as the default
   // comparison partner. Null on a first visit, where the action is hidden
@@ -85,46 +116,102 @@ export default function SecurityView({ symbol }: { symbol: string }) {
      back, the control is the only thing on screen still claiming it can. */
   const shortfall = windowShortfall(range, first?.date, last?.date)
 
+  const ident = identity?.for === symbol ? identity : null
+  /* Title-cased: the symbol database returns "APPLE INC", and a page whose
+     largest text is shouting reads as a banner rather than a name. */
+  const prof = profile?.for === symbol ? profile.value : undefined
+  /* The vendor's own casing wins when it arrives: "Apple Inc." beats anything
+     recovered from "APPLE INC" by rule. */
+  const name = prof?.name ?? (ident?.value?.name ? titleCase(ident.value.name) : null)
+  const venue = venueLabel(prof?.exchange)
+  /* Which provider resolved the ticker. Provenance, not a listing venue —
+     it goes under the rule with the other sources, never beside the ticker. */
+  const identitySource = ident?.value?.via ?? null
+  const quoteState: ResearchState = price
+    ? (quoteError || price.stale ? 'stale' : 'live')
+    : quoteError ? 'unavailable' : quoteAt ? 'unavailable' : 'waking'
+
   return (
     <>
-      <ObjectHeader
-        glyph="T"
-        name={symbol}
-        kind="security"
-        state={price ? (quoteError || price.stale ? 'stale' : 'live') : quoteError ? 'unavailable' : quoteAt ? 'unavailable' : 'waking'}
-        detail={price?.source ? `quote via ${price.source}` : undefined}
-        facts={[
-          { label: 'Last', value: price?.price ?? null, kind: 'currency' },
-          { label: '1 day', value: price?.change_1d ?? null, kind: 'percent', digits: 2, signed: true, tone: true },
-          { label: '1 week', value: price?.change_1w ?? null, kind: 'percent', digits: 2, signed: true, tone: true },
-          { label: 'Bars', value: series.length || null, kind: 'count' },
-        ]}
-        actions={
-          <>
-            <button
-              type="button"
-              className="sys-btn"
-              aria-pressed={watched}
-              onClick={() => { toggleWatch(symbol); setWatched(isWatched(symbol)) }}
-            >
-              {watched ? 'watching' : 'watch'}
-            </button>
-            {/* Against the last other name opened in this browser. Comparison
-                needs a second security, and the one just looked at is the one
-                a reader most often means. */}
-            {against ? (
-              <a
-                className="sys-btn"
-                href={`/terminal/compare?a=${encodeURIComponent(symbol)}&b=${encodeURIComponent(against)}`}
-              >
-                compare with {against}
-              </a>
+      {/* Identity, price and provenance as one field rather than a header
+          box with a fact strip. See .inst in system.css for why. */}
+      <section className="inst" aria-label={`${symbol} summary`}>
+        <div>
+          <h1
+            className={`inst__name${name ? '' : ' inst__name--pending'}`}
+            title={name ?? undefined}
+          >
+            {name ?? symbol}
+          </h1>
+          <div className="inst__listing">
+            <span className="inst__ticker">{symbol}</span>
+            {venue ? (
+              <>
+                <span className="inst__sep">/</span>
+                <span title={prof?.exchange}>{venue}</span>
+              </>
             ) : null}
-          </>
-        }
-      />
+            <span className="inst__sep">/</span>
+            <Status state={quoteState} />
+          </div>
+        </div>
 
+        <div className="inst__quote">
+          <div className={`inst__price${price?.price == null ? ' inst__price--absent' : ''}`}>
+            {price?.price == null ? '—' : format(price.price, 'currency').text}
+          </div>
+          <div className="inst__moves">
+            <div className="inst__move">
+              <span className="k">1 day</span>
+              <span className="v">
+                <Value value={price?.change_1d ?? null} kind="percent" digits={2} signed tone />
+              </span>
+            </div>
+            <div className="inst__move">
+              <span className="k">1 week</span>
+              <span className="v">
+                <Value value={price?.change_1w ?? null} kind="percent" digits={2} signed tone />
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="inst__foot">
+        <div className="inst__prov">
+          {identitySource ? <span>name via {identitySource}</span> : null}
+          {identitySource && price?.source ? <span className="inst__sep">/</span> : null}
+          {price?.source ? <span>quote via {price.source}</span> : null}
+          {quoteAt ? <span className="inst__sep">/</span> : null}
+          {quoteAt ? <span>{quoteAt.slice(11, 19)}</span> : null}
+          {series.length ? <span className="inst__sep">/</span> : null}
+          {series.length ? <span>{series.length} sessions</span> : null}
+        </div>
+        <div className="inst__acts">
+          <button
+            type="button"
+            className="sys-btn"
+            aria-pressed={watched}
+            onClick={() => { toggleWatch(symbol); setWatched(isWatched(symbol)) }}
+          >
+            {watched ? 'watching' : 'watch'}
+          </button>
+          {against ? (
+            <a
+              className="sys-btn"
+              href={`/terminal/compare?a=${encodeURIComponent(symbol)}&b=${encodeURIComponent(against)}`}
+            >
+              compare with {against}
+            </a>
+          ) : null}
+        </div>
+      </div>
+
+      {/* Seamed to the field above: the instrument's rule is this panel's top
+          edge, so price and history read as one object rather than as a
+          summary followed by the next card down. */}
       <Panel
+        seam
         title="Price"
         subtitle={price?.source ? `${price.source}${price.stale ? ' · stale' : ''}` : undefined}
         state={b?.error ? 'unavailable' : series.length ? 'live' : 'waking'}

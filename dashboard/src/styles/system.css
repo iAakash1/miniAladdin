@@ -27,12 +27,24 @@
   --t-lead:   18px;   /* panel titles, headline figures                    */
   --t-title:  24px;   /* workspace title. One per screen.                  */
 
+  /* Two steps above the scale, reserved for the security object and nothing
+     else. The seven sizes above are for reading a page; these two are for
+     recognising which company you are looking at from across a desk. Adding a
+     third would mean something else is competing with the instrument, which is
+     the thing this whole layout exists to prevent. */
+  --t-figure:  30px;  /* the last price. The largest number in the product. */
+  --t-display: 34px;  /* the company's name.                               */
+
   --lh-tight: 1.15;
   --lh-body:  1.45;
 
   /* Section labels and column headers. Letterspaced small caps read as
      structure rather than as content, which keeps them out of the way. */
   --tracking-label: 0.08em;
+  /* Large type set at default tracking reads as marketing. Negative tracking
+     at display sizes is what makes it read as a title. */
+  --tracking-display: -0.022em;
+  --tracking-figure: -0.015em;
 
   /* ── density ─────────────────────────────────────────────────────────────
      A 4px base. Every gap in the product is one of these. */
@@ -1884,3 +1896,155 @@ tr[data-selected='true'] .sys-row-actions { opacity: 1; }
 .cmp-group__title { margin: 0 0 var(--d-1); color: var(--ink); }
 .cmp__k { color: var(--ink-muted); }
 .cmp tbody tr:hover { background: var(--p-raised); }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   The instrument field
+
+   A security is not a card. Everything before this rendered AAPL as a header
+   box with a strip of labelled facts under it — the same treatment given to a
+   dataset, an experiment or a factor. That is why the security page looked
+   like a dashboard: the most important object in the product was formatted
+   like a row in a registry.
+
+   This is the one composition in miniAladdin that gets display type, and it
+   earns it by being the thing every other surface links to. Read left to
+   right it answers, in order: which company, which listing, what it costs,
+   how that has moved, and who said so. There is no border around it. The
+   hierarchy is carried by scale and by a single rule, which is also why the
+   chart can begin immediately underneath and read as the same object rather
+   than as the next panel down.
+   ───────────────────────────────────────────────────────────────────────── */
+
+.inst {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--d-5);
+  padding: var(--d-4) 0 var(--d-3);
+  border-bottom: 1px solid var(--rule-strong);
+}
+
+/* ── left: who ──────────────────────────────────────────────────────────── */
+
+.inst__name {
+  font: 480 var(--t-display) / 1.05 var(--font-sans);
+  letter-spacing: var(--tracking-display);
+  color: var(--ink);
+  margin: 0;
+  /* A long legal name truncates rather than pushing the price off the row.
+     The full name is in the profile below and on the title attribute. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The name has not arrived yet. Shown at the same size so nothing reflows
+   when it does — the ticker is a truthful stand-in for the company, not a
+   skeleton bar pretending to be text. */
+.inst__name--pending { color: var(--ink-muted); }
+
+.inst__listing {
+  display: flex;
+  align-items: baseline;
+  gap: var(--d-2);
+  margin-top: var(--d-2);
+  font: 400 var(--t-meta) / 1 var(--font-mono);
+  color: var(--ink-faint);
+}
+
+.inst__ticker {
+  font: 500 var(--t-label) / 1 var(--font-mono);
+  letter-spacing: 0.04em;
+  color: var(--ink-muted);
+}
+
+.inst__sep { color: var(--rule-strong); }
+
+/* ── right: what it costs ───────────────────────────────────────────────── */
+
+.inst__quote {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: end;
+  gap: 0 var(--d-5);
+  text-align: right;
+}
+
+.inst__price {
+  grid-column: 1 / -1;
+  font: 500 var(--t-figure) / 1 var(--font-mono);
+  font-variant-numeric: tabular-nums slashed-zero;
+  letter-spacing: var(--tracking-figure);
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+/* No price yet. An em dash at the price's own size, so the row keeps its
+   height and the layout does not jump when the quote lands. */
+.inst__price--absent { color: var(--ink-faint); }
+
+.inst__moves {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--d-4);
+  margin-top: var(--d-2);
+}
+
+.inst__move { text-align: right; }
+
+.inst__move .k {
+  display: block;
+  font: 500 var(--t-micro) / 1 var(--font-sans);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 3px;
+}
+
+.inst__move .v {
+  font: 500 var(--t-value) / 1 var(--font-mono);
+  font-variant-numeric: tabular-nums slashed-zero;
+}
+
+/* ── under the rule: where it came from, and what to do next ────────────── */
+
+.inst__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--d-4);
+  padding: var(--d-2) 0 0;
+  flex-wrap: wrap;
+}
+
+.inst__prov {
+  font: 400 var(--t-meta) / 1.3 var(--font-mono);
+  color: var(--ink-faint);
+  display: flex;
+  align-items: center;
+  gap: var(--d-2);
+  min-width: 0;
+}
+
+.inst__acts { display: flex; align-items: center; gap: var(--d-2); }
+
+/* Narrow: the price drops under the name rather than fighting it for the row.
+   Alignment goes left with everything else, because a right-aligned figure
+   under a left-aligned name reads as two unrelated things. */
+@media (max-width: 720px) {
+  .inst { grid-template-columns: minmax(0, 1fr); gap: var(--d-3); }
+  .inst__quote { text-align: left; justify-items: start; }
+  .inst__moves { justify-content: flex-start; }
+  .inst__name { white-space: normal; font-size: var(--t-title); }
+}
+
+/* A panel that belongs to the object above it rather than starting a new one.
+   Drops its own top edge and the gap, so the rule already on screen becomes
+   this panel's top edge. Used for the price chart under the instrument field:
+   the price and its history are one object, and two stacked borders between
+   them says they are two. */
+.sys-panel--seam {
+  border-top: 0;
+  margin-top: calc(var(--d-4) * -1);
+}

@@ -22,6 +22,8 @@
  * security page nobody opens twice.
  */
 
+import { readResource } from './resource'
+
 export interface SecurityIdentity {
   /** The canonical ticker, uppercased. */
   symbol: string
@@ -225,4 +227,35 @@ export function windowShortfall(
     ? `${years.toFixed(1)} years`
     : `${Math.round(covered / 30.4)} months`
   return `History for this name begins ${firstDate}, so this window covers ${span} rather than the full range. The provider's plan limits how far back the series goes; the chart draws every session it was given.`
+}
+
+/**
+ * A security's identity, on the fast path.
+ *
+ * The company's name is the first thing a reader needs and the research
+ * payload is the last thing to arrive — twenty-five to sixty-five seconds for
+ * a cold symbol. The symbol database answers the same question in about half
+ * a second, so identity comes from there and the page can say "APPLE INC"
+ * long before it can say anything about Apple.
+ *
+ * Read through the shared cache with the reference policy: a company's name
+ * is the most stable fact on the page, and the search surface has usually
+ * fetched it already on the way in.
+ */
+export async function fetchIdentity(symbol: string): Promise<SecurityIdentity | null> {
+  const q = symbol.trim().toUpperCase()
+  if (!q) return null
+
+  const d = await readResource<{ results?: ScreenResult[] }>(
+    `/api/screen?q=${encodeURIComponent(q)}`, 'reference',
+  )
+  const rows = (d.results ?? []).filter((x) => Boolean(x.symbol))
+
+  // The search endpoint ranks by relevance, not by exactness. Asking for AAPL
+  // and taking the first row would happily return an ADR that merely mentions
+  // it, so the exact ticker is required rather than preferred.
+  const exact = rows.find((x) => (x.symbol ?? '').toUpperCase() === q)
+  if (!exact) return null
+
+  return { symbol: q, name: exact.name ?? null, via: exact.via ?? null }
 }

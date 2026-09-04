@@ -139,13 +139,16 @@ export interface PanelProvenance {
 
 export function Panel({
   title, subtitle, actions, state, badge, badgeTone = 'muted',
-  children, flush = false, source, asOf, retrievedAt,
+  children, flush = false, seam = false, source, asOf, retrievedAt,
 }: PanelProvenance & {
   title: string
   subtitle?: ReactNode
   actions?: ReactNode
   /** Research state. Drives the hairline along the panel's top edge. */
   state?: ResearchState
+  /** Continue from the rule directly above instead of starting a new edge.
+   *  For a panel that is part of the object above it, not the next one down. */
+  seam?: boolean
   /** Free text for a verdict a research state cannot express — "NOT SELECTED",
    *  "3 OF 8 GATES". Sits beside the state rather than replacing it. */
   badge?: string
@@ -158,7 +161,7 @@ export function Panel({
   // there is and the reason it is on the panel rather than in a drawer.
   const hasFooter = Boolean(source || asOf || retrievedAt)
   return (
-    <section className="sys-panel" data-state={state}>
+    <section className={`sys-panel${seam ? ' sys-panel--seam' : ''}`} data-state={state}>
       <header className="sys-panel-head">
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--d-2)', minWidth: 0 }}>
           <h2 className="sys-label" style={{ margin: 0 }}>{title}</h2>
