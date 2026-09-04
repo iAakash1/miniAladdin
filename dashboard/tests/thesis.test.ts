@@ -50,3 +50,43 @@ test('research context never reads as a recommendation', () => {
   // archive endorsing it.
   assert.match(VIEW, /no production candidate/i)
 })
+
+/* accepted is not filled, and submitted is not executed.
+
+   These are different states and the difference is money. An interface that
+   promotes one to the other is telling a reader they own something they do
+   not. */
+const PAPER = readFileSync(join(ROOT, 'components/terminal/paper/PaperWorkspace.tsx'), 'utf8')
+
+test('the broker’s own status word is what is rendered', () => {
+  // The label comes from the payload, reformatted for case only. Nothing
+  // substitutes a word the broker did not use.
+  assert.match(PAPER, /status\.replace\(\/_\/g, ' '\)\.toUpperCase\(\)/)
+  assert.match(TICKET, /order\.status \?\? 'unknown'/)
+})
+
+test('accepted is never coloured as filled', () => {
+  // The one mapping in the product is status → state colour. `filled` is the
+  // only status that may read as live; accepted, new and pending_new are
+  // in-flight and must not.
+  const map = PAPER.slice(PAPER.indexOf('function OrderStatus'), PAPER.indexOf('function OrderStatus') + 700)
+  assert.match(map, /s === 'filled' \? 'live'/)
+  assert.match(map, /'accepted'/)
+  // accepted must appear in the waking group, not the live branch.
+  const liveBranch = map.slice(0, map.indexOf("'blocked'"))
+  assert.doesNotMatch(liveBranch, /accepted/, 'accepted is grouped with filled')
+})
+
+test('no code substitutes one order state for another', () => {
+  for (const src of [PAPER, TICKET]) {
+    const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '')
+    assert.doesNotMatch(code, /'FILLED'/, 'a hardcoded FILLED label exists')
+    assert.doesNotMatch(code, /'EXECUTED'/, 'a hardcoded EXECUTED label exists')
+  }
+})
+
+test('an unfilled order shows no fill price', () => {
+  // Borrowing the last trade would invent an execution that did not happen.
+  assert.match(TICKET, /not yet filled/)
+  assert.match(TICKET, /order\.filled_avg_price \?/)
+})
