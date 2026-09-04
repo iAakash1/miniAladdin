@@ -169,12 +169,23 @@ export function rankSecurities(query: string, rows: SecurityIdentity[]): Securit
     return 5
   }
 
-  // Stable within a rank: the provider's own ordering is preserved for ties,
-  // which usually reflects listing prominence.
-  return rows
+  /* Rows the query does not appear in at all are dropped rather than ranked
+     last. Searching "ZZZZNOTREAL" returned ten securities led by ZJUN — the
+     symbol database matches loosely and answers something for almost any
+     input. Ranking junk to the bottom still puts it on screen under the
+     heading of a search, where a reader reasonably assumes the first row is
+     the best answer to what they typed.
+
+     Nothing is lost by dropping them. The empty state already offers to open
+     whatever was typed as a ticker directly, which is a better answer to a
+     misspelling than an unrelated company. */
+  const ranked = rows
     .map((s, i) => ({ s, r: score(s), i }))
+    .filter((x) => x.r < 5)
     .sort((a, b) => a.r - b.r || a.i - b.i)
     .map((x) => x.s)
+
+  return ranked
 }
 
 /**
