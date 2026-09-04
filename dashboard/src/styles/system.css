@@ -2395,3 +2395,17 @@ a.tape:hover .tape__sym { color: var(--accent); }
   font-variant-numeric: tabular-nums slashed-zero;
   color: var(--ink);
 }
+
+/* The workspace, not the document, is what scrolls in this shell — so the
+   smooth-scroll declared on `html` never applied to an anchor jump from the
+   object index. Jumping between sections of one object is a navigation, and
+   carrying the reader there rather than teleporting them is what tells them
+   the two sections belong to the same page.
+
+   Guarded: with reduced motion the jump is instant, which is the same
+   destination arrived at without the travel. */
+.wb-workspace { scroll-behavior: smooth; }
+
+@media (prefers-reduced-motion: reduce) {
+  .wb-workspace { scroll-behavior: auto; }
+}

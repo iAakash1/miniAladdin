@@ -154,7 +154,14 @@ const HANDBOOK_KEY: Record<string, string> = {
 }
 
 function MetricTable({ keys, metrics }: { keys: [string, string][]; metrics: Record<string, Metric> }) {
+  /* Four columns — measure, value, method, observations — inside panels that
+     sit two to a row. Under about 800px the workspace was scrolling sideways
+     to fit them. The method column carries the longest text and is the reason
+     the table cannot shrink further, and it is also the column this product
+     will not drop: a figure without its method is the thing every other
+     surface here goes out of its way to avoid. So the table scrolls. */
   return (
+    <div className="sys-scroll-x">
     <table className="sys-table sys-table--compact">
       <thead>
         <tr>
@@ -229,6 +236,7 @@ function MetricTable({ keys, metrics }: { keys: [string, string][]; metrics: Rec
         })}
       </tbody>
     </table>
+    </div>
   )
 }
 

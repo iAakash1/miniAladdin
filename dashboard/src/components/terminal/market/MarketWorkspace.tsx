@@ -297,6 +297,12 @@ export default function MarketWorkspace() {
           {b.indexes?.length ? (
             <div style={{ marginTop: 'var(--d-3)' }}>
               <div className="sys-label" style={{ marginBottom: 'var(--d-1)' }}>Indexes</div>
+              {/* Five columns in a half-width panel. Below about 800px the
+                  workspace itself was scrolling sideways to fit it, which is
+                  the page giving way for a table — it is the table that
+                  should. Its siblings on this page already scroll; this one
+                  was the exception. */}
+              <div className="sys-scroll-x">
               <table className="sys-table sys-table--compact">
                 <thead>
                   <tr>
@@ -319,6 +325,7 @@ export default function MarketWorkspace() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           ) : null}
         </Panel>
