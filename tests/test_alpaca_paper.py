@@ -204,3 +204,76 @@ def test_an_unparseable_buying_power_is_unknown_not_zero():
     assert _safe_float_api("not a number") is None
     assert _safe_float_api(float("nan")) is None
     assert _safe_float_api("104238.71") == 104238.71
+
+
+# ── the audit, as assertions ─────────────────────────────────────────────────
+#
+# Phase 13 asked for the paper path to be audited rather than redesigned. These
+# encode what that audit checked, so the invariants cannot quietly regress.
+
+def test_the_module_names_no_live_host_anywhere():
+    """Not a behavioural check — a textual one. A live hostname present in the
+    file at all is one refactor away from being reachable."""
+    from pathlib import Path
+    src = Path("src/broker/alpaca_paper.py").read_text()
+    live_mentions = [
+        line for line in src.splitlines()
+        if "api.alpaca.markets" in line and "paper-api.alpaca.markets" not in line
+    ]
+    assert live_mentions == [], f"a live host appears in the broker module: {live_mentions}"
+
+
+def test_the_client_computes_nothing_about_money():
+    """No fill, no average price, no P&L, no position value is derived here.
+    Every figure the product shows about an account is one the broker
+    reported, or it is absent."""
+    from pathlib import Path
+    src = Path("src/broker/alpaca_paper.py").read_text()
+    body = "\n".join(
+        line for line in src.splitlines()
+        if not line.strip().startswith("#") and '"""' not in line
+    )
+    for forbidden in ("filled_qty *", "qty *", "price *", "* qty", "* price",
+                      "sum(", "unrealized ="):
+        assert forbidden not in body, f"the broker client is deriving a figure: {forbidden}"
+
+
+def test_a_pending_order_stays_pending():
+    """The broker's word is authoritative. A market order that probably filled
+    is still not filled until it says so."""
+    _configure()
+    session = MagicMock()
+    reply = {"id": "o1", "status": "pending_new", "filled_qty": "0", "filled_avg_price": None}
+    session.request.return_value = MagicMock(status_code=200, content=b"{}", json=lambda: reply)
+    c = AlpacaPaper(session=session)
+
+    out = c.submit_order(symbol="AAPL", qty=1, side="buy")
+    assert out["status"] == "pending_new"
+    assert out["filled_avg_price"] is None
+
+
+def test_a_rejected_order_stays_rejected():
+    _configure()
+    session = MagicMock()
+    reply = {"id": "o2", "status": "rejected", "filled_qty": "0"}
+    session.request.return_value = MagicMock(status_code=200, content=b"{}", json=lambda: reply)
+    c = AlpacaPaper(session=session)
+    assert c.submit_order(symbol="AAPL", qty=1, side="buy")["status"] == "rejected"
+
+
+def test_positions_are_returned_verbatim():
+    """No position is synthesised from a filled order, and none is dropped."""
+    _configure()
+    session = MagicMock()
+    payload = [{"symbol": "AAPL", "qty": "10", "unrealized_pl": "-4.20"}]
+    session.request.return_value = MagicMock(status_code=200, content=b"[]", json=lambda: payload)
+    c = AlpacaPaper(session=session)
+    assert c.positions() == payload
+
+
+def test_an_empty_position_list_is_empty_not_invented():
+    _configure()
+    session = MagicMock()
+    session.request.return_value = MagicMock(status_code=200, content=b"[]", json=lambda: [])
+    c = AlpacaPaper(session=session)
+    assert c.positions() == []
