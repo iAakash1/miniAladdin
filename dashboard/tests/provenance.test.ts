@@ -59,3 +59,29 @@ test('provenance is one interaction, not a panel per surface', () => {
   assert.match(SYSTEM, /export function Inspectable/)
   assert.match(SYSTEM, /metrics\.inspect\(refValue\)/)
 })
+
+/* The object index is a map of the page. A section on the page with no entry
+   in the index is a map that has stopped matching its territory — which is
+   how this one drifted: filed financials and options were added to the
+   security page and the index still listed six sections. */
+test('every anchor on the security page is reachable from the index', () => {
+  const page = readFileSync(join(ROOT, 'app/terminal/security/page.tsx'), 'utf8')
+  const index = readFileSync(join(ROOT, 'components/terminal/security/SecurityContext.tsx'), 'utf8')
+
+  const anchors = [...new Set([...page.matchAll(/id="(sec-[a-z]+)"/g)].map((m) => m[1]))]
+  assert.ok(anchors.length >= 4, 'the page appears to have no anchors')
+
+  const unreachable = anchors.filter((a) => !index.includes(`'${a}'`) && !index.includes(`#${a}`))
+  assert.deepEqual(unreachable, [],
+    `sections on the page with no index entry: ${unreachable.join(', ')}`)
+})
+
+test('the index never points at an anchor the page does not render', () => {
+  // The opposite failure: a destination that scrolls nowhere.
+  const page = readFileSync(join(ROOT, 'app/terminal/security/page.tsx'), 'utf8')
+  const index = readFileSync(join(ROOT, 'components/terminal/security/SecurityContext.tsx'), 'utf8')
+
+  const targets = [...new Set([...index.matchAll(/'(sec-[a-z]+)'/g)].map((m) => m[1]))]
+  const missing = targets.filter((t) => !page.includes(`id="${t}"`))
+  assert.deepEqual(missing, [], `index entries pointing at nothing: ${missing.join(', ')}`)
+})

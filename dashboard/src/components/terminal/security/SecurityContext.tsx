@@ -45,7 +45,7 @@ interface Payload {
   profile?: Record<string, unknown>
   ratios?: Record<string, unknown>
   ownership?: Record<string, unknown>
-  filings?: { filings?: unknown[] }
+  filings?: { filings?: unknown[]; xbrl?: Record<string, unknown[]> }
   news_stream?: { collected?: number; unique?: number }
 }
 
@@ -80,6 +80,22 @@ export default function SecurityContext({ symbol }: { symbol: string }) {
               label: 'Filings',
               count: d.filings?.filings?.length ?? null,
               absent: !d.filings?.filings?.length,
+            },
+            {
+              id: 'sec-financials',
+              label: 'Filed financials',
+              // Concepts that came back with at least one fact. A concept
+              // present but empty is not something this page can show.
+              count: Object.values(d.filings?.xbrl ?? {}).filter((v) => Array.isArray(v) && v.length).length || null,
+              absent: !Object.values(d.filings?.xbrl ?? {}).some((v) => Array.isArray(v) && v.length),
+            },
+            {
+              id: 'sec-options',
+              label: 'Options',
+              // Options come from a different endpoint and a different
+              // provider, so this index cannot count them. It says where the
+              // section is; the section says whether there is anything in it.
+              note: 'read separately',
             },
             {
               id: 'sec-company',
