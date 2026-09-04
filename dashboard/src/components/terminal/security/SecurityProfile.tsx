@@ -19,7 +19,7 @@
 
 import { useEffect, useState } from 'react'
 
-import { Panel, Prose, StateBlock, Status, Value } from '@/components/system'
+import { Panel, Prose, StateBlock, Status, Value, Inspectable } from '@/components/system'
 import { fetchResearch } from '@/lib/research-cache'
 
 interface Profile {
@@ -36,6 +36,10 @@ interface Profile {
   ipo_date?: string
   description?: string
   providers?: string[]
+  /** Which vendors supplied each field. Already in the payload, never shown. */
+  field_sources?: Record<string, string[]>
+  /** Fields the vendors disagree about, with their observations. */
+  conflicts?: { field: string; observations: { provider: string; value: number | string | null }[]; spread_pct?: number | null }[]
 }
 
 interface Filing {
@@ -76,6 +80,7 @@ interface Filings {
 interface Research {
   profile?: Profile
   filings?: Filings
+  provenance?: { generated_at?: string }
   news_stream?: NewsSummary
 }
 
@@ -140,17 +145,59 @@ export default function SecurityProfile({ symbol }: { symbol: string }) {
   const filings = filingsEnvelope.filings ?? []
   const news = state.d.news_stream
 
+  /* The engine records which vendors supplied each field, and which fields
+     they disagree about. Both have been in this payload all along and neither
+     reached the screen: Apple's headcount is 166,000 to one vendor and
+     150,000 to another, and this panel rendered their midpoint as a single
+     confident number. A disputed figure shown as settled is the most
+     dangerous kind here, because nothing about it looks wrong. */
+  const fieldSources = p.field_sources ?? {}
+  const conflictFor = (field: string) => {
+    const c = (p.conflicts ?? []).find((x) => x.field === field)
+    return c ? { observations: c.observations, spreadPct: c.spread_pct ?? null } : undefined
+  }
+
   /* Only what came back. A row per field the vendor actually reported. */
   const rows: { k: string; v: React.ReactNode }[] = []
   const add = (k: string, v: React.ReactNode | null | undefined) => { if (v !== null && v !== undefined && v !== '') rows.push({ k, v }) }
+
+  /** A figure carrying where it came from and who, if anyone, disputes it. */
+  const sourced = (
+    label: string, field: string, display: string, node: React.ReactNode,
+  ): React.ReactNode => {
+    const providers = fieldSources[field]
+    const conflict = conflictFor(field)
+    if (!providers?.length && !conflict) return node
+    return (
+      <Inspectable
+        refValue={{
+          label,
+          display,
+          providers,
+          conflict,
+          source: 'research engine, merged from the vendors below',
+          retrievedAt: state.d.provenance?.generated_at,
+          freshness: 'read once per session and shared with every panel on this page',
+        }}
+      >
+        {node}
+      </Inspectable>
+    )
+  }
   add('Name', p.name)
   add('Exchange', p.exchange)
   add('Sector', p.sector)
   add('Industry', p.industry)
   add('Country', p.country)
   add('Currency', p.currency)
-  if (typeof p.market_cap === 'number') add('Market cap', <Value value={p.market_cap} kind="currency" digits={0} />)
-  if (typeof p.employees === 'number') add('Employees', <Value value={p.employees} kind="count" />)
+  if (typeof p.market_cap === 'number') {
+    add('Market cap', sourced('Market cap', 'market_cap', String(p.market_cap),
+      <Value value={p.market_cap} kind="currency" digits={0} />))
+  }
+  if (typeof p.employees === 'number') {
+    add('Employees', sourced('Employees', 'employees', p.employees.toLocaleString(),
+      <Value value={p.employees} kind="count" />))
+  }
   // `ratio` signs and tones its value, so a beta of 1.085 rendered as a green
   // "+1.085" — as though the stock had risen by it. Beta is a sensitivity, not
   // a change: it has no sign to report and no direction that is good. The

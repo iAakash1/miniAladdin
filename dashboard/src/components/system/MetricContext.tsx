@@ -40,6 +40,38 @@ export interface MetricRef {
   status?: string
   /** Additional context the caller wants carried into the inspector. */
   note?: string
+
+  /**
+   * Which vendors supplied this particular field.
+   *
+   * Distinct from `source`, which names where the value came from as a single
+   * string. The research engine merges several vendors per field and records
+   * who contributed to each; a reader deciding whether to trust a headcount is
+   * better served by "polygon and yfinance" than by "the research payload".
+   */
+  providers?: string[]
+
+  /**
+   * Vendors that disagree about this field, and by how much.
+   *
+   * The merge engine already detects these and the interface has been
+   * discarding them: Apple's employee count is reported as 166,000 by one
+   * vendor and 150,000 by another, and the profile rendered their midpoint as
+   * a single confident 158,000. A disputed number presented as settled is the
+   * most dangerous kind of number this product can show, because nothing
+   * about it looks wrong.
+   */
+  conflict?: {
+    observations: { provider: string; value: number | string | null }[]
+    spreadPct?: number | null
+  }
+
+  /**
+   * How long a value of this kind may be reused before it is re-read. Names
+   * the policy, not the age — "this is a snapshot, good for a minute" rather
+   * than "this is 41 seconds old".
+   */
+  freshness?: string
 }
 
 export interface HandbookEntry {

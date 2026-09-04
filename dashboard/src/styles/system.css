@@ -2646,3 +2646,49 @@ a.tape:hover .tape__sym { color: var(--accent); }
 .pline__d { font: 500 var(--t-body) / 1 var(--font-mono); font-variant-numeric: tabular-nums; }
 .pline__n { font: 400 var(--t-meta) / 1 var(--font-mono); color: var(--ink-faint); }
 .pline .band__more { margin-left: auto; }
+
+/* A field two vendors disagree about. Ruled, not coloured red: a
+   disagreement is information the reader has to weigh, not an error the
+   product has made, and an alarm colour would say the wrong thing. */
+.prov-conflict {
+  border-left: 2px solid var(--s-stale);
+  padding-left: var(--d-3);
+}
+.prov-conflict__lede,
+.prov-conflict__spread {
+  margin: 0 0 var(--d-2);
+  font: 400 var(--t-meta) / var(--lh-body) var(--font-sans);
+  color: var(--ink-muted);
+}
+.prov-conflict__spread { margin: var(--d-2) 0 0; }
+
+/* A figure that can say where it came from. Deliberately almost invisible:
+   the affordance is the cursor and the hover rule, not a decoration on every
+   number in the product. */
+.sys-inspectable {
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: help;
+  text-align: inherit;
+  border-bottom: 1px dotted transparent;
+}
+.sys-inspectable:hover { border-bottom-color: var(--rule-strong); }
+.sys-inspectable:focus-visible {
+  outline: 1px solid var(--rule-focus);
+  outline-offset: 2px;
+}
+
+/* Contested. The mark is on the surface because a reader who never opens the
+   drawer still needs to know the vendors disagree. */
+.sys-inspectable--disputed { border-bottom-color: var(--s-stale); }
+.sys-inspectable__flag {
+  margin-left: 3px;
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  color: var(--s-stale);
+  vertical-align: super;
+}

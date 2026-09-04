@@ -126,6 +126,42 @@ export function Value({
   return <span className={`sys-num ${cls}`} title={title}>{body}</span>
 }
 
+/**
+ * Anything on screen, made answerable.
+ *
+ * `Value` can already open the inspector, but only for figures it renders
+ * itself and only where the engine defines a handbook measure. Many numbers
+ * here are neither — a headcount merged from three vendors, a market
+ * capitalisation, a filing date — and those are exactly the ones where "where
+ * did this come from" is worth asking.
+ *
+ * So this wraps any node and gives it the same interaction: the same drawer,
+ * the same sections, the same order. One provenance interaction for the whole
+ * product rather than a bespoke metadata popover per surface, which is how a
+ * terminal ends up with four different answers to one question.
+ */
+export function Inspectable({
+  refValue, children,
+}: { refValue: MetricRef; children: ReactNode }) {
+  const metrics = useMetrics()
+  const disputed = Boolean(refValue.conflict?.observations?.length)
+  return (
+    <button
+      type="button"
+      className={`sys-inspectable${disputed ? ' sys-inspectable--disputed' : ''}`}
+      onClick={(e) => { e.stopPropagation(); metrics.inspect(refValue) }}
+      title={disputed
+        ? 'Vendors disagree about this figure — open to see their observations'
+        : 'Where this came from'}
+    >
+      {children}
+      {/* Marked on the surface, not only inside the drawer: a reader who never
+          clicks still needs to know the number is contested. */}
+      {disputed ? <span className="sys-inspectable__flag" aria-hidden>±</span> : null}
+    </button>
+  )
+}
+
 /* ── panel ────────────────────────────────────────────────────────────── */
 
 export interface PanelProvenance {

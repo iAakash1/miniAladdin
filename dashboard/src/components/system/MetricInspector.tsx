@@ -78,6 +78,39 @@ export default function MetricInspector() {
           )}
         </section>
 
+        {current.conflict?.observations?.length ? (
+          <section className="prov-conflict">
+            <div className="sys-label" style={{ marginBottom: 'var(--d-2)' }}>
+              Vendors disagree
+            </div>
+            <p className="prov-conflict__lede">
+              The value above is what the merge produced. These are the figures
+              it was produced from, and they do not agree.
+            </p>
+            <table className="sys-table sys-table--compact">
+              <thead>
+                <tr><th scope="col">Vendor</th><th scope="col" className="num">Reported</th></tr>
+              </thead>
+              <tbody>
+                {current.conflict.observations.map((o) => (
+                  <tr key={o.provider}>
+                    <td>{o.provider}</td>
+                    <td className="num">
+                      {typeof o.value === 'number' ? o.value.toLocaleString() : (o.value ?? '—')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {typeof current.conflict.spreadPct === 'number' ? (
+              <p className="prov-conflict__spread">
+                Widest disagreement: {current.conflict.spreadPct.toFixed(1)}% of the
+                larger figure.
+              </p>
+            ) : null}
+          </section>
+        ) : null}
+
         <section>
           <div className="sys-label" style={{ marginBottom: 'var(--d-2)' }}>How it was produced</div>
           <table className="sys-table sys-table--compact">
@@ -120,6 +153,20 @@ export default function MetricInspector() {
               ) : null}
               {current.asOf ? (
                 <tr><td style={{ color: 'var(--ink-muted)' }}>As of</td><td className="num" style={{ textAlign: 'left' }}>{current.asOf}</td></tr>
+              ) : null}
+              {current.providers?.length ? (
+                <tr>
+                  <td style={{ color: 'var(--ink-muted)' }}>Vendors</td>
+                  <td style={{ whiteSpace: 'normal', fontSize: 'var(--t-meta)' }}>
+                    {current.providers.join(', ')}
+                  </td>
+                </tr>
+              ) : null}
+              {current.freshness ? (
+                <tr>
+                  <td style={{ color: 'var(--ink-muted)' }}>Freshness</td>
+                  <td style={{ whiteSpace: 'normal', fontSize: 'var(--t-meta)' }}>{current.freshness}</td>
+                </tr>
               ) : null}
               {current.retrievedAt ? (
                 <tr><td style={{ color: 'var(--ink-muted)' }}>Retrieved</td><td className="num" style={{ textAlign: 'left' }}>{current.retrievedAt.slice(0, 19)}</td></tr>
