@@ -6,6 +6,7 @@ import SecurityProfile from '@/components/terminal/security/SecurityProfile'
 import Fundamentals2 from '@/components/terminal/security/Fundamentals2'
 import Financials from '@/components/terminal/security/Financials'
 import MarketStats from '@/components/terminal/security/MarketStats'
+import DataQuality from '@/components/terminal/security/DataQuality'
 import Options from '@/components/terminal/security/Options'
 import SecurityResearch from '@/components/terminal/security/SecurityResearch'
 import SecurityContext from '@/components/terminal/security/SecurityContext'
@@ -60,6 +61,12 @@ export default async function SecurityPage({
               endpoint has always returned and this page never read, because
               the components that consume them are not on this route. */}
           <div id="sec-market"><MarketStats symbol={symbol} /></div>
+          {/* The two cross-provider audits the payload has always carried and
+              nothing ever read: the daily closes reconciled vendor against
+              vendor, and each vendor's last price beside the basis it was
+              measured on. It sits directly under the market figures because
+              it is the answer to the question those figures raise. */}
+          <div id="sec-quality"><DataQuality symbol={symbol} /></div>
           <div id="sec-financials"><Financials symbol={symbol} /></div>
           {/* Options, to whatever depth the provider permits. One provider in
               this stack supports them, so an absent chain says which of three

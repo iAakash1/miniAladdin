@@ -279,7 +279,26 @@ export function comparable(
   if (a.basis !== undefined && b.basis !== undefined && a.basis !== b.basis) {
     return {
       ok: false,
-      reason: `measured against ${a.basis} and ${b.basis}, which are not the same scale`,
+      /* Not "not the same scale", which was true of the case this was written
+         for and false in general. Two vendor prices measured against a last
+         sale and against the previous session's close are on identical
+         scales — both are dollars — and are still not the same measurement.
+         Saying "scale" there sent a reader looking for a unit error that was
+         not present and away from the difference that was. */
+      reason: `measured against ${a.basis} and ${b.basis}, which are not the same measurement`,
+    }
+  }
+
+  /* One side declares what it was measured against and the other is silent.
+     The period checks below have always had this branch and the basis check
+     did not, so an unlabelled quantity compared against a labelled one was
+     waved through in silence — which is the worse of the two cases, because
+     an unstated basis cannot be ruled out as a different one. */
+  if ((a.basis === undefined) !== (b.basis === undefined)) {
+    const known = a.basis ?? b.basis
+    return {
+      ok: true,
+      caveat: `one side is measured against ${known} and the other does not say what it is measured against`,
     }
   }
 

@@ -47,6 +47,7 @@ interface Payload {
   ownership?: Record<string, unknown>
   filings?: { filings?: unknown[]; xbrl?: Record<string, unknown[]> }
   news_stream?: { collected?: number; unique?: number }
+  series_integrity?: { providers?: string[] }
 }
 
 /* Every answer is tagged with the symbol it belongs to, so a slow reply for
@@ -93,6 +94,16 @@ export default function SecurityContext({ symbol }: { symbol: string }) {
               // present but empty is not something this page can show.
               count: Object.values(d.filings?.xbrl ?? {}).filter((v) => Array.isArray(v) && v.length).length || null,
               absent: !Object.values(d.filings?.xbrl ?? {}).some((v) => Array.isArray(v) && v.length),
+            },
+            {
+              id: 'sec-quality',
+              label: 'Data quality',
+              /* Providers actually reconciled against each other, which is
+                 not the same as providers asked. A name where only one vendor
+                 answered has nothing to cross-check and says so rather than
+                 showing a one. */
+              count: d.series_integrity?.providers?.length ?? null,
+              absent: !d.series_integrity?.providers?.length,
             },
             {
               id: 'sec-options',

@@ -2888,3 +2888,66 @@ a.tape:hover .tape__sym { color: var(--accent); }
   text-transform: uppercase;
   color: var(--ink-faint);
 }
+
+/* ── data quality: the cross-provider audit ─────────────────────────────── */
+
+.dq__block { border-bottom: 1px solid var(--rule); }
+.dq__block:last-of-type { border-bottom: 0; }
+
+.dq__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--d-2);
+  padding: var(--d-3) var(--d-3) var(--d-2);
+}
+
+.dq__lede {
+  margin: 0;
+  padding: 0 var(--d-3) var(--d-3);
+  font: 400 var(--t-body) / var(--lh-body) var(--font-sans);
+  color: var(--ink);
+}
+
+/* The part the headline number does not cover. Set apart from the lede
+   because a reader who stops after one sentence must not stop before it. */
+.dq__caveat {
+  margin: 0;
+  padding: 0 var(--d-3) var(--d-3);
+  font: 400 var(--t-meta) / var(--lh-body) var(--font-sans);
+  color: var(--ink-muted);
+}
+
+.dq__tbl { width: 100%; }
+
+.dq__when { white-space: nowrap; }
+.dq__ago {
+  margin-left: var(--d-1);
+  font-size: var(--t-micro);
+  color: var(--ink-faint);
+}
+
+/* A vendor that returned a number without saying what it is a number of. */
+.dq__unstated {
+  color: var(--ink-faint);
+  font-style: italic;
+}
+
+.dq__alert {
+  margin: 0;
+  padding: var(--d-3);
+  border-top: 1px solid var(--rule);
+  border-left: 2px solid var(--s-blocked);
+  background: var(--p-sunken);
+}
+.dq__alert p {
+  margin: var(--d-2) 0 0;
+  font: 400 var(--t-body) / var(--lh-body) var(--font-sans);
+  color: var(--ink);
+}
+.dq__alert ul {
+  margin: var(--d-2) 0 0;
+  padding-left: 1.1rem;
+  font: 400 var(--t-meta) / var(--lh-body) var(--font-mono);
+  color: var(--ink-muted);
+}

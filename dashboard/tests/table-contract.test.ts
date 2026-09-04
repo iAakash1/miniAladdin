@@ -129,10 +129,16 @@ test('every hand-built table in the product is accounted for', () => {
      and checked at source for the same reason as the comparison above: the
      browser session is gone, not the data.
 
+     47 → 48 for the cross-provider data-quality audit. Two tables in one
+     file — three headers against three cells for provider coverage, five
+     against five for the last-price readings — both fixed, and both checked
+     at source rather than in the DOM for the same reason as the two entries
+     above it: the browser session behind Clerk is gone, not the data.
+
      Every other one was read in the rendered DOM before this number moved,
-     and the three times it did not. */
+     and the four times it did not. */
   assert.equal(
-    handBuilt.length, 47,
+    handBuilt.length, 48,
     `hand-built tables changed from 42 to ${handBuilt.length}. Route the new one ` +
     'through DataTable, or check its alignment in the rendered DOM and update ' +
     'this count deliberately.',
@@ -167,10 +173,11 @@ test('every hand-built table in the product is accounted for', () => {
 const CREDENTIAL_GATED = [
   'components/terminal/paper/PaperWorkspace.tsx',
   'components/terminal/security/Options.tsx',
-  // Auth-gated rather than credential-gated: this one renders with the data
+  // Auth-gated rather than credential-gated: these render with the data
   // already on hand, but the terminal is behind Clerk and this session's
   // browser lost its sign-in. Same weaker check, different reason.
   'components/terminal/security/MarketStats.tsx',
+  'components/terminal/security/DataQuality.tsx',
 ]
 
 /* A table whose headers and cells both come from one array cannot fall out of
