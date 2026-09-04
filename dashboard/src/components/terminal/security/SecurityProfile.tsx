@@ -57,9 +57,25 @@ interface NewsSummary {
   categories?: Record<string, number>
 }
 
+/**
+ * The filings envelope, as EDGAR's adapter actually shapes it.
+ *
+ * This was declared as a bare array, so `filings.length` read undefined on an
+ * object and the panel never rendered. It looked like it worked once: a probe
+ * counting `len(filings)` on the dict returned seven, which happened to be its
+ * key count rather than a number of documents.
+ */
+interface Filings {
+  filings?: Filing[]
+  /** Count per form type — how many 10-Qs, 8-Ks, Form 4s. */
+  by_form?: Record<string, number>
+  latest?: Filing
+  source?: string
+}
+
 interface Research {
   profile?: Profile
-  filings?: Filing[]
+  filings?: Filings
   news_stream?: NewsSummary
 }
 
@@ -120,7 +136,8 @@ export default function SecurityProfile({ symbol }: { symbol: string }) {
   if (state.for !== symbol) return null
 
   const p = state.d.profile ?? {}
-  const filings = state.d.filings ?? []
+  const filingsEnvelope = state.d.filings ?? {}
+  const filings = filingsEnvelope.filings ?? []
   const news = state.d.news_stream
 
   /* Only what came back. A row per field the vendor actually reported. */
@@ -167,7 +184,20 @@ export default function SecurityProfile({ symbol }: { symbol: string }) {
       </Panel>
 
       {filings.length ? (
-        <Panel title="Filings" subtitle={`${filings.length} most recent`} state="live" source="SEC EDGAR" flush>
+        <Panel
+          title="Filings"
+          subtitle={
+            filingsEnvelope.by_form
+              ? Object.entries(filingsEnvelope.by_form)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([form, n]) => `${n}× ${form}`)
+                  .join(' · ')
+              : `${filings.length} most recent`
+          }
+          state="live"
+          source={filingsEnvelope.source ?? 'SEC EDGAR'}
+          flush
+        >
           <table className="sys-table sys-table--compact">
             <thead>
               <tr><th>Form</th><th>Filed</th><th>Period</th><th>Meaning</th><th /></tr>

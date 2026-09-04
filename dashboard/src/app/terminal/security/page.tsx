@@ -4,6 +4,7 @@ import Workbench from '@/components/system/Workbench'
 import SecurityView from '@/components/terminal/security/SecurityView'
 import SecurityProfile from '@/components/terminal/security/SecurityProfile'
 import Fundamentals2 from '@/components/terminal/security/Fundamentals2'
+import SecurityResearch from '@/components/terminal/security/SecurityResearch'
 import { Panel } from '@/components/system'
 
 export const metadata: Metadata = {
@@ -73,6 +74,10 @@ export default async function SecurityPage({
               returns, growth, leverage and ownership, each with the period it
               describes. Shares one request with the profile above. */}
           <Fundamentals2 symbol={symbol} />
+          {/* Last. An analyst opening a name wants the price, the chart and the
+              business before the quantitative programme — this sat third,
+              above the company itself. */}
+          <SecurityResearch symbol={symbol} />
         </>
       ) : null}
     </Workbench>

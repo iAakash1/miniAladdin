@@ -24,7 +24,7 @@
 
 import { useEffect, useState } from 'react'
 
-import { Panel, Prose, StateBlock, Strip } from '@/components/system'
+import { Panel, StateBlock, Strip } from '@/components/system'
 import { TimeSeries } from '@/components/system/charts'
 import { ObjectHeader } from '@/components/system/composition'
 import { fetchBars, type Bar } from '@/lib/security'
@@ -174,30 +174,6 @@ export default function SecurityView({ symbol }: { symbol: string }) {
         ) : (
           <StateBlock state="waking" title={`Reading ${symbol} price history`} />
         )}
-      </Panel>
-
-      {/* Research sits below the market data and behind a link rather than
-          expanded in place. It is real and it is slow — the full payload takes
-          around twenty-four seconds — and a page that waits for it is a page
-          nobody opens twice. */}
-      <Panel title="Research" subtitle="what the research layer holds on this name" state="recorded">
-        <Prose>
-          Factor exposure, signals, filings and the model record are available
-          for this security. They are not loaded with the page: the research
-          payload is an order of magnitude slower than the market data above it,
-          and the price should not wait for it.
-        </Prose>
-        <div className="sys-run" style={{ marginTop: 'var(--d-3)' }}>
-          <a className="sys-btn" href={`/company/${encodeURIComponent(symbol)}`}>
-            open the full research report
-          </a>
-          <a className="sys-btn" href="/terminal/factorlab">factors</a>
-          <a className="sys-btn" href="/terminal/evidence">evidence</a>
-        </div>
-        <Prose size="fine">
-          No production model is deployed, so nothing here scores this security.
-          The research archive records why.
-        </Prose>
       </Panel>
     </>
   )

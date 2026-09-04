@@ -119,3 +119,34 @@ def test_the_timeline_reads_transitions_not_a_status_field() -> None:
         "the timeline reads `status`/`note`, which a status-history row does not "
         "carry — that rendered every transition as 'status → undefined'"
     )
+
+
+def test_filings_arrive_as_an_envelope_not_an_array(client: TestClient) -> None:
+    """The fifth wrong-field bug, and the one that hid best.
+
+    EDGAR's adapter returns an object — the documents under a `filings` key,
+    beside `by_form`, `latest` and `source`. The panel declared it as a bare
+    array, so `.length` read undefined on an object and the section never
+    rendered at all.
+
+    It briefly looked correct: a probe counting `len(filings)` on the dict
+    returned seven, which was its key count rather than a number of documents.
+    """
+    payload = client.get("/api/research/AAPL").json()
+    filings = payload.get("filings")
+    if filings is None:
+        pytest.skip("no filings in this environment")
+
+    assert isinstance(filings, dict), (
+        "filings is no longer an envelope; the security panel reads .filings "
+        "off an object and would break"
+    )
+    assert isinstance(filings.get("filings"), list), "the documents are not under `filings`"
+
+    source = (UI / "security" / "SecurityProfile.tsx").read_text()
+    assert "filingsEnvelope.filings" in source, (
+        "the panel no longer reads the documents out of the envelope"
+    )
+    assert "state.d.filings ?? []" not in source, (
+        "the panel treats the envelope as an array again, which renders nothing"
+    )
