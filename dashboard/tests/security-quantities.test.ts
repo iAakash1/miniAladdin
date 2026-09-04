@@ -184,3 +184,17 @@ test('minor words inside a name still lowercase', () => {
   assert.equal(titleCase('THE HOME DEPOT INC'), 'The Home Depot Inc.')
   assert.equal(titleCase('BANK OF AMERICA CORP'), 'Bank of America Corp.')
 })
+
+/* The merged profile does not always return the same field for the same
+   company: Apple came back as "NASDAQ NMS - GLOBAL MARKET" from one provider
+   and as the market identifier "XNAS" from another. Both name one venue and
+   both should read as one. */
+test('a market identifier resolves to the same venue as its description', () => {
+  assert.equal(venueLabel('XNAS'), venueLabel('NASDAQ NMS - GLOBAL MARKET'))
+  assert.equal(venueLabel('XNYS'), venueLabel('NEW YORK STOCK EXCHANGE'))
+})
+
+test('an unlisted identifier is still passed through untouched', () => {
+  assert.equal(venueLabel('XPAR'), 'XPAR')
+  assert.equal(venueLabel('ZZZZ'), 'ZZZZ')
+})

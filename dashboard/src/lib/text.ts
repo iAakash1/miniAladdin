@@ -120,6 +120,15 @@ export function venueLabel(exchange: string | null | undefined): string | null {
     'NASDAQ': 'NASDAQ',
     'LONDON STOCK EXCHANGE': 'LSE',
     'TORONTO STOCK EXCHANGE': 'TSX',
+    /* ISO 10383 market identifiers. The merged profile does not always
+       return the same field for the same company — Apple came back as
+       "NASDAQ NMS - GLOBAL MARKET" from one provider and "XNAS" from
+       another — and a four-letter code beside a ticker tells a reader
+       nothing. These are exact identifiers rather than guesses, which is
+       the same standard the descriptions above are held to. */
+    XNAS: 'NASDAQ', XNGS: 'NASDAQ', XNMS: 'NASDAQ', XNCM: 'NASDAQ',
+    XNYS: 'NYSE', ARCX: 'NYSE Arca', BATS: 'Cboe BZX',
+    XLON: 'LSE', XTSE: 'TSX', XETR: 'Xetra', XTKS: 'Tokyo',
   }
   return known[bare.toUpperCase()] ?? (bare || raw)
 }

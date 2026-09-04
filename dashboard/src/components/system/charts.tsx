@@ -283,10 +283,19 @@ export function TimeSeries({
     : -1
   const marked = hover ?? (shared >= 0 ? shared : null)
 
-  /** Pointer x to a whole index within the visible window. */
-  const indexAt = (clientX: number, el: SVGElement): number | null => {
-    const rect = el.ownerSVGElement?.getBoundingClientRect()
-    if (!rect) return null
+  /**
+   * Pointer x to a whole index within the visible window.
+   *
+   * Takes the svg the handler is bound to, not the element under the pointer.
+   * The two differ exactly where it matters: over the chart's own background
+   * the target *is* the root <svg>, and the root's ownerSVGElement is null —
+   * so measuring through the target returned no rectangle and no index, and
+   * the crosshair appeared only when the pointer happened to cross a drawn
+   * line. Most of a chart is empty space, so most of the time it did nothing.
+   */
+  const indexAt = (clientX: number, svg: SVGSVGElement | null): number | null => {
+    const rect = svg?.getBoundingClientRect()
+    if (!rect || !rect.width) return null
     const rel = ((clientX - rect.left) / rect.width) * W
     const i = Math.round(((rel - PAD.left) / iw) * (n - 1))
     return i >= 0 && i < n ? i : null
@@ -346,18 +355,19 @@ export function TimeSeries({
         </div>
       }
     >
+      <div className="cx">
       <svg
         viewBox={`0 0 ${W} ${H}`} width="100%" height={H} role="img"
         aria-label={title ?? 'time series'}
         onPointerLeave={() => { setHover(null); setDrag(null); cursor.set(null); cursor.setFocus(null) }}
         onPointerDown={(e) => {
-          const i = indexAt(e.clientX, e.target as SVGElement)
+          const i = indexAt(e.clientX, e.currentTarget)
           if (i === null) return
-          ;(e.target as SVGElement).ownerSVGElement?.setPointerCapture?.(e.pointerId)
+          e.currentTarget.setPointerCapture?.(e.pointerId)
           setDrag({ from: i, to: i })
         }}
         onPointerMove={(e) => {
-          const i = indexAt(e.clientX, e.target as SVGElement)
+          const i = indexAt(e.clientX, e.currentTarget)
           setHover(i)
           cursor.set(i === null ? null : String(labels[i]?.x ?? ''))
           if (drag && i !== null) setDrag({ from: drag.from, to: i })
@@ -468,19 +478,103 @@ export function TimeSeries({
         <text x={W - PAD.right} y={H - 4} textAnchor="end" fontSize={9} fill="var(--ink-faint)" fontFamily="var(--font-mono)">
           {String(labels[n - 1]?.x ?? '')}
         </text>
-        {marked !== null ? (
-          <text x={W / 2} y={H - 4} textAnchor="middle" fontSize={9} fill="var(--ink)" fontFamily="var(--font-mono)">
-            {String(labels[marked]?.x ?? '')}
-            {sliced.map((s) => {
-              const v = s.points[marked]?.y
-              // The readout goes through the same number system as every other
-              // value on screen. A chart that prints four decimals where the
-              // table beside it prints two reads as a different measurement.
-              return v === null || v === undefined ? '' : `  ${s.name} ${format(v, kind).text}`
-            }).join('')}
-          </text>
-        ) : null}
+        {/* The date, anchored under the hairline rather than centred under the
+            chart. A reading that does not sit beneath the thing being read is
+            a caption; one that does is part of the instrument. */}
+        {marked !== null ? (() => {
+          const x = px(marked)
+          const label = String(labels[marked]?.x ?? '')
+          const w = Math.max(52, label.length * 5.6 + 10)
+          // Kept inside the plot so the chip never hangs off either end.
+          const cx = Math.min(W - PAD.right - w / 2, Math.max(PAD.left + w / 2, x))
+          return (
+            <g>
+              <rect
+                x={cx - w / 2} y={H - PAD.bottom + 3} width={w} height={13}
+                fill="var(--p-inverse)" rx={1}
+              />
+              <text
+                x={cx} y={H - PAD.bottom + 12} textAnchor="middle" fontSize={9}
+                fill="var(--p-panel)" fontFamily="var(--font-mono)"
+              >
+                {label}
+              </text>
+            </g>
+          )
+        })() : null}
+
+        {/* The value, on the price axis, level with the point under the
+            pointer — so the axis answers the question the hairline asks. Only
+            for a single series: two lines crossing one axis chip would be a
+            reading that belongs to neither. */}
+        {marked !== null && sliced.length === 1 && sliced[0].points[marked]?.y != null ? (() => {
+          const v = sliced[0].points[marked].y as number
+          const y = py(v)
+          const text = format(v, kind).text
+          const w = Math.max(38, text.length * 5.6 + 8)
+          return (
+            <g>
+              <line
+                x1={PAD.left} x2={W - PAD.right} y1={y} y2={y}
+                stroke="var(--accent)" strokeWidth={1} opacity={0.35}
+                strokeDasharray="2 3"
+              />
+              {/* Sits in the axis gutter, right edge against the plot. The
+                  gutter is 44 units wide, so a wider chip is clamped to the
+                  left margin rather than drawn off the canvas — it covers the
+                  tick it replaces, which is the intent: while the pointer is
+                  down the axis reads the exact value, not the nearest tick. */}
+              <rect x={Math.max(0, PAD.left - 2 - w)} y={y - 6.5} width={w} height={13} fill="var(--p-inverse)" rx={1} />
+              <text
+                x={Math.max(0, PAD.left - 2 - w) + w / 2} y={y + 3} textAnchor="middle" fontSize={9}
+                fill="var(--p-panel)" fontFamily="var(--font-mono)"
+              >
+                {text}
+              </text>
+            </g>
+          )
+        })() : null}
       </svg>
+
+      {/* The one reading the axis chips cannot give: how this session moved
+          against the one before it. Rendered as HTML rather than SVG text so
+          it uses the same type scale as every other figure on the page — a
+          chart whose readout is styled by hand reads as a different product.
+
+          Only for a single series. "Change" across two lines measured on two
+          bases is not one number, and the comparison chart already answers
+          that question properly in its own column. */}
+      {marked !== null && sliced.length === 1 && sliced[0].points[marked]?.y != null ? (() => {
+        const v = sliced[0].points[marked].y as number
+        const prev = marked > 0 ? sliced[0].points[marked - 1]?.y : null
+        const move = prev != null && prev !== 0 ? ((v - prev) / prev) * 100 : null
+        // Flips to the left of the hairline past the midpoint so the readout
+        // never runs off the right edge of the plot.
+        const frac = px(marked) / W
+        const flip = frac > 0.62
+        return (
+          <div
+            className={`cx__read${flip ? ' cx__read--left' : ''}`}
+            style={{ left: `${frac * 100}%` }}
+            aria-hidden
+          >
+            <div className="cx__date">{String(labels[marked]?.x ?? '')}</div>
+            <div className="cx__row">
+              <span className="cx__k">{sliced[0].name}</span>
+              <span className="cx__v">{format(v, kind).text}</span>
+            </div>
+            {move !== null ? (
+              <div className="cx__row">
+                <span className="cx__k">session</span>
+                <span className="cx__v">
+                  <Value value={move} kind="percent" digits={2} signed tone />
+                </span>
+              </div>
+            ) : null}
+          </div>
+        )
+      })() : null}
+      </div>
     </ChartFrame>
   )
 }
