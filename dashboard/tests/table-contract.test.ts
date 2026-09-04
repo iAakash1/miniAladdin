@@ -84,7 +84,15 @@ test('every hand-built table in the product is accounted for', () => {
      tables, one per group, all checked at two cells each.
      41 → 42 for the security comparison: four grouped tables of four headers
      against four cells, checked in the DOM against AAPL and MSFT.
-     Every one was read in the rendered DOM before this number moved. */
+
+     Held at 42 through a swap, which is the case this count cannot see on its
+     own: home's market summary was deleted and the sector movers table took
+     its place. The total did not move, so this test would have passed either
+     way — the new table was checked in the DOM regardless, at five headers
+     against five cells across all eleven rows.
+
+     Every one was read in the rendered DOM before this number moved, and the
+     one time it did not move. */
   assert.equal(
     handBuilt.length, 42,
     `hand-built tables changed from 42 to ${handBuilt.length}. Route the new one ` +

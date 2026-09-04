@@ -253,6 +253,32 @@ export function Strip({ metrics }: { metrics: StripMetric[] }) {
    Empty, error and data-gated states. §29 and §30: never "coming soon",
    never a silent zero. A gated capability says what it needs. */
 
+/**
+ * A section that has nothing in it yet, stated as a line.
+ *
+ * A bordered rectangle containing an apology is the most expensive way a
+ * product can say "nothing here". It costs a card's worth of space, it draws
+ * the eye first because it is a box, and it makes a new reader's first screen
+ * look broken rather than empty.
+ *
+ * Absence is information and belongs in the hierarchy at the weight it
+ * deserves: the section keeps its name, because the name says what would be
+ * here, and one sentence says why it is not and what fills it.
+ *
+ * StateBlock is still right where absence is an event — a provider refused, a
+ * request failed. This is for absence that is simply the starting condition.
+ */
+export function EmptyLine({
+  label, children,
+}: { label: string; children: ReactNode }) {
+  return (
+    <section className="emptyline">
+      <h2 className="emptyline__k">{label}</h2>
+      <p className="emptyline__v">{children}</p>
+    </section>
+  )
+}
+
 export function StateBlock({
   state, title, detail, requires, coverage, children,
 }: {

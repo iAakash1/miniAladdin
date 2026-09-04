@@ -12,7 +12,7 @@
 import Link from 'next/link'
 import { useSyncExternalStore } from 'react'
 
-import { Panel, StateBlock, Value } from '@/components/system'
+import { EmptyLine, Panel, Value } from '@/components/system'
 import { useQuotes } from '@/lib/use-quotes'
 import { emptySnapshot, recentSnapshot, subscribeSymbols } from '@/lib/symbols'
 
@@ -25,13 +25,10 @@ export default function RecentSecurities() {
 
   if (!recent.length) {
     return (
-      <Panel title="Recent" state="recorded">
-        <StateBlock
-          state="recorded"
-          title="Nothing opened yet in this browser"
-          detail="Search for a ticker to begin. Recent names appear here."
-        />
-      </Panel>
+      <EmptyLine label="Recent">
+        Nothing opened yet. Press <kbd className="sys-kbd">/</kbd> and type a ticker or a
+        company name; whatever you look at appears here.
+      </EmptyLine>
     )
   }
 

@@ -19,7 +19,7 @@
 import Link from 'next/link'
 import { useSyncExternalStore } from 'react'
 
-import { Panel, Prose, StateBlock, Status, Value } from '@/components/system'
+import { EmptyLine, Panel, Prose, StateBlock, Status, Value } from '@/components/system'
 import { useQuotes } from '@/lib/use-quotes'
 import {
   emptySnapshot, subscribeSymbols, toggleWatch, watchSnapshot,
@@ -34,13 +34,10 @@ export default function Watchlist() {
 
   if (!symbols.length) {
     return (
-      <Panel title="Watchlist" state="recorded">
-        <StateBlock
-          state="recorded"
-          title="No securities on the watchlist yet"
-          detail="Search for a security and add it from its page. The list is kept in this browser."
-        />
-      </Panel>
+      <EmptyLine label="Watchlist">
+        Nothing tracked yet. Open a security and press <kbd className="sys-kbd">watch</kbd> to
+        add it — the list lives in this browser, not in an account.
+      </EmptyLine>
     )
   }
 

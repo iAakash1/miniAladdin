@@ -4,8 +4,10 @@ import Workbench from '@/components/system/Workbench'
 import Watchlist from '@/components/terminal/watchlist/Watchlist'
 import RecentSecurities from '@/components/terminal/home/RecentSecurities'
 import ResearchStatus from '@/components/terminal/home/ResearchStatus'
-import MarketSummary from '@/components/terminal/home/MarketSummary'
-import { Grid, Panel } from '@/components/system'
+import MarketBand from '@/components/terminal/home/MarketBand'
+import HomeContext from '@/components/terminal/home/HomeContext'
+import SectorMovers from '@/components/terminal/home/SectorMovers'
+import { Grid } from '@/components/system'
 
 export const metadata: Metadata = {
   title: 'Terminal — miniAladdin',
@@ -29,42 +31,26 @@ export default function TerminalHome() {
   return (
     <Workbench
       title="Terminal"
-      subtitle="what you are watching"
-      context={
-        <>
-          <Panel title="Start here">
-            <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
-              Type a ticker or a company name in the search box above, or press{' '}
-              <kbd className="sys-kbd">/</kbd> from anywhere. Apple, AAPL, NVDA —
-              the symbol database covers most listed US names.
-            </p>
-          </Panel>
-          <Panel title="Where prices come from">
-            <p style={{ margin: 0, fontSize: 'var(--t-meta)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
-              Quotes and history come from the market providers directly, not
-              from the research dataset. A security works whether or not any
-              experiment has ever scored it.
-            </p>
-          </Panel>
-          <Panel title="Watchlists are local">
-            <p style={{ margin: 0, fontSize: 'var(--t-meta)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
-              Kept in this browser and keyed on the ticker. They do not follow
-              you to another machine, and clearing site data clears them.
-            </p>
-          </Panel>
-        </>
-      }
+      subtitle="what matters now"
+      context={<HomeContext />}
     >
+      {/* The market leads because it is the only thing on this page that is
+          true on a first morning. Everything below depends on the reader
+          having done something; this does not, it is different every day, and
+          it is the question a terminal is opened to answer. */}
+      <MarketBand />
+
+      {/* Which parts of it moved. The band says the market is up; this says
+          the day was energy while industrials fell, which is a different
+          morning entirely. */}
+      <SectorMovers />
+
+      {/* Then the reader's own names. Empty, these are one line each rather
+          than two rectangles apologising for being new. */}
       <Grid>
         <Watchlist />
         <RecentSecurities />
       </Grid>
-
-      {/* The summary, not the workspace. Home embedded the whole market page —
-          breadth history, the sector map, the events table, leadership, the
-          ninety-day chart — which is a good workspace and far too much for a
-          screen whose job is to say what matters right now. */}
-      <MarketSummary />
 
       {/* One line. The archive is a link away. */}
       <ResearchStatus />
