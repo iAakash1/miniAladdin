@@ -2648,3 +2648,60 @@ def paper_cancel_order(order_id: str):
         raise HTTPException(status_code=422, detail="invalid order id")
     _broker_call(lambda: client.cancel_order(order_id))
     return {"cancelled": order_id, "environment": "paper"}
+
+
+@app.get("/api/options/{ticker}")
+def get_options(ticker: str, expiration: Optional[str] = Query(None)):
+    """The option chain for one underlying, or an honest account of why not.
+
+    Options are supported by exactly one provider in this stack. When that
+    provider has no credential the response says so specifically — "no
+    provider is configured for options" — rather than returning an empty chain,
+    which a reader would reasonably interpret as "this security has no listed
+    options". Those are different claims and only one of them is ours to make.
+    """
+    symbol = ticker.upper().strip()
+    if not symbol or len(symbol) > 10:
+        raise HTTPException(status_code=400, detail="Invalid ticker")
+    if expiration and not _looks_like_date(expiration):
+        raise HTTPException(status_code=422, detail="expiration must be YYYY-MM-DD")
+
+    configured = providers.market_data.massive.available
+    result = providers.market_data.get_option_chain(symbol, expiration)
+
+    if result.ok and result.data:
+        chain = result.data
+        return {
+            "ticker": symbol,
+            "contracts": [c.model_dump() for c in chain.contracts],
+            "expirations": chain.expirations,
+            "strikes": chain.strikes,
+            "source": chain.source,
+            "delayed": chain.delayed,
+            "status": "live",
+        }
+
+    return {
+        "ticker": symbol,
+        "contracts": [],
+        "expirations": [],
+        "strikes": [],
+        "source": None,
+        "status": "unavailable",
+        # The distinction the provider matrix insists on: unconfigured is not
+        # the same as asked-and-refused, and neither means "no options exist".
+        "reason": (
+            "The options provider did not return a chain for this security."
+            if configured else
+            "No provider is configured for options data in this deployment."
+        ),
+        "provider_configured": configured,
+    }
+
+
+def _looks_like_date(value: str) -> bool:
+    try:
+        datetime.strptime(value, "%Y-%m-%d")
+        return True
+    except (TypeError, ValueError):
+        return False

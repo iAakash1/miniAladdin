@@ -31,7 +31,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 from ..base import VendorClient
-from ..schemas import CompanyProfile, OHLCVBar, PriceQuote, PriceSeries
+from ..schemas import CompanyProfile, OHLCVBar, OptionChain, OptionContract, PriceQuote, PriceSeries
 from .market_vendors import PERIOD_DAYS, _registrable_domain, _safe_float
 
 
@@ -161,4 +161,116 @@ class MassiveVendor(VendorClient):
             domain=_registrable_domain(website),
             description=str(result.get("description") or "")[:1200],
             employees=int(employees) if isinstance(employees, (int, float)) else None,
+        )
+
+    # ── options ──────────────────────────────────────────────────────────────
+
+    def get_option_chain(self, symbol: str, expiration: Optional[str] = None) -> Optional[OptionChain]:
+        """Every listed contract for one underlying.
+
+        The endpoint and its response shape were established the same way the
+        rest of this adapter was: by probing the live service. Both
+        `/v3/snapshot/options/{underlying}` and
+        `/v3/reference/options/contracts` answer 401 "API Key was not
+        provided" rather than 404, so the routes exist and are the
+        Polygon-compatible ones this adapter already speaks.
+
+        **What has not been established** is whether the deployment's plan is
+        entitled to options data. A 401 proves a route exists; it says nothing
+        about entitlement, and the published tiers gate real-time data
+        separately. So this may return contracts, an entitlement error, or
+        delayed quotes, and there is no way to know which from an environment
+        without the key. It is written to be truthful in all three cases and
+        is not claimed to have been exercised against live data.
+
+        The normalisation below never substitutes a zero for a field the
+        provider omitted. An option chain is mostly holes — contracts that did
+        not trade, contracts with no two-sided market, contracts the provider
+        declined to model — and a zero bid is a statement about a market while
+        a missing bid is the absence of one.
+        """
+        params: dict[str, Any] = {"limit": 250}
+        if expiration:
+            # Passed through as the provider's own filter rather than fetching
+            # everything and discarding: a full chain is thousands of rows.
+            params["expiration_date"] = expiration
+
+        data = self._get_json(
+            f"{self.BASE}/v3/snapshot/options/{symbol.upper()}",
+            params=params,
+            headers=self._auth,
+            operation="options",
+        )
+        rows = (data or {}).get("results") or []
+        if not rows:
+            return None
+
+        contracts: list[OptionContract] = []
+        delayed: Optional[bool] = None
+
+        for row in rows:
+            details = row.get("details") or {}
+            ticker = details.get("ticker")
+            strike = _safe_float(details.get("strike_price"))
+            expiry = details.get("expiration_date")
+            kind = details.get("contract_type")
+
+            # Identity is not optional. A contract missing any of these is not
+            # a contract with holes, it is an unidentifiable row, and putting
+            # it in a chain keyed on strike and expiry would corrupt the axes.
+            if not ticker or strike is None or not expiry or not kind:
+                continue
+
+            quote = row.get("last_quote") or {}
+            trade = row.get("last_trade") or {}
+            day = row.get("day") or {}
+            greeks = row.get("greeks") or {}
+
+            timeframe = quote.get("timeframe")
+            if isinstance(timeframe, str):
+                # Any delayed quote makes the whole chain delayed; a chain is
+                # only as current as its least current contract.
+                delayed = True if timeframe.upper() != "REAL-TIME" else (delayed or False)
+
+            contracts.append(OptionContract(
+                contract=str(ticker),
+                underlying=symbol.upper(),
+                expiration=str(expiry),
+                strike=strike,
+                contract_type=str(kind).lower(),
+                shares_per_contract=(
+                    int(details["shares_per_contract"])
+                    if isinstance(details.get("shares_per_contract"), (int, float)) else None
+                ),
+                exercise_style=details.get("exercise_style"),
+                bid=_safe_float(quote.get("bid")),
+                ask=_safe_float(quote.get("ask")),
+                midpoint=_safe_float(quote.get("midpoint")),
+                last_price=_safe_float(trade.get("price")),
+                # Volume and open interest are the two places a literal zero is
+                # the provider's own answer — a contract that did not trade —
+                # so a present zero is kept and only an absent field is None.
+                day_volume=(
+                    int(day["volume"]) if isinstance(day.get("volume"), (int, float)) else None
+                ),
+                open_interest=(
+                    int(row["open_interest"]) if isinstance(row.get("open_interest"), (int, float)) else None
+                ),
+                implied_volatility=_safe_float(row.get("implied_volatility")),
+                delta=_safe_float(greeks.get("delta")),
+                gamma=_safe_float(greeks.get("gamma")),
+                theta=_safe_float(greeks.get("theta")),
+                vega=_safe_float(greeks.get("vega")),
+                quote_timeframe=timeframe if isinstance(timeframe, str) else None,
+                source=self.NAME,
+            ))
+
+        if not contracts:
+            return None
+
+        return OptionChain(
+            underlying=symbol.upper(),
+            contracts=contracts,
+            source=self.NAME,
+            delayed=delayed,
         )

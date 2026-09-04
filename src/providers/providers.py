@@ -124,6 +124,20 @@ class MarketDataProvider:
         are resolved individually so per-vendor availability still applies."""
         return {symbol.upper(): self.get_price(symbol, validate=False) for symbol in symbols}
 
+    def get_option_chain(self, symbol: str, expiration: Optional[str] = None):
+        """The option chain for one underlying.
+
+        Only Massive implements options, so there is no fallback chain here —
+        a single link, which the orchestrator handles the same way it handles
+        seven. When Massive is unkeyed the link is skipped and the result is
+        an honest "no provider answered" rather than an empty chain, which
+        would read as "this security has no options".
+        """
+        symbol = symbol.upper()
+        key = f"options:{symbol}:{expiration or 'all'}"
+        links = [ChainLink(self.massive, lambda: self.massive.get_option_chain(symbol, expiration))]
+        return self._series_chain.execute(key, links)
+
     def get_series(self, symbol: str, period: str = "3mo") -> ProviderResult[PriceSeries]:
         symbol = symbol.upper()
         links = [

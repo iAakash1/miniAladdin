@@ -512,3 +512,78 @@ class SearchResult(BaseModel):
     snippet: str = ""
     published_at: str = ""
     score: Optional[float] = None
+
+
+class OptionContract(BaseModel):
+    """One listed option, normalized.
+
+    Every field a provider may decline to answer is `Optional` and defaults to
+    `None`. That is the whole point of this model: an option chain is mostly
+    holes. A contract that has not traded today has no last price, a contract
+    with no two-sided market has no bid, and a contract the provider cannot
+    model has no implied volatility and no greeks.
+
+    None of those are zero. A bid of zero is a real, tradeable statement about
+    a market; a missing bid is the absence of one. Rendering the second as the
+    first is the single most misleading thing an options surface can do, and it
+    is what most of them do.
+
+    `day_volume` and `open_interest` are the exception worth naming: providers
+    on this wire format return a literal `0` for a contract that genuinely did
+    not trade, and that zero is true. It is preserved as zero, not converted to
+    None — the distinction is that the provider said it.
+    """
+
+    # Identity. A contract is not a row; it is an object with a name.
+    contract: str                                 # O:AAPL261218C00330000
+    underlying: str
+    expiration: str                               # YYYY-MM-DD
+    strike: float
+    contract_type: str                            # "call" | "put"
+    shares_per_contract: Optional[int] = None
+    exercise_style: Optional[str] = None
+
+    # Market. All optional; see the class note.
+    bid: Optional[float] = None
+    ask: Optional[float] = None
+    midpoint: Optional[float] = None
+    last_price: Optional[float] = None
+    day_volume: Optional[int] = None
+    open_interest: Optional[int] = None
+
+    # Modelled. Absent whenever the provider declined to model the contract.
+    implied_volatility: Optional[float] = None
+    delta: Optional[float] = None
+    gamma: Optional[float] = None
+    theta: Optional[float] = None
+    vega: Optional[float] = None
+
+    # Provenance travels with the contract, not with the request.
+    quote_timeframe: Optional[str] = None         # REAL-TIME | DELAYED
+    as_of: Optional[str] = None
+    source: Optional[str] = None
+
+
+class OptionChain(BaseModel):
+    """Every contract returned for one underlying, and what it cost to say so.
+
+    `expirations` and `strikes` are derived from the contracts themselves
+    rather than requested separately, so the axes of the chain can never
+    disagree with its contents.
+    """
+
+    underlying: str
+    contracts: list[OptionContract] = Field(default_factory=list)
+    source: Optional[str] = None
+    as_of: Optional[str] = None
+    # Whether the quotes carried a delayed rather than real-time timeframe.
+    # None means the provider did not say, which is not the same as real-time.
+    delayed: Optional[bool] = None
+
+    @property
+    def expirations(self) -> list[str]:
+        return sorted({c.expiration for c in self.contracts if c.expiration})
+
+    @property
+    def strikes(self) -> list[float]:
+        return sorted({c.strike for c in self.contracts})

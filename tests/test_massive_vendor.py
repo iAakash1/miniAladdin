@@ -130,3 +130,149 @@ def test_the_quote_says_which_session_it_is():
     assert q.price == 328.21
     assert q.price_basis == "previous session close"
     assert q.as_of is not None and q.as_of.startswith("20")
+
+
+# ── options ──────────────────────────────────────────────────────────────────
+#
+# The fixtures below are the provider's documented response shape for this wire
+# format. They were NOT captured from a live authenticated response — this
+# environment has no Massive credential — so these test normalisation, not
+# entitlement or live behaviour. That distinction is deliberate and is repeated
+# in the provider matrix: a 401 proves a route exists and says nothing about
+# whether a plan may read it.
+
+def _chain_payload(**overrides):
+    row = {
+        "details": {
+            "ticker": "O:AAPL261218C00330000",
+            "contract_type": "call",
+            "expiration_date": "2026-12-18",
+            "strike_price": 330,
+            "shares_per_contract": 100,
+            "exercise_style": "american",
+        },
+        "last_quote": {"bid": 1.10, "ask": 1.20, "midpoint": 1.15, "timeframe": "REAL-TIME"},
+        "last_trade": {"price": 1.18},
+        "day": {"volume": 0},
+        "open_interest": 8133,
+        "implied_volatility": 0.2841,
+        "greeks": {"delta": 0.31, "gamma": 0.01, "theta": -0.05, "vega": 0.12},
+    }
+    row.update(overrides)
+    return {"results": [row], "status": "OK"}
+
+
+def test_a_contract_keeps_its_identity():
+    v = _vendor_with_key()
+    with patch.object(MassiveVendor, "_get_json", return_value=_chain_payload()):
+        chain = v.get_option_chain("AAPL")
+
+    assert chain is not None
+    c = chain.contracts[0]
+    assert c.contract == "O:AAPL261218C00330000"
+    assert c.underlying == "AAPL"
+    assert c.expiration == "2026-12-18"
+    assert c.strike == 330
+    assert c.contract_type == "call"
+
+
+def test_missing_market_fields_are_none_and_never_zero():
+    """An option chain is mostly holes. A bid of zero is a statement about a
+    market; a missing bid is the absence of one, and rendering the second as
+    the first is the most misleading thing an options surface can do."""
+    v = _vendor_with_key()
+    payload = _chain_payload(last_quote={}, last_trade={}, greeks={})
+    del payload["results"][0]["implied_volatility"]
+
+    with patch.object(MassiveVendor, "_get_json", return_value=payload):
+        c = v.get_option_chain("AAPL").contracts[0]
+
+    for field in ("bid", "ask", "midpoint", "last_price",
+                  "implied_volatility", "delta", "gamma", "theta", "vega"):
+        assert getattr(c, field) is None, f"{field} was filled in rather than left absent"
+
+
+def test_a_reported_zero_volume_is_kept_as_zero():
+    """Volume and open interest are the two places a literal zero is the
+    provider's own answer — a contract that did not trade. Converting that to
+    None would discard a real observation."""
+    v = _vendor_with_key()
+    with patch.object(MassiveVendor, "_get_json", return_value=_chain_payload()):
+        c = v.get_option_chain("AAPL").contracts[0]
+    assert c.day_volume == 0
+    assert c.open_interest == 8133
+
+
+def test_an_absent_volume_is_none_rather_than_zero():
+    v = _vendor_with_key()
+    payload = _chain_payload(day={})
+    del payload["results"][0]["open_interest"]
+    with patch.object(MassiveVendor, "_get_json", return_value=payload):
+        c = v.get_option_chain("AAPL").contracts[0]
+    assert c.day_volume is None
+    assert c.open_interest is None
+
+
+def test_an_unidentifiable_row_is_dropped_not_patched():
+    """A row missing strike or expiry cannot go into a chain keyed on them.
+    Defaulting either would corrupt the axes rather than lose one row."""
+    v = _vendor_with_key()
+    payload = _chain_payload()
+    payload["results"].append({"details": {"ticker": "O:BAD", "contract_type": "put"}})
+    payload["results"].append({"details": {}})
+
+    with patch.object(MassiveVendor, "_get_json", return_value=payload):
+        chain = v.get_option_chain("AAPL")
+
+    assert len(chain.contracts) == 1, "an unidentifiable row survived"
+
+
+def test_the_chain_axes_come_from_its_own_contracts():
+    v = _vendor_with_key()
+    payload = _chain_payload()
+    second = dict(payload["results"][0])
+    second["details"] = {**second["details"], "ticker": "O:AAPL261218P00320000",
+                         "contract_type": "put", "strike_price": 320}
+    payload["results"].append(second)
+
+    with patch.object(MassiveVendor, "_get_json", return_value=payload):
+        chain = v.get_option_chain("AAPL")
+
+    assert chain.strikes == [320.0, 330.0]
+    assert chain.expirations == ["2026-12-18"]
+
+
+def test_a_delayed_quote_makes_the_whole_chain_delayed():
+    """A chain is only as current as its least current contract."""
+    v = _vendor_with_key()
+    payload = _chain_payload()
+    payload["results"][0]["last_quote"]["timeframe"] = "DELAYED"
+    with patch.object(MassiveVendor, "_get_json", return_value=payload):
+        assert v.get_option_chain("AAPL").delayed is True
+
+    with patch.object(MassiveVendor, "_get_json", return_value=_chain_payload()):
+        assert v.get_option_chain("AAPL").delayed is False
+
+
+def test_an_empty_chain_is_none_rather_than_an_empty_object():
+    v = _vendor_with_key()
+    with patch.object(MassiveVendor, "_get_json", return_value={"results": []}):
+        assert v.get_option_chain("AAPL") is None
+
+
+def test_an_expiration_filter_is_pushed_to_the_provider():
+    """A full chain is thousands of rows; filtering client-side would fetch
+    them all and throw most away."""
+    v = _vendor_with_key()
+    seen = {}
+
+    def capture(url, params=None, headers=None, operation="http"):
+        seen["params"] = params or {}
+        seen["url"] = url
+        return {"results": []}
+
+    with patch.object(MassiveVendor, "_get_json", side_effect=capture):
+        v.get_option_chain("AAPL", expiration="2026-12-18")
+
+    assert seen["params"].get("expiration_date") == "2026-12-18"
+    assert "test-key-not-real" not in seen["url"]

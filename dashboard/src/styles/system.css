@@ -2728,3 +2728,31 @@ a.tape:hover .tape__sym { color: var(--accent); }
 }
 
 .fin td.num { font-variant-numeric: tabular-nums slashed-zero; }
+
+/* ── option chain ───────────────────────────────────────────────────────── */
+
+/* The strike is the axis, so it is ruled on both sides and set in the ink
+   colour while the wings stay muted. A reader scans down the middle. */
+.opt__strike {
+  border-left: 1px solid var(--rule-strong);
+  border-right: 1px solid var(--rule-strong);
+  font-weight: 500;
+  color: var(--ink);
+}
+
+/* The first strike at or above the underlying. One mark, not a moneyness
+   label on every contract — the product is showing where the money is, not
+   asserting a classification per row. */
+.opt__atm td { border-top: 1px solid var(--accent); }
+.opt__atm .opt__strike { color: var(--accent); }
+
+.opt__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--d-3);
+  padding: var(--d-2) var(--d-3);
+  border-top: 1px solid var(--rule);
+  font: 400 var(--t-micro) / 1 var(--font-mono);
+  color: var(--ink-faint);
+}

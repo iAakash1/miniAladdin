@@ -5,6 +5,7 @@ import SecurityView from '@/components/terminal/security/SecurityView'
 import SecurityProfile from '@/components/terminal/security/SecurityProfile'
 import Fundamentals2 from '@/components/terminal/security/Fundamentals2'
 import Financials from '@/components/terminal/security/Financials'
+import Options from '@/components/terminal/security/Options'
 import SecurityResearch from '@/components/terminal/security/SecurityResearch'
 import SecurityContext from '@/components/terminal/security/SecurityContext'
 
@@ -55,6 +56,10 @@ export default async function SecurityPage({
               vendor. Putting them in one grid would make it impossible to say
               which a given number is. */}
           <div id="sec-financials"><Financials symbol={symbol} /></div>
+          {/* Options, to whatever depth the provider permits. One provider in
+              this stack supports them, so an absent chain says which of three
+              things it is rather than "no data". */}
+          <div id="sec-options"><Options symbol={symbol} /></div>
           {/* Last. An analyst opening a name wants the price, the chart and the
               business before the quantitative programme — this sat third,
               above the company itself. */}

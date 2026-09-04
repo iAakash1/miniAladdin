@@ -108,10 +108,17 @@ test('every hand-built table in the product is accounted for', () => {
      fiscal year actually filed — which is precisely why it was worth checking
      rendered rather than read.
 
+     44 → 45 for the option chain, which is in the same position as the paper
+     tables: it cannot render here. Options are supported by one provider and
+     this environment has no credential for it, so there is no chain to draw
+     and no DOM to check. Counted at source instead — eleven headers against
+     eleven cells — and the DOM check is owed the first time a credential
+     exists.
+
      Every other one was read in the rendered DOM before this number moved,
      and the one time it did not move. */
   assert.equal(
-    handBuilt.length, 44,
+    handBuilt.length, 45,
     `hand-built tables changed from 42 to ${handBuilt.length}. Route the new one ` +
     'through DataTable, or check its alignment in the rendered DOM and update ' +
     'this count deliberately.',
@@ -131,6 +138,37 @@ test('every hand-built table in the product is accounted for', () => {
    strictly better than the alternative, which was to move the count and say
    nothing. The Evidence bug this whole file exists for was nine cells against
    eight headers; this would have caught that. */
+/* Tables that cannot be rendered in this environment.
+
+   Every other hand-built table was verified in the rendered DOM. These cannot
+   be: the paper tables need a configured broker account, and the option chain
+   needs an options credential. Pointing either at a stub is refused — the
+   broker by its own paper-host guarantee, and options because inventing a
+   chain is the one thing an options surface must never do.
+
+   So they are counted at source. That is weaker than the DOM check and is
+   honest about being weaker, and it is strictly better than moving the count
+   in silence. The Evidence bug this file exists for was nine cells against
+   eight headers; this catches that shape. */
+const CREDENTIAL_GATED = [
+  'components/terminal/paper/PaperWorkspace.tsx',
+  'components/terminal/security/Options.tsx',
+]
+
+test('credential-gated tables emit one cell per header', () => {
+  for (const rel of CREDENTIAL_GATED) {
+    const src = readFileSync(join(ROOT, rel), 'utf8')
+    const heads = [...src.matchAll(/<thead>([\s\S]*?)<\/thead>/g)].map((m) => m[1])
+    const bodies = [...src.matchAll(/<tbody>([\s\S]*?)<\/tbody>/g)].map((m) => m[1])
+    assert.equal(heads.length, bodies.length, `${rel} has unpaired thead/tbody`)
+    heads.forEach((head, i) => {
+      const headers = (head.match(/<th\b/g) ?? []).length
+      const cells = (bodies[i].match(/<td\b/g) ?? []).length
+      assert.equal(cells, headers, `${rel} table ${i}: ${cells} cells against ${headers} headers`)
+    })
+  }
+})
+
 test('the paper tables emit one cell per header', () => {
   const src = readFileSync(
     join(ROOT, 'components/terminal/paper/PaperWorkspace.tsx'), 'utf8',
