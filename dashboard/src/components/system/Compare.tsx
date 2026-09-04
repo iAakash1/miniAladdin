@@ -19,7 +19,7 @@
 
 import type { ReactNode } from 'react'
 import { format, type Kind } from '@/lib/quantity'
-import { delta } from '@/lib/semantics'
+import { delta, deltaMoved } from '@/lib/semantics'
 
 export type Direction = 'higher-better' | 'lower-better' | 'none'
 
@@ -94,8 +94,11 @@ function outcome(
   if (d.interpretation === 'unchanged') return 'same'
 
   if (field.direction && field.direction !== 'none') {
-    if (d.value === null) return 'incomparable'
-    return (field.direction === 'higher-better') === (d.value > 0) ? 'better' : 'worse'
+    // A multiplicative delta is a ratio: no change is 1, not 0. Testing the
+    // raw value's sign would make every ratio read as an increase.
+    const moved = deltaMoved(d)
+    if (moved === null) return 'incomparable'
+    return (field.direction === 'higher-better') === (moved > 0) ? 'better' : 'worse'
   }
   return d.interpretation === 'better' ? 'better'
     : d.interpretation === 'worse' ? 'worse'

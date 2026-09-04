@@ -11,6 +11,21 @@ const nextConfig: NextConfig = {
   // Explicit root: a stray lockfile higher up the tree otherwise makes
   // Turbopack guess the wrong workspace directory.
   turbopack: { root: __dirname },
+  experimental: {
+    // The proxy below defaults to a 30-second timeout and answers anything
+    // slower with a plain-text "Internal Server Error" and no content type.
+    // /api/research/:ticker fans out across every configured vendor and takes
+    // between roughly 25 and 65 seconds whenever the backend cache is cold,
+    // so the most substantial panel on the security page — fundamentals,
+    // filings, coverage — failed for any name nobody had looked at recently.
+    // Measured: a cold NVDA request returned 500 at exactly 30.0s while the
+    // same request against the backend directly returned 200.
+    //
+    // This is a ceiling, not a target. The fan-out being slow is a separate
+    // problem; a proxy that gives up before the work it is proxying can
+    // finish is this one.
+    proxyTimeout: 120_000,
+  },
   async rewrites() {
     // Proxy analysis endpoints to the FastAPI backend on Railway.
     // App-router routes (e.g. /api/news) take precedence over these rewrites.

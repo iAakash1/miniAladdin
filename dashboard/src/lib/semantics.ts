@@ -348,13 +348,78 @@ export function delta(
       : s.direction === 'neither' ? 'no-direction'
         : (s.direction === 'higher-better') === (moved > 0) ? 'better' : 'worse'
 
+  const formatKind = s.delta === 'multiplicative' ? 'multiple' : a.kind
+  const signed = s.delta !== 'multiplicative'
+  let formatted = format(raw, formatKind, { signed })
+
+  /* A difference that is real but smaller than its own display precision
+     rendered as a signed zero. Costco's trailing net margin is 3.01% against
+     Walmart's 3.00%; both show as 3.0%, and the difference showed as
+     "-0.0pp" — a figure the reader cannot reconcile with either operand and
+     which reads as a rounding artefact even though the sign is correct.
+
+     Given more decimals it becomes -0.01pp, which is small and true. Only
+     when even that cannot show the movement is the reader told the
+     difference sits below the precision on screen. */
+  if (moved !== 0 && readsAsNoChange(formatted.text, formatKind, signed)) {
+    const finer = format(raw, formatKind, { signed, digits: 4 })
+    // If four decimals still cannot show it, the movement is smaller than
+    // anything this page could act on; the rounded figure stands.
+    if (!readsAsNoChange(finer.text, formatKind, signed, 4)) {
+      formatted = { ...finer, text: trimZeros(finer.text) }
+    }
+  }
+
   return {
     value: raw,
     kind: s.delta,
     unit: deltaUnit(a.kind, s.delta),
-    formatted: format(raw, s.delta === 'multiplicative' ? 'multiple' : a.kind, { signed: s.delta !== 'multiplicative' }),
+    formatted,
     interpretation,
   }
+}
+
+/**
+ * Whether a rendered difference shows no movement at all.
+ *
+ * The figure that means "no change" depends on how the difference was
+ * measured: nothing moved is 0 for a subtraction and 1 for a ratio. Rather
+ * than pattern-match either, this formats the neutral value on the same terms
+ * and compares — so the two stay in step if the formatter changes.
+ */
+function readsAsNoChange(
+  text: string, kind: Kind, signed: boolean, digits?: number,
+): boolean {
+  const neutral = kind === 'multiple' ? 1 : 0
+  // Magnitude only: "-0.0" and "0.0" both show nothing moving, and it is the
+  // first of those that misleads.
+  const bare = (t: string) => t.trim().replace(/^[+\-−]/, '')
+  return bare(text) === bare(format(neutral, kind, { signed, digits }).text)
+}
+
+/** 0.0100 is 0.01. Trailing zeros claim precision the figure does not carry. */
+function trimZeros(text: string): string {
+  return text.includes('.') ? text.replace(/0+$/, '').replace(/\.$/, '') : text
+}
+
+/**
+ * A delta's signed movement, whichever way it was measured.
+ *
+ * An additive delta is already signed: 0 means no change. A multiplicative
+ * one is a ratio, where no change is 1 — so testing `d.value > 0` on it is
+ * true for every ratio a vendor can produce, and a caller doing that gets a
+ * verdict that never depends on the data. That is exactly what the security
+ * comparison was doing: every valuation multiple was coloured by the field's
+ * declared direction alone, so a cheaper price-to-earnings and a dearer one
+ * both rendered the same.
+ *
+ * `delta()` already applies this rule internally to reach its own
+ * interpretation. This exports it, so a caller that overrides the
+ * interpretation with a field-level direction overrides it on the same terms.
+ */
+export function deltaMoved(d: Delta): number | null {
+  if (d.value === null || !isFinite2(d.value)) return null
+  return d.kind === 'multiplicative' ? d.value - 1 : d.value
 }
 
 function isFinite2(v: number | null | undefined): v is number {

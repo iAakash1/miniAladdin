@@ -8,7 +8,7 @@ import { strict as assert } from 'node:assert'
 import test from 'node:test'
 
 import { SPECS, format, type Kind } from '../src/lib/quantity'
-import { SEMANTICS, comparable, delta, toneFor } from '../src/lib/semantics'
+import { SEMANTICS, comparable, delta, deltaMoved, toneFor } from '../src/lib/semantics'
 import {
   formatCount, formatPercentage, formatProbability, formatShare, metric,
 } from '../src/lib/metric'
@@ -245,4 +245,74 @@ test('a difference in a unitless kind carries no unit', () => {
 
 test('a basis-point difference stays in basis points', () => {
   assert.equal(delta(15, 10, { kind: 'bps' }).unit, 'bp')
+})
+
+/* A ratio's neutral point is 1, not 0.
+
+   The security comparison overrode delta()'s own interpretation with the
+   field's declared direction, testing `d.value > 0`. Every ratio a vendor can
+   produce is greater than zero, so every valuation multiple was coloured by
+   the direction alone: Walmart's price-to-earnings of 38.24 against Costco's
+   46.59 — materially cheaper — was marked worse, and so would a dearer one
+   have been. Real COST/WMT figures below. */
+test('a multiplicative delta reports movement against one', () => {
+  const pe = delta(38.24, 46.59, { kind: 'multiple' }, { kind: 'multiple' })
+  assert.equal(pe.kind, 'multiplicative')
+  const moved = deltaMoved(pe)
+  assert.ok(moved !== null && moved < 0, 'the cheaper multiple did not read as lower')
+
+  const dearer = delta(46.59, 38.24, { kind: 'multiple' }, { kind: 'multiple' })
+  const movedUp = deltaMoved(dearer)
+  assert.ok(movedUp !== null && movedUp > 0, 'the dearer multiple did not read as higher')
+})
+
+test('an unchanged multiple has moved nothing', () => {
+  const same = delta(10, 10, { kind: 'multiple' }, { kind: 'multiple' })
+  assert.equal(deltaMoved(same), 0)
+})
+
+test('an absolute delta is already its own movement', () => {
+  const margin = delta(25.2, 12.9, { kind: 'percent' }, { kind: 'percent' })
+  assert.equal(margin.kind, 'absolute')
+  const moved = deltaMoved(margin)
+  assert.ok(moved !== null && Math.abs(moved - 12.3) < 1e-9)
+})
+
+test('an incomparable delta has no movement to report', () => {
+  const missing = delta(null, 10, { kind: 'percent' }, { kind: 'percent' })
+  assert.equal(deltaMoved(missing), null)
+})
+
+/* A difference smaller than the precision of the figures it came from.
+
+   Costco's trailing net margin is 3.01% against Walmart's 3.00%. Both render
+   as 3.0%, and the difference rendered as "-0.0pp" — a signed zero the reader
+   cannot reconcile with either operand, and which reads as a rounding
+   artefact even though its sign is right. */
+test('a real difference is not rendered as a signed zero', () => {
+  const d = delta(3.00, 3.01, { kind: 'percent' }, { kind: 'percent' })
+  assert.equal(d.formatted?.text, '-0.01')
+  assert.equal(d.unit, 'pp')
+})
+
+test('genuinely identical figures still difference to plain zero', () => {
+  const d = delta(3.0, 3.0, { kind: 'percent' }, { kind: 'percent' })
+  assert.equal(d.formatted?.text, '0.0')
+  assert.equal(d.interpretation, 'unchanged')
+})
+
+test('extra precision is not spent where the difference is already visible', () => {
+  const d = delta(25.2, 12.9, { kind: 'percent' }, { kind: 'percent' })
+  assert.equal(d.formatted?.text, '+12.3', 'a visible difference gained decimals it did not need')
+})
+
+test('a ratio too close to one to matter is left alone', () => {
+  // Chasing this to four decimals would print noise in a difference column.
+  const d = delta(10.0001, 10, { kind: 'multiple' }, { kind: 'multiple' })
+  assert.equal(d.formatted?.text, '1.00')
+})
+
+test('the finer figure carries no trailing zeros', () => {
+  const d = delta(3.00, 3.01, { kind: 'percent' }, { kind: 'percent' })
+  assert.ok(!/0$/.test(d.formatted?.text ?? ''), 'trailing zeros claim precision the figure lacks')
 })

@@ -20,7 +20,7 @@
 import { useEffect, useState } from 'react'
 
 import { Panel, Prose, StateBlock, Status, Value } from '@/components/system'
-import { delta } from '@/lib/semantics'
+import { delta, deltaMoved } from '@/lib/semantics'
 import type { Kind } from '@/lib/quantity'
 import { fetchResearch } from '@/lib/research-cache'
 import { useQuotes } from '@/lib/use-quotes'
@@ -169,8 +169,11 @@ export default function SecurityCompare({ a, b }: { a: string; b: string }) {
                     // The field's role wins over the kind's default, the same
                     // rule the research comparison uses: a lower P/E is the
                     // better one, and a multiple has no inherent direction.
-                    const verdict = f.direction && d.value !== null
-                      ? ((f.direction === 'higher-better') === (d.value > 0) ? 'better' : 'worse')
+                    // Measured through deltaMoved, because a multiplicative
+                    // delta is a ratio whose neutral point is 1, not 0.
+                    const moved = deltaMoved(d)
+                    const verdict = f.direction && moved !== null
+                      ? ((f.direction === 'higher-better') === (moved > 0) ? 'better' : 'worse')
                       : d.interpretation
 
                     return (
