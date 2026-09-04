@@ -26,6 +26,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi import Path as FastPath
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -2413,3 +2414,237 @@ def quant_portfolio(
         experiment_id, model_id, method=method,
         long_only=long_only, max_weight=max_weight,
     )
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Paper trading — Alpaca, paper endpoint only
+#
+# Every route here reports what the broker said. None of them computes a fill,
+# an average price, a P&L or an order state, because a number this product
+# shows about an account has to be a number the broker reported or it is a
+# number this product made up about someone's money.
+#
+# The credential never crosses this boundary. `status` is deliberately shaped
+# so that the browser learns whether trading is possible and, if not, a
+# sentence explaining why — and nothing else.
+# ═══════════════════════════════════════════════════════════════════════════
+
+class PaperOrderRequest(BaseModel):
+    symbol: str
+    qty: float
+    side: str
+    order_type: str = "market"
+    time_in_force: str = "day"
+    limit_price: Optional[float] = None
+
+
+# The vocabulary the broker accepts. Checked here so an invalid order is
+# refused before it reaches Alpaca, with a message that says which field.
+_SIDES = {"buy", "sell"}
+_TYPES = {"market", "limit"}
+_TIF = {"day", "gtc", "ioc", "fok", "opg", "cls"}
+
+
+def _safe_float_api(value: Any) -> Optional[float]:
+    """A vendor string to a float, or None. Never a zero substitute — a
+    buying power this product could not parse is unknown, not nil."""
+    try:
+        out = float(value)
+    except (TypeError, ValueError):
+        return None
+    return out if out == out else None
+
+
+def _validate_paper_order(req: "PaperOrderRequest") -> list[str]:
+    """Everything wrong with this order, in words a reader can act on.
+
+    Returns every problem rather than the first, because a ticket that
+    reports one error at a time is a ticket someone submits four times.
+    """
+    problems: list[str] = []
+    symbol = (req.symbol or "").strip().upper()
+
+    if not symbol or not symbol.replace(".", "").replace("-", "").isalnum() or len(symbol) > 10:
+        problems.append("Symbol is not a valid ticker.")
+    if req.qty is None or req.qty <= 0:
+        problems.append("Quantity must be greater than zero.")
+    elif req.qty != req.qty:  # NaN
+        problems.append("Quantity is not a number.")
+    if (req.side or "").lower() not in _SIDES:
+        problems.append(f"Side must be one of: {', '.join(sorted(_SIDES))}.")
+    if (req.order_type or "").lower() not in _TYPES:
+        problems.append(f"Order type must be one of: {', '.join(sorted(_TYPES))}.")
+    if (req.time_in_force or "").lower() not in _TIF:
+        problems.append(f"Time in force must be one of: {', '.join(sorted(_TIF))}.")
+    if (req.order_type or "").lower() == "limit" and not req.limit_price:
+        problems.append("A limit order needs a limit price.")
+    if req.limit_price is not None and req.limit_price <= 0:
+        problems.append("Limit price must be greater than zero.")
+    return problems
+
+
+@app.get("/api/paper/status")
+def paper_status():
+    """Whether paper trading is usable. Safe to render; carries no credential."""
+    from src.broker.alpaca_paper import PAPER_HOST, status as broker_status
+
+    s = broker_status()
+    return {
+        "configured": s.configured,
+        "reason": s.reason,
+        "environment": s.environment,
+        # Shown so a reader can see which endpoint their orders would reach.
+        # It is a public hostname, not a secret.
+        "endpoint": PAPER_HOST,
+    }
+
+
+def _paper_client():
+    from src.broker.alpaca_paper import AlpacaPaper, BrokerMisconfigured
+    try:
+        return AlpacaPaper()
+    except BrokerMisconfigured as e:
+        # 503, not 500: the service is fine, this deployment has not been
+        # given a paper account. The interface renders it as UNAVAILABLE.
+        raise HTTPException(status_code=503, detail=str(e)) from e
+
+
+def _broker_call(fn):
+    from src.broker.alpaca_paper import BrokerUnavailable
+    try:
+        return fn()
+    except BrokerUnavailable as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
+
+
+@app.get("/api/paper/account")
+def paper_account():
+    client = _paper_client()
+    account = _broker_call(client.account)
+    return {"account": account, "source": "alpaca paper", "environment": "paper"}
+
+
+@app.get("/api/paper/positions")
+def paper_positions():
+    client = _paper_client()
+    return {
+        "positions": _broker_call(client.positions),
+        "source": "alpaca paper",
+        "environment": "paper",
+    }
+
+
+@app.get("/api/paper/orders")
+def paper_orders(status_filter: str = Query("all", alias="status"), limit: int = Query(50, ge=1, le=200)):
+    client = _paper_client()
+    if status_filter not in {"open", "closed", "all"}:
+        raise HTTPException(status_code=422, detail="status must be open, closed or all")
+    return {
+        "orders": _broker_call(lambda: client.orders(status_filter, limit)),
+        "source": "alpaca paper",
+        "environment": "paper",
+    }
+
+
+@app.post("/api/paper/orders/preview")
+def paper_order_preview(req: PaperOrderRequest):
+    """Validate an order and price it, without placing anything.
+
+    This is the step between intending to trade and trading. It answers three
+    questions — is the order well formed, is the asset tradable here, and what
+    would it cost against current buying power — and it places nothing.
+
+    The estimate is explicitly an estimate: it uses the last price this
+    product already has, and a market order does not fill at the last price.
+    Saying so is the difference between a preview and a promise.
+    """
+    problems = _validate_paper_order(req)
+    symbol = (req.symbol or "").strip().upper()
+
+    client = _paper_client()
+
+    asset: dict[str, Any] | None = None
+    if not problems:
+        from src.broker.alpaca_paper import BrokerUnavailable
+        try:
+            asset = client.asset(symbol)
+        except BrokerUnavailable:
+            problems.append(f"{symbol} is not an asset this paper account can trade.")
+        else:
+            if not asset.get("tradable"):
+                problems.append(f"{symbol} is not currently tradable.")
+            if req.qty != int(req.qty) and not asset.get("fractionable"):
+                problems.append(f"{symbol} cannot be traded in fractional quantities.")
+
+    account = _broker_call(client.account)
+    buying_power = _safe_float_api(account.get("buying_power"))
+
+    # The last price this product already knows. Not a quote taken for the
+    # purpose of trading, and labelled as the estimate it is.
+    last_price: Optional[float] = None
+    price_result = providers.market_data.get_price(symbol) if symbol else None
+    if price_result is not None and price_result.ok and price_result.data:
+        last_price = price_result.data.price
+
+    notional = last_price * req.qty if (last_price is not None and req.qty) else None
+    if (notional is not None and buying_power is not None
+            and (req.side or "").lower() == "buy" and notional > buying_power):
+        problems.append(
+            f"Estimated cost {notional:,.2f} exceeds paper buying power {buying_power:,.2f}."
+        )
+
+    return {
+        "ok": not problems,
+        "problems": problems,
+        "symbol": symbol,
+        "qty": req.qty,
+        "side": (req.side or "").lower(),
+        "order_type": (req.order_type or "").lower(),
+        "time_in_force": (req.time_in_force or "").lower(),
+        "estimate": {
+            "last_price": last_price,
+            "notional": notional,
+            "basis": "last price known to this product, not a firm quote",
+            "source": price_result.source if price_result is not None else None,
+        },
+        "buying_power": buying_power,
+        "asset": {
+            "tradable": asset.get("tradable") if asset else None,
+            "fractionable": asset.get("fractionable") if asset else None,
+            "exchange": asset.get("exchange") if asset else None,
+        },
+        "environment": "paper",
+    }
+
+
+@app.post("/api/paper/orders")
+def paper_submit_order(req: PaperOrderRequest):
+    """Place a paper order and return the broker's own reply.
+
+    Validated again here rather than trusting the preview: a preview is a
+    separate request and nothing guarantees the body reaching this route is
+    the body that was previewed.
+    """
+    problems = _validate_paper_order(req)
+    if problems:
+        raise HTTPException(status_code=422, detail="; ".join(problems))
+
+    client = _paper_client()
+    order = _broker_call(lambda: client.submit_order(
+        symbol=req.symbol.strip().upper(),
+        qty=req.qty,
+        side=req.side.lower(),
+        order_type=req.order_type.lower(),
+        time_in_force=req.time_in_force.lower(),
+        limit_price=req.limit_price,
+    ))
+    return {"order": order, "source": "alpaca paper", "environment": "paper"}
+
+
+@app.delete("/api/paper/orders/{order_id}")
+def paper_cancel_order(order_id: str):
+    client = _paper_client()
+    if not order_id or len(order_id) > 64:
+        raise HTTPException(status_code=422, detail="invalid order id")
+    _broker_call(lambda: client.cancel_order(order_id))
+    return {"cancelled": order_id, "environment": "paper"}
