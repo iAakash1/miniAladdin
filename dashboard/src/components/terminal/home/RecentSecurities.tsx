@@ -10,27 +10,18 @@
  */
 
 import Link from 'next/link'
-import { useEffect, useState, useSyncExternalStore } from 'react'
+import { useSyncExternalStore } from 'react'
 
 import { Panel, StateBlock, Value } from '@/components/system'
-import { fetchQuotes, type Quote } from '@/lib/security'
+import { useQuotes } from '@/lib/use-quotes'
 import { emptySnapshot, recentSnapshot, subscribeSymbols } from '@/lib/symbols'
 
 export default function RecentSecurities() {
   const recent = useSyncExternalStore(subscribeSymbols, recentSnapshot, emptySnapshot)
-  const [quotes, setQuotes] = useState<{ for: string; q: Record<string, Quote> } | null>(null)
-  const key = recent.slice(0, 8).join(',')
-
-  useEffect(() => {
-    if (!key) return
-    const c = new AbortController()
-    fetchQuotes(key.split(','), c.signal)
-      .then((q) => setQuotes({ for: key, q }))
-      .catch(() => { /* the list is still useful without prices */ })
-    return () => c.abort()
-  }, [key])
-
-  const q = quotes?.for === key ? quotes.q : {}
+  // Shares the hub with the watchlist beside it. These lists overlap heavily,
+  // and two requests for overlapping sets is two fan-outs for one set of facts
+  // — and two prices for the same symbol on one screen.
+  const { quotes: q } = useQuotes(recent.slice(0, 8))
 
   if (!recent.length) {
     return (

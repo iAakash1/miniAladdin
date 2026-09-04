@@ -27,7 +27,8 @@ import { useEffect, useState } from 'react'
 import { Panel, Prose, StateBlock, Strip } from '@/components/system'
 import { TimeSeries } from '@/components/system/charts'
 import { ObjectHeader } from '@/components/system/composition'
-import { fetchBars, fetchQuotes, type Bar, type Quote } from '@/lib/security'
+import { fetchBars, type Bar } from '@/lib/security'
+import { useQuotes } from '@/lib/use-quotes'
 import { isWatched, toggleWatch } from '@/lib/symbols'
 
 const RANGES = [
@@ -42,20 +43,14 @@ const RANGES = [
 interface Settled<T> { for: string; value?: T; error?: string }
 
 export default function SecurityView({ symbol }: { symbol: string }) {
-  const [quote, setQuote] = useState<Settled<Quote | null> | null>(null)
+  // The same hub the watchlist reads. Opening a security already on the
+  // watchlist costs no extra request, and the two cannot disagree on its price.
+  const { quotes, error: quoteError, at: quoteAt } = useQuotes([symbol])
   const [bars, setBars] = useState<Settled<Bar[]> | null>(null)
   const [range, setRange] = useState('1y')
   const [watched, setWatched] = useState(false)
 
   useEffect(() => { setWatched(isWatched(symbol)) }, [symbol])
-
-  useEffect(() => {
-    const c = new AbortController()
-    fetchQuotes([symbol], c.signal)
-      .then((q) => setQuote({ for: symbol, value: q[symbol] ?? null }))
-      .catch((e: Error) => { if (e.name !== 'AbortError') setQuote({ for: symbol, error: e.message }) })
-    return () => c.abort()
-  }, [symbol])
 
   useEffect(() => {
     const tag = `${symbol}:${range}`
@@ -66,9 +61,8 @@ export default function SecurityView({ symbol }: { symbol: string }) {
     return () => c.abort()
   }, [symbol, range])
 
-  const q = quote?.for === symbol ? quote : null
   const b = bars?.for === `${symbol}:${range}` ? bars : null
-  const price = q?.value ?? null
+  const price = quotes[symbol] ?? null
   const series = b?.value ?? []
 
   const last = series.length ? series[series.length - 1] : null
@@ -88,7 +82,7 @@ export default function SecurityView({ symbol }: { symbol: string }) {
         glyph="T"
         name={symbol}
         kind="security"
-        state={price ? (price.stale ? 'stale' : 'live') : q?.error ? 'unavailable' : 'waking'}
+        state={price ? (quoteError || price.stale ? 'stale' : 'live') : quoteError ? 'unavailable' : quoteAt ? 'unavailable' : 'waking'}
         detail={price?.source ? `quote via ${price.source}` : undefined}
         facts={[
           { label: 'Last', value: price?.price ?? null, kind: 'currency' },

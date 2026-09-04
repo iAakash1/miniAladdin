@@ -17,41 +17,20 @@
  */
 
 import Link from 'next/link'
-import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
+import { useSyncExternalStore } from 'react'
 
 import { Panel, Prose, StateBlock, Status, Value } from '@/components/system'
-import { fetchQuotes, type Quote } from '@/lib/security'
+import { useQuotes } from '@/lib/use-quotes'
 import {
   emptySnapshot, subscribeSymbols, toggleWatch, watchSnapshot,
 } from '@/lib/symbols'
 
-/** Tagged with the symbol set it answers, so a stale reply cannot land late. */
-interface Settled { for: string; quotes?: Record<string, Quote>; error?: string }
-
 export default function Watchlist() {
   const symbols = useSyncExternalStore(subscribeSymbols, watchSnapshot, emptySnapshot)
-  const [settled, setSettled] = useState<Settled | null>(null)
-  const key = symbols.join(',')
-
-  const load = useCallback((signal?: AbortSignal) => {
-    if (!key) return
-    fetchQuotes(key.split(','), signal)
-      .then((q) => setSettled({ for: key, quotes: q }))
-      .catch((e: Error) => { if (e.name !== 'AbortError') setSettled({ for: key, error: e.message }) })
-  }, [key])
-
-  useEffect(() => {
-    const c = new AbortController()
-    load(c.signal)
-    // Refreshed rather than left to go quietly stale on screen. Thirty seconds
-    // is polite to the provider and fast enough that no row sits minutes
-    // behind without saying so.
-    const timer = window.setInterval(() => load(), 30_000)
-    return () => { c.abort(); window.clearInterval(timer) }
-  }, [load])
-
-  const current = settled?.for === key ? settled : null
-  const quotes = current?.quotes ?? {}
+  // The hub unions this panel's symbols with every other panel's, issues one
+  // request, and refreshes on one timer. Two panels showing AAPL cannot show
+  // two different prices for it.
+  const { quotes, error, at } = useQuotes(symbols)
 
   if (!symbols.length) {
     return (
@@ -69,14 +48,14 @@ export default function Watchlist() {
     <Panel
       title="Watchlist"
       subtitle={`${symbols.length} ${symbols.length === 1 ? 'security' : 'securities'}`}
-      state={current?.error ? 'unavailable' : current ? 'live' : 'waking'}
+      state={error ? 'stale' : at ? 'live' : 'waking'}
       flush
     >
-      {current?.error ? (
+      {error ? (
         <StateBlock
-          state="unavailable"
-          title="Quotes could not be read"
-          detail={`${current.error}. The list is unchanged; only the prices are missing, and no last price is shown in their place.`}
+          state="stale"
+          title="The last quote refresh failed"
+          detail={`${error}. Any prices below are from the previous successful read${at ? ` at ${at.slice(11, 19)}` : ''}, not from now.`}
         />
       ) : null}
 
@@ -111,8 +90,8 @@ export default function Watchlist() {
                   </td>
                   <td>
                     {q ? (
-                      <Status state={q.stale ? 'stale' : 'live'} label={q.source ?? 'unknown'} />
-                    ) : current ? (
+                      <Status state={error || q.stale ? 'stale' : 'live'} label={q.source ?? 'unknown'} />
+                    ) : at ? (
                       <Status state="unavailable" label="no quote" />
                     ) : (
                       <Status state="waking" label="reading" />
