@@ -91,12 +91,67 @@ test('every hand-built table in the product is accounted for', () => {
      way — the new table was checked in the DOM regardless, at five headers
      against five cells across all eleven rows.
 
-     Every one was read in the rendered DOM before this number moved, and the
-     one time it did not move. */
+     42 → 43 for the paper workspace, and this one is different: its positions
+     and orders tables cannot be rendered in this environment at all. They
+     require a configured Alpaca paper account, and pointing the broker client
+     at a local stub is refused by the client's own paper-host guarantee —
+     correctly. So the DOM check every entry above was held to is not possible
+     here, and rather than claim it, the test below counts their headers and
+     cells at source. That is weaker, and it is what is true. The DOM check is
+     owed the first time a paper account is configured.
+
+     Every other one was read in the rendered DOM before this number moved,
+     and the one time it did not move. */
   assert.equal(
-    handBuilt.length, 42,
+    handBuilt.length, 43,
     `hand-built tables changed from 42 to ${handBuilt.length}. Route the new one ` +
     'through DataTable, or check its alignment in the rendered DOM and update ' +
     'this count deliberately.',
   )
+})
+
+
+/* The two paper tables, checked where they can be checked.
+
+   Every other hand-built table in this product was verified in the rendered
+   DOM. These two cannot be: rendering them needs a configured Alpaca paper
+   account, and pointing the broker at a local stub is refused by the paper-
+   host guarantee that exists precisely so it cannot be pointed anywhere else.
+
+   So this counts headers against cells in the source instead. It is a weaker
+   check than the DOM one and it is honest about being weaker — but it is
+   strictly better than the alternative, which was to move the count and say
+   nothing. The Evidence bug this whole file exists for was nine cells against
+   eight headers; this would have caught that. */
+test('the paper tables emit one cell per header', () => {
+  const src = readFileSync(
+    join(ROOT, 'components/terminal/paper/PaperWorkspace.tsx'), 'utf8',
+  )
+
+  // Each <thead>…</thead> and the <tbody> row template that follows it.
+  const heads = [...src.matchAll(/<thead>([\s\S]*?)<\/thead>/g)].map((m) => m[1])
+  const bodies = [...src.matchAll(/<tbody>([\s\S]*?)<\/tbody>/g)].map((m) => m[1])
+
+  assert.equal(heads.length, 2, 'expected exactly the positions and orders tables')
+  assert.equal(bodies.length, 2)
+
+  heads.forEach((head, i) => {
+    const headers = (head.match(/<th\b/g) ?? []).length
+    const cells = (bodies[i].match(/<td\b/g) ?? []).length
+    assert.equal(
+      cells, headers,
+      `paper table ${i} renders ${cells} cells against ${headers} headers`,
+    )
+  })
+})
+
+test('every paper table header names its column for a screen reader', () => {
+  const src = readFileSync(
+    join(ROOT, 'components/terminal/paper/PaperWorkspace.tsx'), 'utf8',
+  )
+  const headers = src.match(/<th\b[^>]*>/g) ?? []
+  assert.ok(headers.length > 0)
+  for (const h of headers) {
+    assert.ok(h.includes('scope="col"'), `a paper table header has no scope: ${h}`)
+  }
 })

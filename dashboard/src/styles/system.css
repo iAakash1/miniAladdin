@@ -2409,3 +2409,240 @@ a.tape:hover .tape__sym { color: var(--accent); }
 @media (prefers-reduced-motion: reduce) {
   .wb-workspace { scroll-behavior: auto; }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   The paper account
+
+   Reads like the instrument field, because it is one: a single figure that
+   matters, its movement beside it, and the supporting balances on one line
+   underneath. The difference is the word PAPER, which appears in the heading
+   rather than as a badge in a corner — there is no scroll position on this
+   screen from which the environment is ambiguous.
+   ───────────────────────────────────────────────────────────────────────── */
+
+.paper { padding: var(--d-3) 0 0; }
+
+.paper__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--d-3);
+  padding-bottom: var(--d-2);
+  flex-wrap: wrap;
+}
+
+.paper__title {
+  margin: 0;
+  font: 500 var(--t-label) / 1 var(--font-sans);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.paper__note {
+  font: 400 var(--t-meta) / 1 var(--font-mono);
+  color: var(--ink-faint);
+}
+
+.paper__equity {
+  display: flex;
+  align-items: baseline;
+  gap: var(--d-6);
+  flex-wrap: wrap;
+  padding: var(--d-3) 0;
+  border-top: 1px solid var(--rule-strong);
+  border-bottom: 1px solid var(--rule);
+}
+
+.paper__big {
+  font: 500 var(--t-figure) / 1 var(--font-mono);
+  font-variant-numeric: tabular-nums slashed-zero;
+  letter-spacing: var(--tracking-figure);
+  color: var(--ink);
+}
+
+.paper__delta { display: flex; align-items: baseline; gap: var(--d-2); }
+
+.paper__delta .k {
+  font: 500 var(--t-micro) / 1 var(--font-sans);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.paper__delta .v {
+  display: flex;
+  align-items: baseline;
+  gap: var(--d-2);
+  font: 500 var(--t-value) / 1 var(--font-mono);
+  font-variant-numeric: tabular-nums slashed-zero;
+}
+
+.paper__pct { font-size: var(--t-meta); }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   The order ticket
+
+   Four states in one region, not four screens: what you want, what it would
+   cost, the confirmation, the broker's reply. It sits inside the security
+   page rather than over it, because an order is a thing you do *to* the
+   object you are looking at, and a modal that hides the price you are
+   reacting to is a modal that makes the decision harder.
+   ───────────────────────────────────────────────────────────────────────── */
+
+.ticket {
+  border: 1px solid var(--rule-strong);
+  background: var(--p-panel);
+  /* The one place in the product with an accent edge. An order is the only
+     irreversible-feeling action here, and it earns being marked. */
+  border-left: 2px solid var(--accent);
+}
+
+.ticket__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--d-3);
+  padding: var(--d-3);
+  border-bottom: 1px solid var(--rule);
+}
+
+.ticket__title {
+  margin: 0;
+  font: 500 var(--t-lead) / 1 var(--font-sans);
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.ticket__close { margin-left: auto; }
+
+.ticket__body { padding: var(--d-3); display: flex; flex-direction: column; gap: var(--d-3); }
+
+.ticket__fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--d-3);
+}
+
+.ticket__field { display: flex; flex-direction: column; gap: var(--d-1); min-width: 0; }
+.ticket__field--wide { grid-column: 1 / -1; }
+
+.ticket__field .k {
+  font: 500 var(--t-micro) / 1 var(--font-sans);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.ticket__field .opt { text-transform: none; letter-spacing: 0; font-style: italic; }
+
+.ticket__thesis { resize: vertical; min-height: 3.2rem; font-family: var(--font-sans); }
+
+.ticket__tif, .ticket__basis {
+  margin: 0;
+  font: 400 var(--t-meta) / 1.45 var(--font-sans);
+  color: var(--ink-faint);
+}
+
+.ticket__acts { display: flex; gap: var(--d-2); flex-wrap: wrap; }
+
+/* ── review ──────────────────────────────────────────────────────────────── */
+
+.ticket__summary {
+  display: flex;
+  align-items: baseline;
+  gap: var(--d-2);
+  padding-bottom: var(--d-2);
+  border-bottom: 1px solid var(--rule);
+}
+
+.ticket__verb {
+  font: 500 var(--t-label) / 1 var(--font-mono);
+  letter-spacing: 0.06em;
+  color: var(--ink);
+}
+.ticket__qty, .ticket__sym {
+  font: 500 var(--t-lead) / 1 var(--font-mono);
+  font-variant-numeric: tabular-nums slashed-zero;
+  color: var(--ink);
+}
+.ticket__meta { margin-left: auto; font: 400 var(--t-meta) / 1 var(--font-mono); color: var(--ink-faint); }
+
+.ticket__facts { display: flex; flex-wrap: wrap; gap: var(--d-2) var(--d-5); margin: 0; }
+.ticket__facts > div { display: flex; align-items: baseline; gap: var(--d-2); }
+.ticket__facts dt {
+  font: 500 var(--t-micro) / 1 var(--font-sans);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.ticket__facts dd {
+  margin: 0;
+  font: 500 var(--t-body) / 1 var(--font-mono);
+  font-variant-numeric: tabular-nums slashed-zero;
+  color: var(--ink);
+}
+.ticket__id { font-size: var(--t-micro); color: var(--ink-muted); word-break: break-all; }
+
+.ticket__problems {
+  border-left: 2px solid var(--s-blocked);
+  padding-left: var(--d-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--d-1);
+}
+.ticket__problems ul { margin: 0; padding-left: 1.1rem; }
+.ticket__problems li {
+  font: 400 var(--t-body) / var(--lh-body) var(--font-sans);
+  color: var(--ink);
+}
+
+.ticket__thesis-note { border-left: 2px solid var(--rule-strong); padding-left: var(--d-3); }
+.ticket__thesis-note .k {
+  display: block;
+  font: 500 var(--t-micro) / 1 var(--font-sans);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: var(--d-1);
+}
+.ticket__thesis-note p {
+  margin: 0;
+  font: 400 var(--t-body) / var(--lh-body) var(--font-sans);
+  color: var(--ink);
+}
+
+/* The one primary button in the product. Reserved for the action that talks
+   to a broker; everything else is a plain control. */
+.sys-btn--primary {
+  background: var(--p-inverse);
+  color: var(--p-panel);
+  border-color: var(--p-inverse);
+}
+.sys-btn--primary:hover:not(:disabled) { background: var(--ink); border-color: var(--ink); }
+.sys-btn--primary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* The paper account on home: a line, like the watchlist and recents beside
+   it, not a fourth panel competing with the market. */
+.pline {
+  display: flex;
+  align-items: baseline;
+  gap: var(--d-4);
+  padding: var(--d-3) 0;
+  border-top: 1px solid var(--rule-strong);
+  flex-wrap: wrap;
+}
+.pline__k {
+  margin: 0;
+  min-width: 9rem;
+  font: 500 var(--t-label) / 1.2 var(--font-sans);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.pline__v { display: flex; align-items: baseline; gap: var(--d-4); flex-wrap: wrap; }
+.pline__eq {
+  font: 500 var(--t-lead) / 1 var(--font-mono);
+  font-variant-numeric: tabular-nums slashed-zero;
+  color: var(--ink);
+}
+.pline__d { font: 500 var(--t-body) / 1 var(--font-mono); font-variant-numeric: tabular-nums; }
+.pline__n { font: 400 var(--t-meta) / 1 var(--font-mono); color: var(--ink-faint); }
+.pline .band__more { margin-left: auto; }

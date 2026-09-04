@@ -22,7 +22,7 @@
  * empty one, and certainly not a placeholder shaped like data.
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 
 import { Panel, StateBlock, Status, Strip, Prose, Value, type ResearchState } from '@/components/system'
 import { TimeSeries } from '@/components/system/charts'
@@ -31,7 +31,10 @@ import { format } from '@/lib/quantity'
 import { titleCase, venueLabel } from '@/lib/text'
 import { fetchResearch } from '@/lib/research-cache'
 import { useQuotes } from '@/lib/use-quotes'
-import { isWatched, recentSnapshot, toggleWatch } from '@/lib/symbols'
+import { fetchPaperStatus, type PaperStatus } from '@/lib/paper'
+import { readResource } from '@/lib/resource'
+import OrderTicket from '@/components/terminal/paper/OrderTicket'
+import { emptySnapshot, isWatched, recentSnapshot, subscribeSymbols, toggleWatch } from '@/lib/symbols'
 
 const RANGES = [
   { key: '1mo', label: '1M' },
@@ -53,6 +56,37 @@ export default function SecurityView({ symbol }: { symbol: string }) {
   const [watched, setWatched] = useState(false)
 
   const [identity, setIdentity] = useState<Settled<SecurityIdentity | null> | null>(null)
+  const [ticketOpen, setTicketOpen] = useState(false)
+  /* Whether this deployment has a paper account at all. Read once, cheaply,
+     so the action is offered only where it can actually be taken — an action
+     that opens onto "not configured" is worse than no action. */
+  const [paper, setPaper] = useState<PaperStatus | null>(null)
+  /* The research programme's verdict, read from the selection artifact rather
+     than inferred. A thesis records the state at the moment of the order, and
+     a snapshot that says "blocked" because a request failed would be a
+     recorded claim about research that nobody made. Absent stays absent. */
+  const [researchState, setResearchState] = useState<string | null>(null)
+  useEffect(() => {
+    let alive = true
+    readResource<{ verdict?: { status?: string; passed?: boolean } }>(
+      '/api/quant/selection/EXP-007', 'artifact',
+    )
+      .then((d) => {
+        if (!alive || !d.verdict) return
+        const passed = d.verdict.passed
+        if (typeof passed !== 'boolean') return
+        setResearchState(passed ? 'EXP-007 · production candidate' : 'EXP-007 · no production candidate')
+      })
+      .catch(() => { /* no verdict read means no verdict recorded */ })
+    return () => { alive = false }
+  }, [])
+  useEffect(() => {
+    let alive = true
+    fetchPaperStatus()
+      .then((s) => { if (alive) setPaper(s) })
+      .catch(() => { /* absent is the same as unconfigured for this decision */ })
+    return () => { alive = false }
+  }, [])
 
   useEffect(() => { setWatched(isWatched(symbol)) }, [symbol])
 
@@ -84,7 +118,14 @@ export default function SecurityView({ symbol }: { symbol: string }) {
   // The most recent other symbol this browser opened, as the default
   // comparison partner. Null on a first visit, where the action is hidden
   // rather than offered against nothing.
-  const against = recentSnapshot().find((s) => s !== symbol) ?? null
+  /* Read through the store rather than called during render. recentSnapshot()
+     reads localStorage, which does not exist on the server — so the server
+     rendered no comparison action and the client rendered one, and the markup
+     did not match. useSyncExternalStore is built for exactly this: it takes a
+     server snapshot separately, so both sides agree and the value arrives on
+     the client without a mismatch. */
+  const recent = useSyncExternalStore(subscribeSymbols, recentSnapshot, emptySnapshot)
+  const against = recent.find((s) => s !== symbol) ?? null
 
   useEffect(() => {
     const tag = `${symbol}:${range}`
@@ -202,8 +243,29 @@ export default function SecurityView({ symbol }: { symbol: string }) {
               compare with {against}
             </a>
           ) : null}
+          {/* Offered only where a paper account exists. The label says paper
+              every time it is rendered: an action reading "trade" would have
+              implied something untrue before it was even clicked. */}
+          {paper?.configured ? (
+            <button
+              type="button"
+              className="sys-btn"
+              aria-expanded={ticketOpen}
+              onClick={() => setTicketOpen((v) => !v)}
+            >
+              {ticketOpen ? 'close ticket' : 'paper trade'}
+            </button>
+          ) : null}
         </div>
       </div>
+
+      {ticketOpen && paper?.configured ? (
+        <OrderTicket
+          symbol={symbol}
+          researchState={researchState}
+          onClose={() => setTicketOpen(false)}
+        />
+      ) : null}
 
       {/* Seamed to the field above: the instrument's rule is this panel's top
           edge, so price and history read as one object rather than as a

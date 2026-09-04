@@ -48,6 +48,15 @@ export const DESTINATIONS: DestinationGroup[] = [
       { href: '/terminal/security', label: 'Securities', glyph: 'T', key: 's', answers: 'one name: price, history, and our record against it' },
       { href: '/terminal/market', label: 'Market', glyph: 'M', key: 'j', answers: 'indices, breadth, sectors and what changed' },
       { href: '/terminal/portfolio', label: 'Watchlists', glyph: 'W', key: 'z', answers: 'the names you are following' },
+      // Named "Paper", never "Trade" or "Portfolio". The label is the first
+      // and most-seen place the environment is stated, and a nav entry that
+      // reads "Trade" has already implied something untrue.
+      //
+      // The chord is `i`, not `p`: Performance has held `p` since before this
+      // existed, and quietly taking a letter out from under an existing
+      // workspace breaks the muscle memory of anyone already using it. The
+      // route-integrity test caught the collision, which is what it is for.
+      { href: '/terminal/paper', label: 'Paper', glyph: 'P', key: 'i', answers: 'a simulated account — no real money' },
     ],
   },
   {

@@ -71,6 +71,10 @@ export function contextCommands(ctx: RouteContext): ContextCommand[] {
       { id: 'fundamentals', label: `${symbol} fundamentals`, note: 'valuation, margins, growth, ownership', href: `${sec(symbol)}#sec-fundamentals` },
       { id: 'filings', label: `${symbol} filings and coverage`, note: 'primary source documents', href: `${sec(symbol)}#sec-company` },
       { id: 'price', label: `${symbol} price history`, href: `${sec(symbol)}#sec-price` },
+      /* Reaches the security page, where the ticket lives — not a separate
+         trading screen. An order is something done to the object in front of
+         you, and the label says paper wherever it appears. */
+      { id: 'paper', label: `Paper trade ${symbol}`, note: 'simulated account — no real money', href: sec(symbol) },
     ]
   }
 

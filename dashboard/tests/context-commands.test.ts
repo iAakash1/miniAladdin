@@ -69,3 +69,18 @@ test('symbols are encoded into the routes they build', () => {
   assert.ok(compare?.href?.includes('BRK.B') || compare?.href?.includes('BRK'), 'the symbol is missing from the route')
   for (const cmd of c) if (cmd.href) assert.ok(!cmd.href.includes(' '), 'an unencoded space reached a route')
 })
+
+test('a security offers the paper ticket, labelled as paper', () => {
+  const c = contextCommands({ pathname: '/terminal/security', params: { symbol: 'AAPL' } })
+  const paper = c.find((x) => x.id === 'paper')
+  assert.ok(paper, 'no paper command on a security')
+  // The word appears in the label itself, not only in a note. A command
+  // reading "Trade AAPL" has implied something untrue before it is clicked.
+  assert.match(paper?.label ?? '', /paper/i)
+  assert.match(paper?.note ?? '', /no real money/i)
+})
+
+test('the paper command opens the security, not a separate trading screen', () => {
+  const c = contextCommands({ pathname: '/terminal/security', params: { symbol: 'AAPL' } })
+  assert.equal(c.find((x) => x.id === 'paper')?.href, '/terminal/security?symbol=AAPL')
+})

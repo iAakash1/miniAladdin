@@ -7,6 +7,7 @@ import ResearchStatus from '@/components/terminal/home/ResearchStatus'
 import MarketBand from '@/components/terminal/home/MarketBand'
 import HomeContext from '@/components/terminal/home/HomeContext'
 import SectorMovers from '@/components/terminal/home/SectorMovers'
+import PaperLine from '@/components/terminal/home/PaperLine'
 import { Grid } from '@/components/system'
 
 export const metadata: Metadata = {
@@ -54,6 +55,10 @@ export default function TerminalHome() {
 
       {/* One line. The archive is a link away. */}
       <ResearchStatus />
+
+      {/* And the simulated account, if this deployment has one. A line either
+          way — figures when there is an account, a sentence when there is not. */}
+      <PaperLine />
     </Workbench>
   )
 }
