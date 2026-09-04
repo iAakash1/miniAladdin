@@ -140,7 +140,11 @@ export default function SecurityContext({ symbol }: { symbol: string }) {
       <p className="objidx__foot">
         {waiting
           ? 'The research fan-out takes half a minute. Price and history above are already final.'
-          : 'Counts are what the providers returned for this name.'}
+          : failed
+            /* Said plainly rather than reusing the success line, which claimed
+               these were "what the providers returned" when nothing was. */
+            ? 'The research service did not answer, so this name has no section counts. Price and history above come from the market providers and are unaffected.'
+            : 'Counts are what the providers returned for this name.'}
       </p>
     </Panel>
   )
