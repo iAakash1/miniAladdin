@@ -82,6 +82,11 @@ export default function SecurityContext({ symbol }: { symbol: string }) {
               absent: !d.filings?.filings?.length,
             },
             {
+              id: 'sec-market',
+              label: 'Market statistics',
+              note: 'derived here',
+            },
+            {
               id: 'sec-financials',
               label: 'Filed financials',
               // Concepts that came back with at least one fact. A concept

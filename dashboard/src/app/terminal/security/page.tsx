@@ -5,6 +5,7 @@ import SecurityView from '@/components/terminal/security/SecurityView'
 import SecurityProfile from '@/components/terminal/security/SecurityProfile'
 import Fundamentals2 from '@/components/terminal/security/Fundamentals2'
 import Financials from '@/components/terminal/security/Financials'
+import MarketStats from '@/components/terminal/security/MarketStats'
 import Options from '@/components/terminal/security/Options'
 import SecurityResearch from '@/components/terminal/security/SecurityResearch'
 import SecurityContext from '@/components/terminal/security/SecurityContext'
@@ -55,6 +56,10 @@ export default async function SecurityPage({
               what the company reported to the SEC; the other is computed by a
               vendor. Putting them in one grid would make it impossible to say
               which a given number is. */}
+          {/* Arithmetic on the price series — twenty-four fields the research
+              endpoint has always returned and this page never read, because
+              the components that consume them are not on this route. */}
+          <div id="sec-market"><MarketStats symbol={symbol} /></div>
           <div id="sec-financials"><Financials symbol={symbol} /></div>
           {/* Options, to whatever depth the provider permits. One provider in
               this stack supports them, so an absent chain says which of three

@@ -2841,3 +2841,50 @@ a.tape:hover .tape__sym { color: var(--accent); }
   font: 400 var(--t-meta) / var(--lh-body) var(--font-mono);
   color: var(--ink-muted);
 }
+
+/* ── the fifty-two week range ───────────────────────────────────────────── */
+
+/* A position, not a score. The track shows where the last price sits between
+   the annual extremes; it carries no judgement about whether that is good. */
+.mkt__range { padding: var(--d-3); border-bottom: 1px solid var(--rule); }
+
+.mkt__range-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--d-3);
+  margin-bottom: var(--d-2);
+}
+
+.mkt__track {
+  position: relative;
+  height: 4px;
+  background: var(--p-sunken);
+  border: 1px solid var(--rule);
+}
+.mkt__fill { position: absolute; inset: 0 auto 0 0; background: var(--rule-strong); }
+.mkt__pin {
+  position: absolute;
+  top: -4px;
+  width: 2px;
+  height: 10px;
+  background: var(--ink);
+  transform: translateX(-1px);
+}
+
+.mkt__ends {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--d-2);
+  font: 500 var(--t-meta) / 1 var(--font-mono);
+  font-variant-numeric: tabular-nums slashed-zero;
+  color: var(--ink);
+}
+.mkt__ends em {
+  font-style: normal;
+  font-family: var(--font-sans);
+  font-size: var(--t-micro);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}

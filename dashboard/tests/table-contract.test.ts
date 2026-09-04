@@ -125,10 +125,14 @@ test('every hand-built table in the product is accounted for', () => {
      derive from one list cannot go out of alignment the way the Evidence
      table did.
 
+     46 → 47 for the market statistics. Two headers against two cells, fixed,
+     and checked at source for the same reason as the comparison above: the
+     browser session is gone, not the data.
+
      Every other one was read in the rendered DOM before this number moved,
-     and the two times it did not. */
+     and the three times it did not. */
   assert.equal(
-    handBuilt.length, 46,
+    handBuilt.length, 47,
     `hand-built tables changed from 42 to ${handBuilt.length}. Route the new one ` +
     'through DataTable, or check its alignment in the rendered DOM and update ' +
     'this count deliberately.',
@@ -163,6 +167,10 @@ test('every hand-built table in the product is accounted for', () => {
 const CREDENTIAL_GATED = [
   'components/terminal/paper/PaperWorkspace.tsx',
   'components/terminal/security/Options.tsx',
+  // Auth-gated rather than credential-gated: this one renders with the data
+  // already on hand, but the terminal is behind Clerk and this session's
+  // browser lost its sign-in. Same weaker check, different reason.
+  'components/terminal/security/MarketStats.tsx',
 ]
 
 /* A table whose headers and cells both come from one array cannot fall out of
