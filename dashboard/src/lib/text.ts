@@ -50,6 +50,12 @@ function word(raw: string, index: number, total: number): string {
   // A token carrying digits or an ampersand is a styling — 3M, AT&T, S&P.
   if (/[0-9&]/.test(bare)) return bare + trail
 
+  /* A lone letter is a share class, not a word. "APPLOVIN CORP-CLASS A" came
+     back as "Applovin Corp-Class a", because the minor-word list contains the
+     article "a" — and a lowercase class letter reads as a typo in a list
+     whose whole purpose is telling two listings of one company apart. */
+  if (bare.length === 1) return bare.toUpperCase() + trail
+
   const lower = bare.toLowerCase()
   if (index > 0 && MINOR.has(lower)) return lower + trail
 

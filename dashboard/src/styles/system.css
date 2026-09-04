@@ -2313,3 +2313,26 @@ a.tape:hover .tape__sym { color: var(--accent); }
      two numbers beside it already carry the direction. */
   .movers__spark { display: none; }
 }
+
+/* The search panel's one provenance and key line. Sits under the results on
+   the panel's own rule, so the rows above carry nothing but the security. */
+.sec-search__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--d-3);
+  padding: var(--d-2) var(--d-3);
+  border-top: 1px solid var(--rule);
+  background: var(--p-sunken);
+  font: 400 var(--t-micro) / 1 var(--font-mono);
+  color: var(--ink-faint);
+}
+
+.sec-search__keys {
+  display: flex;
+  align-items: center;
+  gap: var(--d-1);
+  font-family: var(--font-sans);
+}
+.sec-search__keys .sys-kbd { margin-left: var(--d-2); }
+.sec-search__keys .sys-kbd:first-child { margin-left: 0; }

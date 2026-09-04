@@ -170,8 +170,7 @@ export default function SecuritySearch() {
                   onMouseEnter={() => setCursor(i)}
                 >
                   <span className="sec-search__sym">{s.symbol}</span>
-                  <span className="sec-search__name">{s.name ?? '—'}</span>
-                  {s.via ? <span className="sec-search__via">{s.via}</span> : null}
+                  <span className="sec-search__name">{s.name ?? 'name not returned'}</span>
                 </button>
               ))
             ) : (
@@ -198,6 +197,18 @@ export default function SecuritySearch() {
               ))}
             </>
           )}
+
+          {/* Where the list came from, once. It used to sit on every row,
+              where the same six words repeated down the right-hand side read
+              as a fact about each company rather than about the search. */}
+          <div className="sec-search__foot">
+            <span>{q && rows.length ? `${rows.length} match${rows.length === 1 ? '' : 'es'}` : 'symbol database'}</span>
+            <span className="sec-search__keys">
+              <kbd className="sys-kbd">↑</kbd><kbd className="sys-kbd">↓</kbd> move
+              <kbd className="sys-kbd">↵</kbd> open
+              <kbd className="sys-kbd">esc</kbd> close
+            </span>
+          </div>
         </div>
       ) : null}
     </div>

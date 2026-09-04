@@ -23,6 +23,7 @@
  */
 
 import { readResource } from './resource'
+import { titleCase } from './text'
 
 export interface SecurityIdentity {
   /** The canonical ticker, uppercased. */
@@ -89,13 +90,33 @@ export async function searchSecurities(
   if (!r.ok) throw new Error(`the symbol search returned ${r.status}`)
   const d: { results?: ScreenResult[] } = await r.json()
 
-  return (d.results ?? [])
+  const mapped = (d.results ?? [])
     .filter((x): x is ScreenResult & { symbol: string } => Boolean(x.symbol))
     .map((x) => ({
       symbol: x.symbol.toUpperCase(),
-      name: x.name ?? null,
+      name: x.name ? titleCase(x.name) : null,
       via: x.via ?? null,
     }))
+
+  /* One row per security. The screen endpoint merges several symbol
+     databases and does not reconcile them, so searching "app" returned APP
+     twice — once as "APPLOVIN CORP-CLASS A" and once as "Applovin Corp".
+     Two rows for one company in a list whose whole job is to let someone
+     pick a company is a defect, and picking either row goes to the same
+     page anyway.
+
+     The keeper is the row that carries a name, and between two named rows
+     the more specific one — a share-class suffix is information, and
+     dropping it would make two genuinely different listings look identical.
+     Ties keep the provider's own ordering, which tracks prominence. */
+  const best = new Map<string, SecurityIdentity>()
+  for (const row of mapped) {
+    const held = best.get(row.symbol)
+    if (!held) { best.set(row.symbol, row); continue }
+    if (!held.name && row.name) { best.set(row.symbol, row); continue }
+    if (held.name && row.name && row.name.length > held.name.length) best.set(row.symbol, row)
+  }
+  return [...best.values()]
 }
 
 /** Last price for one or more symbols. */

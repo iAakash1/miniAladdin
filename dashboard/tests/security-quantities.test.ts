@@ -168,3 +168,19 @@ test('stylings survive casing', () => {
   assert.equal(titleCase('AT&T INC'), 'AT&T Inc.')
   assert.equal(titleCase('3M CO'), '3M Co.')
 })
+
+/* Share classes.
+
+   "APPLOVIN CORP-CLASS A" rendered as "Applovin Corp-Class a", because the
+   minor-word list contains the article "a". In a search list whose whole
+   purpose is telling two listings of one company apart, a lowercase class
+   letter reads as a typo. */
+test('a share-class letter is not the article "a"', () => {
+  assert.equal(titleCase('APPLOVIN CORP-CLASS A'), 'Applovin Corp-Class A')
+  assert.equal(titleCase('ALPHABET INC CLASS C'), 'Alphabet Inc Class C')
+})
+
+test('minor words inside a name still lowercase', () => {
+  assert.equal(titleCase('THE HOME DEPOT INC'), 'The Home Depot Inc.')
+  assert.equal(titleCase('BANK OF AMERICA CORP'), 'Bank of America Corp.')
+})

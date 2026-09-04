@@ -78,9 +78,13 @@ export default function Palette() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null
-      const typing = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
-      if ((e.key === 'k' && (e.metaKey || e.ctrlKey)) || (e.key === '/' && !typing)) {
+      /* Command key only. `/` used to open this as well, which meant the
+         most prominent control in the shell — a box reading "Search
+         securities, tickers, companies" — was not what the keyboard reached:
+         pressing `/` opened a palette of workspace links over the top of it.
+         One key, one surface. `/` is for finding a security, which is the
+         thing a reader does constantly; ⌘K is for operating the terminal. */
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
         setOpen(true)
       }
