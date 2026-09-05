@@ -49,7 +49,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Callable, Iterable, Optional, Sequence
 
-from . import capabilities
+from . import capabilities, statements
 
 from src.providers.parallel import map_concurrent
 
@@ -630,8 +630,36 @@ def merge_fundamentals(evidence: list[Evidence]) -> Optional[dict[str, Any]]:
 
     # The reporting period is taken from the newest statement any vendor has;
     # mixing periods across vendors is exactly the error this guards.
+    #
+    # In production this is always "". `FundamentalsData` — the model every
+    # vendor here actually returns — has no `period` attribute, so the
+    # `getattr` default is what survives. It is left in place because a model
+    # that does carry a period should still be honoured, and the real period
+    # information now travels per fact in `reported` below, where it belongs:
+    # one period for a whole statement block was never right anyway, since
+    # Finnhub returns annual, quarterly and trailing figures in one response.
     period = max((getattr(d, "period", "") or "" for _, d in sources), default="")
     history = next((getattr(d, "history", []) for _, d in sources if getattr(d, "history", None)), [])
+
+    # ── The figures that were being thrown away ──────────────────────────────
+    #
+    # Every name in `_COMPARABLE_FUNDAMENTALS` except `eps` is absent from
+    # `FundamentalsData`, so the loop above can only ever populate one field.
+    # The statement figures themselves were never missing: they arrive in
+    # `vendor_metrics` — 131 keys from Finnhub, 10 from yfinance — and were
+    # dropped whole at the API boundary.
+    #
+    # They are not merged into `fields`. They cannot be: Finnhub reports
+    # revenue per share and yfinance reports it absolute, and a dictionary
+    # keyed by concept alone has nowhere to put that distinction. They are
+    # grouped by what actually makes two numbers comparable — concept, basis,
+    # period and unit together — so a spread inside a group is vendor
+    # disagreement, and figures in different groups are never differenced.
+    reported = statements.group([
+        fact
+        for provider, data in sources
+        for fact in statements.normalise(provider, getattr(data, "vendor_metrics", None))
+    ])
 
     return {
         "period": period,
@@ -639,6 +667,7 @@ def merge_fundamentals(evidence: list[Evidence]) -> Optional[dict[str, Any]]:
         "providers": sorted({p for p, _ in sources}),
         "conflicts": conflicts,
         "history": history,
+        "reported": reported,
     }
 
 

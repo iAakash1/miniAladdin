@@ -2951,3 +2951,22 @@ a.tape:hover .tape__sym { color: var(--accent); }
   font: 400 var(--t-meta) / var(--lh-body) var(--font-mono);
   color: var(--ink-muted);
 }
+
+/* ── reported figures: vendor-published, grouped by measurement ─────────── */
+
+.rep__basis { color: var(--ink-muted); }
+/* A period the vendor never stated. Italic rather than an em dash, because
+   the cell is not empty — the vendor did answer, it just did not say what
+   span the answer covers, and those are different absences. */
+.rep__unstated { color: var(--ink-faint); font-style: italic; }
+.rep__src { color: var(--ink-muted); white-space: nowrap; }
+.rep__ok,
+.rep__warn {
+  margin-left: var(--d-2);
+  font-size: var(--t-micro);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+.rep__ok { color: var(--ink-faint); }
+.rep__warn { color: var(--s-stale); }
+.rep__split td { background: color-mix(in srgb, var(--s-stale) 5%, transparent); }

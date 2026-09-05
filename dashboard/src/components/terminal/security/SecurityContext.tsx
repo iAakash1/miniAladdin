@@ -48,6 +48,7 @@ interface Payload {
   filings?: { filings?: unknown[]; xbrl?: Record<string, unknown[]> }
   news_stream?: { collected?: number; unique?: number }
   series_integrity?: { providers?: string[] }
+  statements?: { reported?: unknown[] }
 }
 
 /* Every answer is tagged with the symbol it belongs to, so a slow reply for
@@ -94,6 +95,15 @@ export default function SecurityContext({ symbol }: { symbol: string }) {
               // present but empty is not something this page can show.
               count: Object.values(d.filings?.xbrl ?? {}).filter((v) => Array.isArray(v) && v.length).length || null,
               absent: !Object.values(d.filings?.xbrl ?? {}).some((v) => Array.isArray(v) && v.length),
+            },
+            {
+              id: 'sec-reported',
+              label: 'Reported figures',
+              /* Comparable groups, not raw figures: the same concept arrives
+                 on several bases and periods, and the count that matters is
+                 how many distinct measurements came back. */
+              count: d.statements?.reported?.length ?? null,
+              absent: !d.statements?.reported?.length,
             },
             {
               id: 'sec-quality',

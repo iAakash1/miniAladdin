@@ -5,6 +5,7 @@ import SecurityView from '@/components/terminal/security/SecurityView'
 import SecurityProfile from '@/components/terminal/security/SecurityProfile'
 import Fundamentals2 from '@/components/terminal/security/Fundamentals2'
 import Financials from '@/components/terminal/security/Financials'
+import Reported from '@/components/terminal/security/Reported'
 import MarketStats from '@/components/terminal/security/MarketStats'
 import DataQuality from '@/components/terminal/security/DataQuality'
 import Options from '@/components/terminal/security/Options'
@@ -68,6 +69,13 @@ export default async function SecurityPage({
               it is the answer to the question those figures raise. */}
           <div id="sec-quality"><DataQuality symbol={symbol} /></div>
           <div id="sec-financials"><Financials symbol={symbol} /></div>
+          {/* Vendor-published figures, immediately after the filed ones and
+              never mixed with them. These were arriving on every request and
+              dying at the API boundary: the merge looked for fourteen field
+              names on a model carrying one, while the figures themselves sat
+              in `vendor_metrics`. Twenty-seven comparable groups for Apple
+              from one surviving field. */}
+          <div id="sec-reported"><Reported symbol={symbol} /></div>
           {/* Options, to whatever depth the provider permits. One provider in
               this stack supports them, so an absent chain says which of three
               things it is rather than "no data". */}
