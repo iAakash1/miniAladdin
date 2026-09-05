@@ -11,6 +11,13 @@ list is parsed from `api/index.py` decorators and matched against a
 concatenation of every `.ts`/`.tsx` file under `dashboard/src`. The vendor
 list is the `VendorClient` subclasses on disk.
 
+**Second pass, 5 September 2026.** The pipeline was traced end to end —
+provider, raw response, adapter, normalisation, service, API, frontend,
+reader — and four defects were found and fixed. Sections 1, 2, 6 and 11 are
+rewritten; the rest stands. Every figure below was re-measured after the
+fixes, and the end-to-end numbers come from a live `/api/research/AAPL`
+against the current code rather than from the recorded payload.
+
 **Where it is weaker than it looks.** Three checks could not be run.
 Authenticated browser QA is blocked — the terminal is behind Clerk, this
 session's browser pane has no sign-in, and bypassing it is out of scope, so
@@ -23,7 +30,13 @@ Polygon-compatible, and no keyed response has been observed.
 
 ## 1. The headline number
 
-**Nine of twenty-eight research payload keys reach the reader.**
+**Ten of twenty-eight research payload keys now reach the reader**, up from
+six before this pass began and nine after the previous one. `technicals`,
+`series_integrity`, `consensus_price`, `statements` and the two street blocks
+were connected across the two passes.
+
+The bigger finding is that the count was never the real problem. Three of the
+four defects below were in data that *did* reach the reader and was wrong.
 
 Not fifteen, which is what a naive substring scan reports. Six of that
 fifteen are false positives worth naming, because they are the shape of
@@ -104,47 +117,115 @@ Two of those are worth connecting rather than deleting:
 matrix (§7) needs, and `/api/graph/path` answers "how are these two
 securities related", which nothing currently asks.
 
-## 6. Defects this audit found
+## 6. Defects found, by pipeline stage
 
-**The conflict flag counts incomparable readings as disagreement.** *(fixed
-in this pass.)* `consensus_price` reports `conflict: true`, `provider_count:
-4`, `dispersion_pct: 2.2521` for Apple. Three vendors report a *last sale* —
-321.03, 320.98, 321.03, a spread of 0.02% — and the fourth reports the
-*previous session's close* from the day before. The 2.25% is the distance
-between two different measurements a day apart. Readings are now grouped by
-basis before agreement is stated.
+Ordered by where the information died. The first three were found by pulling
+on one thread: the accounting identity, which a balance sheet cannot get
+wrong.
 
-**`comparable()` called a basis mismatch a scale mismatch.** *(fixed.)* True
-of the case it was written for and false in general: two prices measured
-against a last sale and a prior close are both dollars.
+### Raw → adapter
 
-**`comparable()` had no branch for an unstated basis.** *(fixed.)* The period
-checks always had one; the basis check did not, so an unlabelled quantity
-compared against a labelled one passed in silence. yfinance returns
-321.0299…, within a rounding error of the two last sales — resembling a last
-sale is not evidence of being one.
+**`fp: FY` includes the quarters.** *(fixed.)* A 10-K tags its four quarters
+`fp: FY` alongside the annual figure. Apple's 2018 filing carries revenue of
+265.60B for 2017-10-01→2018-09-29 and 62.90B for 2018-07-01→2018-09-29 — same
+end date, same form, same `fp`. Annual spans are now measured at 300–400 days,
+which admits every 52- and 53-week year across four filers with September,
+June and January year ends and excludes every quarter.
 
-**Series agreement was reported over a subset without saying so.** *(fixed.)*
-`agreement_pct: 100.0` is computed over `shared_sessions` (65), not
-`union_sessions` (92). The other 27 sessions came from one vendor and were
-cross-checked by nothing.
+**The first alias with any data won.** *(fixed.)* Several XBRL tags map to one
+label and the loop kept whichever it met first. Apple tagged `Revenues` once,
+in 2018, and moved to the contract-with-customer tag afterwards — so Apple's
+revenue series was one fact from 2018 and Microsoft's one fact from 2010,
+while the tag carrying six years sat unused. The alias covering the most
+periods now wins and `concept_tag` records which. Not unioned: a column whose
+definition changes partway down is worse than a shorter one.
 
-**`statements.period` is an empty string.** *(open.)* The one field under
-`statements.fields` — `eps`, at 8.72665 — arrives with no period. Earnings
-per share with no period is not comparable with anything: trailing twelve
-months against a quarter is a factor-of-four error that looks like a number.
-The semantic layer has enforced period-awareness since Phase 13 and will
-refuse this, correctly. **P0 blocker on §2's top item.**
+**`fy` is the filing's year, not the fact's period.** *(fixed — the largest
+of the four.)* A 10-K carries a comparative balance sheet, so one filing
+contributes several rows per concept and all carry that filing's `fy`. Apple's
+FY2025 10-K supplies assets for period end 2025-09-27 (359.24B) and 2024-09-28
+(364.98B), both `fy: 2025`. Keyed by `fy` they collapsed and the first won —
+for Apple, the prior year. The column headed FY2025 held 2024's balance sheet
+while liabilities and equity for that column came from a different date.
 
-**Two vendor counts for the same question.** *(open.)* `analyst` reports 39
-analysts; `street_intelligence` reports 53. Both are in one payload. Neither
-is necessarily wrong — different vendors poll different panels — and showing
-either alone asserts a consensus size that the other contradicts.
+Measured live, before and after:
 
-**SEC XBRL fails `Assets = Liabilities + Equity`.** *(surfaced, not fixed —
-correctly.)* By up to 51% of assets. Reported to the reader in `Financials`
-rather than silently reconciled, because reconciling it would invent a
-statement no filer filed.
+| | before | after |
+|---|---|---|
+| AAPL revenue | 1 fact (FY2018) | 6 years, FY2020–2025 |
+| MSFT revenue | 1 fact (FY2010) | 6 years, FY2021–2026 |
+| NVDA revenue | 6 facts spanning 2018–26 | 6 contiguous years |
+| WMT revenue | 6 facts | 6 contiguous years |
+| `A = L + E` (AAPL) | fails 0.27%–12.91% | 0.0000% every year |
+| `A = L + E` (MSFT) | fails up to 12.16% | 0.0000% |
+| `A = L + E` (NVDA) | fails up to 51.28% | 0.0000% |
+
+### Adapter → normalisation
+
+**The statement merge read fourteen fields off a model with one.** *(fixed.)*
+`merge_fundamentals` iterated fourteen names via `getattr(data, name, None)`
+against `FundamentalsData`, which has only `eps` — and no `period` or
+`history` either. `statements.fields` could never hold more than one entry.
+The figures were in `vendor_metrics` (131 Finnhub keys, 10 yfinance) and were
+dropped at the API boundary by `if k not in (…, "vendor_metrics")`. Now
+normalised through an explicit map: **27 comparable groups for AAPL through
+the live API, from one surviving field.**
+
+Passing the dictionary through would have been worse than dropping it. Four
+traps, measured across AAPL, MSFT, NVDA and WMT:
+
+- **Scale differs between vendors.** Finnhub reports market cap and enterprise
+  value in millions; yfinance in units. The ratio is 966,142 / 996,663 /
+  1,020,088 / 1,033,887 across the four.
+- **Basis differs between vendors.** Finnhub reports revenue per share
+  (31.725 TTM); yfinance absolute (466,822,987,776). Their ratio is the share
+  count.
+- **One vendor mixes bases with no marker.** yfinance's `book_value` is per
+  share — 7.36 against Finnhub's named 7.3599 for AAPL, 59.565/59.5647 MSFT,
+  9.483/9.4829 NVDA — beside `total_revenue`, which is absolute.
+- **One vendor mixes scales with no marker.** `ebitda` is currency;
+  `ebitda_margins` is a percentage.
+
+### Normalisation → API
+
+**A session assembled from two different days.** *(fixed.)* `reconcile_price`
+took each session field from the first vendor supplying one. Polygon answered
+with the previous session (as_of 3 September) while Finnhub and Twelve Data
+answered with the current one, so the block published a day range of
+324.11–330.81 beside a last sale of 321.03 — a last price below its own low.
+The real low was 317.86, which two vendors reported and iteration order passed
+over. The session is now pinned to one date, the open/high/low triple comes
+from a single vendor, excluded vendors are named, and `session_coherent`
+reports whether every in-session price falls inside the range.
+
+### Why these survived
+
+Two of the four were protected by test fixtures that did not match
+production. `test_fundamentals_are_a_union…` builds a class with all fourteen
+attributes set, so the dead path was exercised against a schema that does not
+exist. `test_xbrl_keeps_latest_restatement_per_year` omitted `start` and `end`,
+which every real EDGAR row carries. Both fixtures now use the real shapes.
+
+### Still open
+
+**Two vendor counts for the same question.** *(surfaced, not reconciled —
+correctly.)* `analyst` reports 39 analysts; `street_intelligence` reports 53.
+Each vendor polls its own panel, so the counts describe different
+populations. Both are shown with one sentence explaining why they differ.
+
+**`statements.period` is the empty string.** *(superseded.)* The global period
+was always going to be wrong — Finnhub returns annual, quarterly and trailing
+figures in one response. Period now travels per fact in `statements.reported`.
+
+**Apple's dividend series is two facts.** *(open, real.)* Apple stopped using
+`PaymentsOfDividendsCommonStock`. A further alias would fix it; the concept is
+reported as sparse rather than filled.
+
+**Walmart has no Total liabilities.** *(open, real.)* It does not tag
+`Liabilities`. `LiabilitiesAndStockholdersEquity` equals assets by definition,
+so mapping it to that label would print a number four times too large under a
+correct-looking heading. The identity is reported as not computable for that
+filer.
 
 ## 7. Coverage matrix — the gap
 
@@ -190,27 +271,38 @@ the exposure is worth little until that lands.
 
 ## 11. Ranked backlog
 
-**P0**
-1. Widen `statements.fields` beyond `eps` at the source, then expose
-   `observations` through `MetricRef.conflict`. The wiring is cheap; the
-   supply is the work.
-2. Fix `statements.period` — currently `''`. Blocks (1): the semantic layer
-   will refuse a comparison of two unlabelled periods, and it is right to.
+**P0 — correctness.** None outstanding. The four found this pass are fixed
+and pinned by 39 new tests.
 
-**P1**
+**P1 — major research capability, needs code**
+1. `technical_intelligence` — indicators, trend/momentum/volatility regimes,
+   and support/resistance over a stated 40-day swing window across 253 bars.
+   Fully computed, entirely unexposed. The `levels` block is factual; the
+   `regimes` labels are interpretive and would need the same treatment the
+   street ratings got.
+2. `macro_context` — FRED series with `series_id`, `unit`, `as_of`, `prior`
+   and `change` per rate. Real primary-source data.
 3. Data coverage matrix per security; connect `/api/research/providers/health`.
-4. `technical_intelligence` — support/resistance with its 40-day lookback stated.
-5. `macro_context` — FRED series with `series_id` and `as_of` per rate.
+4. A second alias for Apple's dividends (`PaymentsOfDividends`).
 
-**P2**
-6. `analyst` and `street_intelligence`, together, with the 39-against-53
-   disagreement shown rather than resolved.
-7. Options, once a credential exists.
-8. `/api/graph/path` — relatedness between two securities.
+**P2 — meaningful, needs code**
+5. `/api/graph/path` — relatedness between two securities, uncalled.
+6. Extend the statement map: Finnhub returns 131 keys and 20 are mapped. The
+   unmapped remainder is mostly ratios, which belong on the ratio surface.
 
-**P3**
+**P2 — needs credential or entitlement**
+7. Options chain depth — blocked on an options credential.
+8. Massive — no local key; wire compatibility inferred from a 401 only.
+
+**P3 — polish**
 9. Delete or connect the remaining uncalled endpoints.
 10. `macro` — subsumed by `macro_context`; remove rather than render twice.
+
+**Not worth doing**
+- A composite data-quality score. Rejected explicitly; see §14 of the brief
+  and the tests that enforce it.
+- `ai`, `confidence`, `confidence_breakdown`, `rationale`, `risk_level` —
+  refused while the recorded research state is NO PRODUCTION CANDIDATE.
 
 ## 12. Owed verifications
 
