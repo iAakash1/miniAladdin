@@ -2998,3 +2998,10 @@ a.tape:hover .tape__sym { color: var(--accent); }
   font: 400 var(--t-micro) / 1.4 var(--font-sans);
   color: var(--ink-faint);
 }
+
+/* ── street: analyst coverage from vendors polling different panels ─────── */
+
+.st__block { padding: var(--d-3); border-bottom: 1px solid var(--rule); }
+.st__block:last-of-type { border-bottom: 0; }
+.st__block .mkt__track { margin-top: var(--d-2); }
+.st__block .sys-scroll-x { margin-top: var(--d-2); }

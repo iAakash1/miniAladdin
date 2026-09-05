@@ -49,6 +49,7 @@ interface Payload {
   news_stream?: { collected?: number; unique?: number }
   series_integrity?: { providers?: string[] }
   statements?: { reported?: unknown[] }
+  street_intelligence?: { recommendations?: { analysts?: number } }
 }
 
 /* Every answer is tagged with the symbol it belongs to, so a slow reply for
@@ -114,6 +115,15 @@ export default function SecurityContext({ symbol }: { symbol: string }) {
                  showing a one. */
               count: d.series_integrity?.providers?.length ?? null,
               absent: !d.series_integrity?.providers?.length,
+            },
+            {
+              id: 'sec-street',
+              label: 'Street',
+              /* Analysts on the ratings panel. The price-target panel counts
+                 a different number and neither is authoritative, so the index
+                 names one and the section shows both. */
+              count: d.street_intelligence?.recommendations?.analysts ?? null,
+              absent: !d.street_intelligence?.recommendations?.analysts,
             },
             {
               id: 'sec-options',

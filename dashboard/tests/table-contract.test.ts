@@ -139,10 +139,13 @@ test('every hand-built table in the product is accounted for', () => {
      cells, fixed, and counted at source for the same reason as the three
      entries above it: no Clerk session in this environment.
 
+     49 → 50 for the analyst rating distribution. Three headers against
+     three cells, fixed, counted at source — no Clerk session here.
+
      Every other one was read in the rendered DOM before this number moved,
-     and the five times it did not. */
+     and the six times it did not. */
   assert.equal(
-    handBuilt.length, 49,
+    handBuilt.length, 50,
     `hand-built tables changed from 42 to ${handBuilt.length}. Route the new one ` +
     'through DataTable, or check its alignment in the rendered DOM and update ' +
     'this count deliberately.',
@@ -183,6 +186,7 @@ const CREDENTIAL_GATED = [
   'components/terminal/security/MarketStats.tsx',
   'components/terminal/security/DataQuality.tsx',
   'components/terminal/security/Reported.tsx',
+  'components/terminal/security/Street.tsx',
 ]
 
 /* A table whose headers and cells both come from one array cannot fall out of

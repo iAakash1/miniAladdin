@@ -6,6 +6,7 @@ import SecurityProfile from '@/components/terminal/security/SecurityProfile'
 import Fundamentals2 from '@/components/terminal/security/Fundamentals2'
 import Financials from '@/components/terminal/security/Financials'
 import Reported from '@/components/terminal/security/Reported'
+import Street from '@/components/terminal/security/Street'
 import MarketStats from '@/components/terminal/security/MarketStats'
 import DataQuality from '@/components/terminal/security/DataQuality'
 import Options from '@/components/terminal/security/Options'
@@ -79,6 +80,11 @@ export default async function SecurityPage({
           {/* Options, to whatever depth the provider permits. One provider in
               this stack supports them, so an absent chain says which of three
               things it is rather than "no data". */}
+          {/* Analyst coverage from two vendors that poll different panels —
+              39 analysts by one count and 53 by the other, which is not a
+              conflict to reconcile. Both blocks were arriving on every
+              request with no rendering anywhere. */}
+          <div id="sec-street"><Street symbol={symbol} /></div>
           <div id="sec-options"><Options symbol={symbol} /></div>
           {/* Last. An analyst opening a name wants the price, the chart and the
               business before the quantitative programme — this sat third,
