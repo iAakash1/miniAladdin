@@ -299,27 +299,80 @@ def reconcile_price(evidence: list[Evidence]) -> Optional[dict[str, Any]]:
     # it is not averaged, because a spread is a property of one venue.
     quoted = next((r for r in readings if r["bid"] is not None and r["ask"] is not None), None)
 
-    # Session context, from whichever vendor supplied each field. Deliberately
-    # *not* reconciled across vendors: a session high is a fact about one
-    # venue's tape, an average volume is computed over a window each vendor
-    # chooses for itself, and a moving average carries its vendor's own
-    # adjustment conventions. Taking a median of any of them would produce a
-    # number describing no actual venue. The contributing vendor is named so
-    # the reader knows whose session they are looking at.
+    # Session context, from whichever vendor supplied each field — but only
+    # from vendors observing the *same* session.
+    #
+    # Not reconciling across vendors is right: a session high is a fact about
+    # one venue's tape, an average volume is computed over a window each
+    # vendor chooses for itself, and a moving average carries its vendor's own
+    # adjustment conventions. A median of any of them describes no actual
+    # venue.
+    #
+    # Taking each field from the first vendor that had one was not right, and
+    # produced an impossible session. For AAPL, Polygon answers with the
+    # previous session (basis "previous session close", as_of 3 September)
+    # while Finnhub and Twelve Data answer with the current one (4 September).
+    # First-wins took day_open, day_high, day_low, VWAP and trade count from
+    # Polygon and previous_close, change and change_pct from Finnhub, and
+    # published a day range of 324.11–330.81 beside a last sale of 321.03 —
+    # a last price below its own session low, which cannot happen. The real
+    # low that day was 317.86, which Finnhub and Twelve Data both reported
+    # and which iteration order passed over.
+    #
+    # So the session is pinned to one date first: the most recent one any
+    # vendor observed. Readings from an earlier session are excluded and
+    # named, and a reading with no timestamp is excluded too, because a figure
+    # that cannot be placed in a session cannot be said to belong to this one.
+    def _session_of(r: dict[str, Any]) -> Optional[str]:
+        stamp = r.get("as_of")
+        return str(stamp)[:10] if stamp else None
+
+    dated = [(r, _session_of(r)) for r in readings]
+    latest = max((d for _, d in dated if d), default=None)
+    in_session = [r for r, d in dated if d is not None and d == latest]
+    excluded = sorted(
+        {r["provider"] for r, d in dated if d is None or d != latest}
+    )
+
     def _first(field: str) -> tuple[Optional[float], Optional[str]]:
-        for r in readings:
+        for r in in_session:
             value = r.get(field)
             if value is not None:
                 return value, r["provider"]
         return None, None
 
     session: dict[str, Any] = {}
-    for field in ("day_open", "day_high", "day_low", "previous_close",
-                  "change", "change_pct", "vwap", "trade_count",
-                  "avg_volume", "ma_50", "ma_200", "market_cap"):
+
+    # The open/high/low triple comes from one vendor or not at all. Splitting
+    # it across two tapes yields a range neither venue traded: a high from one
+    # and a low from another is not a range, it is two facts about two books.
+    ohlc = next(
+        (r for r in in_session
+         if r.get("day_high") is not None and r.get("day_low") is not None),
+        None,
+    )
+    if ohlc is not None:
+        for field in ("day_open", "day_high", "day_low"):
+            if ohlc.get(field) is not None:
+                session[field] = {"value": ohlc[field], "provider": ohlc["provider"]}
+
+    for field in ("previous_close", "change", "change_pct", "vwap",
+                  "trade_count", "avg_volume", "ma_50", "ma_200", "market_cap"):
         value, provider = _first(field)
         if value is not None:
             session[field] = {"value": value, "provider": provider}
+
+    # A last price outside its own session range is a contradiction the reader
+    # is owed rather than one to quietly repair — it means the range and the
+    # price are describing different things even after the date filter.
+    coherent: Optional[bool] = None
+    if "day_high" in session and "day_low" in session and in_session:
+        band_lo = session["day_low"]["value"]
+        band_hi = session["day_high"]["value"]
+        coherent = all(
+            band_lo <= r["price"] <= band_hi
+            for r in in_session if r.get("price")
+        )
 
     return {
         "consensus": round(consensus, 4),
@@ -338,8 +391,19 @@ def reconcile_price(evidence: list[Evidence]) -> Optional[dict[str, Any]]:
         "spread_bps": quoted["spread_bps"] if quoted else None,
         "spread_source": quoted["provider"] if quoted else None,
         "volume": next((r["volume"] for r in readings if r["volume"]), None),
-        # Per-field, per-vendor session context — never a cross-vendor median.
+        # Per-field, per-vendor session context — never a cross-vendor median,
+        # and never assembled from two different days.
         "session": session or None,
+        #: The trading date every field in `session` belongs to.
+        "session_date": latest if session else None,
+        #: Vendors whose reading was for an earlier session, or carried no
+        #: timestamp at all, and so contributed nothing to `session`. Named
+        #: rather than dropped: "Polygon is absent here because it answered
+        #: with yesterday" is a different statement from "Polygon failed".
+        "session_excluded": excluded or None,
+        #: Whether every in-session last price falls inside the stated range.
+        #: None when there is no range to check against.
+        "session_coherent": coherent,
     }
 
 

@@ -2970,3 +2970,31 @@ a.tape:hover .tape__sym { color: var(--accent); }
 .rep__ok { color: var(--ink-faint); }
 .rep__warn { color: var(--s-stale); }
 .rep__split td { background: color-mix(in srgb, var(--s-stale) 5%, transparent); }
+
+/* ── observed session: reported figures, kept apart from derived ones ───── */
+
+.mkt__session { padding: var(--d-3); border-bottom: 1px solid var(--rule); }
+.mkt__obs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: var(--d-2) var(--d-3);
+  margin: var(--d-2) 0 0;
+}
+.mkt__obs-item dt {
+  font: 400 var(--t-micro) / 1 var(--font-sans);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.mkt__obs-item dd {
+  margin: 2px 0 0;
+  font: 400 var(--t-body) / var(--lh-tight) var(--font-mono);
+  color: var(--ink);
+}
+/* The vendor, small and always present. A session figure with no venue
+   attached is the thing that produced a range excluding its own last price. */
+.mkt__who {
+  display: block;
+  font: 400 var(--t-micro) / 1.4 var(--font-sans);
+  color: var(--ink-faint);
+}

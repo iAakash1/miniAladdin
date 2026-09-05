@@ -42,6 +42,21 @@ import { EmptyLine, Inspectable, Panel, Prose, StateBlock, Value } from '@/compo
 import { fetchResearch } from '@/lib/research-cache'
 import { format } from '@/lib/quantity'
 
+/** One session field, and the vendor that supplied it. */
+interface Observed { value?: number; provider?: string }
+
+interface Session {
+  day_open?: Observed
+  day_high?: Observed
+  day_low?: Observed
+  previous_close?: Observed
+  change?: Observed
+  change_pct?: Observed
+  vwap?: Observed
+  trade_count?: Observed
+  avg_volume?: Observed
+}
+
 interface Technicals {
   current_price?: number | null
   return_5d?: number | null
@@ -58,6 +73,26 @@ interface Technicals {
   eps?: number | null
 }
 
+/* The session fields worth showing, in reading order. Volume-weighted
+   average price and trade count are the two that no other surface in this
+   product has ever carried, and both are plain observations rather than
+   anything this product computed. */
+const SESSION_FIELDS: {
+  key: keyof Session
+  label: string
+  kind: 'currency' | 'count' | 'percent'
+  digits?: number
+}[] = [
+  { key: 'day_open', label: 'Open', kind: 'currency' },
+  { key: 'day_high', label: 'High', kind: 'currency' },
+  { key: 'day_low', label: 'Low', kind: 'currency' },
+  { key: 'previous_close', label: 'Previous close', kind: 'currency' },
+  { key: 'change', label: 'Change', kind: 'currency' },
+  { key: 'vwap', label: 'VWAP', kind: 'currency' },
+  { key: 'trade_count', label: 'Trades', kind: 'count', digits: 0 },
+  { key: 'avg_volume', label: 'Average volume', kind: 'count', digits: 0 },
+]
+
 /** The window every derived figure below is computed over. */
 const WINDOW = 'three months of daily closes, about 63 sessions'
 
@@ -65,7 +100,16 @@ const WINDOW = 'three months of daily closes, about 63 sessions'
 const pct = (v: number | null | undefined): number | null =>
   typeof v === 'number' && Number.isFinite(v) ? v * 100 : null
 
-type Answer = { for: string; t: Technicals } | { for: string; error: string }
+type Answer =
+  | {
+    for: string
+    t: Technicals
+    session: Session | null
+    sessionDate: string | null
+    excluded: string[]
+    coherent: boolean | null
+  }
+  | { for: string; error: string }
 
 export default function MarketStats({ symbol }: { symbol: string }) {
   const [answer, setAnswer] = useState<Answer | null>(null)
@@ -75,7 +119,24 @@ export default function MarketStats({ symbol }: { symbol: string }) {
     fetchResearch(symbol)
       .then((raw) => {
         if (!alive) return
-        setAnswer({ for: symbol, t: (raw as { technicals?: Technicals }).technicals ?? {} })
+        const d = raw as {
+          technicals?: Technicals
+          consensus_price?: {
+            session?: Session | null
+            session_date?: string | null
+            session_excluded?: string[] | null
+            session_coherent?: boolean | null
+          }
+        }
+        const c = d.consensus_price
+        setAnswer({
+          for: symbol,
+          t: d.technicals ?? {},
+          session: c?.session ?? null,
+          sessionDate: c?.session_date ?? null,
+          excluded: c?.session_excluded ?? [],
+          coherent: c?.session_coherent ?? null,
+        })
       })
       .catch((e: Error) => { if (alive) setAnswer({ for: symbol, error: e.message }) })
     return () => { alive = false }
@@ -100,8 +161,9 @@ export default function MarketStats({ symbol }: { symbol: string }) {
   }
 
   const t = settled.t
+  const session = settled.session
   const has = Object.values(t).some((v) => typeof v === 'number' && Number.isFinite(v))
-  if (!has) {
+  if (!has && !session) {
     return (
       <EmptyLine label="Market statistics">
         No price statistics were returned for this security. That is an absence
@@ -212,6 +274,68 @@ export default function MarketStats({ symbol }: { symbol: string }) {
       state="live"
       flush
     >
+      {/* Observed, not derived — and kept visibly apart from the table below
+          for that reason. Every figure carries the vendor that supplied it
+          and the session it belongs to, because assembling one session from
+          several vendors' different days is exactly what produced a day
+          range that excluded its own last price. */}
+      {session ? (
+        <div className="mkt__session">
+          <div className="mkt__range-head">
+            <span className="sys-label">Observed this session</span>
+            <span className="sys-meta">
+              {settled.sessionDate ?? 'date not stated'}
+              {settled.coherent === false ? ' · range and price disagree' : ''}
+            </span>
+          </div>
+          <dl className="mkt__obs">
+            {SESSION_FIELDS.map(({ key, label, kind, digits }) => {
+              const o = session[key]
+              if (!o || typeof o.value !== 'number') return null
+              return (
+                <div key={key} className="mkt__obs-item">
+                  <dt>{label}</dt>
+                  <dd>
+                    <Inspectable refValue={{
+                      label,
+                      display: format(o.value, kind, { digits }).text,
+                      claim: `${label} for the session of ${settled.sessionDate ?? 'an unstated date'}.`,
+                      observation: `Reported by ${o.provider ?? 'an unnamed vendor'}. Not reconciled with any other vendor — a session figure is a fact about one venue's tape.`,
+                      source: o.provider,
+                      asOf: settled.sessionDate ?? undefined,
+                      providers: o.provider ? [o.provider] : undefined,
+                      method: 'as the vendor reported it, for the most recent session any vendor observed — vendors answering with an earlier session contribute nothing here',
+                      status: 'live',
+                      freshness: 'read once per research request',
+                      assumptions: [
+                        'The vendor’s session is the same trading day this product pinned the block to.',
+                        'The figure describes that vendor’s venue, which may not be the primary listing.',
+                      ],
+                      failsWhen: [
+                        'Compared with a figure from a different vendor’s tape — volumes and ranges differ by venue.',
+                        ...(settled.excluded.length
+                          ? [`${settled.excluded.join(', ')} answered for a different session or carried no timestamp, so nothing here comes from them.`]
+                          : []),
+                      ],
+                    }}>
+                      <Value value={o.value} kind={kind} digits={digits} />
+                    </Inspectable>
+                    {o.provider ? <span className="mkt__who">{o.provider}</span> : null}
+                  </dd>
+                </div>
+              )
+            })}
+          </dl>
+          {settled.excluded.length ? (
+            <Prose size="fine">
+              {settled.excluded.join(', ')} answered for an earlier session or
+              carried no timestamp, so {settled.excluded.length === 1 ? 'it contributes' : 'they contribute'} nothing
+              above. That is a difference of timing, not a provider failure.
+            </Prose>
+          ) : null}
+        </div>
+      ) : null}
+
       {position !== null && typeof lo === 'number' && typeof hi === 'number' ? (
         <div className="mkt__range">
           <div className="mkt__range-head">
@@ -262,11 +386,14 @@ export default function MarketStats({ symbol }: { symbol: string }) {
       </div>
 
       <Prose size="fine">
-        Derived, not reported: every figure here is this product&apos;s own
-        arithmetic on {WINDOW}, and each one carries its method and the
-        conditions under which it should not be trusted. Returns are price
-        returns and exclude dividends. The annualised figures are annualised
-        from three months, which is a noisy basis for a yearly number.
+        The session figures above are reported: each is one vendor&apos;s
+        observation of one venue&apos;s tape, attributed and dated, and none of
+        them is reconciled against another. Everything in the table is
+        derived — this product&apos;s own arithmetic on {WINDOW}, each figure
+        carrying its method and the conditions under which it should not be
+        trusted. Returns are price returns and exclude dividends. The
+        annualised figures are annualised from three months, which is a noisy
+        basis for a yearly number.
       </Prose>
     </Panel>
   )

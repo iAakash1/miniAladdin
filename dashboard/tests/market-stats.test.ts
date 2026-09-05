@@ -87,3 +87,48 @@ test('an absent statistic is absent, never zero', () => {
   assert.match(M, /if \(value === null\) return/)
   assert.match(M, /not a statement that the series is flat/)
 })
+
+
+/* ── the observed session, kept apart from the derived table ────────────── */
+
+test('session figures are attributed to the vendor that supplied each one', () => {
+  /* A session high is a fact about one venue's tape. Rendering it without
+     saying whose tape is what allowed a day range assembled from two vendors'
+     different days to be published as one session. */
+  assert.match(M, /o\.provider/, 'session figures render no provider')
+  assert.match(M, /mkt__who/, 'the contributing vendor has no rendering')
+})
+
+test('the session states which trading day it belongs to', () => {
+  assert.match(M, /sessionDate/, 'the session block carries no date')
+  assert.match(M, /date not stated/, 'a missing session date renders as nothing')
+})
+
+test('vendors excluded from the session are named, not dropped', () => {
+  // "Polygon answered with yesterday" and "Polygon failed" are different
+  // statements and the reader is owed the first one.
+  assert.match(M, /settled\.excluded/, 'excluded vendors are not read')
+  assert.match(M, /difference of timing, not a provider failure/,
+    'exclusion is not distinguished from failure')
+})
+
+test('VWAP and trade count reach the reader', () => {
+  // Both arrive on every quote and neither had any rendering anywhere.
+  assert.match(M, /key: 'vwap'/, 'VWAP is still discarded')
+  assert.match(M, /key: 'trade_count'/, 'trade count is still discarded')
+})
+
+test('the panel no longer claims every figure on it is derived', () => {
+  /* The closing note used to open "Derived, not reported: every figure here
+     is this product's own arithmetic". That became false the moment observed
+     vendor figures appeared above it. */
+  assert.match(M, /session figures above are reported/,
+    'the observed block is not distinguished from the derived table')
+  assert.doesNotMatch(M, /Derived, not reported: every figure here/,
+    'the panel still claims all its figures are derived')
+})
+
+test('an incoherent session says so rather than hiding it', () => {
+  assert.match(M, /coherent === false/, 'session incoherence has no rendering')
+  assert.match(M, /range and price disagree/, 'incoherence is not stated to the reader')
+})
