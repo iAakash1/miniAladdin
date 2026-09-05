@@ -112,3 +112,41 @@ test('a concept absent for one security is not rendered as zero', () => {
   assert.match(FIN, /No fact for this year/)
   assert.doesNotMatch(FIN, /\?\?\s*0\b/, 'a missing fact falls back to zero somewhere')
 })
+
+
+/* ── the period a fact describes, not the year its filing carried ────────── */
+
+test('the period end travels into the evidence chain', () => {
+  /* EDGAR's `fy` is the filing's fiscal year, not the fact's period: Apple's
+     FY2025 10-K supplies assets for 2025-09-27 and 2024-09-28 with `fy: 2025`
+     on both. The column label is now derived from the period end, so the
+     inspector must show the date the label stands for. */
+  assert.match(FIN, /period_end\?: string/, 'the fact type carries no period end')
+  assert.match(FIN, /period ending \$\{f\.period_end\}/,
+    'the inspector still reports a fiscal year with no date behind it')
+})
+
+test('the XBRL tag is recorded on the fact', () => {
+  // Filers change tags between years. Which tag a series came from is part of
+  // what the number means, and the reason two tags are never unioned.
+  assert.match(FIN, /concept_tag\?: string/, 'the fact type carries no tag')
+  assert.match(FIN, /f\.concept_tag/, 'the tag never reaches the reader')
+  assert.match(FIN, /definition would change partway down the column/,
+    'the single-tag rule is not explained where it matters')
+})
+
+test('the reconciliation check is kept, not deleted', () => {
+  /* It was firing for an upstream reason and that reason is fixed — but the
+     check is what found the defect, and removing it now would mean the next
+     one goes unseen. */
+  assert.match(FIN, /Assets should equal liabilities plus equity/,
+    'the accounting identity check was removed')
+  assert.match(FIN, /unbalanced/, 'the identity result is no longer computed')
+})
+
+test('the panel no longer describes coverage gaps it caused itself', () => {
+  // The doc comment cited Apple's single 2018 revenue fact as evidence that
+  // filings are sparse. That was an adapter defect, not a filing one.
+  assert.doesNotMatch(FIN, /exactly one Revenue fact/,
+    'the panel still attributes its own former defect to the filings')
+})

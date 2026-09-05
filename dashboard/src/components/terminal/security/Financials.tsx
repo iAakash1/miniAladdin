@@ -8,17 +8,31 @@
  * the form it came from and the date it was filed, and every one of those
  * travels with the number to the screen.
  *
- * The design is driven by a single hazard found in the data itself. Coverage
- * is uneven: Apple has six years of net income, total assets and shareholders'
- * equity, but exactly one Revenue fact — from fiscal 2018 — and one Dividends
- * paid fact from 2017. A sheet that printed "Revenue $215.64B" next to
- * "Net income $96.99B" would be showing figures seven years apart as though
- * they described the same business, and nothing on screen would say so.
+ * The design is driven by a hazard found in the data itself: coverage is
+ * uneven, and a sheet that printed "Revenue" from one year beside "Net
+ * income" from another would show figures years apart as though they
+ * described the same business.
  *
  * So the fiscal year is not a caption here. It is the column. A concept
  * appears in the year it was filed for and nowhere else, a year with no fact
  * is an em dash rather than a carried-forward value, and a row whose most
  * recent filing is old says how old before it says anything else.
+ *
+ * Much of that unevenness turned out to be ours rather than the filers'.
+ * Apple's revenue series was a single fact from 2018 and Microsoft's a single
+ * fact from 2010, because several XBRL tags map to one label and the adapter
+ * kept whichever it met first — Apple tagged `Revenues` once, in 2018, and
+ * used the contract-with-customer tag for every year since. And the fiscal
+ * year came from EDGAR's `fy`, which is the *filing's* year rather than the
+ * fact's period: a 10-K carries a comparative balance sheet, so Apple's
+ * FY2025 filing supplies assets for both 2025-09-27 and 2024-09-28 with
+ * `fy: 2025` on both, and the column labelled FY2025 held 2024's balance
+ * sheet. Facts are now keyed by the period they describe, which is why the
+ * reconciliation warning below has stopped firing for these names — it was
+ * reporting a real inconsistency with a cause upstream of the filings.
+ *
+ * The period end travels with each fact and is shown in the inspector, so
+ * the label FY2025 can always be checked against the date it stands for.
  *
  * Nothing is derived. There are no margins, no growth rates and no ratios in
  * this table — those belong to the ratio surface above, which is computed from
@@ -34,10 +48,15 @@ import { format } from '@/lib/quantity'
 
 interface Fact {
   fiscal_year?: number
+  /** The period the fact describes — the authority the year label is derived from. */
+  period_end?: string
+  period_start?: string
   value?: number
   unit?: string
   form?: string
   filed?: string
+  /** Which XBRL tag this series came from. Filers change tags between years. */
+  concept_tag?: string
 }
 
 type Xbrl = Record<string, Fact[]>
@@ -207,16 +226,21 @@ export default function Financials({ symbol }: { symbol: string }) {
                                 display: format(f.value, 'currency', { digits: 0 }).text,
                                 unit: f.unit ?? undefined,
                                 source: `SEC ${f.form ?? 'filing'}`,
-                                asOf: `fiscal year ${y}`,
+                                asOf: f.period_end
+                                  ? `period ending ${f.period_end}`
+                                  : `fiscal year ${y}`,
                                 // When the company filed it — not when this
                                 // product fetched it.
                                 filedAt: f.filed,
                                 claim: `${concept} for fiscal ${y} was ${format(f.value, 'currency', { digits: 0 }).text}.`,
-                                observation: `One XBRL fact for this concept in a ${f.form ?? 'filing'} covering fiscal ${y}, filed ${f.filed ?? 'on an unrecorded date'}.`,
+                                observation: `One XBRL fact${f.concept_tag ? `, tagged \`${f.concept_tag}\`,` : ''} in a ${f.form ?? 'filing'} covering ${f.period_start && f.period_end ? `${f.period_start} to ${f.period_end}` : f.period_end ? `the period ending ${f.period_end}` : `fiscal ${y}`}, filed ${f.filed ?? 'on an unrecorded date'}.`,
                                 assumptions: [
                                   'The concept in the filing means what its label says — XBRL tags are chosen by the filer, not by a standard body.',
                                   `No later filing restates fiscal ${y}. Restatements are filed as new facts and this shows the value as originally tagged.`,
-                                  'The fiscal year is the company’s own, not a calendar year.',
+                                  `The fiscal year label is the calendar year of the period end${f.period_end ? ` (${f.period_end})` : ''}, not a calendar year of trading.`,
+                                  ...(f.concept_tag
+                                    ? [`Every year in this row uses the tag \`${f.concept_tag}\` — a series is never assembled from two tags, because the definition would change partway down the column.`]
+                                    : []),
                                 ],
                                 failsWhen: [
                                   'The company restated the period after filing, in which case a later fact supersedes this one.',

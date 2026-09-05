@@ -18,6 +18,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+from datetime import date
 from typing import Any, Optional
 
 from src.providers.base import VendorClient
@@ -63,6 +64,31 @@ XBRL_CONCEPTS: dict[str, str] = {
     "PaymentsForRepurchaseOfCommonStock": "Share repurchases",
     "PaymentsOfDividendsCommonStock": "Dividends paid",
 }
+
+
+def _is_annual(row: dict[str, Any]) -> bool:
+    """Whether an XBRL fact covers a year rather than a quarter.
+
+    `fp: FY` does not mean "the annual figure". A 10-K tags its four quarters
+    with `fp: FY` too, so Apple's 2018 filing carries revenue of 265.60B for
+    2017-10-01→2018-09-29 and 62.90B for 2018-07-01→2018-09-29 — both `fp: FY`,
+    both `form: 10-K`, ending on the same day. Taking whichever came first
+    understates a year's revenue by three quarters.
+
+    Instant facts — balance sheet items — carry no `start` at all and are
+    always the right span, since a balance sheet is a moment rather than a
+    period. Everything else has to be measured: fiscal years run 52 or 53
+    weeks, so 300 to 400 days admits every real annual period and excludes
+    every quarter.
+    """
+    start, end = row.get("start"), row.get("end")
+    if not start:
+        return True
+    try:
+        span = (date.fromisoformat(str(end)) - date.fromisoformat(str(start))).days
+    except (TypeError, ValueError):
+        return False
+    return 300 <= span <= 400
 
 
 def _slug(value: str) -> str:
@@ -152,7 +178,41 @@ class SECVendor(VendorClient):
     def get_xbrl_facts(self, symbol: str) -> dict[str, list[dict[str, Any]]]:
         """Selected US-GAAP concepts as clean annual series, newest first.
 
-        Returns {display_label: [{fiscal_year, value, unit, form, filed}]}.
+        Returns {display_label: [{fiscal_year, period_end, value, unit, form,
+        filed, concept_tag}]}.
+
+        Two defects were found here by checking the one thing a balance sheet
+        cannot get wrong, and both are worth stating because both produced
+        confident, plausible, wrong numbers.
+
+        **`fy` is the filing's fiscal year, not the fact's period.** A 10-K
+        carries a comparative balance sheet, so one filing contributes several
+        rows for one concept and *every one of them* carries that filing's
+        `fy`. Apple's FY2025 10-K contributes assets of 359.24B for period end
+        2025-09-27 and 364.98B for period end 2024-09-28, both tagged
+        `fy: 2025`. Keying by `fy` therefore collapses two balance sheet dates
+        into one label and keeps whichever the JSON happened to list first —
+        which for Apple was the prior year, so "FY2025 total assets" was
+        2024's balance sheet.
+
+        That is what broke `Assets = Liabilities + Equity`. The identity held
+        in every filing; it failed here by up to 51% of assets because the
+        three concepts for one label were being drawn from different dates.
+        Facts are now keyed by `end`, the period the value actually describes,
+        and the fiscal year is derived from it. `period_end` travels with each
+        fact so the date is inspectable rather than inferred.
+
+        **The first alias with any data won.** Several tags map to one label —
+        `Revenues` and `RevenueFromContractWithCustomerExcludingAssessedTax`
+        both mean revenue — and the loop kept whichever came first and skipped
+        the rest. Apple tagged `Revenues` exactly once, in 2018, and moved to
+        the contract-with-customer tag afterwards, so Apple's revenue series
+        was one fact from 2018. Microsoft's was one fact from 2010. The alias
+        with the most annual periods now wins, and `concept_tag` records which
+        one, because a series assembled from two tags across different years
+        would silently change definition partway down the column. They are not
+        unioned for that reason: better a shorter series on one definition
+        than a longer one on two.
         """
         entry = self.resolve_cik(symbol)
         if not entry:
@@ -161,7 +221,10 @@ class SECVendor(VendorClient):
             f"{self.DATA_BASE}/api/xbrl/companyfacts/CIK{entry['cik']}.json", headers=self._headers()
         )
         gaap = ((data or {}).get("facts") or {}).get("us-gaap") or {}
-        series: dict[str, list[dict[str, Any]]] = {}
+
+        # label -> best candidate series found so far, by period count.
+        best: dict[str, list[dict[str, Any]]] = {}
+
         for concept, label in XBRL_CONCEPTS.items():
             node = gaap.get(concept)
             if not node:
@@ -169,33 +232,54 @@ class SECVendor(VendorClient):
             for unit, rows in (node.get("units") or {}).items():
                 annual = [
                     {
-                        "fiscal_year": row.get("fy"),
+                        # Derived from the period end, not from the filing's
+                        # `fy`. For every company checked — September, June and
+                        # January fiscal year ends — the calendar year of the
+                        # period end is the year the company itself calls it.
+                        "fiscal_year": int(str(row["end"])[:4]),
+                        "period_start": row.get("start"),
+                        "period_end": row["end"],
                         "value": row.get("val"),
                         "unit": unit,
                         "form": row.get("form"),
                         "filed": row.get("filed"),
+                        "concept_tag": concept,
                     }
                     for row in rows
-                    if row.get("form") == "10-K" and row.get("fp") == "FY" and row.get("val") is not None
+                    if row.get("form") == "10-K" and row.get("fp") == "FY"
+                    and row.get("val") is not None and row.get("end")
+                    and _is_annual(row)
                 ]
                 if not annual:
                     continue
-                # Dedupe by fiscal year, keeping the most recently filed value
-                # (restatements supersede originals).
-                by_year: dict[int, dict[str, Any]] = {}
+
+                # Dedupe by the period the fact covers, keeping the most
+                # recently filed value: a restatement supersedes the original.
+                #
+                # The key is the whole period, not just its end. A 10-K tags
+                # its four quarters with `fp: FY` alongside the annual figure,
+                # so Apple's Q4 revenue and its full-year revenue share an end
+                # date of 2018-09-29 and differ by a factor of four. `_is_annual`
+                # drops the quarters; keying on the pair means that even if a
+                # filer tags two spans ending together, they cannot collide.
+                by_period: dict[tuple[str, str], dict[str, Any]] = {}
                 for row in annual:
-                    year = row["fiscal_year"]
-                    if year is None:
-                        continue
-                    if year not in by_year or str(row["filed"]) > str(by_year[year]["filed"]):
-                        by_year[year] = row
-                merged = sorted(by_year.values(), key=lambda r: r["fiscal_year"], reverse=True)[:6]
-                # First unit with data wins; concepts alias to one label, so
-                # don't let a later alias overwrite a populated series.
-                if merged and not series.get(label):
-                    series[label] = merged
+                    key = (str(row["period_start"]), str(row["period_end"]))
+                    if key not in by_period or str(row["filed"]) > str(by_period[key]["filed"]):
+                        by_period[key] = row
+
+                merged = sorted(
+                    by_period.values(), key=lambda r: r["period_end"], reverse=True,
+                )[:6]
+
+                # The alias covering the most periods wins the label. A tie
+                # keeps the incumbent, so the mapping order still decides
+                # between two equally complete tags.
+                if merged and len(merged) > len(best.get(label, [])):
+                    best[label] = merged
                 break
-        return series
+
+        return best
 
     def get_xbrl_timeline(self, symbol: str) -> list[dict[str, Any]]:
         """Every reported value with the date it was filed — restatements kept.

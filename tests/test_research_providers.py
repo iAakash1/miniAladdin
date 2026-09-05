@@ -31,19 +31,31 @@ class TestSECNormalization:
         assert "/data/1045810/000124000029/nvda-10k.htm" in filings[0]["url"]
 
     def test_xbrl_keeps_latest_restatement_per_year(self):
+        """Every row carries `start`/`end`, as EDGAR's actually do.
+
+        The fixture used to omit them, which made the test green against a
+        shape the API never returns — and hid the fact that `fy` is the
+        filing's year rather than the fact's period.
+        """
         vendor = SECVendor()
         vendor._ticker_map = {"X": {"cik": "0000000001", "name": "X CORP"}}
         facts = {"facts": {"us-gaap": {"Revenues": {"units": {"USD": [
-            {"fy": 2025, "fp": "FY", "form": "10-K", "val": 100, "filed": "2025-02-01"},
-            {"fy": 2025, "fp": "FY", "form": "10-K", "val": 110, "filed": "2026-02-01"},  # restated
-            {"fy": 2024, "fp": "FY", "form": "10-K", "val": 90, "filed": "2024-02-01"},
-            {"fy": 2025, "fp": "Q1", "form": "10-Q", "val": 25, "filed": "2025-05-01"},  # ignored
+            {"fy": 2025, "fp": "FY", "form": "10-K", "val": 100,
+             "start": "2024-01-01", "end": "2024-12-31", "filed": "2025-02-01"},
+            {"fy": 2026, "fp": "FY", "form": "10-K", "val": 110,  # restated
+             "start": "2024-01-01", "end": "2024-12-31", "filed": "2026-02-01"},
+            {"fy": 2024, "fp": "FY", "form": "10-K", "val": 90,
+             "start": "2023-01-01", "end": "2023-12-31", "filed": "2024-02-01"},
+            {"fy": 2025, "fp": "Q1", "form": "10-Q", "val": 25,
+             "start": "2025-01-01", "end": "2025-03-31", "filed": "2025-05-01"},  # ignored
         ]}}}}}
         with patch.object(SECVendor, "_get_json", return_value=facts):
             series = vendor.get_xbrl_facts("X")
         revenue = series["Revenue"]
-        assert [r["fiscal_year"] for r in revenue] == [2025, 2024]
+        # The year comes from the period end, not from the filing's `fy`.
+        assert [r["fiscal_year"] for r in revenue] == [2024, 2023]
         assert revenue[0]["value"] == 110  # restatement supersedes
+        assert revenue[0]["period_end"] == "2024-12-31"
 
     def test_knowledge_bundle_carries_evidence_for_every_finding(self):
         vendor = SECVendor()
