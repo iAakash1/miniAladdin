@@ -451,13 +451,21 @@ def _macro_assessment(multiplier: float, stats: dict[str, Any]) -> RiskAssessmen
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
-def _build_commit() -> str:
-    """The revision this process is running, or "unknown".
+def _resolve_build_commit() -> str:
+    """The revision this process loaded, or "unknown".
 
     Hosts inject their own name for this; Render uses RENDER_GIT_COMMIT.
     Falls back to asking git, which only works in a checkout — deliberately
     returning "unknown" rather than raising, because a health endpoint that
     can fail is worse than one that admits ignorance.
+
+    Resolved once, at import, and never again. Asking git per request reads
+    the *working tree's* HEAD rather than the code this process is running,
+    so a server started before a commit reported the commit anyway. That is
+    the most misleading answer a health endpoint can give: it is precisely
+    what someone checks to find out whether a deployment picked up a change,
+    and a long-lived server on old code answered yes. Verified against a
+    process started before three commits, which reported the newest one.
     """
     for name in ("RENDER_GIT_COMMIT", "VERCEL_GIT_COMMIT_SHA", "GIT_COMMIT", "SOURCE_VERSION"):
         value = os.getenv(name)
@@ -472,6 +480,14 @@ def _build_commit() -> str:
         ).stdout.strip() or "unknown"
     except Exception:  # noqa: BLE001 — health must never fail
         return "unknown"
+
+
+#: Frozen at import: the revision of the code in memory, not of the checkout.
+_BUILD_COMMIT = _resolve_build_commit()
+
+
+def _build_commit() -> str:
+    return _BUILD_COMMIT
 
 
 @app.get("/api/health")

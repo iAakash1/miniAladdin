@@ -1,29 +1,46 @@
 /*
- * Pure helpers for the unified search box (search-fix pass).
+ * Instant local matches for the search box.
  *
- * Local matches surface portfolio/watchlist/history hits instantly, with
- * zero network dependency — the fix for "NVDA -> Nothing Found" while NVDA
- * sat in the user's own portfolio does not need the backend to answer at
- * all for that case. Kept pure and side-effect-free so it's unit-testable
- * the same way lib/history.ts's diffSnapshots is.
+ * The search box waits 160ms and then asks the backend. Until that answer
+ * lands there is nothing on screen, so typing "NVDA" shows an empty list for
+ * as long as the network takes — even when NVDA is sitting in the reader's
+ * own watchlist and the answer was known before the keystroke finished.
+ *
+ * These are matched against what this browser already holds, so they render
+ * on the same frame as the keystroke. The network answer replaces them when
+ * it arrives; it does not merge with them, because a local hit and a vendor
+ * hit are different claims and interleaving them would make the list reorder
+ * under the reader's cursor.
+ *
+ * Pure and side-effect-free so it is unit-testable, which is how the previous
+ * version survived: it was tested, correct, and wired to nothing. It read a
+ * `Watchlist[]` and an analysis history that the live search box does not
+ * use, so it could never have run. It now takes the two lists the box
+ * actually holds.
  */
 
-import type { AnalysisSnapshot } from './history'
-import type { Watchlist } from './watchlists'
+import { watchSnapshot } from './symbols'
 
 export interface LocalMatch {
   symbol: string
+  /** Why this row is here — "Watchlist", "Recent". Never invented. */
   context: string
 }
 
 const MAX_LOCAL_MATCHES = 5
 
-/** Substring match (case-insensitive on the ticker) against the user's own
- * watchlists and analysis history — no network round trip. */
+/**
+ * Symbols this browser already knows that match what is being typed.
+ *
+ * A prefix match, not a substring one. "AP" should not surface GAP above
+ * AAPL: in a ticker box the reader is typing the start of a symbol, and
+ * substring matching puts accidental interior hits alongside the thing they
+ * are actually reaching for.
+ */
 export function localMatches(
   value: string,
-  lists: Watchlist[],
-  history: Record<string, AnalysisSnapshot[]>,
+  recent: readonly string[],
+  watched: readonly string[] = watchSnapshot(),
 ): LocalMatch[] {
   const needle = value.trim().toUpperCase()
   if (!needle) return []
@@ -31,22 +48,17 @@ export function localMatches(
   const out: LocalMatch[] = []
   const seen = new Set<string>()
 
-  for (const list of lists) {
-    for (const ticker of list.tickers) {
-      if (seen.has(ticker) || !ticker.includes(needle)) continue
-      seen.add(ticker)
-      out.push({ symbol: ticker, context: `In ${list.name}` })
+  // Watchlist first: an explicitly kept symbol outranks one merely visited.
+  for (const [list, context] of [[watched, 'Watchlist'], [recent, 'Recent']] as const) {
+    for (const ticker of list) {
+      const symbol = ticker.toUpperCase()
+      if (seen.has(symbol) || !symbol.startsWith(needle)) continue
+      seen.add(symbol)
+      out.push({ symbol, context })
+      if (out.length >= MAX_LOCAL_MATCHES) return out
     }
   }
-
-  for (const [ticker, timeline] of Object.entries(history)) {
-    if (seen.has(ticker) || !ticker.includes(needle) || timeline.length === 0) continue
-    seen.add(ticker)
-    const latest = timeline[timeline.length - 1]
-    out.push({ symbol: ticker, context: `Analyzed — ${latest.verdict}` })
-  }
-
-  return out.slice(0, MAX_LOCAL_MATCHES)
+  return out
 }
 
 export interface HighlightSegment {

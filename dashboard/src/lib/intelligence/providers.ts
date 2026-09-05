@@ -116,7 +116,15 @@ export function registerDefaultProviders(): void {
     tier: 'sync',
     entities: (query) => {
       if (!query.trim()) return []
-      return localMatches(query, readWatchlistsSnapshot(), readHistorySnapshot()).map((match) => ({
+      /* `localMatches` now takes the two symbol lists the live search box
+         holds rather than a `Watchlist[]` and an analysis history, because
+         the old signature could not be called from the box that needed it.
+         Adapted here rather than reverted: this whole registry is currently
+         unwired — nothing outside `lib/intelligence` imports it — and it is
+         left compiling and correct rather than deleted. */
+      const watched = readWatchlistsSnapshot().flatMap((list) => list.tickers)
+      const seen = Object.keys(readHistorySnapshot())
+      return localMatches(query, seen, watched).map((match) => ({
         id: `company:${match.symbol}`,
         type: 'company' as const,
         title: match.symbol,

@@ -33,8 +33,9 @@ import { Status } from '@/components/system'
 import {
   rankSecurities, searchSecurities, type SecurityIdentity,
 } from '@/lib/security'
+import { localMatches } from '@/lib/search'
 import {
-  emptySnapshot, recentSnapshot, rememberSymbol, subscribeSymbols,
+  emptySnapshot, recentSnapshot, rememberSymbol, subscribeSymbols, watchSnapshot,
 } from '@/lib/symbols'
 
 /**
@@ -62,6 +63,7 @@ export default function SecuritySearch() {
   // Subscribed rather than copied into state on mount: a write anywhere — here
   // or in another tab — updates every reader without an effect.
   const recent = useSyncExternalStore(subscribeSymbols, recentSnapshot, emptySnapshot)
+  const watched = useSyncExternalStore(subscribeSymbols, watchSnapshot, emptySnapshot)
   const box = useRef<HTMLInputElement>(null)
   const abort = useRef<AbortController | null>(null)
 
@@ -116,6 +118,12 @@ export default function SecuritySearch() {
   const q = query.trim()
   const current = settled?.for === q ? settled : null
   const rows = current?.rows ?? []
+
+  /* Shown on the same frame as the keystroke, from what this browser already
+     holds, and replaced — not merged — the moment the vendor answer lands.
+     Merging would reorder the list under the reader's cursor, and a local hit
+     and a vendor hit are different claims. */
+  const local = current || !q ? [] : localMatches(q, recent, watched)
   const showing = open && (q.length > 0 || recent.length > 0)
 
   return (
@@ -134,7 +142,9 @@ export default function SecuritySearch() {
         onChange={(e) => { setQuery(e.target.value); setCursor(0); setOpen(true) }}
         onKeyDown={(e) => {
           if (e.key === 'Escape') { setQuery(''); setOpen(false); box.current?.blur(); return }
-          const list = query.trim() ? rows.map((r) => r.symbol) : recent
+          const list = query.trim()
+            ? (rows.length ? rows.map((r) => r.symbol) : local.map((r) => r.symbol))
+            : recent
           if (!list.length) return
           if (e.key === 'ArrowDown') { e.preventDefault(); setCursor((c) => Math.min(list.length - 1, c + 1)) }
           if (e.key === 'ArrowUp') { e.preventDefault(); setCursor((c) => Math.max(0, c - 1)) }
@@ -152,7 +162,31 @@ export default function SecuritySearch() {
         <div className="sec-search__panel" role="listbox" aria-label="Securities">
           {q ? (
             current === null ? (
-              <div className="sec-search__note">searching the symbol database…</div>
+              /* What this browser already knows, on the same frame as the
+                 keystroke. The note stays beneath it so the reader can see
+                 that the vendor answer is still coming and these are not it. */
+              <>
+                {local.length ? (
+                  <>
+                    <div className="sec-search__head">On this device</div>
+                    {local.map((m, i) => (
+                      <button
+                        key={m.symbol}
+                        type="button"
+                        role="option"
+                        aria-selected={i === cursor}
+                        className={`sec-search__row${i === cursor ? ' is-active' : ''}`}
+                        onMouseDown={(e) => { e.preventDefault(); openSymbol(m.symbol) }}
+                        onMouseEnter={() => setCursor(i)}
+                      >
+                        <span className="sec-search__sym">{m.symbol}</span>
+                        <span className="sec-search__name">{m.context}</span>
+                      </button>
+                    ))}
+                  </>
+                ) : null}
+                <div className="sec-search__note">searching the symbol database…</div>
+              </>
             ) : current.error ? (
               <div className="sec-search__note">
                 <Status state="unavailable" label="SEARCH UNAVAILABLE" />

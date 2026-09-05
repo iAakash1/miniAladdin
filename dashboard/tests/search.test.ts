@@ -1,67 +1,57 @@
-/* Tests for the pure local-match + highlight logic behind ScreenSearch
-   (search-fix pass). */
+/* The search box's instant local matches, and the highlight helper.
+
+   These tested a `localMatches` that read a `Watchlist[]` and an analysis
+   history — stores the live search box does not use. It was correct, tested,
+   and wired to nothing, so typing a ticker the reader already had on this
+   device still showed an empty list until the network answered. The helper
+   now takes the two lists the box actually holds, and these assert the
+   behaviour that reaches a reader. */
 
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import type { AnalysisSnapshot } from '../src/lib/history'
 import { rankSecurities } from '../src/lib/security'
 import { highlightSegments, localMatches } from '../src/lib/search'
-import type { Watchlist } from '../src/lib/watchlists'
 
-function watchlist(overrides: Partial<Watchlist> = {}): Watchlist {
-  return { id: 'wl_1', name: 'Tech', tickers: ['AAPL'], createdAt: '2026-07-01T00:00:00Z', ...overrides }
-}
-
-function snapshot(overrides: Partial<AnalysisSnapshot> = {}): AnalysisSnapshot {
-  return {
-    ts: '2026-07-01T00:00:00Z',
-    verdict: 'Hold',
-    rawVerdict: 'Hold',
-    confidence: 70,
-    riskLevel: 'MEDIUM',
-    rawScore: 0.1,
-    momentumScore: 0.2,
-    fundamentalScore: 0,
-    newsScore: null,
-    macroGate: 1,
-    srm: 1,
-    regimes: [],
-    factors: [],
-    price: 100,
-    ...overrides,
-  }
-}
-
-test('localMatches finds a ticker sitting in a watchlist — the reported NVDA scenario', () => {
-  const lists = [watchlist({ name: 'AI', tickers: ['NVDA', 'AMD'] })]
-  const matches = localMatches('NVDA', lists, {})
-  assert.equal(matches.length, 1)
-  assert.equal(matches[0].symbol, 'NVDA')
-  assert.match(matches[0].context, /AI/)
+test('a ticker in the watchlist matches before the network answers', () => {
+  // The reported case: NVDA in the reader's own list, "Nothing found".
+  const out = localMatches('NVD', [], ['NVDA', 'AAPL'])
+  assert.deepEqual(out, [{ symbol: 'NVDA', context: 'Watchlist' }])
 })
 
-test('localMatches is substring-based and also searches analysis history', () => {
-  const history = { TSLA: [snapshot({ verdict: 'Sell' })] }
-  const matches = localMatches('TSL', [], history)
-  assert.equal(matches.length, 1)
-  assert.equal(matches[0].symbol, 'TSLA')
-  assert.match(matches[0].context, /Sell/)
+test('an explicitly watched symbol outranks one merely visited', () => {
+  const out = localMatches('A', ['AMD'], ['AAPL'])
+  assert.deepEqual(out.map((m) => m.symbol), ['AAPL', 'AMD'])
+  assert.equal(out[0].context, 'Watchlist')
+  assert.equal(out[1].context, 'Recent')
 })
 
-test('localMatches returns nothing for an empty query', () => {
-  assert.deepEqual(localMatches('', [watchlist()], {}), [])
+test('matching is by prefix, not substring', () => {
+  /* "AP" must not surface GAP above AAPL. In a ticker box the reader is
+     typing the start of a symbol, and substring matching puts accidental
+     interior hits beside the thing they are reaching for. */
+  const out = localMatches('AP', ['GAP', 'SNAP'], [])
+  assert.deepEqual(out, [], 'an interior match was surfaced as a local hit')
+  assert.deepEqual(localMatches('GA', ['GAP'], []).map((m) => m.symbol), ['GAP'])
 })
 
-test('localMatches de-duplicates a ticker that appears in both a watchlist and history', () => {
-  const lists = [watchlist({ tickers: ['NVDA'] })]
-  const history = { NVDA: [snapshot()] }
-  const matches = localMatches('NVDA', lists, history)
-  assert.equal(matches.length, 1)
+test('a symbol in both lists appears once, as the watchlist entry', () => {
+  const out = localMatches('AAP', ['AAPL'], ['AAPL'])
+  assert.equal(out.length, 1)
+  assert.equal(out[0].context, 'Watchlist')
 })
 
-test('localMatches ignores a ticker with an empty history timeline', () => {
-  const matches = localMatches('NVDA', [], { NVDA: [] })
-  assert.deepEqual(matches, [])
+test('matching is case-insensitive on both sides', () => {
+  assert.deepEqual(localMatches('aap', [], ['aapl']).map((m) => m.symbol), ['AAPL'])
+})
+
+test('an empty query matches nothing rather than everything', () => {
+  assert.deepEqual(localMatches('', ['AAPL'], ['MSFT']), [])
+  assert.deepEqual(localMatches('   ', ['AAPL'], ['MSFT']), [])
+})
+
+test('the local list is capped so it cannot bury the vendor answer', () => {
+  const many = ['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7']
+  assert.equal(localMatches('A', many, []).length, 5)
 })
 
 test('highlightSegments wraps the matched substring case-insensitively', () => {

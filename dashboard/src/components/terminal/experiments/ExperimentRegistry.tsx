@@ -25,6 +25,10 @@ interface Row {
   void: boolean
   void_reason?: string | null
   status?: string
+  /** Recorded verbatim from the selection artifact. Never restated here. */
+  verdict?: string
+  verdict_passed?: boolean
+  holdout_touched?: boolean
   detail?: string | null
 }
 
@@ -78,6 +82,32 @@ export default function ExperimentRegistry() {
   const columns: DataColumn<Row>[] = useMemo(() => [
     { key: 'id', header: 'Experiment', width: '18%', sort: (r) => r.experiment_id, text: (r) => r.experiment_id, render: (r) => <span className="sys-mono">{r.experiment_id}</span> },
     { key: 'state', header: 'State', width: '14%', sort: (r) => (r.void ? 'void' : r.status ?? ''), text: (r) => (r.void ? 'void' : r.status ?? ''), render: (r) => <Status state={r.void ? 'unavailable' : 'recorded'} label={r.void ? 'void' : (r.status ?? 'recorded')} /> },
+    /* The recorded gate verdict, beside the state rather than a click away.
+       EXP-007 completed and did not produce a candidate, and those are two
+       facts a reader of this table needs together. A row with no verdict has
+       not been through selection — an em dash, never a pass. */
+    {
+      key: 'verdict',
+      header: 'Verdict',
+      width: '22%',
+      sort: (r) => r.verdict ?? '',
+      text: (r) => r.verdict ?? '',
+      render: (r) => (r.verdict
+        ? <Status state={r.verdict_passed ? 'recorded' : 'blocked'} label={r.verdict} />
+        : <span className="sys-null" title="no selection has been run for this experiment">—</span>),
+    },
+    {
+      key: 'holdout',
+      header: 'Holdout',
+      width: '12%',
+      sort: (r) => String(r.holdout_touched),
+      text: (r) => (r.holdout_touched === undefined ? '' : r.holdout_touched ? 'spent' : 'untouched'),
+      render: (r) => (r.holdout_touched === undefined
+        ? <span className="sys-null" title="not recorded for this experiment">—</span>
+        /* Untouched, not sealed. The holdout has not been spent; nothing
+           has verified it is intact, and those are different claims. */
+        : <span className="sys-meta sys-meta--strong">{r.holdout_touched ? 'spent' : 'untouched'}</span>),
+    },
     { key: 'detail', header: 'Detail', text: (r) => `${r.detail ?? ''} ${r.void_reason ?? ''}`, render: (r) => <span className="sys-meta sys-meta--strong">{r.detail ?? r.void_reason ?? '—'}</span> },
   ], [])
 

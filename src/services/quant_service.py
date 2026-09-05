@@ -47,6 +47,13 @@ DEFAULT_ROOT = Path("experiments")
 REGISTRY_ROOT = Path(os.environ.get("QUANT_REGISTRY_ROOT", "data/research/models"))
 METRICS_NAME = "metrics.json"
 
+#: Where a search-shaped experiment records its gate verdict. Not every
+#: experiment produces `metrics.json`: a hyperparameter search writes
+#: `search.json` beside the experiment and its verdict to a selection
+#: artifact, which is a different shape and an equally complete result.
+SELECTION_ROOT = Path(os.environ.get("QUANT_ARTIFACT_ROOT", "artifacts/experiments"))
+SELECTION_NAME = "final_selection.json"
+
 #: Train-minus-validation IC above which a model is called overfit regardless of
 #: what else it does. EXP-004's deliberately over-parameterised control sat at
 #: +0.721 and every tree model between +0.18 and +0.39.
@@ -211,7 +218,46 @@ def experiments(root: Path | str = DEFAULT_ROOT) -> dict[str, Any]:
             "void_reason": VOID_EXPERIMENTS.get(experiment_id),
         }
         if metrics is None:
-            row.update({"status": "unreadable", "detail": "no metrics.json"})
+            # Not every experiment writes `metrics.json`. A hyperparameter
+            # search writes `search.json` and records its verdict in a
+            # selection artifact, and EXP-007 — the experiment carrying the
+            # NO PRODUCTION CANDIDATE result this product is built around —
+            # is exactly that shape. Reporting it as "unreadable" put the
+            # word for a system failure against a completed experiment, in
+            # the State column of the registry the reader consults to find
+            # out whether the research stands up.
+            selection = _read(SELECTION_ROOT / experiment_id / SELECTION_NAME)
+            if selection is None:
+                row.update({"status": "unreadable", "detail": "no metrics.json"})
+                rows.append(row)
+                continue
+            verdict = selection.get("verdict") or {}
+            dataset = selection.get("dataset") or {}
+            selected = selection.get("selected") or {}
+            holdout = selection.get("holdout") or {}
+            row.update({
+                "status": "complete",
+                #: How the result was recorded, so a reader can tell why this
+                #: row carries different fields from a metrics-shaped one.
+                "artifact": "selection",
+                "fingerprint": selection.get("fingerprint"),
+                "generated_at": selection.get("generated_at"),
+                "git_commit": selection.get("git_commit"),
+                "primary_target": selected.get("target"),
+                "dataset_version": dataset.get("dataset_version"),
+                "rows": dataset.get("rows"),
+                "symbols": dataset.get("symbols"),
+                "dates": dataset.get("dates"),
+                # Recorded verbatim. The artifact is the record and nothing
+                # here restates, softens or recomputes it.
+                "verdict": verdict.get("status"),
+                "verdict_passed": verdict.get("passed"),
+                # Whether the holdout has been spent. A reader looking at a
+                # completed experiment needs this beside the verdict, not a
+                # click away — "no candidate" and "untouched holdout" are
+                # different facts and both are load-bearing.
+                "holdout_touched": holdout.get("touched"),
+            })
             rows.append(row)
             continue
         definition = metrics.get("experiment", {})
