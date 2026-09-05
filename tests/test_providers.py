@@ -101,6 +101,91 @@ class TestFallback:
         assert result.error
 
 
+class TestMalformedPayloads:
+    """A vendor that answers with data failing validation is a failed vendor.
+
+    The chain checks a payload's quality record before accepting it, so a
+    vendor returning a series that did not validate falls through to a
+    healthier source instead of being scored. Nothing asserted that until
+    now, which meant the one guard standing between a malfunctioning vendor
+    and the research engine was untested.
+    """
+
+    class _Quality:
+        def __init__(self, ok: bool):
+            self.is_trustworthy = ok
+
+        def summary(self) -> str:
+            return "trustworthy" if self.is_trustworthy else "failed validation"
+
+    class _Payload:
+        def __init__(self, price: float, ok: bool):
+            self.symbol = "TEST"
+            self.price = price
+            self.quality = TestMalformedPayloads._Quality(ok)
+
+    def _vendor(self, name: str, price: float, ok: bool) -> FakeVendor:
+        vendor = FakeVendor(name, price)
+        payload = TestMalformedPayloads._Payload(price, ok)
+        vendor.fetch = lambda: payload  # type: ignore[method-assign]
+        return vendor
+
+    def test_a_payload_failing_validation_falls_through(self):
+        chain, _ = make_chain()
+        bad = self._vendor("a", 100.0, ok=False)
+        good = self._vendor("b", 101.0, ok=True)
+        result = chain.execute("mal1", [link(bad), link(good)])
+        assert result.ok
+        assert result.source == "b", "a payload that failed validation was accepted"
+        assert result.data.price == 101.0
+
+    def test_the_rejecting_vendor_is_still_recorded_as_consulted(self):
+        """It answered. That it answered badly is a different fact."""
+        chain, _ = make_chain()
+        result = chain.execute("mal2", [
+            link(self._vendor("a", 100.0, ok=False)),
+            link(self._vendor("b", 101.0, ok=True)),
+        ])
+        assert "a" in result.sources_consulted
+
+    def test_every_vendor_malformed_yields_no_data_rather_than_the_least_bad(self):
+        chain, _ = make_chain()
+        result = chain.execute("mal3", [
+            link(self._vendor("a", 100.0, ok=False)),
+            link(self._vendor("b", 101.0, ok=False)),
+        ])
+        assert not result.ok
+        assert result.data is None, "a payload that failed validation was served anyway"
+        assert result.confidence == 0.0
+
+    def test_a_payload_with_no_quality_record_is_trusted(self):
+        """Validation is opt-in: adding it to a new schema must be deliberate."""
+        chain, _ = make_chain()
+        result = chain.execute("mal4", [link(FakeVendor("a", 42.0))])
+        assert result.ok and result.data.price == 42.0
+
+
+class TestRecovery:
+    def test_a_chain_that_failed_serves_live_data_once_a_vendor_returns(self):
+        chain, _ = make_chain()
+        down = chain.execute("rec1", [link(FakeVendor("a", fail=True))])
+        assert not down.ok and down.data is None
+
+        back = chain.execute("rec2", [link(FakeVendor("a", 55.0))])
+        assert back.ok and back.source == "a"
+        assert not back.stale and not back.cached, (
+            "a recovered answer is still marked stale or cached"
+        )
+
+    def test_an_empty_result_is_never_a_zero(self):
+        """The rule the whole product turns on: unavailable is not zero."""
+        chain, _ = make_chain()
+        result = chain.execute("rec3", [link(FakeVendor("a", fail=True))])
+        assert result.data is None
+        assert result.confidence == 0.0
+        assert result.error, "a total failure carries no reason"
+
+
 class TestCacheBehavior:
     def test_fresh_cache_served_without_vendor_call(self):
         chain, _ = make_chain()

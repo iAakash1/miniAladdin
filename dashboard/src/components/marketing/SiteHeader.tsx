@@ -76,7 +76,14 @@ export default function SiteHeader() {
               Sign in
             </Link>
           )}
-          <Link href="/terminal" className="btn btn--primary btn--sm">
+          {/* Not prefetched. Next fetches a link's payload on hover or when
+              it enters the viewport, and every terminal route is behind
+              Clerk, so the prefetch is answered with a cross-origin redirect
+              to the hosted sign-in page. That fails CORS, which put a failed
+              request and a console error on the public site for every visitor
+              who never clicked it. Navigation is unaffected — a click is a
+              full navigation, not a fetch. */}
+          <Link href="/terminal" prefetch={false} className="btn btn--primary btn--sm">
             Open terminal
           </Link>
           <button

@@ -86,7 +86,7 @@ export default function LandingPage() {
               explainable verdict and every number behind it.
             </p>
             <div className="hero-cta" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-              <Link href="/terminal" className="btn btn--primary btn--lg">
+              <Link href="/terminal" prefetch={false} className="btn btn--primary btn--lg">
                 Open the terminal
               </Link>
               <Link href="/#methodology" className="btn btn--secondary btn--lg">
@@ -371,7 +371,7 @@ export default function LandingPage() {
                     </li>
                   ))}
                 </ul>
-                <Link href="/terminal" className="btn btn--primary" style={{ marginTop: 'auto' }}>
+                <Link href="/terminal" prefetch={false} className="btn btn--primary" style={{ marginTop: 'auto' }}>
                   Go Pro in the terminal
                 </Link>
               </div>
