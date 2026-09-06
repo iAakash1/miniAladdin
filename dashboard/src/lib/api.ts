@@ -53,18 +53,27 @@ function asHeadlineLabel(v: string | undefined): Headline['label'] {
 
 export function normalizeMacro(raw: RawMacroResponse | RawResearchMacro | null | undefined): Macro {
   if (!raw) {
-    return { srm: 1, yieldSpread: 0, cpi: 0, fedRate: 0, inverted: false, status: 'UNKNOWN', recessionWarning: false }
+    // Nothing was read. Previously this returned a complete-looking macro
+    // block — SRM 1, spread 0, CPI 0, rate 0, "not inverted" — which is a
+    // full set of economic claims made from no data at all.
+    return {
+      srm: null, yieldSpread: null, cpi: null, fedRate: null,
+      inverted: null, status: 'UNAVAILABLE', recessionWarning: null,
+    }
   }
   // /api/macro nests values under `stats`; research nests them flat.
   const stats = 'stats' in raw && raw.stats ? raw.stats : (raw as RawResearchMacro)
   return {
-    srm: raw.risk_multiplier ?? 1,
-    yieldSpread: stats.yield_spread ?? 0,
+    // An unmeasured gate is null, not 1. The backend now sends null for
+    // exactly this reason, and coalescing it back to a number here would
+    // undo that on the last hop.
+    srm: raw.risk_multiplier ?? null,
+    yieldSpread: stats.yield_spread ?? null,
     cpi: parsePercentString(stats.inflation_rate),
     fedRate: parsePercentString(stats.fed_funds_rate),
-    inverted: stats.yield_curve_inverted ?? false,
-    status: stats.status ?? 'UNKNOWN',
-    recessionWarning: stats.recession_warning ?? false,
+    inverted: stats.yield_curve_inverted ?? null,
+    status: stats.status ?? 'UNAVAILABLE',
+    recessionWarning: stats.recession_warning ?? null,
   }
 }
 
@@ -174,14 +183,18 @@ export function normalizeAnalysis(raw: RawResearchResponse): Analysis {
     quant: normalizeQuant(raw.quant),
     ai: normalizeAi(raw.ai),
 
-    price: t.current_price ?? 0,
-    return5d: t.return_5d ?? 0,
-    return21d: t.return_21d ?? 0,
-    volatility: t.volatility ?? 0,
-    sharpe: t.sharpe_ratio ?? 0,
-    sortino: t.sortino_ratio ?? 0,
-    rsi: t.rsi_14 ?? 0,
-    maxDrawdown: t.max_drawdown ?? 0,
+    /* `?? null`, never `?? 0`. A real zero from the API survives as zero —
+       nullish coalescing only fires on null and undefined — while a field the
+       provider never returned stays absent all the way to the formatter,
+       which renders it as an em dash. */
+    price: t.current_price ?? null,
+    return5d: t.return_5d ?? null,
+    return21d: t.return_21d ?? null,
+    volatility: t.volatility ?? null,
+    sharpe: t.sharpe_ratio ?? null,
+    sortino: t.sortino_ratio ?? null,
+    rsi: t.rsi_14 ?? null,
+    maxDrawdown: t.max_drawdown ?? null,
     macdCrossover: t.macd_crossover ?? null,
 
     peRatio: t.pe_ratio ?? null,
@@ -235,7 +248,9 @@ export function normalizeChart(raw: RawChartResponse): PricePoint[] {
   return (raw.prices ?? []).map((p) => ({
     date: p.date,
     close: p.close,
-    volume: p.volume ?? 0,
+    // A session the vendor reported no volume for is not a session in which
+    // nothing traded.
+    volume: p.volume ?? null,
   }))
 }
 

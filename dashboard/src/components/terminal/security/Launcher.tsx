@@ -98,7 +98,9 @@ export default function Launcher() {
             <Strip metrics={[
               {
                 label: 'Risk multiplier', value: macro.srm, digits: 2,
-                title: macro.srm > 1.2 ? 'elevated regime' : 'normal regime',
+                // Absence is neither elevated nor normal.
+                title: macro.srm === null ? 'regime not measured'
+                  : macro.srm > 1.2 ? 'elevated regime' : 'normal regime',
               },
               {
                 label: '10Y–2Y spread', value: macro.yieldSpread, digits: 2, unit: '%',

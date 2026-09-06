@@ -184,10 +184,15 @@ export default function VerdictTimeline({ ticker }: { ticker: string }) {
                         </span>
                       </li>
                     ))}
-                    {diff.gateDelta !== null && Math.abs(diff.gateDelta) >= 0.01 && (
+                    {/* Both ends of the comparison must have been measured.
+                        A snapshot taken while FRED was unavailable records a
+                        null SRM, and "the gate eased from — to 1.05" is not a
+                        movement anyone can act on. */}
+                    {diff.gateDelta !== null && Math.abs(diff.gateDelta) >= 0.01
+                      && older?.srm != null && entry.srm != null && (
                       <li style={{ fontSize: '0.8125rem', color: 'var(--muted)', paddingLeft: 72 }}>
                         Macro gate {diff.gateDelta > 0 ? 'eased' : 'tightened'} by {Math.abs(diff.gateDelta).toFixed(2)}
-                        {' '}(SRM {older!.srm.toFixed(2)} → {entry.srm.toFixed(2)})
+                        {' '}(SRM {older.srm.toFixed(2)} → {entry.srm.toFixed(2)})
                       </li>
                     )}
                     {diff.regimesEntered.map((regime) => (

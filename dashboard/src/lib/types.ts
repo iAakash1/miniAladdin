@@ -693,13 +693,17 @@ export interface RawChartResponse {
 /* ---------- Normalized shapes used by the UI ---------- */
 
 export interface Macro {
-  srm: number
-  yieldSpread: number
-  cpi: number
-  fedRate: number
-  inverted: boolean
+  /* The regime gate, and the three observations it is computed from. Null
+     where FRED did not answer: an unread term spread is not a spread of
+     zero, and zero sits exactly on the inversion boundary the gate exists to
+     detect. `inverted` is likewise unknown rather than false. */
+  srm: number | null
+  yieldSpread: number | null
+  cpi: number | null
+  fedRate: number | null
+  inverted: boolean | null
   status: string
-  recessionWarning: boolean
+  recessionWarning: boolean | null
 }
 
 export interface Headline {
@@ -731,7 +735,9 @@ export interface Headline {
 export interface PricePoint {
   date: string
   close: number
-  volume: number
+  /** Null where the vendor reported no volume for the session — not a
+      session in which nothing traded. */
+  volume: number | null
 }
 
 export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH'
@@ -799,14 +805,19 @@ export interface Analysis {
   quant: QuantCard | null
   ai: AiAnalysis | null
 
-  price: number
-  return5d: number
-  return21d: number
-  volatility: number
-  sharpe: number
-  sortino: number
-  rsi: number
-  maxDrawdown: number
+  /* Nullable because a provider that did not answer has not told us the
+     price is zero. Every one of these was `?? 0` at the normalisation
+     boundary, which turned an outage into a flat, riskless, worthless
+     security — the adjacent fields (peRatio, eps, beta) were already
+     nullable, so these eight were the outliers rather than the convention. */
+  price: number | null
+  return5d: number | null
+  return21d: number | null
+  volatility: number | null
+  sharpe: number | null
+  sortino: number | null
+  rsi: number | null
+  maxDrawdown: number | null
   macdCrossover: string | null
 
   peRatio: number | null

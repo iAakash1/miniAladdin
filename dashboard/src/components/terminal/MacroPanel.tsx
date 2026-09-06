@@ -4,13 +4,20 @@ import { fmtNum, fmtPctRaw } from '@/lib/format'
 import type { Macro } from '@/lib/types'
 
 export default function MacroPanel({ macro }: { macro: Macro }) {
-  const elevated = macro.srm > 1.2
+  // Null is not elevated and it is not calm either — it is unmeasured, and
+  // the badge below distinguishes all three rather than defaulting to the
+  // reassuring one.
+  const elevated = macro.srm !== null && macro.srm > 1.2
+  const unmeasured = macro.srm === null
 
   return (
     <section aria-label="Macro conditions" className="panel panel--pad">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
         <h3 className="h-panel">Macro regime</h3>
-        <span className={`badge ${elevated || macro.recessionWarning ? 'badge--warn' : 'badge--pos'}`}>
+        <span className={`badge ${
+          unmeasured ? 'badge--muted'
+            : elevated || macro.recessionWarning ? 'badge--warn'
+              : 'badge--pos'}`}>
           {macro.recessionWarning ? 'Recession warning' : macro.status.toLowerCase()}
         </span>
       </div>
@@ -30,12 +37,14 @@ export default function MacroPanel({ macro }: { macro: Macro }) {
         <div className="metric-row">
           <dt>10Y–2Y Treasury spread</dt>
           <dd style={{ color: macro.inverted ? 'var(--neg)' : undefined }}>
-            {fmtNum(macro.yieldSpread, 2)}%{macro.inverted ? ' · inverted' : ''}
+            {macro.yieldSpread === null ? '—' : `${fmtNum(macro.yieldSpread, 2)}%`}{macro.inverted ? ' · inverted' : ''}
           </dd>
         </div>
         <div className="metric-row">
           <dt>CPI inflation</dt>
-          <dd style={{ color: macro.cpi > 4 ? 'var(--warn)' : undefined }}>{fmtPctRaw(macro.cpi)}</dd>
+          <dd style={{ color: macro.cpi !== null && macro.cpi > 4 ? 'var(--warn)' : undefined }}>
+            {fmtPctRaw(macro.cpi)}
+          </dd>
         </div>
         <div className="metric-row">
           <dt>Fed funds rate</dt>

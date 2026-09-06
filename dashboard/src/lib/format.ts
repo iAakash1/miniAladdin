@@ -60,11 +60,20 @@ export function fmtPctRaw(
   return `${signed && parseFloat(body) > 0 ? '+' : ''}${body}%`
 }
 
-export function parsePercentString(v: string | number | null | undefined): number {
-  if (v == null) return 0
-  if (typeof v === 'number') return v
+/**
+ * A percentage the backend rendered as a string — "3.52%" — as a number.
+ *
+ * Returns null when there is nothing to parse. It used to return 0, which
+ * turned an unavailable CPI print into "inflation is exactly zero" and an
+ * unavailable Fed funds rate into "rates are at zero". Both are readings, and
+ * neither was taken. Non-finite input is rejected for the same reason: an
+ * Infinity that arrived from a provider is not a rate.
+ */
+export function parsePercentString(v: string | number | null | undefined): number | null {
+  if (v == null) return null
+  if (typeof v === 'number') return Number.isFinite(v) ? v : null
   const n = parseFloat(v.replace('%', '').replace('N/A', ''))
-  return Number.isNaN(n) ? 0 : n
+  return Number.isFinite(n) ? n : null
 }
 
 export function timeAgo(iso: string | null | undefined): string {

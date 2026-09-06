@@ -31,30 +31,48 @@ export default function KeyStats({ analysis: a }: { analysis: Analysis }) {
         Risk &amp; momentum
       </h3>
       <dl style={{ margin: 0 }}>
+        {/* A statistic the provider did not return has no tone. Colouring an
+            absent Sharpe green because `null < 0` is false, or an absent RSI
+            as neither overbought nor oversold, states a condition that was
+            never measured — so every comparison is guarded and an unmeasured
+            row renders neutral beside its em dash. */}
         <Row
           label="RSI-14"
           value={fmtNum(a.rsi, 1)}
-          tone={a.rsi > 70 ? 'neg' : a.rsi < 30 ? 'pos' : 'neutral'}
-          note={a.rsi > 70 ? 'overbought' : a.rsi < 30 ? 'oversold' : undefined}
+          tone={a.rsi === null ? 'neutral' : a.rsi > 70 ? 'neg' : a.rsi < 30 ? 'pos' : 'neutral'}
+          note={a.rsi === null ? undefined : a.rsi > 70 ? 'overbought' : a.rsi < 30 ? 'oversold' : undefined}
         />
-        <Row label="21-day return" value={fmtPct(a.return21d)} tone={a.return21d >= 0 ? 'pos' : 'neg'} />
-        <Row label="5-day return" value={fmtPct(a.return5d)} tone={a.return5d >= 0 ? 'pos' : 'neg'} />
+        <Row
+          label="21-day return"
+          value={fmtPct(a.return21d)}
+          tone={a.return21d === null ? 'neutral' : a.return21d >= 0 ? 'pos' : 'neg'}
+        />
+        <Row
+          label="5-day return"
+          value={fmtPct(a.return5d)}
+          tone={a.return5d === null ? 'neutral' : a.return5d >= 0 ? 'pos' : 'neg'}
+        />
         <Row
           label="Sharpe ratio"
           value={fmtNum(a.sharpe, 2)}
-          tone={a.sharpe > 1 ? 'pos' : a.sharpe < 0 ? 'neg' : 'warn'}
+          tone={a.sharpe === null ? 'neutral' : a.sharpe > 1 ? 'pos' : a.sharpe < 0 ? 'neg' : 'warn'}
         />
         <Row
           label="Sortino ratio"
           value={fmtNum(a.sortino, 2)}
-          tone={a.sortino > 1 ? 'pos' : a.sortino < 0 ? 'neg' : 'neutral'}
+          tone={a.sortino === null ? 'neutral' : a.sortino > 1 ? 'pos' : a.sortino < 0 ? 'neg' : 'neutral'}
         />
         <Row
           label="Volatility, annualized"
           value={fmtPct(a.volatility, 1, false)}
-          tone={a.volatility > 0.45 ? 'neg' : a.volatility > 0.25 ? 'warn' : 'pos'}
+          tone={a.volatility === null ? 'neutral'
+            : a.volatility > 0.45 ? 'neg' : a.volatility > 0.25 ? 'warn' : 'pos'}
         />
-        <Row label="Max drawdown" value={fmtPct(a.maxDrawdown)} tone="neg" />
+        <Row
+          label="Max drawdown"
+          value={fmtPct(a.maxDrawdown)}
+          tone={a.maxDrawdown === null ? 'neutral' : 'neg'}
+        />
         {a.macdCrossover && (
           <Row
             label="MACD crossover"

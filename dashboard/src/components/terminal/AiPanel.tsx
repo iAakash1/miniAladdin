@@ -297,8 +297,12 @@ export default function AiPanel({ analysis }: { analysis: Analysis }) {
             />
             <ImpactRow
               label="Macro"
-              valueText={`SRM ${analysis.macro.srm.toFixed(2)}`}
-              tone={analysis.macro.srm > 1.15 ? 'neg' : analysis.macro.srm < 0.9 ? 'pos' : 'neutral'}
+              valueText={analysis.macro.srm === null
+                ? 'SRM unavailable'
+                : `SRM ${analysis.macro.srm.toFixed(2)}`}
+              tone={analysis.macro.srm === null ? 'neutral'
+                : analysis.macro.srm > 1.15 ? 'neg'
+                  : analysis.macro.srm < 0.9 ? 'pos' : 'neutral'}
               narrative={ai.macroReasoning}
             />
             <ImpactRow

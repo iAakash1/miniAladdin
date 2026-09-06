@@ -74,7 +74,14 @@ export default function PriceChart({ data, ticker, periodLabel }: PriceChartProp
   const values = data.map((d) => d.close)
   const minY = Math.min(...values) * 0.99
   const maxY = Math.max(...values) * 1.01
-  const maxVolume = Math.max(...data.map((d) => d.volume), 1)
+  // Sessions whose volume the vendor did not report are excluded from the
+  // scale rather than counted as zero — a null bar is drawn at no height,
+  // and letting it into the maximum would be harmless, but letting it into
+  // the series as a 0 would draw a gap that reads as a halted session.
+  const maxVolume = Math.max(
+    ...data.map((d) => d.volume).filter((v): v is number => v !== null),
+    1,
+  )
 
   return (
     <figure

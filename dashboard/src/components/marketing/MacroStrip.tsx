@@ -88,14 +88,18 @@ export default function MacroStrip() {
               <Stat
                 label="Risk multiplier"
                 value={fmtNum(macro.srm, 2)}
-                tone={macro.srm > 1.2 ? 'warn' : undefined}
+                tone={macro.srm !== null && macro.srm > 1.2 ? 'warn' : undefined}
               />
               <Stat
                 label="10Y–2Y spread"
-                value={`${fmtNum(macro.yieldSpread, 2)}%`}
+                value={macro.yieldSpread === null ? '—' : `${fmtNum(macro.yieldSpread, 2)}%`}
                 tone={macro.inverted ? 'neg' : undefined}
               />
-              <Stat label="CPI inflation" value={fmtPctRaw(macro.cpi)} tone={macro.cpi > 4 ? 'warn' : undefined} />
+              <Stat
+                label="CPI inflation"
+                value={fmtPctRaw(macro.cpi)}
+                tone={macro.cpi !== null && macro.cpi > 4 ? 'warn' : undefined}
+              />
               <Stat label="Fed funds rate" value={fmtPctRaw(macro.fedRate)} />
             </div>
             <span

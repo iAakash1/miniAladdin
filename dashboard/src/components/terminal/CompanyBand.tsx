@@ -237,12 +237,15 @@ export default function CompanyBand({ analysis }: { analysis: Analysis }) {
               <>
                 Raw signal{' '}
                 <strong style={{ fontWeight: 560, color: 'var(--text)' }}>{analysis.verdict}</strong>, dampened
-                under macro regime <span className="num">SRM {analysis.macro.srm.toFixed(2)}</span>
+                under macro regime{' '}
+                <span className="num">
+                  {analysis.macro.srm === null ? 'SRM unavailable' : `SRM ${analysis.macro.srm.toFixed(2)}`}
+                </span>
               </>
             ) : (
               <>
                 Raw and risk-adjusted signals agree
-                {analysis.macro.srm > 1 ? (
+                {analysis.macro.srm !== null && analysis.macro.srm > 1 ? (
                   <>
                     {' '}
                     at <span className="num">SRM {analysis.macro.srm.toFixed(2)}</span>

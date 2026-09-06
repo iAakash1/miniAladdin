@@ -64,8 +64,12 @@ function RangeBar({ low, high, price, target }: { low: number; high: number; pri
 }
 
 export default function Fundamentals({ analysis: a }: { analysis: Analysis }) {
+  // No price, no upside. Dividing by a substituted zero produced Infinity
+  // before the type made the absence visible.
   const upside =
-    a.analystTarget != null && a.price > 0 ? ((a.analystTarget - a.price) / a.price) * 100 : null
+    a.analystTarget != null && a.price != null && a.price > 0
+      ? ((a.analystTarget - a.price) / a.price) * 100
+      : null
 
   return (
     <section aria-label="Fundamentals" className="panel panel--pad">
@@ -110,7 +114,11 @@ export default function Fundamentals({ analysis: a }: { analysis: Analysis }) {
         </div>
       </dl>
 
-      {a.week52Low != null && a.week52High != null && (
+      {/* The bar marks where the price sits in the annual range. With no
+          price there is no position to mark, so the bar is not drawn rather
+          than drawn at zero — which would peg the marker to the far left and
+          read as an all-time low. */}
+      {a.week52Low != null && a.week52High != null && a.price != null && (
         <RangeBar low={a.week52Low} high={a.week52High} price={a.price} target={a.analystTarget} />
       )}
     </section>

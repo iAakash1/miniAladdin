@@ -32,10 +32,10 @@ export interface AnalysisSnapshot {
   fundamentalScore: number | null
   newsScore: number | null
   macroGate: number | null
-  srm: number
+  srm: number | null
   regimes: string[]
   factors: FactorSnapshot[]
-  price: number
+  price: number | null
 }
 
 export interface FactorDelta {
