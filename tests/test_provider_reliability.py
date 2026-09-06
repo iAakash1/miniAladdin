@@ -5,6 +5,7 @@ becomes three months, a class share that cannot be searched for, and an outage
 drawn as an empty chart.
 """
 
+import threading
 from unittest.mock import patch
 
 import requests
@@ -209,7 +210,23 @@ class _Native(VendorClient):
     COOLDOWN_AFTER_FAILURES = 99  # keep cooldown out of these assertions
 
 
-def test_a_hanging_library_call_is_cut_off():
+@pytest.fixture
+def hanging_call():
+    """A call that blocks until the test ends, then stops.
+
+    A timed-out call keeps running — a Python thread cannot be killed — which
+    is the documented limit of the timeout. A test that abandons a 30-second
+    sleeper therefore leaves a live thread in the shared pool for the rest of
+    the suite, and three of them occupy three of its eight workers. Blocking
+    on an event that teardown sets makes the thread end with the test while
+    still exercising exactly the same path.
+    """
+    release = threading.Event()
+    yield lambda: release.wait(30)
+    release.set()
+
+
+def test_a_hanging_library_call_is_cut_off(hanging_call):
     """A timeout that is never enforced is not a timeout.
 
     yfinance and fredapi do their own networking, where `requests`' timeout
@@ -219,24 +236,22 @@ def test_a_hanging_library_call_is_cut_off():
     vendor = _Native()
     started = _t.perf_counter()
     with pytest.raises(VendorError, match="exceeded"):
-        vendor.timed_call(lambda: _t.sleep(30), operation="hang")
+        vendor.timed_call(hanging_call, operation="hang")
     elapsed = _t.perf_counter() - started
     assert elapsed < 5, f"the call was not bounded; it took {elapsed:.1f}s"
 
 
-def test_a_timeout_is_recorded_as_a_failure():
-    import time as _t
+def test_a_timeout_is_recorded_as_a_failure(hanging_call):
     vendor = _Native()
     with pytest.raises(VendorError):
-        vendor.timed_call(lambda: _t.sleep(30), operation="hang")
+        vendor.timed_call(hanging_call, operation="hang")
     assert vendor.stats.consecutive_failures >= 1, "a timeout was not recorded as a failure"
 
 
-def test_a_timeout_is_transient_so_the_chain_falls_through():
-    import time as _t
+def test_a_timeout_is_transient_so_the_chain_falls_through(hanging_call):
     vendor = _Native()
     try:
-        vendor.timed_call(lambda: _t.sleep(30), operation="hang")
+        vendor.timed_call(hanging_call, operation="hang")
     except VendorError as exc:
         assert exc.transient is True, "a timeout was terminal, so no fallback was tried"
 
