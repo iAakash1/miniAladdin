@@ -37,8 +37,26 @@ PERIOD_DAYS = {
 }
 
 
+class UnknownPeriod(ValueError):
+    """A window nobody named. Raised rather than quietly resolved."""
+
+
 def _period_to_days(period: str) -> int:
-    return PERIOD_DAYS.get(period, 92)
+    """Sessions in a named window.
+
+    An unrecognised period used to fall through to 92 days, so a request for
+    "1w", "10y" or "3momths" silently returned three months of history under
+    whatever label the caller asked for. That changes the meaning of the
+    request without telling anyone — the chart is drawn, the axis is right,
+    and the range is not what was asked for.
+    """
+    try:
+        return PERIOD_DAYS[period]
+    except KeyError:
+        raise UnknownPeriod(
+            f"unknown period {period!r}; expected one of "
+            f"{', '.join(sorted(PERIOD_DAYS))}"
+        ) from None
 
 
 def _safe_float(value) -> Optional[float]:
@@ -248,12 +266,28 @@ class FinnhubVendor(VendorClient):
 
     def search_symbols(self, query: str, limit: int = 8) -> Optional[list[dict]]:
         """Symbol lookup: [{symbol, name}] for a company-name/ticker query."""
-        data = self._get_json(f"{self.BASE}/search", params=self._params(q=query))
+        # `exchange="US"` rather than a filter on the symbol's shape.
+        #
+        # This used to keep only rows whose symbol contained no dot, using
+        # punctuation as a proxy for "US listing" — which dropped every class
+        # share. BRK.B, BF.B and every other legitimate dotted ticker could
+        # not be found at all, and searching "Berkshire" returned the A shares
+        # and nothing else.
+        #
+        # Shape cannot decide it: BRK.B and VOD.L are indistinguishable by
+        # punctuation, one being a share class and the other London. The
+        # vendor already knows, so it does the filtering. Verified against the
+        # live endpoint: with `exchange=US`, "VOD" returns VOD and VDKB while
+        # VOD.L, VOD.JO and VOD.VI are excluded, and "BRK.B" still returns
+        # BRK.B.
+        data = self._get_json(
+            f"{self.BASE}/search", params=self._params(q=query, exchange="US")
+        )
         rows = (data.get("result") or [])[: limit * 2]
         out = [
             {"symbol": row.get("symbol", ""), "name": row.get("description", "")}
             for row in rows
-            if row.get("symbol") and "." not in row.get("symbol", "")  # US listings first
+            if row.get("symbol")
         ]
         return out[:limit] or None
 

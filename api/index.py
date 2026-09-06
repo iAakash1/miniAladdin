@@ -56,6 +56,7 @@ from src.models import MacroIndicators
 from src import observability, providers
 from src.providers import capabilities, fabric
 from src.providers.schemas import PriceSeries
+from src.providers.vendors.market_vendors import PERIOD_DAYS
 from src.scoring import score_ticker
 from src.scoring import technical_intelligence
 from src.services import (
@@ -1802,32 +1803,80 @@ def research_ticker(
 
 @app.get("/api/chart/{ticker}")
 def get_chart(ticker: str, period: str = "3mo"):
-    """Daily close + volume series through the MarketDataProvider chain."""
+    """Daily close + volume series through the MarketDataProvider chain.
+
+    Four outcomes, and they used to be two. A provider failure, a security
+    with genuinely no history, and a request for a window nobody named all
+    returned `{"prices": []}` — an empty chart, drawn without complaint. The
+    reader could not tell "this vendor is down" from "this name has never
+    traded", and an unrecognised period silently became three months, so the
+    axis was right and the range was not what was asked for.
+    """
     ticker = ticker.upper().strip()
     if not ticker or len(ticker) > 10:
         raise HTTPException(status_code=400, detail="Invalid ticker")
+    if period not in PERIOD_DAYS:
+        # 422 rather than a quiet fallback: an unrecognised window changes the
+        # meaning of the request, and answering a different question is worse
+        # than refusing this one.
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"Unknown period {period!r}. Expected one of: "
+                f"{', '.join(sorted(PERIOD_DAYS))}."
+            ),
+        )
 
     try:
         result = providers.market_data.get_series(ticker, period)
-        if not result.ok or not result.data.bars:
-            return {"ticker": ticker, "prices": [], "error": "No data"}
-
-        prices = [
-            {
-                "date": bar.date,
-                "close": round(bar.close, 2),
-                "volume": bar.volume,
-            }
-            for bar in result.data.bars
-        ]
-        logger.info(
-            "chart %s %s: %d bars via %s%s",
-            ticker, period, len(prices), result.source, " (stale)" if result.stale else "",
-        )
-        return {"ticker": ticker, "prices": prices}
     except Exception:
         logger.exception("Chart fetch failed for %s period=%s", ticker, period)
-        return {"ticker": ticker, "prices": [], "error": "Price history unavailable"}
+        return {
+            "ticker": ticker, "period": period, "prices": [],
+            "status": "error",
+            "error": "Price history could not be read.",
+        }
+
+    if not result.ok:
+        # The vendors were asked and none answered. Not an empty chart.
+        return {
+            "ticker": ticker, "period": period, "prices": [],
+            "status": "unavailable",
+            "error": result.error or "No provider returned a price series.",
+            "sources_consulted": result.sources_consulted,
+        }
+
+    if not result.data.bars:
+        # Every provider answered and none had a bar for this window. That is
+        # a fact about the security, not about the providers.
+        return {
+            "ticker": ticker, "period": period, "prices": [],
+            "status": "empty",
+            "error": None,
+            "source": result.source,
+            "detail": f"No sessions returned for {ticker} over {period}.",
+        }
+
+    prices = [
+        {
+            "date": bar.date,
+            "close": round(bar.close, 2),
+            "volume": bar.volume,
+        }
+        for bar in result.data.bars
+    ]
+    logger.info(
+        "chart %s %s: %d bars via %s%s",
+        ticker, period, len(prices), result.source, " (stale)" if result.stale else "",
+    )
+    return {
+        "ticker": ticker,
+        "period": period,
+        "prices": prices,
+        "status": "stale" if result.stale else "ok",
+        "source": result.source,
+        "stale": result.stale,
+    }
 
 
 @app.get("/api/knowledge/{ticker}")

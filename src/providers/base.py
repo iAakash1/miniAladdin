@@ -236,16 +236,33 @@ class VendorClient:
         HTTP with rate limiting, timeout, bounded retries + exponential backoff.
         Raises VendorError on terminal failure; records stats either way.
         """
-        if not self.rate_limiter.try_acquire():
-            self.stats.rate_limited += 1
-            _metrics.registry.increment(
-                "vendor.rate_limited", vendor=self.NAME, operation=operation
-            )
-            raise VendorError(f"{self.NAME}: local rate limit reached", transient=True)
-
         request_started = time.perf_counter()
         last_error: Optional[VendorError] = None
         for attempt in range(self.MAX_RETRIES + 1):
+            # A token per *physical* request, not per logical call.
+            #
+            # This was acquired once, above the loop, so a call that retried
+            # twice sent three requests on one token. The limiter therefore
+            # undercounted by up to MAX_RETRIES precisely when the vendor was
+            # already failing — the moment its quota matters most, and the
+            # moment retries make the outbound rate highest. A limiter that is
+            # accurate only while everything works is not a limiter.
+            if not self.rate_limiter.try_acquire():
+                self.stats.rate_limited += 1
+                _metrics.registry.increment(
+                    "vendor.rate_limited", vendor=self.NAME, operation=operation
+                )
+                limited = VendorError(
+                    f"{self.NAME}: local rate limit reached", transient=True
+                )
+                if attempt == 0:
+                    # Nothing was sent, so there is no partial work to report.
+                    raise limited
+                # Mid-retry: stop here rather than sending an unmetered
+                # request, and report the last real failure to the caller.
+                last_error = last_error or limited
+                break
+
             started = time.perf_counter()
             try:
                 response = self._session.request(

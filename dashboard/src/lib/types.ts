@@ -687,7 +687,26 @@ export interface Provenance {
 /** Raw shape of GET /api/chart/{ticker} */
 export interface RawChartResponse {
   ticker?: string
+  period?: string
   prices?: Array<{ date: string; close: number; volume?: number }>
+  /* Four outcomes, not two. `unavailable` means no provider answered;
+     `empty` means they all did and none had a session for this window. Both
+     carry no prices, and conflating them told a reader that a security has
+     never traded when the vendors were simply down. */
+  status?: 'ok' | 'stale' | 'empty' | 'unavailable' | 'error'
+  error?: string | null
+  source?: string
+  stale?: boolean
+  sources_consulted?: string[]
+}
+
+/** A chart series and what happened while fetching it. */
+export interface ChartSeries {
+  points: PricePoint[]
+  status: 'ok' | 'stale' | 'empty' | 'unavailable' | 'error'
+  /** Why there is nothing to draw, when there is nothing to draw. */
+  reason: string | null
+  source: string | null
 }
 
 /* ---------- Normalized shapes used by the UI ---------- */

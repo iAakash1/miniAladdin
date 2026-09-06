@@ -16,6 +16,7 @@ import type {
   PricePoint,
   QuantCard,
   RawAiAnalysis,
+  ChartSeries,
   RawChartResponse,
   RawFactorImpact,
   RawMacroResponse,
@@ -241,6 +242,29 @@ export function normalizeAnalysis(raw: RawResearchResponse): Analysis {
     macroContext: raw.macro_context ?? null,
     ownership: raw.ownership ?? null,
     analyst: raw.analyst ?? null,
+  }
+}
+
+/**
+ * A chart series with the reason it is empty, when it is empty.
+ *
+ * `normalizeChart` below returns only the points, which is all its callers
+ * needed while every failure looked the same. It still does, so nothing that
+ * only wants to draw a line has to change; this is for the caller that wants
+ * to say why there is no line.
+ */
+export function normalizeChartSeries(raw: RawChartResponse): ChartSeries {
+  const points = normalizeChart(raw)
+  const status = raw.status ?? (points.length ? 'ok' : 'empty')
+  return {
+    points,
+    status,
+    reason: status === 'ok' || status === 'stale'
+      ? null
+      : raw.error ?? (status === 'empty'
+        ? `No sessions returned for ${raw.ticker ?? 'this security'}.`
+        : 'The price history could not be read.'),
+    source: raw.source ?? null,
   }
 }
 

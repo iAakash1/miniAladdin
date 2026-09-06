@@ -17,7 +17,7 @@
 import { strict as assert } from 'node:assert'
 import test from 'node:test'
 
-import { normalizeAnalysis, normalizeChart, normalizeMacro } from '../src/lib/api'
+import { normalizeAnalysis, normalizeChart, normalizeChartSeries, normalizeMacro } from '../src/lib/api'
 import { parsePercentString } from '../src/lib/format'
 
 /** The eight fields that were coerced. */
@@ -150,4 +150,52 @@ test('a genuinely zero volume survives', () => {
 
 test('an empty price list is an empty chart, not an error', () => {
   assert.deepEqual(normalizeChart({ prices: [] } as never), [])
+})
+
+
+/* ── a provider outage is not an empty chart ──────────────────────────────── */
+
+test('an outage and a security with no history are distinguishable', () => {
+  /* Both carry no prices. Conflating them told a reader that a security has
+     never traded when the vendors were simply down. */
+  const outage = normalizeChartSeries({
+    ticker: 'AAPL', prices: [], status: 'unavailable', error: 'all vendors failed',
+  } as never)
+  const empty = normalizeChartSeries({
+    ticker: 'AAPL', prices: [], status: 'empty', error: null,
+  } as never)
+
+  assert.deepEqual(outage.points, [])
+  assert.deepEqual(empty.points, [])
+  assert.notEqual(outage.status, empty.status)
+  assert.equal(outage.reason, 'all vendors failed')
+  assert.match(String(empty.reason), /No sessions returned/)
+})
+
+test('a healthy series carries no reason and names its source', () => {
+  const s = normalizeChartSeries({
+    ticker: 'AAPL', status: 'ok', source: 'polygon',
+    prices: [{ date: '2026-09-04', close: 100, volume: 10 }],
+  } as never)
+  assert.equal(s.status, 'ok')
+  assert.equal(s.reason, null)
+  assert.equal(s.source, 'polygon')
+  assert.equal(s.points.length, 1)
+})
+
+test('a stale series is drawn but labelled stale', () => {
+  const s = normalizeChartSeries({
+    ticker: 'AAPL', status: 'stale',
+    prices: [{ date: '2026-09-04', close: 100 }],
+  } as never)
+  assert.equal(s.status, 'stale')
+  assert.equal(s.reason, null, 'a stale series that has points has nothing to explain')
+})
+
+test('a response with no status falls back on whether it has points', () => {
+  // Older payloads, and any caller that has not been updated.
+  assert.equal(normalizeChartSeries({ prices: [] } as never).status, 'empty')
+  assert.equal(
+    normalizeChartSeries({ prices: [{ date: 'd', close: 1 }] } as never).status, 'ok',
+  )
 })
