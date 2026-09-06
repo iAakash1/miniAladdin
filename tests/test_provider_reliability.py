@@ -198,3 +198,71 @@ def test_symbol_search_no_longer_filters_on_punctuation():
         "search does not ask the vendor to filter by exchange, which is the "
         "only thing that can tell BRK.B from VOD.L"
     )
+
+
+# ── native library calls are bounded ────────────────────────────────────────
+
+class _Native(VendorClient):
+    KEY_ENV = None
+    NAME = "native"
+    CALL_TIMEOUT_SECONDS = 0.3
+    COOLDOWN_AFTER_FAILURES = 99  # keep cooldown out of these assertions
+
+
+def test_a_hanging_library_call_is_cut_off():
+    """A timeout that is never enforced is not a timeout.
+
+    yfinance and fredapi do their own networking, where `requests`' timeout
+    cannot reach, so an unbounded call held a FastAPI worker until restart.
+    """
+    import time as _t
+    vendor = _Native()
+    started = _t.perf_counter()
+    with pytest.raises(VendorError, match="exceeded"):
+        vendor.timed_call(lambda: _t.sleep(30), operation="hang")
+    elapsed = _t.perf_counter() - started
+    assert elapsed < 5, f"the call was not bounded; it took {elapsed:.1f}s"
+
+
+def test_a_timeout_is_recorded_as_a_failure():
+    import time as _t
+    vendor = _Native()
+    with pytest.raises(VendorError):
+        vendor.timed_call(lambda: _t.sleep(30), operation="hang")
+    assert vendor.stats.consecutive_failures >= 1, "a timeout was not recorded as a failure"
+
+
+def test_a_timeout_is_transient_so_the_chain_falls_through():
+    import time as _t
+    vendor = _Native()
+    try:
+        vendor.timed_call(lambda: _t.sleep(30), operation="hang")
+    except VendorError as exc:
+        assert exc.transient is True, "a timeout was terminal, so no fallback was tried"
+
+
+def test_a_fast_call_is_unaffected():
+    vendor = _Native()
+    assert vendor.timed_call(lambda: 42, operation="quick") == 42
+
+
+def test_an_explicit_budget_overrides_the_default():
+    import time as _t
+    vendor = _Native()
+    assert vendor.timed_call(lambda: (_t.sleep(0.05), "ok")[1], operation="q", timeout=5) == "ok"
+
+
+def test_a_raising_call_is_still_normalised_to_a_vendor_error():
+    vendor = _Native()
+    with pytest.raises(VendorError):
+        vendor.timed_call(lambda: (_ for _ in ()).throw(RuntimeError("boom")), operation="bad")
+
+
+def test_the_earnings_lookup_goes_through_the_reliability_layer():
+    """It called `yf.Ticker(...).calendar` inside the research request path."""
+    import inspect
+    src = inspect.getsource(api.research_ticker) if hasattr(api, "research_ticker") else \
+        api.Path("api/index.py").read_text()
+    assert "timed_call(_fetch, operation=\"earnings_calendar\")" in src, (
+        "the earnings calendar still bypasses rate limiting, stats and timeout"
+    )

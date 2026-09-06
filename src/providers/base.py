@@ -21,6 +21,8 @@ import os
 import re
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FuturesTimeout
 from typing import Any, Optional
 
 import requests
@@ -140,6 +142,15 @@ class VendorError(Exception):
         self.transient = transient
 
 
+#: Where bounded library calls run.
+#:
+#: Daemon threads, so a call that outlives its timeout cannot hold up
+#: interpreter exit. Shared across vendors because the alternative — a pool
+#: per vendor — multiplies idle threads by the number of adapters for no gain;
+#: these calls are rate-limited upstream, so the pool is never the bottleneck.
+_CALL_POOL = ThreadPoolExecutor(max_workers=8, thread_name_prefix="vendor-call")
+
+
 class VendorClient:
     """Base adapter. Subclasses set NAME / KEY_ENV / DEFAULT_RPM and use _get_json."""
 
@@ -147,6 +158,10 @@ class VendorClient:
     KEY_ENV: Optional[str] = None          # None → keyless vendor
     DEFAULT_RPM = 30
     TIMEOUT_SECONDS = 6.0
+    #: Bound on a native library call. Separate from TIMEOUT_SECONDS because
+    #: these libraries retry internally and legitimately take longer than one
+    #: HTTP round trip; the point is that they end, not that they are fast.
+    CALL_TIMEOUT_SECONDS = 20.0
     MAX_RETRIES = 2
     BACKOFF_BASE = 0.4
     COOLDOWN_AFTER_FAILURES = 3
@@ -201,10 +216,25 @@ class VendorClient:
         return self._request_json("POST", url, json_body=json_body, headers=headers,
                                   operation=operation)
 
-    def timed_call(self, fn, operation: str = "call"):
+    def timed_call(self, fn, operation: str = "call", timeout: Optional[float] = None):
         """
         Wrap a library call (yfinance, fredapi) with the same rate limiting,
-        stats and cooldown behavior as HTTP adapters.
+        stats, cooldown *and timeout* behavior as HTTP adapters.
+
+        The timeout is the reason this method changed. It gave library calls
+        the statistics and cooldown of an HTTP adapter and none of its bound:
+        `fn()` ran to completion however long that took, so a yfinance or FRED
+        call that hung held a FastAPI worker thread until the process
+        restarted. A timeout that is not enforced is not a timeout, and these
+        libraries do their own networking where `requests`' timeout cannot
+        reach.
+
+        The call runs on a worker and the wait is bounded. A Python thread
+        cannot be killed, so a timed-out call may still be running when this
+        returns — the resource is not reclaimed, only the request is released.
+        That is the honest limit of the approach and it is the right trade:
+        one leaked thread costs far less than a permanently stuck worker, and
+        the daemon pool means a straggler cannot hold up interpreter exit.
         """
         if not self.rate_limiter.try_acquire():
             self.stats.rate_limited += 1
@@ -213,8 +243,18 @@ class VendorClient:
             )
             raise VendorError(f"{self.NAME}: local rate limit reached", transient=True)
         started = time.perf_counter()
+        budget = self.CALL_TIMEOUT_SECONDS if timeout is None else timeout
         try:
-            value = fn()
+            value = _CALL_POOL.submit(fn).result(timeout=budget)
+        except FuturesTimeout as exc:
+            latency = (time.perf_counter() - started) * 1000
+            self.stats.record(False, latency, f"timeout after {budget}s")
+            _observe(self.NAME, operation, "error", latency)
+            if self.stats.consecutive_failures >= self.COOLDOWN_AFTER_FAILURES:
+                self._cooldown_until = time.monotonic() + self.COOLDOWN_SECONDS
+            raise VendorError(
+                f"{self.NAME}: {operation} exceeded {budget}s", transient=True,
+            ) from exc
         except Exception as exc:  # noqa: BLE001 — normalized to VendorError
             latency = (time.perf_counter() - started) * 1000
             self.stats.record(False, latency, str(exc))

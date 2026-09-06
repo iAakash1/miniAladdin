@@ -890,12 +890,30 @@ def research_ticker(
     tech_error: Optional[str] = None
 
     def _days_to_earnings() -> Optional[int]:
-        """Best-effort business days to the next confirmed earnings date."""
+        """Best-effort business days to the next confirmed earnings date.
+
+        Routed through the yfinance vendor's `timed_call` rather than calling
+        `yf.Ticker(...).calendar` here. The direct call sat inside the
+        research request path and had none of the reliability the rest of the
+        stack has: no rate limiting, no failure statistics, no cooldown after
+        repeated failures, and — the reason it mattered — no timeout. yfinance
+        does its own networking, so a hung calendar lookup held a worker
+        thread for as long as it liked while every other provider in this
+        request had already answered.
+
+        Still best-effort: the calendar is a nice-to-have and a failure here
+        returns None rather than costing the research run.
+        """
+        vendor = providers.market_data.yfinance
+
+        def _fetch():
+            import yfinance as yf
+            return yf.Ticker(ticker).calendar
+
         try:
             import pandas as pd
-            import yfinance as yf
 
-            calendar = yf.Ticker(ticker).calendar
+            calendar = vendor.timed_call(_fetch, operation="earnings_calendar")
             dates = calendar.get("Earnings Date") if isinstance(calendar, dict) else None
             if not dates:
                 return None
