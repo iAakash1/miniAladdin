@@ -907,6 +907,33 @@ def _contributions_frame(
     return _annotate_coverage(frame, coverage, missing)
 
 
+def _unavailable_contributions(
+    aligned: pd.Series, coverage: float, missing: list[Any],
+) -> pd.DataFrame:
+    """A contributions table that could not be computed.
+
+    NaN rather than 0.0, because every consumer of this frame — a sum, a sort,
+    a share, a chart — treats zero as a measurement and NaN as an absence.
+    The weights are kept: they are what the book holds, and that much is
+    known. What is unknown is what they contribute.
+    """
+    frame = pd.DataFrame({
+        "weight": aligned,
+        "marginal": float("nan"),
+        "component": float("nan"),
+        "share": float("nan"),
+    })
+    frame = _annotate_coverage(frame, coverage, missing)
+    frame.attrs["computation"] = "failed"
+    frame.attrs["complete"] = False
+    frame.attrs["caveat"] = (
+        "UNAVAILABLE — the marginal risk calculation produced a non-finite "
+        "result, so no contribution could be computed. This is a failure to "
+        "measure the book's risk, not a finding that it has none."
+    )
+    return frame
+
+
 def risk_contributions(weights: pd.Series, cov: pd.DataFrame) -> pd.DataFrame:
     """Marginal and component contribution to portfolio risk.
 
@@ -951,7 +978,14 @@ def risk_contributions(weights: pd.Series, cov: pd.DataFrame) -> pd.DataFrame:
         marginal_values = matrix @ aligned.to_numpy() / portfolio_vol
 
     if not np.all(np.isfinite(marginal_values)):
-        return _contributions_frame(aligned, 0.0, 0.0, 0.0, weight_coverage, missing)
+        # Not zero. A non-finite marginal means the covariance solve failed —
+        # a singular matrix, an overflow, a degenerate book — and returning
+        # zeros there published a portfolio with no risk in it, which is the
+        # most flattering possible reading of a numerical failure and
+        # indistinguishable from a genuinely riskless book. The branch above
+        # handles that case, where zero is the true answer; this one is a
+        # failure to compute and says so.
+        return _unavailable_contributions(aligned, weight_coverage, missing)
     marginal = pd.Series(marginal_values, index=cov.index)
     component = aligned * marginal
     total = float(component.sum())

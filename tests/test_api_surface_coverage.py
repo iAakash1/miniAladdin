@@ -29,6 +29,11 @@ FRONTEND = ROOT / "dashboard" / "src"
 INTERNAL: dict[str, str] = {
     "/api/health": "liveness probe for the platform, not for a person",
     "/api/metrics": "latency percentiles scraped by the host, not read in the product",
+    "/api/metrics/reset": (
+        "an authenticated operator action, not a workspace feature — it used to "
+        "be `GET /api/metrics?reset=true`, where any crawler or reload could "
+        "erase the observability window for everyone"
+    ),
     "/api/graph/expand": "called by the graph explorer through a query builder, not by path",
     "/api/graph/path": "same",
     "/api/quant/features": "an alias of /api/ml/features; the UI calls the ml route",

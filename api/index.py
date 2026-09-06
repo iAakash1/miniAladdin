@@ -12,6 +12,7 @@ event loop for every concurrent request (see docs/AUDIT.md H3).
 from __future__ import annotations
 
 import logging
+import math
 import os
 import sys
 import threading
@@ -63,7 +64,7 @@ from src.services import (
 )
 from src.services import ml_service
 from src.services.backtest_service import peek_cached as peek_backtest
-from src.services.clerk_auth import optional_clerk_user
+from src.services.clerk_auth import optional_clerk_user, require_clerk_user
 from src.services.database.repositories import AnalysisRepository
 from src.services.provenance import Ledger
 from src.services import visual_intelligence
@@ -991,7 +992,14 @@ def research_ticker(
 
             # Alpha Vantage MACD
             "macd_crossover": prediction.macd_crossover,
-            "macd_histogram": round(prediction.macd_histogram, 4) if prediction.macd_histogram else None,
+            # `is not None`, not truthiness. A MACD histogram of exactly 0.0
+            # is the crossover itself — the moment the two averages meet —
+            # and truthiness reported the single most informative value this
+            # field can take as "not computed".
+            "macd_histogram": (
+                round(prediction.macd_histogram, 4)
+                if prediction.macd_histogram is not None else None
+            ),
 
             # Alpha Vantage fundamentals
             "pe_ratio":       prediction.pe_ratio,
@@ -2080,20 +2088,32 @@ def ml_provenance(
 
 
 @app.get("/api/metrics", tags=["ops"])
-def get_metrics(reset: bool = Query(False, description="clear counters after reading")):
+def get_metrics():
     """Latency percentiles and counters for every instrumented seam.
 
     Percentiles rather than averages: the distribution here is bimodal — a
     cache hit at 0.4 ms and a vendor exhausting its retries at 18 s average
     to a number that never happened. p95/p99 are what an operator can act on.
 
-    `?reset=true` starts a fresh window, so a vendor that misbehaved an hour
-    ago stops colouring the current picture.
+    Read-only. This used to accept `?reset=true` and clear every counter, so
+    an unauthenticated GET could erase the observability window for everyone —
+    a crawler following links, a prefetch, or a browser reloading the page
+    would silently destroy the evidence an operator was in the middle of
+    reading. Resetting is a mutation and it now lives on a route that says so.
     """
-    snapshot = observability.registry.snapshot()
-    if reset:
-        observability.registry.reset()
-    return snapshot
+    return observability.registry.snapshot()
+
+
+@app.post("/api/metrics/reset", tags=["ops"])
+def reset_metrics(_user: str = Depends(require_clerk_user)):
+    """Start a fresh observability window.
+
+    Authenticated, and a POST: it destroys data. A vendor that misbehaved an
+    hour ago stops colouring the current picture, which is a legitimate
+    operational need — it was simply never a read.
+    """
+    observability.registry.reset()
+    return {"status": "reset", "snapshot": observability.registry.snapshot()}
 
 
 @app.get("/api/providers/health", tags=["ops"])
@@ -2566,20 +2586,27 @@ def _validate_paper_order(req: "PaperOrderRequest") -> list[str]:
 
     if not symbol or not symbol.replace(".", "").replace("-", "").isalnum() or len(symbol) > 10:
         problems.append("Symbol is not a valid ticker.")
-    if req.qty is None or req.qty <= 0:
-        problems.append("Quantity must be greater than zero.")
-    elif req.qty != req.qty:  # NaN
+    # `isfinite` before the range check. `qty <= 0` is False for infinity, so
+    # an infinite quantity passed validation and went to the broker; and the
+    # `x != x` NaN idiom below it could never run, because NaN also fails
+    # `<= 0`. One check that means "this is a real number" replaces both.
+    if req.qty is None or not math.isfinite(req.qty):
         problems.append("Quantity is not a number.")
+    elif req.qty <= 0:
+        problems.append("Quantity must be greater than zero.")
     if (req.side or "").lower() not in _SIDES:
         problems.append(f"Side must be one of: {', '.join(sorted(_SIDES))}.")
     if (req.order_type or "").lower() not in _TYPES:
         problems.append(f"Order type must be one of: {', '.join(sorted(_TYPES))}.")
     if (req.time_in_force or "").lower() not in _TIF:
         problems.append(f"Time in force must be one of: {', '.join(sorted(_TIF))}.")
-    if (req.order_type or "").lower() == "limit" and not req.limit_price:
+    if (req.order_type or "").lower() == "limit" and req.limit_price is None:
         problems.append("A limit order needs a limit price.")
-    if req.limit_price is not None and req.limit_price <= 0:
-        problems.append("Limit price must be greater than zero.")
+    if req.limit_price is not None:
+        if not math.isfinite(req.limit_price):
+            problems.append("Limit price is not a number.")
+        elif req.limit_price <= 0:
+            problems.append("Limit price must be greater than zero.")
     return problems
 
 

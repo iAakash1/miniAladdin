@@ -33,6 +33,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
 
@@ -83,8 +84,21 @@ VOID_EXPERIMENTS: dict[str, str] = {
 
 
 def _read(path: Path) -> Optional[dict[str, Any]]:
+    """One artifact, or None.
+
+    An absent file is not a warning. `resolve_experiment_artifact` asks for
+    `metrics.json` first and falls back to the selection shape, so a missing
+    `metrics.json` is the *expected* path for every search-shaped experiment —
+    and logging it as a warning three times per request trains a reader to
+    ignore this logger, which is where the genuine failures below also go.
+
+    A file that exists and cannot be parsed still warns: that is a real fault.
+    """
     try:
         return json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        logger.debug("quant: no artifact at %s", path)
+        return None
     except (OSError, json.JSONDecodeError) as error:
         logger.warning("quant: cannot read %s (%s)", path, error)
         return None
@@ -205,59 +219,96 @@ def verdict(
 # ── endpoints ───────────────────────────────────────────────────────────────
 
 
+@dataclass(frozen=True)
+class ExperimentArtifact:
+    """Where an experiment's result lives, and what shape it is in.
+
+    Not every experiment writes `metrics.json`. A hyperparameter search writes
+    `search.json` beside the experiment and records its verdict in a selection
+    artifact under `artifacts/experiments/`, which is a different shape and an
+    equally complete result.
+
+    Two readers used to decide this independently. `experiments()` knew about
+    the selection shape and reported EXP-007 as complete; `experiment()` read
+    only `metrics.json` and answered "no artifact for EXP-007" for the same
+    experiment in the same request cycle. `latest()` then compounded it —
+    it picked the newest completed experiment from the first reader and loaded
+    it through the second, so the landing page's own selection was the one
+    thing it could not open.
+
+    One resolver, three callers, one answer.
+    """
+
+    experiment_id: str
+    #: "metrics" or "selection".
+    shape: str
+    payload: dict[str, Any]
+
+
+def resolve_experiment_artifact(
+    experiment_id: str, root: Path | str = DEFAULT_ROOT,
+) -> Optional[ExperimentArtifact]:
+    """The result artifact for one experiment, whichever shape it took."""
+    metrics = _read(Path(root) / experiment_id / METRICS_NAME)
+    if metrics is not None:
+        return ExperimentArtifact(experiment_id, "metrics", metrics)
+    selection = _read(SELECTION_ROOT / experiment_id / SELECTION_NAME)
+    if selection is not None:
+        return ExperimentArtifact(experiment_id, "selection", selection)
+    return None
+
+
+def _selection_summary(artifact: ExperimentArtifact) -> dict[str, Any]:
+    """A selection-shaped experiment, described in the listing's vocabulary.
+
+    Recorded verbatim. Nothing here restates, softens or recomputes a verdict —
+    the artifact is the record.
+    """
+    payload = artifact.payload
+    verdict = payload.get("verdict") or {}
+    dataset = payload.get("dataset") or {}
+    selected = payload.get("selected") or {}
+    holdout = payload.get("holdout") or {}
+    return {
+        "status": "complete",
+        #: How the result was recorded, so a reader can tell why this carries
+        #: different fields from a metrics-shaped one.
+        "artifact": "selection",
+        "fingerprint": payload.get("fingerprint"),
+        "generated_at": payload.get("generated_at"),
+        "git_commit": payload.get("git_commit"),
+        "primary_target": selected.get("target"),
+        "dataset_version": dataset.get("dataset_version"),
+        "rows": dataset.get("rows"),
+        "symbols": dataset.get("symbols"),
+        "dates": dataset.get("dates"),
+        "verdict": verdict.get("status"),
+        "verdict_passed": verdict.get("passed"),
+        "holdout_touched": holdout.get("touched"),
+    }
+
+
 def experiments(root: Path | str = DEFAULT_ROOT) -> dict[str, Any]:
     """Every experiment on disk, newest first, with void ones marked."""
     root = Path(root)
     rows: list[dict[str, Any]] = []
     for directory in _experiment_dirs(root):
-        metrics = _read(directory / METRICS_NAME)
         experiment_id = directory.name
+        artifact = resolve_experiment_artifact(experiment_id, root)
+        metrics = artifact.payload if artifact and artifact.shape == "metrics" else None
         row: dict[str, Any] = {
             "experiment_id": experiment_id,
             "void": experiment_id in VOID_EXPERIMENTS,
             "void_reason": VOID_EXPERIMENTS.get(experiment_id),
         }
         if metrics is None:
-            # Not every experiment writes `metrics.json`. A hyperparameter
-            # search writes `search.json` and records its verdict in a
-            # selection artifact, and EXP-007 — the experiment carrying the
-            # NO PRODUCTION CANDIDATE result this product is built around —
-            # is exactly that shape. Reporting it as "unreadable" put the
-            # word for a system failure against a completed experiment, in
-            # the State column of the registry the reader consults to find
-            # out whether the research stands up.
-            selection = _read(SELECTION_ROOT / experiment_id / SELECTION_NAME)
-            if selection is None:
+            if artifact is None:
                 row.update({"status": "unreadable", "detail": "no metrics.json"})
                 rows.append(row)
                 continue
-            verdict = selection.get("verdict") or {}
-            dataset = selection.get("dataset") or {}
-            selected = selection.get("selected") or {}
-            holdout = selection.get("holdout") or {}
-            row.update({
-                "status": "complete",
-                #: How the result was recorded, so a reader can tell why this
-                #: row carries different fields from a metrics-shaped one.
-                "artifact": "selection",
-                "fingerprint": selection.get("fingerprint"),
-                "generated_at": selection.get("generated_at"),
-                "git_commit": selection.get("git_commit"),
-                "primary_target": selected.get("target"),
-                "dataset_version": dataset.get("dataset_version"),
-                "rows": dataset.get("rows"),
-                "symbols": dataset.get("symbols"),
-                "dates": dataset.get("dates"),
-                # Recorded verbatim. The artifact is the record and nothing
-                # here restates, softens or recomputes it.
-                "verdict": verdict.get("status"),
-                "verdict_passed": verdict.get("passed"),
-                # Whether the holdout has been spent. A reader looking at a
-                # completed experiment needs this beside the verdict, not a
-                # click away — "no candidate" and "untouched holdout" are
-                # different facts and both are load-bearing.
-                "holdout_touched": holdout.get("touched"),
-            })
+            # A search-shaped result. Described through the shared summary so
+            # the listing and the detail view cannot drift apart.
+            row.update(_selection_summary(artifact))
             rows.append(row)
             continue
         definition = metrics.get("experiment", {})
@@ -300,9 +351,22 @@ def experiments(root: Path | str = DEFAULT_ROOT) -> dict[str, Any]:
 def experiment(experiment_id: str, root: Path | str = DEFAULT_ROOT) -> dict[str, Any]:
     """One experiment in full: leaderboard, ablation, controls, regimes."""
     root = Path(root)
-    metrics = _read(root / experiment_id / METRICS_NAME)
-    if metrics is None:
+    artifact = resolve_experiment_artifact(experiment_id, root)
+    if artifact is None:
         return _unavailable(f"no artifact for {experiment_id}")
+    if artifact.shape == "selection":
+        # A search-shaped experiment has no leaderboard, ablation or negative
+        # controls to render — its result is the gate verdict, and the full
+        # record is served by `/api/quant/selection/{id}`. Returning the
+        # summary and saying where the detail lives is the honest answer;
+        # "no artifact" was not, and it was what `latest()` hit every time.
+        return {
+            "status": "ok",
+            "experiment_id": experiment_id,
+            **_selection_summary(artifact),
+            "detail_endpoint": f"/api/quant/selection/{experiment_id}",
+        }
+    metrics = artifact.payload
 
     definition = metrics.get("experiment", {})
     primary = definition.get("primary_target")

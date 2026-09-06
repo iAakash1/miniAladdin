@@ -9,6 +9,7 @@ raise VendorError and are handled by the chain.
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+import math
 from typing import Optional
 
 from src.quant.pit.calendar import session_date_from_epoch
@@ -41,11 +42,19 @@ def _period_to_days(period: str) -> int:
 
 
 def _safe_float(value) -> Optional[float]:
+    """A vendor number, or None.
+
+    `math.isfinite` rather than the `x == x` NaN idiom, which catches NaN and
+    lets infinity straight through. An infinite price is not a price: it
+    survives JSON as `Infinity`, which is not valid JSON, and any ratio built
+    from it comes out infinite or zero without raising anywhere. Both are
+    absences wearing a number's clothes.
+    """
     try:
         result = float(value)
-        return result if result == result else None  # NaN guard
     except (TypeError, ValueError):
         return None
+    return result if math.isfinite(result) else None
 
 
 # ── Polygon ───────────────────────────────────────────────────────────────────
