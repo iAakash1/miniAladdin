@@ -38,6 +38,7 @@ from src.decision import (
     verdict_to_recommendation,
 )
 from src.services import llm_service
+from src.services.paper_access import paper_access_state, require_paper_trader
 from src.models import (
     AggregateSentiment,
     MacroStatus,
@@ -176,7 +177,11 @@ risk_engine        = OmniSignalRiskEngine()
 sentiment_analyzer = SentimentAnalyzer(max_headlines=12)
 av_client          = AlphaVantageClient()
 
-DEMO_MACRO_MULTIPLIER = 1.15
+#: Status reported when the macro regime could not be measured at all.
+#: Deliberately not one of `MacroStatus`'s analytical values — an outage is
+#: not a regime, and `_macro_assessment` maps it to DATA_ERROR rather than
+#: letting it read as a reading.
+MACRO_UNAVAILABLE = "UNAVAILABLE"
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -194,15 +199,30 @@ def _fmt_market_cap(v: Optional[float]) -> Optional[str]:
     return f"${v:,.0f}"
 
 
-def _demo_macro_stats() -> dict[str, Any]:
-    """Fallback macro payload when FRED is unreachable. Loud in logs, harmless to clients."""
+def _macro_unavailable(reason: str) -> dict[str, Any]:
+    """The macro block when FRED cannot be read.
+
+    This replaced a payload that returned inflation 3.2%, a Fed funds rate of
+    5.25% and a risk multiplier of 1.15 whenever the provider failed. Those
+    numbers were plausible, fixed, and had nothing to do with the economy.
+    A reader could not tell them from measurements, and the scoring engine
+    could not either: it gated a verdict on a multiplier derived from an
+    outage.
+
+    An unreachable FRED service does not mean inflation is 3.2%, and it does
+    not mean inflation is 0% either — which is what the missing-observation
+    path substituted before feeding the risk engine. Every unmeasured field is
+    null, the status says why, and no multiplier is invented.
+    """
     return {
-        "status":               "DEMO_MODE",
-        "error":                "FRED API unavailable - using demo data",
-        "yield_curve_inverted": False,
-        "inflation_rate":       3.2,
-        "fed_funds_rate":       5.25,
-        "note":                 "Get a free FRED API key at fred.stlouisfed.org",
+        "status":               MACRO_UNAVAILABLE,
+        "error":                reason,
+        "yield_spread":         None,
+        "inflation_rate":       None,
+        "fed_funds_rate":       None,
+        "yield_curve_inverted": None,
+        "recession_warning":    None,
+        "note":                 "Set FRED_API_KEY to enable the macro regime gate.",
     }
 
 
@@ -214,11 +234,28 @@ _macro_cache: dict[str, tuple[float, tuple[float, dict[str, Any]]]] = {}
 _macro_lock = threading.Lock()
 
 
-def _fetch_macro_safe() -> tuple[float, dict[str, Any]]:
-    """
-    SRM + stats, sourced through the MacroProvider (FRED behind cache,
-    retries and health tracking); SRM math stays in the risk engine.
-    Demo fallback preserved. Never raises.
+def _fetch_macro_safe() -> tuple[Optional[float], dict[str, Any]]:
+    """SRM + stats from FRED, or an explicit absence. Never raises.
+
+    Returns `None` for the multiplier when the regime could not be measured.
+    That is a contract change and it is the point: the previous version could
+    not express "unknown", so it expressed "1.15" instead.
+
+    Two substitutions were removed here.
+
+    A missing FRED observation was replaced with `0.0` before the multiplier
+    was computed — so an unreturned term spread became "the curve spread is
+    exactly zero" and an unreturned CPI print became "inflation is exactly
+    zero", both of which the risk engine then scored as real readings. The
+    term spread in particular is sign-sensitive: zero sits precisely on the
+    inversion boundary this gate exists to detect.
+
+    Total provider failure returned fixed demo values and a multiplier of
+    1.15. Nothing downstream could distinguish that from a measurement.
+
+    Both indicators are now required. Partial data stays partial: the fields
+    that arrived are reported, the ones that did not are null, and no
+    multiplier is produced from an incomplete set.
     """
     now = time.time()
     with _macro_lock:
@@ -230,9 +267,33 @@ def _fetch_macro_safe() -> tuple[float, dict[str, Any]]:
         if not snapshot_result.ok:
             raise RuntimeError(snapshot_result.error or "macro provider returned no data")
         snap = snapshot_result.data
+
+        # The two the multiplier is computed from. Either one missing means
+        # there is no multiplier to compute — not a multiplier computed from
+        # a zero standing in for it.
+        if snap.yield_spread is None or snap.inflation_rate is None:
+            missing = [
+                name for name, value in
+                (("10Y-2Y term spread", snap.yield_spread),
+                 ("CPI inflation", snap.inflation_rate))
+                if value is None
+            ]
+            partial = _macro_unavailable(
+                f"FRED returned no {' and no '.join(missing)}, so the regime "
+                "gate could not be computed."
+            )
+            # Whatever did arrive is still reported, as itself.
+            if snap.yield_spread is not None:
+                partial["yield_spread"] = snap.yield_spread
+            if snap.inflation_rate is not None:
+                partial["inflation_rate"] = f"{snap.inflation_rate:.2f}%"
+            if snap.fed_funds_rate is not None:
+                partial["fed_funds_rate"] = f"{snap.fed_funds_rate:.2f}%"
+            return None, partial
+
         indicators = MacroIndicators(
-            yield_spread=snap.yield_spread if snap.yield_spread is not None else 0.0,
-            inflation_rate=snap.inflation_rate if snap.inflation_rate is not None else 0.0,
+            yield_spread=snap.yield_spread,
+            inflation_rate=snap.inflation_rate,
             fed_funds_rate=snap.fed_funds_rate,
         )
         assessment = risk_engine.calculate_multiplier(indicators)
@@ -241,19 +302,19 @@ def _fetch_macro_safe() -> tuple[float, dict[str, Any]]:
             "inflation_rate": f"{indicators.inflation_rate:.2f}%",
             "fed_funds_rate": (
                 f"{indicators.fed_funds_rate:.2f}%"
-                if indicators.fed_funds_rate is not None else "N/A"
+                if indicators.fed_funds_rate is not None else None
             ),
             "yield_curve_inverted": assessment.yield_curve_inverted,
             "status": assessment.status.value,
             "recession_warning": assessment.recession_warning,
         }
-        result = (assessment.risk_multiplier, stats)
+        result: tuple[Optional[float], dict[str, Any]] = (assessment.risk_multiplier, stats)
         with _macro_lock:
             _macro_cache["srm"] = (now + MACRO_CACHE_TTL_SECONDS, result)
         return result
-    except Exception:
-        logger.exception("Macro fetch failed — serving DEMO_MODE fallback")
-        return DEMO_MACRO_MULTIPLIER, _demo_macro_stats()
+    except Exception as exc:  # noqa: BLE001 — macro must never break research
+        logger.exception("Macro fetch failed — reporting the regime as unavailable")
+        return None, _macro_unavailable(f"The macro provider could not be read: {exc}")
 
 
 # ── Fast macro stress inputs (engine v2.1 probabilistic gate) ────────────────
@@ -436,13 +497,20 @@ def _series_to_dataframe(series: PriceSeries):
 
 def _macro_assessment(multiplier: float, stats: dict[str, Any]) -> RiskAssessment:
     """Rebuild a RiskAssessment object from the stats dict for decision logic."""
-    status_raw = str(stats.get("status", "STABLE"))
+    # No default of STABLE. A stats dict with no status is one that never got
+    # a reading, and "absent" must not resolve to the most reassuring value in
+    # the enum.
+    status_raw = str(stats.get("status") or MACRO_UNAVAILABLE)
     try:
         status = MacroStatus(status_raw)
-    except ValueError:  # e.g. "DEMO_MODE"
+    except ValueError:  # UNAVAILABLE, or anything else unrecognised
         status = MacroStatus.DATA_ERROR
+    # An unmeasured regime applies no dampening — the identity, not a guess at
+    # one. The caller records that the gate was not applied; this only keeps
+    # the arithmetic well formed.
+    gate = 1.0 if multiplier is None else max(0.5, min(1.6, multiplier))
     return RiskAssessment(
-        risk_multiplier=max(0.5, min(1.6, multiplier)),
+        risk_multiplier=gate,
         yield_curve_inverted=bool(stats.get("yield_curve_inverted", False)),
         status=status,
         recession_warning=bool(stats.get("recession_warning", False)),
@@ -1457,7 +1525,7 @@ def research_ticker(
             ) if len(scoring_frame) else None
             scorecard = score_ticker(
                 scoring_frame,
-                srm=multiplier,
+                srm=multiplier if multiplier is not None else 1.0,
                 price=prediction.current_price,
                 pe_ratio=prediction.pe_ratio,
                 forward_pe=prediction.forward_pe,
@@ -1512,11 +1580,27 @@ def research_ticker(
 
     macro_obj = _macro_assessment(multiplier, macro_stats)
     tech_obj = prediction if prediction is not None else TechnicalAnalysis(ticker=ticker)
-    decision_verdict, confidence, rationale = compute_decision(macro_obj, tech_obj, sentiment_obj)
+
+    # One decision authority. The scorecard, where one ran, has already set
+    # `verdict` above and that is what the response returns — so it is passed
+    # in here rather than letting this compute a second, competing verdict
+    # whose rationale and confidence breakdown were the ones the response
+    # carried. That divergence could put "Hold" beside "Positive sentiment
+    # boosted signal", which describes a decision to buy.
+    #
+    # Where no scorecard ran there is no other authority, and `None` keeps the
+    # legacy synthesis exactly as it was.
+    authoritative = SignalVerdict(verdict) if scorecard is not None else None
+    decision_verdict, confidence, rationale = compute_decision(
+        macro_obj, tech_obj, sentiment_obj, authoritative_verdict=authoritative,
+    )
     breakdown = confidence_breakdown(macro_obj, tech_obj, sentiment_obj, decision_verdict)
     risk_level = derive_risk_level(
         volatility=tech_obj.volatility,
-        risk_multiplier=multiplier,
+        # The assessment already resolved an unmeasured regime to the identity
+        # and recorded that it did; reading it back from there keeps one
+        # answer rather than two.
+        risk_multiplier=macro_obj.risk_multiplier,
         max_drawdown=tech_obj.max_drawdown,
         beta=tech_obj.beta,
     )
@@ -2505,6 +2589,10 @@ def paper_status():
     from src.broker.alpaca_paper import PAPER_HOST, status as broker_status
 
     s = broker_status()
+    # Two independent conditions, reported separately because they fail for
+    # different reasons and have different fixes: the deployment may have no
+    # broker credential, or it may have one and no authorised operator.
+    access = paper_access_state()
     return {
         "configured": s.configured,
         "reason": s.reason,
@@ -2512,6 +2600,11 @@ def paper_status():
         # Shown so a reader can see which endpoint their orders would reach.
         # It is a public hostname, not a secret.
         "endpoint": PAPER_HOST,
+        # Whether anyone may trade here at all. The owner ids are deliberately
+        # not returned — they are account identifiers, and a client has no use
+        # for someone else's.
+        "access": access,
+        "tradable": bool(s.configured and access["enabled"]),
     }
 
 
@@ -2534,14 +2627,14 @@ def _broker_call(fn):
 
 
 @app.get("/api/paper/account")
-def paper_account():
+def paper_account(_trader: str = Depends(require_paper_trader)):
     client = _paper_client()
     account = _broker_call(client.account)
     return {"account": account, "source": "alpaca paper", "environment": "paper"}
 
 
 @app.get("/api/paper/positions")
-def paper_positions():
+def paper_positions(_trader: str = Depends(require_paper_trader)):
     client = _paper_client()
     return {
         "positions": _broker_call(client.positions),
@@ -2551,7 +2644,11 @@ def paper_positions():
 
 
 @app.get("/api/paper/orders")
-def paper_orders(status_filter: str = Query("all", alias="status"), limit: int = Query(50, ge=1, le=200)):
+def paper_orders(
+    status_filter: str = Query("all", alias="status"),
+    limit: int = Query(50, ge=1, le=200),
+    _trader: str = Depends(require_paper_trader),
+):
     client = _paper_client()
     if status_filter not in {"open", "closed", "all"}:
         raise HTTPException(status_code=422, detail="status must be open, closed or all")
@@ -2563,7 +2660,7 @@ def paper_orders(status_filter: str = Query("all", alias="status"), limit: int =
 
 
 @app.post("/api/paper/orders/preview")
-def paper_order_preview(req: PaperOrderRequest):
+def paper_order_preview(req: PaperOrderRequest, _trader: str = Depends(require_paper_trader)):
     """Validate an order and price it, without placing anything.
 
     This is the step between intending to trade and trading. It answers three
@@ -2634,7 +2731,7 @@ def paper_order_preview(req: PaperOrderRequest):
 
 
 @app.post("/api/paper/orders")
-def paper_submit_order(req: PaperOrderRequest):
+def paper_submit_order(req: PaperOrderRequest, _trader: str = Depends(require_paper_trader)):
     """Place a paper order and return the broker's own reply.
 
     Validated again here rather than trusting the preview: a preview is a
@@ -2658,7 +2755,7 @@ def paper_submit_order(req: PaperOrderRequest):
 
 
 @app.delete("/api/paper/orders/{order_id}")
-def paper_cancel_order(order_id: str):
+def paper_cancel_order(order_id: str, _trader: str = Depends(require_paper_trader)):
     client = _paper_client()
     if not order_id or len(order_id) > 64:
         raise HTTPException(status_code=422, detail="invalid order id")

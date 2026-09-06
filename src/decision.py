@@ -15,6 +15,7 @@ from typing import Optional
 
 from src.models import (
     AggregateSentiment,
+    MacroStatus,
     RiskAssessment,
     SignalVerdict,
     TechnicalAnalysis,
@@ -46,32 +47,64 @@ def compute_decision(
     macro: RiskAssessment,
     technicals: TechnicalAnalysis,
     sentiment: AggregateSentiment,
+    *,
+    authoritative_verdict: Optional[SignalVerdict] = None,
 ) -> tuple[SignalVerdict, float, str]:
     """
     Synthesize (verdict, confidence, rationale) from the three factors.
 
-    Moved verbatim from AsyncDataPipeline._compute_verdict so the API and
-    the report pipeline share one implementation.
+    `authoritative_verdict` names the decision that has already been made
+    elsewhere, and exists because there were two decision authorities.
+
+    The research route sets `technicals["risk_adjusted_signal"]` from the
+    scorecard and returns that as the response verdict — then called this
+    function, which applied its own sentiment adjustment and returned a
+    *different* verdict, whose rationale and confidence breakdown were the
+    ones the response carried. A run could therefore show "Hold" beside the
+    sentence "Positive sentiment boosted signal", which describes a decision
+    to buy. Both were internally consistent; together they were incoherent.
+
+    When the caller supplies the authoritative verdict, this function stops
+    deciding. It reports what sentiment *was* without moving the answer, so
+    the rationale explains the decision the reader is actually being shown.
+    Without it — the legacy pipeline path, where no scorecard ran — the old
+    behaviour is unchanged and this function remains the only authority.
     """
     tech_signal = technicals.risk_adjusted_signal or SignalVerdict.HOLD
     idx = SIGNAL_ORDER.index(tech_signal)
+    # Sentiment may move the verdict only when nothing upstream has decided.
+    sentiment_may_move = authoritative_verdict is None
 
     rationale_parts: list[str] = []
 
-    # Sentiment adjustment
+    # Sentiment: an input when this function decides, an observation when it
+    # does not. The sentence says which, so a reader is never told a signal
+    # was boosted by something that did not move it.
     if sentiment.headline_count > 0:
         if sentiment.average_score > SENTIMENT_BOOST_THRESHOLD:
-            idx = min(len(SIGNAL_ORDER) - 1, idx + 1)
-            rationale_parts.append(
-                f"Positive sentiment (avg score {sentiment.average_score:.2f}) "
-                f"boosted signal"
-            )
+            if sentiment_may_move:
+                idx = min(len(SIGNAL_ORDER) - 1, idx + 1)
+                rationale_parts.append(
+                    f"Positive sentiment (avg score {sentiment.average_score:.2f}) "
+                    f"boosted signal"
+                )
+            else:
+                rationale_parts.append(
+                    f"Positive sentiment (avg score {sentiment.average_score:.2f}), "
+                    "already reflected in the factor score"
+                )
         elif sentiment.average_score < SENTIMENT_DAMPEN_THRESHOLD:
-            idx = max(0, idx - 1)
-            rationale_parts.append(
-                f"Negative sentiment (avg score {sentiment.average_score:.2f}) "
-                f"dampened signal"
-            )
+            if sentiment_may_move:
+                idx = max(0, idx - 1)
+                rationale_parts.append(
+                    f"Negative sentiment (avg score {sentiment.average_score:.2f}) "
+                    f"dampened signal"
+                )
+            else:
+                rationale_parts.append(
+                    f"Negative sentiment (avg score {sentiment.average_score:.2f}), "
+                    "already reflected in the factor score"
+                )
         else:
             rationale_parts.append(
                 f"Neutral sentiment (avg score {sentiment.average_score:.2f})"
@@ -82,14 +115,27 @@ def compute_decision(
     # Macro context
     if macro.recession_warning:
         rationale_parts.append("⚠️ Recession warning: yield curve is inverted")
-    if macro.status.value == "CRITICAL":
+    # Exhaustive, because the fall-through was wrong. `else` caught
+    # DATA_ERROR — the status `_macro_assessment` produces when FRED could not
+    # be read at all — and told the reader "Macro environment is STABLE".
+    # An outage is not a calm market. It is the one macro state where no
+    # conclusion was drawn, and saying the opposite is the most confident
+    # sentence this function can produce from the least evidence.
+    if macro.status == MacroStatus.CRITICAL:
         rationale_parts.append(f"Macro environment is CRITICAL (SRM={macro.risk_multiplier})")
-    elif macro.status.value == "ELEVATED":
+    elif macro.status == MacroStatus.ELEVATED:
         rationale_parts.append(f"Macro environment is ELEVATED (SRM={macro.risk_multiplier})")
-    else:
+    elif macro.status == MacroStatus.STABLE:
         rationale_parts.append(f"Macro environment is STABLE (SRM={macro.risk_multiplier})")
+    else:
+        rationale_parts.append(
+            "Macro regime unavailable; no macro conclusion was drawn and no "
+            "regime gate was applied"
+        )
 
-    verdict = SIGNAL_ORDER[idx]
+    # One authority. When the caller has already decided, that decision is
+    # returned unchanged — this function never overrides it.
+    verdict = authoritative_verdict if authoritative_verdict is not None else SIGNAL_ORDER[idx]
 
     # Confidence = higher when all signals agree
     base_confidence = 0.5
@@ -97,7 +143,9 @@ def compute_decision(
         base_confidence += 0.2
     if sentiment.headline_count >= 3:
         base_confidence += 0.1
-    if macro.status.value == "STABLE":
+    # Only a *measured* calm regime earns this. An unavailable one earns
+    # nothing: missing evidence must never raise confidence.
+    if macro.status == MacroStatus.STABLE:
         base_confidence += 0.1
     confidence = min(1.0, round(base_confidence, 2))
 
@@ -159,8 +207,16 @@ def confidence_breakdown(
             "component": f"Sentiment sample is meaningful ({sentiment.headline_count} headlines)",
             "points": 10,
         })
-    if macro.status.value == "STABLE":
+    if macro.status == MacroStatus.STABLE:
         items.append({"component": "Stable macro regime", "points": 10})
+    elif macro.status == MacroStatus.DATA_ERROR:
+        # Named as a deduction rather than left out. A component that is
+        # silently absent looks identical to one that scored zero, and the
+        # breakdown exists so a reader can see which inputs were missing.
+        items.append({
+            "component": "Macro regime unavailable — no stability credit awarded",
+            "points": 0,
+        })
     return items
 
 
