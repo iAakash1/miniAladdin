@@ -1003,9 +1003,14 @@ def research_ticker(
         technicals = {
             "ticker":        prediction.ticker,
             "current_price": prediction.current_price,
-            "return_5d":     round(prediction.return_5d, 4)    if prediction.return_5d    else None,
-            "return_21d":    round(prediction.return_21d, 4)   if prediction.return_21d   else None,
-            "volatility":    round(prediction.volatility, 4)   if prediction.volatility   else None,
+            # `is not None`, for the reason spelled out on macd_histogram
+            # below. A five-session return of exactly 0.0 is a measurement —
+            # the price did not move — and truthiness reported it as null,
+            # which the interface renders as "unavailable". Zero volatility
+            # over a flat window is the same claim.
+            "return_5d":     round(prediction.return_5d, 4)  if prediction.return_5d  is not None else None,
+            "return_21d":    round(prediction.return_21d, 4) if prediction.return_21d is not None else None,
+            "volatility":    round(prediction.volatility, 4) if prediction.volatility is not None else None,
             "sharpe_ratio":  prediction.sharpe_ratio,
             "sortino_ratio": prediction.sortino_ratio,
             "rsi_14":        prediction.rsi_14,

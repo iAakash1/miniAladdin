@@ -111,7 +111,20 @@ class RiskAwarePredictionAgent:
         gain   = delta.where(delta > 0, 0.0).rolling(window=self.RSI_WINDOW).mean()
         loss   = (-delta.where(delta < 0, 0.0)).rolling(window=self.RSI_WINDOW).mean()
         rs     = gain / loss
-        return float(round((100 - 100 / (1 + rs)).iloc[-1], 2))
+        value  = (100 - 100 / (1 + rs)).iloc[-1]
+        # A window with neither gains nor losses makes `rs` 0/0. RSI is
+        # undefined there — not 50, not 100 — and NaN is not an answer this
+        # model accepts: `rsi_14` is bounded [0, 100], so returning it raised
+        # during construction and took volatility, Sharpe, drawdown and both
+        # returns down with it, leaving the reader a halted-but-valid ticker
+        # reported as "check that the ticker symbol is valid".
+        #
+        # All gains and no losses is a different case: `rs` is +inf and the
+        # expression resolves to exactly 100, a real reading, which is why
+        # this tests the result rather than the denominator.
+        if not math.isfinite(value):
+            return None
+        return float(round(value, 2))
 
     def _compute_max_drawdown(self) -> Optional[float]:
         closes = self.data["Close"]
@@ -289,7 +302,11 @@ class RiskAwarePredictionAgent:
             sharpe_ratio=sharpe,
             sortino_ratio=sortino,
             rsi_14=rsi,
-            max_drawdown=round(max_drawdown, 4) if max_drawdown else None,
+            # `is not None`: a max drawdown of exactly 0.0 means the price
+            # never closed below its running peak over the window. That is a
+            # measurement, and one of the more informative ones this field
+            # can carry — truthiness reported it as "not computed".
+            max_drawdown=round(max_drawdown, 4) if max_drawdown is not None else None,
             momentum=momentum,
             raw_signal=raw_signal,
             risk_adjusted_signal=adjusted_signal,
