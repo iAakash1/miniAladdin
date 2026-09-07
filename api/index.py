@@ -963,9 +963,14 @@ def research_ticker(
         macro_future = pool.submit(_fetch_macro_safe)
         tech_future = pool.submit(_run_technicals)
         multiplier, macro_stats = macro_future.result()
+        # Two different facts, and the reader is owed the difference. The
+        # second branch used to say "applied" as well, which was false: with
+        # no SRM there is nothing to apply, and the verdict a reader was
+        # looking at had never passed through the macro gate at all.
         ledger.note(
             f"Macro regime gate applied at SRM {multiplier:.2f}"
-            if isinstance(multiplier, (int, float)) else "Macro regime gate applied"
+            if isinstance(multiplier, (int, float))
+            else "Macro regime gate NOT applied — the regime could not be measured"
         )
         try:
             (prediction, scoring_frame, series_result,

@@ -13,6 +13,7 @@ Signal scoring layers:
 from __future__ import annotations
 
 import logging
+import math
 from typing import Optional, TYPE_CHECKING
 
 import yfinance as yf
@@ -190,13 +191,25 @@ class RiskAwarePredictionAgent:
         return SignalVerdict.HOLD
 
     @classmethod
-    def apply_dampening(cls, raw: SignalVerdict, risk_multiplier: float) -> SignalVerdict:
+    def apply_dampening(
+        cls, raw: SignalVerdict, risk_multiplier: Optional[float]
+    ) -> SignalVerdict:
         """
         Macro risk dampening / boosting.
 
         Public and stateless so callers that fetch macro data concurrently with
         price data can apply the final adjustment once both are available,
         without re-running the technical pipeline.
+
+        `risk_multiplier` is optional because the macro regime is not always
+        measurable: when FRED cannot be read the multiplier is `None` rather
+        than an invented number, and this has to be total over that input. An
+        unmeasured regime applies **no** dampening — the identity, not a guess
+        at one — which is the same rule `_macro_assessment` follows when it
+        rebuilds the assessment. It is the caller's job to record that the gate
+        was not applied; inventing a neutral 1.0 here and comparing it against
+        the thresholds would make "we could not measure the regime" arrive
+        downstream as "we measured it and it was calm".
         """
         order = [
             SignalVerdict.STRONG_SELL,
@@ -206,6 +219,8 @@ class RiskAwarePredictionAgent:
             SignalVerdict.STRONG_BUY,
         ]
         idx = order.index(raw)
+        if risk_multiplier is None or not math.isfinite(risk_multiplier):
+            return raw
         if risk_multiplier >= cls.CRITICAL_THRESHOLD:
             idx = max(0, idx - 2)
         elif risk_multiplier >= cls.DAMPEN_THRESHOLD:

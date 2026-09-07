@@ -104,3 +104,18 @@ data/panel/
 # regenerable from the recorded seed, dataset content hash and git commit, so
 # they stay local — the same rule that keeps raw partitions out.
 experiments/*/predictions_*.parquet
+
+# Crash-safety resume checkpoints, for the same reason.
+#
+# `heavy_run.py` appends one JSON record per evaluated configuration to
+# `checkpoints/configs.jsonl` so an interrupted search resumes where it
+# stopped. It is a working file of a run, not the record of one: the evidence
+# a reader needs is `search.json` beside it and the selection artifact under
+# `artifacts/experiments/`, both of which are tracked.
+#
+# Ignored rather than merely left untracked, because an untracked file in a
+# research tree is one `git add -A` away from being committed, and this one is
+# an active dependency of a resumable experiment — 873 records and half a
+# megabyte for EXP-007. Ignoring it protects it from being staged by accident
+# without touching the file itself.
+experiments/*/checkpoints/
