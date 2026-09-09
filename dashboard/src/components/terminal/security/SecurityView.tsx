@@ -26,7 +26,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react'
 
 import { Panel, StateBlock, Status, Strip, Prose, Value, type ResearchState } from '@/components/system'
 import { TimeSeries } from '@/components/system/charts'
-import { fetchBars, fetchIdentity, windowShortfall, type Bar, type SecurityIdentity } from '@/lib/security'
+import { fetchBars, fetchIdentity, quoteState as observedQuoteState, windowShortfall, type Bar, type SecurityIdentity } from '@/lib/security'
 import { format } from '@/lib/quantity'
 import { titleCase, venueLabel } from '@/lib/text'
 import { fetchResearch } from '@/lib/research-cache'
@@ -167,7 +167,7 @@ export default function SecurityView({ symbol }: { symbol: string }) {
      it goes under the rule with the other sources, never beside the ticker. */
   const identitySource = ident?.value?.via ?? null
   const quoteState: ResearchState = price
-    ? (quoteError || price.stale ? 'stale' : 'live')
+    ? (quoteError ? 'stale' : observedQuoteState(price))
     : quoteError ? 'unavailable' : quoteAt ? 'unavailable' : 'waking'
 
   return (
@@ -220,7 +220,7 @@ export default function SecurityView({ symbol }: { symbol: string }) {
         <div className="inst__prov">
           {identitySource ? <span>name via {identitySource}</span> : null}
           {identitySource && price?.source ? <span className="inst__sep">/</span> : null}
-          {price?.source ? <span>quote via {price.source}</span> : null}
+          {price?.source ? <span>{price.price_basis ?? 'price'} via {price.source} · {price.as_of ?? 'date unknown'}</span> : null}
           {quoteAt ? <span className="inst__sep">/</span> : null}
           {quoteAt ? <span>{quoteAt.slice(11, 19)}</span> : null}
           {series.length ? <span className="inst__sep">/</span> : null}

@@ -41,6 +41,20 @@ export interface Quote {
   source: string | null
   /** The provider's own staleness flag. Never inferred from the timestamp. */
   stale: boolean
+  as_of?: string | null
+  price_basis?: string | null
+}
+
+/** A successful retrieval is not evidence that a daily close is live. */
+export function quoteState(quote: Partial<Quote> | null | undefined): 'unavailable' | 'stale' | 'unknown' {
+  if (!quote || typeof quote.price !== 'number' || !Number.isFinite(quote.price)) return 'unavailable'
+  return quote.stale ? 'stale' : 'unknown'
+}
+
+export function validQuotes(raw: Record<string, Quote & { error?: string }> | undefined): Record<string, Quote> {
+  return Object.fromEntries(Object.entries(raw ?? {}).filter(([, quote]) =>
+    quote && !quote.error && typeof quote.price === 'number' && Number.isFinite(quote.price) && quote.price > 0,
+  ))
 }
 
 export interface Bar {
@@ -128,7 +142,7 @@ export async function fetchQuotes(
   const r = await fetch(`/api/quotes?symbols=${encodeURIComponent(symbols.join(','))}`, { signal })
   if (!r.ok) throw new Error(`the quote request returned ${r.status}`)
   const d: { quotes?: Record<string, Quote> } = await r.json()
-  return d.quotes ?? {}
+  return validQuotes(d.quotes)
 }
 
 /** Daily closes for one symbol. */
@@ -142,7 +156,11 @@ export async function fetchBars(
     { signal },
   )
   if (!r.ok) throw new Error(`the price request returned ${r.status}`)
-  const d: { prices?: Bar[] } = await r.json()
+  const d: { prices?: Bar[]; status?: string; stale?: boolean; error?: string } = await r.json()
+  if (d.status === 'unavailable' || d.status === 'error' || d.error) {
+    throw new Error(d.error || 'Price history is unavailable')
+  }
+  if (d.status === 'stale' || d.stale) throw new Error('Price history is stale; the provider could not refresh it')
   return d.prices ?? []
 }
 

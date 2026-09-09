@@ -78,10 +78,10 @@ class RiskAwarePredictionAgent:
     def _compute_returns(self) -> dict:
         closes = self.data["Close"]
         return {
-            "return_5d":  float(closes.iloc[-1] / closes.iloc[-self.SHORT_WINDOW] - 1)
-                          if len(closes) >= self.SHORT_WINDOW else None,
-            "return_21d": float(closes.iloc[-1] / closes.iloc[-self.MEDIUM_WINDOW] - 1)
-                          if len(closes) >= self.MEDIUM_WINDOW else None,
+            "return_5d":  float(closes.iloc[-1] / closes.iloc[-self.SHORT_WINDOW - 1] - 1)
+                          if len(closes) > self.SHORT_WINDOW else None,
+            "return_21d": float(closes.iloc[-1] / closes.iloc[-self.MEDIUM_WINDOW - 1] - 1)
+                          if len(closes) > self.MEDIUM_WINDOW else None,
         }
 
     def _compute_volatility(self) -> Optional[float]:
@@ -92,14 +92,14 @@ class RiskAwarePredictionAgent:
 
     def _compute_sharpe(self) -> Optional[float]:
         daily = self.data["Close"].pct_change().dropna()
-        if len(daily) < 2 or daily.std() == 0:
+        if len(daily) < 2 or daily.std() <= np.finfo(float).eps * max(1.0, abs(daily.mean())):
             return None
         return float(round((daily.mean() * 252) / (daily.std() * np.sqrt(252)), 4))
 
     def _compute_sortino(self) -> Optional[float]:
         daily    = self.data["Close"].pct_change().dropna()
         downside = daily[daily < 0]
-        if len(downside) < 2 or downside.std() == 0:
+        if len(downside) < 2 or downside.std() <= np.finfo(float).eps * max(1.0, abs(downside.mean())):
             return None
         return float(round(daily.mean() / downside.std(), 4))
 

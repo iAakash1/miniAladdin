@@ -53,7 +53,8 @@ export default function MacroPanel({ macro }: { macro: Macro }) {
       </dl>
 
       <p style={{ fontSize: '0.75rem', color: 'var(--faint)', marginTop: 12 }}>
-        Series from FRED, St. Louis Fed.
+        {macro.stale ? 'Stale FRED data; regime gate unavailable. ' : 'FRED observation dates: '}
+        Spread {macro.observationDates?.yield_spread ?? 'unknown'} · CPI {macro.observationDates?.inflation_rate ?? 'unknown'} · Fed funds {macro.observationDates?.fed_funds_rate ?? 'unknown'}.
       </p>
     </section>
   )

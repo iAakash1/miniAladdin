@@ -73,7 +73,10 @@ def test_the_paper_host_configured_explicitly_is_accepted():
 def test_every_request_goes_to_the_paper_host():
     _configure()
     session = MagicMock()
-    session.request.return_value = MagicMock(status_code=200, content=b"{}", json=lambda: {})
+    def reply(method, url, **kwargs):
+        payload = [] if method == "GET" and url.endswith(("/positions", "/orders")) else {}
+        return MagicMock(status_code=200, content=b"json", json=lambda: payload)
+    session.request.side_effect = reply
     c = AlpacaPaper(session=session)
 
     c.account(); c.positions(); c.orders(); c.asset("AAPL")

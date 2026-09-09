@@ -51,6 +51,8 @@ interface Chain {
   expirations: string[]
   strikes: number[]
   source: string | null
+  stale?: boolean
+  as_of?: string | null
   delayed?: boolean | null
   status: string
   reason?: string
@@ -114,6 +116,9 @@ export default function Options({ symbol, underlyingPrice }: {
     )
   }
 
+  const freshnessState = d.stale || d.delayed ? 'stale' : d.status === 'live' && d.as_of ? 'live' : 'unknown'
+  const freshnessLabel = d.stale ? 'stale cached quotes' : d.delayed ? 'delayed quotes' : d.as_of ? `quotes as of ${d.as_of}` : 'quote time unknown'
+
   const expirations = d.expirations
   const active = expiry && expirations.includes(expiry) ? expiry : expirations[0]
   const forExpiry = d.contracts.filter((c) => c.expiration === active)
@@ -126,7 +131,7 @@ export default function Options({ symbol, underlyingPrice }: {
     <Panel
       title="Options"
       subtitle={`${forExpiry.length} contracts · ${active}`}
-      state={d.delayed ? 'stale' : 'live'}
+      state={freshnessState}
       actions={
         <div className="sys-run">
           {expirations.slice(0, 8).map((e) => (
@@ -144,6 +149,7 @@ export default function Options({ symbol, underlyingPrice }: {
       }
       flush
     >
+      <Prose size="fine">{freshnessLabel}</Prose>
       {d.delayed ? (
         <Prose size="fine">
           These quotes carry the provider&apos;s delayed timeframe, not real
@@ -191,8 +197,8 @@ export default function Options({ symbol, underlyingPrice }: {
                       display: String(k),
                       source: d.source ?? undefined,
                       method: 'listed contracts at this strike, as the provider returned them',
-                      status: d.delayed ? 'stale' : 'live',
-                      freshness: d.delayed ? 'delayed quotes' : 'real-time quotes',
+                      status: freshnessState,
+                      freshness: freshnessLabel,
                       note: [c?.contract, p?.contract].filter(Boolean).join(' · '),
                     }}>
                       {k}
@@ -212,7 +218,7 @@ export default function Options({ symbol, underlyingPrice }: {
 
       <div className="opt__foot">
         <span>calls left · puts right</span>
-        <Status state={d.delayed ? 'stale' : 'live'} label={d.source ?? 'provider'} />
+        <Status state={freshnessState} label={d.source ?? 'provider'} />
       </div>
     </Panel>
   )

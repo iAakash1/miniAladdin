@@ -5,9 +5,11 @@ duplication) and FRED (macro series via fredapi).
 
 from __future__ import annotations
 
+import math
 from typing import Optional
 
 from src.providers.base import VendorClient, VendorError
+from src.providers.validation import monthly_yoy
 from src.providers.schemas import (
     AnalystTargets,
     CompanyProfile,
@@ -190,7 +192,7 @@ class AlphaVantageVendor(VendorClient):
 
 
 class FredVendor(VendorClient):
-    """FRED macro series. Only vendor for macro — chain degrades to demo values."""
+    """FRED macro series. Only vendor for macro; absence remains unavailable."""
 
     NAME = "fred"
     KEY_ENV = "FRED_API_KEY"
@@ -219,7 +221,8 @@ class FredVendor(VendorClient):
 
         def _fetch() -> list[tuple[str, float]]:
             series = self._client().get_series(series_id).dropna().tail(count)
-            return [(index.strftime("%Y-%m-%d"), float(value)) for index, value in series.items()]
+            return [(index.strftime("%Y-%m-%d"), float(value)) for index, value in series.items()
+                    if math.isfinite(float(value))]
 
         observations = self.timed_call(_fetch)
         return observations or None
@@ -229,16 +232,23 @@ class FredVendor(VendorClient):
             fred = self._client()
             spread_series = fred.get_series(self.YIELD_CURVE_SERIES).dropna()
             cpi = fred.get_series(self.CPI_SERIES).dropna()
-            current, year_ago = float(cpi.iloc[-1]), float(cpi.iloc[-13])
-            inflation = round(((current - year_ago) / year_ago) * 100, 2)
+            inflation = monthly_yoy([(stamp.strftime("%Y-%m-%d"), float(value))
+                                     for stamp, value in cpi.items()])
+            observed = {
+                "yield_spread": spread_series.index[-1].strftime("%Y-%m-%d"),
+                "inflation_rate": cpi.index[-1].strftime("%Y-%m-%d"),
+            }
             try:
-                fed_rate = float(fred.get_series(self.FED_FUNDS_SERIES).dropna().iloc[-1])
+                fed_series = fred.get_series(self.FED_FUNDS_SERIES).dropna()
+                fed_rate = float(fed_series.iloc[-1])
+                observed["fed_funds_rate"] = fed_series.index[-1].strftime("%Y-%m-%d")
             except Exception:  # noqa: BLE001 — optional series
                 fed_rate = None
             return MacroSnapshot(
                 yield_spread=float(spread_series.iloc[-1]),
                 inflation_rate=inflation,
                 fed_funds_rate=fed_rate,
+                observation_dates=observed,
             )
 
         if not self.available:

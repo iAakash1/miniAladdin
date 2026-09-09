@@ -269,6 +269,17 @@ def _fetch_macro_safe() -> tuple[Optional[float], dict[str, Any]]:
         if not snapshot_result.ok:
             raise RuntimeError(snapshot_result.error or "macro provider returned no data")
         snap = snapshot_result.data
+        provenance = {
+            "source": getattr(snapshot_result, "source", None),
+            "cached": getattr(snapshot_result, "cached", False),
+            "stale": getattr(snapshot_result, "stale", False),
+            "fetched_at": (snapshot_result.fetched_at.isoformat()
+                           if getattr(snapshot_result, "fetched_at", None) else None),
+            "observation_dates": getattr(snap, "observation_dates", {}),
+        }
+        if provenance["stale"]:
+            return None, {**_macro_unavailable("FRED is unavailable; the cached observation is stale."),
+                          **provenance}
 
         # The two the multiplier is computed from. Either one missing means
         # there is no multiplier to compute — not a multiplier computed from
@@ -291,6 +302,7 @@ def _fetch_macro_safe() -> tuple[Optional[float], dict[str, Any]]:
                 partial["inflation_rate"] = f"{snap.inflation_rate:.2f}%"
             if snap.fed_funds_rate is not None:
                 partial["fed_funds_rate"] = f"{snap.fed_funds_rate:.2f}%"
+            partial.update(provenance)
             return None, partial
 
         indicators = MacroIndicators(
@@ -300,6 +312,7 @@ def _fetch_macro_safe() -> tuple[Optional[float], dict[str, Any]]:
         )
         assessment = risk_engine.calculate_multiplier(indicators)
         stats: dict[str, Any] = {
+            **provenance,
             "yield_spread": indicators.yield_spread,
             "inflation_rate": f"{indicators.inflation_rate:.2f}%",
             "fed_funds_rate": (
@@ -381,7 +394,7 @@ def _macro_context(stress: dict[str, Any]) -> Optional[dict[str, Any]]:
     for series_id, label, unit, why in MACRO_CONTEXT_SERIES:
         try:
             result = providers.macro.get_series_snapshot(series_id, count=8)
-            if not result.ok or not result.data:
+            if not result.ok or result.stale or not result.data:
                 continue
             observations = result.data
             date, value = observations[-1]
@@ -446,19 +459,19 @@ def _stress_inputs() -> dict[str, Any]:
                            "credit_spread_z": None, "vix_percentile": None}
     try:
         term = providers.macro.get_series_snapshot("T10Y2Y", count=5)
-        if term.ok and term.data:
+        if term.ok and not term.stale and term.data and math.isfinite(float(term.data[-1][1])):
             out["term_spread"] = float(term.data[-1][1])
     except Exception:  # noqa: BLE001
         logger.exception("term spread fetch failed")
     try:
         nfci = providers.macro.get_series_snapshot("NFCI", count=5)
-        if nfci.ok and nfci.data:
+        if nfci.ok and not nfci.stale and nfci.data and math.isfinite(float(nfci.data[-1][1])):
             out["nfci"] = float(nfci.data[-1][1])  # NFCI is standardized at source
     except Exception:  # noqa: BLE001
         logger.exception("NFCI fetch failed")
     try:
         credit = providers.macro.get_series_snapshot("BAA10Y", count=260)
-        if credit.ok and credit.data and len(credit.data) >= 60:
+        if credit.ok and not credit.stale and credit.data and len(credit.data) >= 60 and all(math.isfinite(v) for _, v in credit.data):
             values = [v for _, v in credit.data]
             median = sorted(values)[len(values) // 2]
             mad = sorted(abs(v - median) for v in values)[len(values) // 2]
@@ -468,7 +481,7 @@ def _stress_inputs() -> dict[str, Any]:
         logger.exception("credit spread fetch failed")
     try:
         vix = providers.market_data.get_series("^VIX", "1y")
-        if vix.ok and len(vix.data.bars) >= 60:
+        if vix.ok and not vix.stale and len(vix.data.bars) >= 60:
             closes = [bar.close for bar in vix.data.bars]
             latest = closes[-1]
             out["vix_percentile"] = round(sum(1 for c in closes if c <= latest) / len(closes), 3)
@@ -2185,10 +2198,13 @@ def get_metrics():
 def reset_metrics(_user: str = Depends(require_clerk_user)):
     """Start a fresh observability window.
 
-    Authenticated, and a POST: it destroys data. A vendor that misbehaved an
+    Authenticated, explicitly authorised by METRICS_RESET_OWNERS, and a POST: it destroys data. A vendor that misbehaved an
     hour ago stops colouring the current picture, which is a legitimate
     operational need — it was simply never a read.
     """
+    owners = {item.strip() for item in os.getenv("METRICS_RESET_OWNERS", "").split(",") if item.strip()}
+    if _user not in owners:
+        raise HTTPException(status_code=403, detail="Metrics reset requires a configured metrics operator (METRICS_RESET_OWNERS).")
     observability.registry.reset()
     return {"status": "reset", "snapshot": observability.registry.snapshot()}
 
@@ -2243,6 +2259,8 @@ def get_quotes(symbols: str = Query(..., description="Comma-separated tickers, m
             closes = [bar.close for bar in bars]
             out[symbol] = {
                 "price": round(closes[-1], 2),
+                "as_of": bars[-1].date,
+                "price_basis": "daily close",
                 "change_1d": round((closes[-1] / closes[-2] - 1) * 100, 2) if closes[-2] else None,
                 "change_1w": round((closes[-1] / closes[-6] - 1) * 100, 2) if len(closes) >= 6 and closes[-6] else None,
                 "source": result.source,
@@ -2895,7 +2913,10 @@ def get_options(ticker: str, expiration: Optional[str] = Query(None)):
             "strikes": chain.strikes,
             "source": chain.source,
             "delayed": chain.delayed,
-            "status": "live",
+            "stale": result.stale,
+            "as_of": chain.as_of,
+            "status": ("stale" if result.stale else "delayed" if chain.delayed is True
+                       else "live" if chain.delayed is False and chain.as_of else "unknown"),
         }
 
     return {

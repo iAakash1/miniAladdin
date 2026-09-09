@@ -75,6 +75,10 @@ export function normalizeMacro(raw: RawMacroResponse | RawResearchMacro | null |
     inverted: stats.yield_curve_inverted ?? null,
     status: stats.status ?? 'UNAVAILABLE',
     recessionWarning: stats.recession_warning ?? null,
+    source: stats.source ?? null,
+    stale: stats.stale ?? false,
+    fetchedAt: stats.fetched_at ?? null,
+    observationDates: stats.observation_dates ?? {},
   }
 }
 

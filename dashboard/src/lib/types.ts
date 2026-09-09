@@ -15,6 +15,10 @@ export interface RawMacroResponse {
     yield_curve_inverted?: boolean
     status?: string // "NORMAL" | "ELEVATED" | ...
     recession_warning?: boolean
+    source?: string | null
+    stale?: boolean
+    fetched_at?: string | null
+    observation_dates?: Record<string, string>
   }
   elapsed_seconds?: number
 }
@@ -28,6 +32,10 @@ export interface RawResearchMacro {
   yield_curve_inverted?: boolean
   status?: string
   recession_warning?: boolean
+  source?: string | null
+  stale?: boolean
+  fetched_at?: string | null
+  observation_dates?: Record<string, string>
 }
 
 export interface RawTechnicals {
@@ -723,6 +731,10 @@ export interface Macro {
   inverted: boolean | null
   status: string
   recessionWarning: boolean | null
+  source?: string | null
+  stale?: boolean
+  fetchedAt?: string | null
+  observationDates?: Record<string, string>
 }
 
 export interface Headline {

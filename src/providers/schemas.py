@@ -8,10 +8,11 @@ answered. Vendor-specific field names never escape src/providers/vendors/.
 from __future__ import annotations
 
 import logging
+import math
 from datetime import datetime, timezone
 from typing import Any, Generic, Optional, TypeVar
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from src.providers.validation import SeriesQuality, sanitize_bars
 
@@ -502,6 +503,12 @@ class MacroSnapshot(BaseModel):
     yield_spread: Optional[float] = None    # 10Y − 2Y, percent
     inflation_rate: Optional[float] = None  # YoY CPI, percent
     fed_funds_rate: Optional[float] = None  # percent
+    observation_dates: dict[str, str] = Field(default_factory=dict)
+
+    @field_validator("yield_spread", "inflation_rate", "fed_funds_rate")
+    @classmethod
+    def _finite_observation(cls, value: Optional[float]) -> Optional[float]:
+        return value if value is not None and math.isfinite(value) else None
 
 
 # ── Search ────────────────────────────────────────────────────────────────────

@@ -192,7 +192,8 @@ def test_resetting_requires_authentication(client):
     assert reset.call_count == 0
 
 
-def test_an_authenticated_operator_can_reset(client):
+def test_an_authenticated_operator_can_reset(client, monkeypatch):
+    monkeypatch.setenv("METRICS_RESET_OWNERS", "user_1")
     with patch.object(clerk_auth, "is_configured", return_value=True), \
          patch.object(clerk_auth, "verify_token", return_value="user_1"), \
          patch.object(api.observability.registry, "reset") as reset:

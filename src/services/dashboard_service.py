@@ -28,6 +28,7 @@ from typing import Any, Optional
 
 from src import providers
 from src.providers.parallel import map_concurrent, values
+from src.providers.validation import monthly_yoy
 from src.scoring.engine import map_verdict
 from src.scoring.fomc_calendar import FOMC_DECISION_DATES
 
@@ -108,19 +109,15 @@ EVENT_IMPORTANCE = {"FOMC": "high", "CPI": "high", "Jobs Report": "high", "PPI":
 
 def _macro_card(meta: dict[str, str]) -> Optional[dict[str, Any]]:
     result = providers.macro.get_series_snapshot(meta["id"], count=15)
-    if not result.ok or not result.data:
+    if not result.ok or result.stale or not result.data:
         return None
     observations = result.data
 
     yoy = meta.get("yoy") == "true"
-    if yoy and len(observations) >= 14:
-        # Year-over-year % change for monthly index series
+    if yoy:
+        # A missing prior year cannot turn an inflation rate into a CPI index.
         def yoy_at(offset: int) -> Optional[float]:
-            if len(observations) < 13 + offset:
-                return None
-            newest = observations[-1 - offset][1]
-            year_ago = observations[-13 - offset][1]
-            return round((newest / year_ago - 1) * 100, 2) if year_ago else None
+            return monthly_yoy(observations, offset)
 
         current, previous = yoy_at(0), yoy_at(1)
         unit = "% y/y"
@@ -168,15 +165,23 @@ def _macro_board() -> dict[str, Any]:
     cards = _gather(_macro_card, MACRO_SERIES, "macro", lambda meta: meta["id"])
 
     macro_result = providers.macro.get_macro()
-    regime: dict[str, Any] = {"available": macro_result.ok}
-    if macro_result.ok:
+    measurable = (macro_result.ok and not macro_result.stale
+                  and macro_result.data.yield_spread is not None
+                  and macro_result.data.inflation_rate is not None)
+    regime: dict[str, Any] = {
+        "available": measurable, "status": "UNAVAILABLE",
+        "source": macro_result.source, "stale": macro_result.stale,
+        "fetched_at": macro_result.fetched_at.isoformat(),
+        "observation_dates": macro_result.data.observation_dates if macro_result.ok else {},
+    }
+    if measurable:
         snapshot = macro_result.data
         from src.models import MacroIndicators
         from src.risk_analysis import OmniSignalRiskEngine
 
         assessment = OmniSignalRiskEngine().calculate_multiplier(MacroIndicators(
-            yield_spread=snapshot.yield_spread or 0.0,
-            inflation_rate=snapshot.inflation_rate or 0.0,
+            yield_spread=snapshot.yield_spread,
+            inflation_rate=snapshot.inflation_rate,
             fed_funds_rate=snapshot.fed_funds_rate,
         ))
         regime.update({

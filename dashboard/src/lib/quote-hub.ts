@@ -23,7 +23,7 @@
  * not to avoid refreshing.
  */
 
-import type { Quote } from './security'
+import { validQuotes, type Quote } from './security'
 
 type Listener = () => void
 
@@ -77,7 +77,7 @@ async function read(): Promise<void> {
     if (!r.ok) throw new Error(`the quote request returned ${r.status}`)
     const d: { quotes?: Record<string, Quote> } = await r.json()
     state = {
-      quotes: d.quotes ?? {},
+      quotes: validQuotes(d.quotes),
       at: new Date().toISOString(),
       error: null,
       loading: false,

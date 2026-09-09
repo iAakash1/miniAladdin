@@ -51,7 +51,7 @@ export default function MacroStrip() {
   if (state === 'failed') return null
 
   return (
-    <section aria-label="Live macro conditions" className="hairline-top hairline-bottom" style={{ background: 'var(--surface)' }}>
+    <section aria-label="Macro observations" className="hairline-top hairline-bottom" style={{ background: 'var(--surface)' }}>
       <div
         className="container"
         style={{
@@ -63,7 +63,6 @@ export default function MacroStrip() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 180 }}>
-          <span className="live-dot" aria-hidden="true" />
           <span className="label" style={{ color: 'var(--muted)' }}>
             Macro conditions · FRED
           </span>
@@ -103,10 +102,13 @@ export default function MacroStrip() {
               <Stat label="Fed funds rate" value={fmtPctRaw(macro.fedRate)} />
             </div>
             <span
-              className={`badge ${macro.status === 'ELEVATED' || macro.recessionWarning ? 'badge--warn' : 'badge--pos'}`}
+              className={`badge ${macro.srm === null ? 'badge--muted' : macro.status === 'ELEVATED' || macro.recessionWarning ? 'badge--warn' : 'badge--pos'}`}
             >
-              {macro.recessionWarning ? 'Recession warning' : macro.status.toLowerCase()}
+              {macro.stale ? 'stale · unavailable' : macro.recessionWarning ? 'Recession warning' : macro.status.toLowerCase()}
             </span>
+            <small style={{ color: 'var(--faint)' }}>
+              As of: spread {macro.observationDates?.yield_spread ?? 'unknown'} · CPI {macro.observationDates?.inflation_rate ?? 'unknown'} · Fed {macro.observationDates?.fed_funds_rate ?? 'unknown'}
+            </small>
           </>
         )}
       </div>

@@ -166,3 +166,22 @@ def sanitize_bars(bars: Sequence[Any]) -> tuple[list[Any], SeriesQuality]:
 
     quality.bars_kept = len(kept)
     return kept, quality
+
+
+def monthly_yoy(observations: list[tuple[str, float]], offset: int = 0) -> float | None:
+    """Compare the same calendar month; missing months are never skipped."""
+    from datetime import date
+
+    if offset < 0 or len(observations) <= offset:
+        return None
+    try:
+        current_date, current = observations[-1 - offset]
+        period = date.fromisoformat(str(current_date)[:10])
+        prior = next((value for stamp, value in observations
+                      if str(stamp)[:7] == f"{period.year - 1:04d}-{period.month:02d}"), None)
+        if not _is_finite(current) or prior is None or not _is_finite(prior) or prior <= 0:
+            return None
+        value = (current / prior - 1) * 100
+        return round(value, 2) if math.isfinite(value) else None
+    except (TypeError, ValueError):
+        return None

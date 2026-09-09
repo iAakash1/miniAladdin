@@ -24,7 +24,7 @@ def series_result(closes: list[float], start: date = date(2025, 7, 10)) -> Provi
 
 def monthly_obs(values: list[float]) -> ProviderResult[list]:
     return ProviderResult(
-        data=[(f"2026-{(i % 12) + 1:02d}-01", value) for i, value in enumerate(values)],
+        data=[(f"{2025 + i // 12}-{(i % 12) + 1:02d}-01", value) for i, value in enumerate(values)],
         source="fred", confidence=0.85,
     )
 

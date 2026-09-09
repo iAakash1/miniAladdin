@@ -138,12 +138,15 @@ class AlpacaPaper:
         try:
             r = self._session.request(
                 method, url, headers=self._headers,
-                timeout=self.TIMEOUT_SECONDS, **kw,
+                timeout=self.TIMEOUT_SECONDS, allow_redirects=False, **kw,
             )
         except requests.RequestException as e:
             # The exception text can carry the URL but never a header, so this
             # is safe to surface. Credentials live in headers only.
             raise BrokerUnavailable(f"the broker did not respond ({type(e).__name__})") from e
+
+        if 300 <= r.status_code < 400:
+            raise BrokerUnavailable("the paper broker returned a redirect; redirects are refused")
 
         if r.status_code >= 400:
             detail = ""
@@ -155,7 +158,16 @@ class AlpacaPaper:
             logger.warning("alpaca paper %s %s -> %s", method, path, r.status_code)
             raise BrokerUnavailable(f"the broker returned {r.status_code}: {detail}")
 
-        return r.json() if r.content else None
+        try:
+            return r.json() if r.content else None
+        except ValueError as exc:
+            raise BrokerUnavailable("the broker returned invalid JSON") from exc
+
+    @staticmethod
+    def _collection(payload: Any) -> list[dict[str, Any]]:
+        if not isinstance(payload, list) or any(not isinstance(row, dict) for row in payload):
+            raise BrokerUnavailable("the broker returned an invalid collection")
+        return payload
 
     # ── read ─────────────────────────────────────────────────────────────────
 
@@ -163,13 +175,13 @@ class AlpacaPaper:
         return self._request("GET", "/v2/account")
 
     def positions(self) -> list[dict[str, Any]]:
-        return self._request("GET", "/v2/positions") or []
+        return self._collection(self._request("GET", "/v2/positions"))
 
     def orders(self, status_filter: str = "all", limit: int = 50) -> list[dict[str, Any]]:
-        return self._request(
+        return self._collection(self._request(
             "GET", "/v2/orders",
             params={"status": status_filter, "limit": limit, "direction": "desc"},
-        ) or []
+        ))
 
     def asset(self, symbol: str) -> dict[str, Any]:
         return self._request("GET", f"/v2/assets/{symbol.upper()}")

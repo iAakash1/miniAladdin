@@ -31,7 +31,7 @@ no prior snapshot to narrate; the frontend's own diff view owns that story.
 Reliability: singleton client · 8s timeout · exponential backoff on 429/5xx ·
 strict ``json.loads`` + Pydantic validation · one corrective retry · then a
 deterministic fallback. ``/api/research`` can never fail because of this layer.
-Results cache for 5 minutes per (ticker, UTC day, verdict, model).
+Results cache for 5 minutes per (evidence snapshot, UTC day, model).
 Observability: per-call latency/retries/outcome recorded in
 ``src/services/metrics.py`` (internal only).
 
@@ -248,15 +248,20 @@ def _cache_ttl() -> float:
 
 
 def _cache_key(payload: dict[str, Any]) -> str:
-    decision = payload.get("decision", {})
-    raw = "|".join(
-        [
-            str(payload.get("ticker", "")),
-            datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-            str(decision.get("verdict", "")),
-            _model_name(),
-            PROMPT_VERSION,
-        ]
+    # A verdict can stay unchanged while confidence, risk, prices or macro
+    # evidence changes. The cached result includes both the narrative and
+    # attached engine facts, so it is valid only for the exact input snapshot.
+    # Canonical ordering preserves reuse for equivalent dictionaries.
+    raw = json.dumps(
+        {
+            "payload": payload,
+            "day": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            "model": _model_name(),
+            "prompt_version": PROMPT_VERSION,
+        },
+        sort_keys=True,
+        ensure_ascii=False,
+        default=str,
     )
     return hashlib.sha256(raw.encode()).hexdigest()
 

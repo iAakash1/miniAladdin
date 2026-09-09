@@ -21,6 +21,7 @@ import { useSyncExternalStore } from 'react'
 
 import { EmptyLine, Panel, Prose, StateBlock, Status, Value } from '@/components/system'
 import { useQuotes } from '@/lib/use-quotes'
+import { quoteState } from '@/lib/security'
 import {
   emptySnapshot, subscribeSymbols, toggleWatch, watchSnapshot,
 } from '@/lib/symbols'
@@ -45,7 +46,7 @@ export default function Watchlist() {
     <Panel
       title="Watchlist"
       subtitle={`${symbols.length} ${symbols.length === 1 ? 'security' : 'securities'}`}
-      state={error ? 'stale' : at ? 'live' : 'waking'}
+      state={error ? 'stale' : at ? (Object.keys(quotes).length ? 'unknown' : 'unavailable') : 'waking'}
       flush
     >
       {error ? (
@@ -87,7 +88,7 @@ export default function Watchlist() {
                   </td>
                   <td>
                     {q ? (
-                      <Status state={error || q.stale ? 'stale' : 'live'} label={q.source ?? 'unknown'} />
+                      <Status state={error ? 'stale' : quoteState(q)} label={`${q.source ?? 'unknown'} · ${q.price_basis ?? 'price'} · ${q.as_of ?? 'date unknown'}`} />
                     ) : at ? (
                       <Status state="unavailable" label="no quote" />
                     ) : (
