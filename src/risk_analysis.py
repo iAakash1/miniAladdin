@@ -129,8 +129,15 @@ class OmniSignalRiskEngine:
 
         multiplier = max(self.MIN_MULTIPLIER, min(self.MAX_MULTIPLIER, multiplier))
 
-        # Determine status
-        if multiplier > 1.3:
+        # Determine status.
+        #
+        # `>=`, not `>`. Both consumers of this number test `>= 1.3` —
+        # `decision.SRM_HIGH` and the prediction agent's CRITICAL_THRESHOLD,
+        # which cuts two steps off a verdict — so `>` left exactly 1.30
+        # reported as ELEVATED while being acted on as critical. And 1.30 is
+        # the most ordinary value this gate produces: an inverted yield curve
+        # alone, 1.0 + 0.3, which is precisely the state it exists to catch.
+        if multiplier >= 1.3:
             status = MacroStatus.CRITICAL
         elif multiplier > 1.1:
             status = MacroStatus.ELEVATED

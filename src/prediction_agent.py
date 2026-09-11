@@ -101,9 +101,22 @@ class RiskAwarePredictionAgent:
         downside = daily[daily < 0]
         if len(downside) < 2 or downside.std() <= np.finfo(float).eps * max(1.0, abs(downside.mean())):
             return None
-        return float(round(daily.mean() / downside.std(), 4))
+        # Annualised on the same convention as Sharpe above. It was a bare
+        # mean/std — a daily figure printed beside an annual one under a
+        # similar name, so Sortino read roughly sqrt(252) times smaller than
+        # it should for reasons that had nothing to do with the prices.
+        return float(round((daily.mean() * 252) / (downside.std() * np.sqrt(252)), 4))
 
     def _compute_rsi(self) -> Optional[float]:
+        """RSI-14 on a simple moving average of gains and losses.
+
+        Stated because this is not Wilder smoothing. Wilder's original RSI
+        averages with a recursive 1/n exponential decay, and most charting
+        platforms report that one under the same name "RSI-14". The two
+        return different numbers on the same prices, so a reader comparing
+        this figure against an external chart needs to know which convention
+        produced it.
+        """
         closes = self.data["Close"]
         if len(closes) < self.RSI_WINDOW + 1:
             return None
@@ -152,7 +165,14 @@ class RiskAwarePredictionAgent:
     ) -> SignalVerdict:
         """
         Multi-layer scoring.
-        Max possible: ±10 → maps to Strong Buy / Strong Sell at ±4.
+
+        Five layers, ±9 at most: RSI ±2, Sharpe ±2, 21-day return ±2,
+        MACD ±1, analyst target ±2. Verdicts cut at ±5 for Strong Buy /
+        Strong Sell and ±2 for Buy / Sell.
+
+        These are the numbers the code below actually uses. This is the
+        docstring someone reads when they ask how the score was derived, so
+        it tracks the layers rather than an earlier revision of them.
         """
         score = 0
 
@@ -193,8 +213,12 @@ class RiskAwarePredictionAgent:
             upside = (fundamentals.analyst_target - current_price) / current_price
             if upside > 0.20:     score += 2   # >20% upside: strong buy signal
             elif upside > 0.10:   score += 1   # >10% upside
-            elif upside < -0.10:  score -= 1   # analyst below market
+            # Severe before mild. Reversed, `< -0.10` caught every case that
+            # `< -0.20` was meant to catch, so the -2 penalty never executed
+            # once: a name the street thought 40% overvalued scored exactly
+            # like one it thought 11% overvalued.
             elif upside < -0.20:  score -= 2   # analysts think it's 20%+ overvalued
+            elif upside < -0.10:  score -= 1   # analyst below market
 
         # Map to verdict
         if score >= 5:    return SignalVerdict.STRONG_BUY

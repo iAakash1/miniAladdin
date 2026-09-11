@@ -39,6 +39,7 @@ from src.decision import (
     verdict_to_recommendation,
 )
 from src.services import llm_service
+from src.services import deployment
 from src.services.paper_access import paper_access_state, require_paper_trader
 from src.models import (
     AggregateSentiment,
@@ -327,9 +328,17 @@ def _fetch_macro_safe() -> tuple[Optional[float], dict[str, Any]]:
         with _macro_lock:
             _macro_cache["srm"] = (now + MACRO_CACHE_TTL_SECONDS, result)
         return result
-    except Exception as exc:  # noqa: BLE001 — macro must never break research
+    except Exception:  # noqa: BLE001 — macro must never break research
+        # The detail goes to the log, not to the browser. `str(exc)` here put
+        # whatever the failing layer happened to raise into a public response
+        # — vendor error text, internal class names, library internals. None
+        # of that is the caller's to read, and none of it helps them: the
+        # actionable fact is that the regime could not be measured, which is
+        # exactly what the status already says.
         logger.exception("Macro fetch failed — reporting the regime as unavailable")
-        return None, _macro_unavailable(f"The macro provider could not be read: {exc}")
+        return None, _macro_unavailable(
+            "The macro provider could not be read, so the regime gate was not applied."
+        )
 
 
 # ── Fast macro stress inputs (engine v2.1 probabilistic gate) ────────────────
@@ -576,11 +585,7 @@ def _build_commit() -> str:
 @app.get("/api/health")
 def health():
     """Health check — reports which API keys are configured."""
-    environment = (
-        "production"
-        if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("ENV") == "production"
-        else "development"
-    )
+    environment = deployment.environment_name()
     missing_persistence = [
         name
         for name in ("SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "CLERK_JWKS_URL", "CLERK_ISSUER")

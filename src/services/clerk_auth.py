@@ -22,12 +22,39 @@ import jwt
 from fastapi import Header, HTTPException, Request
 from jwt import PyJWKClient
 
+from src.services import deployment
+
 logger = logging.getLogger("omnisignal.auth")
 
 _jwks_client: Optional[PyJWKClient] = None
 
 
+def _issuer_missing_in_production() -> bool:
+    """A production deployment that verifies signatures but not the issuer.
+
+    `jwt.decode(issuer=None)` does not fail — it skips the `iss` check
+    entirely. Signature verification still runs against the configured JWKS,
+    so this was never an open door, but it silently drops a check the
+    deployment believes it has. In production that is a misconfiguration, and
+    the honest response is to refuse rather than to authenticate with less
+    verification than intended.
+    """
+    return (
+        deployment.is_production()
+        and bool(os.getenv("CLERK_JWKS_URL", "").strip())
+        and not os.getenv("CLERK_ISSUER", "").strip()
+    )
+
+
 def is_configured() -> bool:
+    """Whether this deployment can verify a Clerk session at all.
+
+    False when the issuer is missing in production, so persistence endpoints
+    report themselves unconfigured (503) instead of accepting tokens under a
+    weaker contract than the operator configured.
+    """
+    if _issuer_missing_in_production():
+        return False
     return bool(os.getenv("CLERK_JWKS_URL"))
 
 
@@ -48,6 +75,12 @@ def _reset_for_testing() -> None:
 
 def verify_token(token: str) -> Optional[str]:
     """Return the Clerk user id (`sub`) for a valid session token, else None."""
+    if _issuer_missing_in_production():
+        logger.error(
+            "refusing to verify tokens: CLERK_JWKS_URL is set without CLERK_ISSUER, "
+            "so the issuer claim would go unchecked in production"
+        )
+        return None
     client = _get_jwks_client()
     if client is None or not token:
         return None

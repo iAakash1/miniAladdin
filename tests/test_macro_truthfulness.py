@@ -82,7 +82,11 @@ def test_an_exception_inside_the_provider_is_also_reported_as_unavailable():
         multiplier, stats = api._fetch_macro_safe()
     assert multiplier is None
     assert stats["status"] == api.MACRO_UNAVAILABLE
-    assert "boom" in str(stats["error"])
+    # The error is reported, the exception text is not. This line used to
+    # assert the opposite — that "boom" reached the caller — which pinned the
+    # disclosure rather than the behaviour the test is named for.
+    assert stats.get("error")
+    assert "boom" not in str(stats["error"])
 
 
 # ── partial data ────────────────────────────────────────────────────────────
@@ -150,3 +154,34 @@ def test_an_unmeasured_regime_applies_no_dampening():
     """The identity, so the arithmetic stays well formed — never a guess."""
     assessment = api._macro_assessment(None, api._macro_unavailable("down"))
     assert assessment.risk_multiplier == 1.0
+
+
+# ── provider failure detail stays server-side ────────────────────────────────
+
+def test_a_provider_failure_does_not_return_raw_exception_text(monkeypatch):
+    """The browser gets the fact, the log gets the detail.
+
+    This path built its client-facing string with an f-string over the caught
+    exception, so whatever the failing layer raised became a public response
+    body — vendor error text, internal class names, library internals. The
+    caller's actionable fact is that the regime could not be measured, and the
+    status field already carries it.
+    """
+    import api.index as api
+
+    marker = "SENTINEL-internal-detail-7741 /srv/app/secrets.py line 42"
+
+    def _boom():
+        raise RuntimeError(marker)
+
+    monkeypatch.setattr(api.providers.macro, "get_macro", _boom)
+    api._macro_cache.clear()
+    multiplier, stats = api._fetch_macro_safe()
+
+    assert multiplier is None
+    blob = str(stats)
+    assert marker not in blob, f"raw exception text reached the client: {blob}"
+    assert "RuntimeError" not in blob
+    # Still says what happened, just without the internals.
+    assert stats["status"] == "UNAVAILABLE"
+    assert stats.get("error")

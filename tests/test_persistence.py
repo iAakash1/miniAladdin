@@ -411,6 +411,39 @@ class TestPreferences:
         prefs = repo.patch(USER_A, {"theme": "neon"})
         assert prefs["theme"] == "dark"  # invalid theme ignored, row unchanged
 
+    def test_a_default_watchlist_must_belong_to_the_caller(self, fake):
+        """`default_watchlist` was stored with no ownership check.
+
+        Nothing leaked — watchlist reads are scoped separately — but one
+        user's preferences could reference another user's row, which is an
+        unvalidated cross-user id sitting in the database waiting for a reader
+        that trusts it.
+        """
+        watchlists = WatchlistsRepository(fake)
+        mine = watchlists.create(USER_A, "Mine", ["AAPL"])
+        theirs = watchlists.create(USER_B, "Theirs", ["MSFT"])
+        assert mine["id"] != theirs["id"]
+
+        repo = PreferencesRepository(fake)
+        # With the only field dropped there is nothing left to write, so no
+        # preferences row is created at all — `None` here is the guard working.
+        prefs = repo.patch(USER_A, {"default_watchlist": theirs["id"]}) or {}
+        assert prefs.get("default_watchlist") != theirs["id"], (
+            "user A stored user B's watchlist id as their default"
+        )
+
+    def test_a_default_watchlist_the_caller_owns_is_accepted(self, fake):
+        """The guard must not break the legitimate case."""
+        mine = WatchlistsRepository(fake).create(USER_A, "Mine", ["AAPL"])
+        prefs = PreferencesRepository(fake).patch(USER_A, {"default_watchlist": mine["id"]})
+        assert prefs["default_watchlist"] == mine["id"]
+
+    def test_an_unknown_watchlist_id_is_not_stored(self, fake):
+        prefs = PreferencesRepository(fake).patch(
+            USER_A, {"default_watchlist": "00000000-0000-0000-0000-000000000000"}
+        ) or {}
+        assert prefs.get("default_watchlist") is None
+
 
 # ── comparison helpers directly ──────────────────────────────────────────────
 
