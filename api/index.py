@@ -2309,6 +2309,62 @@ def get_quotes(symbols: str = Query(..., description="Comma-separated tickers, m
     return {"quotes": out, "count": len(out)}
 
 
+@app.get("/api/agents/{ticker}/validation", tags=["agents"])
+def agent_validation(ticker: str):
+    """The evidence behind one security, and whether it holds up.
+
+    Returns the claims each specialist agent made, the evidence handles
+    supporting them, and the deterministic validator's verdict on each. This
+    is the traceability surface: every sentence the product shows about a
+    security should reduce to rows in here.
+
+    The decision travels with it and is not produced by it. `model_signal` is
+    copied from the scorecard; no agent and no validator writes it.
+    """
+    symbol = ticker.upper().strip()
+    if not symbol or len(symbol) > 10:
+        raise HTTPException(status_code=400, detail="Invalid ticker")
+
+    from src.agents import analyse
+
+    try:
+        result = analyse(symbol)
+    except Exception:
+        logger.exception("agent pipeline failed for %s", symbol)
+        raise HTTPException(
+            status_code=503,
+            detail="The evidence pipeline could not be run for this security.",
+        ) from None
+
+    if not result.claims and not result.evidence:
+        # Nothing was gathered at all. Reported as unavailable rather than as
+        # an empty but successful analysis.
+        return {
+            "symbol": symbol,
+            "status": "unavailable",
+            "detail": "No provider returned evidence for this security.",
+            "agents": [a.model_dump() for a in result.agents],
+            "generated_at": result.generated_at,
+            "agent_schema_version": result.agent_schema_version,
+        }
+
+    return {
+        "symbol": symbol,
+        "status": "ok",
+        "model_signal": result.model_signal,
+        "confidence": result.confidence,
+        "risk_score": result.risk_score,
+        "data_completeness": result.data_completeness,
+        "validation": result.validation.model_dump(),
+        "agents": [a.model_dump() for a in result.agents],
+        "claims": [c.model_dump() for c in result.claims],
+        "evidence": [e.model_dump() for e in result.evidence],
+        "generated_at": result.generated_at,
+        "agent_schema_version": result.agent_schema_version,
+        "scoring_version": result.scoring_version,
+    }
+
+
 # ── explore ──────────────────────────────────────────────────────────────────
 # Public, like /api/research and /api/screen beside them. These endpoints read
 # the same scorecard the research surface already serves anonymously, so

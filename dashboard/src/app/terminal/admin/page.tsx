@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 
 import Workbench from '@/components/system/Workbench'
 import AdminDiagnostics from '@/components/terminal/admin/AdminDiagnostics'
+import EvidenceAudit from '@/components/terminal/admin/EvidenceAudit'
 import { Panel, Prose } from '@/components/system'
 
 export const metadata: Metadata = {
@@ -14,7 +15,10 @@ export default function AdminPage() {
     <Workbench
       title="Operations"
       subtitle="deployment posture"
-      rail={[{ label: 'Diagnostics', state: 'live', detail: 'operator only' }]}
+      rail={[
+        { label: 'Diagnostics', state: 'live', detail: 'operator only' },
+        { label: 'Evidence', state: 'live', detail: 'claim-level audit' },
+      ]}
       context={
         <>
           <Panel title="What this answers">
@@ -42,6 +46,7 @@ export default function AdminPage() {
       }
     >
       <AdminDiagnostics />
+      <EvidenceAudit />
     </Workbench>
   )
 }
