@@ -5,7 +5,20 @@ from __future__ import annotations
 from typing import Any, Optional
 
 _ALLOWED_THEMES = {"light", "dark"}
-_ALLOWED_FIELDS = {"theme", "default_watchlist", "default_analysis_horizon"}
+#: Presentation only. This value must never be consulted for authorization or
+#: entitlement — it decides how much of the same analysis is drawn, nothing
+#: about what the caller may reach.
+_ALLOWED_EXPERIENCE_MODES = {"beginner", "advanced"}
+#: What a user may change about themselves. `role` is deliberately absent:
+#: there is no client path that writes it.
+_ALLOWED_FIELDS = {
+    "theme", "default_watchlist", "default_analysis_horizon", "experience_mode",
+}
+
+#: Applied when a user has never chosen. Advanced, not beginner, because every
+#: account that predates this column already works in the terminal and a
+#: migration must not move them out of it.
+DEFAULT_EXPERIENCE_MODE = "advanced"
 
 
 class PreferencesRepository:
@@ -39,6 +52,11 @@ class PreferencesRepository:
         clean = {k: v for k, v in fields.items() if k in _ALLOWED_FIELDS}
         if "theme" in clean and clean["theme"] not in _ALLOWED_THEMES:
             clean.pop("theme")
+        if (
+            "experience_mode" in clean
+            and clean["experience_mode"] not in _ALLOWED_EXPERIENCE_MODES
+        ):
+            clean.pop("experience_mode")
         # `default_watchlist` is a reference to another row, and it was written
         # with no check that the row belongs to this caller. Nothing leaked —
         # every watchlist read is scoped separately — but a user's preferences

@@ -39,7 +39,8 @@ from src.decision import (
     verdict_to_recommendation,
 )
 from src.services import llm_service
-from src.services import deployment
+from src.services import clerk_auth, deployment
+from src.services.authz import Permission, require_permission
 from src.services.paper_access import paper_access_state, require_paper_trader
 from src.models import (
     AggregateSentiment,
@@ -2212,6 +2213,37 @@ def reset_metrics(_user: str = Depends(require_clerk_user)):
         raise HTTPException(status_code=403, detail="Metrics reset requires a configured metrics operator (METRICS_RESET_OWNERS).")
     observability.registry.reset()
     return {"status": "reset", "snapshot": observability.registry.snapshot()}
+
+
+@app.get("/api/admin/diagnostics", tags=["ops"])
+def admin_diagnostics(
+    _user: str = Depends(require_permission(Permission.VIEW_ADMIN_DIAGNOSTICS)),
+):
+    """Operational state, for an operator.
+
+    Gated on the backend rather than on whether the client drew the link.
+    Hiding a navigation item is a presentation choice; this is the boundary,
+    and an ordinary signed-in account is refused here even if it constructs
+    the request by hand.
+
+    Reports posture, never material: which capabilities are configured, not
+    the values that configure them.
+    """
+    from src.services import database
+
+    access = paper_access_state()
+    return {
+        "environment": deployment.environment_name(),
+        "build_commit": _build_commit(),
+        "persistence": {
+            "configured": database.is_configured(),
+            "reachable": database.get_client() is not None,
+        },
+        "authentication": {"clerk_configured": clerk_auth.is_configured()},
+        "paper_trading": {"enabled": access["enabled"], "reason": access["reason"]},
+        "providers": providers.providers_health(),
+        "metrics": observability.registry.snapshot(),
+    }
 
 
 @app.get("/api/providers/health", tags=["ops"])

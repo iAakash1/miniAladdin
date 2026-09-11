@@ -12,14 +12,16 @@ from __future__ import annotations
 import logging
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
 from src import providers
 from src.providers.parallel import map_concurrent
 from src.services import database
 from src.services import portfolio_intelligence
-from src.services.clerk_auth import require_clerk_user
+from src.services import authz
+from src.services.clerk_auth import require_clerk_user, verify_token_claims
+from src.services.database.repositories.preferences import DEFAULT_EXPERIENCE_MODE
 from src.services.database.repositories import (
     AnalysisRepository,
     SessionsRepository,
@@ -91,6 +93,9 @@ class PreferencesPatchBody(BaseModel):
     theme: Optional[str] = None
     default_watchlist: Optional[str] = None
     default_analysis_horizon: Optional[str] = Field(default=None, max_length=60)
+    #: "beginner" | "advanced". Presentation only — the repository drops any
+    #: other value, and nothing here touches authorization or entitlement.
+    experience_mode: Optional[str] = None
 
 
 # ── profile ──────────────────────────────────────────────────────────────────
@@ -303,6 +308,59 @@ def patch_preferences(
     return PreferencesRepository(_client()).patch(
         user, body.model_dump(exclude_unset=True)
     ) or {}
+
+
+# ── who am I ─────────────────────────────────────────────────────────────────
+
+@router.get("/me/capabilities")
+def get_capabilities(
+    request: Request,
+    user: str = Depends(require_clerk_user),
+    authorization: str = Header(default=""),
+):
+    """What this caller may do, and how they have asked to be shown it.
+
+    A convenience for drawing navigation, not a security boundary: every
+    route re-checks its own permission on every request, so a client that
+    lies to itself about this response gains nothing.
+
+    Carries no token, no Clerk private metadata, no bootstrap list and
+    nothing about any other account.
+
+    Degrades rather than fails. With persistence unavailable the role
+    resolves to `user` and the experience mode to the default, because being
+    unable to read a preference is not a reason to refuse to render.
+    """
+    experience_mode = DEFAULT_EXPERIENCE_MODE
+    chosen = False
+    client = database.get_client()
+    if client is not None:
+        try:
+            stored = (PreferencesRepository(client).get(user) or {}).get("experience_mode")
+        except Exception:  # noqa: BLE001 — navigation must survive a db fault
+            logger.exception("preference lookup failed; using the default experience")
+            stored = None
+        if stored in ("beginner", "advanced"):
+            experience_mode = stored
+            chosen = True
+
+    payload = authz.capabilities_for(user, experience_mode)
+    # `chosen` is what the onboarding prompt keys off. It is distinct from the
+    # mode itself: "never asked" and "asked, answered advanced" produce the
+    # same mode and must not produce the same first-run experience.
+    payload["experience_mode_chosen"] = chosen
+
+    # Entitlement is Clerk's to assert, not ours to infer. It is read from the
+    # verified token when the session template carries it, and reported as
+    # null — "the backend cannot say" — when it does not, rather than being
+    # guessed as false and downgrading a paying subscriber.
+    claims = verify_token_claims(
+        authorization[7:].strip() if authorization.lower().startswith("bearer ") else ""
+    ) or {}
+    metadata = claims.get("public_metadata") or claims.get("publicMetadata") or {}
+    raw_pro = metadata.get("isPro") if isinstance(metadata, dict) else None
+    payload["is_pro"] = raw_pro if isinstance(raw_pro, bool) else None
+    return payload
 
 
 # ── research sessions ────────────────────────────────────────────────────────

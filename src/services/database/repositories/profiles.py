@@ -20,6 +20,27 @@ class ProfilesRepository:
         )
         return rows[0] if rows else None
 
+    def role_of(self, clerk_user_id: str) -> str:
+        """The stored role, or "user" when there is no row yet.
+
+        Selects only the one column: a role check runs on many requests and
+        has no business pulling the caller's email and avatar with it. An
+        absent profile is an ordinary user, not an error — the row is created
+        on first login and authorization must work in the request that
+        precedes it.
+        """
+        rows = (
+            self._c.table("profiles")
+            .select("role")
+            .eq("clerk_user_id", clerk_user_id)
+            .limit(1)
+            .execute()
+            .data
+        )
+        if not rows:
+            return "user"
+        return rows[0].get("role") or "user"
+
     def sync(
         self,
         clerk_user_id: str,

@@ -103,6 +103,34 @@ def verify_token(token: str) -> Optional[str]:
     return sub if isinstance(sub, str) and sub else None
 
 
+def verify_token_claims(token: str) -> Optional[dict]:
+    """Every verified claim, for callers that need more than the subject.
+
+    Separate from `verify_token` so the common path keeps returning a plain
+    id and no caller accidentally passes a claims dict where an id is
+    expected. Same verification, same failure behaviour: None on anything
+    that does not check out.
+    """
+    if _issuer_missing_in_production():
+        return None
+    client = _get_jwks_client()
+    if client is None or not token:
+        return None
+    try:
+        signing_key = client.get_signing_key_from_jwt(token)
+        return jwt.decode(
+            token,
+            signing_key.key,
+            algorithms=["RS256"],
+            options={"verify_aud": False},
+            issuer=os.getenv("CLERK_ISSUER") or None,
+            leeway=10,
+        )
+    except jwt.PyJWTError as exc:
+        logger.info("rejected bearer token: %s", exc)
+        return None
+
+
 def _token_from_header(authorization: str) -> str:
     if authorization.lower().startswith("bearer "):
         return authorization[7:].strip()
