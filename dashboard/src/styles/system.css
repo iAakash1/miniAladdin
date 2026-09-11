@@ -3136,3 +3136,219 @@ a.tape:hover .tape__sym { color: var(--accent); }
   .xp__filters { gap: 8px; }
   .xp__field { min-width: 0; flex: 1 1 9rem; }
 }
+
+/* ── beginner ─────────────────────────────────────────────────────────────
+   The simplified experience. Same tokens, same panels, same table styles as
+   the terminal — a reader moving between modes should recognise the product,
+   not feel handed to a different one.
+
+   Signals carry a tone *and* their label everywhere. Colour is a second
+   channel, never the channel: "Buy" in green and "Sell" in red must still
+   read as Buy and Sell in greyscale.                                       */
+
+.bg__search { display: flex; gap: 8px; align-items: center; }
+
+.bg__search input {
+  flex: 1 1 auto;
+  font: inherit;
+  font-size: var(--t-body);
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 8px 10px;
+  min-height: 38px;
+}
+
+.bg__search input:focus-visible,
+.bg__search button:focus-visible { outline: 2px solid var(--rule-focus); outline-offset: 1px; }
+
+.bg__search button {
+  appearance: none;
+  font: inherit;
+  font-size: var(--t-meta);
+  color: var(--surface);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  padding: 8px 16px;
+  min-height: 38px;
+  cursor: pointer;
+}
+
+.bg__search button:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
+
+/* ── ranked idea cards ─────────────────────────────────────────────────── */
+
+.bg__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: var(--gap);
+  margin-top: var(--gap);
+}
+
+.bg__card {
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: var(--surface);
+  padding: var(--gap);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bg__card-head { display: flex; align-items: baseline; gap: 8px; }
+.bg__card-head > div { flex: 1 1 auto; min-width: 0; }
+
+.bg__rank {
+  font-size: var(--t-micro, 11px);
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.bg__sym { font-size: var(--t-body); font-weight: 600; color: var(--ink); text-decoration: none; }
+.bg__sym:hover { text-decoration: underline; }
+
+.bg__co {
+  display: block;
+  font-size: var(--t-micro, 11px);
+  color: var(--ink-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bg__price { font-size: var(--t-body); font-variant-numeric: tabular-nums; color: var(--ink); }
+
+.bg__signal-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; }
+
+.bg__qual { font-size: var(--t-micro, 11px); color: var(--ink-muted); }
+
+.bg__why { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; }
+.bg__why dt { font-size: var(--t-micro, 11px); color: var(--ink-muted); }
+.bg__why dd { margin: 0; font-size: var(--t-micro, 11px); color: var(--ink); }
+
+.bg__card-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid var(--rule);
+  padding-top: 8px;
+}
+
+.bg__action { font-size: var(--t-meta); color: var(--accent); text-decoration: none; }
+.bg__action:hover { text-decoration: underline; }
+.bg__asof { font-size: var(--t-micro, 11px); color: var(--ink-muted); }
+
+/* ── trending ──────────────────────────────────────────────────────────── */
+
+.bg__trend-list { list-style: none; margin: var(--gap) 0 0; padding: 0; }
+
+.bg__trend-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.bg__trend-dir { font-size: var(--t-meta); color: var(--ink-muted); flex: 1 1 auto; }
+
+/* ── reasons ───────────────────────────────────────────────────────────── */
+
+.bg__reasons { list-style: none; margin: var(--gap) 0 0; padding: 0; }
+
+.bg__reason {
+  padding: 8px 0 8px 14px;
+  border-bottom: 1px solid var(--rule);
+  position: relative;
+}
+
+/* A glyph rather than colour alone, for the same reason the signal keeps its
+   label: the distinction has to survive without hue. */
+.bg__reason[data-tone='positive']::before { content: '+'; color: var(--pos, var(--accent)); }
+.bg__reason[data-tone='negative']::before { content: '!'; color: var(--neg, #b3452f); }
+
+.bg__reason[data-tone]::before {
+  position: absolute;
+  left: 0;
+  font-weight: 600;
+  font-size: var(--t-meta);
+}
+
+.bg__reason-label { display: block; font-size: var(--t-body); color: var(--ink); }
+.bg__reason-detail { display: block; font-size: var(--t-meta); color: var(--ink-muted); }
+
+.bg__verdict { margin: 0 0 8px; font-size: 20px; }
+
+/* ── categories ────────────────────────────────────────────────────────── */
+
+.bg__cats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  gap: 8px;
+  margin-top: var(--gap);
+}
+
+.bg__cat {
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 10px 12px;
+  text-decoration: none;
+  background: var(--surface);
+}
+
+.bg__cat:hover { border-color: var(--rule-strong); }
+.bg__cat:focus-visible { outline: 2px solid var(--rule-focus); outline-offset: 1px; }
+.bg__cat-title { display: block; font-size: var(--t-body); color: var(--ink); font-weight: 500; }
+.bg__cat-blurb { display: block; font-size: var(--t-micro, 11px); color: var(--ink-muted); }
+
+/* ── mode selection ────────────────────────────────────────────────────── */
+
+.bg__modes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: var(--gap);
+  margin: var(--gap) 0;
+}
+
+.bg__mode {
+  appearance: none;
+  text-align: left;
+  font: inherit;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: var(--surface);
+  padding: var(--gap);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bg__mode:hover:not(:disabled) { border-color: var(--accent); }
+.bg__mode:focus-visible { outline: 2px solid var(--rule-focus); outline-offset: 1px; }
+.bg__mode:disabled { opacity: 0.6; cursor: default; }
+
+.bg__mode-title { font-size: var(--t-body); font-weight: 600; color: var(--ink); }
+.bg__mode-body { font-size: var(--t-meta); color: var(--ink-muted); line-height: 1.5; }
+.bg__mode-cta { font-size: var(--t-meta); color: var(--accent); }
+
+.bg__switch {
+  appearance: none;
+  font: inherit;
+  font-size: var(--t-meta);
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 6px 12px;
+  min-height: 32px;
+  margin-top: 8px;
+  cursor: pointer;
+}
+
+.bg__switch:hover:not(:disabled) { border-color: var(--rule-strong); }
+.bg__switch:focus-visible { outline: 2px solid var(--rule-focus); outline-offset: 1px; }
