@@ -3005,3 +3005,134 @@ a.tape:hover .tape__sym { color: var(--accent); }
 .st__block:last-of-type { border-bottom: 0; }
 .st__block .mkt__track { margin-top: var(--d-2); }
 .st__block .sys-scroll-x { margin-top: var(--d-2); }
+
+/* ── explore ──────────────────────────────────────────────────────────────
+   Cross-sectional rankings. Reuses .sys-table and .sys-scroll-x for the grid
+   itself; what is here is the tab strip, the filter row and the three small
+   inline labels that carry meaning the table columns cannot.
+
+   The signal chip is toned but never *only* toned: the verdict text is always
+   rendered inside it, so the meaning survives for a reader who cannot tell
+   the colours apart. Colour is a second channel here, not the channel.      */
+
+.xp__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-bottom: var(--gap);
+  border-bottom: 1px solid var(--rule);
+}
+
+.xp__tab {
+  appearance: none;
+  border: 1px solid transparent;
+  border-bottom: none;
+  background: transparent;
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: var(--t-meta);
+  letter-spacing: 0.01em;
+  padding: 6px 12px;
+  cursor: pointer;
+  border-radius: 3px 3px 0 0;
+  transition: color var(--t-fast), background var(--t-fast);
+}
+
+.xp__tab:hover { color: var(--ink); background: var(--surface-2); }
+.xp__tab:focus-visible { outline: 2px solid var(--rule-focus); outline-offset: -2px; }
+
+.xp__tab[data-active='true'] {
+  color: var(--ink);
+  background: var(--surface);
+  border-color: var(--rule);
+  font-weight: 500;
+}
+
+.xp__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--gap);
+}
+
+.xp__field { display: flex; flex-direction: column; gap: 4px; min-width: 8.5rem; }
+
+.xp__field > span {
+  font-size: var(--t-micro, 11px);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-muted);
+}
+
+.xp__field select,
+.xp__field input {
+  font: inherit;
+  font-size: var(--t-meta);
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 5px 8px;
+  min-height: 32px;                      /* a comfortable pointer target */
+}
+
+.xp__field select:focus-visible,
+.xp__field input:focus-visible { outline: 2px solid var(--rule-focus); outline-offset: 1px; }
+
+.xp__reset {
+  appearance: none;
+  font: inherit;
+  font-size: var(--t-meta);
+  color: var(--ink-muted);
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 6px 12px;
+  min-height: 32px;
+  cursor: pointer;
+}
+
+.xp__reset:hover { color: var(--ink); border-color: var(--rule-strong); }
+.xp__reset:focus-visible { outline: 2px solid var(--rule-focus); outline-offset: 1px; }
+
+.xp__company {
+  display: block;
+  font-size: var(--t-micro, 11px);
+  color: var(--ink-muted);
+  font-weight: 400;
+}
+
+/* Direction of travel, shown only on the trending tab, where "trending" on
+   its own cannot tell a rally from a collapse. */
+.xp__trend {
+  display: inline-block;
+  margin-top: 2px;
+  font-size: var(--t-micro, 11px);
+  color: var(--ink-muted);
+  font-weight: 400;
+}
+
+.xp__signal {
+  display: inline-block;
+  font-size: var(--t-meta);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.xp__signal[data-tone='positive'] { color: var(--pos, var(--accent)); }
+.xp__signal[data-tone='negative'] { color: var(--neg, #b3452f); }
+.xp__signal[data-tone='neutral']  { color: var(--ink-muted); }
+
+.xp__why {
+  font-size: var(--t-micro, 11px);
+  color: var(--ink-muted);
+  max-width: 16rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 700px) {
+  .xp__filters { gap: 8px; }
+  .xp__field { min-width: 0; flex: 1 1 9rem; }
+}

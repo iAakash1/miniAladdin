@@ -1,0 +1,472 @@
+{
+  "universe_version": "us-v1",
+  "market": "US",
+  "as_of": "2026-09-11",
+  "asset_type": "common_equity",
+  "note": "Liquid US-listed common equities, chosen for breadth of sector coverage and for having the provider support this stack needs. Membership is not a recommendation and carries no ranking: it is the set of securities Explore is willing to score. Nothing in this file asserts that a name is good, and a name's absence asserts nothing either.",
+  "scope": "US equities only. The macro gate is built from FRED, the Federal Funds rate, US CPI, the US yield curve and SPY, so applying this model to a non-US listing would be applying the wrong macro regime to it.",
+  "constituents": [
+    {
+      "symbol": "AAPL",
+      "company_name": "Apple Inc.",
+      "sector": "Information Technology",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "MSFT",
+      "company_name": "Microsoft Corporation",
+      "sector": "Information Technology",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "NVDA",
+      "company_name": "NVIDIA Corporation",
+      "sector": "Information Technology",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "AVGO",
+      "company_name": "Broadcom Inc.",
+      "sector": "Information Technology",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "AMD",
+      "company_name": "Advanced Micro Devices, Inc.",
+      "sector": "Information Technology",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "CRM",
+      "company_name": "Salesforce, Inc.",
+      "sector": "Information Technology",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "ORCL",
+      "company_name": "Oracle Corporation",
+      "sector": "Information Technology",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "ADBE",
+      "company_name": "Adobe Inc.",
+      "sector": "Information Technology",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "CSCO",
+      "company_name": "Cisco Systems, Inc.",
+      "sector": "Information Technology",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "ACN",
+      "company_name": "Accenture plc",
+      "sector": "Information Technology",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "TXN",
+      "company_name": "Texas Instruments Incorporated",
+      "sector": "Information Technology",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "QCOM",
+      "company_name": "QUALCOMM Incorporated",
+      "sector": "Information Technology",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "INTC",
+      "company_name": "Intel Corporation",
+      "sector": "Information Technology",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "IBM",
+      "company_name": "International Business Machines Corporation",
+      "sector": "Information Technology",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "NOW",
+      "company_name": "ServiceNow, Inc.",
+      "sector": "Information Technology",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "GOOGL",
+      "company_name": "Alphabet Inc. Class A",
+      "sector": "Communication Services",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "GOOG",
+      "company_name": "Alphabet Inc. Class C",
+      "sector": "Communication Services",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "META",
+      "company_name": "Meta Platforms, Inc.",
+      "sector": "Communication Services",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "NFLX",
+      "company_name": "Netflix, Inc.",
+      "sector": "Communication Services",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "DIS",
+      "company_name": "The Walt Disney Company",
+      "sector": "Communication Services",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "CMCSA",
+      "company_name": "Comcast Corporation",
+      "sector": "Communication Services",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "T",
+      "company_name": "AT&T Inc.",
+      "sector": "Communication Services",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "VZ",
+      "company_name": "Verizon Communications Inc.",
+      "sector": "Communication Services",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "AMZN",
+      "company_name": "Amazon.com, Inc.",
+      "sector": "Consumer Discretionary",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "TSLA",
+      "company_name": "Tesla, Inc.",
+      "sector": "Consumer Discretionary",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "HD",
+      "company_name": "The Home Depot, Inc.",
+      "sector": "Consumer Discretionary",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "MCD",
+      "company_name": "McDonald's Corporation",
+      "sector": "Consumer Discretionary",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "NKE",
+      "company_name": "NIKE, Inc.",
+      "sector": "Consumer Discretionary",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "SBUX",
+      "company_name": "Starbucks Corporation",
+      "sector": "Consumer Discretionary",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "LOW",
+      "company_name": "Lowe's Companies, Inc.",
+      "sector": "Consumer Discretionary",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "BKNG",
+      "company_name": "Booking Holdings Inc.",
+      "sector": "Consumer Discretionary",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "WMT",
+      "company_name": "Walmart Inc.",
+      "sector": "Consumer Staples",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "PG",
+      "company_name": "The Procter & Gamble Company",
+      "sector": "Consumer Staples",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "KO",
+      "company_name": "The Coca-Cola Company",
+      "sector": "Consumer Staples",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "PEP",
+      "company_name": "PepsiCo, Inc.",
+      "sector": "Consumer Staples",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "COST",
+      "company_name": "Costco Wholesale Corporation",
+      "sector": "Consumer Staples",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "PM",
+      "company_name": "Philip Morris International Inc.",
+      "sector": "Consumer Staples",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "MDLZ",
+      "company_name": "Mondelez International, Inc.",
+      "sector": "Consumer Staples",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "JPM",
+      "company_name": "JPMorgan Chase & Co.",
+      "sector": "Financials",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "BAC",
+      "company_name": "Bank of America Corporation",
+      "sector": "Financials",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "WFC",
+      "company_name": "Wells Fargo & Company",
+      "sector": "Financials",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "GS",
+      "company_name": "The Goldman Sachs Group, Inc.",
+      "sector": "Financials",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "MS",
+      "company_name": "Morgan Stanley",
+      "sector": "Financials",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "BRK.B",
+      "company_name": "Berkshire Hathaway Inc. Class B",
+      "sector": "Financials",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "V",
+      "company_name": "Visa Inc.",
+      "sector": "Financials",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "MA",
+      "company_name": "Mastercard Incorporated",
+      "sector": "Financials",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "AXP",
+      "company_name": "American Express Company",
+      "sector": "Financials",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "SCHW",
+      "company_name": "The Charles Schwab Corporation",
+      "sector": "Financials",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "UNH",
+      "company_name": "UnitedHealth Group Incorporated",
+      "sector": "Health Care",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "JNJ",
+      "company_name": "Johnson & Johnson",
+      "sector": "Health Care",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "LLY",
+      "company_name": "Eli Lilly and Company",
+      "sector": "Health Care",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "ABBV",
+      "company_name": "AbbVie Inc.",
+      "sector": "Health Care",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "MRK",
+      "company_name": "Merck & Co., Inc.",
+      "sector": "Health Care",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "PFE",
+      "company_name": "Pfizer Inc.",
+      "sector": "Health Care",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "TMO",
+      "company_name": "Thermo Fisher Scientific Inc.",
+      "sector": "Health Care",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "ABT",
+      "company_name": "Abbott Laboratories",
+      "sector": "Health Care",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "AMGN",
+      "company_name": "Amgen Inc.",
+      "sector": "Health Care",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "CAT",
+      "company_name": "Caterpillar Inc.",
+      "sector": "Industrials",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "HON",
+      "company_name": "Honeywell International Inc.",
+      "sector": "Industrials",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "UPS",
+      "company_name": "United Parcel Service, Inc.",
+      "sector": "Industrials",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "BA",
+      "company_name": "The Boeing Company",
+      "sector": "Industrials",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "GE",
+      "company_name": "GE Aerospace",
+      "sector": "Industrials",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "DE",
+      "company_name": "Deere & Company",
+      "sector": "Industrials",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "LMT",
+      "company_name": "Lockheed Martin Corporation",
+      "sector": "Industrials",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "XOM",
+      "company_name": "Exxon Mobil Corporation",
+      "sector": "Energy",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "CVX",
+      "company_name": "Chevron Corporation",
+      "sector": "Energy",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "COP",
+      "company_name": "ConocoPhillips",
+      "sector": "Energy",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "SLB",
+      "company_name": "Schlumberger Limited",
+      "sector": "Energy",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "LIN",
+      "company_name": "Linde plc",
+      "sector": "Materials",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "SHW",
+      "company_name": "The Sherwin-Williams Company",
+      "sector": "Materials",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "FCX",
+      "company_name": "Freeport-McMoRan Inc.",
+      "sector": "Materials",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "NEE",
+      "company_name": "NextEra Energy, Inc.",
+      "sector": "Utilities",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "DUK",
+      "company_name": "Duke Energy Corporation",
+      "sector": "Utilities",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "SO",
+      "company_name": "The Southern Company",
+      "sector": "Utilities",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "AMT",
+      "company_name": "American Tower Corporation",
+      "sector": "Real Estate",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "PLD",
+      "company_name": "Prologis, Inc.",
+      "sector": "Real Estate",
+      "asset_type": "common_equity"
+    },
+    {
+      "symbol": "SPG",
+      "company_name": "Simon Property Group, Inc.",
+      "sector": "Real Estate",
+      "asset_type": "common_equity"
+    }
+  ]
+}

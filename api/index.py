@@ -39,7 +39,7 @@ from src.decision import (
     verdict_to_recommendation,
 )
 from src.services import llm_service
-from src.services import clerk_auth, deployment
+from src.services import clerk_auth, deployment, explore_service
 from src.services.authz import Permission, require_permission
 from src.services.paper_access import paper_access_state, require_paper_trader
 from src.models import (
@@ -2307,6 +2307,114 @@ def get_quotes(symbols: str = Query(..., description="Comma-separated tickers, m
             logger.exception("quote failed for %s", symbol)
             out[symbol] = {"error": "unavailable"}
     return {"quotes": out, "count": len(out)}
+
+
+# ── explore ──────────────────────────────────────────────────────────────────
+# Public, like /api/research and /api/screen beside them. These endpoints read
+# the same scorecard the research surface already serves anonymously, so
+# gating them would not protect anything — it would only make the landing
+# experience require an account to see work the product gives away by design.
+# USE_EXPLORE exists for drawing navigation; the security boundary is on the
+# routes that mutate or expose operational state.
+
+@app.get("/api/explore/categories", tags=["explore"])
+def explore_categories():
+    """The ranking dimensions this deployment supports, and what each means."""
+    return {"categories": explore_service.categories_payload()}
+
+
+@app.get("/api/explore", tags=["explore"])
+def explore(
+    category: str = Query("overall"),
+    sector: Optional[str] = Query(None),
+    signal: Optional[str] = Query(None),
+    max_risk: Optional[int] = Query(None, ge=0, le=100),
+    min_confidence: Optional[int] = Query(None, ge=0, le=100),
+    min_data_completeness: Optional[float] = Query(None, ge=0.0, le=1.0),
+    min_price: Optional[float] = Query(None, ge=0.0),
+    max_price: Optional[float] = Query(None, ge=0.0),
+    limit: int = Query(25, ge=1, le=200),
+):
+    """Cross-sectional rankings over the configured universe.
+
+    422 on an unknown category rather than quietly serving "overall": asking
+    for one ordering and receiving another is worse than being refused, and
+    the reader has no way to tell it happened.
+    """
+    try:
+        snapshot = explore_service.get_snapshot()
+    except Exception:
+        logger.exception("explore snapshot unavailable")
+        raise HTTPException(
+            status_code=503,
+            detail="Rankings are being rebuilt and no previous snapshot is available.",
+        ) from None
+
+    filters = explore_service.ExploreFilters(
+        sector=sector, model_signal=signal, max_risk=max_risk,
+        min_confidence=min_confidence, min_data_completeness=min_data_completeness,
+        min_price=min_price, max_price=max_price,
+    )
+    try:
+        rows = explore_service.rank(snapshot, category, filters, limit)
+    except KeyError:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"Unknown category {category!r}. Expected one of: "
+                f"{', '.join(c['key'] for c in explore_service.categories_payload())}."
+            ),
+        ) from None
+
+    return {
+        "category": category,
+        "results": [r.model_dump() for r in rows],
+        "count": len(rows),
+        "eligible_count": snapshot.eligible_count,
+        "evaluated_count": snapshot.evaluated_count,
+        "generated_at": snapshot.generated_at,
+        "data_as_of": snapshot.data_as_of,
+        "universe_version": snapshot.universe_version,
+        "scoring_version": snapshot.scoring_version,
+        "stale": snapshot.stale,
+        "stale_reason": snapshot.stale_reason,
+    }
+
+
+@app.get("/api/recommendations", tags=["explore"])
+def recommendations(limit: int = Query(5, ge=1, le=20)):
+    """Top Ranked Ideas — the overall ordering, computed, never listed.
+
+    No symbol is named in this path. The universe decides which securities may
+    be considered; the model decides which of them rank highest, and if every
+    one of them fails eligibility this returns nothing rather than relaxing a
+    gate to fill the slots.
+    """
+    try:
+        snapshot = explore_service.get_snapshot()
+    except Exception:
+        logger.exception("recommendations unavailable")
+        raise HTTPException(
+            status_code=503,
+            detail="Rankings are being rebuilt and no previous snapshot is available.",
+        ) from None
+
+    rows = explore_service.recommendations(snapshot, limit)
+    return {
+        "results": [r.model_dump() for r in rows],
+        "count": len(rows),
+        "eligible_count": snapshot.eligible_count,
+        "evaluated_count": snapshot.evaluated_count,
+        "generated_at": snapshot.generated_at,
+        "data_as_of": snapshot.data_as_of,
+        "universe_version": snapshot.universe_version,
+        "scoring_version": snapshot.scoring_version,
+        "stale": snapshot.stale,
+        "stale_reason": snapshot.stale_reason,
+        "disclaimer": (
+            "An educational quantitative ranking, not personalised investment advice."
+        ),
+    }
 
 
 @app.get("/api/dashboard")
