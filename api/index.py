@@ -39,7 +39,7 @@ from src.decision import (
     verdict_to_recommendation,
 )
 from src.services import llm_service
-from src.services import availability, clerk_auth, deployment, explore_service
+from src.services import availability, clerk_auth, conviction, deployment, explore_service
 from src.services.authz import Permission, require_permission
 from src.services.paper_access import paper_access_state, require_paper_trader
 from src.models import (
@@ -2466,6 +2466,13 @@ def recommendations(limit: int = Query(5, ge=1, le=20)):
         # honest for showing both rather than implying one follows the other.
         "top_ranked": [r.model_dump() for r in rows],
         "performance_leaders": [r.model_dump() for r in leaders],
+        # Often empty, and that is the tier working rather than failing. A
+        # conviction list that always has entries is a ranking wearing a
+        # threshold's name.
+        "high_conviction": [
+            r.model_dump() for r in explore_service.high_conviction(snapshot, limit)
+        ],
+        "conviction_policy_version": conviction.CONVICTION_POLICY_VERSION,
         "count": len(rows),
         "eligible_count": snapshot.eligible_count,
         "evaluated_count": snapshot.evaluated_count,

@@ -35,6 +35,7 @@ from pydantic import BaseModel, PrivateAttr
 
 from src import providers
 from src.providers.parallel import map_concurrent
+from src.services import conviction
 from src.services import explore_eligibility as eligibility
 from src.services import explore_ranking as ranking
 from src.services.universe import Constituent, load_universe
@@ -82,6 +83,12 @@ class ExploreRow(BaseModel):
     # Risk-adjusted historical performance. Deliberately separate from
     # `overall_rank` and from `model_signal`: how a security has done and what
     # the model thinks of it now are different questions that often disagree.
+    #: Not a stronger buy — a statement that the evidence around a positive
+    #: signal is unusually well aligned. See services/conviction.py.
+    high_conviction: bool = False
+    conviction_met: list[str] = []
+    conviction_blocked_by: list[str] = []
+
     performance_score: Optional[float] = None
     performance_grade: Optional[str] = None
     excess_return_3m: Optional[float] = None
@@ -490,6 +497,23 @@ def _normalise(rows: list[ExploreRow], benchmark_frame=None) -> None:
         ]
         r.profitability_sector_percentile = ranking.percentile_rank(margins[r.symbol], peers)
 
+    # Conviction last: it reads the finished rank, performance and validation,
+    # so it cannot run before they exist.
+    for r in eligible:
+        verdict = conviction.assess(
+            model_signal=r.model_signal,
+            overall_rank=r.overall_rank,
+            confidence=r.confidence,
+            risk_score=r.risk_score,
+            data_completeness=r.data_completeness,
+            performance_score=r.performance_score,
+            validation_state=r.validation_state,
+            price_stale=r.stale,
+        )
+        r.high_conviction = verdict.qualifies
+        r.conviction_met = verdict.met
+        r.conviction_blocked_by = verdict.blocked_by
+
     # Analyst upside, only where both sides of the comparison exist.
     for r in eligible:
         target = r._raw.get("analyst_target")
@@ -670,6 +694,17 @@ def recommendations(snapshot: ExploreSnapshot, limit: int = 5) -> list[ExploreRo
     highest is model output. No symbol is named anywhere in this path.
     """
     return rank(snapshot, "overall", None, limit)
+
+
+def high_conviction(snapshot: ExploreSnapshot, limit: int = 5) -> list[ExploreRow]:
+    """Securities where every condition agrees at once.
+
+    Frequently empty, and that is the feature working. A tier that always has
+    entries is a ranking wearing a threshold's name.
+    """
+    rows = [r for r in snapshot.rows if r.eligible and r.high_conviction]
+    rows.sort(key=lambda r: (-(r.overall_rank or 0.0), r.symbol))
+    return rows[: max(1, min(limit, 50))]
 
 
 def performance_leaders(snapshot: ExploreSnapshot, limit: int = 5) -> list[ExploreRow]:
