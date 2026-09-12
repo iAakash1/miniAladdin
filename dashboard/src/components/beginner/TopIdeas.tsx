@@ -14,7 +14,9 @@
  */
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
+
+import { emptySnapshot, subscribeSymbols, toggleWatch, watchSnapshot } from '@/lib/symbols'
 
 import { EmptyLine, Panel, Prose, StateBlock } from '@/components/system'
 import { DISCLAIMER } from '@/lib/beginner'
@@ -23,6 +25,28 @@ import {
 } from '@/lib/explore'
 
 const dash = '—'
+
+/** The shared local watchlist, so a name added here shows up in the terminal. */
+function WatchToggle({ symbol }: { symbol: string }) {
+  // Read as an external store. The server snapshot is empty because
+  // localStorage does not exist during the server render, which is what keeps
+  // hydration consistent.
+  const watching = useSyncExternalStore(subscribeSymbols, watchSnapshot, emptySnapshot)
+  const watched = watching.includes(symbol.trim().toUpperCase())
+
+  return (
+    <button
+      type="button"
+      className="bg__watch"
+      aria-pressed={watched}
+      aria-label={watched ? `Remove ${symbol} from watchlist` : `Add ${symbol} to watchlist`}
+      onClick={() => toggleWatch(symbol)}
+    >
+      {watched ? '★ Watching' : '☆ Watch'}
+    </button>
+  )
+}
+
 
 function Card({ row, rank }: { row: ExploreRow; rank: number }) {
   return (
@@ -64,6 +88,7 @@ function Card({ row, rank }: { row: ExploreRow; rank: number }) {
         <Link href={`/beginner/company/${encodeURIComponent(row.symbol)}`} className="bg__action">
           View analysis
         </Link>
+        <WatchToggle symbol={row.symbol} />
         {row.price_as_of ? <span className="bg__asof">Priced {row.price_as_of}</span> : null}
       </footer>
     </article>

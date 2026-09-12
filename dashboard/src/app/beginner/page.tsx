@@ -13,9 +13,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
-import Workbench from '@/components/system/Workbench'
-import ModeChooser from '@/components/beginner/ModeChooser'
-import ModeSwitch from '@/components/beginner/ModeSwitch'
+import SimpleShell from '@/components/beginner/SimpleShell'
 import TopIdeas from '@/components/beginner/TopIdeas'
 import TrendingNow from '@/components/beginner/TrendingNow'
 import { Panel, Prose, StateBlock } from '@/components/system'
@@ -32,7 +30,7 @@ const CATEGORIES: Array<{ key: string; label: string; blurb: string }> = [
 
 export default function BeginnerHome() {
   const router = useRouter()
-  const { caps, resolved, refresh } = useCapabilities()
+  const { caps, resolved } = useCapabilities()
   const [symbol, setSymbol] = useState('')
 
   function search(e: React.FormEvent) {
@@ -41,47 +39,15 @@ export default function BeginnerHome() {
     if (clean) router.push(`/beginner/company/${encodeURIComponent(clean)}`)
   }
 
-  // Only for a reader who has genuinely never chosen. `experience_mode_chosen`
-  // is separate from the mode precisely so an advanced user is not re-asked.
+  // A reader who has never chosen is sent to the selector rather than shown a
+  // second copy of it here. One onboarding surface, one place to change it.
   if (resolved && caps && !caps.experience_mode_chosen) {
-    return (
-      <Workbench title="Welcome" subtitle="choose how much detail you want">
-        <ModeChooser onChosen={() => refresh()} />
-      </Workbench>
-    )
+    router.replace('/start')
+    return null
   }
 
   return (
-    <Workbench
-      title="OmniSignal"
-      subtitle="what to look at, and why"
-      rail={[{ label: 'Beginner', state: 'live', detail: 'same engine, less density' }]}
-      context={
-        <>
-          <Panel title="What the signal is">
-            <Prose>
-              Every signal here comes from the same quantitative engine the
-              full research terminal uses. It is a model output about a
-              security, not advice about your money.
-            </Prose>
-          </Panel>
-          <Panel title="What confidence is not">
-            <Prose>
-              Analysis confidence describes how complete and how consistent the
-              evidence was. It is not the probability that a price will rise.
-            </Prose>
-          </Panel>
-          <Panel title="Want the full detail?">
-            <Prose>
-              Advanced mode adds factor attribution, financial statements,
-              provenance and the complete research terminal. Same conclusions,
-              more of the working.
-            </Prose>
-            <ModeSwitch to="advanced" />
-          </Panel>
-        </>
-      }
-    >
+    <SimpleShell title="OmniSignal" subtitle="what to look at, and why">
       <Panel title="Look up a company">
         <form onSubmit={search} className="bg__search" role="search">
           <label htmlFor="bg-symbol" className="visually-hidden">
@@ -130,6 +96,6 @@ export default function BeginnerHome() {
           </Prose>
         </StateBlock>
       ) : null}
-    </Workbench>
+    </SimpleShell>
   )
 }

@@ -34,6 +34,7 @@ import { usePinnedObjects, useRecentObjects } from '@/lib/research/history'
 import { KINDS, href as objectHref } from '@/lib/research/objects'
 import SystemRail from './SystemRail'
 import SecuritySearch from './SecuritySearch'
+import SimpleModeSwitch from '@/components/beginner/SimpleModeSwitch'
 import { DESTINATIONS, GOTO } from '@/lib/destinations'
 
 
@@ -211,6 +212,10 @@ export default function Workbench({
             >
               ?
             </button>
+            {/* The way back. Without it Simple mode is a one-way door: a
+                reader who switches to Advanced to see one number has no
+                visible route home. */}
+            <SimpleModeSwitch />
             {actions}
             {context ? (
               <button

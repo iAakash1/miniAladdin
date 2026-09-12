@@ -23,6 +23,7 @@ import {
   DISCLAIMER, explainCompleteness, explainConfidence, explainRisk,
   reasons, signalSentence, whatCouldChange,
 } from '@/lib/beginner'
+import StockActions from '@/components/beginner/StockActions'
 import { fetchAnalysis, normalizeAnalysis } from '@/lib/api'
 import { signalTone } from '@/lib/explore'
 import type { Analysis } from '@/lib/types'
@@ -167,6 +168,8 @@ export default function BeginnerAnalysis({ ticker }: { ticker: string }) {
           </Prose>
         </Panel>
       ) : null}
+
+      <StockActions symbol={ticker} />
 
       <Panel title="Where this came from">
         <Prose>
