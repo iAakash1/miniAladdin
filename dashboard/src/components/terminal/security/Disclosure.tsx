@@ -167,8 +167,8 @@ export default function Disclosure({
             <table className="sys-table sys-table--compact">
               <thead>
                 <tr>
-                  <th>Concept</th><th>Period</th><th className="num">Originally</th>
-                  <th>Filed</th><th className="num">Revised to</th><th>Revised</th><th className="num">Change</th>
+                  <th scope="col">Concept</th><th scope="col">Period</th><th scope="col" className="num">Originally</th>
+                  <th scope="col">Filed</th><th scope="col" className="num">Revised to</th><th scope="col">Revised</th><th scope="col" className="num">Change</th>
                 </tr>
               </thead>
               <tbody>

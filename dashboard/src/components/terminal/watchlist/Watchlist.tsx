@@ -61,12 +61,12 @@ export default function Watchlist() {
         <table className="sys-table sys-table--compact wl">
           <thead>
             <tr>
-              <th>Symbol</th>
-              <th className="num">Last</th>
-              <th className="num">1 day</th>
-              <th className="num">1 week</th>
-              <th>Source</th>
-              <th><span className="sys-sr-only">Remove</span></th>
+              <th scope="col">Symbol</th>
+              <th scope="col" className="num">Last</th>
+              <th scope="col" className="num">1 day</th>
+              <th scope="col" className="num">1 week</th>
+              <th scope="col">Source</th>
+              <th scope="col"><span className="sys-sr-only">Remove</span></th>
             </tr>
           </thead>
           <tbody>

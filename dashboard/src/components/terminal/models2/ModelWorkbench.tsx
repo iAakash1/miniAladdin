@@ -197,7 +197,7 @@ export default function ModelWorkbench() {
         <Panel title="Guards" state={guards ? (guards.passed ? 'recorded' : 'blocked') : 'unavailable'} flush>
           {guards?.checks?.length ? (
             <table className="sys-table sys-table--compact">
-              <thead><tr><th>Check</th><th>Result</th><th>Detail</th></tr></thead>
+              <thead><tr><th scope="col">Check</th><th scope="col">Result</th><th scope="col">Detail</th></tr></thead>
               <tbody>
                 {guards.checks.map((c) => (
                   <tr key={c.check}>

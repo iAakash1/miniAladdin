@@ -73,11 +73,11 @@ export default function SectorMovers() {
         <table className="sys-table sys-table--compact movers__t">
           <thead>
             <tr>
-              <th>Sector</th>
-              <th className="num">21d</th>
-              <th className="num">63d</th>
-              <th className="movers__spark">90 sessions</th>
-              <th className="num">50-day</th>
+              <th scope="col">Sector</th>
+              <th scope="col" className="num">21d</th>
+              <th scope="col" className="num">63d</th>
+              <th scope="col" className="movers__spark">90 sessions</th>
+              <th scope="col" className="num">50-day</th>
             </tr>
           </thead>
           <tbody>

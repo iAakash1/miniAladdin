@@ -137,7 +137,7 @@ export function Compare({
       <table className="sys-table sys-table--compact">
         <thead>
           <tr>
-            <th style={{ position: 'sticky', left: 0, zIndex: 3, background: 'var(--p-sunken)', minWidth: 150 }}>Metric</th>
+            <th scope="col" style={{ position: 'sticky', left: 0, zIndex: 3, background: 'var(--p-sunken)', minWidth: 150 }}>Metric</th>
             {subjects.map((s) => {
               // Incomparability is a property of the column, not of each row in
               // it. Saying so once in the header beats repeating it against
@@ -147,7 +147,7 @@ export function Compare({
                 && s.basis !== undefined && baseline.basis !== undefined
                 && s.basis !== baseline.basis
               return (
-                <th key={s.id} className="num" style={{ minWidth: 118 }} data-incomparable={off ? '' : undefined}>
+                <th scope="col" key={s.id} className="num" style={{ minWidth: 118 }} data-incomparable={off ? '' : undefined}>
                   {s.label}
                   {s.id === baseline.id ? <span className="unit">baseline</span> : s.detail ? <span className="unit">{s.detail}</span> : null}
                   {off ? (

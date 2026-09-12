@@ -148,7 +148,7 @@ export default function ExperimentEvidence({
           <div className="sys-scroll-x">
             <table className="sys-table sys-table--compact">
               <thead>
-                <tr><th>Control</th><th className="num">Mean IC</th><th className="num">t</th><th className="num">Observations</th><th>Blocking</th><th>Result</th></tr>
+                <tr><th scope="col">Control</th><th scope="col" className="num">Mean IC</th><th scope="col" className="num">t</th><th scope="col" className="num">Observations</th><th scope="col">Blocking</th><th scope="col">Result</th></tr>
               </thead>
               <tbody>
                 {controlRows.map((c) => (
@@ -246,8 +246,8 @@ export default function ExperimentEvidence({
             <table className="sys-table sys-table--compact">
               <thead>
                 <tr>
-                  <th>Model</th><th className="num">Half-spread</th><th className="num">Gross Sharpe</th>
-                  <th className="num">Net Sharpe</th><th className="num">Turnover</th><th className="num">Cost share</th>
+                  <th scope="col">Model</th><th scope="col" className="num">Half-spread</th><th scope="col" className="num">Gross Sharpe</th>
+                  <th scope="col" className="num">Net Sharpe</th><th scope="col" className="num">Turnover</th><th scope="col" className="num">Cost share</th>
                 </tr>
               </thead>
               <tbody>

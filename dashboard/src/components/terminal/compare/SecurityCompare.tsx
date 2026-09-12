@@ -158,10 +158,10 @@ export default function SecurityCompare({ a, b }: { a: string; b: string }) {
               <table className="sys-table sys-table--compact cmp">
                 <thead>
                   <tr>
-                    <th>Measure</th>
-                    <th className="num">{a}</th>
-                    <th className="num">{b}</th>
-                    <th className="num">Difference</th>
+                    <th scope="col">Measure</th>
+                    <th scope="col" className="num">{a}</th>
+                    <th scope="col" className="num">{b}</th>
+                    <th scope="col" className="num">Difference</th>
                   </tr>
                 </thead>
                 <tbody>

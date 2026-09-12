@@ -391,7 +391,7 @@ export default function FactorWorkbench() {
             ) : null}
             {r.redundant_pairs.length ? (
               <table className="sys-table sys-table--compact" style={{ marginTop: 'var(--d-3)' }}>
-                <thead><tr><th>Factor</th><th>Factor</th><th className="num">Correlation</th></tr></thead>
+                <thead><tr><th scope="col">Factor</th><th scope="col">Factor</th><th scope="col" className="num">Correlation</th></tr></thead>
                 <tbody>
                   {r.redundant_pairs.map((p) => (
                     <tr key={`${p.a}-${p.b}`}>

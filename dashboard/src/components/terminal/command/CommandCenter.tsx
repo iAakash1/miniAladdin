@@ -165,7 +165,7 @@ export default function CommandCenter() {
             </div>
             {failedGates.length ? (
               <table className="sys-table sys-table--compact">
-                <thead><tr><th>Gate</th><th className="num">Observed</th><th>Required</th></tr></thead>
+                <thead><tr><th scope="col">Gate</th><th scope="col" className="num">Observed</th><th scope="col">Required</th></tr></thead>
                 <tbody>
                   {failedGates.map((g) => (
                     <tr key={g.gate}>

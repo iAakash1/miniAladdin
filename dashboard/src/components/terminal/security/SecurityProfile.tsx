@@ -273,7 +273,7 @@ export default function SecurityProfile({ symbol }: { symbol: string }) {
         >
           <table className="sys-table sys-table--compact">
             <thead>
-              <tr><th>Form</th><th>Filed</th><th>Period</th><th>Meaning</th><th /></tr>
+              <tr><th scope="col">Form</th><th scope="col">Filed</th><th scope="col">Period</th><th scope="col">Meaning</th><th scope="col" /></tr>
             </thead>
             <tbody>
               {filings.slice(0, 10).map((f, i) => (

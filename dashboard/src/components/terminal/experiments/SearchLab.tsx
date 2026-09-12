@@ -291,10 +291,10 @@ export default function SearchLab({ experimentId = 'EXP-007' }: { experimentId?:
             <table className="sys-table sys-table--compact">
               <thead>
                 <tr>
-                  <th>Family</th><th className="num">Evaluated</th><th className="num">Overfit</th>
-                  <th className="num">Best IC</th><th className="num">Best t</th>
-                  <th className="num">Best gap</th><th className="num">Worst gap</th>
-                  <th className="num">Worker time</th>
+                  <th scope="col">Family</th><th scope="col" className="num">Evaluated</th><th scope="col" className="num">Overfit</th>
+                  <th scope="col" className="num">Best IC</th><th scope="col" className="num">Best t</th>
+                  <th scope="col" className="num">Best gap</th><th scope="col" className="num">Worst gap</th>
+                  <th scope="col" className="num">Worker time</th>
                 </tr>
               </thead>
               <tbody>

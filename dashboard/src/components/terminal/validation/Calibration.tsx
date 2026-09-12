@@ -185,7 +185,7 @@ export default function Calibration({ symbol }: { symbol: string }) {
               height={190}
             />
             <table className="sys-table sys-table--compact" style={{ marginTop: 'var(--d-2)' }}>
-              <thead><tr><th>Bin</th><th className="num">Expected</th><th className="num">Actual</th><th className="num">Gap</th><th className="num">n</th></tr></thead>
+              <thead><tr><th scope="col">Bin</th><th scope="col" className="num">Expected</th><th scope="col" className="num">Actual</th><th scope="col" className="num">Gap</th><th scope="col" className="num">n</th></tr></thead>
               <tbody>
                 {calibration.map((c) => (
                   <tr key={c.bin}>
@@ -210,7 +210,7 @@ export default function Calibration({ symbol }: { symbol: string }) {
           <Panel title="Confusion" subtitle="what the verdicts actually did">
             <div className="sys-scroll-x">
               <table className="sys-table sys-table--compact">
-                <thead><tr><th>Verdict</th><th className="num">Went up</th><th className="num">Went down</th><th className="num">Accuracy</th></tr></thead>
+                <thead><tr><th scope="col">Verdict</th><th scope="col" className="num">Went up</th><th scope="col" className="num">Went down</th><th scope="col" className="num">Accuracy</th></tr></thead>
                 <tbody>
                   {verdicts.map((v) => {
                     const row = confusion[v]
@@ -313,7 +313,7 @@ export default function Calibration({ symbol }: { symbol: string }) {
       {data.factor_diagnostics && Object.keys(data.factor_diagnostics).length ? (
         <Panel title="Factor diagnostics" subtitle="per input, on this name" flush>
           <table className="sys-table sys-table--compact">
-            <thead><tr><th>Factor</th><th className="num">IC</th><th className="num">Sign stability</th><th className="num">Samples</th></tr></thead>
+            <thead><tr><th scope="col">Factor</th><th scope="col" className="num">IC</th><th scope="col" className="num">Sign stability</th><th scope="col" className="num">Samples</th></tr></thead>
             <tbody>
               {Object.entries(data.factor_diagnostics)
                 .sort((a, b) => (n(b[1].ic) ?? -Infinity) - (n(a[1].ic) ?? -Infinity))

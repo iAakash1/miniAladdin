@@ -345,14 +345,14 @@ export default function EvidenceChain() {
               <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)' }}>
                 <Section title={`Production gates unmet (${unmet.length})`}>
                   <table className="sys-table sys-table--compact">
-                    <thead><tr><th>Gate</th><th className="num">Observed</th><th>Outcome</th></tr></thead>
+                    <thead><tr><th scope="col">Gate</th><th scope="col" className="num">Observed</th><th scope="col">Outcome</th></tr></thead>
                     <tbody>{unmet.map(([k, v]) => <GateRow key={k} name={k} observed={v} />)}</tbody>
                   </table>
                 </Section>
                 <Section title={`Candidate gates unmet (${candidateUnmet.length})`}>
                   {candidateUnmet.length ? (
                     <table className="sys-table sys-table--compact">
-                      <thead><tr><th>Gate</th><th className="num">Observed</th><th>Outcome</th></tr></thead>
+                      <thead><tr><th scope="col">Gate</th><th scope="col" className="num">Observed</th><th scope="col">Outcome</th></tr></thead>
                       <tbody>{candidateUnmet.map(([k, v]) => <GateRow key={k} name={k} observed={v} />)}</tbody>
                     </table>
                   ) : <span className="sys-meta">none</span>}

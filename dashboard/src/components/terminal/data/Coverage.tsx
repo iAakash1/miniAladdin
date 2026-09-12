@@ -178,8 +178,8 @@ export default function Coverage() {
           <table className="sys-table sys-table--compact">
             <thead>
               <tr>
-                <th>Dataset</th><th>Role</th><th className="num">Rows</th><th className="num">Partitions</th>
-                <th>From</th><th>To</th><th>Point in time</th><th>Survivorship</th><th>Retrieved</th>
+                <th scope="col">Dataset</th><th scope="col">Role</th><th scope="col" className="num">Rows</th><th scope="col" className="num">Partitions</th>
+                <th scope="col">From</th><th scope="col">To</th><th scope="col">Point in time</th><th scope="col">Survivorship</th><th scope="col">Retrieved</th>
               </tr>
             </thead>
             <tbody>

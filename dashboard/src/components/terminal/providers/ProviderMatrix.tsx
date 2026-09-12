@@ -148,13 +148,13 @@ export default function ProviderMatrix() {
             <table className="sys-table sys-table--compact">
               <thead>
                 <tr>
-                  <th>Vendor</th>
-                  <th>State</th>
-                  <th className="num">Requests</th>
-                  <th className="num">Failures</th>
-                  <th className="num">Rate limited</th>
-                  <th className="num">Mean latency</th>
-                  <th>Last error</th>
+                  <th scope="col">Vendor</th>
+                  <th scope="col">State</th>
+                  <th scope="col" className="num">Requests</th>
+                  <th scope="col" className="num">Failures</th>
+                  <th scope="col" className="num">Rate limited</th>
+                  <th scope="col" className="num">Mean latency</th>
+                  <th scope="col">Last error</th>
                 </tr>
               </thead>
               <tbody>
@@ -196,7 +196,7 @@ export default function ProviderMatrix() {
           <div className="sys-scroll-x">
             <table className="sys-table sys-table--compact">
               <thead>
-                <tr><th>Capability</th><th>Live vendors</th><th>Unconfigured</th></tr>
+                <tr><th scope="col">Capability</th><th scope="col">Live vendors</th><th scope="col">Unconfigured</th></tr>
               </thead>
               <tbody>
                 {Object.entries(caps.d?.by_capability ?? {}).sort().map(([key, c]) => (

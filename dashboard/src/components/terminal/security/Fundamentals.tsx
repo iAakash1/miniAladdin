@@ -213,7 +213,7 @@ export default function Fundamentals({
           {technicals.indicators?.length ? (
             <div style={{ marginTop: 'var(--d-3)' }} className="sys-scroll-x">
               <table className="sys-table sys-table--compact">
-                <thead><tr><th>Indicator</th><th className="num">Value</th><th>Reading</th><th>Note</th></tr></thead>
+                <thead><tr><th scope="col">Indicator</th><th scope="col" className="num">Value</th><th scope="col">Reading</th><th scope="col">Note</th></tr></thead>
                 <tbody>
                   {technicals.indicators.map((r, i) => (
                     <tr key={r.key ?? r.label ?? i}>

@@ -306,11 +306,11 @@ export default function MarketWorkspace() {
               <table className="sys-table sys-table--compact">
                 <thead>
                   <tr>
-                    <th>Index</th>
-                    <th className="num">Last</th>
-                    <th className="num">1 day</th>
-                    <th className="num">1 week</th>
-                    <th>Source</th>
+                    <th scope="col">Index</th>
+                    <th scope="col" className="num">Last</th>
+                    <th scope="col" className="num">1 day</th>
+                    <th scope="col" className="num">1 week</th>
+                    <th scope="col">Source</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -420,7 +420,7 @@ export default function MarketWorkspace() {
           <div className="sys-scroll-x">
             <table className="sys-table sys-table--compact">
               <thead>
-                <tr><th>Date</th><th className="num">In</th><th>Type</th><th>Event</th><th>Importance</th></tr>
+                <tr><th scope="col">Date</th><th scope="col" className="num">In</th><th scope="col">Type</th><th scope="col">Event</th><th scope="col">Importance</th></tr>
               </thead>
               <tbody>
                 {data.events.map((e, i) => (

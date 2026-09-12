@@ -195,9 +195,9 @@ export default function GateMatrix() {
           <table className="sys-table sys-table--compact">
             <thead>
               <tr>
-                <th style={{ position: 'sticky', left: 0, zIndex: 3, background: 'var(--p-sunken)', minWidth: 190 }}>Model</th>
+                <th scope="col" style={{ position: 'sticky', left: 0, zIndex: 3, background: 'var(--p-sunken)', minWidth: 190 }}>Model</th>
                 {gates.map((g) => (
-                  <th key={g} className="num" style={{ minWidth: 74 }} title={g}>
+                  <th scope="col" key={g} className="num" style={{ minWidth: 74 }} title={g}>
                     {g.length > 12 ? `${g.slice(0, 11)}…` : g}
                   </th>
                 ))}

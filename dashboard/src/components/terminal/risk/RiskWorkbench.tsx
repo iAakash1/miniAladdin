@@ -390,7 +390,7 @@ export default function RiskWorkbench() {
             sample cannot support.
           </p>
           <table className="sys-table sys-table--compact">
-            <thead><tr><th>Measure</th><th>Reason</th></tr></thead>
+            <thead><tr><th scope="col">Measure</th><th scope="col">Reason</th></tr></thead>
             <tbody>
               {suppressed.map(([k, m]) => (
                 <tr key={k}>

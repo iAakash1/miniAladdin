@@ -93,9 +93,9 @@ export default function SeriesIntegrityPanel({ integrity }: { integrity: SeriesI
           <table className="sint__table">
             <thead>
               <tr>
-                <th>Session</th>
-                <th style={{ textAlign: 'right' }}>Spread</th>
-                <th>Readings</th>
+                <th scope="col">Session</th>
+                <th scope="col" style={{ textAlign: 'right' }}>Spread</th>
+                <th scope="col">Readings</th>
               </tr>
             </thead>
             <tbody>

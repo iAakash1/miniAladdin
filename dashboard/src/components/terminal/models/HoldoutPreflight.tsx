@@ -119,7 +119,7 @@ export default function HoldoutPreflight() {
 
       <table className="sys-table sys-table--compact" style={{ marginTop: 'var(--d-3)' }}>
         <thead>
-          <tr><th>Check</th><th style={{ width: '7rem' }}>Verdict</th><th>What it establishes</th></tr>
+          <tr><th scope="col">Check</th><th scope="col" style={{ width: '7rem' }}>Verdict</th><th scope="col">What it establishes</th></tr>
         </thead>
         <tbody>
           {ordered.map((gate) => (

@@ -171,8 +171,8 @@ export default function Ablation({ experimentId = 'EXP-005' }: { experimentId?: 
           <table className="sys-table sys-table--compact">
             <thead>
               <tr>
-                <th>Arm</th><th>Families</th><th className="num">Features</th>
-                <th className="num">Best IC</th><th className="num">t</th><th>Hypothesis</th>
+                <th scope="col">Arm</th><th scope="col">Families</th><th scope="col" className="num">Features</th>
+                <th scope="col" className="num">Best IC</th><th scope="col" className="num">t</th><th scope="col">Hypothesis</th>
               </tr>
             </thead>
             <tbody>

@@ -241,10 +241,10 @@ export default function ExperimentDiff() {
               <table className="sys-table sys-table--compact">
                 <thead>
                   <tr>
-                    <th style={{ minWidth: 170 }}>Field</th>
-                    <th className="num" style={{ minWidth: 160 }}>{left}</th>
-                    <th className="num" style={{ minWidth: 160 }}>{right}</th>
-                    <th style={{ minWidth: 100 }}>Change</th>
+                    <th scope="col" style={{ minWidth: 170 }}>Field</th>
+                    <th scope="col" className="num" style={{ minWidth: 160 }}>{left}</th>
+                    <th scope="col" className="num" style={{ minWidth: 160 }}>{right}</th>
+                    <th scope="col" style={{ minWidth: 100 }}>Change</th>
                   </tr>
                 </thead>
                 <tbody>

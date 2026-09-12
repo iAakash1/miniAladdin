@@ -36,7 +36,7 @@ export default function RecentSecurities() {
     <Panel title="Recent" subtitle="opened in this browser" state="live" flush>
       <table className="sys-table sys-table--compact wl">
         <thead>
-          <tr><th>Symbol</th><th className="num">Last</th><th className="num">1 day</th></tr>
+          <tr><th scope="col">Symbol</th><th scope="col" className="num">Last</th><th scope="col" className="num">1 day</th></tr>
         </thead>
         <tbody>
           {recent.slice(0, 8).map((s) => (
