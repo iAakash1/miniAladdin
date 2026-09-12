@@ -103,6 +103,7 @@ coverage leads that list and may carry a Sell signal while it does.
 | Quality | quality sleeve percentile |
 | Value | fundamental sleeve percentile |
 | Profitability | operating margin, **sector-relative** percentile |
+| Performance | `performance_score` — risk-adjusted history, **not** the model's view |
 | Low Risk | `risk_score` ascending |
 | News Buzz | headline volume percentile |
 | Analyst Upside | mean target vs last close |
@@ -118,6 +119,52 @@ statement, and we do not have one to make.
 **Growth is deliberately absent.** Reconciling TTM against fiscal-year revenue
 across vendors is not solved here, and a growth tab built on unreconciled
 periods would rank accounting conventions rather than companies.
+
+**Performance is history, not a forecast**, and it regularly disagrees with
+Overall — a security can have compounded beautifully and still carry a HOLD
+because it is expensive today. The composite, the windows and the reason Sharpe
+here subtracts no risk-free rate are in
+[PERFORMANCE_SCORING.md](PERFORMANCE_SCORING.md).
+
+**The registry and the interface are checked against each other.** A category
+the frontend has no case for renders a dash in its own column while the tab
+appears, selects and sorts — nothing errors and no test fails, because the
+backend is right and the frontend is merely silent. Both switches and the
+`CategoryKey` union are asserted against `CATEGORIES` by name.
+
+## High conviction — a threshold, not a ranking
+
+A separate concept from the orderings above, and not a view of one. Overall
+always has a first row; high conviction has entries only when every condition
+agrees at once, and **most days nothing does**. A tier that always had members
+would be a ranking wearing a threshold's name.
+
+Each bound in `services/conviction.py` records the observation that set it —
+`min_confidence = 42` sits just below a median of 44 against a live maximum of
+51, because on this engine's scale there is no such thing as a high confidence
+bar. The sketched "confidence >= 75" would have qualified nobody.
+
+Missing values **block** rather than pass. A security whose risk could not be
+measured has not demonstrated acceptable risk, and a conviction tier treating
+silence as agreement would hand its strongest label to the names it understands
+least.
+
+When the tier is empty the interface shows the near misses and what each is
+missing, computed beside the tier by the same assessment, so the explanation
+cannot disagree with the decision. Securities that are ineligible, or that were
+never assessed, are excluded — they did not fail the policy.
+
+## Why one security ranks above another
+
+`overall_rank` is a weighted sum, so the gap between two securities decomposes
+**exactly** into four contributions that add back up to it. `/api/compare/rank`
+returns that decomposition; no model is consulted.
+
+Asked why one name ranks above another, a model produces fluent reasons —
+market position, product cycle — that the ranking has never looked at, and the
+reader comes away believing it considered them. Ranking above is also not a
+recommendation: it is a position on one composite score, and both securities
+can carry the same signal.
 
 ## Caching
 

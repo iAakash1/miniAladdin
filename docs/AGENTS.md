@@ -22,6 +22,20 @@ which this codebase already spent a release removing.
 | `news` | coverage volume, source diversity, event classes, tone | optional |
 | `macro` | regime, rates, term spread, inflation, risk components | no |
 
+## Orchestration
+
+The run is a **LangGraph** `StateGraph`: one fixed topology, one conditional
+edge, and no node that asks a model what to do next. The five specialists fan
+out in parallel over one evidence snapshot and rejoin at `reconcile`.
+
+LangGraph is the orchestration layer and not an autonomous agent framework
+here — the full topology, the state reducers and the reason a graph rather than
+a loop are in [LANGGRAPH_WORKFLOW.md](LANGGRAPH_WORKFLOW.md).
+
+Without the package installed, `run()` falls back to the sequential
+orchestrator and records `langgraph_unavailable`, so a deployment that cannot
+carry the dependency still produces an analysis by a route it declares.
+
 ## Shared evidence context
 
 The orchestrator fetches once and every agent reads the same context. If each
@@ -46,7 +60,13 @@ empty success: "no negative news" and "the news provider was down" look
 identical once the list is empty, and only one is a finding.
 
 Every result carries `agent_schema_version`, so a stored run can be read back
-under the contract it was produced with.
+under the contract it was produced with. A graph run carries five versions —
+graph, agent schema, validation, scoring and prompt — because those five things
+change independently and a trace carrying one number could not say which moved.
+
+The evidence a claim rests on is followable rather than decorative: see
+[EVIDENCE_MODEL.md](EVIDENCE_MODEL.md) for what the Evidence Inspector resolves
+and the three distinctions it refuses to collapse.
 
 ## Failure semantics
 

@@ -52,3 +52,24 @@ Keyed off `experience_mode_chosen`, not the mode. Both resolve to `advanced`
 when unset, but only one means "never asked"; keying off the mode would
 re-prompt every advanced user on every visit. Existing accounts default to
 `advanced` so nobody is moved out of the terminal they already use.
+
+The question asked is **"How much detail would you like?"** — about the
+presentation, never about the person. Nothing labels a reader a beginner, and
+the choice is reversible from either mode.
+
+## What each mode adds
+
+Neither mode has its own model, its own ranking or its own verdict. The
+difference is how much of one analysis is shown.
+
+**Simple** gets a six-item navigation rather than the twenty-five-destination
+rail, the discovery concepts as cards, Ask OmniSignal, and the What-If Lab.
+
+**Advanced** gets the terminal: the full rail with foldable groups, the Agent
+Observatory, the evidence audit with a claim-level drawer, High Conviction with
+its near misses, and the rank decomposition in Compare.
+
+The What-If Lab appears in both, because "what would have to change for this to
+read differently" is not an expert's question. It calls the real scoring engine
+with one perturbed input rather than estimating what the engine would say — see
+[WHAT_IF.md](WHAT_IF.md) — and is labelled SIMULATION wherever it appears.

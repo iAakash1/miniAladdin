@@ -721,6 +721,35 @@ reason. The ones that came from a measured failure rather than a preference:
 
 ## Documentation
 
+**The product and its guarantees**
+
+- [`docs/LANGGRAPH_WORKFLOW.md`](docs/LANGGRAPH_WORKFLOW.md) — the analysis
+  graph: topology, state reducers, and why no node asks a model what to do next
+- [`docs/EVIDENCE_MODEL.md`](docs/EVIDENCE_MODEL.md) — claims, evidence and the
+  three distinctions the inspector refuses to collapse
+- [`docs/TRUST_BOUNDARIES.md`](docs/TRUST_BOUNDARIES.md) — where data changes
+  hands and what stops being assumed at each crossing
+- [`docs/SECURITY.md`](docs/SECURITY.md) — authentication, the three
+  independent authorisation dimensions, prompt injection, secrets
+- [`docs/FAILURE_MODES.md`](docs/FAILURE_MODES.md) — what breaks, what a reader
+  sees, and the failures this codebase actually had
+- [`docs/PERFORMANCE_SCORING.md`](docs/PERFORMANCE_SCORING.md) — risk-adjusted
+  history, and why it is separate from the model's view
+- [`docs/WHAT_IF.md`](docs/WHAT_IF.md) — the simulator that calls the real
+  engine, and the momentum bug worth recording
+- [`docs/BACKGROUND_JOBS.md`](docs/BACKGROUND_JOBS.md) — the job store, the
+  multi-worker hazard, and what is deliberately not wired yet
+- [`docs/EXPLORE_SCORING.md`](docs/EXPLORE_SCORING.md) — cross-sectional
+  ranking, the conviction threshold, and the rank decomposition
+- [`docs/AGENTS.md`](docs/AGENTS.md) — what an agent is here, and why most
+  contain no language model
+- [`docs/BEGINNER_ADVANCED.md`](docs/BEGINNER_ADVANCED.md) — two presentations
+  of one analysis
+- [`docs/RBAC.md`](docs/RBAC.md) — role, experience and entitlement as three
+  independent dimensions
+
+**Research and architecture**
+
 - [`docs/architecture.md`](docs/architecture.md) — system context, evidence
   lifecycle, domain model, CRC responsibilities
 - [`docs/data-flow.md`](docs/data-flow.md) — sequence diagrams for research,

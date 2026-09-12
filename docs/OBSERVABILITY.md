@@ -180,6 +180,19 @@ curl -s https://<backend>/api/metrics | jq '.timings | to_entries
 cooling down, success rate). The two are complementary: health says *whether*
 a vendor works, metrics say *what it costs*.
 
+`GET /api/admin/diagnostics` adds a third question — *is this deployment's
+shape correct* — under `background_jobs`. It reports which job store is in use,
+whether it is shared across workers, and a `warning` when several workers are
+running on an in-process registry. That condition duplicates background work
+and makes a client's progress bar move backwards, and its symptom does not
+point at its cause, so there is otherwise no way for an operator to discover
+it. See [BACKGROUND_JOBS.md](BACKGROUND_JOBS.md).
+
+Per-node timings for one analysis run come from the graph itself: `_timed`
+wraps every node and records its wall time into `timings`, which the Agent
+Observatory renders. It is the only way to answer "why did this take nine
+seconds" with something other than a guess.
+
 ---
 
 ## 7. Backwards compatibility
