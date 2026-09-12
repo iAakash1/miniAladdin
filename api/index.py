@@ -2583,6 +2583,61 @@ def agent_validation(ticker: str):
 # USE_EXPLORE exists for drawing navigation; the security boundary is on the
 # routes that mutate or expose operational state.
 
+@app.get("/api/compare/rank", tags=["explore"])
+def compare_rank(a: str = Query(..., min_length=1, max_length=10),
+                 b: str = Query(..., min_length=1, max_length=10)):
+    """Why one security ranks above another, decomposed exactly.
+
+    `overall_rank` is a weighted sum of four terms, so the gap between two
+    securities splits into four contributions that add back up to it. No model
+    is consulted: the response restates a subtraction the ranking already
+    performed, ordered by which term did the most work.
+
+    A generated explanation here would be worse than none. Asked why one name
+    ranks above another, a model produces fluent reasons — business quality,
+    market position — that the ranking has never looked at, and the reader
+    comes away believing it considered them.
+    """
+    symbol_a, symbol_b = a.upper().strip(), b.upper().strip()
+    for symbol in (symbol_a, symbol_b):
+        if not symbol.replace(".", "").replace("-", "").isalnum():
+            raise HTTPException(status_code=422, detail="Invalid ticker")
+    if symbol_a == symbol_b:
+        return availability.unsupported(
+            "A security cannot be compared with itself.", reason="SAME_SYMBOL",
+        ).payload(a=symbol_a, b=symbol_b)
+
+    try:
+        snapshot = explore_service.get_snapshot()
+    except Exception:
+        logger.exception("rank attribution: snapshot unavailable")
+        return availability.dependency_unavailable(
+            "Rankings are being rebuilt, so there is no ordering to explain.",
+            reason="SNAPSHOT_UNAVAILABLE",
+        ).payload(a=symbol_a, b=symbol_b)
+
+    by_symbol = {r.symbol: r for r in snapshot.rows}
+    absent = [s for s in (symbol_a, symbol_b) if s not in by_symbol]
+    if absent:
+        return availability.insufficient(
+            f"{' and '.join(absent)} {'is' if len(absent) == 1 else 'are'} not in the "
+            "ranked universe, so there is no ordering to explain.",
+            reason="NOT_IN_UNIVERSE",
+        ).payload(a=symbol_a, b=symbol_b, missing=absent)
+
+    from src.services import rank_attribution
+
+    result = rank_attribution.attribute(by_symbol[symbol_a], by_symbol[symbol_b])
+    return availability.available(
+        summary=rank_attribution.summary(result),
+        universe_version=snapshot.universe_version,
+        data_as_of=snapshot.data_as_of,
+        generated_at=snapshot.generated_at,
+        stale=snapshot.stale,
+        **result.model_dump(),
+    )
+
+
 @app.get("/api/explore/categories", tags=["explore"])
 def explore_categories():
     """The ranking dimensions this deployment supports, and what each means."""

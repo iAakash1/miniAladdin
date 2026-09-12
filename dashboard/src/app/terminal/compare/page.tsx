@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import Workbench from '@/components/system/Workbench'
 import ModelCompare from '@/components/terminal/compare/ModelCompare'
 import SecurityCompare from '@/components/terminal/compare/SecurityCompare'
+import RankAttribution from '@/components/terminal/compare/RankAttribution'
 import FiledComparison from '@/components/terminal/compare/FiledComparison'
 import { Panel, Prose } from '@/components/system'
 
@@ -94,6 +95,12 @@ export default async function ComparePage({
     >
       {securities ? (
         <>
+          {/* The ordering first, because "why is this one above that one" is
+              the question a reader arrives with, and it is answerable exactly:
+              the composite is a weighted sum, so the gap decomposes rather
+              than being narrated. */}
+          <RankAttribution a={a} b={b} />
+
           <SecurityCompare a={a} b={b} />
           {/* Filed facts across the set. Separate from the vendor ratios
               above because the two answer different questions: one is what

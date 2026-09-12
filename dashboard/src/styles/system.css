@@ -3700,3 +3700,17 @@ a.tape:hover .tape__sym { color: var(--accent); }
   padding: var(--d-2);
   background: var(--surface);
 }
+
+/* Rank attribution. Each term's reading sits below the table rather than in a
+   tooltip: confidence, risk and completeness are the three most reliably
+   misread numbers in the product, and what they are *not* has to survive a
+   reader who never hovers anything. */
+.ra__readings {
+  margin: var(--gap) 0 0;
+  padding: 0 0 0 var(--d-3);
+  display: grid;
+  gap: 4px;
+  font-size: var(--t-micro);
+  color: var(--ink-muted);
+  line-height: 1.5;
+}
