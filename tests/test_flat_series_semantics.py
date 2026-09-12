@@ -34,23 +34,6 @@ import pytest
 from src.prediction_agent import RiskAwarePredictionAgent
 
 
-@pytest.fixture(autouse=True)
-def _no_threaded_prefetch(monkeypatch):
-    """Stop the research handler's prefetch from fanning out to real vendors.
-
-    `research_prefetch.warm` runs its warmers through `map_concurrent`, which
-    abandons a worker when the future times out — Python cannot kill the
-    thread, so the outbound call still happens, just later. Later can be
-    inside a *different* test's `patch` window, which is how a broker test
-    asserting "no request was made" ends up seeing seven calls to sec.gov.
-
-    Nothing here depends on a warm cache: a cold cache is slower, never
-    different.
-    """
-    from src.services import research_prefetch
-
-    monkeypatch.setattr(research_prefetch, "warm", lambda ticker: {})
-
 
 def _frame(closes):
     idx = pd.bdate_range("2026-01-01", periods=len(closes))

@@ -134,6 +134,15 @@ BUILD_DEADLINE_SECONDS = 240.0
 FAILED_RETRY_COOLDOWN_SECONDS = 30.0
 
 _jobs: dict[str, dict[str, Any]] = {}
+
+#: Build workers that have been started, so `reset_for_tests` can wait for
+#: them. Production deliberately abandons a stalled worker — Python cannot
+#: cancel a thread doing blocking I/O — and that is unchanged. A test suite is
+#: a different situation: an abandoned worker keeps calling providers, and it
+#: lands inside whatever `patch` a later test has installed. That is how a
+#: backtest test asserting one vendor call saw three, the extra two being this
+#: builder loading its benchmark and its first symbol.
+_workers: list[threading.Thread] = []
 _jobs_lock = threading.Lock()
 #: Monotonic build id, so a worker can tell whether the job it was started
 #: for is still the current one for its key.
@@ -271,6 +280,10 @@ def run(
                 name=f"factor-lab-{universe_name}", daemon=True,
             )
             worker.start()
+            # Pruned as we go so this cannot grow without bound in a
+            # long-running process.
+            _workers[:] = [w for w in _workers if w.is_alive()]
+            _workers.append(worker)
         snapshot = dict(job)
 
     if stalled is not None:
@@ -766,7 +779,26 @@ def _load_prices(symbols: list[str]) -> dict[str, pd.Series]:
     }
 
 
-def reset_for_tests() -> None:
+def reset_for_tests(timeout: float = 10.0) -> None:
+    """Clear caches and jobs, and wait for any in-flight build worker.
+
+    The wait is the part that matters. Clearing `_jobs` drops the registry
+    entry but leaves the thread running, and a running builder keeps calling
+    providers — inside whatever `patch` the next test has installed. Joining
+    here makes the reset mean what its name says.
+
+    Bounded, and it never raises: a worker that outlives the timeout is
+    reported through the returned count rather than hanging the suite.
+    """
+    with _jobs_lock:
+        workers = list(_workers)
+        _workers.clear()
+
+    # Joined outside the lock: a worker still finishing needs `_jobs_lock` to
+    # record its result, and holding it here would deadlock against that.
+    for worker in workers:
+        worker.join(timeout=timeout)
+
     with _lock:
         _cache.clear()
     with _jobs_lock:
