@@ -2229,7 +2229,7 @@ def admin_diagnostics(
     Reports posture, never material: which capabilities are configured, not
     the values that configure them.
     """
-    from src.services import database
+    from src.services import database, job_store
 
     access = paper_access_state()
     return {
@@ -2242,6 +2242,12 @@ def admin_diagnostics(
         "authentication": {"clerk_configured": clerk_auth.is_configured()},
         "paper_trading": {"enabled": access["enabled"], "reason": access["reason"]},
         "providers": providers.providers_health(),
+        # Where background-job state lives, and whether this deployment's shape
+        # makes that a problem. An operator has no other way to discover that
+        # several workers are each keeping their own job registry — the symptom
+        # is duplicated work and a progress bar that will not settle, neither of
+        # which points at its cause.
+        "background_jobs": job_store.describe(),
         "metrics": observability.registry.snapshot(),
     }
 
