@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 
 import Workbench from '@/components/system/Workbench'
 import AdminDiagnostics from '@/components/terminal/admin/AdminDiagnostics'
+import AgentObservatory from '@/components/terminal/observatory/AgentObservatory'
 import EvidenceAudit from '@/components/terminal/admin/EvidenceAudit'
 import { Panel, Prose } from '@/components/system'
 
@@ -18,6 +19,7 @@ export default function AdminPage() {
       rail={[
         { label: 'Diagnostics', state: 'live', detail: 'operator only' },
         { label: 'Evidence', state: 'live', detail: 'claim-level audit' },
+        { label: 'Agent runs', state: 'live', detail: 'real graph traces' },
       ]}
       context={
         <>
@@ -46,6 +48,7 @@ export default function AdminPage() {
       }
     >
       <AdminDiagnostics />
+      <AgentObservatory />
       <EvidenceAudit />
     </Workbench>
   )

@@ -18,3 +18,9 @@ groq==1.5.0
 supabase==2.31.0
 PyJWT==2.13.0
 cryptography==49.0.0
+
+# Agent orchestration. LangGraph sequences the existing deterministic services
+# and computes nothing itself; src/agents/graph.py degrades to the sequential
+# orchestrator and records `langgraph_unavailable` if the import fails, so a
+# deployment that cannot carry it still produces an analysis.
+langgraph==1.2.11

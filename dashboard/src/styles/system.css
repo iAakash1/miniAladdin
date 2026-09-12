@@ -3495,3 +3495,28 @@ a.tape:hover .tape__sym { color: var(--accent); }
 .av__dl > div { display: flex; gap: 8px; }
 .av__dl dt { color: var(--ink-muted); min-width: 9rem; font-family: var(--font-mono); }
 .av__dl dd { margin: 0; color: var(--ink); font-family: var(--font-mono); }
+
+/* ── agent observatory ────────────────────────────────────────────────────
+   The pipeline as it executed. A row per stage, aligned so latencies compare
+   down the column rather than needing to be read one at a time.            */
+
+.obs__stages { list-style: none; margin: var(--gap) 0 0; padding: 0; counter-reset: stage; }
+
+.obs__stage {
+  display: grid;
+  grid-template-columns: 9rem 7rem 6rem 6rem 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: var(--t-meta);
+}
+
+.obs__name { font-family: var(--font-mono); color: var(--ink); }
+.obs__num { font-variant-numeric: tabular-nums; text-align: right; color: var(--ink-muted); }
+.obs__note { color: var(--ink-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (max-width: 760px) {
+  .obs__stage { grid-template-columns: 1fr auto; row-gap: 2px; }
+  .obs__num, .obs__note { text-align: left; }
+}

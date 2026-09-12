@@ -2309,6 +2309,84 @@ def get_quotes(symbols: str = Query(..., description="Comma-separated tickers, m
     return {"quotes": out, "count": len(out)}
 
 
+@app.get("/api/analysis-runs/{ticker}", tags=["agents"])
+def analysis_run(ticker: str):
+    """One graph execution, with its trace.
+
+    This is the Agent Observatory's data: which node ran, what it cost, what
+    each specialist produced, what reconciliation found, what validation
+    concluded, and which branch the critic took. Every field comes from a real
+    run — there is no synthetic pipeline state anywhere in this response.
+
+    The decision travels with the trace and is not produced by it. Exactly one
+    node writes `model_signal`, and it copies the scorecard.
+    """
+    symbol = ticker.upper().strip()
+    if not symbol or len(symbol) > 10:
+        raise HTTPException(status_code=400, detail="Invalid ticker")
+
+    from src.agents import graph
+
+    try:
+        state = graph.run(symbol)
+    except Exception:
+        logger.exception("analysis graph failed for %s", symbol)
+        return availability.dependency_unavailable(
+            "The analysis pipeline could not be run for this security.",
+            reason="GRAPH_FAILED",
+        ).payload(symbol=symbol)
+
+    agents = state.get("agent_results", {}) or {}
+    validation = state.get("validation")
+
+    if not agents and state.get("model_signal") is None:
+        return availability.empty(
+            "No provider returned evidence for this security, so no analysis "
+            "run could be assembled.",
+            reason="NO_EVIDENCE",
+        ).payload(symbol=symbol, run_id=state.get("run_id"))
+
+    return availability.available(
+        symbol=symbol,
+        run_id=state.get("run_id"),
+        requested_at=state.get("requested_at"),
+        # Authoritative, copied from the scorecard by one node.
+        model_signal=state.get("model_signal"),
+        confidence=state.get("confidence"),
+        risk_score=state.get("risk_score"),
+        data_completeness=state.get("data_completeness"),
+        # The trace.
+        nodes=[
+            {"node": node, "latency_ms": ms}
+            for node, ms in state.get("timings", {}).items()
+        ],
+        agents=[
+            {
+                "agent": result.agent,
+                "status": result.status.value,
+                "claims": len(result.claims),
+                "evidence": len(result.evidence),
+                "missing": result.missing,
+                "warnings": result.warnings,
+                "latency_ms": result.latency_ms,
+            }
+            for result in agents.values()
+        ],
+        reconciliation=state.get("reconciliation"),
+        validation=validation.model_dump() if validation is not None else None,
+        explanation=state.get("explanation"),
+        narrative_source=state.get("narrative_source"),
+        critic=state.get("critic"),
+        warnings=state.get("warnings", []),
+        errors=state.get("errors", []),
+        fallbacks=state.get("fallbacks", []),
+        graph_version=state.get("graph_version"),
+        agent_schema_version=state.get("agent_schema_version"),
+        validation_version=state.get("validation_version"),
+        scoring_version=state.get("scoring_version"),
+    )
+
+
 @app.get("/api/agents/{ticker}/validation", tags=["agents"])
 def agent_validation(ticker: str):
     """The evidence behind one security, and whether it holds up.
