@@ -8,6 +8,7 @@ snapshot admits to — none of which needs a network.
 
 import json
 import math
+import pathlib
 import re
 
 import pytest
@@ -183,3 +184,100 @@ def test_an_unavailable_snapshot_is_a_503_not_an_empty_page(monkeypatch):
     with TestClient(api.app) as client:
         for path in ("/api/explore", "/api/recommendations"):
             assert client.get(path).status_code == 503
+
+
+# ── the category registry and the interface that renders it ──────────────────
+
+_BOARD = pathlib.Path("dashboard/src/components/explore/ExploreBoard.tsx")
+_EXPLORE_LIB = pathlib.Path("dashboard/src/lib/explore.ts")
+
+
+def _switch_cases(source: str, function: str) -> set[str]:
+    """The category keys a `switch` in the board handles explicitly."""
+    start = source.index(f"function {function}(")
+    end = source.index("\n}", start)
+    return set(re.findall(r"case '([a-z_]+)':", source[start:end]))
+
+
+def test_every_backend_category_is_rendered_by_name():
+    """A category the interface has no case for falls through to a dash.
+
+    That is the quiet failure this guards: the tab appears, it is selectable,
+    it sorts — and its own column, the one that explains why the tab exists,
+    reads "—" for every row. Nothing errors and no test fails, because the
+    backend is correct and the frontend is merely silent. Performance was added
+    as a first-class category and this asserts it cannot become a dash column
+    the next time the registry grows.
+    """
+    from src.services.explore_service import CATEGORIES
+
+    board = _BOARD.read_text()
+    keys = {c.key for c in CATEGORIES}
+
+    for function in ("categoryValue", "categorySort"):
+        handled = _switch_cases(board, function)
+        missing = keys - handled
+        assert not missing, (
+            f"{function} has no case for {sorted(missing)}; those tabs render a dash"
+        )
+
+
+def test_the_category_key_union_matches_the_registry():
+    """The union is what makes the switch exhaustive to the typechecker. If it
+    drifts from the registry, a missing case stops being a type error."""
+    from src.services.explore_service import CATEGORIES
+
+    source = _EXPLORE_LIB.read_text()
+    declared = source[source.index("export type CategoryKey"):source.index("export interface ExploreCategory")]
+    in_union = set(re.findall(r"'([a-z_]+)'", declared))
+    assert in_union == {c.key for c in CATEGORIES}, (
+        f"the frontend union and the backend registry disagree: "
+        f"only in union {sorted(in_union - {c.key for c in CATEGORIES})}, "
+        f"only in registry {sorted({c.key for c in CATEGORIES} - in_union)}"
+    )
+
+
+def test_performance_is_a_first_class_category(served):
+    """End to end: offered, selectable, ordered by its own field, and labelled
+    as history rather than as the model's view."""
+    from src.services.explore_service import CATEGORIES
+
+    performance = next((c for c in CATEGORIES if c.key == "performance"), None)
+    assert performance is not None, "performance is not in the registry"
+    assert performance.field == "performance_score"
+    assert performance.descending is True
+
+    rows = [
+        _row("LOW", performance_score=10.0, performance_grade="Weak"),
+        _row("HIGH", performance_score=90.0, performance_grade="Exceptional"),
+        _row("MID", performance_score=50.0, performance_grade="Moderate"),
+    ]
+    with served(_snapshot(rows)) as client:
+        listed = client.get("/api/explore/categories").json()["categories"]
+        assert any(c["key"] == "performance" for c in listed)
+
+        body = client.get("/api/explore?category=performance").json()
+
+    assert body["category"] == "performance"
+    assert [r["symbol"] for r in body["results"]] == ["HIGH", "MID", "LOW"]
+    # Not a forecast and not the model's view — the blurb is the only place
+    # that distinction is made to a reader who arrives on this tab first.
+    blurb = next(c["blurb"] for c in listed if c["key"] == "performance")
+    assert "not a forecast" in blurb.lower()
+
+
+def test_an_unmeasured_performance_never_ranks_above_a_measured_one(served):
+    """Missing is not zero and it is certainly not best. A security whose
+    history could not be measured must not lead a tab about history."""
+    rows = [
+        _row("KNOWN", performance_score=40.0, performance_grade="Moderate"),
+        _row("UNKNOWN", performance_score=None, performance_grade=None),
+    ]
+    with served(_snapshot(rows)) as client:
+        body = client.get("/api/explore?category=performance").json()
+
+    symbols = [r["symbol"] for r in body["results"]]
+    if "UNKNOWN" in symbols:
+        assert symbols.index("KNOWN") < symbols.index("UNKNOWN"), (
+            "an unmeasured security outranked a measured one"
+        )
