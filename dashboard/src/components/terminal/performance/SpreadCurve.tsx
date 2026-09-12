@@ -19,6 +19,7 @@ import Link from 'next/link'
 import { BarRows, DrawdownChart, Histogram, TimeSeries } from '@/components/system/charts'
 import { Grid, Panel, Prose, Section, StateBlock, Strip, Value } from '@/components/system'
 import { ChartSkeleton, ObjectHeader, StripSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
+import { AvailabilityPanel, isAvailable } from '@/components/system/Availability'
 import { readResource } from '@/lib/resource'
 
 interface Period {
@@ -36,6 +37,7 @@ interface Period {
 
 interface Curve {
   status?: string
+  experiment_id?: string
   model_id?: string
   target?: string
   periods?: Period[]
@@ -43,6 +45,9 @@ interface Curve {
   units?: string
   assumptions?: Record<string, unknown>
   detail?: string
+  message?: string | null
+  reason?: string | null
+  remedy?: string | null
 }
 
 type Window = '1y' | '3y' | 'all'
@@ -113,7 +118,42 @@ export default function SpreadCurve({ experiment, model }: { experiment: string;
   }, [periods])
 
   if (error) {
-    return <Panel title="Spread curve" state="unavailable"><StateBlock state="unavailable" title="The series could not be read" detail={`Request failed: ${error}.`} /></Panel>
+    // A genuine transport fault. Distinguished from the far more common case
+    // below, where the backend answered perfectly well and the answer was
+    // that nothing was stored.
+    return (
+      <AvailabilityPanel
+        title="Spread curve"
+        payload={{
+          status: 'DEPENDENCY_UNAVAILABLE',
+          message: 'The research service did not answer for this series.',
+          reason: 'REQUEST_FAILED',
+          detail: { error },
+        }}
+      />
+    )
+  }
+  // The backend now says *why* rather than returning a status code. An
+  // experiment whose predictions artifact was never shipped to this
+  // deployment is not a failure, and it used to render as "Request failed:
+  // 404" — which sends a reader looking for a bug that is not there.
+  if (curve && !isAvailable(curve)) {
+    return (
+      <AvailabilityPanel
+        title="Spread curve"
+        payload={{
+          status: curve.status,
+          message: curve.message,
+          reason: curve.reason,
+          remedy: curve.remedy,
+          detail: {
+            experiment: curve.experiment_id ?? experiment,
+            model: curve.model_id ?? model,
+            ...(curve.detail ? { note: curve.detail } : {}),
+          },
+        }}
+      />
+    )
   }
   if (!curve) {
     return (

@@ -3485,3 +3485,13 @@ a.tape:hover .tape__sym { color: var(--accent); }
 
 .bg__watch[aria-pressed='true'] { color: var(--ink); border-color: var(--rule-strong); }
 .bg__watch:focus-visible { outline: 2px solid var(--rule-focus); outline-offset: 1px; }
+
+/* Technical detail behind a disclosure: an operator can read it, and an
+   ordinary reader is not handed a reason code they cannot act on. */
+.av__detail { margin-top: 8px; font-size: var(--t-meta); }
+.av__detail summary { cursor: pointer; color: var(--ink-muted); }
+.av__detail summary:focus-visible { outline: 2px solid var(--rule-focus); outline-offset: 2px; }
+.av__dl { margin: 8px 0 0; display: grid; gap: 2px; }
+.av__dl > div { display: flex; gap: 8px; }
+.av__dl dt { color: var(--ink-muted); min-width: 9rem; font-family: var(--font-mono); }
+.av__dl dd { margin: 0; color: var(--ink); font-family: var(--font-mono); }

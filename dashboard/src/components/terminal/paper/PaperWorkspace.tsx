@@ -17,9 +17,10 @@
  */
 
 import Link from 'next/link'
+import { AvailabilityNote } from '@/components/system/Availability'
 import { useEffect, useState } from 'react'
 
-import { EmptyLine, Panel, StateBlock, Status, Value } from '@/components/system'
+import { EmptyLine, Panel, Prose, StateBlock, Status, Value } from '@/components/system'
 import {
   fetchPaperAccount, fetchPaperOrders, fetchPaperPositions, fetchPaperStatus,
   money, type PaperAccount, type PaperOrder, type PaperPosition, type PaperStatus,
@@ -71,18 +72,40 @@ export default function PaperWorkspace() {
   }
 
   if (!status.value.configured) {
+    // Not a defect. A deployment without broker credentials is a deployment
+    // that has not been given a paper account, which is the default state and
+    // reads as breakage only because it used to be styled like one.
     return (
       <>
         <section className="paper__head">
-          <h2 className="paper__title">Paper account</h2>
-          <Status state="unavailable" label="NOT CONNECTED" />
+          <h2 className="paper__title">Paper trading</h2>
+          <Status state="recorded" label="NOT CONFIGURED" />
         </section>
-        <EmptyLine label="Paper trading">
-          {status.value.reason ?? 'Alpaca paper credentials are not configured.'}{' '}
-          Orders would be sent to <code>{status.value.endpoint}</code>, which is
-          Alpaca&apos;s paper environment — this build cannot reach a live one.
-          Market data, search and research are unaffected.
-        </EmptyLine>
+        <AvailabilityNote
+          payload={{
+            status: 'NOT_CONFIGURED',
+            reason: 'NO_BROKER_CREDENTIAL',
+            message:
+              'Connect an Alpaca paper account to simulate orders. Nothing else '
+              + 'is affected — market data, research, rankings and watchlists all '
+              + 'work without it.',
+            remedy:
+              'Set APCA_API_KEY_ID and APCA_API_SECRET_KEY on the backend, and '
+              + 'name the permitted operators in PAPER_TRADING_OWNERS. A shared '
+              + 'paper account cannot be handed to every signed-in user, so it '
+              + 'stays closed until someone is named.',
+            detail: {
+              endpoint: status.value.endpoint,
+              live_trading: 'disabled by construction',
+            },
+          }}
+        />
+        <Prose>
+          Simulation only. The endpoint above is hardcoded to Alpaca&apos;s paper
+          environment and the client refuses to start against any other host, so
+          a misconfigured deployment fails closed rather than reaching a live
+          account.
+        </Prose>
       </>
     )
   }

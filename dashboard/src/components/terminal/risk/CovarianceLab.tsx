@@ -16,7 +16,8 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 
 import { Matrix } from '@/components/system/charts'
-import { Panel, Prose, StateBlock, Status, Strip, Value } from '@/components/system'
+import { AvailabilityPanel, isAvailable } from '@/components/system/Availability'
+import { Panel, Prose, Status, Strip, Value } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { ObjectHeader, StripSkeleton, TableSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
 
@@ -40,6 +41,9 @@ interface Row {
 
 interface Payload {
   status?: string
+  reason?: string | null
+  remedy?: string | null
+  detail?: Record<string, unknown> | null
   message?: string
   estimators?: Row[]
   panel?: { names: number; rows: number; complete_rows: number }
@@ -111,7 +115,17 @@ export default function CovarianceLab() {
   ]
 
   if (error) {
-    return <Panel title="Covariance" state="unavailable"><StateBlock state="unavailable" title="The comparison could not be read" detail={`Request failed: ${error}.`} /></Panel>
+    return (
+      <AvailabilityPanel
+        title="Covariance"
+        payload={{
+          status: 'DEPENDENCY_UNAVAILABLE',
+          message: 'The research service did not answer for this comparison.',
+          reason: 'REQUEST_FAILED',
+          detail: { error },
+        }}
+      />
+    )
   }
   if (!data) {
     return (
@@ -133,8 +147,12 @@ export default function CovarianceLab() {
       </>
     )
   }
-  if (data.status !== 'ok' || !data.estimators?.length) {
-    return <Panel title="Covariance" state="unavailable"><StateBlock state="unavailable" title="No book to estimate on" detail={data.message} /></Panel>
+  // The backend now distinguishes six reasons a covariance cannot be
+  // estimated — no book, no positions, no panel, too little history, too few
+  // overlapping names, a near-singular matrix — where it previously sent one
+  // sentence, or a 500 with a stack trace.
+  if (!isAvailable(data) || !data.estimators?.length) {
+    return <AvailabilityPanel title="Covariance" payload={data} />
   }
 
   const rows = data.estimators

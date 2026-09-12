@@ -39,7 +39,7 @@ from src.decision import (
     verdict_to_recommendation,
 )
 from src.services import llm_service
-from src.services import clerk_auth, deployment, explore_service
+from src.services import availability, clerk_auth, deployment, explore_service
 from src.services.authz import Permission, require_permission
 from src.services.paper_access import paper_access_state, require_paper_trader
 from src.models import (
@@ -2636,18 +2636,66 @@ def quant_covariance():
     """
     from src.services import covariance_service, quant_portfolio_service
 
-    panel = quant_portfolio_service.panel_and_weights()
+    panel, reason = quant_portfolio_service.panel_and_weights_detailed()
     if panel is None:
-        return {
-            "status": "unavailable",
-            "message": "no research book is available to estimate a covariance from",
-            "estimators": [],
+        # Six distinct situations used to arrive here as one sentence — "no
+        # research book is available" — which tells a reader nothing about
+        # whether to wait, configure something, or report a bug.
+        states = {
+            "NO_BOOK": availability.empty(
+                "No research book could be built on this deployment, so there is "
+                "nothing to estimate a covariance from. The predictions artifact "
+                "the book is derived from is large and regenerable, so it stays "
+                "with the research run rather than shipping with the service.",
+                reason="NO_BOOK",
+            ),
+            "NO_POSITIONS": availability.empty(
+                "The research book built, but holds no positions.",
+                reason="NO_POSITIONS",
+            ),
+            "NO_PANEL": availability.empty(
+                "No return panel was stored for this experiment, so there is no "
+                "history to estimate a covariance over.",
+                reason="NO_PANEL",
+            ),
+            "INSUFFICIENT_HISTORY": availability.insufficient(
+                "The return panel is empty, so no covariance can be estimated.",
+                reason="INSUFFICIENT_HISTORY",
+            ),
+            "INSUFFICIENT_POSITIONS": availability.insufficient(
+                "Too few of the book's names have overlapping return history. "
+                "Below this a sample covariance is badly conditioned, and the "
+                "estimators would differ for arithmetic reasons rather than "
+                "financial ones.",
+                reason="INSUFFICIENT_POSITIONS",
+                minimum_names=quant_portfolio_service.MIN_COVARIANCE_NAMES,
+            ),
         }
+        state = states.get(reason or "", availability.empty(
+            "No research book is available to estimate a covariance from.",
+            reason=reason or "UNAVAILABLE",
+        ))
+        return state.payload(estimators=[])
 
     returns, weights = panel
-    payload = covariance_service.compare(returns, weights)
-    payload["status"] = "ok"
-    payload["correlation"] = covariance_service.correlation_view(returns)
+    try:
+        payload = covariance_service.compare(returns, weights)
+        payload["correlation"] = covariance_service.correlation_view(returns)
+    except Exception:
+        # This route used to answer 500 with a stack trace. A matrix that will
+        # not decompose is a fact about the data, not a server fault, and
+        # either way the exception is ours to log rather than the reader's to
+        # read.
+        logger.exception("covariance estimation failed")
+        return availability.insufficient(
+            "The covariance matrix could not be estimated from this book's "
+            "returns. This usually means the panel is near-singular — too few "
+            "independent observations for the number of names.",
+            reason="SINGULAR_MATRIX",
+            names=int(returns.shape[1]), observations=int(returns.shape[0]),
+        ).payload(estimators=[])
+
+    payload["status"] = availability.State.AVAILABLE.value
     return payload
 
 
@@ -2717,8 +2765,43 @@ def quant_model_series(
 
     folds = quant_series.fold_series(experiment_id, model_id, target=target)
     if folds.get("status") != "ok":
-        raise HTTPException(status_code=404, detail=folds.get("detail", "unavailable"))
+        # A 404 here was wrong twice over. It told a client the route was
+        # missing when the route is fine, and it collapsed three different
+        # situations into one code: an experiment nobody ran, a model this
+        # experiment did not include, and — the common one — a deployment
+        # that never received the predictions artifact, which is gitignored
+        # because it is large and regenerable from the recorded seed.
+        #
+        # The reader needs to know which. "No series was stored for this
+        # experiment" is actionable; "Request failed: 404" is not.
+        detail = str(folds.get("detail", ""))
+        if "no predictions artifact" in detail:
+            state = availability.empty(
+                "No prediction series was stored for this experiment on this "
+                "deployment. The artifact is large and regenerable, so it stays "
+                "with the research run rather than shipping with the service.",
+                reason="NO_ARTIFACT",
+                experiment_id=experiment_id, target=target,
+            )
+        elif "no predictions for" in detail:
+            state = availability.empty(
+                f"{experiment_id} has a prediction series, but none for "
+                f"{model_id!r}. That model was not part of this experiment.",
+                reason="NO_SERIES",
+                experiment_id=experiment_id, model_id=model_id,
+            )
+        else:
+            state = availability.insufficient(
+                "The prediction series for this model could not be summarised.",
+                reason="INSUFFICIENT_SERIES",
+                experiment_id=experiment_id, model_id=model_id,
+            )
+        return state.payload(
+            experiment_id=experiment_id, model_id=model_id, target=target,
+        )
+
     return {
+        "status": availability.State.AVAILABLE.value,
         "experiment_id": experiment_id,
         "model_id": model_id,
         "target": target,

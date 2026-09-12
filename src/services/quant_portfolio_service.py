@@ -91,22 +91,54 @@ def panel_and_weights(
     from the first, and then the comparison would be describing a different book
     than the one on screen.
     """
+    panel, _ = panel_and_weights_detailed(experiment_id, model_id, target=target)
+    return panel
+
+
+#: Minimum overlapping names before a covariance matrix is worth estimating.
+#: Below this the sample covariance is badly conditioned and the estimators
+#: disagree for arithmetic reasons rather than financial ones.
+MIN_COVARIANCE_NAMES = 10
+
+
+def panel_and_weights_detailed(
+    experiment_id: str = "EXP-006",
+    model_id: str = "gradient_boosting",
+    *,
+    target: str = "fwd_rank_21",
+) -> tuple[Optional[tuple[pd.DataFrame, pd.Series]], Optional[str]]:
+    """The panel and weights, or `(None, reason)` saying which step failed.
+
+    Six different situations used to collapse into one bare `None`: no book,
+    an empty weight vector, a missing panel, an empty panel, too few
+    overlapping names, and a book that failed to build at all. The caller
+    could then only say "unavailable", which is the least useful true thing
+    it could tell a reader.
+    """
     book = build(experiment_id, model_id, target=target)
     if book.get("status") != "ok":
-        return None
+        # The common one on a deployment: the predictions artifact is
+        # gitignored as regenerable, so the book cannot be built there.
+        return None, "NO_BOOK"
+
     weights = pd.Series(
         {row["symbol"]: float(row["weight"]) for row in book.get("weights", [])},
         dtype=float,
     )
     if weights.empty:
-        return None
+        return None, "NO_POSITIONS"
+
     panel = _panel(experiment_id, target, model_id)
-    if panel is None or panel.empty:
-        return None
+    if panel is None:
+        return None, "NO_PANEL"
+    if panel.empty:
+        return None, "INSUFFICIENT_HISTORY"
+
     usable = [s for s in weights.index if s in panel.columns]
-    if len(usable) < 10:
-        return None
-    return panel[usable], weights.reindex(usable)
+    if len(usable) < MIN_COVARIANCE_NAMES:
+        return None, "INSUFFICIENT_POSITIONS"
+
+    return (panel[usable], weights.reindex(usable)), None
 
 
 def build(
