@@ -290,9 +290,24 @@ def node_finalise(state: AnalysisState) -> dict[str, Any]:
 
     report = state.get("validation")
     if report is not None and not report.narrative_admissible:
+        # The refused text is *moved*, not flagged in place.
+        #
+        # Flagging it left the paragraph sitting under `summary` beside
+        # `withheld: true`, so the guarantee held only as long as every
+        # consumer remembered to check a boolean before rendering the field
+        # they were reaching for anyway. One that forgot would ship a
+        # narrative the validator refused, and nothing would fail.
+        #
+        # Under `withheld_summary` it is still auditable — an operator
+        # reviewing what was rejected needs to see it — but a surface can only
+        # display it by asking for it under a name that says what it is.
+        refused = dict(state.get("explanation") or {})
+        summary = refused.pop("summary", None)
         update["explanation"] = {
-            **(state.get("explanation") or {}),
+            **refused,
+            "summary": None,
             "withheld": True,
+            "withheld_summary": summary,
             "withheld_reason": report.rejected_reason,
         }
         update["narrative_source"] = "deterministic"

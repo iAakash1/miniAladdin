@@ -220,6 +220,10 @@ def test_a_refused_narrative_is_withheld():
     })
     assert update["explanation"]["withheld"] is True
     assert "narrative_withheld" in update["fallbacks"]
+    # Moved, not flagged in place: a consumer reaching for `summary` cannot
+    # render the refused paragraph by forgetting to check a boolean.
+    assert update["explanation"]["summary"] is None
+    assert update["explanation"]["withheld_summary"] == "Buy this."
 
 
 def test_an_admissible_narrative_survives():
@@ -268,3 +272,77 @@ def test_a_run_records_the_versions_that_produced_it():
     state = graph.run.__doc__
     assert state  # the function documents its degradation contract
     assert GRAPH_VERSION == "graph-v1"
+
+
+# ── the M2 guarantees, asserted on the graph path itself ─────────────────────
+
+def test_the_graph_path_upholds_the_evaluated_guarantees():
+    """The evaluation harness measures the validation layer, not the graph.
+
+    `src/evaluation/harness.py` drives `ValidationAgent` directly over frozen
+    scenarios, so its M2 column says "the validator refuses these things" — it
+    does not say the shipped path still refuses them once orchestration moved
+    to a graph. Those are different claims, and after the LangGraph integration
+    only the first was covered.
+
+    This closes the gap for the three properties the M2 column reports: the
+    authoritative numbers come from the scorecard, a refused narrative is
+    withheld rather than footnoted, and neither depends on which branch the
+    graph took.
+    """
+    from src.agents.schemas import ValidationReport, ValidationStatus
+
+    class _Refused(ValidationReport):
+        pass
+
+    state: AnalysisState = {
+        "evidence_context": EvidenceContext(symbol="X", scorecard=_Card()),
+        "agent_results": {},
+        "warnings": [], "errors": [], "fallbacks": [], "timings": {},
+    }
+
+    # 1. The authoritative values come from the scorecard.
+    scored = node_score(state)
+    assert scored["model_signal"] == _Card.verdict
+    assert scored["confidence"] == _Card.confidence
+    assert scored["risk_score"] == _Card.risk_score
+    assert scored["data_completeness"] == _Card.data_completeness
+    state.update(scored)
+
+    # 2. A narrative the validator refused does not reach the reader, on either
+    #    branch out of `explain`.
+    refused = ValidationReport(
+        status=ValidationStatus.UNSUPPORTED, narrative_admissible=False,
+        rejected_reason="it cited evidence that does not exist",
+    )
+    for branch in ("critic", "skip"):
+        final = node_finalise({
+            **state,
+            "validation": refused,
+            "explanation": {"summary": "a confident paragraph about nothing"},
+            "narrative_source": "model",
+            "critic": {"ok": True} if branch == "critic" else None,
+        })
+        summary = (final.get("explanation") or {}).get("summary") or ""
+        assert "a confident paragraph about nothing" not in summary, (
+            f"a refused narrative survived the {branch} branch"
+        )
+        # And the verdict is untouched by the refusal.
+        for field in ("model_signal", "confidence", "risk_score", "data_completeness"):
+            assert field not in final, f"finalise rewrote {field} on the {branch} branch"
+
+
+def test_the_evaluation_harness_does_not_route_through_the_graph():
+    """Stated as a test so the limitation cannot be quietly forgotten.
+
+    If the harness is ever wired through the graph this fails, and whoever does
+    that should update GENAI_EVALUATION.md's scope note in the same change —
+    the doc currently tells a reader the harness measures the validation layer,
+    and a doc that describes the wrong thing is worse than no doc.
+    """
+    import pathlib
+
+    source = pathlib.Path("src/evaluation/harness.py").read_text()
+    assert "ValidationAgent" in source, "the harness no longer drives the validator"
+    assert "from src.agents import graph" not in source
+    assert "graph.run" not in source

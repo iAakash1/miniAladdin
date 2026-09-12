@@ -67,6 +67,30 @@ and a stale price all pass. Checking is what closes the gap, not citing.
 under every configuration, which is what makes the comparison meaningful — the
 metrics compare two ways of explaining one decision, not two products.
 
+## What the harness covers, and what it does not
+
+The harness drives `ValidationAgent` directly over the frozen scenarios. It
+measures **the validation layer**, not the path a request actually takes.
+
+That distinction became load-bearing when orchestration moved to LangGraph.
+Re-running the harness afterwards reproduced these numbers exactly — but the
+correct reading of that is "LangGraph did not modify the validator", not "the
+shipped path still upholds these guarantees". They are different claims and
+only the first was covered.
+
+The second is now asserted separately, on the graph path itself, in
+`tests/test_agent_graph.py`: the authoritative values come from the scorecard,
+and a refused narrative is withheld on **both** branches out of `explain`.
+
+Writing that test found a real defect. `node_finalise` had been marking a
+refused narrative `withheld: true` while leaving the paragraph itself under
+`summary`, so the guarantee held only as long as every consumer checked a
+boolean before rendering the field it was reaching for anyway. One that forgot
+would have shipped a narrative the validator refused, and nothing would have
+failed. The text is now *moved* to `withheld_summary` — still auditable, since
+an operator reviewing a rejection needs to see it, but a surface can only
+display it by asking for it under a name that says what it is.
+
 ## Limitations
 
 - M0 and M1 are structural models of those architectures, not live model runs.
@@ -77,3 +101,5 @@ metrics compare two ways of explaining one decision, not two products.
   argument and language tests, not by reader evidence.
 - Latency and token cost are not measured here, because M0 and M1 do not make
   real model calls in this harness.
+- The harness does not exercise the graph; see the scope note above for what
+  covers that instead.
