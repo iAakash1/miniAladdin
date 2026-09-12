@@ -36,6 +36,7 @@ import SystemRail from './SystemRail'
 import SecuritySearch from './SecuritySearch'
 import SimpleModeSwitch from '@/components/beginner/SimpleModeSwitch'
 import { DESTINATIONS, GOTO } from '@/lib/destinations'
+import { useRailGroups } from '@/lib/rail-groups'
 
 
 /* Navigation follows the research loop, not the backend modules. The groups
@@ -71,6 +72,9 @@ export default function Workbench({
   const [ctxOpen, setCtxOpen] = useState(false)
   const recent = useRecentObjects()
   const pinned = usePinnedObjects()
+  // Which rail groups are folded away. A wide-rail affordance only — see
+  // lib/rail-groups for why the narrow rail ignores it entirely.
+  const { isOpen, toggle, collapsible } = useRailGroups(pathname)
 
   useEffect(() => { applyStoredDensity() }, [])
 
@@ -109,35 +113,70 @@ export default function Workbench({
       <Shortcuts />
       <MetricInspector />
       <nav className={`wb-rail${navOpen ? ' is-open' : ''}`} aria-label="Workbench">
-        {WORKBENCH.map((section) => (
-          <div
-            className="wb-group"
-            key={section.group}
-            /* The first group is where a session starts and returns. Marking it
-               is the difference between a terminal and a list of twenty-four
-               equally weighted admin links. */
-            data-primary={section.group === 'Terminal' ? '' : undefined}
-          >
-            <div className="sys-label wb-group-label">{section.group}</div>
-            {section.items.map((item) => {
-              const active = pathname === item.href
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`wb-link${active ? ' is-active' : ''}`}
-                  aria-current={active ? 'page' : undefined}
-                  onClick={() => setNavOpen(false)}
-                  title={item.label}
+        {WORKBENCH.map((section) => {
+          const open = isOpen(section.group)
+          const region = `wb-group-${section.group.toLowerCase()}`
+          // A folded group keeps whichever entry is current and drops the rest,
+          // so the rail can always answer "where am I". Folded items are not
+          // rendered at all rather than hidden with an attribute: an element
+          // that is not in the DOM cannot collect a focus stop a reader cannot
+          // see, and there is nothing for a screen reader to announce.
+          const items = open
+            ? section.items
+            : section.items.filter((i) => pathname === i.href || pathname.startsWith(`${i.href}/`))
+          return (
+            <div
+              className="wb-group"
+              key={section.group}
+              /* The first group is where a session starts and returns. Marking it
+                 is the difference between a terminal and a list of twenty-four
+                 equally weighted admin links. */
+              data-primary={section.group === 'Terminal' ? '' : undefined}
+            >
+              {/* A heading that folds its section is a button, not a div with a
+                  click handler: it has to be reachable by keyboard and announce
+                  its state. When the rail is too narrow to show labels there is
+                  nothing to fold and no control to offer, so it renders as the
+                  plain label it was. */}
+              {collapsible ? (
+                <button
+                  type="button"
+                  className="sys-label wb-group-label wb-group-toggle"
+                  aria-expanded={open}
+                  aria-controls={region}
+                  onClick={() => toggle(section.group)}
                 >
-                  <span className="wb-glyph" aria-hidden>{item.glyph}</span>
-                  <span className="wb-label">{item.label}</span>
-                  <kbd className="wb-key">g {item.key}</kbd>
-                </Link>
-              )
-            })}
-          </div>
-        ))}
+                  <span className="wb-group-caret" aria-hidden>{open ? '\u2212' : '+'}</span>
+                  <span>{section.group}</span>
+                </button>
+              ) : (
+                <div className="sys-label wb-group-label">{section.group}</div>
+              )}
+              {/* Folding hides a link, never a destination: the `g`-chords and
+                  the command palette read the registry rather than the DOM, so
+                  every route stays reachable whatever the rail is showing. */}
+              <div className="wb-group-items" id={region}>
+                {items.map((item) => {
+                  const active = pathname === item.href
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`wb-link${active ? ' is-active' : ''}`}
+                      aria-current={active ? 'page' : undefined}
+                      onClick={() => setNavOpen(false)}
+                      title={item.label}
+                    >
+                      <span className="wb-glyph" aria-hidden>{item.glyph}</span>
+                      <span className="wb-label">{item.label}</span>
+                      <kbd className="wb-key">g {item.key}</kbd>
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
 
         {pinned.length ? (
           <div className="wb-group">

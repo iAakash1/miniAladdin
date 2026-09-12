@@ -8,6 +8,7 @@ import MarketBand from '@/components/terminal/home/MarketBand'
 import HomeContext from '@/components/terminal/home/HomeContext'
 import SectorMovers from '@/components/terminal/home/SectorMovers'
 import PaperLine from '@/components/terminal/home/PaperLine'
+import HighConviction from '@/components/terminal/conviction/HighConviction'
 import { Grid } from '@/components/system'
 
 export const metadata: Metadata = {
@@ -52,6 +53,12 @@ export default function TerminalHome() {
         <Watchlist />
         <RecentSecurities />
       </Grid>
+
+      {/* Where every condition agrees at once — usually nothing, which is the
+          threshold working rather than a shortage. It sits below the reader's
+          own names because it is a standing policy result, not news, and above
+          the research line because it is about today's securities. */}
+      <HighConviction />
 
       {/* One line. The archive is a link away. */}
       <ResearchStatus />

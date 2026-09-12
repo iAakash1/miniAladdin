@@ -164,3 +164,90 @@ def test_conviction_does_not_alter_the_signal():
     source = inspect.getsource(conviction)
     for forbidden in ("model_signal =", "verdict =", "STRONG_BUY", "= 'Buy'"):
         assert forbidden not in source, forbidden
+
+
+# ── near misses: the empty tier has to be able to explain itself ─────────────
+
+def _snapshot(rows):
+    from src.services.explore_service import ExploreSnapshot
+
+    return ExploreSnapshot(
+        generated_at="2026-09-12T00:00:00+00:00", universe_version="us-v1",
+        rows=rows, eligible_count=sum(1 for r in rows if r.eligible),
+        evaluated_count=len(rows),
+    )
+
+
+def test_near_conviction_orders_by_how_much_is_missing():
+    """Fewest unmet conditions first, then rank. The ordering is presentation —
+    it says which name has the shortest list of reasons, not which is best."""
+    from src.services.explore_service import ExploreRow, near_conviction
+
+    rows = [
+        ExploreRow(symbol="THREE", company_name="T", sector="Energy", eligible=True,
+                   high_conviction=False, overall_rank=95.0,
+                   conviction_blocked_by=["a", "b", "c"]),
+        ExploreRow(symbol="ONE", company_name="O", sector="Energy", eligible=True,
+                   high_conviction=False, overall_rank=60.0,
+                   conviction_blocked_by=["a"]),
+        ExploreRow(symbol="TWO", company_name="W", sector="Energy", eligible=True,
+                   high_conviction=False, overall_rank=70.0,
+                   conviction_blocked_by=["a", "b"]),
+    ]
+    assert [r.symbol for r in near_conviction(_snapshot(rows), 5)] == ["ONE", "TWO", "THREE"]
+
+
+def test_near_conviction_never_includes_a_qualifying_security():
+    """The two lists partition. A name in both would be reported as qualifying
+    and as a near miss on the same screen."""
+    from src.services.explore_service import ExploreRow, high_conviction, near_conviction
+
+    rows = [
+        ExploreRow(symbol="IN", company_name="I", sector="Energy", eligible=True,
+                   high_conviction=True, overall_rank=90.0, conviction_met=["all of them"]),
+        ExploreRow(symbol="OUT", company_name="O", sector="Energy", eligible=True,
+                   high_conviction=False, overall_rank=80.0, conviction_blocked_by=["risk"]),
+    ]
+    snapshot = _snapshot(rows)
+    qualifying = {r.symbol for r in high_conviction(snapshot, 5)}
+    near = {r.symbol for r in near_conviction(snapshot, 5)}
+    assert qualifying == {"IN"}
+    assert near == {"OUT"}
+    assert not (qualifying & near)
+
+
+def test_near_conviction_excludes_ineligible_securities():
+    """An ineligible security did not fail the conviction policy — it never
+    reached it. Listing it as a near miss would misattribute the reason."""
+    from src.services.explore_service import ExploreRow, near_conviction
+
+    rows = [
+        ExploreRow(symbol="NOPE", company_name="N", sector="Energy", eligible=False,
+                   high_conviction=False, overall_rank=99.0,
+                   conviction_blocked_by=["confidence"]),
+    ]
+    assert near_conviction(_snapshot(rows), 5) == []
+
+
+def test_a_security_with_no_recorded_blockers_is_not_a_near_miss():
+    """No blockers and not qualifying means it was never assessed. Reporting it
+    as "closest" would invent an assessment that did not happen."""
+    from src.services.explore_service import ExploreRow, near_conviction
+
+    rows = [
+        ExploreRow(symbol="UNASSESSED", company_name="U", sector="Energy", eligible=True,
+                   high_conviction=False, overall_rank=99.0, conviction_blocked_by=[]),
+    ]
+    assert near_conviction(_snapshot(rows), 5) == []
+
+
+def test_near_conviction_ordering_is_deterministic_on_ties():
+    from src.services.explore_service import ExploreRow, near_conviction
+
+    rows = [
+        ExploreRow(symbol="ZZZ", company_name="Z", sector="Energy", eligible=True,
+                   high_conviction=False, overall_rank=80.0, conviction_blocked_by=["x"]),
+        ExploreRow(symbol="AAA", company_name="A", sector="Energy", eligible=True,
+                   high_conviction=False, overall_rank=80.0, conviction_blocked_by=["x"]),
+    ]
+    assert [r.symbol for r in near_conviction(_snapshot(rows), 5)] == ["AAA", "ZZZ"]

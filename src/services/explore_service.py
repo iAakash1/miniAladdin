@@ -707,6 +707,28 @@ def high_conviction(snapshot: ExploreSnapshot, limit: int = 5) -> list[ExploreRo
     return rows[: max(1, min(limit, 50))]
 
 
+def near_conviction(snapshot: ExploreSnapshot, limit: int = 5) -> list[ExploreRow]:
+    """The securities that came closest without qualifying.
+
+    High conviction is empty most days, and an empty panel that says only
+    "nothing qualifies" teaches a reader nothing about the policy it is
+    enforcing. This answers the question they actually have — how close did
+    anything get, and on what — from the same assessment that produced the
+    tier, so the two can never disagree about what blocked a name.
+
+    Ordered by how many conditions are unmet, then by rank. That ordering is
+    presentation: it is not a second scoring path, and a security appearing
+    first here is not a recommendation, it is the one with the shortest list of
+    reasons it is not in the tier above.
+    """
+    rows = [
+        r for r in snapshot.rows
+        if r.eligible and not r.high_conviction and r.conviction_blocked_by
+    ]
+    rows.sort(key=lambda r: (len(r.conviction_blocked_by), -(r.overall_rank or 0.0), r.symbol))
+    return rows[: max(1, min(limit, 50))]
+
+
 def performance_leaders(snapshot: ExploreSnapshot, limit: int = 5) -> list[ExploreRow]:
     """Strongest risk-adjusted history, whatever the model currently thinks.
 

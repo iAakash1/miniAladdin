@@ -3589,3 +3589,54 @@ a.tape:hover .tape__sym { color: var(--accent); }
   color: var(--ink);
   line-height: 1.5;
 }
+
+/* A group heading that folds its section. It keeps the exact metrics of the
+   plain label it replaces, so folding changes what the rail shows and never
+   how it is laid out — a heading that grew a button's padding would shift
+   twenty-five rows the first time the feature shipped. */
+.wb-group-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--d-1);
+  width: 100%;
+  appearance: none;
+  background: none;
+  border: 0;
+  font: inherit;
+  font-size: var(--t-micro);
+  color: var(--ink-faint);
+  text-align: left;
+  cursor: pointer;
+}
+
+.wb-group-toggle:hover { color: var(--ink-muted); }
+.wb-group-toggle:focus-visible { outline: 2px solid var(--rule-focus); outline-offset: -2px; }
+
+/* Fixed width so the group names line up whether the mark is − or +. */
+.wb-group-caret {
+  display: inline-block;
+  width: 8px;
+  font-family: var(--font-mono);
+  line-height: 1;
+}
+
+.wb-group-items { display: flex; flex-direction: column; }
+
+@media (max-width: 1024px) {
+  /* The narrow rail has no labels, so there is no heading to fold and no
+     control to show. The hook stops folding at the same breakpoint; this only
+     hides the heading that the label rule above already hides. */
+  .wb-group-toggle { display: none; }
+}
+
+/* Conviction conditions. Each carries a mark and a word — "Met:" / "Not met:"
+   for a screen reader — so the pass/fail reading never depends on the colour
+   alone. A reader who cannot distinguish them still gets the answer. */
+.hc__conditions { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; }
+.hc__conditions li {
+  font-size: var(--t-micro);
+  line-height: 1.4;
+  color: var(--ink-muted);
+}
+.hc__conditions li[data-met='true'] { color: var(--ink); }
+.hc__conditions li[data-met='false'] { color: var(--ink-faint); }

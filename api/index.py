@@ -2682,6 +2682,11 @@ def recommendations(limit: int = Query(5, ge=1, le=20)):
         "high_conviction": [
             r.model_dump() for r in explore_service.high_conviction(snapshot, limit)
         ],
+        # The near misses, so an empty conviction tier can say how close
+        # anything came instead of only that it is empty.
+        "near_conviction": [
+            r.model_dump() for r in explore_service.near_conviction(snapshot, limit)
+        ],
         "conviction_policy_version": conviction.CONVICTION_POLICY_VERSION,
         "count": len(rows),
         "eligible_count": snapshot.eligible_count,

@@ -69,6 +69,13 @@ export interface ExploreRow {
   eligible: boolean
   exclusion_reasons: string[]
   validation_state: string
+  /** Whether every conviction condition agreed at once. See services/conviction.py. */
+  high_conviction: boolean
+  /** The conditions that were met, in the reader's language. */
+  conviction_met: string[]
+  /** The conditions that were not. Populated even for a qualifying security,
+   *  so a near miss can be explained rather than only counted. */
+  conviction_blocked_by: string[]
 }
 
 export interface ExploreResponse {
@@ -91,6 +98,12 @@ export interface RecommendationsResponse extends Omit<ExploreResponse, 'category
   /** A different question: how a security has actually done, risk-adjusted.
    *  Often disagrees with the model's current view, which is the point. */
   performance_leaders: ExploreRow[]
+  /** Where every condition agrees at once. Frequently empty, by design. */
+  high_conviction: ExploreRow[]
+  /** The closest misses, so an empty tier can say how close anything came. */
+  near_conviction: ExploreRow[]
+  /** Which conviction policy produced the two lists above. */
+  conviction_policy_version: string
   disclaimer: string
 }
 
