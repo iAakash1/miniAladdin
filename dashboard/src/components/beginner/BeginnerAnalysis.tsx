@@ -23,6 +23,7 @@ import {
   DISCLAIMER, explainCompleteness, explainConfidence, explainRisk,
   reasons, signalSentence, whatCouldChange,
 } from '@/lib/beginner'
+import AskOmniSignal from '@/components/beginner/AskOmniSignal'
 import StockActions from '@/components/beginner/StockActions'
 import { fetchAnalysis, normalizeAnalysis } from '@/lib/api'
 import { signalTone } from '@/lib/explore'
@@ -168,6 +169,8 @@ export default function BeginnerAnalysis({ ticker }: { ticker: string }) {
           </Prose>
         </Panel>
       ) : null}
+
+      <AskOmniSignal ticker={ticker} />
 
       <StockActions symbol={ticker} />
 

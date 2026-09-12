@@ -27,7 +27,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi import Path as FastPath
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -2307,6 +2307,67 @@ def get_quotes(symbols: str = Query(..., description="Comma-separated tickers, m
             logger.exception("quote failed for %s", symbol)
             out[symbol] = {"error": "unavailable"}
     return {"quotes": out, "count": len(out)}
+
+
+class AskBody(BaseModel):
+    ticker: str = Field(..., min_length=1, max_length=10)
+    question: str = Field(..., min_length=3, max_length=400)
+
+
+@app.post("/api/ask", tags=["agents"])
+def ask_omnisignal(body: AskBody):
+    """Answer one question about one security's analysis, from its own evidence.
+
+    Grounded rather than general: the context is a single analysis run, so an
+    answer that cites something is citing something this system measured. The
+    signal, risk and confidence are attached after generation, copied from the
+    scorecard — a model that ignores its instructions changes the prose and
+    nothing else.
+    """
+    symbol = body.ticker.upper().strip()
+    if not symbol.replace(".", "").replace("-", "").isalnum():
+        raise HTTPException(status_code=422, detail="Invalid ticker")
+
+    from src.agents import graph
+    from src.services import ask_service
+
+    try:
+        state = graph.run(symbol)
+    except Exception:
+        logger.exception("ask: analysis failed for %s", symbol)
+        return availability.dependency_unavailable(
+            "The analysis needed to answer this could not be produced.",
+            reason="ANALYSIS_FAILED",
+        ).payload(symbol=symbol)
+
+    results = (state.get("agent_results") or {}).values()
+    evidence = [e for r in results for e in r.evidence]
+
+    answer = ask_service.ask(
+        body.question,
+        signal=state.get("model_signal"),
+        confidence=state.get("confidence"),
+        risk_score=state.get("risk_score"),
+        data_completeness=state.get("data_completeness"),
+        card=state.get("scorecard"),
+        evidence=evidence,
+    )
+    return availability.available(
+        symbol=symbol, run_id=state.get("run_id"), **answer.model_dump(),
+    )
+
+
+@app.get("/api/ask/suggestions", tags=["agents"])
+def ask_suggestions():
+    """The questions the interface offers.
+
+    Each is answerable from one run's evidence, which is the test for whether
+    it belongs here — a free-text box invites questions this product cannot
+    ground, and an ungrounded answer is the thing it exists to avoid.
+    """
+    from src.services.ask_service import SUGGESTED
+
+    return {"suggestions": list(SUGGESTED)}
 
 
 @app.get("/api/analysis-runs/{ticker}", tags=["agents"])

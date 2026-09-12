@@ -3520,3 +3520,37 @@ a.tape:hover .tape__sym { color: var(--accent); }
   .obs__stage { grid-template-columns: 1fr auto; row-gap: 2px; }
   .obs__num, .obs__note { text-align: left; }
 }
+
+/* ── ask omnisignal ───────────────────────────────────────────────────────
+   Suggested questions as chips rather than a bare text box: each one is
+   answerable from a single run, which is the test for whether it belongs.   */
+
+.ask__chips { display: flex; flex-wrap: wrap; gap: 6px; margin: var(--gap) 0; }
+
+.ask__chip {
+  appearance: none;
+  font: inherit;
+  font-size: var(--t-micro, 11px);
+  color: var(--ink);
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 5px 11px;
+  min-height: 28px;
+  cursor: pointer;
+}
+
+.ask__chip:hover:not(:disabled) { border-color: var(--accent); }
+.ask__chip:focus-visible { outline: 2px solid var(--rule-focus); outline-offset: 1px; }
+.ask__chip:disabled { opacity: 0.55; cursor: default; }
+
+.ask__answer {
+  margin-top: var(--gap);
+  padding: var(--gap);
+  border: 1px solid var(--rule);
+  border-left: 2px solid var(--accent);
+  border-radius: 3px;
+  background: var(--surface);
+}
+
+.ask__meta { margin: 8px 0 0; font-size: var(--t-micro, 11px); color: var(--ink-muted); line-height: 1.5; }
