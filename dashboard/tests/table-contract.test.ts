@@ -152,11 +152,16 @@ test('every hand-built table in the product is accounted for', () => {
      every row emits exactly one cell per data column. Not DOM-checked, because
      this session was asked not to open a browser; that check is owed.
 
+     51 -> 52 for the claim inspector's evidence records, the same transposed
+     shape as the entry above and checked by the same test: field names as row
+     headers, one value column, one cell per row. Not DOM-checked for the same
+     reason — no browser in this session.
+
      Every other one was read in the rendered DOM before this number moved,
-     and the seven times it did not. */
+     and the eight times it did not. */
   assert.equal(
-    handBuilt.length, 51,
-    `hand-built tables changed from 51 to ${handBuilt.length}. Route the new one ` +
+    handBuilt.length, 52,
+    `hand-built tables changed from 52 to ${handBuilt.length}. Route the new one ` +
     'through DataTable, or check its alignment in the rendered DOM and update ' +
     'this count deliberately.',
   )
@@ -276,29 +281,55 @@ test('every paper table header names its column for a screen reader', () => {
    thing the Evidence bug was: a row with the wrong number of cells, so a
    simulated figure lines up under "Current". This asserts every row carries
    exactly one cell per data column. */
-test('the what-if comparison emits one cell per data column in every row', () => {
-  const src = readFileSync(join(ROOT, 'components/whatif/WhatIfLab.tsx'), 'utf8')
+/* Transposed tables need their own shape check.
 
-  const head = src.match(/<thead>([\s\S]*?)<\/thead>/)
-  const body = src.match(/<tbody>([\s\S]*?)<\/tbody>/)
-  assert.ok(head && body, 'the comparison table has no head or no body')
+   A table whose first column is row headers cannot be checked by counting <th>
+   in the head against <td> in the body — the correct count there is one row
+   header plus one cell per data column. What can go wrong is the same thing
+   the Evidence bug was: a row with the wrong number of cells, so a simulated
+   figure lines up under "Current" or a retrieval time under "Observed". Each
+   entry declares how many data columns it expects. */
+const TRANSPOSED: { file: string; dataColumns: number; minRows: number }[] = [
+  // Measures as row headers, current against simulated.
+  { file: 'components/whatif/WhatIfLab.tsx', dataColumns: 2, minRows: 4 },
+  // Field names as row headers, one value column.
+  { file: 'components/terminal/evidence/ClaimInspector.tsx', dataColumns: 1, minRows: 5 },
+]
 
-  const columnHeaders = (head[1].match(/<th\b[^>]*scope="col"/g) ?? []).length
-  assert.equal(columnHeaders, 3, 'expected a corner cell and two data columns')
+test('transposed tables emit one cell per data column in every row', () => {
+  for (const spec of TRANSPOSED) {
+    const src = readFileSync(join(ROOT, spec.file), 'utf8')
+    const body = src.match(/<tbody>([\s\S]*?)<\/tbody>/)
+    assert.ok(body, `${spec.file}: the table has no body`)
 
-  // Every column header must name its column, including the corner one — a
-  // blank <th> is a column a screen reader cannot announce.
-  for (const th of head[1].match(/<th\b[^>]*>/g) ?? []) {
-    assert.ok(th.includes('scope="col"'), `a column header has no scope: ${th}`)
-  }
+    // A head is optional for a transposed table: a two-column field list whose
+    // headers would read "field" and "value" is noise. When there is one, its
+    // column count must agree with the rows beneath it.
+    const head = src.match(/<thead>([\s\S]*?)<\/thead>/)
+    if (head) {
+      const columnHeaders = (head[1].match(/<th\b[^>]*scope="col"/g) ?? []).length
+      assert.equal(
+        columnHeaders, spec.dataColumns + 1,
+        `${spec.file}: ${columnHeaders} column headers for ${spec.dataColumns} data columns plus a corner`,
+      )
+      for (const th of head[1].match(/<th\b[^>]*>/g) ?? []) {
+        assert.ok(th.includes('scope="col"'), `${spec.file}: a column header has no scope: ${th}`)
+      }
+    }
 
-  const rows = body[1].match(/<tr>[\s\S]*?<\/tr>/g) ?? []
-  assert.ok(rows.length >= 4, `expected the four measures, found ${rows.length}`)
-  for (const row of rows) {
-    const rowHeaders = (row.match(/<th\b[^>]*scope="row"/g) ?? []).length
-    const cells = (row.match(/<td\b/g) ?? []).length
-    assert.equal(rowHeaders, 1, `a row has ${rowHeaders} row headers: ${row.slice(0, 60)}`)
-    assert.equal(cells, columnHeaders - 1,
-      `a row has ${cells} cells against ${columnHeaders - 1} data columns`)
+    const rows = body[1].match(/<tr>[\s\S]*?<\/tr>/g) ?? []
+    assert.ok(
+      rows.length >= spec.minRows,
+      `${spec.file}: expected at least ${spec.minRows} rows, found ${rows.length}`,
+    )
+    for (const row of rows) {
+      const rowHeaders = (row.match(/<th\b[^>]*scope="row"/g) ?? []).length
+      const cells = (row.match(/<td\b/g) ?? []).length
+      assert.equal(rowHeaders, 1, `${spec.file}: a row has ${rowHeaders} row headers`)
+      assert.equal(
+        cells, spec.dataColumns,
+        `${spec.file}: a row has ${cells} cells against ${spec.dataColumns} data columns`,
+      )
+    }
   }
 })

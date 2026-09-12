@@ -344,3 +344,72 @@ def test_pipeline_results_carry_their_schema_version():
 
     ctx = EvidenceContext(symbol="X", price_frame=_frame([100 + i for i in range(150)]))
     assert analyse("X", context=ctx).agent_schema_version == AGENT_SCHEMA_VERSION
+
+
+# ── the invariant the evidence drawer depends on ─────────────────────────────
+
+def test_no_agent_cites_a_handle_it_did_not_produce():
+    """Every cited handle resolves, for every agent, over one shared context.
+
+    The claim inspector resolves each claim's handles against the run's
+    evidence and marks any that do not resolve UNRESOLVED. That state is only
+    worth showing if it is an alarm rather than routine — a drawer that
+    regularly reports missing evidence trains a reader to ignore it, which
+    costs them the one case where the pipeline really did lose something.
+
+    So this asserts the invariant across the whole fan-out rather than for one
+    agent: after a full run, the union of cited handles is a subset of the
+    evidence actually gathered.
+    """
+    from src.agents.orchestrator import EVIDENCE_AGENTS
+
+    ctx = EvidenceContext(
+        symbol="X",
+        price_frame=_frame([100 + i * 0.4 for i in range(200)]),
+        macro_multiplier=1.0,
+    )
+    produced: set[str] = set()
+    cited: set[str] = set()
+    for agent_cls in EVIDENCE_AGENTS:
+        result = agent_cls().run(ctx)
+        produced |= {e.evidence_id for e in result.evidence}
+        for claim in result.claims:
+            cited |= set(claim.evidence_ids)
+
+    assert cited, "no agent cited anything, so this proves nothing"
+    dangling = cited - produced
+    assert not dangling, f"claims cite evidence that was never produced: {sorted(dangling)}"
+
+
+def test_evidence_handles_are_unique_across_the_whole_run():
+    """Two records under one id means a claim resolves to whichever was
+    inserted last, and the drawer shows a value the claim was not making."""
+    from src.agents.orchestrator import EVIDENCE_AGENTS
+
+    ctx = EvidenceContext(
+        symbol="X",
+        price_frame=_frame([100 + i * 0.4 for i in range(200)]),
+        macro_multiplier=1.0,
+    )
+    ids = [e.evidence_id for agent_cls in EVIDENCE_AGENTS for e in agent_cls().run(ctx).evidence]
+    duplicates = {i for i in ids if ids.count(i) > 1}
+    assert not duplicates, f"evidence ids collide across agents: {sorted(duplicates)}"
+
+
+def test_every_evidence_record_separates_observed_from_fetched():
+    """The drawer shows both, always. A record that carried only one would make
+    a figure cached days ago indistinguishable from one read this minute."""
+    from src.agents.orchestrator import EVIDENCE_AGENTS
+
+    ctx = EvidenceContext(
+        symbol="X",
+        price_frame=_frame([100 + i * 0.4 for i in range(200)]),
+        macro_multiplier=1.0,
+    )
+    for agent_cls in EVIDENCE_AGENTS:
+        for record in agent_cls().run(ctx).evidence:
+            assert record.fetched_at, f"{record.evidence_id} does not say when it was fetched"
+            # observed_at may legitimately be absent — a provider that does not
+            # state it is different from one that states today's date — but the
+            # field must exist so the interface can say which case it is.
+            assert hasattr(record, "observed_at")

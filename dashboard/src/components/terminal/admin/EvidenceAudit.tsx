@@ -16,16 +16,11 @@ import { useState } from 'react'
 import { DataTable } from '@/components/system/DataTable'
 import { EmptyLine, Panel, Prose, StateBlock, Status, Strip } from '@/components/system'
 import { authFetch } from '@/lib/persistence'
+import ClaimInspector, { type Claim, type EvidenceRecord } from '@/components/terminal/evidence/ClaimInspector'
 
-interface Claim {
-  claim_id: string
-  agent: string
-  claim_type: string
-  statement: string
-  evidence_ids: string[]
-  validation_status: string
-  validation_note: string | null
-}
+/* The Claim shape is imported from the drawer rather than restated here: the
+   list and the drawer must agree about what a claim is, and two copies of one
+   interface is exactly how they would stop agreeing. */
 
 interface AgentRow {
   agent: string
@@ -72,6 +67,7 @@ const STATE: Record<string, 'live' | 'stale' | 'unavailable' | 'blocked'> = {
 
 export default function EvidenceAudit() {
   const [symbol, setSymbol] = useState('')
+  const [inspecting, setInspecting] = useState<Claim | null>(null)
   const [data, setData] = useState<Payload | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -203,20 +199,40 @@ export default function EvidenceAudit() {
             <ul className="bg__reasons">
               {ordered.map((c) => (
                 <li key={c.claim_id} className="bg__reason">
-                  <span className="bg__reason-label">
-                    <Status state={STATE[c.validation_status] ?? 'unknown'} label={c.validation_status} />
-                    {' '}{c.statement}
-                  </span>
-                  <span className="bg__reason-detail">
-                    {c.agent} · {c.evidence_ids.join(', ') || 'no evidence'}
-                    {c.validation_note ? ` · ${c.validation_note}` : ''}
-                  </span>
+                  {/* A button, not a list item with a click handler: following a
+                      claim to its evidence is the point of this surface, and it
+                      has to be reachable by keyboard. */}
+                  <button
+                    type="button"
+                    className="ci__open"
+                    onClick={() => setInspecting(c)}
+                    aria-haspopup="dialog"
+                  >
+                    <span className="bg__reason-label">
+                      <Status state={STATE[c.validation_status] ?? 'unknown'} label={c.validation_status} />
+                      {' '}{c.statement}
+                    </span>
+                    <span className="bg__reason-detail">
+                      {c.agent} · {c.evidence_ids.length
+                        ? `${c.evidence_ids.length} evidence record${c.evidence_ids.length === 1 ? '' : 's'}`
+                        : 'no evidence'}
+                      {c.validation_note ? ` · ${c.validation_note}` : ''}
+                    </span>
+                  </button>
                 </li>
               ))}
             </ul>
           )}
 
           <Prose>Schema {data.agent_schema_version}</Prose>
+
+          {inspecting ? (
+            <ClaimInspector
+              claim={inspecting}
+              evidence={data.evidence as EvidenceRecord[]}
+              onClose={() => setInspecting(null)}
+            />
+          ) : null}
         </>
       ) : null}
     </Panel>
