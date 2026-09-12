@@ -3554,3 +3554,38 @@ a.tape:hover .tape__sym { color: var(--accent); }
 }
 
 .ask__meta { margin: 8px 0 0; font-size: var(--t-micro, 11px); color: var(--ink-muted); line-height: 1.5; }
+
+/* What-If Lab — a transposed comparison, so the row headers carry the measure
+   names and the two data columns are current against simulated. The changed
+   cell is marked with a rule rather than colour alone, because a verdict
+   flipping is the one thing on this panel a reader must not miss and colour is
+   not available to every reader. */
+.whatif__result {
+  margin-top: var(--gap);
+  padding: var(--gap);
+  border: 1px solid var(--rule);
+  border-left: 2px solid var(--warn, var(--accent));
+  border-radius: 3px;
+  background: var(--surface);
+}
+
+.whatif__table { width: 100%; }
+.whatif__table tbody th {
+  text-align: left;
+  font-weight: 400;
+  color: var(--ink-muted);
+  font-size: var(--t-meta);
+  padding-right: var(--gap);
+  white-space: nowrap;
+}
+.whatif__table tbody td[data-changed='true'] {
+  font-weight: 600;
+  box-shadow: inset 2px 0 0 var(--warn, var(--accent));
+}
+
+.whatif__verdict {
+  margin: var(--gap) 0 0;
+  font-size: var(--t-meta);
+  color: var(--ink);
+  line-height: 1.5;
+}

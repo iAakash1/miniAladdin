@@ -104,6 +104,50 @@ def build_context(symbol: str, *, company_name: str = "") -> EvidenceContext:
     return context
 
 
+def scoring_inputs(context: EvidenceContext) -> Optional[dict]:
+    """Every argument `score_ticker` is called with, derived from the context.
+
+    Extracted because there is a second caller — the What-If simulator — and
+    two hand-written copies of this argument list would drift. The failure
+    that drift produces is quiet and bad: the simulator's "current" column
+    would stop matching the scorecard on the page beside it, and a reader
+    comparing them would trust the wrong one. Sharing the builder makes the
+    baseline identical by construction rather than by a test that has to
+    notice.
+
+    Returns None when there is no price frame, which is the one input with no
+    sensible default.
+    """
+    if context.price_frame is None:
+        return None
+    try:
+        price = float(context.price_frame["Close"].iloc[-1])
+    except Exception:  # noqa: BLE001
+        return None
+
+    multiplier = context.macro_multiplier
+    scores = [
+        getattr(h, "sentiment_score", None) for h in context.headlines
+        if getattr(h, "sentiment_score", None) is not None
+    ]
+    quality = context.quality_inputs or {}
+    return dict(
+        srm=multiplier if isinstance(multiplier, (int, float)) else 1.0,
+        price=price,
+        pe_ratio=getattr(context.fundamentals, "pe_ratio", None),
+        forward_pe=getattr(context.fundamentals, "forward_pe", None),
+        analyst_target=getattr(context.analyst_targets, "target_mean", None),
+        analyst_count=getattr(context.analyst_targets, "analyst_count", None),
+        beta=getattr(context.fundamentals, "beta", None),
+        sentiment_avg=(sum(scores) / len(scores)) if scores else None,
+        headline_count=float(len(context.headlines)),
+        spy_frame=context.benchmark_frame,
+        gross_profit_over_assets=quality.get("gross_profit_over_assets"),
+        net_issuance_yoy=quality.get("net_issuance_yoy"),
+        asset_growth_yoy=quality.get("asset_growth_yoy"),
+    )
+
+
 def attach_scorecard(context: EvidenceContext) -> EvidenceContext:
     """Score the security from the shared context.
 
@@ -112,39 +156,14 @@ def attach_scorecard(context: EvidenceContext) -> EvidenceContext:
     second fetch would let the explanation describe one snapshot and the
     verdict come from another.
     """
-    if context.price_frame is None:
-        return context
     from src.scoring.engine import score_ticker
 
-    try:
-        price = float(context.price_frame["Close"].iloc[-1])
-    except Exception:  # noqa: BLE001
+    kwargs = scoring_inputs(context)
+    if kwargs is None:
         return context
 
-    multiplier = context.macro_multiplier
-    srm = multiplier if isinstance(multiplier, (int, float)) else 1.0
-
-    scores = [
-        getattr(h, "sentiment_score", None) for h in context.headlines
-        if getattr(h, "sentiment_score", None) is not None
-    ]
     try:
-        context.scorecard = score_ticker(
-            context.price_frame,
-            srm=srm,
-            price=price,
-            pe_ratio=getattr(context.fundamentals, "pe_ratio", None),
-            forward_pe=getattr(context.fundamentals, "forward_pe", None),
-            analyst_target=getattr(context.analyst_targets, "target_mean", None),
-            analyst_count=getattr(context.analyst_targets, "analyst_count", None),
-            beta=getattr(context.fundamentals, "beta", None),
-            sentiment_avg=(sum(scores) / len(scores)) if scores else None,
-            headline_count=float(len(context.headlines)),
-            spy_frame=context.benchmark_frame,
-            gross_profit_over_assets=context.quality_inputs.get("gross_profit_over_assets"),
-            net_issuance_yoy=context.quality_inputs.get("net_issuance_yoy"),
-            asset_growth_yoy=context.quality_inputs.get("asset_growth_yoy"),
-        )
+        context.scorecard = score_ticker(context.price_frame, **kwargs)
     except Exception:  # noqa: BLE001 — an unscored security is still describable
         logger.exception("scoring failed for %s inside the agent pipeline", context.symbol)
     return context

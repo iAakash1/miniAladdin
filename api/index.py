@@ -2357,6 +2357,77 @@ def ask_omnisignal(body: AskBody):
     )
 
 
+class WhatIfBody(BaseModel):
+    ticker: str = Field(..., min_length=1, max_length=10)
+    #: A preset key rather than a free `lever`+`change` pair. The levers map to
+    #: real engine arguments, and an open numeric field would let a caller ask
+    #: for a P/E of -400 or a regime the model has no meaning for. The presets
+    #: are the scenarios this system can honestly simulate.
+    scenario: str = Field(..., min_length=1, max_length=40)
+
+
+@app.post("/api/what-if", tags=["agents"])
+def what_if(body: WhatIfBody):
+    """Re-score one security under one perturbed input. Simulation only.
+
+    Nothing here is persisted. The perturbed price frame is a copy, the
+    resulting scorecard is discarded with the response, and no stored analysis,
+    portfolio, saved run or Explore ranking snapshot is touched — the simulator
+    calls the scoring engine and reads the answer. Every response carries
+    `simulation: true`.
+    """
+    symbol = body.ticker.upper().strip()
+    if not symbol.replace(".", "").replace("-", "").isalnum():
+        raise HTTPException(status_code=422, detail="Invalid ticker")
+
+    from src.agents.orchestrator import attach_scorecard, build_context
+    from src.services import whatif_service
+
+    chosen = whatif_service.preset(body.scenario)
+    if chosen is None:
+        return availability.unsupported(
+            "That scenario is not one this simulator offers.", reason="UNKNOWN_SCENARIO",
+        ).payload(symbol=symbol, scenarios=whatif_service.presets_payload())
+
+    try:
+        context = attach_scorecard(build_context(symbol))
+    except Exception:
+        logger.exception("what-if: context build failed for %s", symbol)
+        return availability.dependency_unavailable(
+            "The data needed to simulate this could not be loaded.",
+            reason="CONTEXT_FAILED",
+        ).payload(symbol=symbol)
+
+    if context.scorecard is None:
+        return availability.insufficient(
+            "This security could not be scored, so there is no baseline to simulate against.",
+            reason="NO_BASELINE",
+        ).payload(symbol=symbol)
+
+    result = whatif_service.simulate(
+        context, lever=chosen["lever"], change=chosen["change"], label=chosen["label"],
+    )
+    if result is None:
+        return availability.error(
+            "The simulation did not complete.", reason="SIMULATION_FAILED",
+        ).payload(symbol=symbol)
+
+    return availability.available(symbol=symbol, scenario=chosen["key"], **result.model_dump())
+
+
+@app.get("/api/what-if/scenarios", tags=["agents"])
+def what_if_scenarios():
+    """The scenarios the interface offers, with their magnitudes.
+
+    The magnitude is part of the label because a simulation whose size is
+    invisible cannot be interpreted: "momentum weakens" says nothing without
+    "by 20%".
+    """
+    from src.services import whatif_service
+
+    return {"simulation": True, "scenarios": whatif_service.presets_payload()}
+
+
 @app.get("/api/ask/suggestions", tags=["agents"])
 def ask_suggestions():
     """The questions the interface offers.

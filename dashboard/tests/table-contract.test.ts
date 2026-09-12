@@ -142,11 +142,21 @@ test('every hand-built table in the product is accounted for', () => {
      49 → 50 for the analyst rating distribution. Three headers against
      three cells, fixed, counted at source — no Clerk session here.
 
+     50 -> 51 for the What-If Lab's current-against-simulated comparison, and
+     it is a shape none of the fifty above it have: the measure names are row
+     headers and the two data columns are the comparison, so a body row is one
+     <th scope="row"> plus one cell per column rather than cells alone. Counting
+     <th> in the head against <td> in the body — the check the entries above use
+     — would read 3 against 8 and mean nothing here, so it has its own test
+     below asserting the shape that actually matters for a transposed table:
+     every row emits exactly one cell per data column. Not DOM-checked, because
+     this session was asked not to open a browser; that check is owed.
+
      Every other one was read in the rendered DOM before this number moved,
-     and the six times it did not. */
+     and the seven times it did not. */
   assert.equal(
-    handBuilt.length, 50,
-    `hand-built tables changed from 42 to ${handBuilt.length}. Route the new one ` +
+    handBuilt.length, 51,
+    `hand-built tables changed from 51 to ${handBuilt.length}. Route the new one ` +
     'through DataTable, or check its alignment in the rendered DOM and update ' +
     'this count deliberately.',
   )
@@ -254,5 +264,41 @@ test('every paper table header names its column for a screen reader', () => {
   assert.ok(headers.length > 0)
   for (const h of headers) {
     assert.ok(h.includes('scope="col"'), `a paper table header has no scope: ${h}`)
+  }
+})
+
+
+/* The What-If comparison is transposed, so it needs its own shape check.
+
+   A table whose first column is row headers cannot be checked by counting
+   <th> in the head against <td> in the body — the correct count there is one
+   row header plus one cell per data column. What can go wrong is the same
+   thing the Evidence bug was: a row with the wrong number of cells, so a
+   simulated figure lines up under "Current". This asserts every row carries
+   exactly one cell per data column. */
+test('the what-if comparison emits one cell per data column in every row', () => {
+  const src = readFileSync(join(ROOT, 'components/whatif/WhatIfLab.tsx'), 'utf8')
+
+  const head = src.match(/<thead>([\s\S]*?)<\/thead>/)
+  const body = src.match(/<tbody>([\s\S]*?)<\/tbody>/)
+  assert.ok(head && body, 'the comparison table has no head or no body')
+
+  const columnHeaders = (head[1].match(/<th\b[^>]*scope="col"/g) ?? []).length
+  assert.equal(columnHeaders, 3, 'expected a corner cell and two data columns')
+
+  // Every column header must name its column, including the corner one — a
+  // blank <th> is a column a screen reader cannot announce.
+  for (const th of head[1].match(/<th\b[^>]*>/g) ?? []) {
+    assert.ok(th.includes('scope="col"'), `a column header has no scope: ${th}`)
+  }
+
+  const rows = body[1].match(/<tr>[\s\S]*?<\/tr>/g) ?? []
+  assert.ok(rows.length >= 4, `expected the four measures, found ${rows.length}`)
+  for (const row of rows) {
+    const rowHeaders = (row.match(/<th\b[^>]*scope="row"/g) ?? []).length
+    const cells = (row.match(/<td\b/g) ?? []).length
+    assert.equal(rowHeaders, 1, `a row has ${rowHeaders} row headers: ${row.slice(0, 60)}`)
+    assert.equal(cells, columnHeaders - 1,
+      `a row has ${cells} cells against ${columnHeaders - 1} data columns`)
   }
 })
