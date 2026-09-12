@@ -79,6 +79,18 @@ class ExploreRow(BaseModel):
     trend_score: Optional[float] = None
     trend_direction: Optional[str] = None
 
+    # Risk-adjusted historical performance. Deliberately separate from
+    # `overall_rank` and from `model_signal`: how a security has done and what
+    # the model thinks of it now are different questions that often disagree.
+    performance_score: Optional[float] = None
+    performance_grade: Optional[str] = None
+    excess_return_3m: Optional[float] = None
+    excess_return_6m: Optional[float] = None
+    excess_return_12m: Optional[float] = None
+    sharpe_ratio: Optional[float] = None
+    sortino_ratio: Optional[float] = None
+    max_drawdown: Optional[float] = None
+
     momentum_percentile: Optional[float] = None
     quality_percentile: Optional[float] = None
     value_percentile: Optional[float] = None
@@ -347,7 +359,7 @@ def _build_snapshot() -> ExploreSnapshot:
         else:
             rows.append(value)
 
-    _normalise(rows)
+    _normalise(rows, spy_frame)
 
     eligible = [r for r in rows if r.eligible]
     observed = [r.price_as_of for r in rows if r.price_as_of]
@@ -361,7 +373,12 @@ def _build_snapshot() -> ExploreSnapshot:
     )
 
 
-def _normalise(rows: list[ExploreRow]) -> None:
+def _round(value: Optional[float], digits: int) -> Optional[float]:
+    """Round, or keep the absence. `round(None)` raises; `or 0` would lie."""
+    return None if value is None else round(value, digits)
+
+
+def _normalise(rows: list[ExploreRow], benchmark_frame=None) -> None:
     """Percentiles and composites, computed over the eligible set only.
 
     Eligible-only on purpose: percentile is a statement about a peer group,
@@ -419,6 +436,47 @@ def _normalise(rows: list[ExploreRow]) -> None:
         })
         r.trend_direction = ranking.trend_direction(m21[r.symbol], m5[r.symbol])
         r.news_buzz = ranking.percentile_rank(news[r.symbol], pop(news))
+
+    # Performance: raw measures first, then percentiles, then the composite.
+    # Percentiles are taken across the eligible set so every component is on
+    # the same scale before the weights combine them.
+    bench = benchmark_frame
+    raw: dict[str, dict[str, Optional[float]]] = {}
+    for r in eligible:
+        frame = r._raw.get("frame")
+        raw[r.symbol] = {
+            "excess_3m": ranking.excess_return(frame, bench, ranking.PERFORMANCE_WINDOWS["excess_3m"]),
+            "excess_6m": ranking.excess_return(frame, bench, ranking.PERFORMANCE_WINDOWS["excess_6m"]),
+            "excess_12m": ranking.excess_return(frame, bench, ranking.PERFORMANCE_WINDOWS["excess_12m"]),
+            "sharpe": ranking.sharpe(frame),
+            "sortino": ranking.sortino(frame),
+            "drawdown": ranking.max_drawdown(frame),
+        }
+
+    def population(key):
+        return [v[key] for v in raw.values() if v[key] is not None]
+
+    for r in eligible:
+        values = raw[r.symbol]
+        r.excess_return_3m = _round(values["excess_3m"], 6)
+        r.excess_return_6m = _round(values["excess_6m"], 6)
+        r.excess_return_12m = _round(values["excess_12m"], 6)
+        r.sharpe_ratio = _round(values["sharpe"], 4)
+        r.sortino_ratio = _round(values["sortino"], 4)
+        r.max_drawdown = _round(values["drawdown"], 6)
+
+        # Drawdown is negative and a shallower one is better, so the percentile
+        # is taken on the value as-is: -0.08 sits above -0.35, which is the
+        # ordering we want without inverting anything by hand.
+        r.performance_score = ranking.performance_score({
+            "excess_3m": ranking.percentile_rank(values["excess_3m"], population("excess_3m")),
+            "excess_6m": ranking.percentile_rank(values["excess_6m"], population("excess_6m")),
+            "excess_12m": ranking.percentile_rank(values["excess_12m"], population("excess_12m")),
+            "sharpe": ranking.percentile_rank(values["sharpe"], population("sharpe")),
+            "sortino": ranking.percentile_rank(values["sortino"], population("sortino")),
+            "inverse_drawdown": ranking.percentile_rank(values["drawdown"], population("drawdown")),
+        })
+        r.performance_grade = ranking.performance_grade(r.performance_score)
 
     # Profitability: absolute percentile plus a sector-relative one, because a
     # software margin and a grocery margin are not the same measurement and
@@ -528,6 +586,10 @@ CATEGORIES: list[Category] = [
         blurb="Operating margin against sector peers, because margins differ structurally by industry.",
     ),
     Category(
+        key="performance", label="Performance", field="performance_score",
+        blurb="Risk-adjusted history against the benchmark. Not a forecast, and not the model's view.",
+    ),
+    Category(
         key="low_risk", label="Low Risk", field="risk_score", descending=False,
         blurb="Lowest measured risk first. A security whose risk could not be measured does not appear.",
     ),
@@ -608,6 +670,17 @@ def recommendations(snapshot: ExploreSnapshot, limit: int = 5) -> list[ExploreRo
     highest is model output. No symbol is named anywhere in this path.
     """
     return rank(snapshot, "overall", None, limit)
+
+
+def performance_leaders(snapshot: ExploreSnapshot, limit: int = 5) -> list[ExploreRow]:
+    """Strongest risk-adjusted history, whatever the model currently thinks.
+
+    A separate list from `recommendations` on purpose. A security can have
+    compounded beautifully and still carry a HOLD because it is expensive
+    today, and merging the two would quietly turn the product into a momentum
+    chaser wearing a model's name.
+    """
+    return rank(snapshot, "performance", None, limit)
 
 
 def categories_payload() -> list[dict[str, Any]]:

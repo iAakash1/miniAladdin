@@ -2456,8 +2456,16 @@ def recommendations(limit: int = Query(5, ge=1, le=20)):
         ) from None
 
     rows = explore_service.recommendations(snapshot, limit)
+    leaders = explore_service.performance_leaders(snapshot, limit)
     return {
         "results": [r.model_dump() for r in rows],
+        # Kept under a name of its own as well as `results`, because these are
+        # different questions. Top ranked asks what the model thinks now;
+        # performance asks how a security has actually done, adjusted for what
+        # it put a holder through. They disagree often and the product is more
+        # honest for showing both rather than implying one follows the other.
+        "top_ranked": [r.model_dump() for r in rows],
+        "performance_leaders": [r.model_dump() for r in leaders],
         "count": len(rows),
         "eligible_count": snapshot.eligible_count,
         "evaluated_count": snapshot.evaluated_count,

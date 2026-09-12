@@ -315,3 +315,115 @@ def test_no_ticker_is_hard_coded_in_the_ranking_modules():
 def test_an_empty_eligible_set_returns_nothing_rather_than_relaxing_a_gate():
     rows = [_row("A", eligible=False), _row("B", eligible=False)]
     assert recommendations(_snapshot(rows), 5) == []
+
+
+# ── risk-adjusted performance ────────────────────────────────────────────────
+
+def test_a_deep_drawdown_outweighs_a_bigger_raw_return():
+    """The case the metric exists for.
+
+    A security that returned far more while putting its holder through a
+    far deeper decline is not obviously the better one, and ranking on return
+    alone would say it was.
+    """
+    spectacular_but_brutal = ranking.performance_score({
+        "excess_3m": 95.0, "excess_6m": 95.0,
+        "sharpe": 30.0, "sortino": 25.0, "inverse_drawdown": 5.0,
+    })
+    steady = ranking.performance_score({
+        "excess_3m": 70.0, "excess_6m": 70.0,
+        "sharpe": 90.0, "sortino": 92.0, "inverse_drawdown": 95.0,
+    })
+    assert steady > spectacular_but_brutal
+
+
+def test_risk_adjusted_terms_carry_enough_weight_to_matter():
+    risk_terms = sum(
+        v for k, v in ranking.PERFORMANCE_WEIGHTS.items()
+        if k in ("sharpe", "sortino", "inverse_drawdown")
+    )
+    assert risk_terms >= 0.30
+    assert sum(ranking.PERFORMANCE_WEIGHTS.values()) == pytest.approx(1.0)
+
+
+def test_only_measurable_components_are_declared():
+    """The twelve-month term was measured at 0 of 43 eligible securities on a
+    one-year frame. A weight that never fires makes the documented formula a
+    description of something the code does not do."""
+    assert "excess_12m" not in ranking.PERFORMANCE_WEIGHTS
+
+
+def test_performance_renormalises_over_what_exists():
+    assert ranking.performance_score({"excess_3m": 80.0, "excess_6m": 80.0}) == pytest.approx(80.0)
+    assert ranking.performance_score({}) is None
+
+
+def test_an_unmeasurable_security_gets_no_grade():
+    """Not "Weak" — that is a claim we have not earned."""
+    assert ranking.performance_grade(None) is None
+    assert ranking.performance_grade(float("nan")) is None
+
+
+def test_excess_return_is_measured_against_the_benchmark():
+    """+20% in a +25% market and +20% in a +2% market are different facts."""
+    import pandas as pd
+
+    def frame(start, end, n=300):
+        idx = pd.bdate_range("2025-01-01", periods=n)
+        step = (end / start) ** (1 / (n - 1))
+        return pd.DataFrame({"Close": [start * step ** i for i in range(n)]}, index=idx)
+
+    stock = frame(100.0, 120.0)
+    hot_market = frame(100.0, 125.0)
+    flat_market = frame(100.0, 102.0)
+
+    in_hot = ranking.excess_return(stock, hot_market, 63)
+    in_flat = ranking.excess_return(stock, flat_market, 63)
+    assert in_flat > in_hot
+    assert ranking.excess_return(stock, None, 63) is None
+
+
+def test_sortino_refuses_a_series_with_no_downside():
+    """Undefined downside deviation would otherwise become an infinite ratio
+    and sort straight to the top of a leaderboard."""
+    import pandas as pd
+
+    idx = pd.bdate_range("2025-01-01", periods=300)
+    only_up = pd.DataFrame({"Close": [100.0 + i for i in range(300)]}, index=idx)
+    assert ranking.sortino(only_up) is None
+
+
+def test_performance_does_not_appear_in_the_overall_ranking_formula():
+    """Momentum is already inside the production score. Adding historical
+    performance to the overall rank as well would count the same information
+    twice and quietly make the product a momentum chaser."""
+    import inspect
+
+    source = inspect.getsource(ranking.overall_rank)
+    for term in ("performance", "sharpe", "sortino", "drawdown", "excess"):
+        assert term not in source.lower(), term
+
+
+def test_performance_leaders_do_not_become_recommendations():
+    """A security can have compounded beautifully and still carry a HOLD."""
+    from src.services.explore_service import performance_leaders
+
+    rows = [
+        _row("STRONG", performance_score=95.0, model_signal="Sell", overall_rank=10.0),
+        _row("MODEST", performance_score=20.0, model_signal="Buy", overall_rank=90.0),
+    ]
+    snapshot = _snapshot(rows)
+
+    leaders = performance_leaders(snapshot, 5)
+    assert [r.symbol for r in leaders] == ["STRONG", "MODEST"]
+    # The verdict rides along untouched, including the uncomfortable pairing.
+    assert leaders[0].model_signal == "Sell"
+    # And the overall ordering is unmoved by past performance.
+    assert [r.symbol for r in recommendations(_snapshot(rows), 5)] == ["MODEST", "STRONG"]
+
+
+def test_a_security_without_a_performance_score_is_not_a_leader():
+    from src.services.explore_service import performance_leaders
+
+    rows = [_row("SCORED", performance_score=50.0), _row("UNSCORED", performance_score=None)]
+    assert [r.symbol for r in performance_leaders(_snapshot(rows), 5)] == ["SCORED"]

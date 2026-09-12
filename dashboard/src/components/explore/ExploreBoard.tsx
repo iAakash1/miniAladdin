@@ -55,6 +55,9 @@ function categoryValue(row: ExploreRow, key: CategoryKey): string {
     case 'quality': return num(row.quality_percentile, 0)
     case 'value': return num(row.value_percentile, 0)
     case 'profitability': return num(row.profitability_sector_percentile, 0)
+    case 'performance': return row.performance_grade
+      ? `${num(row.performance_score, 0)} · ${row.performance_grade}`
+      : num(row.performance_score, 0)
     case 'low_risk': return num(row.risk_score, 0)
     case 'news_buzz': return num(row.news_buzz, 0)
     case 'analyst_upside': return pct(row.analyst_upside, 1)
@@ -70,6 +73,7 @@ function categorySort(row: ExploreRow, key: CategoryKey): number | null {
     case 'quality': return row.quality_percentile
     case 'value': return row.value_percentile
     case 'profitability': return row.profitability_sector_percentile
+    case 'performance': return row.performance_score
     case 'low_risk': return row.risk_score
     case 'news_buzz': return row.news_buzz
     case 'analyst_upside': return row.analyst_upside

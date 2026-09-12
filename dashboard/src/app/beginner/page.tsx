@@ -14,12 +14,14 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 import SimpleShell from '@/components/beginner/SimpleShell'
+import PerformanceLeaders from '@/components/beginner/PerformanceLeaders'
 import TopIdeas from '@/components/beginner/TopIdeas'
 import TrendingNow from '@/components/beginner/TrendingNow'
 import { Panel, Prose, StateBlock } from '@/components/system'
 import { useCapabilities } from '@/lib/capabilities'
 
 const CATEGORIES: Array<{ key: string; label: string; blurb: string }> = [
+  { key: 'performance', label: 'Performance', blurb: 'Strongest risk-adjusted history.' },
   { key: 'momentum', label: 'Momentum', blurb: 'Securities the price trend is behind.' },
   { key: 'quality', label: 'Quality', blurb: 'Profitable, conservatively financed businesses.' },
   { key: 'value', label: 'Value', blurb: 'Cheaper against earnings and analyst targets.' },
@@ -67,6 +69,7 @@ export default function BeginnerHome() {
       </Panel>
 
       <TopIdeas limit={4} />
+      <PerformanceLeaders limit={5} />
       <TrendingNow limit={5} />
 
       <Panel title="Explore by theme" subtitle="ranked across the universe">

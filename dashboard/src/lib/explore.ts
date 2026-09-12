@@ -12,7 +12,7 @@
 
 export type CategoryKey =
   | 'overall' | 'trending' | 'momentum' | 'quality' | 'value'
-  | 'profitability' | 'low_risk' | 'news_buzz' | 'analyst_upside'
+  | 'profitability' | 'performance' | 'low_risk' | 'news_buzz' | 'analyst_upside'
 
 export interface ExploreCategory {
   key: CategoryKey
@@ -40,6 +40,14 @@ export interface ExploreRow {
   overall_rank: number | null
   trend_score: number | null
   trend_direction: string | null
+  performance_score: number | null
+  performance_grade: string | null
+  excess_return_3m: number | null
+  excess_return_6m: number | null
+  excess_return_12m: number | null
+  sharpe_ratio: number | null
+  sortino_ratio: number | null
+  max_drawdown: number | null
   momentum_percentile: number | null
   quality_percentile: number | null
   value_percentile: number | null
@@ -78,6 +86,11 @@ export interface ExploreResponse {
 }
 
 export interface RecommendationsResponse extends Omit<ExploreResponse, 'category'> {
+  /** The same rows as `results`, named for the question they answer. */
+  top_ranked: ExploreRow[]
+  /** A different question: how a security has actually done, risk-adjusted.
+   *  Often disagrees with the model's current view, which is the point. */
+  performance_leaders: ExploreRow[]
   disclaimer: string
 }
 

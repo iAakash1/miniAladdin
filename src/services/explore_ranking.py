@@ -169,3 +169,204 @@ def signal_strength(raw_score: Optional[float]) -> Optional[float]:
     if raw_score is None or not math.isfinite(raw_score):
         return None
     return round(float(raw_score), 4)
+
+
+# ── risk-adjusted historical performance ─────────────────────────────────────
+#
+# A separate metric from `overall_rank`, and separate on purpose. Rank answers
+# "what does the model think now"; this answers "how has this actually done,
+# adjusted for what it put a holder through". They disagree often, and the
+# product is more honest for showing both.
+#
+# It must never rewrite a verdict. Strong performance beside a HOLD is a real
+# and common state — a security can have compounded beautifully and still be
+# unattractive at today's price — and collapsing the two would turn the
+# product into a momentum chaser wearing a model's name.
+
+#: Component weights. Returns dominate, but never raw returns: every one is
+#: measured against the benchmark, so a security that rose 20% while the market
+#: rose 25% is not credited with the market's move.
+#:
+#: Risk-adjusted terms carry 35% between them, which is what stops a name that
+#: returned +40% through a -35% drawdown from outranking one that returned +27%
+#: through -8%. Ranking on return alone would call the first one better, and it
+#: is not obviously better — it is a different instrument.
+#: **The twelve-month term is deliberately absent.** Measured across the live
+#: universe it was available for 0 of 43 eligible securities: the Explore sweep
+#: fetches a one-year frame, which is a handful of sessions short of the 252 a
+#: twelve-month window needs. `performance_score` would have renormalised
+#: around it silently and produced correct numbers under a formula that named a
+#: component never contributing to them — so it is declared out rather than
+#: carried as decoration.
+#:
+#: `excess_return` still accepts that window, and the weight can be restored
+#: the moment the sweep carries enough history. Fetching two years purely for
+#: this term was rejected: the scorecard is computed from the same frame, and
+#: lengthening it would move every factor in the production model to improve
+#: one discovery metric.
+PERFORMANCE_WEIGHTS: dict[str, float] = {
+    "excess_3m": 0.30,
+    "excess_6m": 0.30,
+    "sharpe": 0.175,
+    "sortino": 0.1125,
+    "inverse_drawdown": 0.1125,
+}
+
+#: Sessions per window. Approximate trading days, not calendar days.
+PERFORMANCE_WINDOWS: dict[str, int] = {"excess_3m": 63, "excess_6m": 126, "excess_12m": 252}
+
+TRADING_DAYS = 252
+
+
+def excess_return(frame, benchmark, days: int) -> Optional[float]:
+    """A security's return over the window, minus the benchmark's.
+
+    None when either side is unavailable. A security's own return is not
+    substituted for the excess: +20% in a +25% market and +20% in a +2% market
+    are different facts, and reporting the first as though it were the second
+    is the mistake this function exists to prevent.
+    """
+    own = _window_return(frame, days)
+    market = _window_return(benchmark, days)
+    if own is None or market is None:
+        return None
+    value = own - market
+    return value if math.isfinite(value) else None
+
+
+def _window_return(frame, days: int) -> Optional[float]:
+    if frame is None:
+        return None
+    try:
+        closes = frame["Close"]
+    except (TypeError, KeyError):
+        return None
+    if len(closes) <= days:
+        return None
+    try:
+        base, last = float(closes.iloc[-1 - days]), float(closes.iloc[-1])
+    except (TypeError, ValueError, IndexError):
+        return None
+    if not math.isfinite(base) or not math.isfinite(last) or base == 0:
+        return None
+    value = last / base - 1.0
+    return value if math.isfinite(value) else None
+
+
+def sharpe(frame, days: int = TRADING_DAYS) -> Optional[float]:
+    """Annualised excess-of-zero Sharpe over the trailing window.
+
+    No risk-free rate is subtracted, and the name says Sharpe anyway because
+    that is what the rest of this codebase already reports; the omission is
+    documented rather than hidden, and it is constant across the universe so
+    the cross-sectional ranking is unaffected by it.
+    """
+    daily = _daily(frame, days)
+    if daily is None:
+        return None
+    sigma = float(daily.std())
+    if not math.isfinite(sigma) or sigma <= 0:
+        return None
+    value = (float(daily.mean()) * TRADING_DAYS) / (sigma * math.sqrt(TRADING_DAYS))
+    return value if math.isfinite(value) else None
+
+
+def sortino(frame, days: int = TRADING_DAYS) -> Optional[float]:
+    """Sharpe's downside-only counterpart, annualised on the same convention.
+
+    Returns None rather than infinity when nothing fell: a security with no
+    down days has undefined downside deviation, and an infinite Sortino would
+    sort straight to the top of a leaderboard on the strength of a division
+    by zero.
+    """
+    daily = _daily(frame, days)
+    if daily is None:
+        return None
+    downside = daily[daily < 0]
+    if len(downside) < 2:
+        return None
+    sigma = float(downside.std())
+    if not math.isfinite(sigma) or sigma <= 0:
+        return None
+    value = (float(daily.mean()) * TRADING_DAYS) / (sigma * math.sqrt(TRADING_DAYS))
+    return value if math.isfinite(value) else None
+
+
+def max_drawdown(frame, days: int = TRADING_DAYS) -> Optional[float]:
+    """Deepest peak-to-trough decline over the window, as a negative fraction."""
+    if frame is None:
+        return None
+    try:
+        closes = frame["Close"].iloc[-days:]
+    except (TypeError, KeyError):
+        return None
+    if len(closes) < 2:
+        return None
+    peak = closes.cummax()
+    try:
+        value = float(((closes - peak) / peak).min())
+    except (TypeError, ValueError, ZeroDivisionError):
+        return None
+    return value if math.isfinite(value) else None
+
+
+def _daily(frame, days: int):
+    if frame is None:
+        return None
+    try:
+        closes = frame["Close"].iloc[-days:]
+    except (TypeError, KeyError):
+        return None
+    daily = closes.pct_change().dropna()
+    return daily if len(daily) >= 40 else None
+
+
+def performance_score(components: dict[str, Optional[float]]) -> Optional[float]:
+    """0-100 from whichever components are present.
+
+    Each component arrives already converted to a cross-sectional percentile,
+    so the weights combine like-for-like. Missing components are dropped and
+    the surviving weights renormalised — the same rule `trend_score` follows,
+    and for the same reason: renormalising says "scored on what we have",
+    filling a neutral value says "we measured this and it was average".
+
+    None when nothing measurable survives, which keeps a security with no
+    history out of a performance leaderboard rather than at the middle of it.
+    """
+    present = {
+        name: value
+        for name, value in components.items()
+        if name in PERFORMANCE_WEIGHTS and value is not None and math.isfinite(value)
+    }
+    if not present:
+        return None
+    total = sum(PERFORMANCE_WEIGHTS[name] for name in present)
+    if total <= 0:
+        return None
+    score = sum(PERFORMANCE_WEIGHTS[name] * float(value) for name, value in present.items())
+    return round(score / total, 3)
+
+
+#: Grade bands over the cross-sectional score. Percentile-based rather than
+#: fixed return thresholds: "+30% is an A" would grade the market, not the
+#: security, and would mean something different every year.
+PERFORMANCE_GRADES: tuple[tuple[float, str], ...] = (
+    (80.0, "Exceptional"),
+    (60.0, "Strong"),
+    (40.0, "Moderate"),
+    (0.0, "Weak"),
+)
+
+
+def performance_grade(score: Optional[float]) -> Optional[str]:
+    """A word for the score, or None — never a default grade.
+
+    An ungraded security is one we could not measure, and "Weak" would be a
+    claim we have not earned.
+    """
+    if score is None or not math.isfinite(score):
+        return None
+    for threshold, label in PERFORMANCE_GRADES:
+        if score >= threshold:
+            return label
+    return "Weak"
