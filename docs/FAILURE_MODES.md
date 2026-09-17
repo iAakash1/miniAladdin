@@ -108,6 +108,38 @@ abandons a stalled worker. A test suite is a different situation.
 **Now:** two autouse fixtures scope the leaks to tests; production abandonment
 semantics are unchanged.
 
+### The coordination layer that became a cache
+
+`SingleFlight` retained one completed result for every unique provider key for
+the lifetime of the process. The comment called the key space finite, but keys
+include user-selected symbols and periods. A mechanism intended to exist only
+while callers overlap had become an unbounded second cache.
+
+**Now:** leader and followers share one per-flight object. The global entry is
+removed at completion; waiting followers keep only their own reference until
+they have read the value or exception.
+
+### A rank minus dollars called a return waterfall
+
+The illustrative portfolio's outcome series is a cross-sectional rank. Its
+execution model returns dollar costs for a hypothetical capital base. The book
+subtracted those dollar fractions from the mean rank and labelled the result a
+gross-to-net waterfall — finite arithmetic with incompatible units.
+
+**Now:** the book reports rank risk and USD entry costs separately and returns a
+typed unavailable waterfall with the reason. Only a real return series in the
+costed walk-forward backtest may produce gross-to-net performance.
+
+### Query cardinality became worker cardinality
+
+Every distinct Factor Lab `years` float and horizon created a new cache key and
+daemon build. Bounds such as `0.5 <= years <= 10` limited each request but not
+the number of distinct requests, so URL cardinality translated directly into
+threads and vendor spend.
+
+**Now:** requests use finite research presets and a process may run at most two
+live factor builds. Capacity returns `busy`; it never starts an extra worker.
+
 ## Failure modes that are live and unmitigated
 
 Stated because an undocumented known risk is worse than a documented one.

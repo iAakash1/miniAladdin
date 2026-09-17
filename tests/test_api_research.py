@@ -182,6 +182,19 @@ def test_factor_lab_validates_query_bounds():
     assert client.get("/api/factors", params={"horizon": 1}).status_code == 422
 
 
+def test_factor_lab_rejects_unbounded_in_range_build_keys():
+    """An arbitrary float must not become a background thread and cache key."""
+    from fastapi.testclient import TestClient
+    from api.index import app
+
+    client = TestClient(app)
+    response = client.get("/api/factors", params={"years": 1.234, "horizon": 10})
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    assert detail["years"] == [1.0, 2.5, 5.0]
+    assert detail["horizons"] == [5, 21, 63]
+
+
 def test_factor_lab_never_blocks_the_request():
     """A cold build must not hold the HTTP request open.
 

@@ -58,6 +58,26 @@ def test_the_untampered_artifact_serves(service):
     )["sha256"]
 
 
+def test_health_is_ready_only_when_the_artifact_is_usable(service):
+    from fastapi.testclient import TestClient
+
+    loaded = service()
+    response = TestClient(loaded.app).get("/health")
+    assert response.status_code == 200
+    assert response.json()["model_loaded"] is True
+
+
+def test_health_returns_503_when_artifact_loading_failed(service):
+    """Platform health checks must stop routing to an unusable model."""
+    from fastapi.testclient import TestClient
+
+    unloaded = service(lambda m: m.update(sha256="0" * 64))
+    response = TestClient(unloaded.app).get("/health")
+    assert response.status_code == 503
+    assert response.json()["ok"] is False
+    assert response.json()["model_loaded"] is False
+
+
 def test_sha256_mismatch_refuses(service):
     app = service(lambda m: m.update(sha256="0" * 64))
     assert app._state["model"] is None

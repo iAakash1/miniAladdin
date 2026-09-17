@@ -41,9 +41,12 @@ interface Payload {
   risk_contributions_unavailable?: string | null
   cost?: {
     breakdown?: Record<string, number>
+    breakdown_units?: Record<string, string>
     waterfall?: Record<string, unknown>
     assumptions?: Record<string, unknown>
   }
+  units?: string
+  disclaimer?: string
   note?: string
 }
 
@@ -218,6 +221,12 @@ export default function PortfolioWorkbench() {
         </Panel>
       ) : null}
 
+      {data.units ? (
+        <Panel title="Measurement units" state="experimental">
+          <Prose>{data.units}</Prose>
+        </Panel>
+      ) : null}
+
       <Panel
         title="Book"
         subtitle={[data.model_id, data.target, data.as_of].filter(Boolean).join(' · ')}
@@ -304,9 +313,9 @@ export default function PortfolioWorkbench() {
             </tbody>
           </table>
           <p style={{ margin: 'var(--d-2) 0 0', fontSize: 'var(--t-micro)', color: 'var(--ink-faint)', lineHeight: 'var(--lh-body)' }}>
-            Costs are charged on the round-trip notional. Reported turnover is
-            one-way, so the two differ by exactly two and only the round-trip
-            figure reproduces the charge.
+            This is an execution estimate for moving from cash into the displayed
+            illustrative book. It is not subtracted from the rank series and is
+            not presented as a gross-to-net return waterfall.
           </p>
         </Panel>
 
@@ -317,7 +326,13 @@ export default function PortfolioWorkbench() {
                 {Object.entries(data.cost.breakdown).map(([k, v]) => (
                   <tr key={k}>
                     <td style={{ fontFamily: 'var(--font-mono)' }}>{k}</td>
-                    <td className="num"><Value value={typeof v === 'number' ? v : null} digits={4} /></td>
+                    <td className="num">
+                      <Value
+                        value={typeof v === 'number' ? v : null}
+                        digits={k === 'total_bps' ? 2 : 4}
+                        unit={data.cost?.breakdown_units?.[k] === 'USD' ? 'USD' : (data.cost?.breakdown_units?.[k] ?? undefined)}
+                      />
+                    </td>
                   </tr>
                 ))}
               </tbody>

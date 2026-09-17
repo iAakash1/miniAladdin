@@ -2011,6 +2011,15 @@ def get_factor_lab(
     milliseconds afterwards. Caveats ship inside the payload rather than in
     documentation nobody reads.
     """
+    if not factor_lab_service.request_supported(years, horizon):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "message": "Factor builds are limited to documented presets.",
+                "years": list(factor_lab_service.SUPPORTED_WINDOWS_YEARS),
+                "horizons": list(factor_lab_service.SUPPORTED_HORIZONS),
+            },
+        )
     return factor_lab_service.run(universe, years, horizon)
 
 

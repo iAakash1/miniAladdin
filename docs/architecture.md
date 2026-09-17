@@ -269,7 +269,7 @@ path is given so a reader can check.
 | **`Constraints`** `quant/portfolio/optimizer.py` | Value object for long-only, caps, cash floor, turnover, gross/net, group caps; refuse unsatisfiable combinations | `PortfolioOptimizer` |
 | **`RiskEngine`** `quant/risk/engine.py` | Measure volatility, drawdown, VaR/CVaR (method-labelled), beta, contributions, concentration, exposure, turnover | `PortfolioOptimizer`, `quant_portfolio_service` |
 | **`SimpleCostModel`** `quant/backtest/costs.py` | Charge commission, half-spread, slippage and sqrt impact on traded notional | `BacktestEngine`, `CostWaterfall` |
-| **`CostWaterfall`** `quant/backtest/costs.py` | Decompose gross → commission → spread → slippage → net; flag where the sign changes | `quant_portfolio_service` |
+| **`CostWaterfall`** `quant/backtest/costs.py` | Decompose a real return series gross → commission → spread → slippage → net; flag where the sign changes | `BacktestEngine`, performance surfaces |
 | **`BacktestEngine`** `quant/backtest/engine.py` | Apply execution lag, build the quantile book, charge costs, produce gross and net separately | `SimpleCostModel`, `Attribution` |
 | **`ModelRegistry`** `quant/models/registry.py` | Store evidence per model; refuse promotion on missing evidence **and** on failing numbers | `quant_service`, `register_experiment` |
 | **`ResearchLedger`** `docs/RESEARCH_LEDGER.md` | Append-only record of every study, its trial count and its decision; void studies retained | `ExperimentDefinition`, significance |
@@ -277,7 +277,7 @@ path is given so a reader can check.
 | **`InferenceClient`** `src/services/inference_client.py` | Reach the model service with a bounded timeout; degrade to a structured `unavailable` | API routes |
 | **`quant_service`** `src/services/quant_service.py` | Shape artifacts for the API; compute verdicts from the registry's own gate constants | API, `/quant` |
 | **`quant_series`** `src/services/quant_series.py` | Derive per-fold IC and the cumulative rank-spread path from the predictions artifact | API, `QuantCharts` |
-| **`quant_portfolio_service`** `src/services/quant_portfolio_service.py` | Build a book from predictions; measure risk and cost | `PortfolioOptimizer`, `RiskEngine`, `CostWaterfall` |
+| **`quant_portfolio_service`** `src/services/quant_portfolio_service.py` | Build the complete illustrative book from rank predictions; recheck post-tilt constraints; measure rank risk and a separately-unit-labelled USD entry cost | `PortfolioOptimizer`, `RiskEngine`, `SimpleCostModel` |
 | **`SearchBudget`** `quant/study/search.py` | Declare configurations per family per stage; project worker-seconds; price the search in significance before it runs | `SearchPlan`, `train`, `heavy_run` |
 | **`Axis`** `quant/study/search.py` | One hyperparameter, its sampling law and why it matters; drawn from a seeded generator | `SearchBudget`, `GpuModelSpec` |
 | **`Checkpoint`** `quant/study/heavy.py` | Append one JSONL line per completed configuration; skip torn and unusable lines on reload | `evaluate_batch`, `run_search`, `quant_search_service` |

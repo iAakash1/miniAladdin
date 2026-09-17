@@ -274,6 +274,42 @@ class TestSingleFlight:
         assert len(results) == 5
         assert all(item.ok and item.data.price == 7.0 for item in results)
 
+    def test_completed_keys_do_not_accumulate_results(self):
+        """Single-flight is coordination, not a second unbounded cache."""
+        flight = SingleFlight()
+
+        for index in range(1_000):
+            assert flight.do(f"unique:{index}", lambda value=index: value) == index
+
+        assert flight._inflight == {}
+        assert not hasattr(flight, "_results")
+
+    def test_a_shared_failure_is_released_after_all_waiters_see_it(self):
+        flight = SingleFlight()
+        calls: list[int] = []
+        errors: list[str] = []
+
+        def explode():
+            calls.append(1)
+            time.sleep(0.05)
+            raise RuntimeError("upstream failed")
+
+        def run():
+            try:
+                flight.do("same-error", explode)
+            except RuntimeError as exc:
+                errors.append(str(exc))
+
+        threads = [threading.Thread(target=run) for _ in range(5)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+        assert len(calls) == 1
+        assert errors == ["upstream failed"] * 5
+        assert flight._inflight == {}
+
 
 class TestRateLimiter:
     def test_local_rate_limit_raises_transient_vendor_error(self):

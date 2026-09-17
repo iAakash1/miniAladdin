@@ -225,6 +225,44 @@ def test_an_unknown_universe_answers_immediately_without_a_job():
         assert not service._jobs
 
 
+def test_an_unsupported_window_answers_without_starting_a_worker():
+    payload = service.run("mega30", years=1.234, horizon=10)
+    assert payload["status"] == "error"
+    assert payload["retryable"] is False
+    with service._jobs_lock:
+        assert not service._jobs
+        assert not service._workers
+
+
+def test_live_worker_count_is_bounded(monkeypatch):
+    """Different valid query keys cannot turn directly into unbounded threads."""
+    release = threading.Event()
+    entered = threading.Event()
+    calls: list[str] = []
+
+    def hang(universe_name, years, horizon, progress=None):
+        calls.append(f"{universe_name}:{years}:{horizon}")
+        entered.set()
+        release.wait()
+        return {"factors": [], "universe": {"name": universe_name}}
+
+    monkeypatch.setattr(service, "_build", hang)
+    monkeypatch.setattr(service, "MAX_CONCURRENT_BUILDS", 1)
+
+    try:
+        first = service.run("mega30", years=2.5, horizon=21)
+        assert first["status"] == "building"
+        assert entered.wait(2.0)
+
+        second = service.run("mega30", years=1.0, horizon=21)
+        assert second["status"] == "busy"
+        assert second["retryable"] is True
+        assert second["active_builds"] == 1
+        assert len(calls) == 1
+    finally:
+        release.set()
+
+
 def test_no_build_thread_survives_the_deadline_report(monkeypatch):
     """The abandoned worker must be a daemon, so it can never hold the
     process open after the request has been answered."""

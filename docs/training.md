@@ -296,7 +296,7 @@ provider fabric, no Dolt.
 
 | Endpoint | Purpose |
 |---|---|
-| `GET /health` | `ok` is false when the artifact failed to load — a service reporting healthy while unable to predict stops the caller's fallback engaging |
+| `GET /health` | HTTP 200 only when the artifact is usable; HTTP 503 with `ok: false` after a load/integrity failure, so the platform health check and caller fallback both engage |
 | `GET /model` | Full provenance: registry key, experiment, fingerprint, features, dataset hash, git SHA, seed, fit scope, specification metrics, blocked gate |
 | `POST /predict` | Scores pre-computed feature vectors. Every response repeats model identity and status |
 

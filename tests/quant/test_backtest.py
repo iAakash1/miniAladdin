@@ -220,6 +220,7 @@ def test_a_pure_factor_bet_shows_the_exposure_and_no_alpha():
     )
     result = attribute_returns(series, factors, periods_per_year=52, holding_periods=4)
     assert result.betas["mom"] == pytest.approx(0.9, abs=0.05)
+    assert result.alpha_per_period == 0.0
     assert abs(result.alpha_t_stat) < 2.0
     assert result.alpha_significant is False
     assert "return difference, not alpha" in result.verdict()

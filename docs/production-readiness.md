@@ -3,7 +3,7 @@
 What is verified, what is not, and what is blocked on something outside this
 repository. Written to be falsifiable: every "verified" line names how.
 
-**Last reviewed:** 2026-09-01 (incident review)
+**Last reviewed:** 2026-09-17
 
 ---
 
@@ -92,15 +92,15 @@ Real options, all requiring a decision outside this repository:
 | | |
 |---|---|
 | Application (build, typecheck, lint, tests) | **Verified locally** |
-| Payment verification | **Verified locally** — 188 tests |
-| Inference fail-closed behaviour | **Verified locally** — 7 tamper cases |
+| Payment verification | **Verified locally** — included in 552 frontend tests |
+| Inference fail-closed behaviour | **Verified locally** — 9 integrity/readiness cases |
 | Holdout firewall | **Verified locally** — engaged, contract not armed |
 | Research model | **NOT production.** 0 production, 0 candidates |
-| Live deployment (Vercel / Render) | **NOT VERIFIED — no credentials in this environment** |
+| Live deployment (Vercel / Render) | **Public health verified** — host configuration still requires dashboard access |
 
 The last two lines are the ones that matter. The application is engineered to
-ship; the *model* is not promoted, and the *deployment* has not been confirmed
-from here.
+ship and the public services answer, but the *model* is not promoted and the
+hosting dashboards have not been audited from here.
 
 ## 2. Research state — frozen
 
@@ -125,7 +125,7 @@ a seed, or a recorded metric.
 `git diff --check` clean.
 
 ### Payment verification
-188 tests under `dashboard/tests/`. The security-relevant ones cover: an order
+552 tests under `dashboard/tests/`. The security-relevant payment cases cover: an order
 bound to a different Clerk user is refused; amount, product, order linkage and
 capture state each fail closed; malformed callbacks are refused before any
 cryptographic work; the signature check uses the exact order/payment pair; a
@@ -133,11 +133,12 @@ missing or non-numeric `amount_paid` fails closed; array-shaped or absent
 provider notes fail closed; a numeric note cannot satisfy the user binding.
 
 ### Inference
-7 tamper cases in `tests/quant/test_inference_failclosed.py`. The service refuses
+9 integrity/readiness cases in `tests/quant/test_inference_failclosed.py`. The service refuses
 to serve on sha256 mismatch, on an artifact with no declared hash, on a feature
 count mismatch, and on a feature *order* mismatch. A row supplying under 60% of
 its features is refused rather than filled with training medians. Every response
-carries `promotion_status: BLOCKED`.
+carries `promotion_status: BLOCKED`. `/health` returns HTTP 503 when the artifact
+is unusable, so Render stops routing to a process that cannot answer `/predict`.
 
 ### Holdout firewall
 4 tests in `tests/quant/test_firewall_reporting.py`. A readable unarmed contract
@@ -146,21 +147,33 @@ negative; **an unreadable contract still engages the firewall**; an armed
 contract is the one lift condition.
 
 ### Quant read layer
-426 tests under `tests/quant/`. None of them fit a model, rebuild a panel, or
-read a holdout row.
+The complete Python suite is 2,580 passing tests with 5 explicitly skipped.
+None of the tests fit a model, rebuild an experiment panel, or read a holdout
+row.
 
 ### Responsive
 Document width equals viewport width at 375px on `/quant`, `/terminal`,
 `/terminal/models` and `/terminal/portfolio`. Desktop at 1440px unchanged: the
 terminal header fits without a scrollbar and all nav items are present.
 
-## 4. What is NOT verified
+## 4. Live verification and what still needs credentials
 
-**Live deployment.** No Vercel or Render credentials are available in this
-environment, so nothing here confirms that the deployed instances are healthy,
-that environment variables are set correctly on the hosts, or that the browser →
-Vercel → Render → inference path works end to end in production. It has not been
-checked and is not claimed.
+Anonymous, read-only checks on 2026-09-17 established the following at deployed
+backend commit `356c257a3865`:
+
+| endpoint | observed |
+|---|---|
+| backend `/api/health` | HTTP 200 · production · persistence and auth configured |
+| backend `/api/quant/status` | HTTP 200 · `NO_MODEL` · registry present · 103 entries · 0 production/candidates |
+| inference `/health` | HTTP 200 · ready · artifact loaded · 27 features |
+| inference `/model` | HTTP 200 · sha256 verified · EXPERIMENTAL · BLOCKED · holdout untouched |
+| Vercel `/` | HTTP 307 redirect from the public edge |
+
+This verifies public availability and the deployed research state. It does
+**not** inspect Render/Vercel dashboard settings, private environment values,
+build logs, or an authenticated browser session; those still require operator
+access. The browser → Vercel → Render path has therefore not been claimed as a
+credentialed end-to-end check.
 
 To verify it, from a machine with access:
 
@@ -266,10 +279,10 @@ committed.
 
 ## 7. Honest limitations
 
-- **No production verification** (§4). This is the significant one.
-- **Terminal primitives are adopted by two surfaces** — Models and Quant.
-  Portfolio, Risk and Factors still carry their own metric shapes. They are
-  correct, not yet consolidated.
+- **No dashboard-level deployment audit** (§4). Public health is verified, but
+  private environment values and deploy logs are not visible from the codebase.
+- Portfolio, Risk and Factors share the terminal system primitives but retain
+  domain-specific metric shapes where their units and failure semantics differ.
 - **Sections with no data are absent, not stubbed.** Options, futures, FX,
   crypto and an agent workspace appear in reference terminals and have no data
   behind them here. A navigation entry leading to invented data is worse than

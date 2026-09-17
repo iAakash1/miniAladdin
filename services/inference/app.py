@@ -48,6 +48,7 @@ from typing import Any, Optional
 import numpy as np
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger("omnisignal.inference")
@@ -239,8 +240,8 @@ class PredictRequest(BaseModel):
 # ── endpoints ────────────────────────────────────────────────────────────────
 
 
-@app.get("/health")
-def health() -> dict[str, Any]:
+@app.get("/health", response_model=None)
+def health() -> Any:
     """Liveness plus whether the model is actually usable.
 
     `ok` is false when the artifact failed to load. A service that reports
@@ -250,7 +251,7 @@ def health() -> dict[str, Any]:
     if _state["model"] is None and _state["error"] is None:
         _load()          # cold path: a caller reached us before lifespan ran
     loaded = _state["model"] is not None
-    return {
+    payload = {
         "ok": loaded,
         "status": "ready" if loaded else "degraded",
         "model_loaded": loaded,
@@ -258,6 +259,12 @@ def health() -> dict[str, Any]:
         "artifact": ARTIFACT_NAME,
         "features": len(_state["features"]),
     }
+    # Render uses this endpoint as its health check. A 200 with `ok: false`
+    # keeps routing traffic to a process that cannot answer /predict, defeating
+    # both the platform health check and the caller's fallback.
+    if not loaded:
+        return JSONResponse(status_code=503, content=payload)
+    return payload
 
 
 @app.get("/model")

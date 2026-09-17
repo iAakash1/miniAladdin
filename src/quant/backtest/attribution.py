@@ -241,6 +241,21 @@ def attribute_returns(
 
     alpha = float(coefficients[0])
     alpha_t = float(t_stats[0])
+    # In an exact factor replication the true intercept and residual variance
+    # are both zero. Floating-point least squares can leave values around
+    # 1e-18 for each; dividing one by the other then turns numerical dust into
+    # an apparently significant t-statistic. Treat only a scale-aware machine-
+    # precision intercept as exact zero. Economically meaningful intercepts
+    # remain many orders of magnitude above this bound.
+    alpha_zero_tolerance = (
+        np.finfo(float).eps
+        * max(1.0, float(np.max(np.abs(y))))
+        * max(X.shape)
+        * 10.0
+    )
+    if abs(alpha) <= alpha_zero_tolerance:
+        alpha = 0.0
+        alpha_t = 0.0
     return AttributionResult(
         observations=len(merged),
         alpha_per_period=alpha,

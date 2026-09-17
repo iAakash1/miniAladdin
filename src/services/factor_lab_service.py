@@ -65,6 +65,18 @@ STEP_DAYS = 5
 #: non-overlapping windows.
 DEFAULT_HORIZON = 21
 
+#: The public API accepts presets, not arbitrary floats. Every distinct tuple
+#: is a separate multi-vendor panel build, cache entry and background job; an
+#: unconstrained query therefore turns URL cardinality directly into threads
+#: and upstream spend. These are the useful research windows the UI may offer.
+SUPPORTED_WINDOWS_YEARS: tuple[float, ...] = (1.0, 2.5, 5.0)
+SUPPORTED_HORIZONS: tuple[int, ...] = (5, 21, 63)
+
+#: Hard process-level cap on live factor workers, including a worker abandoned
+#: after its deadline. Python cannot cancel a thread blocked in vendor I/O, so
+#: not counting abandoned workers would let repeated retries grow without bound.
+MAX_CONCURRENT_BUILDS = 2
+
 _cache: dict[str, tuple[float, dict[str, Any]]] = {}
 _lock = threading.Lock()
 
@@ -203,6 +215,11 @@ def available_universes() -> list[dict[str, Any]]:
     ]
 
 
+def request_supported(years: float, horizon: int) -> bool:
+    """Whether a request maps to one of the finite, documented build keys."""
+    return years in SUPPORTED_WINDOWS_YEARS and horizon in SUPPORTED_HORIZONS
+
+
 def run(
     universe_name: str = "mega30",
     years: float = 2.5,
@@ -214,6 +231,21 @@ def run(
     background build is started (or joined) and the current stage is
     reported so the caller can poll.
     """
+    if not request_supported(years, horizon):
+        return {
+            "status": "error",
+            "error": (
+                f"unsupported factor window: years={years}, horizon={horizon}. "
+                f"Supported years are {list(SUPPORTED_WINDOWS_YEARS)} and "
+                f"supported horizons are {list(SUPPORTED_HORIZONS)} trading days."
+            ),
+            "retryable": False,
+            "supported": {
+                "years": list(SUPPORTED_WINDOWS_YEARS),
+                "horizons": list(SUPPORTED_HORIZONS),
+            },
+        }
+
     # Validate before anything else. An unknown universe is knowable
     # instantly, so backgrounding it would make the caller poll a job that was
     # always going to fail — and would answer "building" to a question that
@@ -234,8 +266,13 @@ def run(
         entry = _cache.get(key)
         if entry and entry[0] > now:
             return {**entry[1], "status": "ready", "cached": True}
+        if entry:
+            # Enforce the TTL rather than leaving a completed job to resurrect
+            # this stale entry in the post-job lookup below.
+            _cache.pop(key, None)
 
     stalled: Optional[dict[str, Any]] = None
+    busy: Optional[dict[str, Any]] = None
     with _jobs_lock:
         job = _jobs.get(key)
 
@@ -261,35 +298,55 @@ def run(
             and job.get("failed")
             and now - job.get("finished", job["started"]) > FAILED_RETRY_COOLDOWN_SECONDS
         )
-        if job is None or expired_failure:
+        completed_without_cache = (
+            job is not None and job["done"] and not job.get("failed")
+        )
+        if job is None or expired_failure or completed_without_cache:
             # Each build gets its own token. An abandoned worker from a
             # stalled build keeps running and still holds `key`; without a
             # token it would eventually finish and stamp whatever *newer*
             # job now occupies that key as done — reporting a fresh build
             # complete using a previous build's outcome.
-            global _generation
-            _generation += 1
-            job = {
-                "started": now, "stage": STAGES[0], "stage_index": 0,
-                "stage_started": now, "timings": {},
-                "done": False, "failed": False, "token": _generation,
-            }
-            _jobs[key] = job
-            worker = threading.Thread(
-                target=_run_job, args=(key, universe_name, years, horizon, _generation),
-                name=f"factor-lab-{universe_name}", daemon=True,
-            )
-            worker.start()
-            # Pruned as we go so this cannot grow without bound in a
-            # long-running process.
             _workers[:] = [w for w in _workers if w.is_alive()]
-            _workers.append(worker)
-        snapshot = dict(job)
+            if len(_workers) >= MAX_CONCURRENT_BUILDS:
+                busy = {
+                    "status": "busy",
+                    "error": (
+                        "factor build capacity is in use; no additional worker "
+                        "was started"
+                    ),
+                    "retryable": True,
+                    "retry_after_seconds": 2,
+                    "active_builds": len(_workers),
+                    "max_concurrent_builds": MAX_CONCURRENT_BUILDS,
+                    "universe": {"name": universe_name},
+                }
+                if job is not None:
+                    _jobs.pop(key, None)
+            else:
+                global _generation
+                _generation += 1
+                job = {
+                    "started": now, "stage": STAGES[0], "stage_index": 0,
+                    "stage_started": now, "timings": {},
+                    "done": False, "failed": False, "token": _generation,
+                }
+                _jobs[key] = job
+                worker = threading.Thread(
+                    target=_run_job, args=(key, universe_name, years, horizon, _generation),
+                    name=f"factor-lab-{universe_name}", daemon=True,
+                )
+                worker.start()
+                _workers.append(worker)
+        snapshot = dict(job) if job is not None else None
 
     if stalled is not None:
         return _stalled_payload(stalled, universe_name, now)
 
-    if not snapshot["done"]:
+    if busy is not None:
+        return busy
+
+    if snapshot is not None and not snapshot["done"]:
         return {
             "status": "building",
             "stage": snapshot["stage"],
@@ -308,7 +365,12 @@ def run(
         entry = _cache.get(key)
     if entry:
         return {**entry[1], "status": "ready", "cached": True}
-    return {"status": "error", "error": snapshot.get("error") or "the build produced no result"}
+    return {
+        "status": "error",
+        "error": (
+            snapshot.get("error") if snapshot is not None else None
+        ) or "the build produced no result",
+    }
 
 
 def _optional(name: str, compute, degraded: list[dict[str, str]]):

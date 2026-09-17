@@ -4,8 +4,8 @@ Portfolio construction and risk, computed for the UI.
 ## What this is for
 
 `/quant` needs to show what the research signal would look like *as a book*:
-weights, risk contributions, concentration, turnover and the cost waterfall that
-turns a gross number negative. All of that is arithmetic on artifacts that
+weights, risk contributions, concentration and the estimated execution cost of
+entering the illustrative book. All of that is arithmetic on artifacts that
 already exist, so it is computed here on demand rather than stored.
 
 ## What it deliberately does not do
@@ -153,8 +153,8 @@ def build(
     book_size: int = DEFAULT_BOOK_SIZE,
 ) -> dict[str, Any]:
     """Construct a book from the most recent predictions and measure it."""
-    from src.quant.backtest.costs import SimpleCostModel, waterfall
-    from src.quant.portfolio.optimizer import Constraints, optimize
+    from src.quant.backtest.costs import SimpleCostModel
+    from src.quant.portfolio.optimizer import Constraints, apply_constraints, optimize
     from src.quant.risk import engine as risk
 
     frame = _predictions(experiment_id, target)
@@ -197,16 +197,17 @@ def build(
     # model's own ranking. Sign and size are separate decisions, deliberately.
     expected = ranked.set_index("symbol")["prediction"].reindex(usable)
 
+    constraints = Constraints(
+        long_only=long_only,
+        max_weight=max_weight,
+        max_turnover=max_turnover,
+        net_target=None if long_only else 0.0,
+    )
     allocation = optimize(
         method,
         returns=sub,
         expected=expected,
-        constraints=Constraints(
-            long_only=long_only,
-            max_weight=max_weight,
-            max_turnover=max_turnover,
-            net_target=None if long_only else 0.0,
-        ),
+        constraints=constraints,
     )
     if not long_only and method != "mean_variance":
         # Apply the model's direction to a risk-sized book, then re-neutralise.
@@ -219,7 +220,15 @@ def build(
         if gross > 0:
             tilted = tilted / gross
             tilted = tilted - tilted.sum() / len(tilted)
+            # Sign-tilting happens after the allocator's own constraint pass.
+            # Re-run the same contract over the actual returned book; otherwise
+            # neutralising can lift a name through the cap while the payload
+            # still claims the pre-tilt allocation was feasible.
+            tilted, violations, notes = apply_constraints(tilted, constraints)
             allocation.weights = tilted
+            allocation.violations = violations
+            allocation.feasible = not violations
+            allocation.notes.extend(notes)
 
     weights = allocation.weights
     cov = risk.covariance_matrix(sub)
@@ -248,9 +257,8 @@ def build(
     )
 
     cost_model = SimpleCostModel(commission_bps=1.0, half_spread_bps=10.0, slippage_bps=2.0)
-    breakdown = cost_model.charge(weights.abs(), capital=1_000_000.0)
-    gross_period = float(series.mean())
-    flow = waterfall(gross_period, breakdown, capital=1_000_000.0)
+    illustrative_capital = 1_000_000.0
+    breakdown = cost_model.charge(weights.abs(), capital=illustrative_capital)
 
     return {
         "status": "ok",
@@ -263,33 +271,63 @@ def build(
         "weights": [
             {
                 "symbol": str(sym),
-                "weight": round(float(w), 6),
+                # Enough precision that summing the serialised full book still
+                # reproduces its gross/net constraints. Six decimals across
+                # 100 names drifted the client-computed gross above 1.0.
+                "weight": round(float(w), 8),
                 "side": "long" if w > 0 else "short",
                 "signal": round(float(expected.get(sym, np.nan)), 6)
                 if pd.notna(expected.get(sym, np.nan)) else None,
                 "risk_share": round(float(contributions.loc[sym, "share"]), 6)
                 if sym in contributions.index else None,
             }
-            for sym, w in weights.sort_values(key=abs, ascending=False).head(25).items()
+            # The allocation diagnostics describe the whole book. Truncating
+            # this list to the 25 largest names made the client recompute a
+            # different gross, net and position count from a partial book.
+            for sym, w in weights.sort_values(key=abs, ascending=False).items()
         ],
         "risk": report.as_dict(),
         "risk_contributions_unavailable": contributions_note,
         "cost": {
             "breakdown": breakdown.as_dict(),
-            "waterfall": flow.as_dict(),
+            "breakdown_units": {
+                "traded_notional": "USD",
+                "commission": "USD",
+                "spread": "USD",
+                "slippage": "USD",
+                "impact": "USD",
+                "total": "USD",
+                "total_bps": "bps of traded notional",
+            },
+            # A return waterfall requires a return series. `series` above is a
+            # cross-sectional rank, so subtracting dollar cost fractions from
+            # its mean is dimensionally invalid. The costed walk-forward result
+            # belongs to the Performance workspace; this book only estimates
+            # the dollars required to enter the shown weights.
+            "waterfall": {
+                "status": "unavailable",
+                "reason": (
+                    "This illustrative book is measured on rank outcomes, not "
+                    "returns; a gross-to-net P&L waterfall cannot be computed."
+                ),
+            },
             "assumptions": {
                 "commission_bps": cost_model.commission_bps,
                 "half_spread_bps": cost_model.half_spread_bps,
                 "slippage_bps": cost_model.slippage_bps,
                 "impact_coefficient": cost_model.impact_coefficient,
                 "half_spread_source": "ASSUMED — the equity dataset carries no bid/ask",
+                "capital_usd": illustrative_capital,
+                "scope": "hypothetical one-time entry from cash into this illustrative book",
             },
         },
         "units": (
             f"{target} is a cross-sectional RANK in [-1, 1], not a return. Every "
-            "risk and cost figure here is in rank units. They describe the shape "
-            "of the book, not a P&L. The Sharpe and return figures that carry "
-            "evidential weight come from the experiment's costed backtest."
+            "risk figure here inherits rank units. Execution costs are a separate "
+            "USD estimate for entering a $1,000,000 illustrative book; they are "
+            "not subtracted from ranks and are not a P&L. The Sharpe and return "
+            "figures that carry evidential weight come from the experiment's "
+            "costed backtest."
         ),
         "disclaimer": (
             "An allocation built from a model whose net Sharpe is negative is an "

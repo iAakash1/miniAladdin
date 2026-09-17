@@ -101,6 +101,18 @@ client that will parse it into something.
 Every numeric boundary checks `math.isfinite` / `Number.isFinite`. Endpoint
 tests assert no response contains a non-finite literal.
 
+## Resource bounds
+
+The Factor Lab is a multi-vendor panel build, not a cheap query. Its public
+parameters map only to three declared windows and three declared horizons;
+arbitrary floats cannot become new cache keys or threads. At most two live
+factor workers may exist in one process, including a worker abandoned after a
+deadline because Python cannot cancel blocked vendor I/O. Additional valid
+requests receive a typed `busy` state and poll without starting more work.
+
+This is a process safety bound, not caller-level rate limiting. The latter
+remains an operational limitation below.
+
 ## What is not claimed
 
 - No penetration test has been run against this deployment.

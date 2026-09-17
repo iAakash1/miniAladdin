@@ -63,7 +63,7 @@ interface Redundancy {
 }
 
 interface Lab {
-  status?: 'ready' | 'error' | 'building'
+  status?: 'ready' | 'error' | 'building' | 'busy'
   stage?: string
   progress_done?: number
   progress_total?: number
@@ -78,6 +78,9 @@ interface Lab {
   caveats?: string[]
   degraded?: Array<{ estimator: string; reason: string }>
   build_seconds?: number
+  retry_after_seconds?: number
+  active_builds?: number
+  max_concurrent_builds?: number
   cached?: boolean
   error?: string
 }
@@ -184,13 +187,16 @@ export default function FactorWorkbench() {
   }
 
   if (lab.status !== 'ready') {
+    const queued = lab.status === 'busy'
     return (
       <Panel title="Factors" state="waking">
         <StateBlock
           state="waking"
-          title={lab.stage ? `Building — ${lab.stage}` : 'Building'}
+          title={queued ? 'Build queued — capacity in use' : (lab.stage ? `Building — ${lab.stage}` : 'Building')}
           detail={
-            lab.progress_total
+            queued
+              ? `${lab.active_builds ?? 'All'} of ${lab.max_concurrent_builds ?? 'available'} build slots are active. Retrying in ${lab.retry_after_seconds ?? 2}s; no extra worker was started.`
+              : lab.progress_total
               ? `${lab.progress_done ?? 0} of ${lab.progress_total} steps, ${(lab.elapsed_seconds ?? 0).toFixed(0)}s elapsed. Nothing partial is shown while this runs.`
               : 'Nothing partial is shown while this runs.'
           }
