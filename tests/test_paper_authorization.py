@@ -170,6 +170,56 @@ def test_access_probe_never_constructs_the_broker(client):
     build.assert_not_called()
 
 
+# ── the exact incident: a caller not on the current allowlist ────────────────
+#
+# The production failure this reproduces: authentication succeeded (the
+# bearer token verified, `sub` resolved to a real signed-in user), but that
+# `sub` was not the value configured in PAPER_TRADING_OWNERS — a stale id
+# from a different Clerk identity or environment left over from an earlier
+# configuration. The fix is not code; it is correcting the deployed
+# environment variable. What belongs here is proof that the code responds
+# correctly on both sides of that correction, so a future stale-allowlist
+# incident is caught by a red test rather than by a signed-in user filing
+# another report.
+
+def test_a_caller_not_on_the_current_allowlist_is_refused(client):
+    """The exact shape of the incident: a real, authenticated `sub` that
+    simply is not the value currently configured."""
+    with _clerk_on(), _owners("user_old_stale_id"), _as("user_current_real_id"):
+        response = client.get("/api/paper/account")
+    assert response.status_code == 403
+
+
+def test_correcting_the_allowlist_to_the_current_caller_restores_access(client):
+    """The same caller, after the deployed value is corrected to match them —
+    proof that the fix is exactly the environment variable and nothing else
+    needs to change in the request path."""
+    with _clerk_on(), _owners("user_current_real_id"), \
+         _as("user_current_real_id"), \
+         patch.object(api, "_paper_client") as build:
+        build.return_value.account.return_value = {"status": "ACTIVE"}
+        response = client.get("/api/paper/account")
+    assert response.status_code == 200
+
+
+@pytest.mark.parametrize("raw, expected", [
+    ("user_a,user_b", {"user_a", "user_b"}),
+    ("user_a, user_b", {"user_a", "user_b"}),           # space after comma
+    (" user_a , user_b ", {"user_a", "user_b"}),          # padding on both sides
+    ("user_a,,user_b", {"user_a", "user_b"}),             # empty segment from a stray comma
+    ("user_a,user_a", {"user_a"}),                        # duplicate collapses
+    ("", set()),
+    ("   ", set()),
+])
+def test_the_allowlist_parses_comma_separated_ids_with_whitespace_handled_safely(raw, expected):
+    """Direct unit coverage of `configured_owners()` itself — the parsing the
+    whole authorization chain depends on, tested independently of any HTTP
+    request so a parsing regression fails here rather than surfacing as a
+    confusing 403 for a correctly-configured owner whose id had a stray space."""
+    with patch.dict(os.environ, {paper_access.OWNERS_ENV: raw}, clear=False):
+        assert paper_access.configured_owners() == frozenset(expected)
+
+
 # ── status stays public and carries no secret ───────────────────────────────
 
 def test_status_is_readable_without_a_session(client):
