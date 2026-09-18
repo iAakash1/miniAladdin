@@ -105,7 +105,7 @@ export default function ModelWorkbench() {
     return (
       <>
         <StripSkeleton items={7} />
-        <Panel title="Labels" state="waking" flush><TableSkeleton rows={4} columns={8} /></Panel>
+        <Panel title="Model / target selection" state="waking" flush><TableSkeleton rows={4} columns={8} /></Panel>
       </>
     )
   }
@@ -144,7 +144,7 @@ export default function ModelWorkbench() {
       ]} />
 
       <Panel
-        title="Labels"
+        title="Model / target selection"
         subtitle={data.experiment_id}
         flush
         actions={<Link href="/terminal/evidence" className="sys-meta sys-meta--strong">Evidence →</Link>}
@@ -191,7 +191,7 @@ export default function ModelWorkbench() {
         </Panel>
       ) : null}
 
-      <RegimePerformance byModel={regimes} />
+      <RegimePerformance byModel={regimes} preferredModel={row?.best_model} />
 
       <Grid>
         <Panel title="Guards" state={guards ? (guards.passed ? 'recorded' : 'blocked') : 'unavailable'} flush>

@@ -40,12 +40,21 @@ const THIN_SHARE = 0.05
 
 export default function RegimePerformance({
   byModel,
+  preferredModel,
 }: {
   byModel?: Record<string, RegimeRow[]> | null
+  preferredModel?: string | null
 }) {
   const models = useMemo(() => Object.keys(byModel ?? {}).sort(), [byModel])
   const [model, setModel] = useState<string | null>(null)
-  const active = model && models.includes(model) ? model : models[0] ?? null
+  // The experiment's selected model is the meaningful default. Alphabetical
+  // order used to select baseline_historical_mean, whose regime metrics are
+  // intentionally empty, making a populated experiment look unmeasured.
+  const active = model && models.includes(model)
+    ? model
+    : preferredModel && models.includes(preferredModel)
+      ? preferredModel
+      : models[0] ?? null
   const rows = active ? byModel?.[active] ?? [] : []
 
   const columns: DataColumn<RegimeRow>[] = useMemo(() => [

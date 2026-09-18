@@ -137,10 +137,8 @@ export default function DeployedModel() {
               <Metric label="trials" value={<Value value={spec.cumulative_trials} kind="count" />} />
             </MetricGrid>
             <Prose size="tight" caution>
-              <strong>These describe the specification, not this artifact.</strong>{' '}
-              {spec.caveat ?? ''} They were estimated from eight separate walk-forward
-              fits; the deployed file is one fit of the same specification over the
-              whole pre-holdout window.
+              {spec.caveat
+                ?? 'These metrics describe the specification measured across walk-forward fits, not a fresh evaluation of this fitted artifact.'}
             </Prose>
           </>
         ) : null}
