@@ -199,5 +199,13 @@ def _no_background_panel_build(request, monkeypatch):
     monkeypatch.setattr(factor_lab_service, "_run_job", lambda *a, **k: None)
     yield
     # Any worker that did start is joined before the next test installs its
-    # own patches.
-    factor_lab_service.reset_for_tests(timeout=5.0)
+    # own patches. `_run_job` is stubbed to a no-op above, so a worker that
+    # still hasn't joined within the timeout is not "a slow build" — it is a
+    # daemon thread stuck on something the stub does not do, which is worth
+    # failing loudly here rather than letting it surface three tests later as
+    # an unrelated assertion about vendor call counts.
+    leaked = factor_lab_service.reset_for_tests(timeout=5.0)
+    assert leaked == 0, (
+        f"{leaked} factor-lab worker(s) did not join before the next test; "
+        "see reset_for_tests"
+    )

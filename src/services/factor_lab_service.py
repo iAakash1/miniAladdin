@@ -28,8 +28,12 @@ would spend a minute of vendor budget to produce an identical answer.
 from __future__ import annotations
 
 import logging
+import os
+import socket
 import threading
 import time
+import uuid
+from collections.abc import Iterator, MutableMapping
 from datetime import date as Date
 from datetime import timedelta
 from typing import Any, Optional
@@ -47,6 +51,8 @@ from src.research import (
     forward_returns, rank_cross_section, screen, simulate,
 )
 from src.research.cross_section import MIN_NAMES_PER_DATE
+from src.services import job_store
+from src.services.job_store import JobStoreUnavailable
 
 logger = logging.getLogger("omnisignal.services.factor_lab")
 
@@ -77,7 +83,6 @@ SUPPORTED_HORIZONS: tuple[int, ...] = (5, 21, 63)
 #: not counting abandoned workers would let repeated retries grow without bound.
 MAX_CONCURRENT_BUILDS = 2
 
-_cache: dict[str, tuple[float, dict[str, Any]]] = {}
 _lock = threading.Lock()
 
 # ── build jobs ───────────────────────────────────────────────────────────────
@@ -145,7 +150,57 @@ BUILD_DEADLINE_SECONDS = 240.0
 #: the window gets the real error, and a retry after it builds again.
 FAILED_RETRY_COOLDOWN_SECONDS = 30.0
 
-_jobs: dict[str, dict[str, Any]] = {}
+#: Heartbeats are independent of stage changes. A vendor call can legitimately
+#: spend a long time inside one stage; stage-only liveness would reclaim live
+#: work simply because it had nothing new to report.
+HEARTBEAT_INTERVAL_SECONDS = 5.0
+STALE_OWNER_SECONDS = 20.0
+
+JOB_PREFIX = "factor-job:"
+RESULT_PREFIX = "factor-result:"
+_worker_id = f"{socket.gethostname()}:{os.getpid()}:{uuid.uuid4().hex[:12]}"
+
+
+def _job_key(key: str) -> str:
+    return f"{JOB_PREFIX}{key}"
+
+
+def _result_key(key: str, token: str) -> str:
+    return f"{RESULT_PREFIX}{key}:{token}"
+
+
+class _JobRegistryView(MutableMapping[str, dict[str, Any]]):
+    """Compatibility/debug view over the real JobStore-backed registry.
+
+    Production code uses the store directly. Keeping this mapping-shaped view
+    means existing diagnostics and termination tests can inspect a job without
+    reintroducing a second, process-local source of truth.
+    """
+
+    def __getitem__(self, key: str) -> dict[str, Any]:
+        value = job_store.get_store().get(_job_key(key))
+        if value is None:
+            raise KeyError(key)
+        return value
+
+    def __setitem__(self, key: str, value: dict[str, Any]) -> None:
+        job_store.get_store().put(_job_key(key), value)
+
+    def __delitem__(self, key: str) -> None:
+        if job_store.get_store().get(_job_key(key)) is None:
+            raise KeyError(key)
+        job_store.get_store().delete(_job_key(key))
+
+    def __iter__(self) -> Iterator[str]:
+        for key in job_store.get_store().keys():
+            if key.startswith(JOB_PREFIX):
+                yield key[len(JOB_PREFIX):]
+
+    def __len__(self) -> int:
+        return sum(1 for _ in self)
+
+
+_jobs: MutableMapping[str, dict[str, Any]] = _JobRegistryView()
 
 #: Build workers that have been started, so `reset_for_tests` can wait for
 #: them. Production deliberately abandons a stalled worker — Python cannot
@@ -155,14 +210,11 @@ _jobs: dict[str, dict[str, Any]] = {}
 #: backtest test asserting one vendor call saw three, the extra two being this
 #: builder loading its benchmark and its first symbol.
 _workers: list[threading.Thread] = []
-_jobs_lock = threading.Lock()
-#: Monotonic build id, so a worker can tell whether the job it was started
-#: for is still the current one for its key.
-_generation = 0
+_jobs_lock = threading.RLock()
 
 
 def _set_stage(
-    handle: Optional[tuple[str, int]], stage: str, done: int = 0, total: int = 0
+    handle: Optional[tuple[str, str | int]], stage: str, done: int = 0, total: int = 0
 ) -> None:
     """Record progress for the build identified by `handle`.
 
@@ -176,34 +228,35 @@ def _set_stage(
         return
     key, token = handle
     now = time.time()
-    with _jobs_lock:
-        job = _jobs.get(key)
-        if job is None or job.get("token") != token:
-            return
+
+    def advance(job: Optional[dict[str, Any]]) -> Optional[dict[str, Any]]:
+        if (
+            job is None
+            or job.get("token") != token
+            or job.get("owner_worker_id") not in (None, _worker_id)
+            or job.get("status", "running") != "running"
+        ):
+            return job
         previous = job.get("stage")
         if previous and previous != stage:
-            # Close out the stage we are leaving. A stall report is only
-            # actionable if it can say which stages passed and how long they
-            # took — "stuck in estimators" alone does not distinguish a slow
-            # vendor from a wedged computation.
-            job.setdefault("timings", {})[previous] = round(
-                now - job.get("stage_started", now), 2
-            )
+            timings = dict(job.get("timings") or {})
+            timings[previous] = round(now - job.get("stage_started", now), 2)
+            job["timings"] = timings
             job["stage_started"] = now
         index = STAGES.index(stage) if stage in STAGES else 0
-        # Monotonic by construction. The stage list above is now in true
-        # execution order, but a regression there would show as progress
-        # running backwards in the UI, and a loader that un-ticks a finished
-        # step is worse than one that is merely coarse.
-        if index < job.get("stage_index", 0):
-            job["progress_done"] = done
-            job["progress_total"] = total
-            return
-        job["stage"] = stage
-        job["stage_index"] = index
-        job["done"] = job.get("done", False)
+        if index >= job.get("stage_index", 0):
+            job["stage"] = stage
+            job["stage_index"] = index
+        job["done"] = False
         job["progress_done"] = done
         job["progress_total"] = total
+        job["heartbeat_at"] = now
+        return job
+
+    try:
+        job_store.get_store().mutate(_job_key(key), advance)
+    except JobStoreUnavailable:
+        logger.exception("factor lab could not record progress for %s", key)
 
 
 def available_universes() -> list[dict[str, Any]]:
@@ -261,115 +314,185 @@ def run(
 
     key = f"{universe_name}:{years}:{horizon}"
     now = time.time()
+    store = job_store.get_store()
 
-    with _lock:
-        entry = _cache.get(key)
-        if entry and entry[0] > now:
-            return {**entry[1], "status": "ready", "cached": True}
-        if entry:
-            # Enforce the TTL rather than leaving a completed job to resurrect
-            # this stale entry in the post-job lookup below.
-            _cache.pop(key, None)
+    try:
+        before = store.get(_job_key(key))
+    except JobStoreUnavailable as exc:
+        return {
+            "status": "error",
+            "error": f"background job state is unavailable: {exc}",
+            "retryable": True,
+            "universe": {"name": universe_name},
+        }
 
-    stalled: Optional[dict[str, Any]] = None
-    busy: Optional[dict[str, Any]] = None
+    # Capacity is process-local because the work itself is a thread in this
+    # process. The shared ownership claim below prevents every other process
+    # from starting the same key; this guard prevents distinct keys from
+    # creating unbounded threads in the process that won their claims.
     with _jobs_lock:
-        job = _jobs.get(key)
+        _workers[:] = [worker for worker in _workers if worker.is_alive()]
+        active_builds = len(_workers)
+    if before is None and active_builds >= MAX_CONCURRENT_BUILDS:
+        return {
+            "status": "busy",
+            "error": "factor build capacity is in use; no additional worker was started",
+            "retryable": True,
+            "retry_after_seconds": 2,
+            "active_builds": active_builds,
+            "max_concurrent_builds": MAX_CONCURRENT_BUILDS,
+            "universe": {"name": universe_name},
+        }
 
-        # A job that blew its deadline is evicted, not reused. Leaving the
-        # record in place would make the stall permanent for this universe:
-        # every later request would keep polling the same dead job, which is
-        # the 2920-second behaviour one level up.
-        if job is not None and not job["done"] and now - job["started"] > BUILD_DEADLINE_SECONDS:
-            stalled = dict(job)
-            logger.error(
-                "factor lab build for %s stalled in stage %r after %.0fs; abandoning it",
-                universe_name, job.get("stage"), now - job["started"],
-            )
-            del _jobs[key]
-            job = None
+    token = uuid.uuid4().hex
 
-        # Rebuild when there is no job, or when a previous failure has aged
-        # out of its cooldown. Inside the cooldown the recorded error is the
-        # answer — see FAILED_RETRY_COOLDOWN_SECONDS.
-        expired_failure = (
-            job is not None
-            and job["done"]
-            and job.get("failed")
-            and now - job.get("finished", job["started"]) > FAILED_RETRY_COOLDOWN_SECONDS
-        )
-        completed_without_cache = (
-            job is not None and job["done"] and not job.get("failed")
-        )
-        if job is None or expired_failure or completed_without_cache:
-            # Each build gets its own token. An abandoned worker from a
-            # stalled build keeps running and still holds `key`; without a
-            # token it would eventually finish and stamp whatever *newer*
-            # job now occupies that key as done — reporting a fresh build
-            # complete using a previous build's outcome.
-            _workers[:] = [w for w in _workers if w.is_alive()]
-            if len(_workers) >= MAX_CONCURRENT_BUILDS:
-                busy = {
-                    "status": "busy",
-                    "error": (
-                        "factor build capacity is in use; no additional worker "
-                        "was started"
+    def claim(current: Optional[dict[str, Any]]) -> dict[str, Any]:
+        status = "missing"
+        if current is not None:
+            status = str(current.get("status") or (
+                "failed" if current.get("failed")
+                else "success" if current.get("done")
+                else "running"
+            ))
+
+        if current is not None and status == "running":
+            started = float(current.get("started", now))
+            if now - started > BUILD_DEADLINE_SECONDS:
+                abandoned = dict(current)
+                abandoned.update(
+                    status="abandoned", done=True, failed=True,
+                    finished=now,
+                    error=(
+                        f"the build stalled in the {current.get('stage', STAGES[0])!r} "
+                        f"stage and was stopped after {now - started:.0f}s"
                     ),
-                    "retryable": True,
-                    "retry_after_seconds": 2,
+                )
+                return abandoned
+
+            heartbeat = float(current.get("heartbeat_at", started))
+            if now - heartbeat <= STALE_OWNER_SECONDS:
+                return current
+            # The owning process stopped proving it was alive. Reclaim now,
+            # not after the full build deadline. A unique token means a late
+            # old worker cannot write progress or a result into this attempt.
+
+        if current is not None and status == "failed":
+            finished = float(current.get("finished", current.get("started", now)))
+            if now - finished <= FAILED_RETRY_COOLDOWN_SECONDS:
+                return current
+
+        if current is not None and status == "success" and current.get("result_key"):
+            return current
+
+        generation = int(current.get("generation", 0)) + 1 if current else 1
+        attempt = int(current.get("attempt", 0)) + 1 if current else 1
+        record: dict[str, Any] = {
+            "started": now,
+            "stage": STAGES[0],
+            "stage_index": 0,
+            "stage_started": now,
+            "timings": {},
+            "done": False,
+            "failed": False,
+            "status": "running",
+            "token": token,
+            "generation": generation,
+            "attempt": attempt,
+            "owner_worker_id": _worker_id,
+            "heartbeat_at": now,
+            "progress_done": 0,
+            "progress_total": 0,
+        }
+        if current is not None:
+            record["reclaimed_from"] = {
+                "token": current.get("token"),
+                "owner_worker_id": current.get("owner_worker_id"),
+                "status": status,
+            }
+        return record
+
+    try:
+        snapshot = store.mutate(_job_key(key), claim)
+    except JobStoreUnavailable as exc:
+        return {
+            "status": "error",
+            "error": f"background job state is unavailable: {exc}",
+            "retryable": True,
+            "universe": {"name": universe_name},
+        }
+
+    if snapshot is None:
+        return {"status": "error", "error": "the job claim disappeared", "retryable": True}
+
+    status = str(snapshot.get("status", "running"))
+    if status == "abandoned":
+        logger.error(
+            "factor lab build for %s stalled in stage %r after %.0fs; abandoning it",
+            universe_name, snapshot.get("stage"), now - float(snapshot.get("started", now)),
+        )
+        return _stalled_payload(snapshot, universe_name, now)
+
+    if status == "failed":
+        return {
+            "status": "error",
+            "error": snapshot.get("error") or "factor evaluation failed",
+            "retryable": True,
+            "universe": {"name": universe_name},
+        }
+
+    if status == "success":
+        result_key = snapshot.get("result_key")
+        try:
+            result = store.get(str(result_key)) if result_key else None
+        except JobStoreUnavailable as exc:
+            return {"status": "error", "error": str(exc), "retryable": True}
+        payload = result.get("payload") if isinstance(result, dict) else None
+        if isinstance(payload, dict):
+            return {**payload, "status": "ready", "cached": True}
+        return {
+            "status": "error",
+            "error": "the completed build's shared result is no longer available",
+            "retryable": True,
+            "universe": {"name": universe_name},
+        }
+
+    # Only the request whose token won the atomic claim may start compute.
+    if snapshot.get("token") == token and snapshot.get("owner_worker_id") == _worker_id:
+        with _jobs_lock:
+            _workers[:] = [worker for worker in _workers if worker.is_alive()]
+            if len(_workers) >= MAX_CONCURRENT_BUILDS:
+                def release_claim(current: Optional[dict[str, Any]]) -> Optional[dict[str, Any]]:
+                    if current and current.get("token") == token:
+                        current.update(
+                            status="cancelled", done=True, failed=True,
+                            finished=time.time(), error="local build capacity changed before start",
+                        )
+                    return current
+                store.mutate(_job_key(key), release_claim)
+                return {
+                    "status": "busy", "error": "factor build capacity is in use",
+                    "retryable": True, "retry_after_seconds": 2,
                     "active_builds": len(_workers),
                     "max_concurrent_builds": MAX_CONCURRENT_BUILDS,
                     "universe": {"name": universe_name},
                 }
-                if job is not None:
-                    _jobs.pop(key, None)
-            else:
-                global _generation
-                _generation += 1
-                job = {
-                    "started": now, "stage": STAGES[0], "stage_index": 0,
-                    "stage_started": now, "timings": {},
-                    "done": False, "failed": False, "token": _generation,
-                }
-                _jobs[key] = job
-                worker = threading.Thread(
-                    target=_run_job, args=(key, universe_name, years, horizon, _generation),
-                    name=f"factor-lab-{universe_name}", daemon=True,
-                )
-                worker.start()
-                _workers.append(worker)
-        snapshot = dict(job) if job is not None else None
+            worker = threading.Thread(
+                target=_run_job, args=(key, universe_name, years, horizon, token),
+                name=f"factor-lab-{universe_name}", daemon=True,
+            )
+            worker.start()
+            _workers.append(worker)
 
-    if stalled is not None:
-        return _stalled_payload(stalled, universe_name, now)
-
-    if busy is not None:
-        return busy
-
-    if snapshot is not None and not snapshot["done"]:
-        return {
-            "status": "building",
-            "stage": snapshot["stage"],
-            "stage_index": snapshot["stage_index"],
-            "stages": list(STAGES),
-            # Real counts from the builder — how many symbols are actually
-            # done. A build is dominated by vendor round trips, so without
-            # this the UI sits on one label for forty seconds.
-            "progress_done": snapshot.get("progress_done", 0),
-            "progress_total": snapshot.get("progress_total", 0),
-            "elapsed_seconds": round(time.time() - snapshot["started"], 1),
-            "universe": {"name": universe_name},
-        }
-
-    with _lock:
-        entry = _cache.get(key)
-    if entry:
-        return {**entry[1], "status": "ready", "cached": True}
     return {
-        "status": "error",
-        "error": (
-            snapshot.get("error") if snapshot is not None else None
-        ) or "the build produced no result",
+        "status": "building",
+        "stage": snapshot.get("stage", STAGES[0]),
+        "stage_index": snapshot.get("stage_index", 0),
+        "stages": list(STAGES),
+        "progress_done": snapshot.get("progress_done", 0),
+        "progress_total": snapshot.get("progress_total", 0),
+        "elapsed_seconds": round(time.time() - float(snapshot.get("started", now)), 1),
+        "attempt": snapshot.get("attempt", 1),
+        "universe": {"name": universe_name},
     }
 
 
@@ -426,63 +549,114 @@ def _stalled_payload(
     }
 
 
+def _heartbeat(key: str, token: str, stop: threading.Event) -> None:
+    """Prove the owning process still exists even while one stage is quiet."""
+    store = job_store.get_store()
+    while not stop.wait(HEARTBEAT_INTERVAL_SECONDS):
+        now = time.time()
+
+        def beat(current: Optional[dict[str, Any]]) -> Optional[dict[str, Any]]:
+            if (
+                current
+                and current.get("token") == token
+                and current.get("owner_worker_id") == _worker_id
+                and current.get("status") == "running"
+            ):
+                current["heartbeat_at"] = now
+            return current
+
+        try:
+            current = store.mutate(_job_key(key), beat)
+        except JobStoreUnavailable:
+            logger.exception("factor lab heartbeat store unavailable for %s", key)
+            return
+        if not current or current.get("token") != token or current.get("status") != "running":
+            return
+
+
+def _finish_job(key: str, token: str, *, error: Optional[str] = None,
+                result_key: Optional[str] = None) -> Optional[dict[str, Any]]:
+    """Finish only the attempt this worker owns; stale workers are no-ops."""
+    now = time.time()
+
+    def finish(current: Optional[dict[str, Any]]) -> Optional[dict[str, Any]]:
+        if (
+            current is None
+            or current.get("token") != token
+            or current.get("owner_worker_id") != _worker_id
+            or current.get("status") != "running"
+        ):
+            return current
+        current.update(
+            status="failed" if error else "success",
+            done=True,
+            failed=bool(error),
+            error=error,
+            finished=now,
+            heartbeat_at=now,
+        )
+        if result_key:
+            current["result_key"] = result_key
+        return current
+
+    return job_store.get_store().mutate(_job_key(key), finish)
+
+
 def _run_job(
-    key: str, universe_name: str, years: float, horizon: int, token: int
+    key: str, universe_name: str, years: float, horizon: int, token: str
 ) -> None:
-    """Background build. Records the outcome; never raises into the thread."""
+    """Background build with shared ownership, heartbeat and terminal state."""
+    stop = threading.Event()
+    heartbeat = threading.Thread(
+        target=_heartbeat,
+        args=(key, token, stop),
+        name=f"factor-lab-heartbeat-{universe_name}",
+        daemon=True,
+    )
+    heartbeat.start()
     try:
         payload = _build(universe_name, years, horizon, progress=(key, token))
-        with _lock:
-            if "error" not in payload:
-                # Cached even if the job record is gone: a late finisher that
-                # beat the deadline by a hair still did the work, and the
-                # next request should get it rather than rebuild.
-                _cache[key] = (time.time() + CACHE_TTL_SECONDS, payload)
-        with _jobs_lock:
-            # `.get`, not `[key]` — the deadline may have evicted this job
-            # while the build was still running, and a KeyError here would
-            # take the worker down through the handler below and log a
-            # spurious failure for work that actually succeeded.
-            entry = _jobs.get(key)
-            if entry is not None and entry.get("token") == token:
-                entry.update(
-                    done=True, failed="error" in payload,
-                    error=payload.get("error"), finished=time.time(),
-                )
+        if "error" in payload:
+            _finish_job(key, token, error=str(payload.get("error")))
+        else:
+            result_key = _result_key(key, token)
+            # Result is token-specific. If a deadline already abandoned this
+            # worker, its orphan can expire without ever being referenced by
+            # the current job record.
+            job_store.get_store().put(
+                result_key,
+                {"token": token, "payload": payload, "finished": time.time()},
+                ttl=CACHE_TTL_SECONDS,
+            )
+            _finish_job(key, token, result_key=result_key)
     except KeyError as exc:
-        with _jobs_lock:
-            entry = _jobs.get(key)
-            if entry is not None and entry.get("token") == token:
-                entry.update(
-                    done=True, failed=True,
-                    error=f"unknown universe: {exc}", finished=time.time(),
-                )
+        _finish_job(key, token, error=f"unknown universe: {exc}")
     # BaseException, not Exception. `except Exception` cannot see SystemExit
     # or KeyboardInterrupt, and a worker killed by one of those left
     # `done=False` in the registry with no writer ever coming back to fix it
     # — an unpollable job that answers "building" forever. The deadline in
     # `run()` now catches that case too, but taking 240 s to report something
-    # already known is not a good answer. Re-raised after recording so
-    # interpreter shutdown still behaves normally.
+    # already known is not a good answer.
     except BaseException as exc:  # noqa: BLE001 — a research view must not 500 the app
         logger.exception("factor lab failed for %s", universe_name)
-        with _jobs_lock:
-            entry = _jobs.get(key)
-            if entry is not None and entry.get("token") == token:
-                entry.update(
-                    done=True, failed=True,
-                    error=f"factor evaluation failed: {type(exc).__name__}: {exc}",
-                    finished=time.time(),
-                )
+        try:
+            _finish_job(
+                key, token,
+                error=f"factor evaluation failed: {type(exc).__name__}: {exc}",
+            )
+        except JobStoreUnavailable:
+            logger.exception("factor lab could not record failure for %s", key)
         # Not re-raised. This is a daemon worker; re-raising SystemExit here
         # would only kill this thread — which is already ending — while
         # producing an unhandled-thread-exception trace that looks like a
         # crash. The outcome is recorded, which is the part that matters.
+    finally:
+        stop.set()
 
 
 def _build(
     universe_name: str, years: float, horizon: int,
-    progress: Optional[tuple[str, int]] = None,
+    progress: Optional[tuple[str, str | int]] = None,
 ) -> dict[str, Any]:
     started = time.perf_counter()
 
@@ -841,7 +1015,7 @@ def _load_prices(symbols: list[str]) -> dict[str, pd.Series]:
     }
 
 
-def reset_for_tests(timeout: float = 10.0) -> None:
+def reset_for_tests(timeout: float = 10.0) -> int:
     """Clear caches and jobs, and wait for any in-flight build worker.
 
     The wait is the part that matters. Clearing `_jobs` drops the registry
@@ -850,7 +1024,13 @@ def reset_for_tests(timeout: float = 10.0) -> None:
     here makes the reset mean what its name says.
 
     Bounded, and it never raises: a worker that outlives the timeout is
-    reported through the returned count rather than hanging the suite.
+    reported through the returned count rather than hanging the suite. That
+    count used to be promised here and never computed — the function always
+    returned `None`, so a worker that failed to join within the timeout was
+    silently invisible to whatever called this. A non-zero return is worth a
+    log line of its own: it means a daemon thread is still doing vendor I/O
+    after the suite believes this fixture is done, which is exactly how one
+    test's abandoned worker used to land inside a *later* test's `patch`.
     """
     with _jobs_lock:
         workers = list(_workers)
@@ -860,8 +1040,19 @@ def reset_for_tests(timeout: float = 10.0) -> None:
     # record its result, and holding it here would deadlock against that.
     for worker in workers:
         worker.join(timeout=timeout)
+    still_alive = sum(1 for worker in workers if worker.is_alive())
+    if still_alive:
+        logger.warning(
+            "factor lab reset_for_tests: %d worker(s) did not join within %.1fs",
+            still_alive, timeout,
+        )
 
-    with _lock:
-        _cache.clear()
-    with _jobs_lock:
-        _jobs.clear()
+    try:
+        store = job_store.get_store()
+        for key in store.keys():
+            if key.startswith(JOB_PREFIX) or key.startswith(RESULT_PREFIX):
+                store.delete(key)
+    except JobStoreUnavailable:
+        pass
+    job_store.reset_store_for_tests()
+    return still_alive

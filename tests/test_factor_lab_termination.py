@@ -352,3 +352,86 @@ def test_an_abandoned_worker_cannot_rewrite_a_newer_builds_progress():
         assert service._jobs[key]["stage"] == "estimators", "a stale worker moved the stage backwards"
         assert service._jobs[key]["stage_index"] == service.STAGES.index("estimators")
         assert service._jobs[key].get("progress_done", 0) != 2
+
+
+def test_a_stale_owner_is_reclaimed_with_a_new_token(monkeypatch):
+    """A dead process is detected by heartbeat, not the full build deadline."""
+    key = "mega30:2.5:21"
+    old = time.time() - service.STALE_OWNER_SECONDS - 1
+    service._jobs[key] = {
+        "started": time.time() - 30,
+        "stage": "prices",
+        "stage_index": 1,
+        "stage_started": old,
+        "timings": {},
+        "done": False,
+        "failed": False,
+        "status": "running",
+        "token": "dead-owner-token",
+        "owner_worker_id": "worker-that-restarted",
+        "heartbeat_at": old,
+        "generation": 3,
+        "attempt": 1,
+    }
+    monkeypatch.setattr(service, "_run_job", lambda *args, **kwargs: None)
+
+    payload = service.run("mega30")
+
+    assert payload["status"] == "building"
+    current = service._jobs[key]
+    assert current["token"] != "dead-owner-token"
+    assert current["generation"] == 4
+    assert current["attempt"] == 2
+    assert current["reclaimed_from"]["owner_worker_id"] == "worker-that-restarted"
+
+
+def test_a_fresh_foreign_heartbeat_joins_instead_of_duplicate_compute(monkeypatch):
+    key = "mega30:2.5:21"
+    now = time.time()
+    service._jobs[key] = {
+        "started": now,
+        "stage": "filings",
+        "stage_index": 0,
+        "stage_started": now,
+        "timings": {},
+        "done": False,
+        "failed": False,
+        "status": "running",
+        "token": "other-worker-token",
+        "owner_worker_id": "other-live-worker",
+        "heartbeat_at": now,
+        "generation": 1,
+        "attempt": 1,
+    }
+    starts: list[tuple] = []
+    monkeypatch.setattr(service, "_run_job", lambda *args, **kwargs: starts.append(args))
+
+    payload = service.run("mega30")
+
+    assert payload["status"] == "building"
+    assert starts == []
+    assert service._jobs[key]["token"] == "other-worker-token"
+
+
+def test_an_old_owner_cannot_finish_a_reclaimed_job():
+    key = "mega30:2.5:21"
+    now = time.time()
+    service._jobs[key] = {
+        "started": now,
+        "stage": "returns",
+        "stage_index": 2,
+        "stage_started": now,
+        "timings": {},
+        "done": False,
+        "failed": False,
+        "status": "running",
+        "token": "new-token",
+        "owner_worker_id": service._worker_id,
+        "heartbeat_at": now,
+    }
+
+    service._finish_job(key, "old-token", error="late failure")
+
+    current = service._jobs[key]
+    assert current["status"] == "running"
+    assert current["token"] == "new-token"

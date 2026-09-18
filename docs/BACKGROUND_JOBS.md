@@ -74,27 +74,33 @@ registry.
 That warning is the point. There is no other way to discover this condition:
 the symptom does not point at its cause.
 
-## What is wired, and what is not
+## Factor Lab lifecycle
 
-**Wired.** The abstraction, both adapters, and the diagnostics warning.
+Factor Lab now uses the configured `JobStore` for both its job record and its
+completed payload. A record carries:
 
-**Not wired: `factor_lab_service` still uses its own dict.** This is deliberate,
-and the reason is specific rather than a shortage of time.
+- a unique attempt token and monotonically increasing generation;
+- the owning worker id;
+- `running`, `success`, `failed`, `abandoned`, or `cancelled` state;
+- stage, progress, timings, start/finish times, and a heartbeat;
+- the token-specific shared-result key after success.
 
-Sharing the *registry* without also distributing the *compute* produces a new
-failure mode that is worse than the one it fixes. The build runs on a thread in
-whichever process started it. If that worker restarts mid-build, its job record
-survives in Redis marked not-done, and another worker polling it waits on a
-build that no longer exists — up to `BUILD_DEADLINE_SECONDS` before the stall
-logic evicts it. Today, that second worker would simply start its own build and
-answer in minutes. So the half-refactor trades "work done twice" for "several
-minutes waiting on a dead job", which is a worse trade for a reader.
+Claim and reclaim are atomic `mutate` operations. Only the request whose token
+wins the claim starts compute. A separate heartbeat thread updates liveness
+even while the build is blocked inside one vendor call. If the owner process
+disappears, another worker reclaims the job after `STALE_OWNER_SECONDS`; the
+old token can no longer advance a stage, record failure, or publish a result.
 
-The complete fix needs the owning worker to prove it is still alive: a
-heartbeat written as each stage advances, and a record whose heartbeat has gone
-stale reclaimed promptly rather than after the full build deadline. `mutate` is
-the primitive that makes that safe to implement, which is why it exists in this
-shape. That work is outstanding and is not claimed here.
+The full build deadline remains a different guard. A worker can be alive and
+still stuck, so a poll beyond the deadline marks that attempt `abandoned` and
+returns a retryable error. The next poll claims a fresh attempt. Failed work is
+held for a short cooldown so a polling browser cannot start a new deterministic
+failure every 1.5 seconds.
+
+Results use a token-specific key. The worker writes the result first and only
+then atomically points the successful job record at it. A late worker whose
+ownership was revoked can leave only an unreferenced value that expires; it
+cannot replace the current result.
 
 ## What is verified
 
@@ -107,9 +113,35 @@ The Redis store is tested against a fake implementing `GET`/`SET`/`DELETE`/
 including the case where another worker writes inside the window and the retry
 must see the new value.
 
-**Not verified: the Redis store against a real server.** This environment has
-no Redis and the package is not installed, so the wire format, the connection
-handling and the client's own `WatchError` type are unexercised. The fake
-reproduces the semantics the code depends on, which is better than asserting
-nothing and weaker than the real thing. That check is owed the first time a
-deployment sets `REDIS_URL`.
+The Factor Lab lifecycle is additionally tested for stale-owner reclaim, fresh
+owner joining, token isolation, monotonic progress, bounded threads, deadline
+abandonment, failure cooldown and successful result reuse.
+
+The fake Redis tests reproduce optimistic locking and retry semantics. A real
+Redis verification result belongs in the final completion audit for the build
+that was actually tested; it must not be inferred from the fake.
+
+**Real-server result, run on 2026-09-18** (`redis 8.10.2`, ephemeral local
+instance, no persistence): `REDIS_URL` correctly selected `RedisJobStore`;
+`put`/`get`/`delete` round-tripped; and — the property that actually matters —
+eight real Python threads hammering one key through `mutate()` with no delay
+between attempts never produced a torn or partially-written record. Every
+successful write was a complete, self-consistent dict, exactly as `WATCH`/
+`MULTI`/`EXEC` promises.
+
+Under that same extreme, artificial load (no realistic Factor Lab call
+produces 8 threads in a tight loop on one key — the heartbeat is one thread
+per job at a 5s cadence, and cross-worker contention on one exact
+`(universe, years, horizon)` key at the same instant is the rare case, not the
+steady state) most callers exhausted `MAX_MUTATE_ATTEMPTS` and received
+`JobStoreUnavailable`, which `run()` turns into `{"status": "error",
+"retryable": True}` rather than a lost update or a 500. That is the bound
+working as designed — "worth reporting rather than retrying forever" — and it
+is now confirmed against a real server rather than assumed from the fake.
+
+Not run: a two-process test (two separate OS processes, or two Render
+workers) claiming the same key against one shared real Redis. The in-thread
+test above exercises the same `mutate` code path a second process would use,
+but a genuinely separate process is the check `RENDER_SETUP.md`'s
+verification step 5 still asks for the first time `REDIS_URL` is configured
+in production.
