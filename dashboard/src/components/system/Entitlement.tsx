@@ -26,7 +26,7 @@
  * rather than guess.
  */
 
-import { useUser } from '@clerk/nextjs'
+import { useAuth, useUser } from '@clerk/nextjs'
 import {
   createContext, useCallback, useContext, useEffect, useMemo, useState,
   type ReactNode,
@@ -34,7 +34,7 @@ import {
 
 import Toasts from '@/components/ui/Toasts'
 import UpgradeDialog from '@/components/terminal/UpgradeDialog'
-import { syncProfile } from '@/lib/persistence'
+import { clearAuthSession, configureAuthSession, syncProfile } from '@/lib/persistence'
 import { useTodayCount } from '@/lib/usage'
 
 export interface EntitlementValue {
@@ -55,10 +55,32 @@ const Ctx = createContext<EntitlementValue | null>(null)
 
 export function EntitlementProvider({ children }: { children: ReactNode }) {
   const { user, isLoaded } = useUser()
+  const {
+    getToken,
+    isLoaded: isAuthLoaded,
+    isSignedIn,
+    sessionId,
+    userId,
+  } = useAuth()
   const usedToday = useTodayCount()
   const [upgrade, setUpgrade] = useState<{ open: boolean; reason?: 'limit' | 'feature' }>({ open: false })
 
   const isPro = (user?.publicMetadata?.isPro as boolean) ?? false
+
+  // API modules cannot call React hooks. Register Clerk's supported token
+  // accessor once it has resolved. authFetch waits for this registration, so
+  // a child effect cannot race Clerk. This removes the old dependency on an
+  // undocumented window.Clerk global.
+  useEffect(() => {
+    if (!isAuthLoaded) return
+    configureAuthSession({
+      scope: sessionId ?? userId ?? null,
+      getToken: isSignedIn ? getToken : async () => null,
+    })
+    return () => {
+      clearAuthSession()
+    }
+  }, [getToken, isAuthLoaded, isSignedIn, sessionId, userId])
 
   // Best-effort, once per browser session. A failure here changes nothing the
   // reader can see, so it is not surfaced.

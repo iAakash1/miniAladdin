@@ -11,6 +11,45 @@ interface ClerkGlobal {
   user?: { id?: string } | null
 }
 
+interface AuthSessionSource {
+  scope: string | null
+  getToken: () => Promise<string | null>
+}
+
+/*
+ * @clerk/nextjs owns the browser Clerk instance and does not promise a
+ * window.Clerk global. Authenticated route layouts register the supported
+ * useAuth() accessor here before rendering API consumers. The global remains
+ * only as a compatibility fallback for isolated tests and older embeds.
+ */
+let authSessionSource: AuthSessionSource | null = null
+const authSessionWaiters = new Set<(source: AuthSessionSource) => void>()
+
+export function configureAuthSession(source: AuthSessionSource): void {
+  authSessionSource = source
+  for (const resolve of authSessionWaiters) resolve(source)
+  authSessionWaiters.clear()
+}
+
+export function clearAuthSession(): void {
+  authSessionSource = null
+}
+
+async function waitForAuthSession(): Promise<AuthSessionSource | null> {
+  if (authSessionSource) return authSessionSource
+  return new Promise((resolve) => {
+    const onReady = (source: AuthSessionSource) => {
+      clearTimeout(timeout)
+      resolve(source)
+    }
+    const timeout = setTimeout(() => {
+      authSessionWaiters.delete(onReady)
+      resolve(null)
+    }, 10_000)
+    authSessionWaiters.add(onReady)
+  })
+}
+
 function clerkGlobal(): ClerkGlobal | undefined {
   if (typeof window === 'undefined') return undefined
   return (window as unknown as { Clerk?: ClerkGlobal }).Clerk
@@ -19,8 +58,11 @@ function clerkGlobal(): ClerkGlobal | undefined {
 async function sessionToken(): Promise<string | null> {
   if (typeof window === 'undefined') return null
   try {
+    if (authSessionSource) return await authSessionSource.getToken()
     const clerk = clerkGlobal()
-    return (await clerk?.session?.getToken()) ?? null
+    if (clerk?.session) return (await clerk.session.getToken()) ?? null
+    const source = await waitForAuthSession()
+    return (await source?.getToken()) ?? null
   } catch {
     return null
   }
@@ -35,6 +77,7 @@ async function sessionToken(): Promise<string | null> {
  * than placing private data under a URL-only key.
  */
 export function authSessionScope(): string | null {
+  if (authSessionSource) return authSessionSource.scope
   const clerk = clerkGlobal()
   return clerk?.session?.id ?? clerk?.user?.id ?? null
 }

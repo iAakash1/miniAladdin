@@ -2,6 +2,7 @@ import { strict as assert } from 'node:assert'
 import test, { beforeEach } from 'node:test'
 
 import { clearAuthResourceCache, readAuthResource } from '../src/lib/auth-resource'
+import { clearAuthSession, configureAuthSession } from '../src/lib/persistence'
 import {
   cancelOrder,
   fetchPaperAccess,
@@ -65,8 +66,25 @@ beforeEach(() => {
   token = 'token-a'
   calls = []
   clearResourceCache()
+  clearAuthSession()
   installClerk()
   installFetch()
+})
+
+test('a protected read waits for the Clerk hook bridge when no global exists', async () => {
+  Object.defineProperty(globalThis, 'window', {
+    configurable: true,
+    value: {},
+  })
+  const pending = readAuthResource('/api/paper/access', 'snapshot')
+  configureAuthSession({
+    scope: 'session-bridge',
+    getToken: async () => 'token-bridge',
+  })
+
+  await pending
+
+  assert.equal(calls[0]?.authorization, 'Bearer token-bridge')
 })
 
 test('authenticated reads retain single-flight and TTL behavior within one session', async () => {

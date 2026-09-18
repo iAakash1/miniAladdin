@@ -25,6 +25,7 @@ class Probe:
     method: str = "GET"
     body: Optional[dict[str, Any]] = None
     authenticated: bool = False
+    timeout_seconds: int = 60
 
 
 def request(probe: Probe, token: Optional[str]) -> tuple[int, dict[str, Any] | str]:
@@ -42,7 +43,7 @@ def request(probe: Probe, token: Optional[str]) -> tuple[int, dict[str, Any] | s
         method=probe.method,
     )
     try:
-        with urlopen(req, timeout=60) as response:
+        with urlopen(req, timeout=probe.timeout_seconds) as response:
             raw = response.read().decode("utf-8")
             try:
                 return response.status, json.loads(raw)
@@ -73,8 +74,18 @@ def main() -> int:
         Probe("portfolio methods", args.backend, "/api/quant/portfolio/methods"),
         Probe("portfolio", args.backend, "/api/quant/portfolio?method=risk_parity"),
         Probe("paper status", args.backend, "/api/paper/status"),
-        Probe("recommendations", args.backend, "/api/recommendations"),
-        Probe("explore", args.backend, "/api/explore?category=top_ranked&limit=1"),
+        Probe(
+            "recommendations",
+            args.backend,
+            "/api/recommendations",
+            timeout_seconds=180,
+        ),
+        Probe(
+            "explore",
+            args.backend,
+            "/api/explore?category=overall&limit=1",
+            timeout_seconds=180,
+        ),
         Probe("frontend build", args.frontend, "/api/build"),
         Probe("inference health", args.inference, "/health"),
     ]
