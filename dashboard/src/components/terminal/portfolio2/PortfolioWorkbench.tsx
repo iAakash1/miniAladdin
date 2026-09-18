@@ -48,6 +48,11 @@ interface Payload {
   units?: string
   disclaimer?: string
   note?: string
+  message?: string
+  detail?: string
+  reason?: string
+  remedy?: string
+  required_artifact?: string
 }
 
 export default function PortfolioWorkbench() {
@@ -98,6 +103,22 @@ export default function PortfolioWorkbench() {
           <TableSkeleton rows={10} columns={5} />
         </Panel>
       </>
+    )
+  }
+
+  if (data.status !== 'ok') {
+    return (
+      <Panel title="Book" state="unavailable">
+        <StateBlock
+          state="unavailable"
+          title="Portfolio artifact not available"
+          detail={data.message ?? data.detail ?? 'The portfolio could not be constructed from deployed research artifacts.'}
+          requires={data.required_artifact ? [data.required_artifact] : undefined}
+        >
+          {data.remedy ? <Prose size="tight">{data.remedy}</Prose> : null}
+          {data.reason ? <p className="sys-meta">Reason: {data.reason}</p> : null}
+        </StateBlock>
+      </Panel>
     )
   }
 

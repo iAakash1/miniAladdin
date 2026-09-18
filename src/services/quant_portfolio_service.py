@@ -21,6 +21,7 @@ without the inference service and without the 14 GB research dataset.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import threading
@@ -32,7 +33,11 @@ import pandas as pd
 
 logger = logging.getLogger("omnisignal.services.quant_portfolio")
 
-EXPERIMENTS = Path("experiments")
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+EXPERIMENTS = REPOSITORY_ROOT / "experiments"
+RUNTIME_ARTIFACTS = REPOSITORY_ROOT / "artifacts" / "runtime" / "portfolio"
+RUNTIME_SCHEMA_VERSION = 1
+REQUIRED_PREDICTION_COLUMNS = frozenset({"date", "symbol", "model", "prediction"})
 
 #: Cached because the parquet is 10 MB and the artifact is immutable.
 _cache: dict[str, Any] = {}
@@ -43,16 +48,119 @@ _lock = threading.Lock()
 DEFAULT_BOOK_SIZE = 50
 
 
-def _predictions(experiment_id: str, target: str) -> Optional[pd.DataFrame]:
-    path = EXPERIMENTS / experiment_id / f"predictions_{target}.parquet"
+class PortfolioUnavailable(RuntimeError):
+    """A known operational condition that is safe to show as availability."""
+
+    def __init__(
+        self,
+        reason: str,
+        message: str,
+        *,
+        remedy: Optional[str] = None,
+        **detail: Any,
+    ) -> None:
+        super().__init__(message)
+        self.reason = reason
+        self.message = message
+        self.remedy = remedy
+        self.safe_detail = detail
+
+    def payload(self) -> dict[str, Any]:
+        body: dict[str, Any] = {
+            "status": "unavailable",
+            "reason": self.reason,
+            # `detail` remains a sentence for existing UI callers. Structured
+            # facts live alongside it and never include an absolute path.
+            "detail": self.message,
+            "message": self.message,
+            "remedy": self.remedy,
+        }
+        body.update(self.safe_detail)
+        return body
+
+
+def _runtime_artifact(experiment_id: str, target: str, model_id: str) -> Path:
+    return RUNTIME_ARTIFACTS / experiment_id / target / f"{model_id}.parquet"
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _validate_runtime_metadata(path: Path) -> None:
+    metadata_path = path.with_suffix(".json")
+    try:
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise PortfolioUnavailable(
+            "ARTIFACT_METADATA_INVALID",
+            "The deployed portfolio artifact has no readable provenance metadata.",
+            remedy="Re-export the runtime portfolio artifact.",
+            required_artifact=path.name,
+        ) from exc
+
+    if metadata.get("schema_version") != RUNTIME_SCHEMA_VERSION:
+        raise PortfolioUnavailable(
+            "ARTIFACT_SCHEMA_INCOMPATIBLE",
+            "The deployed portfolio artifact uses an unsupported schema version.",
+            remedy="Re-export the runtime portfolio artifact with this release.",
+            required_artifact=path.name,
+        )
+    expected_hash = metadata.get("artifact_sha256")
+    if not isinstance(expected_hash, str) or _sha256(path) != expected_hash:
+        raise PortfolioUnavailable(
+            "ARTIFACT_INTEGRITY_FAILED",
+            "The deployed portfolio artifact does not match its recorded content hash.",
+            remedy="Replace it with a verified runtime export.",
+            required_artifact=path.name,
+        )
+
+
+def _predictions(
+    experiment_id: str,
+    target: str,
+    model_id: Optional[str] = None,
+) -> Optional[pd.DataFrame]:
+    runtime = _runtime_artifact(experiment_id, target, model_id) if model_id else None
+    legacy = EXPERIMENTS / experiment_id / f"predictions_{target}.parquet"
+    path = runtime if runtime is not None and runtime.exists() else legacy
     if not path.exists():
         return None
-    key = f"{path}:{path.stat().st_mtime}"
+
+    if runtime is not None and path == runtime:
+        _validate_runtime_metadata(path)
+
+    key = f"{path}:{path.stat().st_mtime_ns}:{path.stat().st_size}"
     with _lock:
         hit = _cache.get(key)
     if hit is not None:
         return hit
-    frame = pd.read_parquet(path)
+    try:
+        frame = pd.read_parquet(path)
+    except (ImportError, OSError, ValueError) as exc:
+        logger.warning("portfolio artifact unreadable: %s", type(exc).__name__)
+        raise PortfolioUnavailable(
+            "ARTIFACT_UNREADABLE",
+            "The deployed portfolio artifact could not be read by this runtime.",
+            remedy="Re-export the artifact and verify the Parquet runtime dependency.",
+            required_artifact=path.name,
+        ) from exc
+
+    missing = REQUIRED_PREDICTION_COLUMNS.difference(frame.columns)
+    if target not in frame.columns:
+        missing = set(missing) | {target}
+    if missing:
+        raise PortfolioUnavailable(
+            "ARTIFACT_SCHEMA_INCOMPATIBLE",
+            "The deployed portfolio artifact does not match the required prediction schema.",
+            remedy="Re-export the runtime portfolio artifact with this release.",
+            required_artifact=path.name,
+            missing_columns=sorted(missing),
+        )
     with _lock:
         _cache.clear()
         _cache[key] = frame
@@ -67,7 +175,7 @@ def _panel(experiment_id: str, target: str, model_id: str) -> Optional[pd.DataFr
     units and the payload says so — a "volatility" computed here is rank
     dispersion, not annualised return volatility.
     """
-    frame = _predictions(experiment_id, target)
+    frame = _predictions(experiment_id, target, model_id)
     if frame is None:
         return None
     block = frame[frame["model"] == model_id]
@@ -153,45 +261,84 @@ def build(
     book_size: int = DEFAULT_BOOK_SIZE,
 ) -> dict[str, Any]:
     """Construct a book from the most recent predictions and measure it."""
-    from src.quant.backtest.costs import SimpleCostModel
-    from src.quant.portfolio.optimizer import Constraints, apply_constraints, optimize
-    from src.quant.risk import engine as risk
-
-    frame = _predictions(experiment_id, target)
+    required_name = f"{model_id}.parquet"
+    try:
+        frame = _predictions(experiment_id, target, model_id)
+    except PortfolioUnavailable as exc:
+        return exc.payload()
     if frame is None:
-        return {
-            "status": "unavailable",
-            "detail": f"no predictions artifact for {experiment_id}/{target}",
-            "remedy": "Run the experiment, or select one that has completed.",
-        }
+        return PortfolioUnavailable(
+            "ARTIFACT_NOT_DEPLOYED",
+            "The compact portfolio runtime artifact is not deployed for this experiment and model.",
+            remedy="Export and deploy the versioned runtime portfolio artifact.",
+            required_artifact=required_name,
+            experiment_id=experiment_id,
+            model_id=model_id,
+            target=target,
+        ).payload()
 
     block = frame[frame["model"] == model_id]
     if block.empty:
-        return {"status": "unavailable", "detail": f"no predictions for {model_id}"}
+        return PortfolioUnavailable(
+            "MODEL_NOT_DEPLOYED",
+            "The deployed portfolio artifact does not contain the requested model.",
+            remedy="Select a deployed model or export its runtime artifact.",
+            required_artifact=required_name,
+            model_id=model_id,
+        ).payload()
 
     as_of = block["date"].max()
     latest = block[block["date"] == as_of].dropna(subset=["prediction"])
     if len(latest) < book_size * 2:
-        return {
-            "status": "unavailable",
-            "detail": f"only {len(latest)} names on {as_of}; need {book_size * 2}",
-        }
+        return PortfolioUnavailable(
+            "INSUFFICIENT_NAMES",
+            "The latest prediction cross-section is too small to build this book honestly.",
+            names=int(len(latest)),
+            required_names=int(book_size * 2),
+            as_of=str(as_of),
+        ).payload()
 
     ranked = latest.sort_values("prediction")
     shorts = ranked.head(book_size)["symbol"].tolist()
     longs = ranked.tail(book_size)["symbol"].tolist()
     selected = longs if long_only else longs + shorts
 
-    panel = _panel(experiment_id, target, model_id)
+    try:
+        panel = _panel(experiment_id, target, model_id)
+    except PortfolioUnavailable as exc:
+        return exc.payload()
     if panel is None or panel.empty:
-        return {"status": "unavailable", "detail": "could not build a covariance panel"}
+        return PortfolioUnavailable(
+            "COVARIANCE_UNAVAILABLE",
+            "The deployed artifact cannot supply a covariance history for this model.",
+        ).payload()
     usable = [s for s in selected if s in panel.columns]
     if len(usable) < 10:
-        return {
-            "status": "unavailable",
-            "detail": f"only {len(usable)} selected names have enough history for covariance",
-        }
+        return PortfolioUnavailable(
+            "INSUFFICIENT_COVARIANCE_NAMES",
+            "Too few selected names have enough overlapping history for covariance.",
+            names=int(len(usable)),
+            required_names=10,
+        ).payload()
     sub = panel[usable]
+
+    # These imports are needed only when a deployable artifact exists. Keeping
+    # them after the availability checks lets a tracked-files-only deployment
+    # answer ARTIFACT_NOT_DEPLOYED even if an optional numerical dependency is
+    # broken, while requirements.txt still installs SciPy for a working book.
+    try:
+        from src.quant.backtest.costs import SimpleCostModel
+        from src.quant.portfolio.optimizer import Constraints, apply_constraints, optimize
+        from src.quant.risk import engine as risk
+    except ModuleNotFoundError as exc:
+        if exc.name == "scipy" or (exc.name or "").startswith("scipy."):
+            logger.error("portfolio runtime dependency missing: scipy")
+            return PortfolioUnavailable(
+                "RUNTIME_DEPENDENCY_MISSING",
+                "The portfolio numerical runtime is not installed on this deployment.",
+                remedy="Install the pinned runtime dependencies and redeploy.",
+            ).payload()
+        raise
 
     # A signal-tilted book: the optimiser sizes risk, the sign comes from the
     # model's own ranking. Sign and size are separate decisions, deliberately.
@@ -203,12 +350,20 @@ def build(
         max_turnover=max_turnover,
         net_target=None if long_only else 0.0,
     )
-    allocation = optimize(
-        method,
-        returns=sub,
-        expected=expected,
-        constraints=constraints,
-    )
+    try:
+        allocation = optimize(
+            method,
+            returns=sub,
+            expected=expected,
+            constraints=constraints,
+        )
+    except (ValueError, np.linalg.LinAlgError) as exc:
+        logger.info("portfolio allocation unavailable: %s", type(exc).__name__)
+        return PortfolioUnavailable(
+            "ALLOCATOR_INFEASIBLE",
+            "The selected allocator could not produce a valid book from this covariance input.",
+            method=method,
+        ).payload()
     if not long_only and method != "mean_variance":
         # Apply the model's direction to a risk-sized book, then re-neutralise.
         sign = pd.Series(
@@ -229,6 +384,14 @@ def build(
             allocation.violations = violations
             allocation.feasible = not violations
             allocation.notes.extend(notes)
+
+    if not allocation.feasible:
+        return PortfolioUnavailable(
+            "ALLOCATOR_INFEASIBLE",
+            "The selected allocator could not satisfy the requested portfolio constraints.",
+            method=method,
+            violations=list(allocation.violations),
+        ).payload()
 
     weights = allocation.weights
     cov = risk.covariance_matrix(sub)

@@ -1,0 +1,22 @@
+{
+  "artifact_sha256": "f94c8a7f94fce7b1222fcfdefbc6a0074a6817801a7d7bc852556b68b5d876b3",
+  "columns": [
+    "date",
+    "symbol",
+    "fwd_rank_21",
+    "prediction",
+    "model"
+  ],
+  "end": "2025-05-09",
+  "experiment_id": "EXP-006",
+  "model_id": "gradient_boosting",
+  "rows": 100246,
+  "schema_version": 1,
+  "semantics": "Frozen out-of-sample cross-sectional ranks from the named experiment; prediction is a rank signal and the target is not a return.",
+  "source_artifact": "predictions_fwd_rank_21.parquet",
+  "source_artifact_sha256": "d7616f54c3f65f74558c9d186640c9fab123acff99cd95525e43dabc13eea747",
+  "source_experiment_config_sha256": "b42cb96fddc4d630f55f73a77767bfa38c68036b6dc16d952c1d0a11194952ca",
+  "start": "2017-05-05",
+  "symbols": 754,
+  "target": "fwd_rank_21"
+}

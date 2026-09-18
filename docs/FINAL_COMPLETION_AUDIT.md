@@ -77,6 +77,10 @@ were removed.
 Paper E2E stops at the broker preview. Placement always requires the second,
 explicit `place paper order` action.
 
+The 2026-09-18 Paper-auth and Book-runtime incidents, their exact root causes,
+cache isolation contract, deployable EXP-006 artifact and regression coverage
+are recorded in `PRODUCTION_INCIDENTS_2026-09-18.md`.
+
 ## Models root-cause fix
 
 The experiment artifact was populated. The apparent all-dash repetition came
@@ -207,4 +211,3 @@ Genuine operational gaps, stated rather than closed by declaration:
   Whether the pushed commit has actually deployed is a separate, later
   verification — a git push landing on `origin/main` does not mean Render or
   Vercel has finished redeploying from it.
-
