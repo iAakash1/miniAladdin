@@ -1,9 +1,9 @@
-"""One scorecard, two presentations.
+"""One scorecard, three presentations.
 
-Beginner and Advanced are presentation modes. The property that makes that
+Beginner, Intermediate and Advanced are presentation modes. The property that makes that
 claim true rather than aspirational is structural: `experience_mode` is stored
 in user preferences, read by the frontend to decide what to draw, and never
-reaches a scoring path at all. If it ever did, the two modes would become two
+reaches a scoring path at all. If it ever did, the modes would become separate
 models wearing one name, and a reader switching modes could watch a verdict
 change underneath them.
 
@@ -47,7 +47,7 @@ def test_the_scoring_engine_has_no_experience_mode_parameter():
     import re
 
     signature = inspect.signature(engine.score_ticker)
-    forbidden = re.compile(r"\b(experience|beginner|advanced|presentation)\b|(^|_)mode(_|$)")
+    forbidden = re.compile(r"\b(experience|beginner|intermediate|advanced|presentation)\b|(^|_)mode(_|$)")
     for name in signature.parameters:
         assert not forbidden.search(name.lower()), name
 
@@ -72,7 +72,7 @@ def test_the_preferences_allowlist_is_the_only_writer_of_the_mode():
         _ALLOWED_EXPERIENCE_MODES, _ALLOWED_FIELDS,
     )
     assert "experience_mode" in _ALLOWED_FIELDS
-    assert _ALLOWED_EXPERIENCE_MODES == {"beginner", "advanced"}
+    assert _ALLOWED_EXPERIENCE_MODES == {"beginner", "intermediate", "advanced"}
 
 
 # ── the verdict is carried, never recomputed ─────────────────────────────────

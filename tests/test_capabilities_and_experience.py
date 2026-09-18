@@ -189,6 +189,16 @@ def test_experience_mode_round_trips(client_as, store):
         assert client.get("/api/me/capabilities").json()["experience_mode"] == "advanced"
 
 
+def test_intermediate_experience_mode_round_trips(client_as, store):
+    with client_as(USER_A) as client:
+        client.patch("/api/preferences", json={"experience_mode": "intermediate"})
+        body = client.get("/api/me/capabilities").json()
+
+    assert body["experience_mode"] == "intermediate"
+    assert body["role"] == "user"
+    assert "view_admin_diagnostics" not in body["permissions"]
+
+
 @pytest.mark.parametrize("bogus", ["expert", "BEGINNER", "pro", "admin", "", "null"])
 def test_an_unsupported_experience_mode_is_rejected(client_as, store, bogus):
     with client_as(USER_A) as client:

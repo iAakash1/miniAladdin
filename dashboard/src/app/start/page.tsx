@@ -24,7 +24,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 
 import ExperienceChooser from '@/components/beginner/ExperienceChooser'
-import { useCapabilities } from '@/lib/capabilities'
+import { experienceHome, useCapabilities } from '@/lib/capabilities'
 
 export default function StartPage() {
   const router = useRouter()
@@ -37,7 +37,7 @@ export default function StartPage() {
       return
     }
     if (!caps.experience_mode_chosen) return
-    router.replace(caps.experience_mode === 'beginner' ? '/beginner' : '/terminal/command')
+    router.replace(experienceHome(caps.experience_mode))
   }, [caps, resolved, router])
 
   if (!resolved) {

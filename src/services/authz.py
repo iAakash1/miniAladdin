@@ -9,7 +9,7 @@ Three dimensions are kept deliberately separate, because collapsing any pair
 of them is a security bug waiting for a product decision to trigger it:
 
     ROLE          USER | ADMIN          what you may do
-    EXPERIENCE    BEGINNER | ADVANCED   how the interface is drawn
+    EXPERIENCE    BEGINNER | INTERMEDIATE | ADVANCED   how the interface is drawn
     ENTITLEMENT   FREE | PRO            what you have paid for
 
 An ADVANCED user is not an administrator. A PRO subscriber is not an
@@ -64,6 +64,7 @@ class Permission(str, Enum):
     # Everyone signed in
     ANALYZE = "analyze"
     USE_BEGINNER = "use_beginner"
+    USE_INTERMEDIATE = "use_intermediate"
     USE_ADVANCED = "use_advanced"
     USE_EXPLORE = "use_explore"
     MANAGE_OWN_WATCHLISTS = "manage_own_watchlists"
@@ -83,6 +84,7 @@ class Permission(str, Enum):
 _USER_PERMISSIONS: frozenset[Permission] = frozenset({
     Permission.ANALYZE,
     Permission.USE_BEGINNER,
+    Permission.USE_INTERMEDIATE,
     Permission.USE_ADVANCED,
     Permission.USE_EXPLORE,
     Permission.MANAGE_OWN_WATCHLISTS,

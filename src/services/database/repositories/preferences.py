@@ -8,7 +8,7 @@ _ALLOWED_THEMES = {"light", "dark"}
 #: Presentation only. This value must never be consulted for authorization or
 #: entitlement — it decides how much of the same analysis is drawn, nothing
 #: about what the caller may reach.
-_ALLOWED_EXPERIENCE_MODES = {"beginner", "advanced"}
+_ALLOWED_EXPERIENCE_MODES = {"beginner", "intermediate", "advanced"}
 #: What a user may change about themselves. `role` is deliberately absent:
 #: there is no client path that writes it.
 _ALLOWED_FIELDS = {

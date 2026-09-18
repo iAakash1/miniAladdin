@@ -9,7 +9,7 @@
  * should produce a prompt. Keying off the mode alone would re-ask every
  * advanced user on every visit.
  *
- * Neither option is a tier and neither is a role. The same analysis, the same
+ * No option is a tier or a role. The same analysis, the same
  * verdict and the same permissions sit behind both — only the density of what
  * is drawn differs, which is why the copy describes presentation rather than
  * capability.
@@ -19,7 +19,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 import { Panel, Prose } from '@/components/system'
-import { type ExperienceMode, setExperienceMode } from '@/lib/capabilities'
+import { experienceHome, type ExperienceMode, setExperienceMode } from '@/lib/capabilities'
 
 export default function ModeChooser({ onChosen }: { onChosen?: (m: ExperienceMode) => void }) {
   const router = useRouter()
@@ -38,7 +38,7 @@ export default function ModeChooser({ onChosen }: { onChosen?: (m: ExperienceMod
       return
     }
     onChosen?.(mode)
-    router.push(mode === 'beginner' ? '/beginner' : '/terminal')
+    router.push(experienceHome(mode))
   }
 
   return (
@@ -46,6 +46,22 @@ export default function ModeChooser({ onChosen }: { onChosen?: (m: ExperienceMod
       <Prose>How would you like OmniSignal to explain markets?</Prose>
 
       <div className="bg__modes">
+        <button
+          type="button"
+          className="bg__mode"
+          onClick={() => void choose('intermediate')}
+          disabled={saving !== null}
+        >
+          <span className="bg__mode-title">Intermediate</span>
+          <span className="bg__mode-body">
+            Factor, valuation, performance and evidence summaries without the
+            full research-lab surface.
+          </span>
+          <span className="bg__mode-cta">
+            {saving === 'intermediate' ? 'Saving…' : 'Start with Intermediate'}
+          </span>
+        </button>
+
         <button
           type="button"
           className="bg__mode"

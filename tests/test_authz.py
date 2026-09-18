@@ -85,10 +85,11 @@ def test_an_administrator_keeps_every_user_capability():
     assert authz.permissions_for(Role.USER) <= authz.permissions_for(Role.ADMIN)
 
 
-def test_both_experience_modes_are_open_to_an_ordinary_user():
+def test_all_experience_modes_are_open_to_an_ordinary_user():
     """Experience mode is presentation. It is not a tier and not a role, so
-    neither mode may be gated behind one."""
+    no mode may be gated behind one."""
     assert authz.has_permission(Role.USER, Permission.USE_BEGINNER)
+    assert authz.has_permission(Role.USER, Permission.USE_INTERMEDIATE)
     assert authz.has_permission(Role.USER, Permission.USE_ADVANCED)
 
 

@@ -19,12 +19,13 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useState, type ReactNode } from 'react'
 
 import { setExperienceMode } from '@/lib/capabilities'
+import ModeSwitch from '@/components/beginner/ModeSwitch'
 
 const DESTINATIONS: Array<{ href: string; label: string; glyph: string }> = [
   { href: '/beginner', label: 'Home', glyph: '◆' },
   { href: '/explore', label: 'Explore', glyph: '⊞' },
-  { href: '/terminal/watchlists', label: 'Watchlist', glyph: '★' },
-  { href: '/terminal/portfolio', label: 'Portfolio', glyph: '▦' },
+  { href: '/beginner/watchlist', label: 'Watchlist', glyph: '★' },
+  { href: '/beginner/portfolio', label: 'Portfolio', glyph: '▦' },
   { href: '/learn', label: 'Learn', glyph: '?' },
 ]
 
@@ -71,6 +72,7 @@ export default function SimpleShell({
 
         <div className="wb-group">
           <div className="sys-label wb-group-label">Experience</div>
+          <ModeSwitch to="intermediate" />
           <button type="button" className="bg__switch" onClick={() => void toAdvanced()} disabled={switching}>
             {switching ? 'Switching…' : 'Switch to Advanced'}
           </button>

@@ -17,7 +17,7 @@ import { useEffect, useState } from 'react'
 import { authFetch } from '@/lib/persistence'
 
 export type Role = 'user' | 'admin'
-export type ExperienceMode = 'beginner' | 'advanced'
+export type ExperienceMode = 'beginner' | 'intermediate' | 'advanced'
 
 export interface Capabilities {
   role: Role
@@ -46,7 +46,9 @@ export async function fetchCapabilities(): Promise<Capabilities | null> {
     const res = await authFetch('/api/me/capabilities')
     if (!res.ok) return null
     const body = (await res.json()) as Partial<Capabilities>
-    const mode = body.experience_mode === 'beginner' ? 'beginner' : 'advanced'
+    const mode: ExperienceMode = body.experience_mode === 'beginner'
+      ? 'beginner'
+      : body.experience_mode === 'intermediate' ? 'intermediate' : 'advanced'
     return {
       role: body.role === 'admin' ? 'admin' : 'user',
       permissions: Array.isArray(body.permissions) ? body.permissions : [],
@@ -69,6 +71,13 @@ export async function setExperienceMode(mode: ExperienceMode): Promise<boolean> 
   } catch {
     return false
   }
+}
+
+/** Canonical landing page for each presentation mode. */
+export function experienceHome(mode: ExperienceMode): string {
+  if (mode === 'beginner') return '/beginner'
+  if (mode === 'intermediate') return '/intermediate'
+  return '/terminal/command'
 }
 
 export function hasPermission(caps: Capabilities | null, permission: string): boolean {

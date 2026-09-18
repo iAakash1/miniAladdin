@@ -11,8 +11,8 @@
  * The question is about how much detail the reader wants, not about how much
  * they know. Someone can understand markets perfectly well and still want the
  * short version, so the copy asks about detail and never labels the person.
- * The internal enum stays BEGINNER/ADVANCED because that is what the API and
- * the database call it.
+ * The stored values are BEGINNER / INTERMEDIATE / ADVANCED. They describe
+ * presentation density only and never imply role or entitlement.
  *
  * This is presentation only. Whichever is chosen, the same engine produces the
  * same verdict, the same confidence and the same risk for the same evidence —
@@ -22,7 +22,7 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
-import { type ExperienceMode, setExperienceMode } from '@/lib/capabilities'
+import { experienceHome, type ExperienceMode, setExperienceMode } from '@/lib/capabilities'
 
 const OPTIONS: Array<{
   mode: ExperienceMode
@@ -48,6 +48,23 @@ const OPTIONS: Array<{
       'How complete and fresh the evidence is',
     ],
     cta: 'Use Simple Mode',
+  },
+  {
+    mode: 'intermediate',
+    name: 'Intermediate',
+    tagline: 'Give me the analysis without the research-lab complexity.',
+    body:
+      'The same signal with factor scores, valuation, profitability, market '
+      + 'evidence and portfolio context — without the full experiment archive.',
+    points: [
+      'Everything in Simple',
+      'Factor, momentum and performance summaries',
+      'Valuation, profitability and analyst evidence',
+      'News, comparisons and evidence health',
+      'Watchlist changes and portfolio insights',
+      'A concise summary of the research checks',
+    ],
+    cta: 'Use Intermediate Mode',
   },
   {
     mode: 'advanced',
@@ -85,7 +102,7 @@ export default function ExperienceChooser({ onChosen }: { onChosen?: () => void 
       return
     }
     onChosen?.()
-    router.push(mode === 'beginner' ? '/beginner' : '/terminal/command')
+    router.push(experienceHome(mode))
   }
 
   return (
@@ -94,7 +111,7 @@ export default function ExperienceChooser({ onChosen }: { onChosen?: () => void 
         <p className="xc__brand">OMNISIGNAL</p>
         <h1 className="xc__title">How much detail would you like to see?</h1>
         <p className="xc__sub">
-          Both give you the same analysis. They differ in how much of the working
+          Every mode gives you the same analysis. They differ in how much of the working
           is shown.
         </p>
 

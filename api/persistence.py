@@ -93,7 +93,7 @@ class PreferencesPatchBody(BaseModel):
     theme: Optional[str] = None
     default_watchlist: Optional[str] = None
     default_analysis_horizon: Optional[str] = Field(default=None, max_length=60)
-    #: "beginner" | "advanced". Presentation only — the repository drops any
+    #: "beginner" | "intermediate" | "advanced". Presentation only — the repository drops any
     #: other value, and nothing here touches authorization or entitlement.
     experience_mode: Optional[str] = None
 
@@ -340,7 +340,7 @@ def get_capabilities(
         except Exception:  # noqa: BLE001 — navigation must survive a db fault
             logger.exception("preference lookup failed; using the default experience")
             stored = None
-        if stored in ("beginner", "advanced"):
+        if stored in ("beginner", "intermediate", "advanced"):
             experience_mode = stored
             chosen = True
 
