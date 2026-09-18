@@ -85,3 +85,30 @@ Unexpected programming failures are not blanket-caught.
   Paper status, recommendations, Explore, frontend build and inference health.
   With `CLERK_SMOKE_TOKEN`, it additionally performs protected Paper reads and
   preview only. It never submits or cancels an order and never prints the token.
+
+## Status of the reported 403 (owner allowlist)
+
+Everything above — the authentication bridge, the cache-isolation fix, the
+consolidated access-state UX, and `configured_owners()`'s comma-separated
+parsing (including whitespace and duplicate handling) — is verified: read by
+inspection, covered by tests added specifically to reproduce this incident's
+shape (`test_a_caller_not_on_the_current_allowlist_is_refused` and its
+restoration counterpart in `tests/test_paper_authorization.py`), and
+confirmed passing in two consecutive full backend runs.
+
+**Not verified, and not something a coding session can verify on its own:**
+whether the *currently deployed* `PAPER_TRADING_OWNERS` value actually
+contains the operator's real, current Clerk `sub`. That requires reading the
+live Render environment variable and the operator's actual signed-in token —
+neither reachable from this environment (no Render API/CLI credential, no
+authenticated browser session). `GET /api/health` confirms the live backend
+is serving a recent commit; `GET /api/paper/status` confirms an allowlist is
+configured (`access.enabled: true`) without revealing who is on it — neither
+call can say whether the *right* id is on it.
+
+**To close this out:** the operator should open the deployed frontend while
+signed in, get their own `sub` (Clerk's `useAuth()` in the running app, or
+the JWT's decoded `sub` claim — never logged or pasted anywhere in this
+repository), compare it against Render's `PAPER_TRADING_OWNERS`, and correct
+that one environment variable if it does not match. No code change is
+expected to be required for that step; the code path is verified above.
