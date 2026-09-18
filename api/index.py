@@ -3322,6 +3322,18 @@ def paper_status():
     }
 
 
+@app.get("/api/paper/access")
+def paper_access(_trader: str = Depends(require_paper_trader)):
+    """Authenticate and authorize the caller without touching Alpaca.
+
+    The Paper workspace calls this once before its account/positions/orders
+    fan-out. A signed-out or non-owner session therefore produces one coherent
+    access state rather than three duplicate failures. Owner ids and broker
+    credentials never enter the response.
+    """
+    return {"authenticated": True, "authorized": True, "environment": "paper"}
+
+
 def _paper_client():
     from src.broker.alpaca_paper import AlpacaPaper, BrokerMisconfigured
     try:

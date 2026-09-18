@@ -146,6 +146,30 @@ def test_the_named_operator_reaches_the_broker(client, method, path, body):
     assert build.call_count >= 1, "the operator's request never reached the broker"
 
 
+def test_access_probe_uses_the_same_authentication_and_owner_gate(client):
+    with _clerk_on(), _owners(OWNER):
+        with _as(None):
+            assert client.get("/api/paper/access").status_code == 401
+        with _as(STRANGER):
+            assert client.get("/api/paper/access").status_code == 403
+        with _as(OWNER):
+            response = client.get("/api/paper/access")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "authenticated": True,
+        "authorized": True,
+        "environment": "paper",
+    }
+
+
+def test_access_probe_never_constructs_the_broker(client):
+    with _clerk_on(), _owners(OWNER), _as(OWNER), patch.object(api, "_paper_client") as build:
+        response = client.get("/api/paper/access")
+    assert response.status_code == 200
+    build.assert_not_called()
+
+
 # ── status stays public and carries no secret ───────────────────────────────
 
 def test_status_is_readable_without_a_session(client):

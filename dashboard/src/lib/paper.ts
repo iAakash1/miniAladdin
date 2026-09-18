@@ -12,6 +12,8 @@
  * wrong.
  */
 
+import { clearAuthResourceCache, readAuthResource } from './auth-resource'
+import { authFetch } from './persistence'
 import { readResource } from './resource'
 
 /** Whether trading is possible at all, and if not, a sentence saying why. */
@@ -21,6 +23,14 @@ export interface PaperStatus {
   environment: string
   /** The paper hostname orders would reach. Public, and shown deliberately. */
   endpoint: string
+  access?: { enabled: boolean; reason: string | null }
+  tradable?: boolean
+}
+
+export interface PaperAccess {
+  authenticated: true
+  authorized: true
+  environment: 'paper'
 }
 
 /** Alpaca's account fields, as strings — the broker returns them that way. */
@@ -120,20 +130,25 @@ export function fetchPaperStatus(): Promise<PaperStatus> {
    two panels reading the same thing issue one request, and short enough that
    an order placed in one surface shows up in another without a reload. */
 export function fetchPaperAccount(): Promise<{ account: PaperAccount }> {
-  return readResource<{ account: PaperAccount }>('/api/paper/account', 'snapshot')
+  return readAuthResource<{ account: PaperAccount }>('/api/paper/account', 'snapshot')
 }
 
 export function fetchPaperPositions(): Promise<{ positions: PaperPosition[] }> {
-  return readResource<{ positions: PaperPosition[] }>('/api/paper/positions', 'snapshot')
+  return readAuthResource<{ positions: PaperPosition[] }>('/api/paper/positions', 'snapshot')
 }
 
 export function fetchPaperOrders(): Promise<{ orders: PaperOrder[] }> {
-  return readResource<{ orders: PaperOrder[] }>('/api/paper/orders', 'snapshot')
+  return readAuthResource<{ orders: PaperOrder[] }>('/api/paper/orders', 'snapshot')
+}
+
+/** One protected probe before the three broker reads, so denial is rendered once. */
+export function fetchPaperAccess(): Promise<PaperAccess> {
+  return readAuthResource<PaperAccess>('/api/paper/access', 'snapshot')
 }
 
 /** Validate and price an order without placing it. */
 export async function previewOrder(intent: OrderIntent): Promise<OrderPreview> {
-  const r = await fetch('/api/paper/orders/preview', {
+  const r = await authFetch('/api/paper/orders/preview', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(intent),
@@ -144,13 +159,26 @@ export async function previewOrder(intent: OrderIntent): Promise<OrderPreview> {
 
 /** Place the order. Returns the broker's own reply, unmodified. */
 export async function placeOrder(intent: OrderIntent): Promise<{ order: PaperOrder }> {
-  const r = await fetch('/api/paper/orders', {
+  const r = await authFetch('/api/paper/orders', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(intent),
   })
   if (!r.ok) throw new Error(await describe(r))
-  return r.json() as Promise<{ order: PaperOrder }>
+  const body = await r.json() as { order: PaperOrder }
+  clearAuthResourceCache()
+  return body
+}
+
+/** Cancel an open paper order. The caller must make this an explicit action. */
+export async function cancelOrder(orderId: string): Promise<{ cancelled: string }> {
+  const r = await authFetch(`/api/paper/orders/${encodeURIComponent(orderId)}`, {
+    method: 'DELETE',
+  })
+  if (!r.ok) throw new Error(await describe(r))
+  const body = await r.json() as { cancelled: string }
+  clearAuthResourceCache()
+  return body
 }
 
 async function describe(r: Response): Promise<string> {

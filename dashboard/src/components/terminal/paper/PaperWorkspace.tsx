@@ -22,56 +22,115 @@ import { useEffect, useState } from 'react'
 
 import { EmptyLine, Panel, Prose, StateBlock, Status, Value } from '@/components/system'
 import {
-  fetchPaperAccount, fetchPaperOrders, fetchPaperPositions, fetchPaperStatus,
+  fetchPaperAccess, fetchPaperAccount, fetchPaperOrders, fetchPaperPositions, fetchPaperStatus,
   money, type PaperAccount, type PaperOrder, type PaperPosition, type PaperStatus,
 } from '@/lib/paper'
+import { ResourceError } from '@/lib/resource'
 
-type Load<T> = { value: T } | { error: string }
+type WorkspaceState =
+  | { at: 'loading' }
+  | { at: 'unconfigured'; status: PaperStatus }
+  | { at: 'signed-out'; detail: string }
+  | { at: 'forbidden'; detail: string }
+  | { at: 'unavailable'; detail: string }
+  | {
+      at: 'ready'
+      account: PaperAccount
+      positions: PaperPosition[]
+      orders: PaperOrder[]
+    }
 
 export default function PaperWorkspace() {
-  const [status, setStatus] = useState<Load<PaperStatus> | null>(null)
-  const [account, setAccount] = useState<Load<PaperAccount> | null>(null)
-  const [positions, setPositions] = useState<Load<PaperPosition[]> | null>(null)
-  const [orders, setOrders] = useState<Load<PaperOrder[]> | null>(null)
+  const [state, setState] = useState<WorkspaceState>({ at: 'loading' })
 
   useEffect(() => {
     let alive = true
-    fetchPaperStatus()
-      .then((s) => {
+    const load = async () => {
+      try {
+        const status = await fetchPaperStatus()
         if (!alive) return
-        setStatus({ value: s })
-        // Nothing else is requested until the broker says it can answer. A
-        // 503 per panel would report one configuration fact four times.
-        if (!s.configured) return
-        fetchPaperAccount()
-          .then((d) => { if (alive) setAccount({ value: d.account }) })
-          .catch((e: Error) => { if (alive) setAccount({ error: e.message }) })
-        fetchPaperPositions()
-          .then((d) => { if (alive) setPositions({ value: d.positions }) })
-          .catch((e: Error) => { if (alive) setPositions({ error: e.message }) })
-        fetchPaperOrders()
-          .then((d) => { if (alive) setOrders({ value: d.orders }) })
-          .catch((e: Error) => { if (alive) setOrders({ error: e.message }) })
-      })
-      .catch((e: Error) => { if (alive) setStatus({ error: e.message }) })
+        if (!status.configured) {
+          setState({ at: 'unconfigured', status })
+          return
+        }
+
+        // Authorize once before touching Alpaca. This prevents account,
+        // positions and orders from each rendering the same 401/403.
+        try {
+          await fetchPaperAccess()
+        } catch (error) {
+          if (!alive) return
+          if (error instanceof ResourceError && error.status === 401) {
+            setState({ at: 'signed-out', detail: 'Sign in to access the paper account.' })
+            return
+          }
+          if (error instanceof ResourceError && error.status === 403) {
+            setState({
+              at: 'forbidden',
+              detail: error.message,
+            })
+            return
+          }
+          throw error
+        }
+
+        const [account, positions, orders] = await Promise.all([
+          fetchPaperAccount(), fetchPaperPositions(), fetchPaperOrders(),
+        ])
+        if (alive) {
+          setState({
+            at: 'ready',
+            account: account.account,
+            positions: positions.positions,
+            orders: orders.orders,
+          })
+        }
+      } catch (error) {
+        if (alive) {
+          const detail = error instanceof Error ? error.message : 'The broker did not answer.'
+          setState({ at: 'unavailable', detail })
+        }
+      }
+    }
+    void load()
     return () => { alive = false }
   }, [])
 
-  if (status === null) {
+  if (state.at === 'loading') {
     return <StateBlock state="waking" title="Reading the paper account" />
   }
 
-  if ('error' in status) {
+  if (state.at === 'signed-out') {
     return (
       <StateBlock
-        state="unavailable"
-        title="Paper trading could not be reached"
-        detail={`${status.error}. Your watchlist, market data and research are unaffected.`}
+        state="blocked"
+        title="Sign in required"
+        detail={state.detail}
       />
     )
   }
 
-  if (!status.value.configured) {
+  if (state.at === 'forbidden') {
+    return (
+      <StateBlock
+        state="blocked"
+        title="Paper account access denied"
+        detail={state.detail}
+      />
+    )
+  }
+
+  if (state.at === 'unavailable') {
+    return (
+      <StateBlock
+        state="unavailable"
+        title="Alpaca paper is temporarily unavailable"
+        detail={`${state.detail} Your watchlist, market data and research are unaffected.`}
+      />
+    )
+  }
+
+  if (state.at === 'unconfigured') {
     // Not a defect. A deployment without broker credentials is a deployment
     // that has not been given a paper account, which is the default state and
     // reads as breakage only because it used to be styled like one.
@@ -95,7 +154,7 @@ export default function PaperWorkspace() {
               + 'paper account cannot be handed to every signed-in user, so it '
               + 'stays closed until someone is named.',
             detail: {
-              endpoint: status.value.endpoint,
+              endpoint: state.status.endpoint,
               live_trading: 'disabled by construction',
             },
           }}
@@ -112,28 +171,16 @@ export default function PaperWorkspace() {
 
   return (
     <>
-      <AccountBand account={account} />
-      <Positions positions={positions} />
-      <Orders orders={orders} />
+      <AccountBand account={state.account} />
+      <Positions positions={state.positions} />
+      <Orders orders={state.orders} />
     </>
   )
 }
 
 /* ── account ─────────────────────────────────────────────────────────────── */
 
-function AccountBand({ account }: { account: Load<PaperAccount> | null }) {
-  if (account === null) return <StateBlock state="waking" title="Reading the paper account" />
-  if ('error' in account) {
-    return (
-      <StateBlock
-        state="unavailable"
-        title="The paper account could not be read"
-        detail={`${account.error}. Nothing is shown in its place.`}
-      />
-    )
-  }
-
-  const a = account.value
+function AccountBand({ account: a }: { account: PaperAccount }) {
   const equity = money(a.equity)
   const last = money(a.last_equity)
   /* The broker reports both today's equity and yesterday's close. The
@@ -181,18 +228,8 @@ function Fact({ k, children }: { k: string; children: React.ReactNode }) {
 
 /* ── positions ───────────────────────────────────────────────────────────── */
 
-function Positions({ positions }: { positions: Load<PaperPosition[]> | null }) {
-  if (positions === null) return <StateBlock state="waking" title="Reading paper positions" />
-  if ('error' in positions) {
-    return (
-      <StateBlock
-        state="unavailable"
-        title="Paper positions could not be read"
-        detail={`${positions.error}. Nothing is shown in their place.`}
-      />
-    )
-  }
-  if (!positions.value.length) {
+function Positions({ positions }: { positions: PaperPosition[] }) {
+  if (!positions.length) {
     return (
       <EmptyLine label="Paper positions">
         No paper positions. Open a security and use <kbd className="sys-kbd">paper trade</kbd> to
@@ -202,7 +239,7 @@ function Positions({ positions }: { positions: Load<PaperPosition[]> | null }) {
   }
 
   return (
-    <Panel title="Paper positions" subtitle={`${positions.value.length} held`} flush>
+    <Panel title="Paper positions" subtitle={`${positions.length} held`} flush>
       <div className="sys-scroll-x">
         <table className="sys-table sys-table--compact">
           <thead>
@@ -217,7 +254,7 @@ function Positions({ positions }: { positions: Load<PaperPosition[]> | null }) {
             </tr>
           </thead>
           <tbody>
-            {positions.value.map((p) => (
+            {positions.map((p) => (
               <tr key={p.symbol}>
                 <td>
                   <Link href={`/terminal/security?symbol=${encodeURIComponent(p.symbol)}`} className="wl__sym">
@@ -248,23 +285,13 @@ function Positions({ positions }: { positions: Load<PaperPosition[]> | null }) {
 
 /* ── orders ──────────────────────────────────────────────────────────────── */
 
-function Orders({ orders }: { orders: Load<PaperOrder[]> | null }) {
-  if (orders === null) return <StateBlock state="waking" title="Reading paper orders" />
-  if ('error' in orders) {
-    return (
-      <StateBlock
-        state="unavailable"
-        title="Paper orders could not be read"
-        detail={`${orders.error}. Nothing is shown in their place.`}
-      />
-    )
-  }
-  if (!orders.value.length) {
+function Orders({ orders }: { orders: PaperOrder[] }) {
+  if (!orders.length) {
     return <EmptyLine label="Paper orders">No paper orders have been placed from this account.</EmptyLine>
   }
 
   return (
-    <Panel title="Paper orders" subtitle={`${orders.value.length} most recent`} flush>
+    <Panel title="Paper orders" subtitle={`${orders.length} most recent`} flush>
       <div className="sys-scroll-x">
         <table className="sys-table sys-table--compact">
           <thead>
@@ -279,7 +306,7 @@ function Orders({ orders }: { orders: Load<PaperOrder[]> | null }) {
             </tr>
           </thead>
           <tbody>
-            {orders.value.map((o) => (
+            {orders.map((o) => (
               <tr key={o.id}>
                 <td className="sys-meta">{(o.submitted_at ?? o.created_at ?? '').slice(0, 19).replace('T', ' ')}</td>
                 <td>

@@ -13,7 +13,8 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
 import { EmptyLine, Value } from '@/components/system'
-import { fetchPaperAccount, fetchPaperPositions, fetchPaperStatus, money } from '@/lib/paper'
+import { fetchPaperAccess, fetchPaperAccount, fetchPaperPositions, fetchPaperStatus, money } from '@/lib/paper'
+import { ResourceError } from '@/lib/resource'
 
 interface Loaded {
   equity: number | null
@@ -24,6 +25,8 @@ interface Loaded {
 type State =
   | { s: 'reading' }
   | { s: 'unconfigured'; reason: string | null }
+  | { s: 'signed-out' }
+  | { s: 'forbidden' }
   | { s: 'ready'; d: Loaded }
   | { s: 'unavailable'; reason: string }
 
@@ -38,6 +41,20 @@ export default function PaperLine() {
         if (!status.configured) {
           setState({ s: 'unconfigured', reason: status.reason })
           return
+        }
+        try {
+          await fetchPaperAccess()
+        } catch (error) {
+          if (!alive) return
+          if (error instanceof ResourceError && error.status === 401) {
+            setState({ s: 'signed-out' })
+            return
+          }
+          if (error instanceof ResourceError && error.status === 403) {
+            setState({ s: 'forbidden' })
+            return
+          }
+          throw error
         }
         const [acct, pos] = await Promise.all([fetchPaperAccount(), fetchPaperPositions()])
         if (!alive) return
@@ -66,6 +83,18 @@ export default function PaperLine() {
       <EmptyLine label="Paper">
         {state.reason ?? 'Alpaca paper credentials are not configured.'} Market
         data, search and research do not depend on it.
+      </EmptyLine>
+    )
+  }
+
+  if (state.s === 'signed-out') {
+    return <EmptyLine label="Paper">Sign in to access the paper account.</EmptyLine>
+  }
+
+  if (state.s === 'forbidden') {
+    return (
+      <EmptyLine label="Paper">
+        This account is not an operator of the demonstration paper account.
       </EmptyLine>
     )
   }

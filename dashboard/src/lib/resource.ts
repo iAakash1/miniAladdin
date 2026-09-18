@@ -37,6 +37,17 @@ interface Entry {
   ttl: number
 }
 
+export interface ResourceOptions {
+  /** Request implementation. Public resources keep the browser's fetch. */
+  fetcher?: (url: string, init?: RequestInit) => Promise<Response>
+  /**
+   * Cache identity. `undefined` keeps the historical URL key; `null` disables
+   * caching. Private callers must supply a session-scoped key rather than
+   * allowing an authenticated response to live under a public URL-only key.
+   */
+  cacheKey?: string | null
+}
+
 const cache = new Map<string, Entry>()
 const MAX = 24
 
@@ -58,34 +69,65 @@ function evict(): void {
  * A failure is never cached: a transient vendor outage must not persist for
  * the policy's lifetime after it has ended.
  */
-export function readResource<T>(url: string, policy: Policy = 'artifact'): Promise<T> {
+export function readResource<T>(
+  url: string,
+  policy: Policy = 'artifact',
+  options: ResourceOptions = {},
+): Promise<T> {
   evict()
   const ttl = POLICY[policy]
+  const key = options.cacheKey === undefined ? url : options.cacheKey
+  const fetcher = options.fetcher ?? fetch
 
-  if (ttl > 0) {
-    const hit = cache.get(url)
+  if (ttl > 0 && key !== null) {
+    const hit = cache.get(key)
     if (hit) return hit.promise as Promise<T>
   }
 
-  const promise = fetch(url)
-    .then((r) => {
-      if (!r.ok) throw new Error(`${url} returned ${r.status}`)
+  const promise = fetcher(url)
+    .then(async (r) => {
+      if (!r.ok) {
+        let detail: string | undefined
+        try {
+          const body = await r.json() as { detail?: unknown }
+          if (typeof body.detail === 'string') detail = body.detail
+        } catch { /* an HTML/text error still has a useful status */ }
+        throw new ResourceError(url, r.status, detail)
+      }
       return r.json() as Promise<T>
     })
     .catch((e: unknown) => {
-      cache.delete(url)
+      if (key !== null) cache.delete(key)
       throw e
     })
 
-  if (ttl > 0) {
-    cache.set(url, { promise, at: Date.now(), ttl })
+  if (ttl > 0 && key !== null) {
+    cache.set(key, { promise, at: Date.now(), ttl })
     evict()
   }
   return promise
 }
 
+export class ResourceError extends Error {
+  constructor(
+    public readonly url: string,
+    public readonly status: number,
+    detail?: string,
+  ) {
+    super(detail ?? `${url} returned ${status}`)
+    this.name = 'ResourceError'
+  }
+}
+
 export function clearResourceCache(): void {
   cache.clear()
+}
+
+/** Remove one cache namespace without flushing unrelated public resources. */
+export function clearResourceCachePrefix(prefix: string): void {
+  for (const key of cache.keys()) {
+    if (key.startsWith(prefix)) cache.delete(key)
+  }
 }
 
 export function resourceCacheSize(): number {

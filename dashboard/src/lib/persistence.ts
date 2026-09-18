@@ -7,17 +7,36 @@
  */
 
 interface ClerkGlobal {
-  session?: { getToken: () => Promise<string | null> } | null
+  session?: { id?: string; getToken: () => Promise<string | null> } | null
+  user?: { id?: string } | null
+}
+
+function clerkGlobal(): ClerkGlobal | undefined {
+  if (typeof window === 'undefined') return undefined
+  return (window as unknown as { Clerk?: ClerkGlobal }).Clerk
 }
 
 async function sessionToken(): Promise<string | null> {
   if (typeof window === 'undefined') return null
   try {
-    const clerk = (window as unknown as { Clerk?: ClerkGlobal }).Clerk
+    const clerk = clerkGlobal()
     return (await clerk?.session?.getToken()) ?? null
   } catch {
     return null
   }
+}
+
+/**
+ * Non-secret identity for private browser-cache namespacing.
+ *
+ * Clerk session ids are preferred because a sign-out/sign-in or session
+ * switch necessarily changes the cache namespace. If Clerk has not exposed a
+ * stable identity yet, authenticated reads deliberately skip caching rather
+ * than placing private data under a URL-only key.
+ */
+export function authSessionScope(): string | null {
+  const clerk = clerkGlobal()
+  return clerk?.session?.id ?? clerk?.user?.id ?? null
 }
 
 /** fetch() with the Clerk session token attached as a Bearer token. */
