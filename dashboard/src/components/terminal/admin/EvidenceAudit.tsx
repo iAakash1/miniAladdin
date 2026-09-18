@@ -11,7 +11,7 @@
  * an operator, so failures are rendered first rather than filtered out.
  */
 
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 import { DataTable } from '@/components/system/DataTable'
 import { EmptyLine, Panel, Prose, StateBlock, Status, Strip } from '@/components/system'
@@ -65,16 +65,21 @@ const STATE: Record<string, 'live' | 'stale' | 'unavailable' | 'blocked'> = {
   UNSUPPORTED: 'blocked',
 }
 
-export default function EvidenceAudit() {
-  const [symbol, setSymbol] = useState('')
+export default function EvidenceAudit({
+  initialSymbol = '',
+  initialEvidenceId,
+}: {
+  initialSymbol?: string
+  initialEvidenceId?: string
+}) {
+  const [symbol, setSymbol] = useState(initialSymbol)
   const [inspecting, setInspecting] = useState<Claim | null>(null)
   const [data, setData] = useState<Payload | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  async function run(e: React.FormEvent) {
-    e.preventDefault()
-    const clean = symbol.trim().toUpperCase()
+  const load = useCallback(async (raw: string) => {
+    const clean = raw.trim().toUpperCase()
     if (!clean) return
     setBusy(true)
     setError(null)
@@ -84,13 +89,27 @@ export default function EvidenceAudit() {
       if (!res.ok) {
         setError(`The evidence pipeline answered ${res.status}.`)
       } else {
-        setData((await res.json()) as Payload)
+        const payload = (await res.json()) as Payload
+        setData(payload)
+        if (initialEvidenceId) {
+          const claim = payload.claims?.find((item) => item.evidence_ids.includes(initialEvidenceId))
+          if (claim) setInspecting(claim)
+        }
       }
     } catch {
       setError('The evidence pipeline could not be reached.')
     } finally {
       setBusy(false)
     }
+  }, [initialEvidenceId])
+
+  useEffect(() => {
+    if (initialSymbol) void load(initialSymbol)
+  }, [initialSymbol, load])
+
+  function run(e: React.FormEvent) {
+    e.preventDefault()
+    void load(symbol)
   }
 
   // Failures first: a passing claim is unremarkable, a refused one is the

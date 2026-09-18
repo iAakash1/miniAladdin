@@ -29,6 +29,7 @@ export default function SecurityResearch({ symbol }: { symbol: string }) {
         </Link>
         <Link className="sys-btn" href="/terminal/factorlab">factors</Link>
         <Link className="sys-btn" href="/terminal/evidence">evidence</Link>
+        <Link className="sys-btn" href={`/terminal/agents/${encodeURIComponent(symbol)}`}>agent run</Link>
         <Link className="sys-btn" href="/terminal/risk">risk</Link>
       </div>
       <Prose size="fine">

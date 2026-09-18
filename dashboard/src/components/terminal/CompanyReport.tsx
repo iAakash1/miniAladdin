@@ -1,6 +1,7 @@
 'use client'
 
 import dynamicImport from 'next/dynamic'
+import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { useHistory } from '@/lib/history'
@@ -30,6 +31,8 @@ import EmptyState from '@/components/ui/EmptyState'
 import Skeleton from '@/components/ui/Skeleton'
 import { fetchChart, normalizeChart } from '@/lib/api'
 import type { Analysis, PricePoint } from '@/lib/types'
+import EvidenceHealth from '@/components/evidence/EvidenceHealth'
+import { Panel, Prose } from '@/components/system'
 
 const PriceChart = dynamicImport(() => import('@/components/terminal/PriceChart'), {
   ssr: false,
@@ -66,7 +69,7 @@ const SECTIONS: Array<{
   // Present only when at least two vendors returned history — below that
   // there is no agreement to report, and a nav entry leading to an empty
   // section is worse than no entry.
-  { id: 'history', label: 'History', present: (a) => (a.seriesIntegrity?.providers.length ?? 0) > 1 },
+  { id: 'series-integrity', label: 'Series integrity', present: (a) => (a.seriesIntegrity?.providers.length ?? 0) > 1 },
   { id: 'technical', label: 'Technical', present: (a) => a.technicalIntelligence !== null },
   { id: 'street', label: 'Street', present: (a) => a.streetIntelligence !== null },
   { id: 'company', label: 'Company', present: (a) => a.profile !== null },
@@ -78,6 +81,8 @@ const SECTIONS: Array<{
   { id: 'fundamentals', label: 'Fundamentals', present: () => true },
   { id: 'news', label: 'News', present: (a) => a.headlines.length > 0 },
   { id: 'provenance', label: 'Provenance', present: (a) => a.provenance !== null },
+  { id: 'evidence-health', label: 'Evidence health', present: () => true },
+  { id: 'agent-run', label: 'Agent run', present: () => true },
   { id: 'ecosystem', label: 'Ecosystem', present: () => true },
   // Was hardcoded `true`, while `VerdictTimeline` returns null below two
   // snapshots — the common case for a ticker analysed once. The nav
@@ -303,7 +308,7 @@ export default function CompanyReport({ analysis, initialChart, isPro, requestUp
           chart: whether the vendors that also hold this history drew the
           same one. */}
       {analysis.seriesIntegrity && (
-        <div id="history" className="report-section">
+        <div id="series-integrity" className="report-section">
           <SeriesIntegrityPanel integrity={analysis.seriesIntegrity} />
         </div>
       )}
@@ -376,6 +381,29 @@ export default function CompanyReport({ analysis, initialChart, isPro, requestUp
           <DecisionProvenance provenance={analysis.provenance} />
         </div>
       )}
+
+      <div id="evidence-health" className="report-section">
+        <EvidenceHealth
+          ticker={analysis.ticker}
+          completeness={analysis.quant?.dataCompleteness ?? null}
+          sources={analysis.provenance?.summary.sources.length ?? null}
+          fresh={analysis.provenance
+            ? analysis.provenance.inputs.every((input) => !input.stale && input.health === 'ok')
+            : null}
+          conflicts={analysis.seriesIntegrity?.conflict_count
+            ?? (analysis.consensusPrice ? Number(analysis.consensusPrice.conflict) : null)}
+          mode="advanced"
+        />
+      </div>
+
+      <div id="agent-run" className="report-section">
+        <Panel title="Agent execution" subtitle="specialists, reconciliation and validation">
+          <Prose>The run view shows the actual graph trace, claim counts, evidence counts and every degraded input.</Prose>
+          <Link className="sys-btn" href={`/terminal/agents/${encodeURIComponent(analysis.ticker)}`}>
+            Run and inspect agents
+          </Link>
+        </Panel>
+      </div>
 
       <div id="ecosystem" className="report-section">
         <CompanyEcosystem ticker={analysis.ticker} />

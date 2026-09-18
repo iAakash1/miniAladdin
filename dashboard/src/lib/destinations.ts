@@ -86,6 +86,7 @@ export const DESTINATIONS: DestinationGroup[] = [
     group: 'Evidence',
     items: [
       { href: '/terminal/evidence', label: 'Evidence', glyph: 'E', key: 'v', answers: 'whether any of it should be believed' },
+      { href: '/terminal/agents', label: 'Agent runs', glyph: 'A', key: 'l', answers: 'how one analysis executed, claim by claim' },
       { href: '/terminal/gates', label: 'Gates', glyph: '⊟', key: 'a', answers: 'what blocks everything' },
       { href: '/terminal/experiments', label: 'Experiments', glyph: 'X', key: 'x', answers: 'the research record, including the void ones' },
       { href: '/terminal/calibration', label: 'Calibration', glyph: 'C', key: 'u', answers: 'whether a score means what it says' },

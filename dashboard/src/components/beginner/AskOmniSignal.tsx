@@ -18,6 +18,7 @@
 import { useEffect, useState } from 'react'
 
 import { EmptyLine, Panel, Prose, StateBlock } from '@/components/system'
+import Link from 'next/link'
 
 interface Answer {
   answer: string
@@ -127,9 +128,19 @@ export default function AskOmniSignal({ ticker }: { ticker: string }) {
             {answer.redirected ? 'Redirected — this product produces research, not advice. ' : ''}
             {answer.source === 'model' ? 'Written by a model from the evidence below. '
               : 'Composed from the model’s own figures, with no language model involved. '}
-            {answer.evidence_ids.length
-              ? `Evidence: ${answer.evidence_ids.join(', ')}.`
-              : ''}
+            {answer.evidence_ids.length ? 'Evidence: ' : ''}
+            {answer.evidence_ids.map((id, index) => (
+              <span key={id}>
+                {index ? ', ' : ''}
+                <Link
+                  href={`/evidence/${encodeURIComponent(ticker)}?evidence=${encodeURIComponent(id)}`}
+                  className="sys-meta sys-meta--strong"
+                >
+                  {id}
+                </Link>
+              </span>
+            ))}
+            {answer.evidence_ids.length ? '.' : ''}
           </p>
           <p className="ask__meta">
             Signal {answer.model_signal ?? '—'} · Risk {answer.risk_score ?? '—'} ·

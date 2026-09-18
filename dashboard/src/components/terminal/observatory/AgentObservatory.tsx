@@ -15,7 +15,7 @@
  * scoring engine decides and everything downstream explains.
  */
 
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 import { AvailabilityNote, isAvailable } from '@/components/system/Availability'
 import { EmptyLine, Panel, Prose, StateBlock, Status, Strip } from '@/components/system'
@@ -81,15 +81,14 @@ const AGENT_STATE: Record<string, 'live' | 'stale' | 'unavailable'> = {
 /** Specialists in execution order, then the stages that follow them. */
 const SPECIALISTS = ['market', 'fundamental', 'technical', 'news', 'macro']
 
-export default function AgentObservatory() {
-  const [symbol, setSymbol] = useState('')
+export default function AgentObservatory({ initialSymbol = '' }: { initialSymbol?: string }) {
+  const [symbol, setSymbol] = useState(initialSymbol.toUpperCase())
   const [run, setRun] = useState<Run | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  async function go(e: React.FormEvent) {
-    e.preventDefault()
-    const clean = symbol.trim().toUpperCase()
+  const runAnalysis = useCallback(async (requested: string) => {
+    const clean = requested.trim().toUpperCase()
     if (!clean) return
     setBusy(true)
     setError(null)
@@ -103,7 +102,16 @@ export default function AgentObservatory() {
     } finally {
       setBusy(false)
     }
+  }, [])
+
+  function go(e: React.FormEvent) {
+    e.preventDefault()
+    void runAnalysis(symbol)
   }
+
+  useEffect(() => {
+    if (initialSymbol) void runAnalysis(initialSymbol)
+  }, [initialSymbol, runAnalysis])
 
   const timing = (node: string) =>
     run?.nodes.find((n) => n.node === node)?.latency_ms ?? null
