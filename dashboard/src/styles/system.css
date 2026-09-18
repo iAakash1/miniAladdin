@@ -3356,7 +3356,7 @@ a.tape:hover .tape__sym { color: var(--accent); }
 /* ── experience chooser ───────────────────────────────────────────────────
    The first screen a new account sees. Deliberately restrained: this is the
    same institutional product, met at its front door, not a marketing splash.
-   Two cards, equal weight, no default — the question is genuine and a
+   Three cards, equal weight, no default — the question is genuine and a
    pre-selected answer would make it rhetorical.                            */
 
 .xc {
@@ -3367,7 +3367,7 @@ a.tape:hover .tape__sym { color: var(--accent); }
   background: var(--bg);
 }
 
-.xc__inner { width: 100%; max-width: 62rem; text-align: center; }
+.xc__inner { width: 100%; max-width: 78rem; text-align: center; }
 
 .xc__brand {
   font: 500 var(--t-meta)/1 var(--font-mono);

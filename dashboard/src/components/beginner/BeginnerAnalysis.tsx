@@ -26,6 +26,7 @@ import {
 import AskOmniSignal from '@/components/beginner/AskOmniSignal'
 import WhatIfLab from '@/components/whatif/WhatIfLab'
 import StockActions from '@/components/beginner/StockActions'
+import EvidenceHealth from '@/components/evidence/EvidenceHealth'
 import { fetchAnalysis, normalizeAnalysis } from '@/lib/api'
 import { signalTone } from '@/lib/explore'
 import type { Analysis } from '@/lib/types'
@@ -67,6 +68,12 @@ export default function BeginnerAnalysis({ ticker }: { ticker: string }) {
   const completeness = quant?.dataCompleteness ?? null
   const confidence = a.engineConfidence ?? quant?.confidence ?? null
   const riskScore = quant?.riskScore ?? null
+  const sourceCount = a.provenance?.summary.sources.length ?? null
+  const fresh = a.provenance
+    ? a.provenance.inputs.every((input) => !input.stale && input.health === 'ok')
+    : null
+  const conflicts = a.seriesIntegrity?.conflict_count
+    ?? (a.consensusPrice ? Number(a.consensusPrice.conflict) : null)
 
   return (
     <>
@@ -173,9 +180,18 @@ export default function BeginnerAnalysis({ ticker }: { ticker: string }) {
 
       <AskOmniSignal ticker={ticker} />
 
+      <EvidenceHealth
+        ticker={ticker}
+        completeness={completeness}
+        sources={sourceCount}
+        fresh={fresh}
+        conflicts={conflicts}
+        mode="beginner"
+      />
+
       <WhatIfLab ticker={ticker} />
 
-      <StockActions symbol={ticker} />
+      <StockActions symbol={ticker} mode="beginner" />
 
       <Panel title="Where this came from">
         <Prose>
