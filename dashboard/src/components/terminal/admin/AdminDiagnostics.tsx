@@ -35,6 +35,11 @@ interface Diagnostics {
   paper_trading: { enabled: boolean; reason: string | null }
   providers: Record<string, unknown>
   metrics: { counters?: Record<string, number>; window_seconds?: number }
+  deployment_versions?: {
+    backend?: string
+    inference?: string
+    inference_status?: string
+  }
 }
 
 type Load =
@@ -112,6 +117,12 @@ export default function AdminDiagnostics() {
   const vendors = vendorRows(d.providers)
   const configured = vendors.filter((v) => v.configured).length
   const cooling = vendors.filter((v) => v.cooling_down).length
+  const frontendCommit = process.env.NEXT_PUBLIC_BUILD_SHA ?? 'unknown'
+  const backendCommit = d.deployment_versions?.backend ?? d.build_commit ?? 'unknown'
+  const inferenceCommit = d.deployment_versions?.inference ?? 'unknown'
+  const knownCommits = [frontendCommit, backendCommit, inferenceCommit]
+    .filter((commit) => commit && commit !== 'unknown')
+  const versionMismatch = new Set(knownCommits).size > 1
 
   return (
     <>
@@ -123,6 +134,28 @@ export default function AdminDiagnostics() {
             { label: 'Metrics window', value: d.metrics?.window_seconds ?? null, kind: 'sessions' },
           ]}
         />
+      </Panel>
+
+      <Panel
+        title="Deployment versions"
+        state={versionMismatch ? 'blocked' : knownCommits.length === 3 ? 'recorded' : 'unknown'}
+      >
+        {versionMismatch ? (
+          <StateBlock
+            state="blocked"
+            title="VERSION MISMATCH"
+            detail="The frontend, backend and inference service are not running the same repository revision."
+          />
+        ) : null}
+        <Strip metrics={[
+          { label: 'Frontend SHA', value: frontendCommit.slice(0, 12) },
+          { label: 'Backend SHA', value: backendCommit.slice(0, 12) },
+          { label: 'Inference SHA', value: inferenceCommit.slice(0, 12) },
+          { label: 'Inference state', value: d.deployment_versions?.inference_status ?? 'unknown' },
+        ]} />
+        {!versionMismatch && knownCommits.length < 3 ? (
+          <Prose size="fine">At least one service did not report a deployment SHA, so equality cannot be established.</Prose>
+        ) : null}
       </Panel>
 
       <Panel title="Capabilities configured">

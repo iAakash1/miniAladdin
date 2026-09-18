@@ -2238,12 +2238,20 @@ def admin_diagnostics(
     Reports posture, never material: which capabilities are configured, not
     the values that configure them.
     """
-    from src.services import database, job_store
+    from src.services import database, inference_client, job_store
 
     access = paper_access_state()
+    inference_health = inference_client.health()
+    inference_commit = inference_health.get("commit")
+    backend_commit = _build_commit()
     return {
         "environment": deployment.environment_name(),
-        "build_commit": _build_commit(),
+        "build_commit": backend_commit,
+        "deployment_versions": {
+            "backend": backend_commit,
+            "inference": inference_commit or "unknown",
+            "inference_status": inference_health.get("status", "unknown"),
+        },
         "persistence": {
             "configured": database.is_configured(),
             "reachable": database.get_client() is not None,

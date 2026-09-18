@@ -71,6 +71,16 @@ ALLOWED_ORIGINS = [
 #: cannot ask the box to score an unbounded matrix.
 MAX_BATCH = 500
 
+
+def _build_commit() -> str:
+    """Deployment revision, never the model artifact's training commit."""
+    return (
+        os.environ.get("RENDER_GIT_COMMIT")
+        or os.environ.get("GIT_COMMIT")
+        or "unknown"
+    )
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     """Load the artifact once, before the first request.
@@ -258,6 +268,7 @@ def health() -> Any:
         "error": _state["error"],
         "artifact": ARTIFACT_NAME,
         "features": len(_state["features"]),
+        "commit": _build_commit(),
     }
     # Render uses this endpoint as its health check. A 200 with `ok: false`
     # keeps routing traffic to a process that cannot answer /predict, defeating

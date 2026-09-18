@@ -10,6 +10,10 @@ import SectorMovers from '@/components/terminal/home/SectorMovers'
 import PaperLine from '@/components/terminal/home/PaperLine'
 import HighConviction from '@/components/terminal/conviction/HighConviction'
 import { Grid } from '@/components/system'
+import TopIdeas from '@/components/beginner/TopIdeas'
+import PerformanceLeaders from '@/components/beginner/PerformanceLeaders'
+import PortfolioIntelligence from '@/components/terminal/PortfolioIntelligence'
+import RuntimeHealth from '@/components/terminal/home/RuntimeHealth'
 
 export const metadata: Metadata = {
   title: 'Terminal — miniAladdin',
@@ -59,6 +63,13 @@ export default function TerminalHome() {
           own names because it is a standing policy result, not news, and above
           the research line because it is about today's securities. */}
       <HighConviction />
+
+      <TopIdeas limit={6} mode="advanced" />
+      <PerformanceLeaders limit={6} mode="advanced" />
+
+      <PortfolioIntelligence />
+
+      <RuntimeHealth />
 
       {/* One line. The archive is a link away. */}
       <ResearchStatus />

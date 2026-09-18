@@ -8,6 +8,12 @@ import type { NextConfig } from 'next'
 const API_BASE = process.env.BACKEND_ORIGIN || 'https://minialaddin-d8oe.onrender.com'
 
 const nextConfig: NextConfig = {
+  // Vercel exposes its git SHA only during the build. Copy it into a public,
+  // non-secret value so the operator diagnostics can compare all three tiers.
+  env: {
+    NEXT_PUBLIC_BUILD_SHA:
+      process.env.VERCEL_GIT_COMMIT_SHA || process.env.GIT_COMMIT || 'unknown',
+  },
   // Explicit root: a stray lockfile higher up the tree otherwise makes
   // Turbopack guess the wrong workspace directory.
   turbopack: { root: __dirname },
