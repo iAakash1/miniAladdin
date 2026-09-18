@@ -25,7 +25,13 @@ const DIRECTION: Record<string, string> = {
   high_attention: 'High attention',
 }
 
-export default function TrendingNow({ limit = 5 }: { limit?: number }) {
+export default function TrendingNow({
+  limit = 5,
+  mode = 'beginner',
+}: {
+  limit?: number
+  mode?: 'beginner' | 'intermediate' | 'advanced'
+}) {
   const [rows, setRows] = useState<ExploreRow[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -64,7 +70,12 @@ export default function TrendingNow({ limit = 5 }: { limit?: number }) {
         <ul className="bg__trend-list">
           {rows.map((row) => (
             <li key={row.symbol} className="bg__trend-row">
-              <Link href={`/beginner/company/${encodeURIComponent(row.symbol)}`} className="bg__sym">
+              <Link
+                href={mode === 'advanced'
+                  ? `/terminal/security?symbol=${encodeURIComponent(row.symbol)}`
+                  : `/${mode}/company/${encodeURIComponent(row.symbol)}`}
+                className="bg__sym"
+              >
                 {row.symbol}
               </Link>
               <span className="bg__trend-dir">

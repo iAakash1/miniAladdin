@@ -23,6 +23,7 @@
  */
 
 import { useEffect, useState, useSyncExternalStore } from 'react'
+import { useSearchParams } from 'next/navigation'
 
 import { Panel, StateBlock, Status, Strip, Prose, Value, type ResearchState } from '@/components/system'
 import { TimeSeries } from '@/components/system/charts'
@@ -48,6 +49,7 @@ const RANGES = [
 interface Settled<T> { for: string; value?: T; error?: string }
 
 export default function SecurityView({ symbol }: { symbol: string }) {
+  const searchParams = useSearchParams()
   // The same hub the watchlist reads. Opening a security already on the
   // watchlist costs no extra request, and the two cannot disagree on its price.
   const { quotes, error: quoteError, at: quoteAt } = useQuotes([symbol])
@@ -56,7 +58,7 @@ export default function SecurityView({ symbol }: { symbol: string }) {
   const [watched, setWatched] = useState(false)
 
   const [identity, setIdentity] = useState<Settled<SecurityIdentity | null> | null>(null)
-  const [ticketOpen, setTicketOpen] = useState(false)
+  const [ticketOpen, setTicketOpen] = useState(searchParams.get('paper') === '1')
   /* Whether this deployment has a paper account at all. Read once, cheaply,
      so the action is offered only where it can actually be taken — an action
      that opens onto "not configured" is worse than no action. */

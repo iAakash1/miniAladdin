@@ -18,6 +18,7 @@
 
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 
 import { DataTable } from '@/components/system/DataTable'
 import { EmptyLine, Panel, Prose, StateBlock, Strip } from '@/components/system'
@@ -90,16 +91,33 @@ interface Filters {
 
 const EMPTY: Filters = { sector: '', signal: '', maxRisk: '', minConfidence: '' }
 
-export default function ExploreBoard({ mode = 'advanced' }: { mode?: 'beginner' | 'advanced' }) {
+export default function ExploreBoard({
+  mode = 'advanced',
+}: {
+  mode?: 'beginner' | 'intermediate' | 'advanced'
+}) {
   // Beginner and advanced open different depths of the *same* analysis. The
   // link differs; the security behind it, and its verdict, do not.
-  const securityHref = (symbol: string) =>
-    mode === 'beginner'
-      ? `/beginner/company/${encodeURIComponent(symbol)}`
-      : `/terminal/security?symbol=${encodeURIComponent(symbol)}`
+  const securityHref = (symbol: string) => mode === 'advanced'
+    ? `/terminal/security?symbol=${encodeURIComponent(symbol)}`
+    : `/${mode}/company/${encodeURIComponent(symbol)}`
 
+  const searchParams = useSearchParams()
+  const requestedCategory = searchParams.get('category')
   const [categories, setCategories] = useState<ExploreCategory[]>([])
-  const [active, setActive] = useState<CategoryKey>('overall')
+  const [active, setActive] = useState<CategoryKey>(() => (
+    requestedCategory === 'trending'
+      || requestedCategory === 'momentum'
+      || requestedCategory === 'quality'
+      || requestedCategory === 'value'
+      || requestedCategory === 'profitability'
+      || requestedCategory === 'performance'
+      || requestedCategory === 'low_risk'
+      || requestedCategory === 'news_buzz'
+      || requestedCategory === 'analyst_upside'
+      ? requestedCategory
+      : 'overall'
+  ))
   const [filters, setFilters] = useState<Filters>(EMPTY)
   const [data, setData] = useState<ExploreResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -132,7 +150,7 @@ export default function ExploreBoard({ mode = 'advanced' }: { mode?: 'beginner' 
           signal: filters.signal || undefined,
           max_risk: filters.maxRisk ? Number(filters.maxRisk) : undefined,
           min_confidence: filters.minConfidence ? Number(filters.minConfidence) : undefined,
-          limit: mode === 'beginner' ? 12 : 40,
+          limit: mode === 'advanced' ? 40 : mode === 'intermediate' ? 24 : 12,
         })
         if (live) setData(body)
       } catch (e) {

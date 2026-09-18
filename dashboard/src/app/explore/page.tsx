@@ -3,6 +3,8 @@
 import Workbench from '@/components/system/Workbench'
 import ExploreBoard from '@/components/explore/ExploreBoard'
 import { Panel, Prose } from '@/components/system'
+import SimpleShell from '@/components/beginner/SimpleShell'
+import IntermediateShell from '@/components/intermediate/IntermediateShell'
 import { useCapabilities } from '@/lib/capabilities'
 
 export default function ExplorePage() {
@@ -10,7 +12,25 @@ export default function ExplorePage() {
   // how many rows are shown. Every ranking, and every verdict in it, is
   // identical in both modes because both read the same snapshot.
   const { caps } = useCapabilities()
-  const mode = caps?.experience_mode === 'beginner' ? 'beginner' : 'advanced'
+  const mode = caps?.experience_mode ?? 'advanced'
+
+  const board = <ExploreBoard mode={mode} />
+
+  if (mode === 'beginner') {
+    return (
+      <SimpleShell title="Explore" subtitle="ranked across the universe">
+        {board}
+      </SimpleShell>
+    )
+  }
+
+  if (mode === 'intermediate') {
+    return (
+      <IntermediateShell title="Explore" subtitle="ranked across the universe">
+        {board}
+      </IntermediateShell>
+    )
+  }
 
   return (
     <Workbench
@@ -60,7 +80,7 @@ export default function ExplorePage() {
         </>
       }
     >
-      <ExploreBoard mode={mode} />
+      {board}
     </Workbench>
   )
 }

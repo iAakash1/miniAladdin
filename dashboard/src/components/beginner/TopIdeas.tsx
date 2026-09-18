@@ -48,13 +48,28 @@ function WatchToggle({ symbol }: { symbol: string }) {
 }
 
 
-function Card({ row, rank }: { row: ExploreRow; rank: number }) {
+type Experience = 'beginner' | 'intermediate' | 'advanced'
+
+function companyHref(mode: Experience, symbol: string, paper = false): string {
+  if (mode === 'advanced') {
+    return `/terminal/security?symbol=${encodeURIComponent(symbol)}${paper ? '&paper=1' : ''}`
+  }
+  return `/${mode}/company/${encodeURIComponent(symbol)}${paper ? '?paper=1' : ''}`
+}
+
+function compareHref(mode: Experience, symbol: string): string {
+  return mode === 'advanced'
+    ? `/terminal/compare?a=${encodeURIComponent(symbol)}`
+    : `/${mode}/compare?a=${encodeURIComponent(symbol)}`
+}
+
+function Card({ row, rank, mode }: { row: ExploreRow; rank: number; mode: Experience }) {
   return (
     <article className="bg__card">
       <header className="bg__card-head">
         <span className="bg__rank" aria-label={`Rank ${rank}`}>#{rank}</span>
         <div>
-          <Link href={`/beginner/company/${encodeURIComponent(row.symbol)}`} className="bg__sym">
+          <Link href={companyHref(mode, row.symbol)} className="bg__sym">
             {row.symbol}
           </Link>
           <span className="bg__co">{row.company_name}</span>
@@ -75,6 +90,10 @@ function Card({ row, rank }: { row: ExploreRow; rank: number }) {
         <span className="bg__qual">
           Data {row.data_completeness === null ? dash : `${Math.round(row.data_completeness * 100)}%`}
         </span>
+        <span className="bg__qual">Overall {row.overall_rank?.toFixed(1) ?? dash}</span>
+        <span className="bg__qual">
+          Performance {row.performance_grade ?? dash}
+        </span>
       </div>
 
       <dl className="bg__why">
@@ -85,17 +104,25 @@ function Card({ row, rank }: { row: ExploreRow; rank: number }) {
       </dl>
 
       <footer className="bg__card-foot">
-        <Link href={`/beginner/company/${encodeURIComponent(row.symbol)}`} className="bg__action">
-          View analysis
+        <Link href={companyHref(mode, row.symbol)} className="bg__action">
+          Analyze
         </Link>
+        <Link href={compareHref(mode, row.symbol)} className="bg__action">Compare</Link>
         <WatchToggle symbol={row.symbol} />
+        <Link href={companyHref(mode, row.symbol, true)} className="bg__action">Paper trade</Link>
         {row.price_as_of ? <span className="bg__asof">Priced {row.price_as_of}</span> : null}
       </footer>
     </article>
   )
 }
 
-export default function TopIdeas({ limit = 4 }: { limit?: number }) {
+export default function TopIdeas({
+  limit = 4,
+  mode = 'beginner',
+}: {
+  limit?: number
+  mode?: Experience
+}) {
   const [data, setData] = useState<RecommendationsResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -141,7 +168,9 @@ export default function TopIdeas({ limit = 4 }: { limit?: number }) {
             />
           ) : null}
           <div className="bg__cards">
-            {data.results.map((row, i) => <Card key={row.symbol} row={row} rank={i + 1} />)}
+            {data.results.map((row, i) => (
+              <Card key={row.symbol} row={row} rank={i + 1} mode={mode} />
+            ))}
           </div>
           <Prose>
             Ranked {data.eligible_count} of {data.evaluated_count} securities
