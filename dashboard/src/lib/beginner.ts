@@ -161,3 +161,87 @@ export function signalSentence(verdict: string | null): string {
 
 export const DISCLAIMER =
   'An educational quantitative signal, not personalised investment advice.'
+
+/* ── why isn't this stronger ───────────────────────────────────────────────
+ *
+ * "Momentum and quality are supportive, but valuation subtracts 0.61 points
+ * and macro risk reduces confidence" — the boundary a reader actually wants
+ * explained, using the one identity that makes the arithmetic checkable:
+ * every factor's `contribution` sums exactly to `raw_score` (see the engine
+ * comment at src/scoring/engine.py's Factor.contribution — "sums (post-gate)
+ * to raw_score"). Nothing here is a second computation of the score; it is
+ * the same numbers the score is made of, sorted and framed as a distance.
+ *
+ * The two cut points are copied, not imported, because the frontend and the
+ * scoring engine are two different languages with no shared build step.
+ * tests/test_decision_invariance.py pins the Python values so a change there
+ * fails a test rather than silently drifting from this file.
+ */
+export const SIGNAL_CUT_ACTION = 0.15
+export const SIGNAL_CUT_STRONG = 0.40
+
+export interface SignalBoundary {
+  score: number
+  /** The next verdict up in strength, and the raw-score distance to it.
+   *  `null` when already at the top of the scale (Strong Buy) or the bottom
+   *  (Strong Sell) — there is no stronger verdict to explain a distance to. */
+  next: { verdict: string; distance: number } | null
+  /** Factors currently pulling the score up, strongest first. */
+  supporting: Reason[]
+  /** Factors currently pulling the score down, strongest first. */
+  subtracting: Reason[]
+}
+
+/** One boundary above the current verdict, in the direction the score is
+ *  already leaning — a Hold at +0.05 is asked "what's short of Buy", not
+ *  "what's short of Strong Sell". Bearish and exactly-zero scores read the
+ *  same way, mirrored: the next boundary in the bearish direction. */
+function nextBoundary(score: number): { verdict: string; distance: number } | null {
+  if (score >= 0) {
+    if (score >= SIGNAL_CUT_STRONG) return null
+    if (score >= SIGNAL_CUT_ACTION) return { verdict: 'Strong Buy', distance: SIGNAL_CUT_STRONG - score }
+    return { verdict: 'Buy', distance: SIGNAL_CUT_ACTION - score }
+  }
+  if (score <= -SIGNAL_CUT_STRONG) return null
+  // The bearish mirror of the bullish branch above, and the sign is the part
+  // worth being careful about: reaching further into Sell territory means the
+  // score becomes MORE negative, so "distance" is score minus the (more
+  // negative) target, not target minus score — target minus score would be
+  // negative here and a caller rendering it as "N points to go" would show a
+  // negative number of points.
+  if (score <= -SIGNAL_CUT_ACTION) return { verdict: 'Strong Sell', distance: score - -SIGNAL_CUT_STRONG }
+  return { verdict: 'Sell', distance: score - -SIGNAL_CUT_ACTION }
+}
+
+export function signalBoundary(
+  factors: QuantFactor[] | undefined, rawScore: number | null,
+): SignalBoundary | null {
+  if (rawScore === null || !Number.isFinite(rawScore)) return null
+  const { positive, cautious } = reasons(factors, 3)
+  return {
+    score: rawScore,
+    next: nextBoundary(rawScore),
+    supporting: positive,
+    subtracting: cautious,
+  }
+}
+
+/** One deterministic sentence — "Momentum and quality are supportive, but
+ *  valuation subtracts 0.61 points" — built from the same objects the panel
+ *  renders, not a separate summary of them. `null` when there is nothing on
+ *  one side to contrast (a score with only supporters, or only detractors,
+ *  is not "why isn't this stronger", it is just "why is this what it is",
+ *  which the existing "Why the model likes it" panel already covers). */
+export function whyNotStronger(boundary: SignalBoundary | null): string | null {
+  if (!boundary || !boundary.supporting.length || !boundary.subtracting.length) return null
+  const support = boundary.supporting.map((r) => r.label)
+  const supportPhrase = support.length > 1
+    ? `${support.slice(0, -1).join(', ')} and ${support[support.length - 1]}`
+    : support[0]
+  const top = boundary.subtracting[0]
+  const points = Math.abs(top.contribution).toFixed(2)
+  const rest = boundary.subtracting.slice(1, 2)
+  const restPhrase = rest.length ? `, and ${rest[0].label} weighs on it further` : ''
+  return `${supportPhrase} ${support.length > 1 ? 'are' : 'is'} supportive, but `
+    + `${top.label.toLowerCase()} subtracts ${points} points${restPhrase}.`
+}

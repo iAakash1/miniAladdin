@@ -52,6 +52,25 @@ def test_the_scoring_engine_has_no_experience_mode_parameter():
         assert not forbidden.search(name.lower()), name
 
 
+def test_the_verdict_cut_points_match_their_frontend_mirror():
+    """The two numbers a "why isn't this stronger" panel needs are duplicated
+    by necessity — Python and TypeScript share no build step — and duplicated
+    values drift silently unless something is watching both sides.
+
+    dashboard/src/lib/beginner.ts's SIGNAL_CUT_ACTION/SIGNAL_CUT_STRONG exist
+    to compute a reader-facing "N points from Buy" without a network round
+    trip. If either constant here ever changes, this test fails and says
+    exactly which frontend constants to update alongside it — the alternative
+    is a distance-to-threshold sentence that quietly starts lying.
+    """
+    assert engine.CUT_ACTION == 0.15, (
+        "update dashboard/src/lib/beginner.ts's SIGNAL_CUT_ACTION to match"
+    )
+    assert engine.CUT_STRONG == 0.40, (
+        "update dashboard/src/lib/beginner.ts's SIGNAL_CUT_STRONG to match"
+    )
+
+
 @pytest.mark.parametrize("module_path", [
     "src/scoring/engine.py",
     "src/decision.py",

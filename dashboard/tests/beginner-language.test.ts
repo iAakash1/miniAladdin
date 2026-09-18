@@ -17,7 +17,8 @@ import test from 'node:test'
 
 import {
   DISCLAIMER, explainCompleteness, explainConfidence, explainRisk,
-  reasons, signalSentence, whatCouldChange,
+  reasons, signalBoundary, signalSentence, whatCouldChange, whyNotStronger,
+  SIGNAL_CUT_ACTION, SIGNAL_CUT_STRONG,
 } from '../src/lib/beginner'
 import type { QuantFactor } from '../src/lib/types'
 
@@ -156,4 +157,49 @@ test('a bearish verdict inverts the framing rather than reusing the bullish one'
   const bullish = whatCouldChange([factor('r12_1', 0.08)], 'Buy')
   const bearish = whatCouldChange([factor('r12_1', 0.08)], 'Sell')
   assert.notDeepEqual(bullish, bearish)
+})
+
+/* ── "why isn't this stronger" ─────────────────────────────────────────── */
+
+test('the next boundary is toward Strong Buy for a Hold leaning positive', () => {
+  const b = signalBoundary([factor('r12_1', 0.08)], 0.05)
+  assert.equal(b?.next?.verdict, 'Buy')
+  assert.ok(b && Math.abs(b.next!.distance - (SIGNAL_CUT_ACTION - 0.05)) < 1e-9)
+})
+
+test('the next boundary is toward Strong Sell for a bearish score', () => {
+  const b = signalBoundary([factor('r12_1', -0.08)], -0.20)
+  assert.equal(b?.next?.verdict, 'Strong Sell')
+  assert.ok(b && b.next!.distance > 0, 'distance to a stronger verdict must be positive')
+})
+
+test('there is no next boundary once already at Strong Buy', () => {
+  const b = signalBoundary([factor('r12_1', 0.5)], 0.55)
+  assert.equal(b?.next, null)
+})
+
+test('whyNotStronger cites the real top detractor and its exact point value', () => {
+  const b = signalBoundary(
+    [factor('r12_1', 0.30), factor('pe_gap', -0.61)], 0.05,
+  )
+  const sentence = whyNotStronger(b)
+  assert.ok(sentence, 'expected a sentence when both supporters and detractors exist')
+  assert.ok(sentence!.includes('0.61'), `sentence did not cite the real magnitude: ${sentence}`)
+})
+
+test('whyNotStronger is silent when there is nothing to contrast', () => {
+  // Only supporters, or only detractors, is not a "why isn't this stronger"
+  // question — the existing why/caution panels already cover that case, and
+  // a contrastive sentence with nothing on one side would be inventing one.
+  assert.equal(whyNotStronger(signalBoundary([factor('r12_1', 0.30)], 0.3)), null)
+  assert.equal(whyNotStronger(signalBoundary([factor('pe_gap', -0.3)], -0.3)), null)
+  assert.equal(whyNotStronger(signalBoundary([], null)), null)
+})
+
+test('the two cut points match the values the backend actually scores on', () => {
+  // Pinned on the Python side too, in test_decision_invariance.py — this
+  // half of the pin exists so a reader of just this file can see the numbers
+  // are not arbitrary.
+  assert.equal(SIGNAL_CUT_ACTION, 0.15)
+  assert.equal(SIGNAL_CUT_STRONG, 0.40)
 })
