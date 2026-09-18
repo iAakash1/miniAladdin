@@ -5,10 +5,12 @@ import { useEffect, useState } from 'react'
 import AskOmniSignal from '@/components/beginner/AskOmniSignal'
 import StockActions from '@/components/beginner/StockActions'
 import EvidenceHealth from '@/components/evidence/EvidenceHealth'
+import ResearchHistory from '@/components/research/ResearchHistory'
 import AgentObservatory from '@/components/terminal/observatory/AgentObservatory'
 import { EmptyLine, Panel, Prose, StateBlock, Strip } from '@/components/system'
 import WhatIfLab from '@/components/whatif/WhatIfLab'
 import { fetchAnalysis, normalizeAnalysis } from '@/lib/api'
+import { signalBoundary, whyNotStronger } from '@/lib/beginner'
 import { signalTone } from '@/lib/explore'
 import type { Analysis, QuantFactor } from '@/lib/types'
 
@@ -120,6 +122,24 @@ export default function IntermediateAnalysis({ ticker }: { ticker: string }) {
         <FactorList factors={q?.factors ?? []} direction="negative" />
       </Panel>
 
+      {(() => {
+        const boundary = signalBoundary(q?.factors, q?.rawScore ?? null)
+        const notStronger = whyNotStronger(boundary)
+        if (!notStronger && !boundary?.next) return null
+        return (
+          <Panel title="Why isn't this signal stronger?">
+            {notStronger ? <Prose>{notStronger}</Prose> : null}
+            {boundary?.next ? (
+              <Prose size="fine">
+                The raw score is {boundary.score.toFixed(3)}; it would need to move{' '}
+                {boundary.next.distance.toFixed(2)} points to reach the {boundary.next.verdict}{' '}
+                threshold.
+              </Prose>
+            ) : null}
+          </Panel>
+        )
+      })()}
+
       <Panel title="Valuation and analyst context">
         <Strip metrics={[
           { label: 'P / E', value: a.peRatio, kind: 'multiple' },
@@ -138,6 +158,8 @@ export default function IntermediateAnalysis({ ticker }: { ticker: string }) {
         conflicts={conflicts}
         mode="intermediate"
       />
+
+      <ResearchHistory ticker={ticker} mode="intermediate" />
 
       <AgentObservatory initialSymbol={ticker} />
       <AskOmniSignal ticker={ticker} />

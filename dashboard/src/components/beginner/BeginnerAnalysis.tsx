@@ -21,12 +21,13 @@ import { useEffect, useState } from 'react'
 import { EmptyLine, Panel, Prose, StateBlock, Strip } from '@/components/system'
 import {
   DISCLAIMER, explainCompleteness, explainConfidence, explainRisk,
-  reasons, signalSentence, whatCouldChange,
+  reasons, signalBoundary, signalSentence, whatCouldChange, whyNotStronger,
 } from '@/lib/beginner'
 import AskOmniSignal from '@/components/beginner/AskOmniSignal'
 import WhatIfLab from '@/components/whatif/WhatIfLab'
 import StockActions from '@/components/beginner/StockActions'
 import EvidenceHealth from '@/components/evidence/EvidenceHealth'
+import ResearchHistory from '@/components/research/ResearchHistory'
 import { fetchAnalysis, normalizeAnalysis } from '@/lib/api'
 import { signalTone } from '@/lib/explore'
 import type { Analysis } from '@/lib/types'
@@ -65,6 +66,8 @@ export default function BeginnerAnalysis({ ticker }: { ticker: string }) {
   const quant = a.quant
   const { positive, cautious } = reasons(quant?.factors, 3)
   const changes = whatCouldChange(quant?.factors, a.verdict)
+  const boundary = signalBoundary(quant?.factors, quant?.rawScore ?? null)
+  const notStronger = whyNotStronger(boundary)
   const completeness = quant?.dataCompleteness ?? null
   const confidence = a.engineConfidence ?? quant?.confidence ?? null
   const riskScore = quant?.riskScore ?? null
@@ -155,6 +158,18 @@ export default function BeginnerAnalysis({ ticker }: { ticker: string }) {
         )}
       </Panel>
 
+      {notStronger || boundary?.next ? (
+        <Panel title="Why isn't this signal stronger?">
+          {notStronger ? <Prose>{notStronger}</Prose> : null}
+          {boundary?.next ? (
+            <Prose size="fine">
+              The score would need to move {boundary.next.distance.toFixed(2)} points
+              to reach the {boundary.next.verdict} threshold.
+            </Prose>
+          ) : null}
+        </Panel>
+      ) : null}
+
       <Panel title="What could change the signal">
         <Prose>
           Derived from the factors currently carrying the conclusion. Nothing
@@ -188,6 +203,8 @@ export default function BeginnerAnalysis({ ticker }: { ticker: string }) {
         conflicts={conflicts}
         mode="beginner"
       />
+
+      <ResearchHistory ticker={ticker} mode="beginner" />
 
       <WhatIfLab ticker={ticker} />
 

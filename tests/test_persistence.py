@@ -364,6 +364,46 @@ class TestAnalysisHistory:
         hid = repo.record(USER_A, _research_payload())
         assert repo.compare(USER_A, hid, "nonexistent") is None
 
+    def test_a_stored_run_is_structurally_immutable(self, fake):
+        """A historical snapshot must never silently pick up today's values.
+
+        `AnalysisRepository` has no method that writes to an existing
+        `analysis_history` row's `quant_payload` — only `record()` (insert)
+        and `delete()` exist for it. That is what makes a stored run
+        trustworthy as history rather than a cache that a later call could
+        quietly refresh underneath a reader who has it open.
+
+        Verified two ways: at the repository's public surface (no update/
+        patch method touches history rows) and behaviourally (recording a
+        second, very different run for the same ticker does not alter the
+        first row at all — same id, same payload, same created_at).
+        """
+        public_methods = {
+            name for name in dir(AnalysisRepository)
+            if not name.startswith("_") and callable(getattr(AnalysisRepository, name))
+        }
+        # Every method that can reach `analysis_history` rows, by name.
+        history_surface = {m for m in public_methods if "saved" not in m}
+        mutators = {m for m in history_surface if any(
+            m.startswith(prefix) for prefix in ("update", "patch", "set", "edit")
+        )}
+        assert mutators == set(), (
+            f"a method can mutate a stored run's payload: {mutators}"
+        )
+
+        repo = AnalysisRepository(fake)
+        first_id = repo.record(USER_A, _research_payload(verdict="Hold", confidence=50))
+        before = repo.get(USER_A, first_id)
+
+        # A second, very different run for the same ticker — the kind of
+        # write that a caching layer would use to refresh a stale entry.
+        repo.record(USER_A, _research_payload(verdict="Sell", confidence=10, momentum=-0.9))
+
+        after = repo.get(USER_A, first_id)
+        assert after == before, "recording a new run altered an older stored run"
+        assert after["verdict"] == "Hold"
+        assert after["confidence"] == 50
+
 
 class TestSavedReports:
     def test_save_list_update_delete(self, fake):

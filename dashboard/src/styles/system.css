@@ -3714,3 +3714,42 @@ a.tape:hover .tape__sym { color: var(--accent); }
   color: var(--ink-muted);
   line-height: 1.5;
 }
+
+/* Research history — the compact timeline and "since your last analysis"
+   diff embedded on the stock page itself, distinct from the full /terminal/
+   vault workspace this reads the same data as. */
+.rh__label {
+  margin: var(--gap) 0 4px;
+  font-size: var(--t-micro);
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.rh__label:first-child { margin-top: 0; }
+
+.rh__since { margin-top: var(--d-2); }
+.rh__since-head { margin: 0 0 var(--d-2); font-size: var(--t-body); }
+
+.rh__list { margin: 0; padding: 0 0 0 1.1em; display: grid; gap: 3px; font-size: var(--t-meta); }
+.rh__list--muted { color: var(--ink-faint); }
+.rh__delta { color: var(--ink-faint); font-family: var(--font-mono); font-size: var(--t-micro); }
+
+.rh__meta {
+  margin: var(--d-2) 0 0;
+  font-size: var(--t-micro);
+  color: var(--ink-muted);
+}
+
+.rh__timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.rh__run {
+  display: flex;
+  align-items: center;
+  gap: var(--d-3);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: var(--t-meta);
+}
+.rh__run:last-child { border-bottom: 0; }
+.rh__date { font-family: var(--font-mono); color: var(--ink-faint); min-width: 5.5em; }
+.rh__stat { color: var(--ink-muted); margin-left: auto; }
+.rh__stat + .rh__stat { margin-left: var(--d-2); }
