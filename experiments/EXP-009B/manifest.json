@@ -1,0 +1,131 @@
+{
+  "baseline_reproduction": {
+    "max_abs_prediction_difference": 0.0,
+    "passed": true,
+    "rows_frozen": 100246,
+    "rows_joined": 100246,
+    "rows_refit": 100246
+  },
+  "compute": {
+    "cpu_count": 12,
+    "gpu": null,
+    "platform": "macOS-27.0-arm64-arm-64bit",
+    "python": "3.12.11",
+    "trials_counted_for_deflation": 163,
+    "wall_seconds": 628.2,
+    "workers": 4
+  },
+  "dataset": {
+    "content_hash": "7deb8601ae7a34074cade997397f1947",
+    "dataset_version": "ds-491d761b9f2a6fc4",
+    "end": "2025-05-09",
+    "features_in_dataset": 103,
+    "rows": 452524
+  },
+  "decision": {
+    "base_model_for_exp_009c": "R0_sklearn_gb",
+    "confirmed_rankers": [],
+    "promotion": "NOT ASSESSED",
+    "summary": "no ranker met all criteria; BASE for EXP-009C is the sklearn point-regression baseline"
+  },
+  "definition_fingerprint": "a23850117183e15c130c8c1645a858a356110eb5a466c9ad8863f99bd9763f42",
+  "definition_sha256": "1eeb50eb5728647a7b8c96f3182aa9452d07e928e6bd51cdf4f2e001f7be6c9d",
+  "dependency_versions": {
+    "numpy": "2.2.6",
+    "pandas": "2.3.3",
+    "pyarrow": "18.1.0",
+    "python": "3.12.11",
+    "scipy": "1.18.1",
+    "sklearn": "1.7.2"
+  },
+  "experiment_id": "EXP-009B",
+  "feature_list_sha256": "43a60caaf6fad612e6c4da0f6a4241718c073af2dd09f5d2ca71d964bb3f7b94",
+  "features_used": [
+    "acceleration_xs",
+    "dist_52w_high_xs",
+    "ma_gap_xs",
+    "mom_21_xs",
+    "mom_252_21_xs",
+    "mom_63_xs",
+    "reversal_5_xs",
+    "trend_strength_63_xs",
+    "downside_vol_63_xs",
+    "max_drawdown_252_xs",
+    "vol_21_xs",
+    "vol_63_xs",
+    "vol_ratio_xs",
+    "amihud_21_xs",
+    "log_dollar_volume_21_xs",
+    "volume_shock_xs",
+    "market_drawdown",
+    "market_mom_21",
+    "market_mom_252",
+    "market_vol_21",
+    "market_vol_63",
+    "market_vol_percentile",
+    "rates_change_63",
+    "rates_curvature",
+    "rates_level",
+    "rates_short",
+    "rates_slope"
+  ],
+  "git_commit": "d633b1ba3d7ac1da2cf61a5909a44459f3e6f01e",
+  "git_dirty": false,
+  "holdout": {
+    "end": "2026-08-28",
+    "firewall": {
+      "breaches_prevented": 0,
+      "checks": 1,
+      "contract_armed": false,
+      "contract_path": "docs/HOLDOUT_CONTRACT.md",
+      "contract_readable": true,
+      "contract_state": "NOT_ARMED",
+      "engaged": true,
+      "override_reason": null,
+      "window": {
+        "active": true,
+        "end": "2026-08-28",
+        "start": "2025-08-26"
+      }
+    },
+    "start": "2025-08-26",
+    "touched": false
+  },
+  "output_sha256": {
+    "definition.json": "0268c1af0730333648527211e4aa2f3909ffd4e4ad2bd4cb16101e1d708e904d",
+    "metrics.json": "cbf0a66cccaa668364f25c5a85f79d46d3b6b366f0c031618eda25a1b2dc6d30",
+    "periods_R0_sklearn_gb_A_immediate.parquet": "b6537714cbca97a55f85cd4d30e10b185957df7e46a5ee230f0bc809135f83e4",
+    "periods_R0_sklearn_gb_C_topk_dropout_10.parquet": "604fb495db8027a316dd1371c267da2bd689b36104377cd6f6e42606ebaa308f",
+    "periods_R1_boosted_l2_A_immediate.parquet": "b36f88f806065f755bdbb64bd047e401c47770925e1a747b517e43ae924bfb9f",
+    "periods_R1_boosted_l2_C_topk_dropout_10.parquet": "23d99b2086ef88a92912c592cf74547cd14d704e131510ecd78eb2e9e8be1d19",
+    "periods_R2_boosted_lambdamart_A_immediate.parquet": "abd2da80db06b837457f828c3cddb2f086add81cc2dd7a8ee1ededfcec9434b9",
+    "periods_R2_boosted_lambdamart_C_topk_dropout_10.parquet": "94ad534213c3ad3dde7a9c5e318a20c0e900e51c21e010f127031d3ad25bd933",
+    "periods_R3_boosted_pairwise_A_immediate.parquet": "786fd1292d504660a4d89ff666ba0f7db89ec47a2cbdc89ddd4b194ac5694666",
+    "periods_R3_boosted_pairwise_C_topk_dropout_10.parquet": "2b54c7bb2f9cea200f96ddb1b2005efd602964cb2205014ba646e1d85fdef9b4",
+    "predictions_R0_sklearn_gb.parquet": "6fe9a6aba7cc57c10e1d6e8963cd34a37066e7c97941b1ff0edc28c105952f59",
+    "predictions_R1_boosted_l2.parquet": "24a0c54891df9045b5b795279e7545c94392a5bf5f71e56ec1ec08b930e5bedf",
+    "predictions_R2_boosted_lambdamart.parquet": "68cbfff12aa55313fd25e78568557c3368cad4de442e2dd49182e58d48217e31",
+    "predictions_R3_boosted_pairwise.parquet": "e3ae487cb1932ccaeb173fa034001fa194931bd006691dbfbb03b4505c54df35"
+  },
+  "parent": "EXP-006",
+  "preregistration_commit": "d633b1ba3d7ac1da2cf61a5909a44459f3e6f01e",
+  "preregistration_document": "docs/EXP_009B_LTR_PREREGISTRATION.md",
+  "preregistration_sha256": "42cfe2ce189c88ac654f52072ccc224b6fda669a0ac9d9a0df64d3bbac47069c",
+  "pushed_to_origin_main": true,
+  "seed": 0,
+  "status": "EXPERIMENTAL - PROMOTION NOT ASSESSED",
+  "timing": {
+    "columns_shipped": 31,
+    "elapsed_s": 589.24,
+    "failed": 0,
+    "frame_mb": 104.0,
+    "mode": "parallel:4",
+    "specs": 4,
+    "succeeded": 4
+  },
+  "validity_checks": {
+    "dataset_id": true,
+    "features_present": true,
+    "returns_panel_hash": true
+  }
+}

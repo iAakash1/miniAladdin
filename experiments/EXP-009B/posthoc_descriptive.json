@@ -1,0 +1,1125 @@
+{
+  "cells": {
+    "R0_sklearn_gb": {
+      "constructions": {
+        "A_immediate": {
+          "breadth": {
+            "max_abs_weight": 0.1,
+            "mean_effective_n_long": 49.526054590570716,
+            "mean_effective_n_short": 49.583126550868485,
+            "mean_long_names": 49.526054590570716,
+            "mean_short_names": 49.583126550868485
+          },
+          "holding_duration_periods": {
+            "completed_spells": 15783,
+            "mean_completed_spell": 2.492935436862447,
+            "median_completed_spell": 1.0,
+            "note": "spells still open at the last date are excluded",
+            "share_of_spells_one_period": 0.5248685294303997
+          },
+          "largest_fold_share_of_net_difference_to_control": 2.36997677647278,
+          "names_replaced_per_rebalance": {
+            "both_legs_fraction": 0.3974740628080062,
+            "long_leg_fraction": 0.40991652847137633,
+            "short_leg_fraction": 0.38503159714463603
+          },
+          "per_fold": [
+            {
+              "first_date": "2017-05-12",
+              "fold": 0,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": true,
+              "last_date": "2018-05-03",
+              "mean_cost_bp": 13.591032337040987,
+              "mean_gross_return_bp": 3.506184117463285,
+              "mean_net_return_bp": -10.0848482195777,
+              "mean_one_way_turnover": 0.3981020408163265,
+              "net_sharpe": -1.2055270166902317,
+              "periods": 50,
+              "rank_ic": -0.019235840714560314
+            },
+            {
+              "first_date": "2018-05-10",
+              "fold": 1,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": true,
+              "last_date": "2019-05-02",
+              "mean_cost_bp": 13.150341340805696,
+              "mean_gross_return_bp": 29.80366943768401,
+              "mean_net_return_bp": 16.653328096878322,
+              "mean_one_way_turnover": 0.39274285714285717,
+              "net_sharpe": 0.9715570296889445,
+              "periods": 50,
+              "rank_ic": 0.03743582541403912
+            },
+            {
+              "first_date": "2019-05-09",
+              "fold": 2,
+              "improved_ic_vs_control": true,
+              "improved_net_vs_control": true,
+              "last_date": "2020-05-05",
+              "mean_cost_bp": 15.826702365666705,
+              "mean_gross_return_bp": 0.964309391340565,
+              "mean_net_return_bp": -14.862392974326138,
+              "mean_one_way_turnover": 0.4754981992797119,
+              "net_sharpe": -0.5140900857837166,
+              "periods": 51,
+              "rank_ic": 0.046403923208516946
+            },
+            {
+              "first_date": "2020-05-12",
+              "fold": 3,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2021-05-03",
+              "mean_cost_bp": 13.585191044633394,
+              "mean_gross_return_bp": 29.45223330067605,
+              "mean_net_return_bp": 15.867042256042657,
+              "mean_one_way_turnover": 0.42579999999999996,
+              "net_sharpe": 0.7133599880274635,
+              "periods": 50,
+              "rank_ic": 0.024208068521765574
+            },
+            {
+              "first_date": "2021-05-10",
+              "fold": 4,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2022-04-28",
+              "mean_cost_bp": 14.248131093270377,
+              "mean_gross_return_bp": -18.408404596788944,
+              "mean_net_return_bp": -32.65653569005933,
+              "mean_one_way_turnover": 0.45132244897959184,
+              "net_sharpe": -1.8446460300069398,
+              "periods": 50,
+              "rank_ic": -0.00912800774548014
+            },
+            {
+              "first_date": "2022-05-05",
+              "fold": 5,
+              "improved_ic_vs_control": true,
+              "improved_net_vs_control": true,
+              "last_date": "2023-05-04",
+              "mean_cost_bp": 11.666869664547319,
+              "mean_gross_return_bp": 14.3834823780656,
+              "mean_net_return_bp": 2.7166127135182645,
+              "mean_one_way_turnover": 0.36882352941176477,
+              "net_sharpe": 0.048819912981174746,
+              "periods": 51,
+              "rank_ic": 0.040742496369782624
+            },
+            {
+              "first_date": "2023-05-11",
+              "fold": 6,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": true,
+              "last_date": "2024-05-02",
+              "mean_cost_bp": 10.451320866471535,
+              "mean_gross_return_bp": 2.6690582104382314,
+              "mean_net_return_bp": -7.782262656033306,
+              "mean_one_way_turnover": 0.3324000000000001,
+              "net_sharpe": -0.47729379362672986,
+              "periods": 50,
+              "rank_ic": 0.03468681238771088
+            },
+            {
+              "first_date": "2024-05-09",
+              "fold": 7,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2025-05-09",
+              "mean_cost_bp": 10.904137286366467,
+              "mean_gross_return_bp": 19.233398768639418,
+              "mean_net_return_bp": 8.32926148227295,
+              "mean_one_way_turnover": 0.3535294117647059,
+              "net_sharpe": 0.4789718936411423,
+              "periods": 51,
+              "rank_ic": 0.07593954100551616
+            }
+          ]
+        },
+        "C_topk_dropout_10": {
+          "breadth": {
+            "max_abs_weight": 0.1,
+            "mean_effective_n_long": 49.526054590570716,
+            "mean_effective_n_short": 49.583126550868485,
+            "mean_long_names": 49.526054590570716,
+            "mean_short_names": 49.583126550868485
+          },
+          "holding_duration_periods": {
+            "completed_spells": 5207,
+            "mean_completed_spell": 7.420971768772806,
+            "median_completed_spell": 5.0,
+            "note": "spells still open at the last date are excluded",
+            "share_of_spells_one_period": 0.13885154599577493
+          },
+          "largest_fold_share_of_net_difference_to_control": 0.6141165374099874,
+          "names_replaced_per_rebalance": {
+            "both_legs_fraction": 0.1322433147389076,
+            "long_leg_fraction": 0.1286976089621389,
+            "short_leg_fraction": 0.13578902051567635
+          },
+          "per_fold": [
+            {
+              "first_date": "2017-05-12",
+              "fold": 0,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2018-05-03",
+              "mean_cost_bp": 4.946234109772202,
+              "mean_gross_return_bp": -1.1112791222476628,
+              "mean_net_return_bp": -6.057513232019865,
+              "mean_one_way_turnover": 0.15082448979591834,
+              "net_sharpe": -0.679948321671071,
+              "periods": 50,
+              "rank_ic": -0.019235840714560314
+            },
+            {
+              "first_date": "2018-05-10",
+              "fold": 1,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2019-05-02",
+              "mean_cost_bp": 4.205093435075478,
+              "mean_gross_return_bp": 19.23045528824535,
+              "mean_net_return_bp": 15.025361853169871,
+              "mean_one_way_turnover": 0.12938367346938776,
+              "net_sharpe": 0.9569576675080557,
+              "periods": 50,
+              "rank_ic": 0.03743582541403912
+            },
+            {
+              "first_date": "2019-05-09",
+              "fold": 2,
+              "improved_ic_vs_control": true,
+              "improved_net_vs_control": true,
+              "last_date": "2020-05-05",
+              "mean_cost_bp": 5.481159995114859,
+              "mean_gross_return_bp": 4.933244439630452,
+              "mean_net_return_bp": -0.5479155554844036,
+              "mean_one_way_turnover": 0.17335334133653457,
+              "net_sharpe": -0.021482767218693227,
+              "periods": 51,
+              "rank_ic": 0.046403923208516946
+            },
+            {
+              "first_date": "2020-05-12",
+              "fold": 3,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2021-05-03",
+              "mean_cost_bp": 3.8878656252054786,
+              "mean_gross_return_bp": 28.608591746597675,
+              "mean_net_return_bp": 24.720726121392186,
+              "mean_one_way_turnover": 0.12679999999999997,
+              "net_sharpe": 1.3350356855108527,
+              "periods": 50,
+              "rank_ic": 0.024208068521765574
+            },
+            {
+              "first_date": "2021-05-10",
+              "fold": 4,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2022-04-28",
+              "mean_cost_bp": 3.808587748548943,
+              "mean_gross_return_bp": -22.162049216764633,
+              "mean_net_return_bp": -25.970636965313574,
+              "mean_one_way_turnover": 0.12527346938775508,
+              "net_sharpe": -1.3562603324387623,
+              "periods": 50,
+              "rank_ic": -0.00912800774548014
+            },
+            {
+              "first_date": "2022-05-05",
+              "fold": 5,
+              "improved_ic_vs_control": true,
+              "improved_net_vs_control": true,
+              "last_date": "2023-05-04",
+              "mean_cost_bp": 3.9596368238470365,
+              "mean_gross_return_bp": 65.32425095559061,
+              "mean_net_return_bp": 61.36461413174357,
+              "mean_one_way_turnover": 0.1284313725490196,
+              "net_sharpe": 0.9645256905738675,
+              "periods": 51,
+              "rank_ic": 0.040742496369782624
+            },
+            {
+              "first_date": "2023-05-11",
+              "fold": 6,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": true,
+              "last_date": "2024-05-02",
+              "mean_cost_bp": 3.9150534410153974,
+              "mean_gross_return_bp": 3.2619424797939316,
+              "mean_net_return_bp": -0.6531109612214632,
+              "mean_one_way_turnover": 0.12780000000000002,
+              "net_sharpe": -0.038047431690910426,
+              "periods": 50,
+              "rank_ic": 0.03468681238771088
+            },
+            {
+              "first_date": "2024-05-09",
+              "fold": 7,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2025-05-09",
+              "mean_cost_bp": 3.967192793961374,
+              "mean_gross_return_bp": 23.236183382352795,
+              "mean_net_return_bp": 19.268990588391414,
+              "mean_one_way_turnover": 0.13235294117647056,
+              "net_sharpe": 1.070271589089665,
+              "periods": 51,
+              "rank_ic": 0.07593954100551616
+            }
+          ]
+        }
+      },
+      "rank_turnover": {
+        "dates": 401,
+        "mean_abs_percentile_move": 0.15325450301838536
+      }
+    },
+    "R1_boosted_l2": {
+      "constructions": {
+        "A_immediate": {
+          "breadth": {
+            "max_abs_weight": 0.1,
+            "mean_effective_n_long": 49.526054590570716,
+            "mean_effective_n_short": 49.583126550868485,
+            "mean_long_names": 49.526054590570716,
+            "mean_short_names": 49.583126550868485
+          },
+          "holding_duration_periods": {
+            "completed_spells": 16078,
+            "mean_completed_spell": 2.4454534146038065,
+            "median_completed_spell": 1.0,
+            "note": "spells still open at the last date are excluded",
+            "share_of_spells_one_period": 0.5404279139196417
+          },
+          "largest_fold_share_of_net_difference_to_control": null,
+          "names_replaced_per_rebalance": {
+            "both_legs_fraction": 0.4048878001026519,
+            "long_leg_fraction": 0.4244510799212627,
+            "short_leg_fraction": 0.3853245202840411
+          },
+          "per_fold": [
+            {
+              "first_date": "2017-05-12",
+              "fold": 0,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2018-05-03",
+              "mean_cost_bp": 13.360926837123074,
+              "mean_gross_return_bp": 0.3744414312592981,
+              "mean_net_return_bp": -12.986485405863776,
+              "mean_one_way_turnover": 0.39027755102040823,
+              "net_sharpe": -1.4586720562053666,
+              "periods": 50,
+              "rank_ic": -0.010795043408417762
+            },
+            {
+              "first_date": "2018-05-10",
+              "fold": 1,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2019-05-02",
+              "mean_cost_bp": 13.6778473152556,
+              "mean_gross_return_bp": 12.604702557410164,
+              "mean_net_return_bp": -1.0731447578454292,
+              "mean_one_way_turnover": 0.40588979591836727,
+              "net_sharpe": -0.1094175639979009,
+              "periods": 50,
+              "rank_ic": 0.05125595961106574
+            },
+            {
+              "first_date": "2019-05-09",
+              "fold": 2,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2020-05-05",
+              "mean_cost_bp": 16.073675862615517,
+              "mean_gross_return_bp": -6.2208661542316825,
+              "mean_net_return_bp": -22.294542016847203,
+              "mean_one_way_turnover": 0.4831572629051621,
+              "net_sharpe": -0.8239651319691148,
+              "periods": 51,
+              "rank_ic": 0.04189726003481126
+            },
+            {
+              "first_date": "2020-05-12",
+              "fold": 3,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2021-05-03",
+              "mean_cost_bp": 13.88587830406559,
+              "mean_gross_return_bp": 34.60388116044289,
+              "mean_net_return_bp": 20.718002856377314,
+              "mean_one_way_turnover": 0.4352000000000001,
+              "net_sharpe": 0.9214682844337074,
+              "periods": 50,
+              "rank_ic": 0.02518895457164002
+            },
+            {
+              "first_date": "2021-05-10",
+              "fold": 4,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2022-04-28",
+              "mean_cost_bp": 14.567246865367979,
+              "mean_gross_return_bp": -2.026389576762329,
+              "mean_net_return_bp": -16.593636442130304,
+              "mean_one_way_turnover": 0.46013877551020405,
+              "net_sharpe": -0.749530093986312,
+              "periods": 50,
+              "rank_ic": -0.00035062676808482544
+            },
+            {
+              "first_date": "2022-05-05",
+              "fold": 5,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2023-05-04",
+              "mean_cost_bp": 12.222265862235693,
+              "mean_gross_return_bp": 11.63227432444706,
+              "mean_net_return_bp": -0.589991537788625,
+              "mean_one_way_turnover": 0.38607843137254905,
+              "net_sharpe": -0.010509456331300222,
+              "periods": 51,
+              "rank_ic": 0.03586104826552238
+            },
+            {
+              "first_date": "2023-05-11",
+              "fold": 6,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2024-05-02",
+              "mean_cost_bp": 10.937784967889902,
+              "mean_gross_return_bp": -1.5525083742200863,
+              "mean_net_return_bp": -12.490293342109991,
+              "mean_one_way_turnover": 0.34800000000000003,
+              "net_sharpe": -0.7165897026591211,
+              "periods": 50,
+              "rank_ic": 0.035688840930725045
+            },
+            {
+              "first_date": "2024-05-09",
+              "fold": 7,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2025-05-09",
+              "mean_cost_bp": 10.763872862246409,
+              "mean_gross_return_bp": 26.834518202360513,
+              "mean_net_return_bp": 16.0706453401141,
+              "mean_one_way_turnover": 0.348235294117647,
+              "net_sharpe": 0.8560873690807793,
+              "periods": 51,
+              "rank_ic": 0.07723750023331596
+            }
+          ]
+        },
+        "C_topk_dropout_10": {
+          "breadth": {
+            "max_abs_weight": 0.1,
+            "mean_effective_n_long": 49.526054590570716,
+            "mean_effective_n_short": 49.583126550868485,
+            "mean_long_names": 49.526054590570716,
+            "mean_short_names": 49.583126550868485
+          },
+          "holding_duration_periods": {
+            "completed_spells": 5224,
+            "mean_completed_spell": 7.416347626339969,
+            "median_completed_spell": 5.0,
+            "note": "spells still open at the last date are excluded",
+            "share_of_spells_one_period": 0.13667687595712097
+          },
+          "largest_fold_share_of_net_difference_to_control": null,
+          "names_replaced_per_rebalance": {
+            "both_legs_fraction": 0.13266264665077682,
+            "long_leg_fraction": 0.12858795315951932,
+            "short_leg_fraction": 0.1367373401420343
+          },
+          "per_fold": [
+            {
+              "first_date": "2017-05-12",
+              "fold": 0,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2018-05-03",
+              "mean_cost_bp": 4.938101774128725,
+              "mean_gross_return_bp": 0.9637433445139403,
+              "mean_net_return_bp": -3.9743584296147842,
+              "mean_one_way_turnover": 0.15122448979591835,
+              "net_sharpe": -0.4172072710050932,
+              "periods": 50,
+              "rank_ic": -0.010795043408417762
+            },
+            {
+              "first_date": "2018-05-10",
+              "fold": 1,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2019-05-02",
+              "mean_cost_bp": 4.194443935048319,
+              "mean_gross_return_bp": 23.88060369066206,
+              "mean_net_return_bp": 19.686159755613737,
+              "mean_one_way_turnover": 0.12937142857142855,
+              "net_sharpe": 1.2178418104507251,
+              "periods": 50,
+              "rank_ic": 0.05125595961106574
+            },
+            {
+              "first_date": "2019-05-09",
+              "fold": 2,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2020-05-05",
+              "mean_cost_bp": 5.485306139032581,
+              "mean_gross_return_bp": 1.2296015037937709,
+              "mean_net_return_bp": -4.2557046352388115,
+              "mean_one_way_turnover": 0.1735334133653461,
+              "net_sharpe": -0.15950644809997114,
+              "periods": 51,
+              "rank_ic": 0.04189726003481126
+            },
+            {
+              "first_date": "2020-05-12",
+              "fold": 3,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2021-05-03",
+              "mean_cost_bp": 3.9586275373025948,
+              "mean_gross_return_bp": 36.842576587455724,
+              "mean_net_return_bp": 32.883949050153134,
+              "mean_one_way_turnover": 0.12899999999999998,
+              "net_sharpe": 1.681035737643702,
+              "periods": 50,
+              "rank_ic": 0.02518895457164002
+            },
+            {
+              "first_date": "2021-05-10",
+              "fold": 4,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2022-04-28",
+              "mean_cost_bp": 3.8311033322702848,
+              "mean_gross_return_bp": -12.062433424912697,
+              "mean_net_return_bp": -15.893536757182986,
+              "mean_one_way_turnover": 0.12607755102040816,
+              "net_sharpe": -0.8495249629370625,
+              "periods": 50,
+              "rank_ic": -0.00035062676808482544
+            },
+            {
+              "first_date": "2022-05-05",
+              "fold": 5,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2023-05-04",
+              "mean_cost_bp": 4.010399261010453,
+              "mean_gross_return_bp": 60.750740659314985,
+              "mean_net_return_bp": 56.74034139830453,
+              "mean_one_way_turnover": 0.13019607843137251,
+              "net_sharpe": 0.8996168623638943,
+              "periods": 51,
+              "rank_ic": 0.03586104826552238
+            },
+            {
+              "first_date": "2023-05-11",
+              "fold": 6,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2024-05-02",
+              "mean_cost_bp": 3.912244757156269,
+              "mean_gross_return_bp": -0.6579967170377459,
+              "mean_net_return_bp": -4.570241474194011,
+              "mean_one_way_turnover": 0.12739999999999999,
+              "net_sharpe": -0.25642133477151163,
+              "periods": 50,
+              "rank_ic": 0.035688840930725045
+            },
+            {
+              "first_date": "2024-05-09",
+              "fold": 7,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2025-05-09",
+              "mean_cost_bp": 3.934695749467021,
+              "mean_gross_return_bp": 26.969037897094385,
+              "mean_net_return_bp": 23.034342147627363,
+              "mean_one_way_turnover": 0.13078431372549018,
+              "net_sharpe": 1.140026819924708,
+              "periods": 51,
+              "rank_ic": 0.07723750023331596
+            }
+          ]
+        }
+      },
+      "rank_turnover": {
+        "dates": 401,
+        "mean_abs_percentile_move": 0.15619452521041255
+      }
+    },
+    "R2_boosted_lambdamart": {
+      "constructions": {
+        "A_immediate": {
+          "breadth": {
+            "max_abs_weight": 0.1,
+            "mean_effective_n_long": 49.526054590570716,
+            "mean_effective_n_short": 49.583126550868485,
+            "mean_long_names": 49.526054590570716,
+            "mean_short_names": 49.583126550868485
+          },
+          "holding_duration_periods": {
+            "completed_spells": 12887,
+            "mean_completed_spell": 3.0350741056879027,
+            "median_completed_spell": 2.0,
+            "note": "spells still open at the last date are excluded",
+            "share_of_spells_one_period": 0.47652673236595017
+          },
+          "largest_fold_share_of_net_difference_to_control": 0.5224454137591759,
+          "names_replaced_per_rebalance": {
+            "both_legs_fraction": 0.3243283863408597,
+            "long_leg_fraction": 0.31833251116162825,
+            "short_leg_fraction": 0.3303242615200912
+          },
+          "per_fold": [
+            {
+              "first_date": "2017-05-12",
+              "fold": 0,
+              "improved_ic_vs_control": true,
+              "improved_net_vs_control": true,
+              "last_date": "2018-05-03",
+              "mean_cost_bp": 8.418518518844303,
+              "mean_gross_return_bp": 4.589484403933624,
+              "mean_net_return_bp": -3.8290341149106797,
+              "mean_one_way_turnover": 0.2379510204081632,
+              "net_sharpe": -0.6319982543001426,
+              "periods": 50,
+              "rank_ic": 0.02963246039187376
+            },
+            {
+              "first_date": "2018-05-10",
+              "fold": 1,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2019-05-02",
+              "mean_cost_bp": 10.069934581581263,
+              "mean_gross_return_bp": 4.3080228915252565,
+              "mean_net_return_bp": -5.761911690056007,
+              "mean_one_way_turnover": 0.28981224489795915,
+              "net_sharpe": -0.3754054601350361,
+              "periods": 50,
+              "rank_ic": -0.011514640751479448
+            },
+            {
+              "first_date": "2019-05-09",
+              "fold": 2,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2020-05-05",
+              "mean_cost_bp": 14.818289571640456,
+              "mean_gross_return_bp": -17.843229694685164,
+              "mean_net_return_bp": -32.66151926632562,
+              "mean_one_way_turnover": 0.4460344137655062,
+              "net_sharpe": -1.421273341270904,
+              "periods": 51,
+              "rank_ic": 0.03546239628100913
+            },
+            {
+              "first_date": "2020-05-12",
+              "fold": 3,
+              "improved_ic_vs_control": true,
+              "improved_net_vs_control": false,
+              "last_date": "2021-05-03",
+              "mean_cost_bp": 11.68909988711607,
+              "mean_gross_return_bp": 20.39109589628588,
+              "mean_net_return_bp": 8.701996009169815,
+              "mean_one_way_turnover": 0.3697999999999999,
+              "net_sharpe": 0.3254129643944638,
+              "periods": 50,
+              "rank_ic": 0.043619213771306384
+            },
+            {
+              "first_date": "2021-05-10",
+              "fold": 4,
+              "improved_ic_vs_control": true,
+              "improved_net_vs_control": true,
+              "last_date": "2022-04-28",
+              "mean_cost_bp": 11.111896407694505,
+              "mean_gross_return_bp": -4.127252820410939,
+              "mean_net_return_bp": -15.239149228105443,
+              "mean_one_way_turnover": 0.3538408163265307,
+              "net_sharpe": -1.0182603189585626,
+              "periods": 50,
+              "rank_ic": 0.037199622083678524
+            },
+            {
+              "first_date": "2022-05-05",
+              "fold": 5,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2023-05-04",
+              "mean_cost_bp": 13.1471666623796,
+              "mean_gross_return_bp": -43.24792942892782,
+              "mean_net_return_bp": -56.395096091307416,
+              "mean_one_way_turnover": 0.41470588235294115,
+              "net_sharpe": -0.6459096879497979,
+              "periods": 51,
+              "rank_ic": 0.0005856800028656268
+            },
+            {
+              "first_date": "2023-05-11",
+              "fold": 6,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": true,
+              "last_date": "2024-05-02",
+              "mean_cost_bp": 7.039315453357139,
+              "mean_gross_return_bp": -5.026564410267803,
+              "mean_net_return_bp": -12.065879863624943,
+              "mean_one_way_turnover": 0.22660000000000002,
+              "net_sharpe": -0.5799596499093035,
+              "periods": 50,
+              "rank_ic": -0.0053986983608823366
+            },
+            {
+              "first_date": "2024-05-09",
+              "fold": 7,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2025-05-09",
+              "mean_cost_bp": 8.570897820978757,
+              "mean_gross_return_bp": -10.34624652200204,
+              "mean_net_return_bp": -18.9171443429808,
+              "mean_one_way_turnover": 0.2798039215686275,
+              "net_sharpe": -1.0864725777196904,
+              "periods": 51,
+              "rank_ic": 0.015377494161650978
+            }
+          ]
+        },
+        "C_topk_dropout_10": {
+          "breadth": {
+            "max_abs_weight": 0.1,
+            "mean_effective_n_long": 49.526054590570716,
+            "mean_effective_n_short": 49.583126550868485,
+            "mean_long_names": 49.526054590570716,
+            "mean_short_names": 49.583126550868485
+          },
+          "holding_duration_periods": {
+            "completed_spells": 5173,
+            "mean_completed_spell": 7.451962110960758,
+            "median_completed_spell": 4.0,
+            "note": "spells still open at the last date are excluded",
+            "share_of_spells_one_period": 0.16373477672530445
+          },
+          "largest_fold_share_of_net_difference_to_control": 0.47652339790580234,
+          "names_replaced_per_rebalance": {
+            "both_legs_fraction": 0.13100173352930933,
+            "long_leg_fraction": 0.1238152181948867,
+            "short_leg_fraction": 0.138188248863732
+          },
+          "per_fold": [
+            {
+              "first_date": "2017-05-12",
+              "fold": 0,
+              "improved_ic_vs_control": true,
+              "improved_net_vs_control": true,
+              "last_date": "2018-05-03",
+              "mean_cost_bp": 4.722725839216076,
+              "mean_gross_return_bp": 2.6953491558381817,
+              "mean_net_return_bp": -2.0273766833778937,
+              "mean_one_way_turnover": 0.1439959183673469,
+              "net_sharpe": -0.3251831128392685,
+              "periods": 50,
+              "rank_ic": 0.02963246039187376
+            },
+            {
+              "first_date": "2018-05-10",
+              "fold": 1,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2019-05-02",
+              "mean_cost_bp": 4.143545618442096,
+              "mean_gross_return_bp": 10.730565754445164,
+              "mean_net_return_bp": 6.587020136003068,
+              "mean_one_way_turnover": 0.12775102040816327,
+              "net_sharpe": 0.42266708748663323,
+              "periods": 50,
+              "rank_ic": -0.011514640751479448
+            },
+            {
+              "first_date": "2019-05-09",
+              "fold": 2,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2020-05-05",
+              "mean_cost_bp": 5.386279537437998,
+              "mean_gross_return_bp": -20.935839017834336,
+              "mean_net_return_bp": -26.32211855527234,
+              "mean_one_way_turnover": 0.17158863545418165,
+              "net_sharpe": -1.348577288189267,
+              "periods": 51,
+              "rank_ic": 0.03546239628100913
+            },
+            {
+              "first_date": "2020-05-12",
+              "fold": 3,
+              "improved_ic_vs_control": true,
+              "improved_net_vs_control": false,
+              "last_date": "2021-05-03",
+              "mean_cost_bp": 4.055223694684771,
+              "mean_gross_return_bp": 8.379249948319096,
+              "mean_net_return_bp": 4.324026253634323,
+              "mean_one_way_turnover": 0.13479999999999998,
+              "net_sharpe": 0.1615563818970567,
+              "periods": 50,
+              "rank_ic": 0.043619213771306384
+            },
+            {
+              "first_date": "2021-05-10",
+              "fold": 4,
+              "improved_ic_vs_control": true,
+              "improved_net_vs_control": true,
+              "last_date": "2022-04-28",
+              "mean_cost_bp": 3.9400839447483786,
+              "mean_gross_return_bp": -5.740374769601463,
+              "mean_net_return_bp": -9.68045871434984,
+              "mean_one_way_turnover": 0.1302816326530612,
+              "net_sharpe": -0.704288205305065,
+              "periods": 50,
+              "rank_ic": 0.037199622083678524
+            },
+            {
+              "first_date": "2022-05-05",
+              "fold": 5,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2023-05-04",
+              "mean_cost_bp": 3.8177439656033676,
+              "mean_gross_return_bp": -23.054602971352598,
+              "mean_net_return_bp": -26.87234693695596,
+              "mean_one_way_turnover": 0.12431372549019606,
+              "net_sharpe": -0.4199454752229159,
+              "periods": 51,
+              "rank_ic": 0.0005856800028656268
+            },
+            {
+              "first_date": "2023-05-11",
+              "fold": 6,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2024-05-02",
+              "mean_cost_bp": 3.828332383803951,
+              "mean_gross_return_bp": -6.281602197280852,
+              "mean_net_return_bp": -10.109934581084799,
+              "mean_one_way_turnover": 0.12539999999999998,
+              "net_sharpe": -0.46500323080421685,
+              "periods": 50,
+              "rank_ic": -0.0053986983608823366
+            },
+            {
+              "first_date": "2024-05-09",
+              "fold": 7,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2025-05-09",
+              "mean_cost_bp": 3.852696811586851,
+              "mean_gross_return_bp": -4.624600067821413,
+              "mean_net_return_bp": -8.477296879408264,
+              "mean_one_way_turnover": 0.12941176470588234,
+              "net_sharpe": -0.48672009681292744,
+              "periods": 51,
+              "rank_ic": 0.015377494161650978
+            }
+          ]
+        }
+      },
+      "rank_turnover": {
+        "dates": 401,
+        "mean_abs_percentile_move": 0.11852151427704428
+      }
+    },
+    "R3_boosted_pairwise": {
+      "constructions": {
+        "A_immediate": {
+          "breadth": {
+            "max_abs_weight": 0.1,
+            "mean_effective_n_long": 49.526054590570716,
+            "mean_effective_n_short": 49.583126550868485,
+            "mean_long_names": 49.526054590570716,
+            "mean_short_names": 49.583126550868485
+          },
+          "holding_duration_periods": {
+            "completed_spells": 15383,
+            "mean_completed_spell": 2.557758564649288,
+            "median_completed_spell": 1.0,
+            "note": "spells still open at the last date are excluded",
+            "share_of_spells_one_period": 0.5123187934733147
+          },
+          "largest_fold_share_of_net_difference_to_control": 1.4805292423982404,
+          "names_replaced_per_rebalance": {
+            "both_legs_fraction": 0.38752406053371163,
+            "long_leg_fraction": 0.39965354020913657,
+            "short_leg_fraction": 0.3753945808582867
+          },
+          "per_fold": [
+            {
+              "first_date": "2017-05-12",
+              "fold": 0,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": true,
+              "last_date": "2018-05-03",
+              "mean_cost_bp": 13.207664505840322,
+              "mean_gross_return_bp": 4.2875069227102625,
+              "mean_net_return_bp": -8.92015758313006,
+              "mean_one_way_turnover": 0.3873061224489796,
+              "net_sharpe": -1.0096225847581695,
+              "periods": 50,
+              "rank_ic": -0.012549593895683149
+            },
+            {
+              "first_date": "2018-05-10",
+              "fold": 1,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": true,
+              "last_date": "2019-05-02",
+              "mean_cost_bp": 12.909999213196366,
+              "mean_gross_return_bp": 25.07673036835531,
+              "mean_net_return_bp": 12.166731155158939,
+              "mean_one_way_turnover": 0.38639591836734694,
+              "net_sharpe": 0.6984156381003507,
+              "periods": 50,
+              "rank_ic": 0.04835461637497339
+            },
+            {
+              "first_date": "2019-05-09",
+              "fold": 2,
+              "improved_ic_vs_control": true,
+              "improved_net_vs_control": true,
+              "last_date": "2020-05-05",
+              "mean_cost_bp": 15.417037089362475,
+              "mean_gross_return_bp": 3.6921854289299296,
+              "mean_net_return_bp": -11.724851660432554,
+              "mean_one_way_turnover": 0.4633653461384553,
+              "net_sharpe": -0.43479241841771826,
+              "periods": 51,
+              "rank_ic": 0.04864240935919196
+            },
+            {
+              "first_date": "2020-05-12",
+              "fold": 3,
+              "improved_ic_vs_control": true,
+              "improved_net_vs_control": true,
+              "last_date": "2021-05-03",
+              "mean_cost_bp": 13.297402157137185,
+              "mean_gross_return_bp": 44.11786175597346,
+              "mean_net_return_bp": 30.820459598836266,
+              "mean_one_way_turnover": 0.41840000000000005,
+              "net_sharpe": 1.483015845375105,
+              "periods": 50,
+              "rank_ic": 0.04829898181016656
+            },
+            {
+              "first_date": "2021-05-10",
+              "fold": 4,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2022-04-28",
+              "mean_cost_bp": 14.155555941740289,
+              "mean_gross_return_bp": -23.743770210393656,
+              "mean_net_return_bp": -37.89932615213395,
+              "mean_one_way_turnover": 0.44952653061224496,
+              "net_sharpe": -2.01705373860567,
+              "periods": 50,
+              "rank_ic": -0.006611162162129468
+            },
+            {
+              "first_date": "2022-05-05",
+              "fold": 5,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2023-05-04",
+              "mean_cost_bp": 10.1446136097901,
+              "mean_gross_return_bp": -30.459573089914823,
+              "mean_net_return_bp": -40.60418669970492,
+              "mean_one_way_turnover": 0.32196078431372543,
+              "net_sharpe": -1.0762916601392893,
+              "periods": 51,
+              "rank_ic": 0.027912085473813686
+            },
+            {
+              "first_date": "2023-05-11",
+              "fold": 6,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": true,
+              "last_date": "2024-05-02",
+              "mean_cost_bp": 10.673225336126764,
+              "mean_gross_return_bp": 0.06853529247900915,
+              "mean_net_return_bp": -10.604690043647755,
+              "mean_one_way_turnover": 0.34019999999999995,
+              "net_sharpe": -0.5786142771882234,
+              "periods": 50,
+              "rank_ic": 0.03548325135781904
+            },
+            {
+              "first_date": "2024-05-09",
+              "fold": 7,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2025-05-09",
+              "mean_cost_bp": 10.861367990073225,
+              "mean_gross_return_bp": 21.51762915989345,
+              "mean_net_return_bp": 10.65626116982022,
+              "mean_one_way_turnover": 0.35215686274509805,
+              "net_sharpe": 0.5947560269737163,
+              "periods": 51,
+              "rank_ic": 0.06742458582736895
+            }
+          ]
+        },
+        "C_topk_dropout_10": {
+          "breadth": {
+            "max_abs_weight": 0.1,
+            "mean_effective_n_long": 49.526054590570716,
+            "mean_effective_n_short": 49.583126550868485,
+            "mean_long_names": 49.526054590570716,
+            "mean_short_names": 49.583126550868485
+          },
+          "holding_duration_periods": {
+            "completed_spells": 5187,
+            "mean_completed_spell": 7.478696741854637,
+            "median_completed_spell": 5.0,
+            "note": "spells still open at the last date are excluded",
+            "share_of_spells_one_period": 0.13109697320223637
+          },
+          "largest_fold_share_of_net_difference_to_control": 0.939035228111423,
+          "names_replaced_per_rebalance": {
+            "both_legs_fraction": 0.13174123330932086,
+            "long_leg_fraction": 0.1281940045352935,
+            "short_leg_fraction": 0.1352884620833482
+          },
+          "per_fold": [
+            {
+              "first_date": "2017-05-12",
+              "fold": 0,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2018-05-03",
+              "mean_cost_bp": 4.958058906134605,
+              "mean_gross_return_bp": -0.6856928789619688,
+              "mean_net_return_bp": -5.643751785096574,
+              "mean_one_way_turnover": 0.1514285714285714,
+              "net_sharpe": -0.5976939829406608,
+              "periods": 50,
+              "rank_ic": -0.012549593895683149
+            },
+            {
+              "first_date": "2018-05-10",
+              "fold": 1,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": true,
+              "last_date": "2019-05-02",
+              "mean_cost_bp": 4.147639221770627,
+              "mean_gross_return_bp": 24.6469079872471,
+              "mean_net_return_bp": 20.499268765476476,
+              "mean_one_way_turnover": 0.12796326530612245,
+              "net_sharpe": 1.2635872764387295,
+              "periods": 50,
+              "rank_ic": 0.04835461637497339
+            },
+            {
+              "first_date": "2019-05-09",
+              "fold": 2,
+              "improved_ic_vs_control": true,
+              "improved_net_vs_control": true,
+              "last_date": "2020-05-05",
+              "mean_cost_bp": 5.401157353423479,
+              "mean_gross_return_bp": 4.6658559848624686,
+              "mean_net_return_bp": -0.7353013685610119,
+              "mean_one_way_turnover": 0.1707843137254902,
+              "net_sharpe": -0.030453303296940386,
+              "periods": 51,
+              "rank_ic": 0.04864240935919196
+            },
+            {
+              "first_date": "2020-05-12",
+              "fold": 3,
+              "improved_ic_vs_control": true,
+              "improved_net_vs_control": true,
+              "last_date": "2021-05-03",
+              "mean_cost_bp": 3.9317250210901893,
+              "mean_gross_return_bp": 39.79425893195959,
+              "mean_net_return_bp": 35.8625339108694,
+              "mean_one_way_turnover": 0.12779999999999997,
+              "net_sharpe": 1.8608643984179434,
+              "periods": 50,
+              "rank_ic": 0.04829898181016656
+            },
+            {
+              "first_date": "2021-05-10",
+              "fold": 4,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": true,
+              "last_date": "2022-04-28",
+              "mean_cost_bp": 3.750973856706151,
+              "mean_gross_return_bp": -10.22409622150102,
+              "mean_net_return_bp": -13.975070078207175,
+              "mean_one_way_turnover": 0.12307346938775508,
+              "net_sharpe": -0.6953039484689749,
+              "periods": 50,
+              "rank_ic": -0.006611162162129468
+            },
+            {
+              "first_date": "2022-05-05",
+              "fold": 5,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2023-05-04",
+              "mean_cost_bp": 4.009704223178488,
+              "mean_gross_return_bp": 20.783431604265733,
+              "mean_net_return_bp": 16.77372738108725,
+              "mean_one_way_turnover": 0.13098039215686272,
+              "net_sharpe": 0.3063254208799985,
+              "periods": 51,
+              "rank_ic": 0.027912085473813686
+            },
+            {
+              "first_date": "2023-05-11",
+              "fold": 6,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2024-05-02",
+              "mean_cost_bp": 3.904233899685184,
+              "mean_gross_return_bp": -5.9483058110453255,
+              "mean_net_return_bp": -9.852539710730513,
+              "mean_one_way_turnover": 0.1276,
+              "net_sharpe": -0.5212800062432855,
+              "periods": 50,
+              "rank_ic": 0.03548325135781904
+            },
+            {
+              "first_date": "2024-05-09",
+              "fold": 7,
+              "improved_ic_vs_control": false,
+              "improved_net_vs_control": false,
+              "last_date": "2025-05-09",
+              "mean_cost_bp": 3.9220458179505164,
+              "mean_gross_return_bp": 22.05842854622405,
+              "mean_net_return_bp": 18.13638272827353,
+              "mean_one_way_turnover": 0.13058823529411764,
+              "net_sharpe": 0.9546029496852444,
+              "periods": 51,
+              "rank_ic": 0.06742458582736895
+            }
+          ]
+        }
+      },
+      "rank_turnover": {
+        "dates": 401,
+        "mean_abs_percentile_move": 0.1488500603297994
+      }
+    }
+  },
+  "label": "EXPLORATORY - post-run descriptive - changes no classification"
+}

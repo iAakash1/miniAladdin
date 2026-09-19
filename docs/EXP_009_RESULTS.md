@@ -9,7 +9,7 @@ The final synthesis is in `docs/EXP_009_FINAL_ANALYSIS.md` when complete.
 | Study | Status | Preregistration |
 |---|---|---|
 | **EXP-009A** turnover-aware portfolio construction | **Executed 2026-09-19** | `docs/EXP_009A_TURNOVER_PREREGISTRATION.md`, commit `155e976` (pushed before execution) |
-| EXP-009B date-grouped learning to rank | Pending | — |
+| **EXP-009B** ranking objective vs matched point-regression control | **Executed 2026-09-19** | `docs/EXP_009B_LTR_PREREGISTRATION.md`, commit `d633b1b` (pushed before execution) |
 | EXP-009C analyst-revision arm | Pending (PIT audit first) | — |
 
 ---
@@ -196,3 +196,187 @@ provisional, not a finding about which mechanism is "right".
 .venv/bin/python -m scripts.quant.exp009a run          # refused without it
 .venv/bin/python -m scripts.quant.exp009a robustness   # exploratory, post-hoc
 ```
+
+---
+
+## EXP-009B — a ranking objective against a matched point-regression control
+
+### What was run, and the integrity record
+
+Three boosted-tree models that differ **only in the objective** — squared error on the continuous
+rank label (`R1`, the control), LambdaMART (`R2`), and a position-agnostic pairwise loss (`R3`) —
+plus a refit of scikit-learn's `GradientBoostingRegressor` (`R0`) as a validity gate. Same dataset
+`ds-491d761b9f2a6fc4`, same 27 frozen features, same eight folds recovered from EXP-006's plan,
+same imputation, hyper-parameters (200 rounds, learning rate 0.03, depth 3, subsample 0.7, min leaf
+50), seed 0. No search of any kind. Both rankers were classified exactly by the frozen rules.
+
+| Check | Result |
+|---|---|
+| Manifest present, generated artifacts hashed | ✓ 14 output files; every recorded sha256 re-verified, 0 mismatches |
+| Preregistration lineage | ✓ document sha256 `42cfe2ce…069c`, commit `d633b1b` (ancestor of `origin/main` when the run started), run at commit `d633b1b`, `git_dirty: false` |
+| Definition fingerprint | ✓ `a2385011…3f42`, equal to the value embedded in the preregistration and recomputed after the run |
+| Dataset id / returns-panel hash | ✓ `ds-491d761b9f2a6fc4` / `d1f10c93…919e` |
+| 27 frozen `C_base` features | ✓ feature-list sha256 `43a60caa…7b94`; identical to EXP-006's `features_used` |
+| Folds | ✓ the eight recorded EXP-006 folds; first validation 2017-05-05, last validation end **2025-05-09** |
+| **Validity gate** | ✓ **R0 reproduces EXP-006's 100,246 frozen predictions with max absolute difference 0.0** |
+| Seed / software | ✓ seed 0; Python 3.12.11, numpy 2.2.6, pandas 2.3.3, scipy 1.18.1, scikit-learn 1.7.2, pyarrow 18.1.0 (the versions EXP-006 recorded) |
+| **Holdout** | ✓ **`touched: false`**, firewall engaged (contract NOT ARMED), 0 breaches, 0 overrides; window 2025-08-26 → 2026-08-28 (the widest EXP-006 recorded anywhere) was not read for any purpose |
+| Compute | CPU only, 12 cores, 4 workers, **628 s wall**; 16-58 s per fold for R0/R1 and 31-109 s for R2/R3 (≈2x the L2 loop); no GPU |
+
+### Classification (the frozen rules, applied exactly)
+
+| Ranker | O1 ordering | O2 consistency | O3 stability | E1 economics | **Classification** |
+|---|---|---|---|---|---|
+| R2 LambdaMART | ✗ (ΔIC −0.0139; lower bound −0.038) | ✗ (3 of 8 folds better) | ✓ | ✗ | **NO_ORDERING_GAIN** |
+| R3 pairwise | ✗ (ΔIC +0.0001; lower bound −0.0065) | ✗ (2 of 8 folds better) | ✓ | ✗ | **NO_ORDERING_GAIN** |
+
+*LambdaMART lowered mean Rank IC and failed the economic criterion; pairwise ranking showed no
+statistically supported ordering improvement.* **No ranker is retained.** Per the preregistered
+carry-forward rule, the BASE for EXP-009C is the sklearn `GradientBoostingRegressor` (R0), the frozen
+point-regression baseline. Nothing is promoted.
+
+### Ordering (portfolio-free; 404 dates, 100,246 predictions)
+
+| Cell | Mean Rank IC | HAC t | ICIR | Positive dates | Fold IC (0…7) | Worst / best fold | Positive folds | NDCG@50 long / short | Top / bottom realised rank | Spread |
+|---|---:|---:|---:|---:|---|---|---:|---|---|---:|
+| R0 sklearn (gate) | 0.02895 | 2.66 | 0.199 | 61.4% | −.019 .037 .046 .024 −.009 .041 .035 .076 | −.019 / .076 | 6 | .521 / .527 | +.023 / −.026 | .049 |
+| **R1 L2 control** | **0.03204** | **2.94** | 0.219 | 59.9% | −.011 .051 .042 .025 −.000 .036 .036 .077 | −.011 / .077 | 6 | .524 / .527 | +.028 / −.026 | .053 |
+| R2 LambdaMART | 0.01814 | 1.63 | 0.130 | 53.0% | .030 −.012 .036 .044 .037 .001 −.005 .015 | −.012 / .044 | 6 | .513 / .516 | +.012 / −.013 | .025 |
+| R3 pairwise | 0.03213 | 2.68 | 0.203 | 59.4% | −.013 .048 .049 .048 −.007 .028 .036 .067 | −.013 / .067 | 6 | .522 / .529 | +.026 / −.029 | .055 |
+
+Prediction dispersion (mean cross-sectional SD, **native units — not comparable across objectives**):
+R1 0.045, R2 0.129, R3 0.110. Train IC → train-validation gap: R1 0.190 → 0.158; R3 0.195 → 0.163;
+**R2 0.065 → 0.047** — LambdaMART is *underfitting* under the frozen 200-round, 0.03-rate configuration;
+this is a property of the configuration, which was not tuned and is not changed here.
+
+### Paired statistics (frozen: HAC Bartlett 4 lags, z = 1.96, block-8 bootstrap, 10,000 draws, seed 0)
+
+| | Δ mean Rank IC (ranker − control) | HAC t | One-sided lower bound | Bootstrap 95% CI | Folds better |
+|---|---:|---:|---:|---|---:|
+| R2 LambdaMART | −0.01390 | −1.12 | −0.03815 | [−0.0395, +0.0116] | 3 / 8 |
+| R3 pairwise | +0.00009 | +0.03 | −0.00654 | [−0.0065, +0.0075] | 2 / 8 |
+
+Δ NDCG@50 (long / short): R2 −0.011 / −0.011; R3 −0.002 / +0.002. Δ realised-rank spread: R2 −0.029; R3 +0.001.
+
+### Stability — a ranker is not better if it gains IC by reshuffling the book
+
+| Cell | Rank correlation between consecutive dates | Top-quintile retention | Bottom-quintile retention | Rank turnover (mean \|Δ percentile\|) |
+|---|---:|---:|---:|---:|
+| R1 control | 0.685 | 0.599 | 0.649 | 0.156 |
+| R2 LambdaMART | 0.665 | 0.711 | 0.708 | 0.119 |
+| R3 pairwise | 0.716 | 0.624 | 0.655 | 0.149 |
+
+Neither ranker gains IC by churning: R3 is marginally *more* stable than the control, and R2's higher
+retention comes with lower IC and a weaker top/bottom spread (the retention of a less informative ordering).
+Both pass O3, and neither passes O1.
+
+### Portfolio economics (10 bp half-spread primary)
+
+**Under the frozen EXP-009A top-k-dropout construction:**
+
+| Cell | Gross Sharpe | Net Sharpe 1 / 3 / 5 / **10** / 20 bp | Annual turnover | Cost share | Max DD | Break-even | Names replaced per rebalance | Mean spell |
+|---|---:|---|---:|---:|---:|---:|---:|---:|
+| R0 sklearn | 0.541 | +.477 / +.458 / +.438 / **+.390** / +.293 | 6.90 | 28% | −14.3% | 50.2 bp | 13.2% | 7.4 |
+| **R1 control** | 0.607 | +.544 / +.524 / +.505 / **+.457** / +.361 | 6.92 | 25% | −13.1% | 57.5 bp | 13.3% | 7.4 |
+| R2 LambdaMART | −0.175 | −.237 / −.257 / −.276 / **−.324** / −.420 | 6.85 | undefined (gross < 0) | −41.6% | negative | 13.1% | 7.5 |
+| R3 pairwise | 0.458 | +.389 / +.368 / +.347 / **+.295** / +.190 | 6.87 | 36% | −18.6% | 38.1 bp | 13.2% | 7.5 |
+
+**Under immediate replacement (the EXP-006 construction):**
+
+| Cell | Gross Sharpe | Net Sharpe 1 / 3 / 5 / **10** / 20 bp | Annual turnover | Cost share | Max DD | Break-even | Names replaced | Mean spell |
+|---|---:|---|---:|---:|---:|---:|---:|---:|
+| R0 sklearn | 0.384 | +.169 / +.108 / +.048 / **−.102** / −.403 | 20.15 | 127% | −28.8% | 6.6 bp | 39.7% | 2.5 |
+| R1 control | 0.358 | +.138 / +.077 / +.016 / **−.137** / −.442 | 20.52 | 138% | −29.6% | 5.5 bp | 40.5% | 2.5 |
+| R2 LambdaMART | −0.184 | −.318 / −.355 / −.391 / **−.484** / −.668 | 16.52 | undefined | −58.8% | negative | 32.4% | 3.0 |
+| R3 pairwise | 0.247 | −.002 / −.072 / −.142 / **−.316** / −.663 | 19.65 | 228% | −42.6% | 0.9 bp | 38.8% | 2.6 |
+
+Paired net-Sharpe difference at 10 bp (ranker − control), block bootstrap, lower bound at level 0.975:
+under top-k dropout R2 −0.78 (95% CI −1.45 … −0.10; lower bound −1.45), R3 −0.16 (−0.46 … +0.08); under
+immediate replacement R2 −0.35 (−0.98 … +0.23), R3 −0.18 (−0.66 … +0.35). **E1 fails for both** (lower
+bound ≤ 0; the turnover ratios, 0.99, are inside the 1.10 limit — a ranking loss is not a turnover control,
+as the listwise paper's own turnover suggested).
+
+### Fold economics — does one period dominate?
+
+Net return, bp per period, under top-k dropout (gross in parentheses); **bold** = better than the control (the control column carries no bold).
+
+| Fold | Period | R1 control | R2 LambdaMART | R3 pairwise |
+|---:|---|---|---|---|
+| 0 | 2017-05 → 2018-05 | −4.0 (+1.0) | **−2.0** (+2.7) | −5.6 (−0.7) |
+| 1 | 2018-05 → 2019-05 | +19.7 (+23.9) | +6.6 (+10.7) | **+20.5** (+24.6) |
+| 2 | 2019-05 → 2020-05 | −4.3 (+1.2) | −26.3 (−20.9) | **−0.7** (+4.7) |
+| 3 | 2020-05 → 2021-05 | +32.9 (+36.8) | +4.3 (+8.4) | **+35.9** (+39.8) |
+| 4 | 2021-05 → 2022-04 | −15.9 (−12.1) | **−9.7** (−5.7) | **−14.0** (−10.2) |
+| 5 | 2022-05 → 2023-05 | +56.7 (+60.8) | −26.9 (−23.1) | +16.8 (+20.8) |
+| 6 | 2023-05 → 2024-05 | −4.6 (−0.7) | −10.1 (−6.3) | −9.9 (−5.9) |
+| 7 | 2024-05 → 2025-05 | +23.0 (+27.0) | −8.5 (−4.6) | +18.1 (+22.1) |
+
+* **Fold 5 is the single largest contributor.** Under top-k dropout the *control's* positive result leans on that
+  one period (+56.7 bp), as EXP-009A found for the sklearn cell. Fold 5 is also the largest single contributor to
+  each ranker's net difference from the control: 48% of the total for LambdaMART; for pairwise, whose other folds
+  roughly offset one another, 94%. One period should not be read as the result.
+* **IC and net do not move together per fold.** LambdaMART has a *higher* fold IC than the control in folds 0, 3
+  and 4 (+0.030, +0.044, +0.037), yet in fold 3 its net is far lower (+4.3 vs +32.9 bp): an ordering measured by
+  rank correlation across 250 names is not the ordering of the 50 names each leg trades.
+* The same table under immediate replacement is in `experiments/EXP-009B/posthoc_descriptive.json`
+  (per-fold gross, net, turnover, IC and whether each fold improved on the control, for every cell).
+
+### The noise floor
+
+R0 and R1 differ *only* in the tree learner's bagging implementation (sklearn's selection-sampling mask versus
+mine; with `subsample = 1.0` they agree to 1e-9). Yet R1 − R0 is **+0.0031 mean Rank IC** and **+0.067 net
+Sharpe** under top-k dropout (−0.035 under immediate replacement). That is the size of the change produced by
+nothing but a different random subsample — larger than the R3 − R1 IC difference (+0.0001) and comparable to
+the differences the paper-level effects would have to clear. Any single-fit IC comparison in this program has
+this uncertainty; the frozen criteria (HAC, 6-of-8 folds, block bootstrap) exist to keep it from being read as signal.
+
+### Calibration of the recorded predictions
+
+| Prediction | Outcome |
+|---|---|
+| 1. No ranker meets O1; any IC difference within ±0.005 | **Half right.** No ranker met O1 ✓; R3's difference was +0.0001 ✓; R2's was **−0.0139**, far outside ±0.005 ✗ |
+| 2. LambdaMART worse than the control on the short end; pairwise closest to the control | ✓ R2 NDCG@50 short −0.011 (and long −0.011); R3 closest (−0.002 / +0.002) |
+| 3. Binning costs a little IC; similar train-validation gaps | **Wrong for R2:** its train IC is 0.065 vs 0.190 — a much smaller gap (underfit), and a large IC loss. Right for R3 (no loss, same gap) |
+| 4. P(at least one ORDERING_AND_NET_IMPROVED) ≈ 10-15% | ✓ none |
+
+### Validation of the custom ranker (non-outcome-based; nothing here touched a real prediction)
+
+The repository implemented the ranking objective itself, so its correctness rests on mathematics and controlled
+examples. After the run: (A) finite-difference gradient **and** Hessian tests pass; (B) the pairwise training loss
+falls monotonically across boosting rounds on a controlled ordering (and by more than 15%); (C) a spy on the
+gradient call confirms **one call per prediction date and never a union** — no pair can cross dates; (D)
+gradients are invariant to row order within a query; (E) with `subsample = 1.0` the squared-error objective equals
+sklearn's `GradientBoostingRegressor` to 1e-9; (F) a fixed seed reproduces predictions exactly and another seed
+does not; (G) two hand-calculated examples (tied scores, one relevant item) fix the signs and magnitudes:
+pairwise residual ±0.5, Hessian 0.25; LambdaMART residual ±0.1845351232, Hessian 0.0922675616.
+(H) **Against the primary description** — Burges, *From RankNet to LambdaRank to LambdaMART: An Overview*
+(Microsoft Research TR-2010-82, §7, read from the PDF): λ_ij = −σ|ΔZ_ij|/(1 + e^{σ(s_i − s_j)}), ∂²C/∂s_i² =
+Σσ²|ΔZ_ij|ρ_ij(1 − ρ_ij), leaf step = Σ(lambda)/Σ(second derivative) — these are the implemented equations.
+Two differences are recorded rather than hidden: the paper's NDCG uses gain 2^l − 1 whereas EXP-009B
+preregistered **linear** gains (a change of the utility, not of the equations); and the code adds a small
+stabiliser to the leaf denominator (one mean-row hessian) that the preregistration's text ("Newton leaf values")
+did not spell out — it is in the fingerprinted source but is not in Burges's formula. **No implementation bug was found; the
+frozen result stands and no amendment is required.** (`tests/quant/test_ranker_validation.py`,
+`tests/quant/test_ranking_models.py`.)
+
+### What this does and does not establish
+
+**Established, on this data, for this frozen configuration:**
+1. A LambdaMART objective with linear NDCG gains, whole-list pairs and 200 shallow rounds **did not improve** the
+   cross-sectional ordering; it reduced mean Rank IC by 0.014 (HAC t −1.1; not significant either way) and made the
+   traded book lose money gross (Sharpe −0.18 immediate, −0.18 top-k) — while underfitting (train IC 0.065).
+2. A position-agnostic pairwise loss produced an ordering **statistically indistinguishable** from squared error
+   (ΔIC +0.0001) but, in the book, a lower net Sharpe (−0.16 under top-k dropout; not significant).
+3. The ranking objective did not lower turnover (ratios 0.99), consistent with the listwise literature.
+
+**Not established:** that ranking objectives do not work — LightGBM/XGBoost implementations, a two-sided or
+differently-gained objective, more rounds for LambdaMART, or another horizon were not tried and are not
+tried here. The differences between R0 and R1 (a bagging seed) are as large as most of these effects.
+
+### Decision
+
+* **No ranker retained.** Both are `NO_ORDERING_GAIN`; no "promising" intermediate is recorded.
+* **BASE for EXP-009C = R0, the sklearn `GradientBoostingRegressor`** (the preregistered fallback).
+* Promotion: **NOT ASSESSED**. EXP-006 remains not promotable; production models remain zero.
+* Artifacts: `experiments/EXP-009B/` — definition, manifest, metrics, four prediction files, eight period files,
+  `posthoc_descriptive.json` (exploratory; `src/quant/study/exp009b_report.py`).

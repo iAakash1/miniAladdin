@@ -1,0 +1,148 @@
+{
+  "cells": [
+    {
+      "id": "R0_sklearn_gb",
+      "kind": "gradient_boosting",
+      "note": "sklearn GradientBoostingRegressor refit; must reproduce EXP-006's frozen predictions to 1e-9; not a trial",
+      "role": "validity_gate"
+    },
+    {
+      "id": "R1_boosted_l2",
+      "kind": "boosted_l2",
+      "note": "same boosting loop, squared error on the continuous rank label",
+      "role": "control"
+    },
+    {
+      "id": "R2_boosted_lambdamart",
+      "kind": "boosted_lambdamart",
+      "note": "pairs weighted by |delta NDCG|; linear gains; log2 discount; whole list; sigma 1",
+      "role": "ranker"
+    },
+    {
+      "id": "R3_boosted_pairwise",
+      "kind": "boosted_pairwise",
+      "note": "pairwise logistic loss, uniform pair weights (position-agnostic)",
+      "role": "ranker"
+    }
+  ],
+  "criteria": {
+    "E1_economics": "under the frozen turnover mechanism (top-k dropout): annualised turnover <= 1.10 x the control's AND the paired block-bootstrap (block 8, 10000 draws, seed 0) one-sided lower bound of the net-Sharpe difference at 10 bp, level 1 - 0.05/2, is > 0",
+    "O1_ordering": "paired mean difference in per-date Rank IC (ranker - control) > 0 with one-sided HAC lower bound (Bartlett, 4 lags, z = 1.96) > 0",
+    "O2_consistency": "IC difference > 0 in at least 6 of 8 folds AND worst-fold IC >= control's worst-fold IC - 0.005",
+    "O3_stability": "consecutive-date rank correlation >= control's - 0.02 AND top-group retention >= control's - 0.02 AND bottom-group retention >= control's - 0.02",
+    "carry_forward": "the model used as BASE in EXP-009C is the ORDERING_AND_NET_IMPROVED ranker with the larger IC difference; if none, BASE is the sklearn GradientBoostingRegressor (the frozen point-regression baseline)",
+    "classification": {
+      "NO_ORDERING_GAIN": "not O1",
+      "ORDERING_AND_NET_IMPROVED": "O1 and O2 and O3 and E1",
+      "ORDERING_IMPROVED_NOT_ECONOMIC": "O1 and O2 and O3 and not E1",
+      "ORDERING_IMPROVED_UNSTABLE": "O1 and not (O2 and O3)"
+    },
+    "descriptive_only": [
+      "immediate-replacement portfolio results",
+      "deflated Sharpe",
+      "factor alpha",
+      "train-validation IC gap",
+      "prediction dispersion",
+      "break-even half-spread"
+    ],
+    "promotion": "NOT ASSESSED",
+    "validity": [
+      "rebuilt dataset id and returns-panel hash equal the preregistered values",
+      "the sklearn refit reproduces EXP-006's frozen gradient_boosting predictions to 1e-9 (max abs difference)"
+    ]
+  },
+  "data": {
+    "dataset_end": "2025-05-09",
+    "dataset_id": "ds-491d761b9f2a6fc4",
+    "features": [
+      "acceleration_xs",
+      "dist_52w_high_xs",
+      "ma_gap_xs",
+      "mom_21_xs",
+      "mom_252_21_xs",
+      "mom_63_xs",
+      "reversal_5_xs",
+      "trend_strength_63_xs",
+      "downside_vol_63_xs",
+      "max_drawdown_252_xs",
+      "vol_21_xs",
+      "vol_63_xs",
+      "vol_ratio_xs",
+      "amihud_21_xs",
+      "log_dollar_volume_21_xs",
+      "volume_shock_xs",
+      "market_drawdown",
+      "market_mom_21",
+      "market_mom_252",
+      "market_vol_21",
+      "market_vol_63",
+      "market_vol_percentile",
+      "rates_change_63",
+      "rates_curvature",
+      "rates_level",
+      "rates_short",
+      "rates_slope"
+    ],
+    "folds": "the 8 folds recorded in experiments/EXP-006/metrics.json (walk_forward_plan)",
+    "imputation": "FoldImputer, training-fold median (unchanged)",
+    "returns_panel_sha256": "d1f10c93dc747b949429aaba390e87a8412b1a79cdf8f672c15c68cacba0919e",
+    "target": "fwd_rank_21",
+    "universe_only": true
+  },
+  "experiment_id": "EXP-009B",
+  "holdout": {
+    "read": false
+  },
+  "hyperparameter_search": "none",
+  "inference": {
+    "bootstrap_block": 8,
+    "bootstrap_draws": 10000,
+    "family_alpha": 0.05,
+    "n_rankers": 2,
+    "seed": 0
+  },
+  "ordering_metrics": {
+    "ic_hac_lags": 4,
+    "ndcg_k": 50,
+    "relevance": "quintile bins, linear gains, log2 discount; short end by reversing both"
+  },
+  "parent_experiment": "EXP-006",
+  "portfolio": {
+    "engine": "EXP-009A engine settings unchanged (lag 1, quintiles, 10 bp primary, 1/3/5/10/20 sweep)",
+    "frozen_turnover_mechanism": {
+      "drop_fraction": 0.1,
+      "quantiles": 5,
+      "rule": "topk_dropout"
+    },
+    "immediate_replacement": {
+      "rule": "baseline"
+    }
+  },
+  "queries": "one query per prediction date; pairs only inside a date",
+  "relevance": "clip(floor((rank + 1) / 2 * 5), 0, 4): the within-date quintile of the 21-session forward return",
+  "shared_hyperparameters": {
+    "learning_rate": 0.03,
+    "max_depth": 3,
+    "min_samples_leaf": 50,
+    "n_estimators": 200,
+    "relevance_levels": 5,
+    "seed": 0,
+    "sigma": 1.0,
+    "subsample": 0.7,
+    "truncation": null
+  },
+  "status": "EXPERIMENTAL - PROMOTION NOT ASSESSED",
+  "trials": {
+    "cumulative_evaluations": 163,
+    "declared": 3,
+    "not_run": [
+      "LightGBM / XGBoost (not installed; OpenMP runtime absent)",
+      "listwise ListNet/ListMLE",
+      "hyperparameter search",
+      "two-sided (both-tail) NDCG training",
+      "any neural ranker"
+    ],
+    "note": "control + two rankers; the sklearn refit is a gate, not a trial",
+    "prior_cumulative_evaluations": 160
+  }
+}
