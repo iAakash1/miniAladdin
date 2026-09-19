@@ -11,6 +11,7 @@ The final synthesis is in `docs/EXP_009_FINAL_ANALYSIS.md` when complete.
 | **EXP-009A** turnover-aware portfolio construction | **Executed 2026-09-19** | `docs/EXP_009A_TURNOVER_PREREGISTRATION.md`, commit `155e976` (pushed before execution) |
 | **EXP-009B** ranking objective vs matched point-regression control | **Executed 2026-09-19** | `docs/EXP_009B_LTR_PREREGISTRATION.md`, commit `d633b1b` (pushed before execution) |
 | **EXP-009C** analyst-revision arm (BASE vs BASE + 8 PIT analyst features) | **Executed 2026-09-19** | `docs/EXP_009C_ANALYST_PREREGISTRATION.md`, commit `47d6f67` (pushed before execution) |
+| **EXP-009D** exact duplicate feature axis (hygiene) | **Executed 2026-09-19** | `docs/EXP_009D_DUPLICATE_AXIS_PREREGISTRATION.md`, commit `f5feb0e` (pushed before execution) |
 
 ---
 
@@ -503,3 +504,43 @@ was not attempted. Folds 0-2 cannot speak.
 * `ANALYST_NO_RELIABLE_VALUE` — **the analyst features are not carried forward**; they stay unregistered in the global
   feature registry. A negative result is recorded as one.
 * Promotion: **NOT ASSESSED**. Artifacts: `experiments/EXP-009C/`.
+
+---
+
+## EXP-009D — is the exact duplicate feature axis harmless to remove?
+
+`dist_52w_high_xs` and `max_drawdown_252_xs` are the same axis with the sign reversed (correlation **−0.999996** on
+universe rows). This is hygiene: it asks only whether dropping `max_drawdown_252_xs` changes the model's ordering or its
+economics. Three sklearn fits (repository defaults) on the frozen split: `FULL` (27 features, seed 0), `DEDUP` (26 features,
+seed 0), and `NOISE` (27 features, **seed 1**, a descriptive reference that enters no criterion). Equivalence margins were fixed
+beforehand from the noise floor EXP-009B measured for an information-free change (IC 0.0031, net Sharpe 0.067), not from any
+EXP-009D outcome.
+
+| Check | Result |
+|---|---|
+| Lineage | ✓ preregistration commit `f5feb0e`; run at commit `df65964`, `git_dirty: false`; fingerprint `434554c3…04ef4` |
+| Gates | ✓ dataset and panel hash; duplicate exact (|corr| 0.999996 ≥ 0.99999); **FULL reproduces EXP-006's frozen predictions, max abs difference 0.0** |
+| Holdout | ✓ `touched: false`, 0 breaches |
+| Artifacts | ✓ 5 output files hashed, 0 mismatches; CPU only, 858 s wall |
+
+**Classification: `EQUIVALENT`.**
+
+| | Mean Rank IC | HAC t | Worst fold | Net Sharpe 10 bp, top-k dropout | Net Sharpe 10 bp, immediate | Turnover (top-k / immediate) |
+|---|---:|---:|---:|---:|---:|---|
+| FULL (27, seed 0) | 0.02895 | 2.66 | −0.0192 | +0.390 | −0.102 | 6.90 / 20.15 |
+| **DEDUP (26, seed 0)** | 0.03034 | 2.75 | −0.0166 | +0.406 | −0.070 | 6.90 / 20.25 |
+| NOISE (27, seed 1) | 0.03023 | 2.85 | −0.0114 | +0.338 | −0.096 | 6.86 / 20.26 |
+
+Paired DEDUP − FULL: ΔIC **+0.00138** (HAC SE 0.00121, t 1.15, 95% CI −0.0010 … +0.0037; within ±0.005 and the interval within
+±0.010 ✓); Δ net Sharpe under top-k dropout **+0.016** (|Δ| ≤ 0.20 ✓); turnover ratio 1.0002 ✓. **The reseed reference moves the
+same quantities by as much:** NOISE − FULL is ΔIC +0.00128 and Δ net Sharpe −0.052 — i.e. removing the duplicate changed the
+result by about what changing the random seed does, and would have been classified `EQUIVALENT` by the same rule. The
+predictions themselves differ (max absolute difference 0.056), as expected from the changed random tie-breaking; the
+information does not.
+
+**Consequence.** Later experiments may use the 26-feature set without a separate justification. EXP-006 and EXP-009A-C keep
+their 27 features (unchanged). Nothing is promoted. The calibration of the recorded predictions: (1) gate passes ✓;
+(2) `EQUIVALENT` with a difference comparable to the reseed's ✓ (the economics margin was expected to be the more likely one to
+fail, and did not); (3) no improvement I could defend ✓ — the +0.0014 IC is inside the noise.
+
+Artifacts: `experiments/EXP-009D/`.

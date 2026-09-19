@@ -1,0 +1,128 @@
+{
+  "arms": [
+    {
+      "features": 27,
+      "id": "FULL",
+      "seed": 0
+    },
+    {
+      "features": 26,
+      "id": "DEDUP",
+      "seed": 0
+    },
+    {
+      "features": 27,
+      "id": "NOISE",
+      "role": "descriptive noise reference only: the same 27-feature model with a different seed; enters no criterion",
+      "seed": 1
+    }
+  ],
+  "criteria": {
+    "E_economics": "under top-k dropout at 10 bp, |net Sharpe difference| <= 0.20 AND the annualised turnover ratio is within [0.9, 1.1]",
+    "E_ordering": "the paired per-date Rank-IC difference (DEDUP - FULL) has |mean| <= 0.005 AND |mean| + 1.96 x HAC SE (Bartlett, 4 lags) <= 0.010",
+    "classification": {
+      "DIFFERENT": "otherwise (the duplicate is not demonstrably harmless and the 27-feature set stays)",
+      "EQUIVALENT": "E_ordering and E_economics"
+    },
+    "consequence": "EQUIVALENT: later experiments may use the 26-feature set without a separate justification. DIFFERENT: nothing changes. Either way EXP-006, EXP-009A, EXP-009B and EXP-009C keep the 27 features.",
+    "descriptive": "the NOISE arm's own differences from FULL are reported beside DEDUP's so the reader can see whether DEDUP moved more than a reseed does",
+    "margins": "set from the noise floor EXP-009B measured for a change that alters no information \u2014 a different bagging implementation moved mean Rank IC by 0.0031 and net Sharpe under top-k dropout by 0.067 \u2014 not from any EXP-009D outcome",
+    "promotion": "NOT ASSESSED"
+  },
+  "data": {
+    "dataset_id": "ds-491d761b9f2a6fc4",
+    "features_dedup": [
+      "acceleration_xs",
+      "dist_52w_high_xs",
+      "ma_gap_xs",
+      "mom_21_xs",
+      "mom_252_21_xs",
+      "mom_63_xs",
+      "reversal_5_xs",
+      "trend_strength_63_xs",
+      "downside_vol_63_xs",
+      "vol_21_xs",
+      "vol_63_xs",
+      "vol_ratio_xs",
+      "amihud_21_xs",
+      "log_dollar_volume_21_xs",
+      "volume_shock_xs",
+      "market_drawdown",
+      "market_mom_21",
+      "market_mom_252",
+      "market_vol_21",
+      "market_vol_63",
+      "market_vol_percentile",
+      "rates_change_63",
+      "rates_curvature",
+      "rates_level",
+      "rates_short",
+      "rates_slope"
+    ],
+    "features_full": [
+      "acceleration_xs",
+      "dist_52w_high_xs",
+      "ma_gap_xs",
+      "mom_21_xs",
+      "mom_252_21_xs",
+      "mom_63_xs",
+      "reversal_5_xs",
+      "trend_strength_63_xs",
+      "downside_vol_63_xs",
+      "max_drawdown_252_xs",
+      "vol_21_xs",
+      "vol_63_xs",
+      "vol_ratio_xs",
+      "amihud_21_xs",
+      "log_dollar_volume_21_xs",
+      "volume_shock_xs",
+      "market_drawdown",
+      "market_mom_21",
+      "market_mom_252",
+      "market_vol_21",
+      "market_vol_63",
+      "market_vol_percentile",
+      "rates_change_63",
+      "rates_curvature",
+      "rates_level",
+      "rates_short",
+      "rates_slope"
+    ],
+    "folds": "the 8 folds recorded in experiments/EXP-006/metrics.json",
+    "returns_panel_sha256": "d1f10c93dc747b949429aaba390e87a8412b1a79cdf8f672c15c68cacba0919e",
+    "target": "fwd_rank_21"
+  },
+  "duplicate": {
+    "dropped": "max_drawdown_252_xs",
+    "evidence": "correlation -1.000 to three decimals in the audited panel (docs/CURRENT_QUANT_RESEARCH_AUDIT.md); measured -0.999996 on universe rows and verified again at run time",
+    "kept": "dist_52w_high_xs"
+  },
+  "experiment_id": "EXP-009D",
+  "gates": {
+    "dataset_and_panel": "rebuilt dataset id and returns-panel hash equal the preregistered values",
+    "duplicate_is_exact": "the absolute correlation of the two columns on universe rows is >= 0.99999 (measured -0.999996 in the frozen panel: rank ties and a constant offset of 2/N separate them from -1)",
+    "full_reproduces": "the FULL arm equals EXP-006's frozen gradient_boosting predictions to 1e-9"
+  },
+  "holdout": {
+    "read": false
+  },
+  "inference": {
+    "hac_lags": 4,
+    "seed": 0
+  },
+  "model": {
+    "kind": "gradient_boosting",
+    "name": "gradient_boosting",
+    "params": "repository defaults (unchanged)",
+    "seed": 0
+  },
+  "parent_experiment": "EXP-006",
+  "question": "Does removing the exact duplicate axis change the model's ordering or its economics?",
+  "status": "EXPERIMENTAL - HYGIENE - PROMOTION NOT ASSESSED",
+  "trials": {
+    "cumulative_evaluations": 166,
+    "declared": 2,
+    "note": "the DEDUP fit and the seed-noise reference",
+    "prior_cumulative_evaluations": 164
+  }
+}

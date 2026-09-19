@@ -1,0 +1,75 @@
+{
+  "compute": {
+    "cpu_count": 12,
+    "platform": "macOS-27.0-arm64-arm-64bit",
+    "python": "3.12.11",
+    "wall_seconds": 857.6
+  },
+  "dataset": {
+    "content_hash": "7deb8601ae7a34074cade997397f1947",
+    "dataset_version": "ds-491d761b9f2a6fc4"
+  },
+  "decision": {
+    "classification": "EQUIVALENT",
+    "promotion": "NOT ASSESSED"
+  },
+  "definition_fingerprint": "434554c39aa382a7caeab80bfa3e8141883a188b343417569e52fa25d4104ef4",
+  "definition_sha256": "b70942bb409465b0736f8a76e0b5bdc10b40e1ccf4c291faa73993c448886de7",
+  "dependency_versions": {
+    "numpy": "2.2.6",
+    "pandas": "2.3.3",
+    "pyarrow": "18.1.0",
+    "python": "3.12.11",
+    "scipy": "1.18.1",
+    "sklearn": "1.7.2"
+  },
+  "experiment_id": "EXP-009D",
+  "full_reproduces_frozen": {
+    "max_abs_prediction_difference": 0.0,
+    "passed": true,
+    "rows_frozen": 100246,
+    "rows_joined": 100246,
+    "rows_refit": 100246
+  },
+  "git_commit": "df65964d4f3566fe59a1460a42cdd852b0bbc975",
+  "git_dirty": false,
+  "holdout": {
+    "end": "2026-08-28",
+    "firewall": {
+      "breaches_prevented": 0,
+      "checks": 1,
+      "contract_armed": false,
+      "contract_path": "docs/HOLDOUT_CONTRACT.md",
+      "contract_readable": true,
+      "contract_state": "NOT_ARMED",
+      "engaged": true,
+      "override_reason": null,
+      "window": {
+        "active": true,
+        "end": "2026-08-28",
+        "start": "2025-08-26"
+      }
+    },
+    "start": "2025-08-26",
+    "touched": false
+  },
+  "output_sha256": {
+    "definition.json": "8d5ec4731b097929f602661e278009666bd08b8c11481485c4a1ecee5f413844",
+    "metrics.json": "689263595c19b2f7c82925818c896e2bb229b443a6d69467c01cd656c13d6d9f",
+    "predictions_DEDUP.parquet": "454c1a05b7f410001e46df7a3e8474b5d16e418a4e2784a7295e603f294a01a1",
+    "predictions_FULL.parquet": "6fe9a6aba7cc57c10e1d6e8963cd34a37066e7c97941b1ff0edc28c105952f59",
+    "predictions_NOISE.parquet": "e65199f16c18431a9b21926f35204a48149d5327246c150fe02d1c31eb3aa2ea"
+  },
+  "parent": "EXP-006",
+  "preregistration_commit": "f5feb0ea5ec10ad64bb0ef68299e033e0fb4c6b7",
+  "preregistration_document": "docs/EXP_009D_DUPLICATE_AXIS_PREREGISTRATION.md",
+  "preregistration_sha256": "114a8210f8cc94ba6356b060e22424cd35a4780495683807aaa53b9105019652",
+  "pushed_to_origin_main": true,
+  "status": "EXPERIMENTAL - HYGIENE - PROMOTION NOT ASSESSED",
+  "validity_checks": {
+    "dataset_id": true,
+    "duplicate_is_exact": true,
+    "measured_correlation": -0.9999963575687186,
+    "returns_panel_hash": true
+  }
+}

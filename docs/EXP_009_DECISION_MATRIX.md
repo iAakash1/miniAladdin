@@ -45,3 +45,20 @@ This is not yet a binding registration:
 The tempting “richer data + LTR + neutralization + buffer” stack should not be
 run as one jump. Its result would not reveal which box helped and would spend
 too many degrees of freedom on roughly 96 independent validation blocks.
+
+## Outcome (2026-09-19)
+
+The matrix above was a planning document and is superseded by the four preregistrations that followed it
+(`EXP_009A_TURNOVER_PREREGISTRATION.md`, `EXP_009B_LTR_PREREGISTRATION.md`,
+`EXP_009C_ANALYST_PREREGISTRATION.md`, `EXP_009D_DUPLICATE_AXIS_PREREGISTRATION.md`). The staging changed in one respect:
+the turnover rule ran **first** (it needs no refit and isolates the cost half of the failure), then the ranking objective,
+then the analyst arm — each with the previous stage's decision frozen, and none combined with another.
+
+| Stage | Result | Record |
+|---|---|---|
+| Turnover-aware construction | top-k dropout (10%) `MECHANISM_CONFIRMED`; the literature-anchored buffer `EDGE_LOST` | `EXP_009_RESULTS.md` |
+| Ranking objective | LambdaMART and pairwise both `NO_ORDERING_GAIN`; none retained | `EXP_009_RESULTS.md` |
+| Analyst revisions | `ANALYST_NO_RELIABLE_VALUE` on the five evaluable folds | `EXP_009_RESULTS.md` |
+| Duplicate axis | see `EXP_009_RESULTS.md` | `EXP_009_RESULTS.md` |
+
+The synthesis, and the answer to which stage mattered, is `EXP_009_FINAL_ANALYSIS.md`.
