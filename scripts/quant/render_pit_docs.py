@@ -48,7 +48,7 @@ def render_security_master() -> str:
         "* Every link is then tested against the filings: `A_CONFIRMED`, `B_CONSISTENT` (trusted); `C_PARTIAL`, `X_CONTRADICTED`, `D_NO_PERIODIC_FILINGS`, `UNRESOLVED` (never used for features).",
         "* A holding-company succession is linked to its predecessor CIK only on exact issuer-name continuity with adjacent filing periods (`SUCCESSOR_NAME_CONTINUITY`).",
         "* Industry: SEC `sic` **as of each filing** (the SEC readme states this) as dated intervals, mapped to Fama-French 12/17/48 by the Kenneth French SIC files (hashes below). No GICS.",
-        "* Shares: `dei:EntityCommonStockSharesOutstanding` from the SEC `companyconcept` API dated by the FSDS acceptance time of its accession, plus the balance-sheet count;",
+        "* Shares: `dei:EntityCommonStockSharesOutstanding` from the SEC `companyconcept` API dated by the FSDS acceptance time of its accession, plus the balance-sheet count and - only where neither exists within 400 days - a labelled `WEIGHTED_AVG_PROXY` (a period average, not a point-in-time count);",
         "  market cap = shares (split-adjusted after acceptance) x unadjusted close. Exits: Form 25 / 15 / 8-K items from SEC submissions; no delisting returns invented.", "",
         "## Evidence", "",
         f"Universe tickers (through 2025-05-09): {m['universe_symbols']}; links graded: {ev['links']}; resolved tickers (A or B): {ev['resolved_tickers']}; **unresolved tickers: {m['unresolved_tickers']}**.", "",
@@ -65,9 +65,11 @@ def render_security_master() -> str:
         lines.append("")
     lines += ["## Why the flag is false" if not m["security_master_pit"] else "## Gate", ""]
     lines += [f"* {f}" for f in m["failures"][:6]] + ([f"* ... {len(m['failures']) - 6} more" ] if len(m["failures"]) > 6 else [])
-    lines += ["", "What the gap is, honestly: roughly a tenth of the universe by name-date are **foreign private issuers and funds that file 20-F/40-F/N-CSR, not 10-K/10-Q** (`D_NO_PERIODIC_FILINGS`);",
-              "about six percent are **delisted names whose vendor name or CIK cannot be recovered** (`UNRESOLVED`, mostly absent from the vendor symbol table); about one percent are **genuine reuse or re-domiciliation** (`X_CONTRADICTED`).",
-              "Closing it needs IFRS/20-F tag maps for the first group and vendor-independent delisted-name evidence for the second. Until then fundamentals are **missing, never zero**, for those names, and industry/size controls are withheld.", "",
+    folds = [v for k, v in cov["by_period"].items() if k.startswith("fold_")]
+    def span(key): return f"{min(v[key] for v in folds):.1%}-{max(v[key] for v in folds):.1%}"
+    lines += ["", f"What the gap is, honestly (validation-fold ranges of universe name-dates): **foreign private issuers and funds that file 20-F/40-F/N-CSR, not 10-K/10-Q** (`D_NO_PERIODIC_FILINGS`) {span('no_periodic_filings')};",
+              f"**unresolved** delisted or renamed names whose vendor name or CIK cannot be recovered {span('unresolved')}; **genuine ticker reuse or re-domiciliation** (`X_CONTRADICTED`) {span('identity_contradicted')}.",
+              "Closing the gap needs IFRS/20-F tag maps for the first group and vendor-independent delisted-name evidence for the second. Until then fundamentals are **missing, never zero**, for those names, and industry/size controls are withheld.", "",
               "## Source hashes", "", *[f"* French SIC {k}: `{v}`" for k, v in m["french_sic_sha256"].items()], ""]
     return "\n".join(lines)
 
@@ -108,10 +110,11 @@ def render_audit(manifest: dict) -> str:
     classification = pd.read_parquet(ROOT / "data/curated/security_master_v3/security_classification_interval.parquet")
     multi = classification.groupby("cik").size()
     panel = pd.read_parquet(ROOT / "data/research/derived/rich_pit_panel.parquet", columns=["date", "symbol", "security_id", "ff12", "sic", "filing_lag_days_xs"]) if False else None
-    families = {}
+    families, fam_names = {}, {}
     for name in manifest["new_features"]:
         base = name[:-3] if name.endswith("_xs") else name
         families.setdefault(R.FAMILY.get(base, "other"), []).append(cov[name]["coverage"])
+        fam_names.setdefault(R.FAMILY.get(base, "other"), []).append(name)
     lines = [
         "# Rich PIT panel audit", "",
         f"Dataset `{manifest['dataset_id']}`: {manifest['rows']:,} universe name-dates, {manifest['securities']} securities ({manifest['symbols']} tickers), {manifest['date_min']} to {manifest['date_max']}, "
@@ -126,10 +129,15 @@ def render_audit(manifest: dict) -> str:
         f"| | Names exiting within 30 days | All other rows |", "|---|---:|---:|",
         f"| ROA feature present | {pct(exit_check['share_present_if_exiting_soon'])} | {pct(exit_check['share_present_otherwise'])} |",
         f"| Trusted identity | {pct(exit_check['share_identity_trusted_if_exiting_soon'])} | {pct(exit_check['share_identity_trusted_otherwise'])} |", "",
-        f"({exit_check['rows_exiting_within_30_days']:,} rows are in the exiting group.) A gap between the columns is a leakage channel and is one reason EXP-011 reports a covered-subset ordering diagnostic and imputes missing values with training-fold medians rather than a flag.", "",
-        "## Coverage by year and by fold (share of universe name-dates with a value)", "",
+        f"Identity is {100 * (exit_check['share_identity_trusted_otherwise'] - exit_check['share_identity_trusted_if_exiting_soon']):.1f} points less often trusted for names about to exit, and the ROA feature is present {100 * (exit_check['share_present_otherwise'] - exit_check['share_present_if_exiting_soon']):.1f} points less often, "
+        f"measured on only {exit_check['rows_exiting_within_30_days']:,} exiting rows: the association is real in sign, small, and imprecisely measured. It is not zero, which is why EXP-011 reports a covered-subset ordering diagnostic and imputes with training-fold medians rather than a missingness flag.", "",
+        "## Coverage by feature family (share of universe name-dates with a value)", "",
         "| Feature family | Mean coverage | Min feature | Max feature |", "|---|---:|---:|---:|",
         *[f"| {f} | {pct(sum(v) / len(v))} | {pct(min(v))} | {pct(max(v))} |" for f, v in sorted(families.items())], "",
+        "Mean coverage of the new features in each family, by validation fold:", "",
+        "| Family | " + " | ".join(f"fold {i}" for i in range(8)) + " | train only |", "|---|" + "---:|" * 9,
+        *[f"| {f} | " + " | ".join(pct(sum(cov[n]['by_period'][p] for n in names) / len(names)) for p in [f'fold_{i}' for i in range(8)] + ['train_only']) + " |"
+          for f, names in sorted(fam_names.items())], "",
         "Per-feature first-valid dates and coverage by year and period are in `data/manifests/rich_pit_panel_manifest.json` and `docs/PIT_FEATURE_CATALOG.md`.", "",
         "## SEC availability", "",
         f"* 58 quarterly archives verified (`docs/LOCAL_DATA_INVENTORY_FINAL.md`); {tag['coverage']['rows']:,} curated as-reported rows from {tag['coverage']['filings']:,} filings and {tag['coverage']['ciks']:,} CIKs.",
