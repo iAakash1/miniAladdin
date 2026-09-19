@@ -62,13 +62,64 @@ ARMS: dict[str, dict[str, Any]] = {
 FIT_ORDER = ("E0", "E1", "E3")
 
 # Pinned from the built rich panel (data/manifests/rich_pit_panel_manifest.json).
-RICH_DATASET_ID = "PIN_ME"
-RICH_CONTENT_HASH = "PIN_ME"
-RICH_FEATURE_HASH = "PIN_ME"
-BASELINE_VALUES_HASH = "PIN_ME"
-RICH_ROWS = 0
-RICH_FEATURE_COUNT = 0
-RICH_FEATURES: tuple[str, ...] = ()
+RICH_DATASET_ID = "ds-richpit-ff3d3f556488b7da"
+RICH_CONTENT_HASH = "ff3d3f556488b7daa20bbbeab49d1f0abad9a869976b593f211cf92b6eb7c5da"
+RICH_FEATURE_HASH = "7212297bc55a45f66ffceb3548000e899773e1959e365b266fb477f24d8b8614"
+BASELINE_VALUES_HASH = "f48c47f02da6407e060ca52ff1745935a99c0898fa5a7ce3fa6df3c5d7d5906e"
+RICH_ROWS = 139292
+RICH_FEATURE_COUNT = 76
+RICH_FEATURES: tuple[str, ...] = (
+    "gross_profitability_xs",
+    "roa_xs",
+    "roe_xs",
+    "operating_profitability_xs",
+    "cash_profitability_xs",
+    "gross_margin_xs",
+    "operating_margin_xs",
+    "net_margin_xs",
+    "cash_flow_margin_xs",
+    "ebitda_margin_xs",
+    "asset_turnover_xs",
+    "asset_growth_xs",
+    "capex_to_assets_xs",
+    "capex_to_revenue_xs",
+    "capex_growth_xs",
+    "inventory_growth_xs",
+    "inventory_to_assets_change_xs",
+    "working_capital_growth_xs",
+    "receivables_growth_xs",
+    "accruals_xs",
+    "cash_flow_quality_xs",
+    "gross_margin_stability_xs",
+    "roa_stability_xs",
+    "cash_conversion_xs",
+    "debt_to_assets_xs",
+    "debt_to_equity_xs",
+    "net_debt_to_assets_xs",
+    "liabilities_to_assets_xs",
+    "current_ratio_xs",
+    "cash_to_assets_xs",
+    "revenue_growth_xs",
+    "gross_profit_growth_xs",
+    "earnings_growth_xs",
+    "operating_income_growth_xs",
+    "ocf_growth_xs",
+    "fcf_growth_xs",
+    "debt_growth_xs",
+    "equity_issuance_proxy_xs",
+    "seasonal_ni_surprise_xs",
+    "filing_lag_days_xs",
+    "book_to_market_xs",
+    "earnings_yield_xs",
+    "sales_yield_xs",
+    "fcf_yield_xs",
+    "ocf_yield_xs",
+    "operating_income_to_ev_xs",
+    "gross_profit_to_ev_xs",
+    "sales_to_ev_xs",
+    "shares_growth_xs",
+    "days_since_report_xs",
+)
 
 INTERPRETATION = {
     "unit_ic": f"EXP-010A Rank-IC reseed p95-p05 range ({IC_SPAN}); seed SD {IC_SD}",
@@ -454,9 +505,7 @@ def analyse(reports: dict[str, list[dict[str, Any]]]) -> dict[str, Any]:
     e2 = {r["seed"]: r for r in reports["E2"]}
     e3 = {r["seed"]: r for r in reports["E3"]}
     seeds = list(SEEDS)
-    boosted_rows = paired([e2[s] for s in seeds], [e3[s] for s in seeds], keys)
-    for row, seed in zip(boosted_rows, [s for s in seeds for _ in keys]):
-        row["seed"] = seed
+    boosted_rows = paired([e2[s] for s in seeds], [e3[s] for s in seeds], keys)      # `paired` carries each pair's own seed
     linear_rows = paired([e0], [e1], keys)
     model_base = paired(broadcast(e0, seeds), [e2[s] for s in seeds], keys)
     model_rich = paired(broadcast(e1, seeds), [e3[s] for s in seeds], keys)
