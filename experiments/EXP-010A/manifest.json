@@ -1,0 +1,82 @@
+{
+  "best_seed_selected": false,
+  "completion": "COMPLETE",
+  "compute": {
+    "cpu_count": 12,
+    "platform": "macOS-27.0-arm64-arm-64bit",
+    "python": "3.12.11",
+    "wall_seconds": 2728.2
+  },
+  "dataset": {
+    "content_hash": "7deb8601ae7a34074cade997397f1947",
+    "feature_list_sha256": "205d2e2b2debdb177e382657a597489b67a5e9e62f386958118de64f8a872fbf",
+    "id": "ds-491d761b9f2a6fc4",
+    "rows": 452524
+  },
+  "definition_fingerprint": "0b18e0ad7d90905988988a8cdd8d9251522000d7503d41045096c639bf64bba0",
+  "definition_sha256": "2603c137aaf9f001e89d3412db47ca2bca41d9c671cc72baeb4cf19857ecaa33",
+  "dependency_versions": {
+    "numpy": "2.2.6",
+    "pandas": "2.3.3",
+    "pyarrow": "18.1.0",
+    "python": "3.12.11",
+    "scipy": "1.18.1",
+    "sklearn": "1.7.2"
+  },
+  "experiment_id": "EXP-010A",
+  "git_commit": "831d0980951ef86f3f4c3ceec3ffce63f1da6d20",
+  "git_dirty": false,
+  "holdout": {
+    "end": "2026-08-28",
+    "firewall": {
+      "breaches_prevented": 0,
+      "checks": 171,
+      "contract_armed": false,
+      "contract_path": "docs/HOLDOUT_CONTRACT.md",
+      "contract_readable": true,
+      "contract_state": "NOT_ARMED",
+      "engaged": true,
+      "override_reason": null,
+      "window": {
+        "active": true,
+        "end": "2026-08-28",
+        "start": "2025-08-26"
+      }
+    },
+    "start": "2025-08-26",
+    "touched": false
+  },
+  "output_sha256": {
+    "config.json": "0565e0d9af7e5b4a53bd11f1a3ef09e00bda5e2c9d207540c35bd3e79a40c67f",
+    "definition.json": "a5dc4f6dec1bf7ec97039252a645599e1c92ea6ebfa79f0b32262b698e81c8ca",
+    "fold_metrics.csv": "f2c4c2c954f662415bdbf27be15a6881d460693f14e57dc974fdf91844a4b4d9",
+    "metrics.json": "a7663e9c61f6f5a80654c037e0b279ff2caa317e7ea61c52d410120235c40025",
+    "per_seed_metrics.csv": "81296585f20d9d6d68d9568e7bc99483b21b1669bcd18c3e691ac90900c28d7c",
+    "prediction_hashes.json": "1ab4e9f285f702b0c5009444ca4f1b6a3a6aae7e87a6d102a8578b8088b88a26"
+  },
+  "preregistration_commit": "831d0980951ef86f3f4c3ceec3ffce63f1da6d20",
+  "preregistration_document": "docs/EXP_010A_PREREGISTRATION.md",
+  "preregistration_sha256": "e8f5beb3fb3806885097bc6734f73ddbb0b2a8af455c4b9fc9d0ba7616e3c2ec",
+  "pushed_to_origin_main": true,
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "status": "EXPERIMENTAL - NOISE DIAGNOSTIC - PROMOTION NOT ASSESSED",
+  "validity_checks": {
+    "dataset_content_hash": true,
+    "dataset_id": true,
+    "dataset_rows": true,
+    "features_present": true,
+    "folds": true,
+    "returns_panel_hash": true
+  }
+}

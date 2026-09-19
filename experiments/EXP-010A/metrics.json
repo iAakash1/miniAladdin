@@ -1,0 +1,1052 @@
+{
+  "across_seeds": {
+    "best_seed_selected": false,
+    "fold_stability": [
+      {
+        "fold": 0,
+        "max": -0.009833833310900786,
+        "mean": -0.014643288775190364,
+        "median": -0.014729640793094276,
+        "min": -0.019897113162037912,
+        "p05": -0.019476812368847463,
+        "p95": -0.009937898554284343,
+        "p95_minus_p05": 0.00953891381456312,
+        "sample_std": 0.003458893195340554
+      },
+      {
+        "fold": 1,
+        "max": 0.05315374239828903,
+        "mean": 0.04021480330864527,
+        "median": 0.03778717682466427,
+        "min": 0.029991677316890925,
+        "p05": 0.03083419327136698,
+        "p95": 0.05168399855364364,
+        "p95_minus_p05": 0.02084980528227666,
+        "sample_std": 0.008030843770499913
+      },
+      {
+        "fold": 2,
+        "max": 0.06481460042822976,
+        "mean": 0.05452359281995419,
+        "median": 0.052580319877016904,
+        "min": 0.04641137804893683,
+        "p05": 0.04772736779290864,
+        "p95": 0.06257052233909778,
+        "p95_minus_p05": 0.01484315454618914,
+        "sample_std": 0.00554823471436748
+      },
+      {
+        "fold": 3,
+        "max": 0.04594797463117101,
+        "mean": 0.03149746851276484,
+        "median": 0.03128665574025917,
+        "min": 0.0195248130501729,
+        "p05": 0.02069806173618602,
+        "p95": 0.04306953362217191,
+        "p95_minus_p05": 0.022371471885985893,
+        "sample_std": 0.008431240795397157
+      },
+      {
+        "fold": 4,
+        "max": 0.007492524859130159,
+        "mean": -0.00737682988906329,
+        "median": -0.006506108931246133,
+        "min": -0.01969944993800715,
+        "p05": -0.01861423044543363,
+        "p95": 0.00340416134174475,
+        "p95_minus_p05": 0.02201839178717838,
+        "sample_std": 0.00832739271362191
+      },
+      {
+        "fold": 5,
+        "max": 0.04086505600536018,
+        "mean": 0.03235382875742761,
+        "median": 0.03263204147540852,
+        "min": 0.017399642103770315,
+        "p05": 0.021322912820100043,
+        "p95": 0.040414054385132264,
+        "p95_minus_p05": 0.01909114156503222,
+        "sample_std": 0.007187545265286994
+      },
+      {
+        "fold": 6,
+        "max": 0.04680055795557337,
+        "mean": 0.039626606272840835,
+        "median": 0.039473049403519284,
+        "min": 0.03452695707520803,
+        "p05": 0.034933556959630255,
+        "p95": 0.04512152345231882,
+        "p95_minus_p05": 0.010187966492688563,
+        "sample_std": 0.003922656676865943
+      },
+      {
+        "fold": 7,
+        "max": 0.08973750416841891,
+        "mean": 0.08105098741703315,
+        "median": 0.08006366243694617,
+        "min": 0.07275438813124785,
+        "p05": 0.07361664575641631,
+        "p95": 0.08945493643963802,
+        "p95_minus_p05": 0.015838290683221706,
+        "sample_std": 0.006155579262503532
+      }
+    ],
+    "pairwise_portfolio_overlap_distribution": {
+      "max": 0.7960355206439012,
+      "mean": 0.7835872435883044,
+      "median": 0.7839694466895669,
+      "min": 0.7679011753216138,
+      "p05": 0.7719906336296893,
+      "p95": 0.7922117515322962,
+      "p95_minus_p05": 0.020221117902606833,
+      "sample_std": 0.005998337887213445
+    },
+    "pairwise_prediction_rank_correlation_distribution": {
+      "max": 0.9104169973564793,
+      "mean": 0.9014797879471974,
+      "median": 0.900999499619154,
+      "min": 0.8909304653651914,
+      "p05": 0.8927618261164076,
+      "p95": 0.9091116266961987,
+      "p95_minus_p05": 0.016349800579791074,
+      "sample_std": 0.005102515379799812
+    },
+    "pairwise_prediction_rank_correlations": [
+      {
+        "portfolio_overlap": 0.7894881331245369,
+        "prediction_rank_correlation": 0.907862114227768,
+        "seed_left": 0,
+        "seed_right": 1
+      },
+      {
+        "portfolio_overlap": 0.7874362244897958,
+        "prediction_rank_correlation": 0.9065362646163699,
+        "seed_left": 0,
+        "seed_right": 2
+      },
+      {
+        "portfolio_overlap": 0.7839694466895669,
+        "prediction_rank_correlation": 0.9005861045178932,
+        "seed_left": 0,
+        "seed_right": 3
+      },
+      {
+        "portfolio_overlap": 0.7849310887721426,
+        "prediction_rank_correlation": 0.8990691212125669,
+        "seed_left": 0,
+        "seed_right": 4
+      },
+      {
+        "portfolio_overlap": 0.7708928360948338,
+        "prediction_rank_correlation": 0.8909304653651914,
+        "seed_left": 0,
+        "seed_right": 5
+      },
+      {
+        "portfolio_overlap": 0.7802426205630767,
+        "prediction_rank_correlation": 0.8969125084155685,
+        "seed_left": 0,
+        "seed_right": 6
+      },
+      {
+        "portfolio_overlap": 0.7796590851687208,
+        "prediction_rank_correlation": 0.895913354946844,
+        "seed_left": 0,
+        "seed_right": 7
+      },
+      {
+        "portfolio_overlap": 0.7827468301677107,
+        "prediction_rank_correlation": 0.8992702893365762,
+        "seed_left": 0,
+        "seed_right": 8
+      },
+      {
+        "portfolio_overlap": 0.785437777833906,
+        "prediction_rank_correlation": 0.9006034490683287,
+        "seed_left": 0,
+        "seed_right": 9
+      },
+      {
+        "portfolio_overlap": 0.7882243045733144,
+        "prediction_rank_correlation": 0.9088677884020233,
+        "seed_left": 1,
+        "seed_right": 2
+      },
+      {
+        "portfolio_overlap": 0.7868364400215531,
+        "prediction_rank_correlation": 0.9073008927954661,
+        "seed_left": 1,
+        "seed_right": 3
+      },
+      {
+        "portfolio_overlap": 0.7839401267932916,
+        "prediction_rank_correlation": 0.9060577216649633,
+        "seed_left": 1,
+        "seed_right": 4
+      },
+      {
+        "portfolio_overlap": 0.7787647967602883,
+        "prediction_rank_correlation": 0.8994606851343678,
+        "seed_left": 1,
+        "seed_right": 5
+      },
+      {
+        "portfolio_overlap": 0.7763818237691116,
+        "prediction_rank_correlation": 0.8983062069416435,
+        "seed_left": 1,
+        "seed_right": 6
+      },
+      {
+        "portfolio_overlap": 0.778474228800431,
+        "prediction_rank_correlation": 0.9012313599737783,
+        "seed_left": 1,
+        "seed_right": 7
+      },
+      {
+        "portfolio_overlap": 0.7852815173098943,
+        "prediction_rank_correlation": 0.9052542754982088,
+        "seed_left": 1,
+        "seed_right": 8
+      },
+      {
+        "portfolio_overlap": 0.7847160200713948,
+        "prediction_rank_correlation": 0.900999499619154,
+        "seed_left": 1,
+        "seed_right": 9
+      },
+      {
+        "portfolio_overlap": 0.7796265449249007,
+        "prediction_rank_correlation": 0.8999177485899382,
+        "seed_left": 2,
+        "seed_right": 3
+      },
+      {
+        "portfolio_overlap": 0.7919550245840911,
+        "prediction_rank_correlation": 0.9050644263293945,
+        "seed_left": 2,
+        "seed_right": 4
+      },
+      {
+        "portfolio_overlap": 0.7774086515794436,
+        "prediction_rank_correlation": 0.900511922506611,
+        "seed_left": 2,
+        "seed_right": 5
+      },
+      {
+        "portfolio_overlap": 0.7960355206439012,
+        "prediction_rank_correlation": 0.9100937398328194,
+        "seed_left": 2,
+        "seed_right": 6
+      },
+      {
+        "portfolio_overlap": 0.7898594413012731,
+        "prediction_rank_correlation": 0.9104169973564793,
+        "seed_left": 2,
+        "seed_right": 7
+      },
+      {
+        "portfolio_overlap": 0.7839289081969423,
+        "prediction_rank_correlation": 0.9038056363827891,
+        "seed_left": 2,
+        "seed_right": 8
+      },
+      {
+        "portfolio_overlap": 0.785139295817337,
+        "prediction_rank_correlation": 0.9030879635202025,
+        "seed_left": 2,
+        "seed_right": 9
+      },
+      {
+        "portfolio_overlap": 0.77910752172156,
+        "prediction_rank_correlation": 0.8968375014506338,
+        "seed_left": 3,
+        "seed_right": 4
+      },
+      {
+        "portfolio_overlap": 0.7842987430120563,
+        "prediction_rank_correlation": 0.8978489248211577,
+        "seed_left": 3,
+        "seed_right": 5
+      },
+      {
+        "portfolio_overlap": 0.7774670808917628,
+        "prediction_rank_correlation": 0.8927947325150777,
+        "seed_left": 3,
+        "seed_right": 6
+      },
+      {
+        "portfolio_overlap": 0.779934877416313,
+        "prediction_rank_correlation": 0.8948686152325421,
+        "seed_left": 3,
+        "seed_right": 7
+      },
+      {
+        "portfolio_overlap": 0.7880455437125347,
+        "prediction_rank_correlation": 0.9048262826189359,
+        "seed_left": 3,
+        "seed_right": 8
+      },
+      {
+        "portfolio_overlap": 0.778177472721762,
+        "prediction_rank_correlation": 0.8934199922050132,
+        "seed_left": 3,
+        "seed_right": 9
+      },
+      {
+        "portfolio_overlap": 0.7708691360207449,
+        "prediction_rank_correlation": 0.8927535995167402,
+        "seed_left": 4,
+        "seed_right": 5
+      },
+      {
+        "portfolio_overlap": 0.7905256322826161,
+        "prediction_rank_correlation": 0.90384583019092,
+        "seed_left": 4,
+        "seed_right": 6
+      },
+      {
+        "portfolio_overlap": 0.7922712500841922,
+        "prediction_rank_correlation": 0.9083413082041429,
+        "seed_left": 4,
+        "seed_right": 7
+      },
+      {
+        "portfolio_overlap": 0.7806085193978582,
+        "prediction_rank_correlation": 0.8985162879927124,
+        "seed_left": 4,
+        "seed_right": 8
+      },
+      {
+        "portfolio_overlap": 0.7852386214386745,
+        "prediction_rank_correlation": 0.8989848378693075,
+        "seed_left": 4,
+        "seed_right": 9
+      },
+      {
+        "portfolio_overlap": 0.7679011753216138,
+        "prediction_rank_correlation": 0.8918145984556624,
+        "seed_left": 5,
+        "seed_right": 6
+      },
+      {
+        "portfolio_overlap": 0.780445860274803,
+        "prediction_rank_correlation": 0.9025917405896247,
+        "seed_left": 5,
+        "seed_right": 7
+      },
+      {
+        "portfolio_overlap": 0.7837678487236479,
+        "prediction_rank_correlation": 0.8998202680692412,
+        "seed_left": 5,
+        "seed_right": 8
+      },
+      {
+        "portfolio_overlap": 0.7870171162524416,
+        "prediction_rank_correlation": 0.9023497550248832,
+        "seed_left": 5,
+        "seed_right": 9
+      },
+      {
+        "portfolio_overlap": 0.7876429581733684,
+        "prediction_rank_correlation": 0.9056902011563601,
+        "seed_left": 6,
+        "seed_right": 7
+      },
+      {
+        "portfolio_overlap": 0.7886063682898902,
+        "prediction_rank_correlation": 0.9063902372931073,
+        "seed_left": 6,
+        "seed_right": 8
+      },
+      {
+        "portfolio_overlap": 0.7806685273119149,
+        "prediction_rank_correlation": 0.9006295781861104,
+        "seed_left": 6,
+        "seed_right": 9
+      },
+      {
+        "portfolio_overlap": 0.7832041826631643,
+        "prediction_rank_correlation": 0.9018733614107359,
+        "seed_left": 7,
+        "seed_right": 8
+      },
+      {
+        "portfolio_overlap": 0.79227708038661,
+        "prediction_rank_correlation": 0.9091725862697426,
+        "seed_left": 7,
+        "seed_right": 9
+      },
+      {
+        "portfolio_overlap": 0.7919737573247122,
+        "prediction_rank_correlation": 0.9051596822962834,
+        "seed_left": 8,
+        "seed_right": 9
+      }
+    ],
+    "primary_noise_distributions": {
+      "annualised_turnover": {
+        "max": 6.911540588443815,
+        "mean": 6.875783055654023,
+        "median": 6.876331797235023,
+        "min": 6.853756823821341,
+        "p05": 6.8549512938674235,
+        "p95": 6.905327047146403,
+        "p95_minus_p05": 0.050375753278979474,
+        "sample_std": 0.01921658691915924
+      },
+      "mean_rank_ic": {
+        "max": 0.0348231745454743,
+        "mean": 0.03221693945900949,
+        "median": 0.031977985700964634,
+        "min": 0.030335558551431274,
+        "p05": 0.030532854765226335,
+        "p95": 0.03468906499669917,
+        "p95_minus_p05": 0.004156210231472838,
+        "sample_std": 0.0015828281560762772
+      },
+      "net_sharpe_10bp": {
+        "max": 0.496367513265907,
+        "mean": 0.35233179600946646,
+        "median": 0.3276192485219495,
+        "min": 0.199990846952339,
+        "p05": 0.2510046526829584,
+        "p95": 0.47042113620446147,
+        "p95_minus_p05": 0.21941648352150306,
+        "sample_std": 0.0816510758906725
+      }
+    },
+    "promotion": "NOT ASSESSED"
+  },
+  "per_seed": [
+    {
+      "annualised_turnover": 6.8977327188940105,
+      "costs": {
+        "10bp": {
+          "annualised_turnover": 6.8977327188940105,
+          "cost_share_of_gross": 0.2698533752717644,
+          "gross_sharpe": 0.5559333390854057,
+          "net_max_drawdown": -0.1289282921176984,
+          "net_sharpe": 0.4057355652563156
+        },
+        "1bp": {
+          "annualised_turnover": 6.8977327188940105,
+          "cost_share_of_gross": 0.1141904454142075,
+          "gross_sharpe": 0.5559333390854057,
+          "net_max_drawdown": -0.12832447120079193,
+          "net_sharpe": 0.49232476642788364
+        },
+        "20bp": {
+          "annualised_turnover": 6.8977327188940105,
+          "cost_share_of_gross": 0.4428121862246054,
+          "gross_sharpe": 0.5559333390854057,
+          "net_max_drawdown": -0.1336809807643652,
+          "net_sharpe": 0.3095465210991424
+        },
+        "3bp": {
+          "annualised_turnover": 6.8977327188940105,
+          "cost_share_of_gross": 0.1487822076047757,
+          "gross_sharpe": 0.5559333390854057,
+          "net_max_drawdown": -0.12845867705299352,
+          "net_sharpe": 0.4730817625707954
+        },
+        "5bp": {
+          "annualised_turnover": 6.8977327188940105,
+          "cost_share_of_gross": 0.1833739697953439,
+          "gross_sharpe": 0.5559333390854057,
+          "net_max_drawdown": -0.12859286951823823,
+          "net_sharpe": 0.4538392056494522
+        }
+      },
+      "fit_seconds": 274.0318899999984,
+      "fold_ic": [
+        -0.016574099454242475,
+        0.03747916999195078,
+        0.04641137804893683,
+        0.027991208405072885,
+        -0.006440544106297191,
+        0.03961665376536108,
+        0.0376813942759858,
+        0.07603634658979988
+      ],
+      "gross_sharpe": 0.5559333390854057,
+      "hac_t_stat": 2.7466880499572888,
+      "ic_ir": 0.20646830113160922,
+      "mean_cross_sectional_prediction_sd": 0.04557120943868234,
+      "mean_rank_ic": 0.030335558551431274,
+      "net_sharpe_10bp": 0.4057355652563156,
+      "portfolio_overlap_to_seed_0": 1.0,
+      "positive_fold_count": 6,
+      "prediction_rank_correlation_to_seed_0": 1.0,
+      "prediction_sha256": "127555e4ab24152b6fe266ea98310b18799a605b099ebe590852052c314cf945",
+      "seed": 0,
+      "worst_fold_ic": -0.016574099454242475
+    },
+    {
+      "annualised_turnover": 6.878973413683092,
+      "costs": {
+        "10bp": {
+          "annualised_turnover": 6.878973413683092,
+          "cost_share_of_gross": 0.30793515267137783,
+          "gross_sharpe": 0.5454220973718985,
+          "net_max_drawdown": -0.18202721381121245,
+          "net_sharpe": 0.37735969974068534
+        },
+        "1bp": {
+          "annualised_turnover": 6.878973413683092,
+          "cost_share_of_gross": 0.13054644351989217,
+          "gross_sharpe": 0.5454220973718985,
+          "net_max_drawdown": -0.17515075530619673,
+          "net_sharpe": 0.4740954255035108
+        },
+        "20bp": {
+          "annualised_turnover": 6.878973413683092,
+          "cost_share_of_gross": 0.5050337183952507,
+          "gross_sharpe": 0.5454220973718985,
+          "net_max_drawdown": -0.19110464127531446,
+          "net_sharpe": 0.26986431122377896
+        },
+        "3bp": {
+          "annualised_turnover": 6.878973413683092,
+          "cost_share_of_gross": 0.16996615666466677,
+          "gross_sharpe": 0.5454220973718985,
+          "net_max_drawdown": -0.17668366993772344,
+          "net_sharpe": 0.45260026551232563
+        },
+        "5bp": {
+          "annualised_turnover": 6.878973413683092,
+          "cost_share_of_gross": 0.20938586980944138,
+          "gross_sharpe": 0.5454220973718985,
+          "net_max_drawdown": -0.17821383045035133,
+          "net_sharpe": 0.4311040113903377
+        }
+      },
+      "fit_seconds": 264.79325045899895,
+      "fold_ic": [
+        -0.01006508940730869,
+        0.03295374731118214,
+        0.0515900996648761,
+        0.022132032352424277,
+        -0.009375728091530202,
+        0.033418735226995185,
+        0.04306937017056327,
+        0.08179591577095038
+      ],
+      "gross_sharpe": 0.5454220973718985,
+      "hac_t_stat": 2.887914828917322,
+      "ic_ir": 0.21599018269506878,
+      "mean_cross_sectional_prediction_sd": 0.04438989294271802,
+      "mean_rank_ic": 0.030773994582086964,
+      "net_sharpe_10bp": 0.37735969974068534,
+      "portfolio_overlap_to_seed_0": 0.7894881331245369,
+      "positive_fold_count": 6,
+      "prediction_rank_correlation_to_seed_0": 0.907862114227768,
+      "prediction_sha256": "ea4eeda09baa745cc34ba04455ea44c68ed28581b9e7153cd939cdc98948718b",
+      "seed": 1,
+      "worst_fold_ic": -0.01006508940730869
+    },
+    {
+      "annualised_turnover": 6.853756823821341,
+      "costs": {
+        "10bp": {
+          "annualised_turnover": 6.853756823821341,
+          "cost_share_of_gross": 0.34911562966965914,
+          "gross_sharpe": 0.481650696190322,
+          "net_max_drawdown": -0.14976307349371287,
+          "net_sharpe": 0.3133548596870488
+        },
+        "1bp": {
+          "annualised_turnover": 6.853756823821341,
+          "cost_share_of_gross": 0.14805934358274195,
+          "gross_sharpe": 0.481650696190322,
+          "net_max_drawdown": -0.14716511052570547,
+          "net_sharpe": 0.41022122546712486
+        },
+        "20bp": {
+          "annualised_turnover": 6.853756823821341,
+          "cost_share_of_gross": 0.5725115030995672,
+          "gross_sharpe": 0.481650696190322,
+          "net_max_drawdown": -0.16354124098478384,
+          "net_sharpe": 0.20575273184581408
+        },
+        "3bp": {
+          "annualised_turnover": 6.853756823821341,
+          "cost_share_of_gross": 0.1927385182687236,
+          "gross_sharpe": 0.481650696190322,
+          "net_max_drawdown": -0.1477430509725851,
+          "net_sharpe": 0.38869419583932174
+        },
+        "5bp": {
+          "annualised_turnover": 6.853756823821341,
+          "cost_share_of_gross": 0.23741769295470516,
+          "gross_sharpe": 0.481650696190322,
+          "net_max_drawdown": -0.1483206396358131,
+          "net_sharpe": 0.36716769530055815
+        }
+      },
+      "fit_seconds": 264.0713679999899,
+      "fold_ic": [
+        -0.019897113162037912,
+        0.036719736830288834,
+        0.05684906002014292,
+        0.04594797463117101,
+        -0.006571673756195075,
+        0.04086505600536018,
+        0.03632181015456244,
+        0.07833140910294195
+      ],
+      "gross_sharpe": 0.481650696190322,
+      "hac_t_stat": 3.0197234873924814,
+      "ic_ir": 0.22491208291329431,
+      "mean_cross_sectional_prediction_sd": 0.04455871550679105,
+      "mean_rank_ic": 0.033624904463559716,
+      "net_sharpe_10bp": 0.3133548596870488,
+      "portfolio_overlap_to_seed_0": 0.7874362244897958,
+      "positive_fold_count": 6,
+      "prediction_rank_correlation_to_seed_0": 0.9065362646163699,
+      "prediction_sha256": "c83c0e96a307db62d15e146dc1020a4527eab57a538c9fcd449618a9ee0bcd9e",
+      "seed": 2,
+      "worst_fold_ic": -0.019897113162037912
+    },
+    {
+      "annualised_turnover": 6.911540588443815,
+      "costs": {
+        "10bp": {
+          "annualised_turnover": 6.911540588443815,
+          "cost_share_of_gross": 0.3309714898758867,
+          "gross_sharpe": 0.4921275612098619,
+          "net_max_drawdown": -0.2128127601720644,
+          "net_sharpe": 0.3291510650149212
+        },
+        "1bp": {
+          "annualised_turnover": 6.911540588443815,
+          "cost_share_of_gross": 0.14006026780698294,
+          "gross_sharpe": 0.4921275612098619,
+          "net_max_drawdown": -0.20665349011052703,
+          "net_sharpe": 0.4231138188681637
+        },
+        "20bp": {
+          "annualised_turnover": 6.911540588443815,
+          "cost_share_of_gross": 0.5430950699524465,
+          "gross_sharpe": 0.4921275612098619,
+          "net_max_drawdown": -0.22413179050782372,
+          "net_sharpe": 0.22475427256177266
+        },
+        "3bp": {
+          "annualised_turnover": 6.911540588443815,
+          "cost_share_of_gross": 0.18248498382229486,
+          "gross_sharpe": 0.4921275612098619,
+          "net_max_drawdown": -0.20800583092379132,
+          "net_sharpe": 0.40223351916409944
+        },
+        "5bp": {
+          "annualised_turnover": 6.911540588443815,
+          "cost_share_of_gross": 0.22490969983760684,
+          "gross_sharpe": 0.4921275612098619,
+          "net_max_drawdown": -0.2093559522694327,
+          "net_sharpe": 0.38135291089257
+        }
+      },
+      "fit_seconds": 263.9072458330047,
+      "fold_ic": [
+        -0.01442612224101068,
+        0.038095183657377775,
+        0.05249518727236268,
+        0.0195248130501729,
+        -0.0015927274017262833,
+        0.039862830182631474,
+        0.04680055795557337,
+        0.07467051618717777
+      ],
+      "gross_sharpe": 0.4921275612098619,
+      "hac_t_stat": 3.042939355463185,
+      "ic_ir": 0.2235066351241811,
+      "mean_cross_sectional_prediction_sd": 0.045259444484470876,
+      "mean_rank_ic": 0.03199038204091364,
+      "net_sharpe_10bp": 0.3291510650149212,
+      "portfolio_overlap_to_seed_0": 0.7839694466895669,
+      "positive_fold_count": 6,
+      "prediction_rank_correlation_to_seed_0": 0.9005861045178932,
+      "prediction_sha256": "5fcc520c209b2e8c39af4cf2000f2935a74bc9105a79e387919d2841aec2367e",
+      "seed": 3,
+      "worst_fold_ic": -0.01442612224101068
+    },
+    {
+      "annualised_turnover": 6.873792272243885,
+      "costs": {
+        "10bp": {
+          "annualised_turnover": 6.873792272243885,
+          "cost_share_of_gross": 0.1918438182998788,
+          "gross_sharpe": 0.6144174503839931,
+          "net_max_drawdown": -0.11890494669480423,
+          "net_sharpe": 0.496367513265907
+        },
+        "1bp": {
+          "annualised_turnover": 6.873792272243885,
+          "cost_share_of_gross": 0.08139198040033538,
+          "gross_sharpe": 0.6144174503839931,
+          "net_max_drawdown": -0.11872494669480427,
+          "net_sharpe": 0.5642909959067931
+        },
+        "20bp": {
+          "annualised_turnover": 6.873792272243885,
+          "cost_share_of_gross": 0.31456808263270486,
+          "gross_sharpe": 0.6144174503839931,
+          "net_max_drawdown": -0.11910494669480409,
+          "net_sharpe": 0.42090802666262284
+        },
+        "3bp": {
+          "annualised_turnover": 6.873792272243885,
+          "cost_share_of_gross": 0.10593683326690058,
+          "gross_sharpe": 0.6144174503839931,
+          "net_max_drawdown": -0.11876494669480431,
+          "net_sharpe": 0.549196360601801
+        },
+        "5bp": {
+          "annualised_turnover": 6.873792272243885,
+          "cost_share_of_gross": 0.13048168613346578,
+          "gross_sharpe": 0.6144174503839931,
+          "net_max_drawdown": -0.11880494669480435,
+          "net_sharpe": 0.5341019789249176
+        }
+      },
+      "fit_seconds": 265.2206227090064,
+      "fold_ic": [
+        -0.015033159345177871,
+        0.04518555074248324,
+        0.05924868726909434,
+        0.024223677782341514,
+        0.007492524859130159,
+        0.026118021473391935,
+        0.03543051237392408,
+        0.07275438813124785
+      ],
+      "gross_sharpe": 0.6144174503839931,
+      "hac_t_stat": 3.0154500754824216,
+      "ic_ir": 0.22011487508709615,
+      "mean_cross_sectional_prediction_sd": 0.04423545775493605,
+      "mean_rank_ic": 0.03196558936101564,
+      "net_sharpe_10bp": 0.496367513265907,
+      "portfolio_overlap_to_seed_0": 0.7849310887721426,
+      "positive_fold_count": 7,
+      "prediction_rank_correlation_to_seed_0": 0.8990691212125669,
+      "prediction_sha256": "8dccd3c6e43ef42b1f5295d2bb3844c420223226be04ac110c7a0dd02a22fa05",
+      "seed": 4,
+      "worst_fold_ic": -0.015033159345177871
+    },
+    {
+      "annualised_turnover": 6.85766182204892,
+      "costs": {
+        "10bp": {
+          "annualised_turnover": 6.85766182204892,
+          "cost_share_of_gross": 0.4509138865438632,
+          "gross_sharpe": 0.3643913026032109,
+          "net_max_drawdown": -0.2009273367003761,
+          "net_sharpe": 0.199990846952339
+        },
+        "1bp": {
+          "annualised_turnover": 6.85766182204892,
+          "cost_share_of_gross": 0.19041208705616336,
+          "gross_sharpe": 0.3643913026032109,
+          "net_max_drawdown": -0.19016721873940645,
+          "net_sharpe": 0.2949158446791395
+        },
+        "20bp": {
+          "annualised_turnover": 6.85766182204892,
+          "cost_share_of_gross": 0.7403603304190853,
+          "gross_sharpe": 0.3643913026032109,
+          "net_max_drawdown": -0.2365810556760719,
+          "net_sharpe": 0.09454601977570865
+        },
+        "3bp": {
+          "annualised_turnover": 6.85766182204892,
+          "cost_share_of_gross": 0.24830137583120773,
+          "gross_sharpe": 0.3643913026032109,
+          "net_max_drawdown": -0.19168419213545862,
+          "net_sharpe": 0.2738201694911049
+        },
+        "5bp": {
+          "annualised_turnover": 6.85766182204892,
+          "cost_share_of_gross": 0.3061906646062521,
+          "gross_sharpe": 0.3643913026032109,
+          "net_max_drawdown": -0.19319841927531345,
+          "net_sharpe": 0.25272506549309715
+        }
+      },
+      "fit_seconds": 268.58147416700376,
+      "fold_ic": [
+        -0.016214169833426707,
+        0.03186393499350438,
+        0.05266545248167112,
+        0.03424125486757424,
+        -0.01728785106562155,
+        0.03184534772382185,
+        0.041267358652869686,
+        0.08973750416841891
+      ],
+      "gross_sharpe": 0.3643913026032109,
+      "hac_t_stat": 2.6386559378839602,
+      "ic_ir": 0.2059656340730171,
+      "mean_cross_sectional_prediction_sd": 0.04491869122468823,
+      "mean_rank_ic": 0.031098949836586835,
+      "net_sharpe_10bp": 0.199990846952339,
+      "portfolio_overlap_to_seed_0": 0.7708928360948338,
+      "positive_fold_count": 6,
+      "prediction_rank_correlation_to_seed_0": 0.8909304653651916,
+      "prediction_sha256": "d63cb41f7426a075f7573e7e027a9e7aada9ae2e6ec47e94e1ec26637918b5c9",
+      "seed": 5,
+      "worst_fold_ic": -0.01728785106562155
+    },
+    {
+      "annualised_turnover": 6.861362637362637,
+      "costs": {
+        "10bp": {
+          "annualised_turnover": 6.861362637362637,
+          "cost_share_of_gross": 0.3363137883323622,
+          "gross_sharpe": 0.49146797436849454,
+          "net_max_drawdown": -0.1875893587798172,
+          "net_sharpe": 0.32608743202897783
+        },
+        "1bp": {
+          "annualised_turnover": 6.861362637362637,
+          "cost_share_of_gross": 0.1424991820711466,
+          "gross_sharpe": 0.49146797436849454,
+          "net_max_drawdown": -0.16275887097818553,
+          "net_sharpe": 0.4213050497180661
+        },
+        "20bp": {
+          "annualised_turnover": 6.861362637362637,
+          "cost_share_of_gross": 0.551663350844824,
+          "gross_sharpe": 0.49146797436849454,
+          "net_max_drawdown": -0.21432349819377683,
+          "net_sharpe": 0.22027217886932757
+        },
+        "3bp": {
+          "annualised_turnover": 6.861362637362637,
+          "cost_share_of_gross": 0.18556909457363893,
+          "gross_sharpe": 0.49146797436849454,
+          "net_max_drawdown": -0.16834095916530756,
+          "net_sharpe": 0.40014769208490747
+        },
+        "5bp": {
+          "annualised_turnover": 6.861362637362637,
+          "cost_share_of_gross": 0.22863900707613127,
+          "gross_sharpe": 0.49146797436849454,
+          "net_max_drawdown": -0.17388615965324294,
+          "net_sharpe": 0.3789889936339963
+        }
+      },
+      "fit_seconds": 267.7938416249963,
+      "fold_ic": [
+        -0.009833833310900786,
+        0.04988764496574372,
+        0.04933579970220752,
+        0.035532941468560855,
+        -0.002505650075493725,
+        0.03479982261043626,
+        0.03757883604077361,
+        0.08342122857457845
+      ],
+      "gross_sharpe": 0.49146797436849454,
+      "hac_t_stat": 3.217839540167385,
+      "ic_ir": 0.24095984970839482,
+      "mean_cross_sectional_prediction_sd": 0.044820205620909596,
+      "mean_rank_ic": 0.0348231745454743,
+      "net_sharpe_10bp": 0.32608743202897783,
+      "portfolio_overlap_to_seed_0": 0.7802426205630767,
+      "positive_fold_count": 6,
+      "prediction_rank_correlation_to_seed_0": 0.8969125084155685,
+      "prediction_sha256": "7fcb0d76935ef1f25d282a22c49457dadef39f3b029284f0ae9ad110259fc9a4",
+      "seed": 6,
+      "worst_fold_ic": -0.009833833310900786
+    },
+    {
+      "annualised_turnover": 6.878871322226161,
+      "costs": {
+        "10bp": {
+          "annualised_turnover": 6.878871322226161,
+          "cost_share_of_gross": 0.2505341088588398,
+          "gross_sharpe": 0.5856350724926789,
+          "net_max_drawdown": -0.12889989850129113,
+          "net_sharpe": 0.438708897573806
+        },
+        "1bp": {
+          "annualised_turnover": 6.878871322226161,
+          "cost_share_of_gross": 0.10609329437595133,
+          "gross_sharpe": 0.5856350724926789,
+          "net_max_drawdown": -0.12871989850129117,
+          "net_sharpe": 0.5233418107685968
+        },
+        "20bp": {
+          "annualised_turnover": 6.878871322226161,
+          "cost_share_of_gross": 0.41102390272871575,
+          "gross_sharpe": 0.5856350724926789,
+          "net_max_drawdown": -0.13108569525935987,
+          "net_sharpe": 0.34468747699466523
+        },
+        "3bp": {
+          "annualised_turnover": 6.878871322226161,
+          "cost_share_of_gross": 0.13819125314992653,
+          "gross_sharpe": 0.5856350724926789,
+          "net_max_drawdown": -0.12875989850129121,
+          "net_sharpe": 0.5045339354648887
+        },
+        "5bp": {
+          "annualised_turnover": 6.878871322226161,
+          "cost_share_of_gross": 0.17028921192390176,
+          "gross_sharpe": 0.5856350724926789,
+          "net_max_drawdown": -0.12879989850129114,
+          "net_sharpe": 0.48572628754617186
+        }
+      },
+      "fit_seconds": 264.23259574999975,
+      "fold_ic": [
+        -0.014031240203027323,
+        0.04681764487874192,
+        0.05982776023015872,
+        0.028332056612944093,
+        -0.002350271318913964,
+        0.017399642103770315,
+        0.03452695707520803,
+        0.07737117039406474
+      ],
+      "gross_sharpe": 0.5856350724926789,
+      "hac_t_stat": 2.8231319251075027,
+      "ic_ir": 0.21099636898030075,
+      "mean_cross_sectional_prediction_sd": 0.04389749704171492,
+      "mean_rank_ic": 0.031027854755376963,
+      "net_sharpe_10bp": 0.438708897573806,
+      "portfolio_overlap_to_seed_0": 0.7796590851687208,
+      "positive_fold_count": 6,
+      "prediction_rank_correlation_to_seed_0": 0.895913354946844,
+      "prediction_sha256": "ae7813459def634b8cc59f773a07283090d0d55ed8f6d5ff932e3e2400549104",
+      "seed": 7,
+      "worst_fold_ic": -0.014031240203027323
+    },
+    {
+      "annualised_turnover": 6.887727756114852,
+      "costs": {
+        "10bp": {
+          "annualised_turnover": 6.887727756114852,
+          "cost_share_of_gross": 0.3409990145432264,
+          "gross_sharpe": 0.4903733175843129,
+          "net_max_drawdown": -0.1753335661906108,
+          "net_sharpe": 0.3229951948440353
+        },
+        "1bp": {
+          "annualised_turnover": 6.887727756114852,
+          "cost_share_of_gross": 0.1441174882107228,
+          "gross_sharpe": 0.4903733175843129,
+          "net_max_drawdown": -0.16864013590292903,
+          "net_sharpe": 0.41956584623077503
+        },
+        "20bp": {
+          "annualised_turnover": 6.887727756114852,
+          "cost_share_of_gross": 0.5597562660237859,
+          "gross_sharpe": 0.4903733175843129,
+          "net_max_drawdown": -0.1860583661901789,
+          "net_sharpe": 0.21572077760970124
+        },
+        "3bp": {
+          "annualised_turnover": 6.887727756114852,
+          "cost_share_of_gross": 0.1878689385068347,
+          "gross_sharpe": 0.4903733175843129,
+          "net_max_drawdown": -0.17013208356315201,
+          "net_sharpe": 0.39810459268469334
+        },
+        "5bp": {
+          "annualised_turnover": 6.887727756114852,
+          "cost_share_of_gross": 0.2316203888029466,
+          "gross_sharpe": 0.4903733175843129,
+          "net_max_drawdown": -0.17162144550339486,
+          "net_sharpe": 0.37664383321083533
+        }
+      },
+      "fit_seconds": 266.63402291700186,
+      "fold_ic": [
+        -0.011394949395378731,
+        0.029991677316890925,
+        0.0519979030818619,
+        0.03955143905561748,
+        -0.01543692799597791,
+        0.03030715549405787,
+        0.041264704531052764,
+        0.08910957588223914
+      ],
+      "gross_sharpe": 0.4903733175843129,
+      "hac_t_stat": 2.905153794502897,
+      "ic_ir": 0.21867797352930887,
+      "mean_cross_sectional_prediction_sd": 0.044368338928839776,
+      "mean_rank_ic": 0.032003833127675615,
+      "net_sharpe_10bp": 0.3229951948440353,
+      "portfolio_overlap_to_seed_0": 0.7827468301677107,
+      "positive_fold_count": 6,
+      "prediction_rank_correlation_to_seed_0": 0.8992702893365762,
+      "prediction_sha256": "f3bf17f7d012e04dfe7f72dc89df003c54706b783217f49f8202ee7d2c442e0d",
+      "seed": 8,
+      "worst_fold_ic": -0.01543692799597791
+    },
+    {
+      "annualised_turnover": 6.856411201701524,
+      "costs": {
+        "10bp": {
+          "annualised_turnover": 6.856411201701524,
+          "cost_share_of_gross": 0.3513926186339709,
+          "gross_sharpe": 0.4836768925614232,
+          "net_max_drawdown": -0.1854917978507855,
+          "net_sharpe": 0.3135668857306286
+        },
+        "1bp": {
+          "annualised_turnover": 6.856411201701524,
+          "cost_share_of_gross": 0.1493977828953953,
+          "gross_sharpe": 0.4836768925614232,
+          "net_max_drawdown": -0.172770205867936,
+          "net_sharpe": 0.4112783959862574
+        },
+        "20bp": {
+          "annualised_turnover": 6.856411201701524,
+          "cost_share_of_gross": 0.5758313250101663,
+          "gross_sharpe": 0.4836768925614232,
+          "net_max_drawdown": -0.20995264472419028,
+          "net_sharpe": 0.205017997927226
+        },
+        "3bp": {
+          "annualised_turnover": 6.856411201701524,
+          "cost_share_of_gross": 0.19428552417063433,
+          "gross_sharpe": 0.4836768925614232,
+          "net_max_drawdown": -0.1741616678588016,
+          "net_sharpe": 0.3895641408267562
+        },
+        "5bp": {
+          "annualised_turnover": 6.856411201701524,
+          "cost_share_of_gross": 0.2391732654458734,
+          "gross_sharpe": 0.4836768925614232,
+          "net_max_drawdown": -0.17598551567768228,
+          "net_sharpe": 0.36785007814009524
+        }
+      },
+      "fit_seconds": 271.4100711249921,
+      "fold_ic": [
+        -0.01896311139939247,
+        0.05315374239828903,
+        0.06481460042822976,
+        0.03749728690176913,
+        -0.01969944993800715,
+        0.029305022988449943,
+        0.04232456149789531,
+        0.08728181936891248
+      ],
+      "gross_sharpe": 0.4836768925614232,
+      "hac_t_stat": 2.9420214197961996,
+      "ic_ir": 0.2246251961711308,
+      "mean_cross_sectional_prediction_sd": 0.043205432483668954,
+      "mean_rank_ic": 0.034525153325974015,
+      "net_sharpe_10bp": 0.3135668857306286,
+      "portfolio_overlap_to_seed_0": 0.785437777833906,
+      "positive_fold_count": 6,
+      "prediction_rank_correlation_to_seed_0": 0.9006034490683287,
+      "prediction_sha256": "f50289c57e893e9046e00628b582b7648c6ec22885af57c6fddea24619ffeb0e",
+      "seed": 9,
+      "worst_fold_ic": -0.01969944993800715
+    }
+  ]
+}

@@ -1,0 +1,147 @@
+{
+  "across_seed_metrics": {
+    "also": [
+      "all pairwise prediction-rank correlations",
+      "all pairwise portfolio overlaps",
+      "fold stability"
+    ],
+    "primary": [
+      "mean_rank_ic",
+      "net_sharpe_10bp",
+      "annualised_turnover"
+    ],
+    "statistics": [
+      "mean",
+      "sample_std",
+      "median",
+      "min",
+      "max",
+      "p05",
+      "p95",
+      "p95_minus_p05"
+    ]
+  },
+  "data": {
+    "dataset_content_hash": "7deb8601ae7a34074cade997397f1947",
+    "dataset_id": "ds-491d761b9f2a6fc4",
+    "end": "2025-05-09",
+    "feature_count": 26,
+    "feature_list_sha256": "205d2e2b2debdb177e382657a597489b67a5e9e62f386958118de64f8a872fbf",
+    "features": [
+      "acceleration_xs",
+      "dist_52w_high_xs",
+      "ma_gap_xs",
+      "mom_21_xs",
+      "mom_252_21_xs",
+      "mom_63_xs",
+      "reversal_5_xs",
+      "trend_strength_63_xs",
+      "downside_vol_63_xs",
+      "vol_21_xs",
+      "vol_63_xs",
+      "vol_ratio_xs",
+      "amihud_21_xs",
+      "log_dollar_volume_21_xs",
+      "volume_shock_xs",
+      "market_drawdown",
+      "market_mom_21",
+      "market_mom_252",
+      "market_vol_21",
+      "market_vol_63",
+      "market_vol_percentile",
+      "rates_change_63",
+      "rates_curvature",
+      "rates_level",
+      "rates_short",
+      "rates_slope"
+    ],
+    "folds": "the exact 8 folds recorded in EXP-006 and reused by EXP-009D",
+    "returns_panel_sha256": "d1f10c93dc747b949429aaba390e87a8412b1a79cdf8f672c15c68cacba0919e",
+    "rows": 452524,
+    "target": "fwd_rank_21",
+    "universe_only": true
+  },
+  "experiment_id": "EXP-010A",
+  "holdout": {
+    "end": "2026-08-28",
+    "start": "2025-08-26",
+    "touched": false
+  },
+  "interpretation": {
+    "later_rule": "Later effects must be reported against both the sample standard deviation and p95-p05 range; EXP-010A defines no automatic pass threshold.",
+    "no_best_seed": true,
+    "promotion": "NOT ASSESSED",
+    "purpose": "descriptive stochastic noise floor for later preregistered comparisons",
+    "selection": "none"
+  },
+  "model": {
+    "class": "sklearn.ensemble.GradientBoostingRegressor",
+    "hyperparameter_search": "none",
+    "hyperparameters": {
+      "learning_rate": 0.03,
+      "max_depth": 3,
+      "min_samples_leaf": 50,
+      "n_estimators": 200,
+      "subsample": 0.7
+    },
+    "imputation": "FoldImputer trained independently inside each training fold",
+    "repository_kind": "gradient_boosting",
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ]
+  },
+  "outputs": [
+    "definition.json",
+    "config.json",
+    "manifest.json",
+    "metrics.json",
+    "per_seed_metrics.csv",
+    "fold_metrics.csv",
+    "prediction_hashes.json",
+    "checkpoints/seed_XX_predictions.parquet"
+  ],
+  "parent_experiment": "EXP-009D",
+  "per_seed_metrics": [
+    "mean Rank IC",
+    "HAC t-stat (4 lags)",
+    "ICIR",
+    "8 fold IC values",
+    "positive fold count",
+    "worst fold",
+    "mean cross-sectional prediction dispersion",
+    "prediction-rank correlation to seed 0",
+    "portfolio overlap to seed 0",
+    "annualised one-way turnover",
+    "gross Sharpe",
+    "net Sharpe at 1/3/5/10/20 bp",
+    "net maximum drawdown",
+    "cost share of gross"
+  ],
+  "portfolio": {
+    "cost_half_spread_bps": [
+      1.0,
+      3.0,
+      5.0,
+      10.0,
+      20.0
+    ],
+    "drop_fraction": 0.1,
+    "engine": "EXP-009A settings unchanged: one-period execution lag, long/short quintiles, commission and impact included",
+    "primary_cost_bps": 10.0,
+    "quantiles": 5,
+    "rule": "topk_dropout",
+    "source": "frozen EXP-009A selected rule"
+  },
+  "question": "How much variation in ordering and portfolio economics is caused purely by random seed variation in the existing model specification?",
+  "resume": "one atomic prediction Parquet plus metadata JSON per completed seed; matching checkpoints are resumed, mismatches are refused",
+  "status": "EXPERIMENTAL - NOISE DIAGNOSTIC - PROMOTION NOT ASSESSED"
+}
