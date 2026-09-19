@@ -21,6 +21,7 @@ RAW_SEC = ROOT / "data/raw/sec"
 RAW_SECURITY = ROOT / "data/raw/security_master"
 RAW_ALFRED = ROOT / "data/raw/alfred"
 CURATED_SEC = ROOT / "data/curated/sec"
+CURATED_SEC_V3 = ROOT / "data/curated/sec_v3"
 CURATED_SECURITY = ROOT / "data/curated/security_master"
 MANIFESTS = ROOT / "data/manifests"
 
@@ -83,7 +84,9 @@ def validate() -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["estimate", "download-sec", "build-fundamentals", "build-security-master", "build-alfred", "validate", "all"])
+    parser.add_argument("command", choices=["estimate", "download-sec", "verify-sec", "build-fundamentals", "build-facts-v3", "build-security-master-v3", "build-rich-panel", "build-security-master", "validate-all", "build-alfred", "validate", "all"])
+    parser.add_argument("--reverify-archives", action="store_true", help="validate-all: re-hash and CRC every SEC archive (about 2 minutes)")
+    parser.add_argument("--no-source-check", action="store_true", help="skip the HEAD size check against sec.gov")
     parser.add_argument("--force", action="store_true")
     args = parser.parse_args()
     if args.command == "estimate":
@@ -91,6 +94,37 @@ def main() -> int:
     elif args.command == "download-sec":
         result = download_sec(RAW_SEC, MANIFESTS / "sec_download_manifest.json", force=args.force,
                               user_agent=os.environ.get("SEC_USER_AGENT", "miniAladdin-research aakashjawle101@gmail.com"))
+    elif args.command == "verify-sec":
+        from src.quant.pit.sec_archive_audit import verify_archives
+        result = verify_archives(RAW_SEC, MANIFESTS / "sec_download_manifest.json", check_source=not args.no_source_check)
+        atomic_json(MANIFESTS / "sec_archive_verification.json", result)
+        result = {k: v for k, v in result.items() if k != "archives"}
+    elif args.command == "build-facts-v3":
+        from src.quant.pit import sec_facts
+        from src.quant.pit.calendar import TradingCalendar
+        report = sec_facts.build_store(RAW_SEC, MANIFESTS / "sec_download_manifest.json", CURATED_SEC_V3, ciks=None,
+                                       calendar=TradingCalendar.from_dates(trading_dates()))
+        coverage = sec_facts.coverage_report(CURATED_SEC_V3)
+        atomic_json(MANIFESTS / "sec_fact_coverage_v3.json", {"build": report, "coverage": coverage})
+        result = {"build": {k: v for k, v in report.items() if k != "quarters"}, "coverage_rows": coverage.get("rows")}
+    elif args.command == "build-security-master-v3":
+        from src.quant.pit import security_master_build as B
+        from src.quant.study import exp009b
+        built = B.build(ROOT)
+        folds = [f.as_dict() for f in exp009b.recorded_plan(ROOT).folds]
+        report = B.measure(ROOT, built, folds)
+        atomic_json(MANIFESTS / "security_master_coverage_v3.json", report)
+        result = {k: v for k, v in report.items() if k not in ("coverage",)}
+    elif args.command == "build-rich-panel":
+        from src.quant.pit import rich_panel_build
+        manifest = rich_panel_build.build(ROOT)
+        result = {k: manifest[k] for k in ("dataset_id", "rows", "securities", "feature_count", "new_feature_count", "feature_hash", "content_hash", "controls_allowed")}
+    elif args.command == "validate-all":
+        from src.quant.pit.validate_all import validate_all
+        result = validate_all(ROOT, reverify_archives=args.reverify_archives)
+        atomic_json(MANIFESTS / "pit_validation.json", result)
+        print(json.dumps({"status": result["status"], **{k: v["status"] for k, v in result["checks"].items()}}, indent=2))
+        return 1 if result["status"] == "FAIL" else 0
     elif args.command == "build-fundamentals":
         result = build_all_fundamentals()
     elif args.command == "build-security-master":

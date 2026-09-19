@@ -1,0 +1,909 @@
+{
+  "build": {
+    "acceptance_timezone": "America/New_York",
+    "accepted_cutoff": "2025-05-09 23:59:59",
+    "candidate_ciks": null,
+    "exclusion_counts": {
+      "considered": 149666766,
+      "context_mismatch_excluded": 10153,
+      "curated": 14574206,
+      "dimensional_excluded": 20081398,
+      "mapped_tag_rows": 35680406,
+      "null_value_excluded": 151993,
+      "wrong_taxonomy_or_unit": 862656
+    },
+    "market_close": "16:00:00",
+    "quarters": [
+      {
+        "ciks": 1421,
+        "duplicate_conflicts": 0,
+        "filings": 1444,
+        "output_sha256": "272490e1601d9caab07edc144e39167a0e03fbad25967fb8fc3c694eda549093",
+        "quarter": "2011q1",
+        "rows": 65987,
+        "tag_disagreements": 3994
+      },
+      {
+        "ciks": 1580,
+        "duplicate_conflicts": 0,
+        "filings": 1610,
+        "output_sha256": "70fc7944c08fb00c49b0824888b0e42476dea5a42cf2d8508113c2c7ef9a4a6f",
+        "quarter": "2011q2",
+        "rows": 57959,
+        "tag_disagreements": 3233
+      },
+      {
+        "ciks": 6835,
+        "duplicate_conflicts": 0,
+        "filings": 6934,
+        "output_sha256": "6303263db5bb6e30c210aeb3e22bdc445fb8dc6531985d0ebae256b5216e1e10",
+        "quarter": "2011q3",
+        "rows": 261624,
+        "tag_disagreements": 9827
+      },
+      {
+        "ciks": 7065,
+        "duplicate_conflicts": 0,
+        "filings": 7329,
+        "output_sha256": "ac70facfbd0eaa61fe2f4f1b3676d3d38e21ed2abef3cbb9d69bc41d842968d4",
+        "quarter": "2011q4",
+        "rows": 273652,
+        "tag_disagreements": 9900
+      },
+      {
+        "ciks": 6658,
+        "duplicate_conflicts": 3,
+        "filings": 7085,
+        "output_sha256": "edcbab7a8159507477a73a173acb9051cb8d6b78a5c7f1d6d997744c01619055",
+        "quarter": "2012q1",
+        "rows": 274157,
+        "tag_disagreements": 10150
+      },
+      {
+        "ciks": 7398,
+        "duplicate_conflicts": 0,
+        "filings": 8599,
+        "output_sha256": "294b7ae62598e146cd35c349a975bd16eac907d696f1a4596a0f18e0f87b2f10",
+        "quarter": "2012q2",
+        "rows": 273325,
+        "tag_disagreements": 8485
+      },
+      {
+        "ciks": 7146,
+        "duplicate_conflicts": 1,
+        "filings": 7682,
+        "output_sha256": "77ef7315c78c7057cafe5c3a294c189fba1eef8ced5b792694113980f77a024b",
+        "quarter": "2012q3",
+        "rows": 287031,
+        "tag_disagreements": 10287
+      },
+      {
+        "ciks": 7156,
+        "duplicate_conflicts": 0,
+        "filings": 7786,
+        "output_sha256": "fe6ab3ea98459ea75ae454d9d8fdfe9bbe66b8d86685ecfc0114ad2725e8f3ad",
+        "quarter": "2012q4",
+        "rows": 295193,
+        "tag_disagreements": 10645
+      },
+      {
+        "ciks": 5925,
+        "duplicate_conflicts": 0,
+        "filings": 6435,
+        "output_sha256": "5dd72d9a3489d0babf1164b1f3e7e93042fa498e098b656034a65b3966f80d5f",
+        "quarter": "2013q1",
+        "rows": 284573,
+        "tag_disagreements": 10699
+      },
+      {
+        "ciks": 6828,
+        "duplicate_conflicts": 0,
+        "filings": 8362,
+        "output_sha256": "ca680c7520a68df924f0a5c84cd263d87ef667803bbcf1da4ada20c95021c184",
+        "quarter": "2013q2",
+        "rows": 276334,
+        "tag_disagreements": 8673
+      },
+      {
+        "ciks": 6951,
+        "duplicate_conflicts": 0,
+        "filings": 7612,
+        "output_sha256": "62dc53ed7b89b678f3f4ca6968783c0ea498046740333489072fbf60dcd6618c",
+        "quarter": "2013q3",
+        "rows": 286829,
+        "tag_disagreements": 10222
+      },
+      {
+        "ciks": 6926,
+        "duplicate_conflicts": 0,
+        "filings": 7483,
+        "output_sha256": "ee0a3e1bd716b09a29ab7503bd57de424ddd9494b8ada8ad2fab70cbbacc829c",
+        "quarter": "2013q4",
+        "rows": 284275,
+        "tag_disagreements": 10437
+      },
+      {
+        "ciks": 6233,
+        "duplicate_conflicts": 0,
+        "filings": 6757,
+        "output_sha256": "d9b7bd92c0ce892ce90f8e495ac07384afc765431a95eea8ef10b67ac710f9f9",
+        "quarter": "2014q1",
+        "rows": 298845,
+        "tag_disagreements": 11455
+      },
+      {
+        "ciks": 6860,
+        "duplicate_conflicts": 0,
+        "filings": 7988,
+        "output_sha256": "b02b7f38aea60fb3520b6f3a640b61f316f58045b4754d415dd03bdc63e636d0",
+        "quarter": "2014q2",
+        "rows": 262970,
+        "tag_disagreements": 8297
+      },
+      {
+        "ciks": 6870,
+        "duplicate_conflicts": 0,
+        "filings": 7411,
+        "output_sha256": "af34741bf2b928c5168afe71205fcfa7cefc3b484aa97a864cc13998228dd4c5",
+        "quarter": "2014q3",
+        "rows": 278095,
+        "tag_disagreements": 10257
+      },
+      {
+        "ciks": 6858,
+        "duplicate_conflicts": 0,
+        "filings": 7407,
+        "output_sha256": "53b5d88e58c092a4190dd3c30b26685e1aa1320e04a584c613000a6740f9e6e7",
+        "quarter": "2014q4",
+        "rows": 277805,
+        "tag_disagreements": 10474
+      },
+      {
+        "ciks": 6166,
+        "duplicate_conflicts": 0,
+        "filings": 6657,
+        "output_sha256": "4b58db50ed765997bcb850a2311ba5803725be4872b6d697d73cb78f103ca006",
+        "quarter": "2015q1",
+        "rows": 292865,
+        "tag_disagreements": 11684
+      },
+      {
+        "ciks": 6710,
+        "duplicate_conflicts": 0,
+        "filings": 7695,
+        "output_sha256": "3ce445678caf3d96f037339cb8674e30261cb40d98486fedcf9de3a3f11a03c6",
+        "quarter": "2015q2",
+        "rows": 245514,
+        "tag_disagreements": 8276
+      },
+      {
+        "ciks": 6657,
+        "duplicate_conflicts": 0,
+        "filings": 7136,
+        "output_sha256": "397b95c61d15621be2dea64fd492afb8f2ba0999de5c39dff4c53b41de2717e0",
+        "quarter": "2015q3",
+        "rows": 266452,
+        "tag_disagreements": 10404
+      },
+      {
+        "ciks": 6574,
+        "duplicate_conflicts": 0,
+        "filings": 6990,
+        "output_sha256": "f11f6808703802e87539c4468cd2b217e64a9b9fe70d8b6c4a0be039873feeb1",
+        "quarter": "2015q4",
+        "rows": 263538,
+        "tag_disagreements": 10353
+      },
+      {
+        "ciks": 5850,
+        "duplicate_conflicts": 0,
+        "filings": 6242,
+        "output_sha256": "572b6853a69e4dcf7df68905104b0e02dc2523f9194b22870c41b9cf606bbfea",
+        "quarter": "2016q1",
+        "rows": 281943,
+        "tag_disagreements": 11787
+      },
+      {
+        "ciks": 6266,
+        "duplicate_conflicts": 0,
+        "filings": 7074,
+        "output_sha256": "cf648897d4ef619e1d88bc72089197c3acbfdc1497c66aaf269bb0a736f52221",
+        "quarter": "2016q2",
+        "rows": 228123,
+        "tag_disagreements": 7853
+      },
+      {
+        "ciks": 5672,
+        "duplicate_conflicts": 0,
+        "filings": 5940,
+        "output_sha256": "79ad4c66a278cce8ae6607ddfdd44a8bea092d5c857e688ef500da08c98df616",
+        "quarter": "2016q3",
+        "rows": 224053,
+        "tag_disagreements": 9152
+      },
+      {
+        "ciks": 6117,
+        "duplicate_conflicts": 0,
+        "filings": 6517,
+        "output_sha256": "52ba8eb2aeb7e646827fda9000aae6111e2f66e2c4996b67e83c7997862c074e",
+        "quarter": "2016q4",
+        "rows": 247476,
+        "tag_disagreements": 9893
+      },
+      {
+        "ciks": 5554,
+        "duplicate_conflicts": 0,
+        "filings": 5932,
+        "output_sha256": "1adeee4e26b284497b6165440ce5c9d8adfbf2b41128e3f93eefbbdc3d2cfb09",
+        "quarter": "2017q1",
+        "rows": 270818,
+        "tag_disagreements": 11608
+      },
+      {
+        "ciks": 5992,
+        "duplicate_conflicts": 0,
+        "filings": 6795,
+        "output_sha256": "3ec4df0c2892d78e70d2eb280c625b0bf27b6cec2cde114575a6b20d3522221d",
+        "quarter": "2017q2",
+        "rows": 217604,
+        "tag_disagreements": 7705
+      },
+      {
+        "ciks": 5903,
+        "duplicate_conflicts": 0,
+        "filings": 6266,
+        "output_sha256": "6ad7bcc651062d2e2666ef8c9de6bd9e6ffbca5dc90e67ca66100b6831f8083f",
+        "quarter": "2017q3",
+        "rows": 237341,
+        "tag_disagreements": 9686
+      },
+      {
+        "ciks": 5888,
+        "duplicate_conflicts": 0,
+        "filings": 6315,
+        "output_sha256": "c930189c368a6d492da174d16514d80c2558d33a51724fc4bc07044d6a556320",
+        "quarter": "2017q4",
+        "rows": 240483,
+        "tag_disagreements": 9961
+      },
+      {
+        "ciks": 5097,
+        "duplicate_conflicts": 0,
+        "filings": 5474,
+        "output_sha256": "813688b532af3637d5df6e5dd07dc253e0e1c1df5df8f08052bfc0561db13891",
+        "quarter": "2018q1",
+        "rows": 254797,
+        "tag_disagreements": 11559
+      },
+      {
+        "ciks": 5795,
+        "duplicate_conflicts": 0,
+        "filings": 6821,
+        "output_sha256": "f28ea6c29f02cf9916e0160722abe94e777d4a57475de196b9fd3f1a2bb9ffc2",
+        "quarter": "2018q2",
+        "rows": 227270,
+        "tag_disagreements": 10681
+      },
+      {
+        "ciks": 5749,
+        "duplicate_conflicts": 0,
+        "filings": 6115,
+        "output_sha256": "1520254e8ed15c498efb795e08843b8cbe6fefe8cd490c80e5f5727a878ab840",
+        "quarter": "2018q3",
+        "rows": 240829,
+        "tag_disagreements": 12162
+      },
+      {
+        "ciks": 5775,
+        "duplicate_conflicts": 0,
+        "filings": 6123,
+        "output_sha256": "abaa46cbe922dfd124701cca00b995161796a363764767de6fec7c6c0b23ee65",
+        "quarter": "2018q4",
+        "rows": 245099,
+        "tag_disagreements": 12482
+      },
+      {
+        "ciks": 4957,
+        "duplicate_conflicts": 0,
+        "filings": 5210,
+        "output_sha256": "7afb2d8aa58c678ed60e25956b71025401ffc9e4e9cc75aac1395784c6bc5577",
+        "quarter": "2019q1",
+        "rows": 252676,
+        "tag_disagreements": 13355
+      },
+      {
+        "ciks": 5613,
+        "duplicate_conflicts": 0,
+        "filings": 6607,
+        "output_sha256": "b35c77483328bf62328b133f787c80f864dcaa3630fc471b52414f8104004e6e",
+        "quarter": "2019q2",
+        "rows": 233202,
+        "tag_disagreements": 10970
+      },
+      {
+        "ciks": 5588,
+        "duplicate_conflicts": 0,
+        "filings": 5916,
+        "output_sha256": "6f7a89c3cc1b1c7a6735a8869d5fcba919a771b8c019a29bcbb0a6395ea6a7d8",
+        "quarter": "2019q3",
+        "rows": 258188,
+        "tag_disagreements": 12520
+      },
+      {
+        "ciks": 5605,
+        "duplicate_conflicts": 0,
+        "filings": 5941,
+        "output_sha256": "6d70d8e3a26ee91938518d76a4152e520dbfee4e34452baabb53694c74e9f2db",
+        "quarter": "2019q4",
+        "rows": 269013,
+        "tag_disagreements": 12845
+      },
+      {
+        "ciks": 5023,
+        "duplicate_conflicts": 0,
+        "filings": 5298,
+        "output_sha256": "6cd862b69815fd80a8794534c0727cd833352d241cbdd7c6b82051c3aed26e7d",
+        "quarter": "2020q1",
+        "rows": 257938,
+        "tag_disagreements": 13636
+      },
+      {
+        "ciks": 5366,
+        "duplicate_conflicts": 0,
+        "filings": 5914,
+        "output_sha256": "1d537f143cd7a05c51084916429dbbdab775d4ef47976c2ace28f41d3f209c22",
+        "quarter": "2020q2",
+        "rows": 212898,
+        "tag_disagreements": 10485
+      },
+      {
+        "ciks": 5441,
+        "duplicate_conflicts": 0,
+        "filings": 5892,
+        "output_sha256": "067c613a32ded3af77525a9012e6e6862542ab0f2d013129413f803fc50977ef",
+        "quarter": "2020q3",
+        "rows": 258385,
+        "tag_disagreements": 12721
+      },
+      {
+        "ciks": 5582,
+        "duplicate_conflicts": 0,
+        "filings": 5854,
+        "output_sha256": "a3de4b367c69cc7af628f832380e098e987da564e13dab5bb9ce1cd91f1df1e2",
+        "quarter": "2020q4",
+        "rows": 261572,
+        "tag_disagreements": 12538
+      },
+      {
+        "ciks": 5295,
+        "duplicate_conflicts": 0,
+        "filings": 5569,
+        "output_sha256": "891ffe704773e62bbf459f06a27aa66bc7963c599594ec46b51ef9803d2adf08",
+        "quarter": "2021q1",
+        "rows": 246623,
+        "tag_disagreements": 12781
+      },
+      {
+        "ciks": 5990,
+        "duplicate_conflicts": 0,
+        "filings": 6864,
+        "output_sha256": "f01e998056f6f29756b5d65719eb6fd0b6d574bb98e3896dd1a6e6e95a41680e",
+        "quarter": "2021q2",
+        "rows": 232323,
+        "tag_disagreements": 10735
+      },
+      {
+        "ciks": 6235,
+        "duplicate_conflicts": 0,
+        "filings": 6831,
+        "output_sha256": "91583d95e0ec28c56f9a4cc43f200a2328b924ba6b662f527364ac2339a4bb0e",
+        "quarter": "2021q3",
+        "rows": 282263,
+        "tag_disagreements": 12676
+      },
+      {
+        "ciks": 6412,
+        "duplicate_conflicts": 0,
+        "filings": 6944,
+        "output_sha256": "bdd7fb9da4ff34e7c36e34220483868bfa2b30d76f3304cfd738f75f3b156a9a",
+        "quarter": "2021q4",
+        "rows": 296077,
+        "tag_disagreements": 12998
+      },
+      {
+        "ciks": 5898,
+        "duplicate_conflicts": 0,
+        "filings": 6363,
+        "output_sha256": "1175015ace40e6aef3a8f21aa647505466e2c98d7d08f5fa8beadb9e239cf238",
+        "quarter": "2022q1",
+        "rows": 243776,
+        "tag_disagreements": 11819
+      },
+      {
+        "ciks": 6494,
+        "duplicate_conflicts": 0,
+        "filings": 7339,
+        "output_sha256": "d88e735ca264879c4aa24f3d34ea47265253f49822c0b53f2efb0edfd0fb16cc",
+        "quarter": "2022q2",
+        "rows": 253157,
+        "tag_disagreements": 11398
+      },
+      {
+        "ciks": 6413,
+        "duplicate_conflicts": 0,
+        "filings": 6731,
+        "output_sha256": "31d69b78e03e8acbd595285a67c67e662062df1aaab2509ee2179028ad3d848f",
+        "quarter": "2022q3",
+        "rows": 295196,
+        "tag_disagreements": 13271
+      },
+      {
+        "ciks": 6406,
+        "duplicate_conflicts": 0,
+        "filings": 6781,
+        "output_sha256": "6163144c72f970dc83459b0390a28f17313e3d34ea732a8d7a9b9383a1b21a17",
+        "quarter": "2022q4",
+        "rows": 308907,
+        "tag_disagreements": 13574
+      },
+      {
+        "ciks": 5648,
+        "duplicate_conflicts": 0,
+        "filings": 5905,
+        "output_sha256": "adc907f3d99dbbe1016b9c3f4715993c3c37041b4187b0c3cdda475a51f5b1c7",
+        "quarter": "2023q1",
+        "rows": 237716,
+        "tag_disagreements": 12024
+      },
+      {
+        "ciks": 6143,
+        "duplicate_conflicts": 0,
+        "filings": 6927,
+        "output_sha256": "07f00e543aa12bf276fd32b170672fd8e777f1941bfa2a2aa0e7bd9103065f3a",
+        "quarter": "2023q2",
+        "rows": 246850,
+        "tag_disagreements": 11520
+      },
+      {
+        "ciks": 5963,
+        "duplicate_conflicts": 0,
+        "filings": 6292,
+        "output_sha256": "de37033de5aadbc2860a42f00cef93c8534c0522d262672f6d8d2fb4ce04c769",
+        "quarter": "2023q3",
+        "rows": 281071,
+        "tag_disagreements": 13110
+      },
+      {
+        "ciks": 5928,
+        "duplicate_conflicts": 0,
+        "filings": 6274,
+        "output_sha256": "37fc3ac000708aac71474922f2e2834382911355497a3d5c01f638b7dd0282c1",
+        "quarter": "2023q4",
+        "rows": 290070,
+        "tag_disagreements": 13119
+      },
+      {
+        "ciks": 4922,
+        "duplicate_conflicts": 0,
+        "filings": 5166,
+        "output_sha256": "fe1dbf4f8aa2dd9d1d3a3c4a2ef9db04adf354c334ae3ea00b7d22f2303d03c9",
+        "quarter": "2024q1",
+        "rows": 211705,
+        "tag_disagreements": 10920
+      },
+      {
+        "ciks": 5628,
+        "duplicate_conflicts": 0,
+        "filings": 6627,
+        "output_sha256": "95f916a3adc5180a8d0473bf07409c1035055fdf35f021f88a354ff59e9b7370",
+        "quarter": "2024q2",
+        "rows": 238527,
+        "tag_disagreements": 11315
+      },
+      {
+        "ciks": 5579,
+        "duplicate_conflicts": 3,
+        "filings": 5969,
+        "output_sha256": "4be91d753d9b5ff4784525a2c341384ad46cb9df9ea7b3e5a03f804179543973",
+        "quarter": "2024q3",
+        "rows": 266496,
+        "tag_disagreements": 12804
+      },
+      {
+        "ciks": 5563,
+        "duplicate_conflicts": 0,
+        "filings": 5901,
+        "output_sha256": "ba1d0071d4dae7e3700022c6cd041c9a5cc6bb063a6865e913a2d21d90b30180",
+        "quarter": "2024q4",
+        "rows": 273905,
+        "tag_disagreements": 12969
+      },
+      {
+        "ciks": 5068,
+        "duplicate_conflicts": 0,
+        "filings": 5297,
+        "output_sha256": "ffd84afa43f81a811159d4056df560dcc2d30ab93bcdf560a2badb87c0f89485",
+        "quarter": "2025q1",
+        "rows": 213229,
+        "tag_disagreements": 11117
+      },
+      {
+        "ciks": 3482,
+        "duplicate_conflicts": 0,
+        "filings": 3543,
+        "output_sha256": "6006956605d4beed2b3dd66bda008123cd0666f88006f99e73552621b1ae6e82",
+        "quarter": "2025q2",
+        "rows": 129584,
+        "tag_disagreements": 7301
+      }
+    ],
+    "registry_ciks": 14429,
+    "registry_filings": 371229,
+    "tag_map_version": "sec-core-facts-v3"
+  },
+  "coverage": {
+    "accepted_max": "2025-05-09 21:09:00",
+    "accepted_min": "2011-01-03 15:28:00",
+    "by_fact": {
+      "accounts_receivable": {
+        "ciks": 7719,
+        "context": "instant",
+        "fallback_rate": 0.0,
+        "fallback_tags": [],
+        "filing_period_facts": 350786,
+        "primary_tag": "AccountsReceivableNetCurrent",
+        "rows": 350786,
+        "tag_disagreement_rate": 0.0,
+        "tags_used": {
+          "AccountsReceivableNetCurrent": 350786
+        },
+        "unit": "USD"
+      },
+      "assets": {
+        "ciks": 14278,
+        "context": "instant",
+        "fallback_rate": 0.0,
+        "fallback_tags": [],
+        "filing_period_facts": 755836,
+        "primary_tag": "Assets",
+        "rows": 755836,
+        "tag_disagreement_rate": 0.0,
+        "tags_used": {
+          "Assets": 755836
+        },
+        "unit": "USD"
+      },
+      "capital_expenditure": {
+        "ciks": 10213,
+        "context": "duration",
+        "fallback_rate": 0.12501640890055743,
+        "fallback_tags": [
+          "PaymentsToAcquireProductiveAssets"
+        ],
+        "filing_period_facts": 540865,
+        "primary_tag": "PaymentsToAcquirePropertyPlantAndEquipment",
+        "rows": 543696,
+        "tag_disagreement_rate": 0.0051417636563652665,
+        "tags_used": {
+          "PaymentsToAcquireProductiveAssets": 70448,
+          "PaymentsToAcquirePropertyPlantAndEquipment": 473248
+        },
+        "unit": "USD"
+      },
+      "cash": {
+        "ciks": 13687,
+        "context": "instant",
+        "fallback_rate": 0.16800456030371883,
+        "fallback_tags": [
+          "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents"
+        ],
+        "filing_period_facts": 1238514,
+        "primary_tag": "CashAndCashEquivalentsAtCarryingValue",
+        "rows": 1432708,
+        "tag_disagreement_rate": 0.08834377326376609,
+        "tags_used": {
+          "CashAndCashEquivalentsAtCarryingValue": 1030439,
+          "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents": 402269
+        },
+        "unit": "USD"
+      },
+      "cost_of_revenue": {
+        "ciks": 7323,
+        "context": "duration",
+        "fallback_rate": 0.6315513480124584,
+        "fallback_tags": [
+          "CostOfGoodsAndServicesSold",
+          "CostOfGoodsSold"
+        ],
+        "filing_period_facts": 535863,
+        "primary_tag": "CostOfRevenue",
+        "rows": 566287,
+        "tag_disagreement_rate": 0.05259553281342433,
+        "tags_used": {
+          "CostOfGoodsAndServicesSold": 229149,
+          "CostOfGoodsSold": 139700,
+          "CostOfRevenue": 197438
+        },
+        "unit": "USD"
+      },
+      "current_assets": {
+        "ciks": 11660,
+        "context": "instant",
+        "fallback_rate": 0.0,
+        "fallback_tags": [],
+        "filing_period_facts": 575964,
+        "primary_tag": "AssetsCurrent",
+        "rows": 575964,
+        "tag_disagreement_rate": 0.0,
+        "tags_used": {
+          "AssetsCurrent": 575964
+        },
+        "unit": "USD"
+      },
+      "current_liabilities": {
+        "ciks": 11627,
+        "context": "instant",
+        "fallback_rate": 0.0,
+        "fallback_tags": [],
+        "filing_period_facts": 576036,
+        "primary_tag": "LiabilitiesCurrent",
+        "rows": 576036,
+        "tag_disagreement_rate": 0.0,
+        "tags_used": {
+          "LiabilitiesCurrent": 576036
+        },
+        "unit": "USD"
+      },
+      "depreciation_amortization": {
+        "ciks": 8767,
+        "context": "duration",
+        "fallback_rate": 0.36489439839851373,
+        "fallback_tags": [
+          "DepreciationAndAmortization"
+        ],
+        "filing_period_facts": 555484,
+        "primary_tag": "DepreciationDepletionAndAmortization",
+        "rows": 603488,
+        "tag_disagreement_rate": 0.03982652965701983,
+        "tags_used": {
+          "DepreciationAndAmortization": 250697,
+          "DepreciationDepletionAndAmortization": 352791
+        },
+        "unit": "USD"
+      },
+      "equity": {
+        "ciks": 13800,
+        "context": "instant",
+        "fallback_rate": 0.17077683303630908,
+        "fallback_tags": [
+          "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"
+        ],
+        "filing_period_facts": 1293946,
+        "primary_tag": "StockholdersEquity",
+        "rows": 1477480,
+        "tag_disagreement_rate": 0.11559910537224892,
+        "tags_used": {
+          "StockholdersEquity": 1072970,
+          "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest": 404510
+        },
+        "unit": "USD"
+      },
+      "gross_profit": {
+        "ciks": 5994,
+        "context": "duration",
+        "fallback_rate": 0.0,
+        "fallback_tags": [],
+        "filing_period_facts": 499778,
+        "primary_tag": "GrossProfit",
+        "rows": 499778,
+        "tag_disagreement_rate": 0.0,
+        "tags_used": {
+          "GrossProfit": 499778
+        },
+        "unit": "USD"
+      },
+      "inventory": {
+        "ciks": 5966,
+        "context": "instant",
+        "fallback_rate": 0.0,
+        "fallback_tags": [],
+        "filing_period_facts": 292557,
+        "primary_tag": "InventoryNet",
+        "rows": 292557,
+        "tag_disagreement_rate": 0.0,
+        "tags_used": {
+          "InventoryNet": 292557
+        },
+        "unit": "USD"
+      },
+      "liabilities": {
+        "ciks": 12541,
+        "context": "instant",
+        "fallback_rate": 0.0,
+        "fallback_tags": [],
+        "filing_period_facts": 591474,
+        "primary_tag": "Liabilities",
+        "rows": 591474,
+        "tag_disagreement_rate": 0.0,
+        "tags_used": {
+          "Liabilities": 591474
+        },
+        "unit": "USD"
+      },
+      "long_term_debt": {
+        "ciks": 5544,
+        "context": "instant",
+        "fallback_rate": 0.1889549134325076,
+        "fallback_tags": [
+          "LongTermDebt"
+        ],
+        "filing_period_facts": 218269,
+        "primary_tag": "LongTermDebtNoncurrent",
+        "rows": 218933,
+        "tag_disagreement_rate": 0.0025473154685273676,
+        "tags_used": {
+          "LongTermDebt": 41907,
+          "LongTermDebtNoncurrent": 177026
+        },
+        "unit": "USD"
+      },
+      "net_income": {
+        "ciks": 14301,
+        "context": "duration",
+        "fallback_rate": 0.08753234255538,
+        "fallback_tags": [
+          "ProfitLoss"
+        ],
+        "filing_period_facts": 1508848,
+        "primary_tag": "NetIncomeLoss",
+        "rows": 1889401,
+        "tag_disagreement_rate": 0.16676365014898784,
+        "tags_used": {
+          "NetIncomeLoss": 1376776,
+          "ProfitLoss": 512625
+        },
+        "unit": "USD"
+      },
+      "operating_cash_flow": {
+        "ciks": 14235,
+        "context": "duration",
+        "fallback_rate": 0.14935759564246107,
+        "fallback_tags": [
+          "NetCashProvidedByUsedInOperatingActivitiesContinuingOperations"
+        ],
+        "filing_period_facts": 793659,
+        "primary_tag": "NetCashProvidedByUsedInOperatingActivities",
+        "rows": 819924,
+        "tag_disagreement_rate": 0.02643326668002253,
+        "tags_used": {
+          "NetCashProvidedByUsedInOperatingActivities": 675120,
+          "NetCashProvidedByUsedInOperatingActivitiesContinuingOperations": 144804
+        },
+        "unit": "USD"
+      },
+      "operating_income": {
+        "ciks": 11409,
+        "context": "duration",
+        "fallback_rate": 0.0,
+        "fallback_tags": [],
+        "filing_period_facts": 976693,
+        "primary_tag": "OperatingIncomeLoss",
+        "rows": 976694,
+        "tag_disagreement_rate": 0.0,
+        "tags_used": {
+          "OperatingIncomeLoss": 976694
+        },
+        "unit": "USD"
+      },
+      "revenue": {
+        "ciks": 10822,
+        "context": "duration",
+        "fallback_rate": 0.7743753675293071,
+        "fallback_tags": [
+          "Revenues",
+          "SalesRevenueNet",
+          "RevenueFromContractWithCustomerIncludingAssessedTax"
+        ],
+        "filing_period_facts": 971011,
+        "primary_tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+        "rows": 1004171,
+        "tag_disagreement_rate": 0.02862480445638618,
+        "tags_used": {
+          "RevenueFromContractWithCustomerExcludingAssessedTax": 219084,
+          "RevenueFromContractWithCustomerIncludingAssessedTax": 50778,
+          "Revenues": 514296,
+          "SalesRevenueNet": 220013
+        },
+        "unit": "USD"
+      },
+      "shares_outstanding": {
+        "ciks": 11539,
+        "context": "instant",
+        "fallback_rate": 0.99897359941794,
+        "fallback_tags": [
+          "CommonStockSharesOutstanding"
+        ],
+        "filing_period_facts": 538776,
+        "primary_tag": "EntityCommonStockSharesOutstanding",
+        "rows": 538820,
+        "tag_disagreement_rate": 2.4128765943546113e-05,
+        "tags_used": {
+          "CommonStockSharesOutstanding": 538267,
+          "EntityCommonStockSharesOutstanding": 553
+        },
+        "unit": "shares"
+      },
+      "short_term_debt": {
+        "ciks": 5426,
+        "context": "instant",
+        "fallback_rate": 0.8385620613934062,
+        "fallback_tags": [
+          "ShortTermBorrowings",
+          "LongTermDebtCurrent"
+        ],
+        "filing_period_facts": 195363,
+        "primary_tag": "DebtCurrent",
+        "rows": 209325,
+        "tag_disagreement_rate": 0.07041251414034387,
+        "tags_used": {
+          "DebtCurrent": 31539,
+          "LongTermDebtCurrent": 122512,
+          "ShortTermBorrowings": 55274
+        },
+        "unit": "USD"
+      },
+      "weighted_shares_basic": {
+        "ciks": 9829,
+        "context": "duration",
+        "fallback_rate": 0.0,
+        "fallback_tags": [],
+        "filing_period_facts": 650848,
+        "primary_tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+        "rows": 650848,
+        "tag_disagreement_rate": 0.0,
+        "tags_used": {
+          "WeightedAverageNumberOfSharesOutstandingBasic": 650848
+        },
+        "unit": "shares"
+      }
+    },
+    "ciks": 14408,
+    "duplicate_conflict_rows": 7,
+    "filings": 369971,
+    "forms": {
+      "10-K": 3844325,
+      "10-K/A": 191117,
+      "10-KT": 13876,
+      "10-KT/A": 1376,
+      "10-Q": 10138501,
+      "10-Q/A": 382372,
+      "10-QT": 2442,
+      "10-QT/A": 197
+    },
+    "rows": 14574206,
+    "rows_by_year": {
+      "2011": 659222,
+      "2012": 1129706,
+      "2013": 1132011,
+      "2014": 1117715,
+      "2015": 1068369,
+      "2016": 981639,
+      "2017": 966299,
+      "2018": 967898,
+      "2019": 1013079,
+      "2020": 990967,
+      "2021": 1057134,
+      "2022": 1101046,
+      "2023": 1055717,
+      "2024": 990591,
+      "2025": 342813
+    },
+    "status": "BUILT",
+    "tag_disagreement_rows": 626802,
+    "tag_map_version": "sec-core-facts-v3",
+    "unit_values": {
+      "USD": 13384538,
+      "shares": 1189668
+    }
+  }
+}
