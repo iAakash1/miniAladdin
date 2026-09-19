@@ -1,0 +1,209 @@
+{
+  "baseline_reproduction": {
+    "compared": [
+      {
+        "match": true,
+        "metric": "periods",
+        "recorded_exp006": 403,
+        "reproduced": 403
+      },
+      {
+        "match": true,
+        "metric": "mean_turnover",
+        "recorded_exp006": 0.399773636501747,
+        "reproduced": 0.399773636501747
+      },
+      {
+        "match": true,
+        "metric": "annualised_turnover",
+        "recorded_exp006": 20.14859127968805,
+        "reproduced": 20.14859127968805
+      },
+      {
+        "match": true,
+        "metric": "gross_sharpe",
+        "recorded_exp006": 0.38444407774245604,
+        "reproduced": 0.38444407774245604
+      },
+      {
+        "match": true,
+        "metric": "net_sharpe",
+        "recorded_exp006": -0.102177804608853,
+        "reproduced": -0.102177804608853
+      },
+      {
+        "match": true,
+        "metric": "cost_share_of_gross",
+        "recorded_exp006": 1.2660669268857214,
+        "reproduced": 1.2660669268857214
+      },
+      {
+        "match": true,
+        "metric": "net_cagr",
+        "recorded_exp006": -0.022145460362358538,
+        "reproduced": -0.022145460362358538
+      },
+      {
+        "match": true,
+        "metric": "total_cost_return",
+        "recorded_exp006": 0.5209584009256704,
+        "reproduced": 0.5209584009256704
+      }
+    ],
+    "passed": true
+  },
+  "breakeven": {
+    "breakeven_definition": "half-spread at which mean(gross) - mean(round_trip_turnover)*(commission+h)/1e4 - mean(impact) = 0; impact held at its 10bp-run value",
+    "breakeven_half_spread_bp": 6.602276117872282,
+    "cost_components_share": {
+      "commission": 0.06185091754886236,
+      "impact": 0.31963990696251415,
+      "spread": 0.6185091754886236
+    },
+    "gross_bp_per_unit_one_way_turnover": 25.540370025674616,
+    "gross_bp_per_unit_round_trip_turnover": 12.770185012837308,
+    "mean_cost_per_period_bp": 12.927007467138223,
+    "mean_gross_return_per_period_bp": 10.210366602764159,
+    "mean_round_trip_turnover_per_period": 0.799547273003494
+  },
+  "cost_sweep_baseline": {
+    "1.0": {
+      "annualised_turnover": 20.14859127968805,
+      "cost_share_of_gross": 0.5613003169303687,
+      "gross_sharpe": 0.38444407774245604,
+      "net_cagr": 0.013988425374025892,
+      "net_max_drawdown": -0.1856647962736011,
+      "net_sharpe": 0.16856568924859403,
+      "total_cost_return": 0.23096260500730303
+    },
+    "10.0": {
+      "annualised_turnover": 20.14859127968805,
+      "cost_share_of_gross": 1.2660669268857214,
+      "gross_sharpe": 0.38444407774245604,
+      "net_cagr": -0.022145460362358538,
+      "net_max_drawdown": -0.28831922134036336,
+      "net_sharpe": -0.102177804608853,
+      "total_cost_return": 0.5209584009256704
+    },
+    "20.0": {
+      "annualised_turnover": 20.14859127968805,
+      "cost_share_of_gross": 2.0491409379472243,
+      "gross_sharpe": 0.38444407774245604,
+      "net_cagr": -0.06081639319562904,
+      "net_max_drawdown": -0.4524843536431904,
+      "net_sharpe": -0.40262237062819634,
+      "total_cost_return": 0.8431759519460785
+    },
+    "3.0": {
+      "annualised_turnover": 20.14859127968805,
+      "cost_share_of_gross": 0.7179151191426693,
+      "gross_sharpe": 0.38444407774245604,
+      "net_cagr": 0.005847378973162343,
+      "net_max_drawdown": -0.20855960546266716,
+      "net_sharpe": 0.1083757401857275,
+      "total_cost_return": 0.29540611521138466
+    },
+    "5.0": {
+      "annualised_turnover": 20.14859127968805,
+      "cost_share_of_gross": 0.8745299213549699,
+      "gross_sharpe": 0.38444407774245604,
+      "net_cagr": -0.002229661524416837,
+      "net_max_drawdown": -0.23221429979985575,
+      "net_sharpe": 0.048199350974766304,
+      "total_cost_return": 0.3598496254154663
+    }
+  },
+  "decomposition": {
+    "exit_distance_from_entry_cutoff": {
+      "definition": "share of EXIT turnover from names still ranked in the traded cross-section whose current percentile is within k points of the quintile cutoff they crossed",
+      "weighted_share_within_5_percentile_points": 0.1967653533338678,
+      "within_10": 0.33552303801331507,
+      "within_20": 0.5337625397621164,
+      "within_30": 0.6723096292410699
+    },
+    "mean_one_way_turnover": 0.39952431718956244,
+    "names_replaced_per_rebalance": {
+      "both_legs_fraction": 0.3974740628080062,
+      "long_leg_fraction": 0.40991652847137633,
+      "retention_rate": 0.6025259371919938,
+      "short_leg_fraction": 0.38503159714463603
+    },
+    "per_date_one_way_turnover": {
+      "max": 0.7900000000000004,
+      "median": 0.39000000000000007,
+      "p10": 0.29000000000000004,
+      "p90": 0.51
+    },
+    "periods": 402,
+    "rank_stability": {
+      "mean_abs_percentile_move": 0.15710758516143203,
+      "mean_spearman_between_consecutive_rebalances": 0.6819123122194701,
+      "min_spearman": -0.26153846153846155,
+      "sd_percentile_move": 0.2299331966824287,
+      "share_moving_less_than_10_points": 0.50636200809616,
+      "share_moving_more_than_30_points": 0.16706871382869684,
+      "share_of_names_moving_less_than_5_points": 0.32982016585739576
+    },
+    "share_of_turnover": {
+      "check_sums_to_one": 0.9999999999999998,
+      "entries": {
+        "from_adjacent_band": 0.24461616636472328,
+        "from_deep": 0.06011106859291732,
+        "from_mid": 0.10888173522005865,
+        "from_opposite": 0.0431819085067977,
+        "new_to_cross_section": 0.03841702925262141
+      },
+      "exits": {
+        "adjacent_band": 0.24463603134619502,
+        "deep_drift": 0.060721003336401846,
+        "full_reversal": 0.043571034701352304,
+        "mid_drift": 0.10939564785409964,
+        "missing_observation": 0.0002185561822809387,
+        "no_price_row": 0.004673625516418062,
+        "universe_exit": 0.033180513429133786
+      },
+      "reweighting_of_retained": 0.008395679696999876
+    }
+  },
+  "engine_turnover": {
+    "annualised_turnover": 20.14859127968805,
+    "annualised_turnover_round_trip": 40.2971825593761,
+    "mean_names": 99.10918114143921,
+    "mean_turnover": 0.399773636501747,
+    "mean_turnover_round_trip": 0.799547273003494
+  },
+  "experiment_id": "EXP-009A",
+  "gross_total_return_arithmetic_sum": 0.41147777409139563,
+  "gross_total_return_compounded": 0.40777656681355046,
+  "independent_turnover": {
+    "annualised_one_way_turnover": 20.148591279688056,
+    "annualised_round_trip_turnover": 40.29718255937611,
+    "dates_with_different_book_than_qcut": 0,
+    "first_period_included": true,
+    "mean_one_way_turnover": 0.39977363650174713,
+    "note": "the first period establishes the book from cash (one-way turnover 0.5) and is included, as in the engine's mean",
+    "periods": 403,
+    "round_trip_turns_per_month": 3.3580985466146758
+  },
+  "independent_vs_engine_note": "exact integer rank arithmetic vs pd.qcut; they differ only on knife-edge ranks where the floating-point cutoff moves a name (dates counted in independent_turnover)",
+  "independent_vs_engine_relative_difference": 2.220446049250313e-16,
+  "input": {
+    "file": "experiments/EXP-006/predictions_fwd_rank_21.parquet",
+    "file_sha256": "d7616f54c3f65f74558c9d186640c9fab123acff99cd95525e43dabc13eea747",
+    "first_date": "2017-05-05",
+    "last_date": "2025-05-09",
+    "model": "gradient_boosting",
+    "model_rows_sha256": "9d78f8fae7e94fd82e47731d2157259b19209402e9520d29d5b88c45980a6910",
+    "rows": 100246,
+    "symbols": 754
+  },
+  "panel_integrity": {
+    "dates_checked": 404,
+    "label_rank_agreement_mean_spearman": 1.0,
+    "label_rank_agreement_min_spearman": 0.9999999999999998,
+    "passed": true,
+    "prediction_rows_without_return": 0
+  },
+  "phase": "turnover forensics on the frozen baseline",
+  "reads_forward_returns_for_decomposition": false
+}

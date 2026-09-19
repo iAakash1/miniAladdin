@@ -91,7 +91,25 @@ class BacktestConfig:
     #: the one chosen after the fact.
     execution_lag_periods: int = 1
 
+    #: How a cross-section of scores becomes weights. `None` is the baseline
+    #: quantile construction below, byte-for-byte what every experiment before
+    #: EXP-009A used. A rule from `src.quant.backtest.rules` changes only which
+    #: names are held; prediction, returns, cost model and turnover accounting
+    #: are this module's, so results under any rule are comparable to the
+    #: baseline.
+    weight_rule: Optional[Any] = None
+
+    #: Keep the per-rebalance weight vector on the result (membership history).
+    #: Off by default: it is only needed by studies that analyse holdings.
+    record_weights: bool = False
+
     def as_dict(self) -> dict[str, Any]:
+        payload = self._base_dict()
+        if self.weight_rule is not None:
+            payload["weight_rule"] = self.weight_rule.describe()
+        return payload
+
+    def _base_dict(self) -> dict[str, Any]:
         return {
             "quantiles": self.quantiles,
             "long_short": self.long_short,
@@ -116,6 +134,9 @@ class BacktestResult:
     metrics: dict[str, Any]
     config: dict[str, Any]
     warnings: list[str] = field(default_factory=list)
+    #: Long-format (date, symbol, weight) history; populated only when
+    #: `BacktestConfig.record_weights` is set.
+    weights: Optional[pd.DataFrame] = None
 
     @property
     def net_returns(self) -> pd.Series:
@@ -180,6 +201,10 @@ def run_backtest(
     rows: list[dict[str, Any]] = []
     previous_weights = pd.Series(dtype=float)
     thin_dates = 0
+    weight_rows: list[tuple[Any, Any, float]] = []
+    rule = config.weight_rule
+    if rule is not None:
+        rule.reset()
 
     for day, group in frame.groupby(date_column, sort=True):
         usable = group.dropna(subset=[prediction_column, forward_column])
@@ -187,12 +212,18 @@ def run_backtest(
             thin_dates += 1
             continue
 
-        weights = _quantile_weights(
-            usable.set_index(symbol_column)[prediction_column],
-            quantiles=config.quantiles,
-            long_short=config.long_short,
-            max_weight=config.max_weight,
-        )
+        scores = usable.set_index(symbol_column)[prediction_column]
+        if rule is None:
+            weights = _quantile_weights(
+                scores,
+                quantiles=config.quantiles,
+                long_short=config.long_short,
+                max_weight=config.max_weight,
+            )
+        else:
+            if not config.long_short:
+                raise ValueError("portfolio rules are defined for the long/short book only")
+            weights = rule.weights(scores, previous_weights, max_weight=config.max_weight)
         if weights is None:
             thin_dates += 1
             continue
@@ -234,6 +265,8 @@ def run_backtest(
             }
         )
         previous_weights = weights
+        if config.record_weights:
+            weight_rows.extend((day, name, float(w)) for name, w in weights.items())
 
     if not rows:
         raise ValueError(
@@ -253,7 +286,11 @@ def run_backtest(
         len(periods), _fmt(metrics.get("net_cagr")), _fmt(metrics.get("net_sharpe")),
     )
     return BacktestResult(
-        periods=periods, metrics=metrics, config=config.as_dict(), warnings=warnings
+        periods=periods, metrics=metrics, config=config.as_dict(), warnings=warnings,
+        weights=(
+            pd.DataFrame(weight_rows, columns=["date", "symbol", "weight"])
+            if config.record_weights else None
+        ),
     )
 
 
