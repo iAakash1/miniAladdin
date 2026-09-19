@@ -1,0 +1,225 @@
+{
+  "analyst_feature_coverage_by_year": {
+    "2014": {
+      "analyst_eps_coverage_chg_13w_xs": 0.0,
+      "analyst_eps_coverage_xs": 0.0,
+      "analyst_eps_dispersion_xs": 0.0,
+      "analyst_eps_rev_13w_xs": 0.0,
+      "analyst_eps_rev_4w_xs": 0.0,
+      "analyst_eps_rev_acceleration_xs": 0.0,
+      "analyst_sales_rev_13w_xs": 0.0,
+      "analyst_sales_rev_4w_xs": 0.0
+    },
+    "2015": {
+      "analyst_eps_coverage_chg_13w_xs": 0.0,
+      "analyst_eps_coverage_xs": 0.0,
+      "analyst_eps_dispersion_xs": 0.0,
+      "analyst_eps_rev_13w_xs": 0.0,
+      "analyst_eps_rev_4w_xs": 0.0,
+      "analyst_eps_rev_acceleration_xs": 0.0,
+      "analyst_sales_rev_13w_xs": 0.0,
+      "analyst_sales_rev_4w_xs": 0.0
+    },
+    "2016": {
+      "analyst_eps_coverage_chg_13w_xs": 0.0,
+      "analyst_eps_coverage_xs": 0.0,
+      "analyst_eps_dispersion_xs": 0.0,
+      "analyst_eps_rev_13w_xs": 0.0,
+      "analyst_eps_rev_4w_xs": 0.0,
+      "analyst_eps_rev_acceleration_xs": 0.0,
+      "analyst_sales_rev_13w_xs": 0.0,
+      "analyst_sales_rev_4w_xs": 0.0
+    },
+    "2017": {
+      "analyst_eps_coverage_chg_13w_xs": 0.0,
+      "analyst_eps_coverage_xs": 0.166,
+      "analyst_eps_dispersion_xs": 0.1651,
+      "analyst_eps_rev_13w_xs": 0.0,
+      "analyst_eps_rev_4w_xs": 0.0665,
+      "analyst_eps_rev_acceleration_xs": 0.0155,
+      "analyst_sales_rev_13w_xs": 0.0,
+      "analyst_sales_rev_4w_xs": 0.0655
+    },
+    "2018": {
+      "analyst_eps_coverage_chg_13w_xs": 0.6844,
+      "analyst_eps_coverage_xs": 0.9749,
+      "analyst_eps_dispersion_xs": 0.9695,
+      "analyst_eps_rev_13w_xs": 0.5604,
+      "analyst_eps_rev_4w_xs": 0.7625,
+      "analyst_eps_rev_acceleration_xs": 0.6042,
+      "analyst_sales_rev_13w_xs": 0.5548,
+      "analyst_sales_rev_4w_xs": 0.7564
+    },
+    "2019": {
+      "analyst_eps_coverage_chg_13w_xs": 0.9021,
+      "analyst_eps_coverage_xs": 0.9851,
+      "analyst_eps_dispersion_xs": 0.976,
+      "analyst_eps_rev_13w_xs": 0.668,
+      "analyst_eps_rev_4w_xs": 0.869,
+      "analyst_eps_rev_acceleration_xs": 0.7624,
+      "analyst_sales_rev_13w_xs": 0.6627,
+      "analyst_sales_rev_4w_xs": 0.8731
+    },
+    "2020": {
+      "analyst_eps_coverage_chg_13w_xs": 0.9685,
+      "analyst_eps_coverage_xs": 0.9837,
+      "analyst_eps_dispersion_xs": 0.9702,
+      "analyst_eps_rev_13w_xs": 0.7242,
+      "analyst_eps_rev_4w_xs": 0.9108,
+      "analyst_eps_rev_acceleration_xs": 0.8245,
+      "analyst_sales_rev_13w_xs": 0.7253,
+      "analyst_sales_rev_4w_xs": 0.913
+    },
+    "2021": {
+      "analyst_eps_coverage_chg_13w_xs": 0.9084,
+      "analyst_eps_coverage_xs": 0.9655,
+      "analyst_eps_dispersion_xs": 0.9487,
+      "analyst_eps_rev_13w_xs": 0.6921,
+      "analyst_eps_rev_4w_xs": 0.8562,
+      "analyst_eps_rev_acceleration_xs": 0.753,
+      "analyst_sales_rev_13w_xs": 0.7052,
+      "analyst_sales_rev_4w_xs": 0.8777
+    },
+    "2022": {
+      "analyst_eps_coverage_chg_13w_xs": 0.9534,
+      "analyst_eps_coverage_xs": 0.9761,
+      "analyst_eps_dispersion_xs": 0.9668,
+      "analyst_eps_rev_13w_xs": 0.7184,
+      "analyst_eps_rev_4w_xs": 0.88,
+      "analyst_eps_rev_acceleration_xs": 0.7975,
+      "analyst_sales_rev_13w_xs": 0.7302,
+      "analyst_sales_rev_4w_xs": 0.9036
+    },
+    "2023": {
+      "analyst_eps_coverage_chg_13w_xs": 0.9663,
+      "analyst_eps_coverage_xs": 0.9936,
+      "analyst_eps_dispersion_xs": 0.9902,
+      "analyst_eps_rev_13w_xs": 0.7142,
+      "analyst_eps_rev_4w_xs": 0.8909,
+      "analyst_eps_rev_acceleration_xs": 0.8021,
+      "analyst_sales_rev_13w_xs": 0.714,
+      "analyst_sales_rev_4w_xs": 0.8921
+    },
+    "2024": {
+      "analyst_eps_coverage_chg_13w_xs": 0.9397,
+      "analyst_eps_coverage_xs": 0.9893,
+      "analyst_eps_dispersion_xs": 0.9836,
+      "analyst_eps_rev_13w_xs": 0.6902,
+      "analyst_eps_rev_4w_xs": 0.8782,
+      "analyst_eps_rev_acceleration_xs": 0.7566,
+      "analyst_sales_rev_13w_xs": 0.6911,
+      "analyst_sales_rev_4w_xs": 0.8785
+    },
+    "2025": {
+      "analyst_eps_coverage_chg_13w_xs": 0.9802,
+      "analyst_eps_coverage_xs": 0.9869,
+      "analyst_eps_dispersion_xs": 0.9778,
+      "analyst_eps_rev_13w_xs": 0.4278,
+      "analyst_eps_rev_4w_xs": 0.8149,
+      "analyst_eps_rev_acceleration_xs": 0.6287,
+      "analyst_sales_rev_13w_xs": 0.4265,
+      "analyst_sales_rev_4w_xs": 0.8102
+    }
+  },
+  "analyst_pit_gates": {
+    "attached_rows_checked_for_strictness": 34090,
+    "cutoff": "2022-12-31",
+    "future_perturbation": true,
+    "passed": true,
+    "rows_checked_early": 352161,
+    "strict_attach": true,
+    "truncation_invariance": true
+  },
+  "base_model": {
+    "kind": "gradient_boosting",
+    "name": "sklearn_gb",
+    "params": [],
+    "reference_cell": null,
+    "source": "EXP-009B carry-forward rule: no ranker met all criteria, so BASE is the sklearn GradientBoostingRegressor (EXP-006's frozen point-regression baseline), repository defaults, seed 0"
+  },
+  "base_reproduction": {
+    "max_abs_prediction_difference": 0.0,
+    "passed": true,
+    "rows_joined": 100246
+  },
+  "compute": {
+    "cpu_count": 12,
+    "platform": "macOS-27.0-arm64-arm-64bit",
+    "python": "3.12.11",
+    "trials_counted_for_deflation": 164,
+    "wall_seconds": 666.1,
+    "workers": 2
+  },
+  "dataset": {
+    "content_hash": "7deb8601ae7a34074cade997397f1947",
+    "dataset_version": "ds-491d761b9f2a6fc4",
+    "end": "2025-05-09",
+    "rows": 452524
+  },
+  "decision": {
+    "analyst_block_importance_share": 0.165933,
+    "classification": "ANALYST_NO_RELIABLE_VALUE",
+    "promotion": "NOT ASSESSED"
+  },
+  "definition_fingerprint": "c447097e732bed6d902ea6ae7852ccaf64bb52082254ca33dacc587004cd384e",
+  "definition_sha256": "a825dfcae262cbb4fe32eee29a076cc51272d5beddcb6aaaa186cd1c1c38dac6",
+  "dependency_versions": {
+    "numpy": "2.2.6",
+    "pandas": "2.3.3",
+    "pyarrow": "18.1.0",
+    "python": "3.12.11",
+    "scipy": "1.18.1",
+    "sklearn": "1.7.2"
+  },
+  "evaluable_folds": [
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "experiment_id": "EXP-009C",
+  "git_commit": "42b1e29192f05d7b6be4aaef5f2d4d805b5b298e",
+  "git_dirty": false,
+  "holdout": {
+    "end": "2026-08-28",
+    "firewall": {
+      "breaches_prevented": 0,
+      "checks": 1,
+      "contract_armed": false,
+      "contract_path": "docs/HOLDOUT_CONTRACT.md",
+      "contract_readable": true,
+      "contract_state": "NOT_ARMED",
+      "engaged": true,
+      "override_reason": null,
+      "window": {
+        "active": true,
+        "end": "2026-08-28",
+        "start": "2025-08-26"
+      }
+    },
+    "start": "2025-08-26",
+    "touched": false
+  },
+  "output_sha256": {
+    "definition.json": "6b4cb3d648b8ec2f2eb71508a2840adad60d57a71895d34defa7ba1ab89c80df",
+    "metrics.json": "796e296cbbba7f1349cf06935033c6735f375a0d9afa1961121a9116cde20347",
+    "periods_ARM_A_immediate.parquet": "90609130b30f5930dc9d20bab7d3b7cbbd36d4606efbdd47ded80383553ed6ad",
+    "periods_ARM_C_topk_dropout_10.parquet": "08d5ac914905847a6bf018fba870a692ec237e3a6734beb858a99959daef1a5d",
+    "periods_BASE_A_immediate.parquet": "b6537714cbca97a55f85cd4d30e10b185957df7e46a5ee230f0bc809135f83e4",
+    "periods_BASE_C_topk_dropout_10.parquet": "604fb495db8027a316dd1371c267da2bd689b36104377cd6f6e42606ebaa308f",
+    "predictions_ARM.parquet": "23efcd258c4fa9f87bbb56e788475098f3cdf2cb1dcc4ec1b6b70682f10071bd",
+    "predictions_BASE.parquet": "6fe9a6aba7cc57c10e1d6e8963cd34a37066e7c97941b1ff0edc28c105952f59"
+  },
+  "parent": "EXP-006",
+  "preregistration_commit": "47d6f67fa65f2da46fa9c5dcd29a53dae0a663de",
+  "preregistration_document": "docs/EXP_009C_ANALYST_PREREGISTRATION.md",
+  "preregistration_sha256": "4624ca6857bab29592ffa63f01b7aa82f446461b7e5315a70e1543c57afd7204",
+  "pushed_to_origin_main": true,
+  "seed": 0,
+  "status": "EXPERIMENTAL - PROMOTION NOT ASSESSED",
+  "validity_checks": {
+    "dataset_id": true,
+    "returns_panel_hash": true
+  }
+}

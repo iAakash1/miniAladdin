@@ -1,0 +1,145 @@
+{
+  "arms": [
+    {
+      "features": "27 C_base features",
+      "id": "BASE"
+    },
+    {
+      "features": "27 C_base features + 8 analyst_*_xs",
+      "id": "ARM"
+    }
+  ],
+  "base_model": {
+    "kind": "gradient_boosting",
+    "name": "sklearn_gb",
+    "params": [],
+    "reference_cell": null,
+    "source": "EXP-009B carry-forward rule: no ranker met all criteria, so BASE is the sklearn GradientBoostingRegressor (EXP-006's frozen point-regression baseline), repository defaults, seed 0"
+  },
+  "criteria": {
+    "E1_economics": "under top-k dropout: annualised turnover <= 1.10 x BASE's AND the paired block-bootstrap (block 8, 10000 draws, seed 0) one-sided lower bound of the net-Sharpe difference at 10 bp, level 0.95, is > 0",
+    "O1_ordering": "over evaluable folds, paired per-date Rank-IC difference (ARM - BASE) > 0 with one-sided HAC lower bound (Bartlett, 4 lags, z = 1.645) > 0",
+    "O2_consistency": "IC difference > 0 in at least 4 of the 5 evaluable folds AND worst evaluable-fold IC >= BASE's - 0.005",
+    "classification": {
+      "ANALYST_NO_RELIABLE_VALUE": "otherwise",
+      "ANALYST_ORDERING_ONLY": "O1 and O2 and not E1",
+      "ANALYST_VALUE_CONFIRMED": "O1 and O2 and E1",
+      "BLOCKED_DATA_QUALITY": "any analyst_pit gate fails"
+    },
+    "descriptive_only": [
+      "non-evaluable folds",
+      "feature-importance share of the analyst block",
+      "stability metrics",
+      "immediate-replacement portfolio",
+      "deflated Sharpe",
+      "factor alpha"
+    ],
+    "promotion": "NOT ASSESSED"
+  },
+  "data": {
+    "analyst_construction": "src/quant/features/analyst_pit.py: calendar lookbacks, strictly-earlier attach, dispersion NULL below two analysts, 45-day staleness, then within-universe rank on each date",
+    "analyst_features_raw": [
+      "analyst_eps_rev_4w",
+      "analyst_eps_rev_13w",
+      "analyst_sales_rev_4w",
+      "analyst_sales_rev_13w",
+      "analyst_eps_dispersion",
+      "analyst_eps_coverage",
+      "analyst_eps_coverage_chg_13w",
+      "analyst_eps_rev_acceleration"
+    ],
+    "analyst_features_used": [
+      "analyst_eps_rev_4w_xs",
+      "analyst_eps_rev_13w_xs",
+      "analyst_sales_rev_4w_xs",
+      "analyst_sales_rev_13w_xs",
+      "analyst_eps_dispersion_xs",
+      "analyst_eps_coverage_xs",
+      "analyst_eps_coverage_chg_13w_xs",
+      "analyst_eps_rev_acceleration_xs"
+    ],
+    "base_features": [
+      "acceleration_xs",
+      "dist_52w_high_xs",
+      "ma_gap_xs",
+      "mom_21_xs",
+      "mom_252_21_xs",
+      "mom_63_xs",
+      "reversal_5_xs",
+      "trend_strength_63_xs",
+      "downside_vol_63_xs",
+      "max_drawdown_252_xs",
+      "vol_21_xs",
+      "vol_63_xs",
+      "vol_ratio_xs",
+      "amihud_21_xs",
+      "log_dollar_volume_21_xs",
+      "volume_shock_xs",
+      "market_drawdown",
+      "market_mom_21",
+      "market_mom_252",
+      "market_vol_21",
+      "market_vol_63",
+      "market_vol_percentile",
+      "rates_change_63",
+      "rates_curvature",
+      "rates_level",
+      "rates_short",
+      "rates_slope"
+    ],
+    "dataset_id": "ds-491d761b9f2a6fc4",
+    "folds": "the 8 folds recorded in experiments/EXP-006/metrics.json",
+    "returns_panel_sha256": "d1f10c93dc747b949429aaba390e87a8412b1a79cdf8f672c15c68cacba0919e",
+    "target": "fwd_rank_21"
+  },
+  "evaluable_folds": {
+    "expected": [
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "others": "reported descriptively; never enter a criterion",
+    "rule": "training window contains at least 24 months of analyst history (analyst tables start 2017-10-26)"
+  },
+  "experiment_id": "EXP-009C",
+  "gates": {
+    "analyst_pit": [
+      "truncation invariance at 2022-12-31: features from vintages <= cutoff equal the full-table features on every row <= cutoff",
+      "future-perturbation at 2022-12-31: rewriting all later vintages changes no earlier feature",
+      "strict attach: no feature is drawn from a vintage dated on or after its row"
+    ],
+    "base_reproduces": "the BASE arm equals the reference predictions of the model it uses to 1e-9",
+    "dataset_and_panel": "rebuilt dataset id and returns-panel hash equal the preregistered values",
+    "on_failure": "BLOCKED_DATA_QUALITY: nothing is trained, no metric is computed"
+  },
+  "holdout": {
+    "read": false
+  },
+  "inference": {
+    "bootstrap_block": 8,
+    "bootstrap_draws": 10000,
+    "hac_lags": 4,
+    "one_sided_alpha": 0.05,
+    "seed": 0
+  },
+  "parent_experiment": "EXP-006",
+  "portfolio": {
+    "frozen_turnover_mechanism": {
+      "drop_fraction": 0.1,
+      "quantiles": 5,
+      "rule": "topk_dropout"
+    },
+    "immediate_replacement": {
+      "rule": "baseline"
+    }
+  },
+  "status": "EXPERIMENTAL - PROMOTION NOT ASSESSED",
+  "trials": {
+    "cumulative_evaluations": 164,
+    "declared": 1,
+    "note": "one added-feature arm; BASE is a control",
+    "prior_cumulative_evaluations": 163
+  }
+}

@@ -10,7 +10,7 @@ The final synthesis is in `docs/EXP_009_FINAL_ANALYSIS.md` when complete.
 |---|---|---|
 | **EXP-009A** turnover-aware portfolio construction | **Executed 2026-09-19** | `docs/EXP_009A_TURNOVER_PREREGISTRATION.md`, commit `155e976` (pushed before execution) |
 | **EXP-009B** ranking objective vs matched point-regression control | **Executed 2026-09-19** | `docs/EXP_009B_LTR_PREREGISTRATION.md`, commit `d633b1b` (pushed before execution) |
-| EXP-009C analyst-revision arm | Pending (PIT audit first) | — |
+| **EXP-009C** analyst-revision arm (BASE vs BASE + 8 PIT analyst features) | **Executed 2026-09-19** | `docs/EXP_009C_ANALYST_PREREGISTRATION.md`, commit `47d6f67` (pushed before execution) |
 
 ---
 
@@ -380,3 +380,126 @@ tried here. The differences between R0 and R1 (a bagging seed) are as large as m
 * Promotion: **NOT ASSESSED**. EXP-006 remains not promotable; production models remain zero.
 * Artifacts: `experiments/EXP-009B/` — definition, manifest, metrics, four prediction files, eight period files,
   `posthoc_descriptive.json` (exploratory; `src/quant/study/exp009b_report.py`).
+
+---
+
+## EXP-009C — point-in-time analyst-revision features added to the base set
+
+### What was run, and the integrity record
+
+Two sklearn `GradientBoostingRegressor` fits (repository defaults, seed 0) that differ **only in the feature set**:
+`BASE` = the 27 frozen `C_base` features; `ARM` = those plus eight point-in-time analyst features (EPS revision at
+4 and 13 weeks, sales revision at 4 and 13 weeks, dispersion, analyst count, 13-week count change, revision
+acceleration — each ranked within the universe on its date). Fixed by the preregistration, not chosen from results:
+no other window, no search. Folds 3-7 are the only evaluable ones (24 months of analyst history in training).
+
+| Check | Result |
+|---|---|
+| Preregistration lineage | ✓ commit `47d6f67` (ancestor of `origin/main` when the run started); run at commit `42b1e29`, **`git_dirty: false`** |
+| Definition fingerprint / dataset / panel hash | ✓ `c447097e…384e` / `ds-491d761b9f2a6fc4` / `d1f10c93…919e` |
+| **Analyst PIT gates on the real data** | ✓ truncation invariance; rewriting every vintage after 2022-12-31 changed no earlier feature (352,161 rows); strict attach (34,090 attached rows, none from a vintage on or after its row) |
+| BASE reproduces the frozen EXP-006 predictions | ✓ max absolute difference **0.0** over 100,246 rows |
+| Evaluable folds | ✓ `[3, 4, 5, 6, 7]` — exactly the preregistered set |
+| **Holdout** | ✓ **`touched: false`**, firewall engaged, 0 breaches, 0 overrides |
+| Artifacts | ✓ 8 output files hashed, 0 mismatches; seed 0; Python 3.12.11, numpy 2.2.6, pandas 2.3.3, scipy 1.18.1, scikit-learn 1.7.2 |
+| Compute | CPU only, 12 cores, **666 s** wall, two sequential single-process fits, no GPU |
+
+### Classification
+
+**`ANALYST_NO_RELIABLE_VALUE`.** O1 ✗ (ΔIC −0.0099; lower bound −0.0315); O2 ✗ (2 of 5 evaluable folds improved); E1 ✗
+(net-Sharpe lower bound −1.15). *Adding the analyst features did not improve the ordering on the folds that can speak,
+and lowered mean Rank IC there; the change in net performance under the frozen turnover mechanism was negative and not
+distinguishable from zero.* The PIT gates passed, so this is a result and not `BLOCKED_DATA_QUALITY`.
+
+### Ordering (evaluable folds 3-7: 252 dates)
+
+| | Mean Rank IC | HAC t | ICIR | Positive dates | Positive folds (of 5) | Worst evaluable fold | NDCG@50 long / short | Realised-rank spread |
+|---|---:|---:|---:|---:|---:|---:|---|---:|
+| BASE | **0.03349** | 2.41 | 0.223 | 59.5% | 4 | −0.0091 | .522 / .528 | 0.052 |
+| ARM | 0.02362 | 1.67 | 0.171 | 54.0% | 3 | −0.0145 | .517 / .525 | 0.041 |
+
+All 8 folds (fold IC, folds 0…7): BASE −.019 .037 .046 .024 −.009 .041 .035 .076; ARM −.019 .051 .075 −.015 −.004 .076
+.031 .029. Pooled over all eight folds: BASE 0.02895 (t 2.66), ARM 0.02798 (t 2.65) — **not** a preregistered
+comparison (folds 0-2 lack analyst history in training) and shown only so the reader can see the full picture.
+
+Paired (evaluable folds, HAC Bartlett 4 lags, z = 1.645; block bootstrap): ΔIC **−0.0099**, SE 0.0132, t −0.75, one-sided lower
+bound −0.0315, bootstrap 95% CI [−0.040, +0.017], 75% of resamples ≤ 0. Folds better: 2 of 5 (folds 4 and 5).
+
+Stability: rank correlation between consecutive dates BASE 0.702 → ARM 0.807; top-quintile retention 0.610 → 0.713;
+bottom 0.669 → 0.721. **The analyst block made the ordering more persistent and no more informative** —
+the persistence a slow-moving feature (an analyst count, a quarterly revision) gives, with no gain in IC.
+
+### Portfolio economics (10 bp primary; net Sharpe at 1 / 3 / 5 / 10 / 20 bp) — full sample, all eight folds
+
+**Under the frozen top-k-dropout policy** (the criterion E1 is evaluated on folds 3-7 only, per the preregistration):
+
+| | Gross Sharpe | Net Sharpe 1 / 3 / 5 / **10** / 20 bp | Annual turnover | Cost share | Max DD | Break-even |
+|---|---:|---|---:|---:|---:|---:|
+| BASE | 0.541 | +.477 / +.458 / +.438 / **+.390** / +.293 | 6.90 | 28% | −14.3% | 50.2 bp |
+| ARM | 0.469 | +.413 / +.395 / +.378 / **+.335** / +.250 | 6.78 | 29% | −23.5% | 49.1 bp |
+
+**Under immediate replacement:**
+
+| | Gross Sharpe | Net Sharpe 1 / 3 / 5 / **10** / 20 bp | Annual turnover | Cost share | Max DD | Break-even |
+|---|---:|---|---:|---:|---:|---:|
+| BASE | 0.384 | +.169 / +.108 / +.048 / **−.102** / −.403 | 20.15 | 127% | −28.8% | 6.6 bp |
+| ARM | 0.420 | +.140 / +.061 / −.018 / **−.215** / −.608 | 17.32 | 151% | −27.3% | 4.5 bp |
+
+Paired net-Sharpe difference under top-k dropout, evaluable folds, ARM − BASE: **−0.23** (95% CI −1.31 … +0.33;
+one-sided lower bound −1.15); turnover ratio 0.98. ARM's drawdown under the frozen policy is markedly worse
+(−23.5% vs −14.3%).
+
+### Fold economics — no consistent direction
+
+Net return, bp per period, under top-k dropout (gross in parentheses). Folds 0-2 are **not evaluable** (shown
+for completeness, in a lighter role).
+
+| Fold | Period | Evaluable | BASE | ARM | IC BASE → ARM |
+|---:|---|:-:|---|---|---|
+| 0 | 2017-05 → 2018-05 | no | −6.1 (−1.1) | −6.3 (−1.4) | −.019 → −.019 |
+| 1 | 2018-05 → 2019-05 | no | +15.0 (+19.2) | +21.2 (+25.4) | +.037 → +.051 |
+| 2 | 2019-05 → 2020-05 | no | −0.5 (+4.9) | +21.3 (+26.6) | +.046 → +.075 |
+| 3 | 2020-05 → 2021-05 | yes | +24.7 (+28.6) | −8.8 (−4.9) | +.024 → −.015 |
+| 4 | 2021-05 → 2022-04 | yes | −26.0 (−22.2) | −23.5 (−19.8) | −.009 → −.004 |
+| 5 | 2022-05 → 2023-05 | yes | +61.4 (+65.3) | **+89.5 (+93.5)** | +.041 → +.076 |
+| 6 | 2023-05 → 2024-05 | yes | −0.7 (+3.3) | −4.4 (−0.6) | +.035 → +.031 |
+| 7 | 2024-05 → 2025-05 | yes | +19.3 (+23.2) | −6.4 (−2.6) | +.076 → +.029 |
+
+The analyst features move individual folds a great deal in **both** directions (fold 5 +28 bp; fold 3 −34 bp; fold 7
+−26 bp) and net to nothing. The larger fold-2 improvement is in a non-evaluable fold and is **not** counted — including
+it after seeing it would be exactly the selection the preregistration forbids.
+
+### Importance, coverage and missingness
+
+* Analyst block share of split-gain importance: **16.6%** (within the recorded 10-25%). The most-used analyst feature is
+  `analyst_eps_coverage_xs` (the analyst count, rank 3 overall at 0.060) — a proxy for firm size and attention, not for
+  revision information. **Importance is not value**: trees spend splits on any available feature.
+* Coverage on in-universe rows (non-null): 4-week EPS revision 76% (2018), 86-91% (2019-24); 13-week 56-72% and lower
+  in early-year months (fiscal rollover) — the calendar-dependent missingness the preregistration flagged; dispersion
+  95-99%. Nothing before 2017-10. Per-year and per-feature coverage is in the manifest.
+
+### Calibration of the recorded predictions
+
+| Prediction | Outcome |
+|---|---|
+| 1. PIT gates pass | ✓ |
+| 2. `ANALYST_NO_RELIABLE_VALUE` (≈ 75%) | ✓ |
+| 3. ΔIC within ±0.005 and inside the HAC noise | **Half right:** inside the noise ✓ (t −0.75); magnitude −0.0099 is larger than ±0.005 ✗ |
+| 4. Analyst block takes 10-25% of importance; not indicative of value | ✓ 16.6% |
+
+### What this does and does not establish
+
+**Established:** with these eight point-in-time features, on five folds with two-plus years of analyst history, the
+gradient-boosted ordering did not improve (ΔIC −0.010, not significant) and the frozen book's net economics did not
+improve. The data passed every PIT check; a null result on clean data is not a data-quality failure.
+
+**Not established:** that analyst information is useless. This vendor's data, weekly cadence, FY1 only, no analyst
+identity, no recommendation or target-price data, 3.5 fewer years of history than the price features, and one
+model were tested. The literature's positive result (analyst stickiness) is **NOT REPRODUCIBLE** with this data and
+was not attempted. Folds 0-2 cannot speak.
+
+### Decision
+
+* `ANALYST_NO_RELIABLE_VALUE` — **the analyst features are not carried forward**; they stay unregistered in the global
+  feature registry. A negative result is recorded as one.
+* Promotion: **NOT ASSESSED**. Artifacts: `experiments/EXP-009C/`.

@@ -1,0 +1,1149 @@
+{
+  "cells": {
+    "ARM": {
+      "explanation_top": [
+        [
+          "rates_change_63",
+          0.071341
+        ],
+        [
+          "market_mom_252",
+          0.062126
+        ],
+        [
+          "analyst_eps_coverage_xs",
+          0.059721
+        ],
+        [
+          "market_drawdown",
+          0.059019
+        ],
+        [
+          "log_dollar_volume_21_xs",
+          0.058477
+        ],
+        [
+          "vol_63_xs",
+          0.056605
+        ],
+        [
+          "downside_vol_63_xs",
+          0.046829
+        ],
+        [
+          "rates_level",
+          0.044195
+        ],
+        [
+          "rates_curvature",
+          0.040733
+        ],
+        [
+          "mom_252_21_xs",
+          0.040627
+        ]
+      ],
+      "fold_ic": {
+        "0": -0.01936811494149694,
+        "1": 0.050710037461271486,
+        "2": 0.07459535581164298,
+        "3": -0.014482490910350946,
+        "4": -0.004422824218726026,
+        "5": 0.07624969353015298,
+        "6": 0.03050214085817132,
+        "7": 0.02909360843293595
+      },
+      "ordering_evaluable": {
+        "ndcg_long": 0.5173481600690506,
+        "ndcg_short": 0.5245028955083793,
+        "realised_rank_spread": 0.04079451447461065
+      },
+      "portfolios": {
+        "A_immediate": {
+          "breakeven": {
+            "breakeven_definition": "half-spread at which mean(gross) - mean(round_trip_turnover)*(commission+h)/1e4 - mean(impact) = 0; impact held at its 10bp-run value",
+            "breakeven_half_spread_bp": 4.549841059372066,
+            "cost_components_share": {
+              "commission": 0.06208107993647527,
+              "impact": 0.31710812069877226,
+              "spread": 0.6208107993647526
+            },
+            "gross_bp_per_unit_one_way_turnover": 21.31561653944862,
+            "gross_bp_per_unit_round_trip_turnover": 10.65780826972431,
+            "mean_cost_per_period_bp": 11.072887641644284,
+            "mean_gross_return_per_period_bp": 7.3263566988763404,
+            "mean_round_trip_turnover_per_period": 0.687416822808528
+          },
+          "cost_sweep": [
+            {
+              "annualised_turnover": 17.322903934774907,
+              "cost_share_of_gross": 0.6669257909756062,
+              "gross_sharpe": 0.41991614813106254,
+              "half_spread_bps": 1.0,
+              "net_cagr": 0.00848504795187921,
+              "net_max_drawdown": -0.18729220085698817,
+              "net_sharpe": 0.13978604761477303
+            },
+            {
+              "annualised_turnover": 17.322903934774907,
+              "cost_share_of_gross": 0.8545816344083889,
+              "gross_sharpe": 0.41991614813106254,
+              "half_spread_bps": 3.0,
+              "net_cagr": 0.0015206334120621001,
+              "net_max_drawdown": -0.20157104800001568,
+              "net_sharpe": 0.06102422176044431
+            },
+            {
+              "annualised_turnover": 17.322903934774907,
+              "cost_share_of_gross": 1.0422374778411712,
+              "gross_sharpe": 0.41991614813106254,
+              "half_spread_bps": 5.0,
+              "net_cagr": -0.0053967081457254595,
+              "net_max_drawdown": -0.2156010969958554,
+              "net_sharpe": -0.01772298927629762
+            },
+            {
+              "annualised_turnover": 17.322903934774907,
+              "cost_share_of_gross": 1.5113770864231273,
+              "gross_sharpe": 0.41991614813106254,
+              "half_spread_bps": 10.0,
+              "net_cagr": -0.022486155582593925,
+              "net_max_drawdown": -0.27346088647656364,
+              "net_sharpe": -0.21451224382995365
+            },
+            {
+              "annualised_turnover": 17.322903934774907,
+              "cost_share_of_gross": 2.44965630358704,
+              "gross_sharpe": 0.41991614813106254,
+              "half_spread_bps": 20.0,
+              "net_cagr": -0.05580741067865902,
+              "net_max_drawdown": -0.3950962432272689,
+              "net_sharpe": -0.607633498007651
+            }
+          ],
+          "fold_metrics": [
+            {
+              "first_date": "2017-05-12",
+              "fold": 0,
+              "last_date": "2018-05-03",
+              "mean_cost_bp": 13.638462173888621,
+              "mean_gross_return_bp": 3.315943265796075,
+              "mean_net_return_bp": -10.322518908092546,
+              "mean_one_way_turnover": 0.39950204081632656,
+              "net_sharpe": -1.2344837760446694,
+              "periods": 50
+            },
+            {
+              "first_date": "2018-05-10",
+              "fold": 1,
+              "last_date": "2019-05-02",
+              "mean_cost_bp": 13.52339629916258,
+              "mean_gross_return_bp": 27.044104761072408,
+              "mean_net_return_bp": 13.520708461909821,
+              "mean_one_way_turnover": 0.40364897959183677,
+              "net_sharpe": 0.7547663444472322,
+              "periods": 50
+            },
+            {
+              "first_date": "2019-05-09",
+              "fold": 2,
+              "last_date": "2020-05-05",
+              "mean_cost_bp": 12.835805121026965,
+              "mean_gross_return_bp": 16.36466282446241,
+              "mean_net_return_bp": 3.528857703435448,
+              "mean_one_way_turnover": 0.3932332933173269,
+              "net_sharpe": 0.16881349908375393,
+              "periods": 51
+            },
+            {
+              "first_date": "2020-05-12",
+              "fold": 3,
+              "last_date": "2021-05-03",
+              "mean_cost_bp": 9.110503589033264,
+              "mean_gross_return_bp": -5.114244572916026,
+              "mean_net_return_bp": -14.224748161949284,
+              "mean_one_way_turnover": 0.29,
+              "net_sharpe": -0.783348231584098,
+              "periods": 50
+            },
+            {
+              "first_date": "2021-05-10",
+              "fold": 4,
+              "last_date": "2022-04-28",
+              "mean_cost_bp": 11.232557262286551,
+              "mean_gross_return_bp": -2.028550300427385,
+              "mean_net_return_bp": -13.261107562713933,
+              "mean_one_way_turnover": 0.3588408163265305,
+              "net_sharpe": -0.8008357556406438,
+              "periods": 50
+            },
+            {
+              "first_date": "2022-05-05",
+              "fold": 5,
+              "last_date": "2023-05-04",
+              "mean_cost_bp": 11.382858244392986,
+              "mean_gross_return_bp": 11.405513749398066,
+              "mean_net_return_bp": 0.02265550500507738,
+              "mean_one_way_turnover": 0.36000000000000004,
+              "net_sharpe": 0.001052158733416236,
+              "periods": 51
+            },
+            {
+              "first_date": "2023-05-11",
+              "fold": 6,
+              "last_date": "2024-05-02",
+              "mean_cost_bp": 8.25194332200943,
+              "mean_gross_return_bp": 1.4427560895067886,
+              "mean_net_return_bp": -6.80918723250264,
+              "mean_one_way_turnover": 0.2624,
+              "net_sharpe": -0.42906340903979007,
+              "periods": 50
+            },
+            {
+              "first_date": "2024-05-09",
+              "fold": 7,
+              "last_date": "2025-05-09",
+              "mean_cost_bp": 8.615269718180542,
+              "mean_gross_return_bp": 5.945927102523286,
+              "mean_net_return_bp": -2.6693426156572566,
+              "mean_one_way_turnover": 0.2819607843137255,
+              "net_sharpe": -0.14971704620254875,
+              "periods": 51
+            }
+          ],
+          "metrics_at_10bp": {
+            "annualised_turnover": 17.322903934774907,
+            "annualised_turnover_round_trip": 34.64580786954981,
+            "cost_rate_bps_of_traded_notional": 16.10796721035224,
+            "cost_share_of_gross": 1.5113770864231273,
+            "end": "2025-05-09",
+            "gross_best_period": 0.07359909360290423,
+            "gross_cagr": 0.03362412742794518,
+            "gross_calmar": 0.21781722143927248,
+            "gross_downside_deviation": 0.08250888250737101,
+            "gross_hit_rate": 0.5235732009925558,
+            "gross_max_drawdown": -0.15436854444183423,
+            "gross_profit_factor": 1.1848519993505109,
+            "gross_sharpe": 0.41991614813106254,
+            "gross_sortino": 0.44752560742824304,
+            "gross_total_return": 0.2952521749647165,
+            "gross_volatility": 0.0879338361400951,
+            "gross_worst_period": -0.057552273416572645,
+            "mean_cost_bps_per_period": 11.072887641644284,
+            "mean_gross_exposure": 0.9990074441687344,
+            "mean_names": 99.10918114143921,
+            "mean_turnover": 0.343708411404264,
+            "mean_turnover_round_trip": 0.687416822808528,
+            "net_best_period": 0.07206707055880297,
+            "net_cagr": -0.022486155582593925,
+            "net_calmar": -0.08222805049862607,
+            "net_downside_deviation": 0.08285406572923303,
+            "net_hit_rate": 0.45905707196029777,
+            "net_max_drawdown": -0.27346088647656364,
+            "net_profit_factor": 0.917241293584419,
+            "net_sharpe": -0.21451224382995365,
+            "net_sortino": -0.22790089762472826,
+            "net_total_return": -0.1662755640789052,
+            "net_volatility": 0.08802535283962082,
+            "net_worst_period": -0.058686356748701776,
+            "periods": 403,
+            "periods_per_year": 50.4,
+            "start": "2017-05-12",
+            "total_cost_return": 0.44623737195826463,
+            "turnover_convention": "one-way (sum|delta_w| / 2)"
+          }
+        },
+        "C_topk_dropout_10": {
+          "breakeven": {
+            "breakeven_definition": "half-spread at which mean(gross) - mean(round_trip_turnover)*(commission+h)/1e4 - mean(impact) = 0; impact held at its 10bp-run value",
+            "breakeven_half_spread_bp": 49.115096051586384,
+            "cost_components_share": {
+              "commission": 0.06405046693404814,
+              "impact": 0.29544486372547046,
+              "spread": 0.6405046693404814
+            },
+            "gross_bp_per_unit_one_way_turnover": 109.45556946161376,
+            "gross_bp_per_unit_round_trip_turnover": 54.72778473080688,
+            "mean_cost_per_period_bp": 4.199178374019099,
+            "mean_gross_return_per_period_bp": 14.719548619799344,
+            "mean_round_trip_turnover_per_period": 0.2689593355952803
+          },
+          "cost_sweep": [
+            {
+              "annualised_turnover": 6.777775257001063,
+              "cost_share_of_gross": 0.12082872916831476,
+              "gross_sharpe": 0.4694640110928283,
+              "half_spread_bps": 1.0,
+              "net_cagr": 0.05589809411328828,
+              "net_max_drawdown": -0.21962623833782446,
+              "net_sharpe": 0.4126467862304811
+            },
+            {
+              "annualised_turnover": 6.777775257001063,
+              "cost_share_of_gross": 0.1573732377728112,
+              "gross_sharpe": 0.4694640110928283,
+              "half_spread_bps": 3.0,
+              "net_cagr": 0.053041181991042796,
+              "net_max_drawdown": -0.22306194950906644,
+              "net_sharpe": 0.39548374055415364
+            },
+            {
+              "annualised_turnover": 6.777775257001063,
+              "cost_share_of_gross": 0.1939177463773076,
+              "gross_sharpe": 0.4694640110928283,
+              "half_spread_bps": 5.0,
+              "net_cagr": 0.050191805744969065,
+              "net_max_drawdown": -0.22648272563621874,
+              "net_sharpe": 0.3783210157109338
+            },
+            {
+              "annualised_turnover": 6.777775257001063,
+              "cost_share_of_gross": 0.28527901788854865,
+              "gross_sharpe": 0.4694640110928283,
+              "half_spread_bps": 10.0,
+              "net_cagr": 0.04310120752562496,
+              "net_max_drawdown": -0.23496974508561252,
+              "net_sharpe": 0.3354161392136656
+            },
+            {
+              "annualised_turnover": 6.777775257001063,
+              "cost_share_of_gross": 0.46800156091103084,
+              "gross_sharpe": 0.4694640110928283,
+              "half_spread_bps": 20.0,
+              "net_cagr": 0.02905974172107717,
+              "net_max_drawdown": -0.25166891722370865,
+              "net_sharpe": 0.24961898524569143
+            }
+          ],
+          "fold_metrics": [
+            {
+              "first_date": "2017-05-12",
+              "fold": 0,
+              "last_date": "2018-05-03",
+              "mean_cost_bp": 4.925806533319657,
+              "mean_gross_return_bp": -1.381376351200117,
+              "mean_net_return_bp": -6.307182884519773,
+              "mean_one_way_turnover": 0.1502163265306122,
+              "net_sharpe": -0.7072530736106433,
+              "periods": 50
+            },
+            {
+              "first_date": "2018-05-10",
+              "fold": 1,
+              "last_date": "2019-05-02",
+              "mean_cost_bp": 4.213134311601998,
+              "mean_gross_return_bp": 25.405174872996074,
+              "mean_net_return_bp": 21.192040561394084,
+              "mean_one_way_turnover": 0.1309877551020408,
+              "net_sharpe": 1.2034697253341995,
+              "periods": 50
+            },
+            {
+              "first_date": "2019-05-09",
+              "fold": 2,
+              "last_date": "2020-05-05",
+              "mean_cost_bp": 5.258178830869115,
+              "mean_gross_return_bp": 26.597131925978978,
+              "mean_net_return_bp": 21.338953095109847,
+              "mean_one_way_turnover": 0.16588635454181666,
+              "net_sharpe": 1.0867249455991574,
+              "periods": 51
+            },
+            {
+              "first_date": "2020-05-12",
+              "fold": 3,
+              "last_date": "2021-05-03",
+              "mean_cost_bp": 3.9091983217558064,
+              "mean_gross_return_bp": -4.879230273233126,
+              "mean_net_return_bp": -8.788428594988932,
+              "mean_one_way_turnover": 0.12699999999999997,
+              "net_sharpe": -0.4834152204604078,
+              "periods": 50
+            },
+            {
+              "first_date": "2021-05-10",
+              "fold": 4,
+              "last_date": "2022-04-28",
+              "mean_cost_bp": 3.725488471949398,
+              "mean_gross_return_bp": -19.753123122596836,
+              "mean_net_return_bp": -23.478611594546237,
+              "mean_one_way_turnover": 0.12209795918367346,
+              "net_sharpe": -1.0565292399668715,
+              "periods": 50
+            },
+            {
+              "first_date": "2022-05-05",
+              "fold": 5,
+              "last_date": "2023-05-04",
+              "mean_cost_bp": 3.98265923461314,
+              "mean_gross_return_bp": 93.49149215898719,
+              "mean_net_return_bp": 89.50883292437403,
+              "mean_one_way_turnover": 0.13019607843137254,
+              "net_sharpe": 1.1930657228195336,
+              "periods": 51
+            },
+            {
+              "first_date": "2023-05-11",
+              "fold": 6,
+              "last_date": "2024-05-02",
+              "mean_cost_bp": 3.7336399210476032,
+              "mean_gross_return_bp": -0.6219462118834843,
+              "mean_net_return_bp": -4.355586132931084,
+              "mean_one_way_turnover": 0.121,
+              "net_sharpe": -0.28074452176203707,
+              "periods": 50
+            },
+            {
+              "first_date": "2024-05-09",
+              "fold": 7,
+              "last_date": "2025-05-09",
+              "mean_cost_bp": 3.83574049816429,
+              "mean_gross_return_bp": -2.568954514867932,
+              "mean_net_return_bp": -6.404695013032222,
+              "mean_one_way_turnover": 0.1280392156862745,
+              "net_sharpe": -0.37434470595054,
+              "periods": 51
+            }
+          ],
+          "metrics_at_10bp": {
+            "annualised_turnover": 6.777775257001063,
+            "annualised_turnover_round_trip": 13.555550514002126,
+            "cost_rate_bps_of_traded_notional": 15.612688679220495,
+            "cost_share_of_gross": 0.28527901788854865,
+            "end": "2025-05-09",
+            "gross_best_period": 0.370871809581282,
+            "gross_cagr": 0.06540169646505212,
+            "gross_calmar": 0.3132287405964673,
+            "gross_downside_deviation": 0.08531217381645355,
+            "gross_hit_rate": 0.5136476426799007,
+            "gross_max_drawdown": -0.2087985168299391,
+            "gross_profit_factor": 1.361302541041131,
+            "gross_sharpe": 0.4694640110928283,
+            "gross_sortino": 0.8695889663226571,
+            "gross_total_return": 0.5931978093779136,
+            "gross_volatility": 0.15802388104488718,
+            "gross_worst_period": -0.07386225374089665,
+            "mean_cost_bps_per_period": 4.199178374019099,
+            "mean_gross_exposure": 0.9990074441687344,
+            "mean_names": 99.10918114143921,
+            "mean_turnover": 0.13447966779764015,
+            "mean_turnover_round_trip": 0.2689593355952803,
+            "net_best_period": 0.37054957454677595,
+            "net_cagr": 0.04310120752562496,
+            "net_calmar": 0.1834330096835267,
+            "net_downside_deviation": 0.08579936620054036,
+            "net_hit_rate": 0.49379652605459057,
+            "net_max_drawdown": -0.23496974508561252,
+            "net_profit_factor": 1.2453191489089026,
+            "net_sharpe": 0.3354161392136656,
+            "net_sortino": 0.6179843556746284,
+            "net_total_return": 0.40132497174271453,
+            "net_volatility": 0.1580802467139368,
+            "net_worst_period": -0.07417391040756477,
+            "periods": 403,
+            "periods_per_year": 50.4,
+            "start": "2017-05-12",
+            "total_cost_return": 0.16922688847296968,
+            "turnover_convention": "one-way (sum|delta_w| / 2)"
+          }
+        }
+      },
+      "rank_ic_all_folds": {
+        "hit_rate": 0.5866336633663366,
+        "ic_ir": 0.2151546062812041,
+        "mean_ic": 0.027981289217854644,
+        "median_ic": 0.028706129800884696,
+        "naive_t_stat": 4.324554064874674,
+        "newey_west_lags": 4,
+        "observations": 404,
+        "std_ic": 0.13005201097709004,
+        "t_stat": 2.6459374836350076
+      },
+      "rank_ic_evaluable_folds": {
+        "hit_rate": 0.5396825396825397,
+        "ic_ir": 0.1714275829394373,
+        "mean_ic": 0.02362043526417561,
+        "median_ic": 0.008187394998319972,
+        "naive_t_stat": 2.721328513887901,
+        "newey_west_lags": 4,
+        "observations": 252,
+        "std_ic": 0.1377866668779921,
+        "t_stat": 1.6722775159128853
+      },
+      "stability_evaluable": {
+        "bottom_group_retention": 0.7210927956189734,
+        "dates_compared": 251,
+        "mean_rank_correlation_between_consecutive_dates": 0.8065424533149236,
+        "top_group_retention": 0.7127422893289121
+      }
+    },
+    "BASE": {
+      "explanation_top": [
+        [
+          "market_mom_252",
+          0.093911
+        ],
+        [
+          "rates_change_63",
+          0.075231
+        ],
+        [
+          "market_drawdown",
+          0.067599
+        ],
+        [
+          "vol_63_xs",
+          0.062668
+        ],
+        [
+          "log_dollar_volume_21_xs",
+          0.05619
+        ],
+        [
+          "rates_curvature",
+          0.053506
+        ],
+        [
+          "market_vol_63",
+          0.053454
+        ],
+        [
+          "downside_vol_63_xs",
+          0.047821
+        ],
+        [
+          "market_vol_percentile",
+          0.046169
+        ],
+        [
+          "rates_level",
+          0.045548
+        ]
+      ],
+      "fold_ic": {
+        "0": -0.019235840714560314,
+        "1": 0.03743582541403912,
+        "2": 0.046403923208516946,
+        "3": 0.024208068521765574,
+        "4": -0.00912800774548014,
+        "5": 0.040742496369782624,
+        "6": 0.03468681238771088,
+        "7": 0.07593954100551616
+      },
+      "ordering_evaluable": {
+        "ndcg_long": 0.5217320644549406,
+        "ndcg_short": 0.5274671066224751,
+        "realised_rank_spread": 0.052117401245417944
+      },
+      "portfolios": {
+        "A_immediate": {
+          "breakeven": {
+            "breakeven_definition": "half-spread at which mean(gross) - mean(round_trip_turnover)*(commission+h)/1e4 - mean(impact) = 0; impact held at its 10bp-run value",
+            "breakeven_half_spread_bp": 6.602276117872282,
+            "cost_components_share": {
+              "commission": 0.06185091754886236,
+              "impact": 0.31963990696251415,
+              "spread": 0.6185091754886236
+            },
+            "gross_bp_per_unit_one_way_turnover": 25.540370025674616,
+            "gross_bp_per_unit_round_trip_turnover": 12.770185012837308,
+            "mean_cost_per_period_bp": 12.927007467138223,
+            "mean_gross_return_per_period_bp": 10.210366602764159,
+            "mean_round_trip_turnover_per_period": 0.799547273003494
+          },
+          "cost_sweep": [
+            {
+              "annualised_turnover": 20.14859127968805,
+              "cost_share_of_gross": 0.5613003169303687,
+              "gross_sharpe": 0.38444407774245604,
+              "half_spread_bps": 1.0,
+              "net_cagr": 0.013988425374025892,
+              "net_max_drawdown": -0.1856647962736011,
+              "net_sharpe": 0.16856568924859403
+            },
+            {
+              "annualised_turnover": 20.14859127968805,
+              "cost_share_of_gross": 0.7179151191426693,
+              "gross_sharpe": 0.38444407774245604,
+              "half_spread_bps": 3.0,
+              "net_cagr": 0.005847378973162343,
+              "net_max_drawdown": -0.20855960546266716,
+              "net_sharpe": 0.1083757401857275
+            },
+            {
+              "annualised_turnover": 20.14859127968805,
+              "cost_share_of_gross": 0.8745299213549699,
+              "gross_sharpe": 0.38444407774245604,
+              "half_spread_bps": 5.0,
+              "net_cagr": -0.002229661524416837,
+              "net_max_drawdown": -0.23221429979985575,
+              "net_sharpe": 0.048199350974766304
+            },
+            {
+              "annualised_turnover": 20.14859127968805,
+              "cost_share_of_gross": 1.2660669268857214,
+              "gross_sharpe": 0.38444407774245604,
+              "half_spread_bps": 10.0,
+              "net_cagr": -0.022145460362358538,
+              "net_max_drawdown": -0.28831922134036336,
+              "net_sharpe": -0.102177804608853
+            },
+            {
+              "annualised_turnover": 20.14859127968805,
+              "cost_share_of_gross": 2.0491409379472243,
+              "gross_sharpe": 0.38444407774245604,
+              "half_spread_bps": 20.0,
+              "net_cagr": -0.06081639319562904,
+              "net_max_drawdown": -0.4524843536431904,
+              "net_sharpe": -0.40262237062819634
+            }
+          ],
+          "fold_metrics": [
+            {
+              "first_date": "2017-05-12",
+              "fold": 0,
+              "last_date": "2018-05-03",
+              "mean_cost_bp": 13.591032337040987,
+              "mean_gross_return_bp": 3.506184117463285,
+              "mean_net_return_bp": -10.0848482195777,
+              "mean_one_way_turnover": 0.3981020408163265,
+              "net_sharpe": -1.2055270166902317,
+              "periods": 50
+            },
+            {
+              "first_date": "2018-05-10",
+              "fold": 1,
+              "last_date": "2019-05-02",
+              "mean_cost_bp": 13.150341340805696,
+              "mean_gross_return_bp": 29.80366943768401,
+              "mean_net_return_bp": 16.653328096878322,
+              "mean_one_way_turnover": 0.39274285714285717,
+              "net_sharpe": 0.9715570296889445,
+              "periods": 50
+            },
+            {
+              "first_date": "2019-05-09",
+              "fold": 2,
+              "last_date": "2020-05-05",
+              "mean_cost_bp": 15.826702365666705,
+              "mean_gross_return_bp": 0.964309391340565,
+              "mean_net_return_bp": -14.862392974326138,
+              "mean_one_way_turnover": 0.4754981992797119,
+              "net_sharpe": -0.5140900857837166,
+              "periods": 51
+            },
+            {
+              "first_date": "2020-05-12",
+              "fold": 3,
+              "last_date": "2021-05-03",
+              "mean_cost_bp": 13.585191044633394,
+              "mean_gross_return_bp": 29.45223330067605,
+              "mean_net_return_bp": 15.867042256042657,
+              "mean_one_way_turnover": 0.42579999999999996,
+              "net_sharpe": 0.7133599880274635,
+              "periods": 50
+            },
+            {
+              "first_date": "2021-05-10",
+              "fold": 4,
+              "last_date": "2022-04-28",
+              "mean_cost_bp": 14.248131093270377,
+              "mean_gross_return_bp": -18.408404596788944,
+              "mean_net_return_bp": -32.65653569005933,
+              "mean_one_way_turnover": 0.45132244897959184,
+              "net_sharpe": -1.8446460300069398,
+              "periods": 50
+            },
+            {
+              "first_date": "2022-05-05",
+              "fold": 5,
+              "last_date": "2023-05-04",
+              "mean_cost_bp": 11.666869664547319,
+              "mean_gross_return_bp": 14.3834823780656,
+              "mean_net_return_bp": 2.7166127135182645,
+              "mean_one_way_turnover": 0.36882352941176477,
+              "net_sharpe": 0.048819912981174746,
+              "periods": 51
+            },
+            {
+              "first_date": "2023-05-11",
+              "fold": 6,
+              "last_date": "2024-05-02",
+              "mean_cost_bp": 10.451320866471535,
+              "mean_gross_return_bp": 2.6690582104382314,
+              "mean_net_return_bp": -7.782262656033306,
+              "mean_one_way_turnover": 0.3324000000000001,
+              "net_sharpe": -0.47729379362672986,
+              "periods": 50
+            },
+            {
+              "first_date": "2024-05-09",
+              "fold": 7,
+              "last_date": "2025-05-09",
+              "mean_cost_bp": 10.904137286366467,
+              "mean_gross_return_bp": 19.233398768639418,
+              "mean_net_return_bp": 8.32926148227295,
+              "mean_one_way_turnover": 0.3535294117647059,
+              "net_sharpe": 0.4789718936411423,
+              "periods": 51
+            }
+          ],
+          "metrics_at_10bp": {
+            "annualised_turnover": 20.14859127968805,
+            "annualised_turnover_round_trip": 40.2971825593761,
+            "cost_rate_bps_of_traded_notional": 16.167908894965027,
+            "cost_share_of_gross": 1.2660669268857214,
+            "end": "2025-05-09",
+            "gross_best_period": 0.21717776122625287,
+            "gross_cagr": 0.04370059423499817,
+            "gross_calmar": 0.26441009989773046,
+            "gross_downside_deviation": 0.11778503223303302,
+            "gross_hit_rate": 0.5285359801488834,
+            "gross_max_drawdown": -0.16527581303399852,
+            "gross_profit_factor": 1.2214219219611226,
+            "gross_sharpe": 0.38444407774245604,
+            "gross_sortino": 0.4368997206378421,
+            "gross_total_return": 0.41147777409139563,
+            "gross_volatility": 0.13385626325711078,
+            "gross_worst_period": -0.1304173078744147,
+            "mean_cost_bps_per_period": 12.927007467138223,
+            "mean_gross_exposure": 0.9990074441687344,
+            "mean_names": 99.10918114143921,
+            "mean_turnover": 0.399773636501747,
+            "mean_turnover_round_trip": 0.799547273003494,
+            "net_best_period": 0.21605732250336324,
+            "net_cagr": -0.022145460362358538,
+            "net_calmar": -0.07680882412003891,
+            "net_downside_deviation": 0.11596319077849439,
+            "net_hit_rate": 0.4665012406947891,
+            "net_max_drawdown": -0.28831922134036336,
+            "net_profit_factor": 0.9484623916364455,
+            "net_sharpe": -0.102177804608853,
+            "net_sortino": -0.11807082803196267,
+            "net_total_return": -0.1639492428192254,
+            "net_volatility": 0.13400043198089015,
+            "net_worst_period": -0.1312571680166388,
+            "periods": 403,
+            "periods_per_year": 50.4,
+            "start": "2017-05-12",
+            "total_cost_return": 0.5209584009256704,
+            "turnover_convention": "one-way (sum|delta_w| / 2)"
+          }
+        },
+        "C_topk_dropout_10": {
+          "breakeven": {
+            "breakeven_definition": "half-spread at which mean(gross) - mean(round_trip_turnover)*(commission+h)/1e4 - mean(impact) = 0; impact held at its 10bp-run value",
+            "breakeven_half_spread_bp": 50.23577184527633,
+            "cost_components_share": {
+              "commission": 0.06404962750054341,
+              "impact": 0.29545409749402235,
+              "spread": 0.640496275005434
+            },
+            "gross_bp_per_unit_one_way_turnover": 111.69733028834408,
+            "gross_bp_per_unit_round_trip_turnover": 55.84866514417204,
+            "mean_cost_per_period_bp": 4.272826769826208,
+            "mean_gross_return_per_period_bp": 15.284269668579402,
+            "mean_round_trip_turnover_per_period": 0.2736729629817188
+          },
+          "cost_sweep": [
+            {
+              "annualised_turnover": 6.896558667139313,
+              "cost_share_of_gross": 0.11840736536539717,
+              "gross_sharpe": 0.5411253562610274,
+              "half_spread_bps": 1.0,
+              "net_cagr": 0.059980856558915274,
+              "net_max_drawdown": -0.13195848935252097,
+              "net_sharpe": 0.4769079236998165
+            },
+            {
+              "annualised_turnover": 6.896558667139313,
+              "cost_share_of_gross": 0.15421842718463752,
+              "gross_sharpe": 0.5411253562610274,
+              "half_spread_bps": 3.0,
+              "net_cagr": 0.05706264219449286,
+              "net_max_drawdown": -0.1343775103079039,
+              "net_sharpe": 0.45751571472787883
+            },
+            {
+              "annualised_turnover": 6.896558667139313,
+              "cost_share_of_gross": 0.1900294890038779,
+              "gross_sharpe": 0.5411253562610274,
+              "half_spread_bps": 5.0,
+              "net_cagr": 0.054152257155526184,
+              "net_max_drawdown": -0.1367899283954287,
+              "net_sharpe": 0.4381242420692818
+            },
+            {
+              "annualised_turnover": 6.896558667139313,
+              "cost_share_of_gross": 0.27955714355197886,
+              "gross_sharpe": 0.5411253562610274,
+              "half_spread_bps": 10.0,
+              "net_cagr": 0.046910413643681315,
+              "net_max_drawdown": -0.14279220176667295,
+              "net_sharpe": 0.3896496021153058
+            },
+            {
+              "annualised_turnover": 6.896558667139313,
+              "cost_share_of_gross": 0.4586124526481807,
+              "gross_sharpe": 0.5411253562610274,
+              "half_spread_bps": 20.0,
+              "net_cagr": 0.0325718713421852,
+              "net_max_drawdown": -0.15467437139979356,
+              "net_sharpe": 0.292724277235504
+            }
+          ],
+          "fold_metrics": [
+            {
+              "first_date": "2017-05-12",
+              "fold": 0,
+              "last_date": "2018-05-03",
+              "mean_cost_bp": 4.946234109772202,
+              "mean_gross_return_bp": -1.1112791222476628,
+              "mean_net_return_bp": -6.057513232019865,
+              "mean_one_way_turnover": 0.15082448979591834,
+              "net_sharpe": -0.679948321671071,
+              "periods": 50
+            },
+            {
+              "first_date": "2018-05-10",
+              "fold": 1,
+              "last_date": "2019-05-02",
+              "mean_cost_bp": 4.205093435075478,
+              "mean_gross_return_bp": 19.23045528824535,
+              "mean_net_return_bp": 15.025361853169871,
+              "mean_one_way_turnover": 0.12938367346938776,
+              "net_sharpe": 0.9569576675080557,
+              "periods": 50
+            },
+            {
+              "first_date": "2019-05-09",
+              "fold": 2,
+              "last_date": "2020-05-05",
+              "mean_cost_bp": 5.481159995114859,
+              "mean_gross_return_bp": 4.933244439630452,
+              "mean_net_return_bp": -0.5479155554844036,
+              "mean_one_way_turnover": 0.17335334133653457,
+              "net_sharpe": -0.021482767218693227,
+              "periods": 51
+            },
+            {
+              "first_date": "2020-05-12",
+              "fold": 3,
+              "last_date": "2021-05-03",
+              "mean_cost_bp": 3.8878656252054786,
+              "mean_gross_return_bp": 28.608591746597675,
+              "mean_net_return_bp": 24.720726121392186,
+              "mean_one_way_turnover": 0.12679999999999997,
+              "net_sharpe": 1.3350356855108527,
+              "periods": 50
+            },
+            {
+              "first_date": "2021-05-10",
+              "fold": 4,
+              "last_date": "2022-04-28",
+              "mean_cost_bp": 3.808587748548943,
+              "mean_gross_return_bp": -22.162049216764633,
+              "mean_net_return_bp": -25.970636965313574,
+              "mean_one_way_turnover": 0.12527346938775508,
+              "net_sharpe": -1.3562603324387623,
+              "periods": 50
+            },
+            {
+              "first_date": "2022-05-05",
+              "fold": 5,
+              "last_date": "2023-05-04",
+              "mean_cost_bp": 3.9596368238470365,
+              "mean_gross_return_bp": 65.32425095559061,
+              "mean_net_return_bp": 61.36461413174357,
+              "mean_one_way_turnover": 0.1284313725490196,
+              "net_sharpe": 0.9645256905738675,
+              "periods": 51
+            },
+            {
+              "first_date": "2023-05-11",
+              "fold": 6,
+              "last_date": "2024-05-02",
+              "mean_cost_bp": 3.9150534410153974,
+              "mean_gross_return_bp": 3.2619424797939316,
+              "mean_net_return_bp": -0.6531109612214632,
+              "mean_one_way_turnover": 0.12780000000000002,
+              "net_sharpe": -0.038047431690910426,
+              "periods": 50
+            },
+            {
+              "first_date": "2024-05-09",
+              "fold": 7,
+              "last_date": "2025-05-09",
+              "mean_cost_bp": 3.967192793961374,
+              "mean_gross_return_bp": 23.236183382352795,
+              "mean_net_return_bp": 19.268990588391414,
+              "mean_one_way_turnover": 0.13235294117647056,
+              "net_sharpe": 1.070271589089665,
+              "periods": 51
+            }
+          ],
+          "metrics_at_10bp": {
+            "annualised_turnover": 6.896558667139313,
+            "annualised_turnover_round_trip": 13.793117334278627,
+            "cost_rate_bps_of_traded_notional": 15.612893298895699,
+            "cost_share_of_gross": 0.27955714355197886,
+            "end": "2025-05-09",
+            "gross_best_period": 0.2062235131752012,
+            "gross_cagr": 0.06968908956490627,
+            "gross_calmar": 0.5598832479427236,
+            "gross_downside_deviation": 0.10671032726556032,
+            "gross_hit_rate": 0.5260545905707196,
+            "gross_max_drawdown": -0.12447075318109091,
+            "gross_profit_factor": 1.3402010769553017,
+            "gross_sharpe": 0.5411253562610274,
+            "gross_sortino": 0.721886260717164,
+            "gross_total_return": 0.6159560676437499,
+            "gross_volatility": 0.14235651358477688,
+            "gross_worst_period": -0.12094525945957371,
+            "mean_cost_bps_per_period": 4.272826769826208,
+            "mean_gross_exposure": 0.9990074441687344,
+            "mean_names": 99.10918114143921,
+            "mean_turnover": 0.1368364814908594,
+            "mean_turnover_round_trip": 0.2736729629817188,
+            "net_best_period": 0.20587582272301191,
+            "net_cagr": 0.046910413643681315,
+            "net_calmar": 0.32852223765226646,
+            "net_downside_deviation": 0.10575004527294818,
+            "net_hit_rate": 0.4987593052109181,
+            "net_max_drawdown": -0.14279220176667295,
+            "net_profit_factor": 1.2339694305948081,
+            "net_sharpe": 0.3896496021153058,
+            "net_sortino": 0.5248004581603041,
+            "net_total_return": 0.44277016202466757,
+            "net_volatility": 0.142429690440934,
+            "net_worst_period": -0.12122863488637783,
+            "periods": 403,
+            "periods_per_year": 50.4,
+            "start": "2017-05-12",
+            "total_cost_return": 0.17219491882399618,
+            "turnover_convention": "one-way (sum|delta_w| / 2)"
+          }
+        }
+      },
+      "rank_ic_all_folds": {
+        "hit_rate": 0.6138613861386139,
+        "ic_ir": 0.19869032730012712,
+        "mean_ic": 0.02895171050057871,
+        "median_ic": 0.030552632108382834,
+        "naive_t_stat": 3.9936261529721557,
+        "newey_west_lags": 4,
+        "observations": 404,
+        "std_ic": 0.1457127324414055,
+        "t_stat": 2.657677447974759
+      },
+      "rank_ic_evaluable_folds": {
+        "hit_rate": 0.5952380952380952,
+        "ic_ir": 0.22291084585090087,
+        "mean_ic": 0.03348860144579386,
+        "median_ic": 0.025466194747349236,
+        "naive_t_stat": 3.538599975963227,
+        "newey_west_lags": 4,
+        "observations": 252,
+        "std_ic": 0.15023316302964232,
+        "t_stat": 2.4138107468163277
+      },
+      "stability_evaluable": {
+        "bottom_group_retention": 0.6688688247558365,
+        "dates_compared": 251,
+        "mean_rank_correlation_between_consecutive_dates": 0.7015791904882865,
+        "top_group_retention": 0.6103145329343667
+      }
+    }
+  },
+  "criteria": {
+    "E1_economics": false,
+    "O1_ordering": false,
+    "O2_consistency": false,
+    "O2_evaluable_folds": 5,
+    "O2_folds_improved": 2,
+    "classification": "ANALYST_NO_RELIABLE_VALUE",
+    "promotion": "NOT ASSESSED"
+  },
+  "decision": {
+    "analyst_block_importance_share": 0.165933,
+    "classification": "ANALYST_NO_RELIABLE_VALUE",
+    "promotion": "NOT ASSESSED"
+  },
+  "definition": {
+    "arms": [
+      {
+        "features": "27 C_base features",
+        "id": "BASE"
+      },
+      {
+        "features": "27 C_base features + 8 analyst_*_xs",
+        "id": "ARM"
+      }
+    ],
+    "base_model": {
+      "kind": "gradient_boosting",
+      "name": "sklearn_gb",
+      "params": [],
+      "reference_cell": null,
+      "source": "EXP-009B carry-forward rule: no ranker met all criteria, so BASE is the sklearn GradientBoostingRegressor (EXP-006's frozen point-regression baseline), repository defaults, seed 0"
+    },
+    "criteria": {
+      "E1_economics": "under top-k dropout: annualised turnover <= 1.10 x BASE's AND the paired block-bootstrap (block 8, 10000 draws, seed 0) one-sided lower bound of the net-Sharpe difference at 10 bp, level 0.95, is > 0",
+      "O1_ordering": "over evaluable folds, paired per-date Rank-IC difference (ARM - BASE) > 0 with one-sided HAC lower bound (Bartlett, 4 lags, z = 1.645) > 0",
+      "O2_consistency": "IC difference > 0 in at least 4 of the 5 evaluable folds AND worst evaluable-fold IC >= BASE's - 0.005",
+      "classification": {
+        "ANALYST_NO_RELIABLE_VALUE": "otherwise",
+        "ANALYST_ORDERING_ONLY": "O1 and O2 and not E1",
+        "ANALYST_VALUE_CONFIRMED": "O1 and O2 and E1",
+        "BLOCKED_DATA_QUALITY": "any analyst_pit gate fails"
+      },
+      "descriptive_only": [
+        "non-evaluable folds",
+        "feature-importance share of the analyst block",
+        "stability metrics",
+        "immediate-replacement portfolio",
+        "deflated Sharpe",
+        "factor alpha"
+      ],
+      "promotion": "NOT ASSESSED"
+    },
+    "data": {
+      "analyst_construction": "src/quant/features/analyst_pit.py: calendar lookbacks, strictly-earlier attach, dispersion NULL below two analysts, 45-day staleness, then within-universe rank on each date",
+      "analyst_features_raw": [
+        "analyst_eps_rev_4w",
+        "analyst_eps_rev_13w",
+        "analyst_sales_rev_4w",
+        "analyst_sales_rev_13w",
+        "analyst_eps_dispersion",
+        "analyst_eps_coverage",
+        "analyst_eps_coverage_chg_13w",
+        "analyst_eps_rev_acceleration"
+      ],
+      "analyst_features_used": [
+        "analyst_eps_rev_4w_xs",
+        "analyst_eps_rev_13w_xs",
+        "analyst_sales_rev_4w_xs",
+        "analyst_sales_rev_13w_xs",
+        "analyst_eps_dispersion_xs",
+        "analyst_eps_coverage_xs",
+        "analyst_eps_coverage_chg_13w_xs",
+        "analyst_eps_rev_acceleration_xs"
+      ],
+      "base_features": [
+        "acceleration_xs",
+        "dist_52w_high_xs",
+        "ma_gap_xs",
+        "mom_21_xs",
+        "mom_252_21_xs",
+        "mom_63_xs",
+        "reversal_5_xs",
+        "trend_strength_63_xs",
+        "downside_vol_63_xs",
+        "max_drawdown_252_xs",
+        "vol_21_xs",
+        "vol_63_xs",
+        "vol_ratio_xs",
+        "amihud_21_xs",
+        "log_dollar_volume_21_xs",
+        "volume_shock_xs",
+        "market_drawdown",
+        "market_mom_21",
+        "market_mom_252",
+        "market_vol_21",
+        "market_vol_63",
+        "market_vol_percentile",
+        "rates_change_63",
+        "rates_curvature",
+        "rates_level",
+        "rates_short",
+        "rates_slope"
+      ],
+      "dataset_id": "ds-491d761b9f2a6fc4",
+      "folds": "the 8 folds recorded in experiments/EXP-006/metrics.json",
+      "returns_panel_sha256": "d1f10c93dc747b949429aaba390e87a8412b1a79cdf8f672c15c68cacba0919e",
+      "target": "fwd_rank_21"
+    },
+    "evaluable_folds": {
+      "expected": [
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "others": "reported descriptively; never enter a criterion",
+      "rule": "training window contains at least 24 months of analyst history (analyst tables start 2017-10-26)"
+    },
+    "experiment_id": "EXP-009C",
+    "gates": {
+      "analyst_pit": [
+        "truncation invariance at 2022-12-31: features from vintages <= cutoff equal the full-table features on every row <= cutoff",
+        "future-perturbation at 2022-12-31: rewriting all later vintages changes no earlier feature",
+        "strict attach: no feature is drawn from a vintage dated on or after its row"
+      ],
+      "base_reproduces": "the BASE arm equals the reference predictions of the model it uses to 1e-9",
+      "dataset_and_panel": "rebuilt dataset id and returns-panel hash equal the preregistered values",
+      "on_failure": "BLOCKED_DATA_QUALITY: nothing is trained, no metric is computed"
+    },
+    "holdout": {
+      "read": false
+    },
+    "inference": {
+      "bootstrap_block": 8,
+      "bootstrap_draws": 10000,
+      "hac_lags": 4,
+      "one_sided_alpha": 0.05,
+      "seed": 0
+    },
+    "parent_experiment": "EXP-006",
+    "portfolio": {
+      "frozen_turnover_mechanism": {
+        "drop_fraction": 0.1,
+        "quantiles": 5,
+        "rule": "topk_dropout"
+      },
+      "immediate_replacement": {
+        "rule": "baseline"
+      }
+    },
+    "status": "EXPERIMENTAL - PROMOTION NOT ASSESSED",
+    "trials": {
+      "cumulative_evaluations": 164,
+      "declared": 1,
+      "note": "one added-feature arm; BASE is a control",
+      "prior_cumulative_evaluations": 163
+    }
+  },
+  "economics": {
+    "evaluable_folds_only": true,
+    "net_sharpe_bootstrap": {
+      "block_length": 8,
+      "bootstrap_mean": -0.3481708135409589,
+      "bootstrap_sd": 0.4233121807766234,
+      "ci95_two_sided": [
+        -1.3107332317798166,
+        0.33403055266053333
+      ],
+      "draws": 10000,
+      "one_sided_level": 0.95,
+      "one_sided_lower_bound": -1.1473189543263946,
+      "point_estimate": -0.2308296249818505,
+      "share_of_draws_at_or_below_zero": 0.7933
+    },
+    "net_sharpe_lower_bound": -1.1473189543263946,
+    "turnover_ratio": 0.9827764228695351
+  },
+  "paired_ic": {
+    "bootstrap_ci95": [
+      -0.03995127459066063,
+      0.017054554396669676
+    ],
+    "bootstrap_share_at_or_below_zero": 0.7516,
+    "dates": 252,
+    "hac_se": 0.01315214620876562,
+    "hac_t": -0.7503084306530392,
+    "mean_difference": -0.009868166181618251,
+    "one_sided_lower_bound": -0.03150152157530243,
+    "z": 1.644853626951472
+  }
+}
