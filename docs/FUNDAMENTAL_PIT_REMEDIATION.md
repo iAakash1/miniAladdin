@@ -121,3 +121,7 @@ rewritten; its exclusion decision remains part of its immutable record.
 | Period-end → announcement timing (2020+) | **APPROXIMATED** (calendar snapshot; ~76% coverage) |
 | Announcement timing before 2020 | **NOT REPRODUCIBLE** |
 | Ratio features (margins, growth) from as-of-today values | computable but **NOT POINT-IN-TIME** |
+
+## Status update — 2026-09-20
+
+The remediation in section 3 is built: `sec-core-facts-v3` keeps every filing vintage, exposes FIRST_REPORTED and AS_OF views, gates availability on EDGAR acceptance time (US Eastern, after-close next session) and passes real-data restatement-invariance. Statement-derived features may now be built from this store (50 are, in `ds-richpit-ff3d3f556488b7da`); the earlier vendor statement tables remain excluded from historical models. See `docs/SEC_TAG_MAP_AUDIT.md`, `docs/PIT_FEATURE_CATALOG.md`.

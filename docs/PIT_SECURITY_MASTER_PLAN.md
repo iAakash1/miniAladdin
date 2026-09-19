@@ -100,3 +100,7 @@ and the work is CPU/data-engineering bound. It belongs on the MacBook.
 | Sector / industry | **NOT AVAILABLE** (plan: SIC → Fama-French industries; not GICS) |
 | Market cap / shares history | **NOT AVAILABLE** |
 | Identifier stability (ticker reuse) | **NOT REPRODUCIBLE** without CIK history |
+
+## Status update — 2026-09-20
+
+Steps 1-4 of section 3 are built (`security-master-v3`): CIK identity with dated price windows and graded links, SIC intervals as of each filing mapped to Fama-French 12/17/48, share-count vintages and PIT market cap, exit evidence from Form 25/15/8-K. `security_master_pit` is computed from preregistered thresholds and is **false** (trusted identity 91.8-95.0% by validation fold vs 95%); industry and size neutralisation therefore remain prohibited. Current status and coverage: `docs/PIT_SECURITY_MASTER_STATUS.md`.

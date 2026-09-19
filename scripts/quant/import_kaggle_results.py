@@ -18,12 +18,14 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--results", nargs="+", required=True, help="one or more worker `results` directories")
     parser.add_argument("--allow-version-drift", action="store_true", help="accept differing numpy/pandas/scikit-learn versions (recorded)")
+    parser.add_argument("--output-dir", default=None, help="experiment output directory (default experiments/EXP-011)")
     args = parser.parse_args()
     sys.path.insert(0, str(ROOT))
     from src.quant.study import exp011
 
     fingerprint = exp011.definition_fingerprint(ROOT)
-    destination = ROOT / exp011.OUTPUT_DIR / "checkpoints"
+    output = Path(args.output_dir) if args.output_dir else ROOT / exp011.OUTPUT_DIR
+    destination = output / "checkpoints"
     accepted, rejected = [], []
     for directory in map(Path, args.results):
         for receipt_path in sorted(directory.glob("*_seed_*.json")):
@@ -48,8 +50,8 @@ def main() -> int:
             shutil.copy2(receipt_path, destination / f"{arm}_seed_{seed:02d}.json")
             accepted.append(f"{arm}_seed_{seed:02d}")
     report = {"accepted": accepted, "rejected": rejected, "fingerprint": fingerprint}
-    (ROOT / exp011.OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
-    (ROOT / exp011.OUTPUT_DIR / "import_report.json").write_text(json.dumps(report, indent=2) + "\n")
+    output.mkdir(parents=True, exist_ok=True)
+    (output / "import_report.json").write_text(json.dumps(report, indent=2) + "\n")
     print(json.dumps({"accepted": len(accepted), "rejected": len(rejected)}, indent=2))
     for item in rejected:
         print("REJECTED", item["file"], item["problems"])

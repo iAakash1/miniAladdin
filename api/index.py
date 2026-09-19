@@ -2879,6 +2879,14 @@ def quant_experiments():
     return quant_service.experiments()
 
 
+@app.get("/api/quant/research-history", tags=["quant"])
+def quant_research_history():
+    """Every study, including negative and not-yet-run ones. Nothing here is promoted."""
+    from src.services import research_history
+
+    return research_history.research_history()
+
+
 @app.get("/api/quant/experiments/{experiment_id}", tags=["quant"])
 def quant_experiment(
     experiment_id: str = FastPath(..., max_length=32, pattern=r"^[A-Za-z0-9_-]+$"),

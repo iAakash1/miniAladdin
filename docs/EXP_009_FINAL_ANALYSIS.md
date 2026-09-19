@@ -144,3 +144,7 @@ as-reported fundamentals (blocked until an SEC EDGAR vintage dataset exists); op
   cap bound and gross exposure was 0.6); every cell trades them as-is.
 * The earnings calendar is a current snapshot that may store the *scheduled* rather than the *actual* announcement date;
   any earnings-event result must carry that caveat.
+
+## Follow-up (2026-09-20)
+
+The suggested next steps were carried out: the multi-seed noise floor (`docs/EXP_010A_RESULTS.md`), one preregistered 21-session-cadence test (`docs/EXP_010B_RESULTS.md`), and the PIT security master plus SEC as-reported fundamentals (`docs/PIT_SECURITY_MASTER_STATUS.md`, `docs/SEC_TAG_MAP_AUDIT.md`). The data-value question is preregistered as EXP-011 and has not been run.

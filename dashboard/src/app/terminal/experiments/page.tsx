@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 
 import Workbench from '@/components/system/Workbench'
 import ExperimentRegistry from '@/components/terminal/experiments/ExperimentRegistry'
+import ResearchHistory from '@/components/terminal/experiments/ResearchHistory'
 import SearchLab from '@/components/terminal/experiments/SearchLab'
 import ExperimentRelations from '@/components/terminal/experiments/ExperimentRelations'
 import { Panel } from '@/components/system'
@@ -36,6 +37,7 @@ export default function ExperimentsPage() {
         </>
       }
     >
+      <ResearchHistory />
       <ExperimentRegistry />
       {/* The search that produced the candidates above: 873 configurations of
           worker time, and what spending them cost the study in significance.

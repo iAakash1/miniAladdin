@@ -164,3 +164,7 @@ candidate is the data ablation, not the algorithm.
 rich-panel models on the Mac and use Kaggle's two T4s only as independent seed
 workers if actual boosting runtime justifies transfer. Do not start with a deep
 model merely because a GPU exists.
+
+## Status update — 2026-09-20
+
+Done since this plan: multi-seed noise floor (EXP-010A), one preregistered 21-session cadence test (EXP-010B), SEC as-reported facts and a graded PIT security master, and a rich characteristic panel. Next, in order: (1) the owner runs EXP-011 (rich data vs baseline, Ridge and boosting); (2) only if EXP-011 shows a detectable, fold-robust ordering gain, consider one preregistered follow-up on the *features* (never the cadence, dropout or costs); (3) close the security-master gap (20-F/IFRS tag map for foreign issuers; vendor-independent delisted-name evidence) so size and industry controls can be evaluated; (4) ALFRED macro vintages once a FRED key exists. The sealed holdout is opened only for one frozen candidate and on explicit user authorisation.

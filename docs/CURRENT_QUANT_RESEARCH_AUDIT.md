@@ -142,3 +142,10 @@ fixture for every new feature family.
    or vendor-derived options features.
 6. Judge success on walk-forward stability and net economics, never headline
    IC alone.
+
+## Status update — 2026-09-20
+
+* EXP-010A (noise floor) and EXP-010B (21-session cadence, `ECONOMICALLY_IMPROVED`, validation only, disclosed seed-0 prototype exposure) are complete and immutable: `docs/EXP_010A_RESULTS.md`, `docs/EXP_010B_RESULTS.md`. The cadence question is closed for this cycle.
+* The as-reported SEC foundation is verified and rebuilt (`sec-core-facts-v3`; defects of the previous store in `docs/SEC_TAG_MAP_AUDIT.md`). The PIT security master is built and graded (`docs/PIT_SECURITY_MASTER_STATUS.md`); `security_master_pit` is **false** (trusted identity 91.8-95.0% by fold vs 95%).
+* A new immutable dataset, `ds-richpit-ff3d3f556488b7da` (76 features), exists (`docs/RICH_PIT_PANEL_AUDIT.md`). EXP-011 compares it with the 26-feature baseline under a 2x2 design and is preregistered, **not run** (`docs/EXP_011_PREREGISTRATION.md`).
+* Nothing is promoted; the holdout is sealed. Full engineering status: `docs/OMNISIGNAL_SYSTEM_HEALTH.md`, `docs/OMNISIGNAL_FULL_SYSTEM_AUDIT_2026.md`.

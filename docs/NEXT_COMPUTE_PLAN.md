@@ -37,3 +37,7 @@ versions, peak RAM/VRAM, input hash, commit and seed.
    committed.
 6. Abort on holdout-date rows, PIT assertion failure, nondeterministic data hash,
    missing cost inputs, or memory above the registered ceiling.
+
+## Status update — 2026-09-20 (measured)
+
+Timing benchmark on the fold-0 *training* rows only (no prediction, no scoring): one gradient-boosting fit took **14.1 s with 26 features and 43.2 s with 76** (3.06x); EXP-010A's eight-fold fit averaged 267 s per seed, so a rich seed is about 13.6 minutes. On the 12-core Mac, EXP-011 is estimated at **30-45 minutes wall time with 6 workers** (about 136 minutes of CPU for ten boosted seeds; Ridge arms about a minute). The models are scikit-learn (CPU-only), so Kaggle GPUs give no benefit; the export/import pipeline (`scripts/quant/export_kaggle_experiment.py`, `kaggle_worker.py`, `import_kaggle_results.py`) exists for reproducibility with independent workers (never DDP), hash-verified imports, and a licence acknowledgement gate. Mac remains the recommended machine for data engineering, Ridge, scikit-learn boosting and backtests.
