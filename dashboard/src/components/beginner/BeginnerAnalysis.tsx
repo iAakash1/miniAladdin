@@ -28,6 +28,7 @@ import WhatIfLab from '@/components/whatif/WhatIfLab'
 import StockActions from '@/components/beginner/StockActions'
 import EvidenceHealth from '@/components/evidence/EvidenceHealth'
 import ResearchHistory from '@/components/research/ResearchHistory'
+import { DecisionQualityLine } from '@/components/research/DecisionQualityBadge'
 import { fetchAnalysis, normalizeAnalysis } from '@/lib/api'
 import { signalTone } from '@/lib/explore'
 import type { Analysis } from '@/lib/types'
@@ -105,6 +106,7 @@ export default function BeginnerAnalysis({ ticker }: { ticker: string }) {
           </span>
         </p>
         <Prose>{signalSentence(a.verdict)}</Prose>
+        <DecisionQualityLine quality={a.decisionQuality} />
         <Prose>{DISCLAIMER}</Prose>
 
         <Strip

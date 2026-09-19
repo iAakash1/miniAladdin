@@ -265,6 +265,22 @@ export interface StreetIntelligence {
   findings: Array<{ text: string; tone: TechTone }>
 }
 
+/** How trustworthy the evidence behind an analysis is — never a probability
+ *  of profit, never a prediction of accuracy. See
+ *  src/services/decision_quality.py for exactly how each grade is decided:
+ *  INSUFFICIENT is the same eligibility gate that excludes a security from
+ *  Top Ranked Ideas, called directly rather than reimplemented; the other
+ *  three grade how comfortably the evidence clears that gate. */
+export interface DecisionQuality {
+  grade: 'STRONG' | 'ACCEPTABLE' | 'WEAK' | 'INSUFFICIENT'
+  version: string
+  eligible: boolean
+  /** Populated only for INSUFFICIENT — machine-readable, the same
+   *  vocabulary Explore's eligibility gate reports. */
+  reasons: string[]
+  summary: string
+}
+
 export interface RawResearchResponse {
   ticker?: string
   macro?: RawResearchMacro
@@ -278,6 +294,8 @@ export interface RawResearchResponse {
   rationale?: string
   quant?: RawQuant | null
   ai?: RawAiAnalysis | null
+  /** Additive: attached once, at /api/research itself. */
+  decision_quality?: DecisionQuality | null
   disclaimer?: string
   elapsed_seconds?: number
   mode?: string
@@ -835,6 +853,10 @@ export interface Analysis {
   rationale: string | null
   quant: QuantCard | null
   ai: AiAnalysis | null
+  /** How trustworthy the evidence is — never a probability of profit. See
+   *  src/services/decision_quality.py. `null` only for a response served
+   *  from a build old enough not to carry the field at all. */
+  decisionQuality: DecisionQuality | null
 
   /* Nullable because a provider that did not answer has not told us the
      price is zero. Every one of these was `?? 0` at the normalisation

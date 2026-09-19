@@ -52,6 +52,41 @@ def test_the_scoring_engine_has_no_experience_mode_parameter():
         assert not forbidden.search(name.lower()), name
 
 
+def test_decision_quality_has_no_experience_mode_parameter():
+    """Same structural guarantee, for the module that grades the evidence.
+
+    A stronger proof than a runtime check: /api/research/{ticker} itself has
+    no mode/experience parameter at all (checked below), so there is no value
+    a caller could even pass that would reach decision_quality.assess()
+    differently depending on which shell the reader is using.
+    """
+    import inspect as _inspect
+    import re as _re
+
+    from src.services import decision_quality
+
+    forbidden = _re.compile(r"\b(experience|beginner|intermediate|advanced|presentation)\b|(^|_)mode(_|$)")
+    for name in _inspect.signature(decision_quality.assess).parameters:
+        assert not forbidden.search(name.lower()), name
+
+
+def test_the_research_endpoint_has_no_experience_mode_parameter():
+    """/api/research/{ticker} — the endpoint decision_quality is attached to
+    — cannot receive a mode at all. Beginner, Intermediate and Advanced all
+    call the identical endpoint with the identical arguments; the only
+    thing that can differ between them is how much of one response a
+    component chooses to render.
+    """
+    import inspect as _inspect
+    import re as _re
+
+    import api.index as api_module
+
+    forbidden = _re.compile(r"\b(experience|beginner|intermediate|advanced|presentation)\b|(^|_)mode(_|$)")
+    for name in _inspect.signature(api_module.research_ticker).parameters:
+        assert not forbidden.search(name.lower()), name
+
+
 def test_the_verdict_cut_points_match_their_frontend_mirror():
     """The two numbers a "why isn't this stronger" panel needs are duplicated
     by necessity — Python and TypeScript share no build step — and duplicated

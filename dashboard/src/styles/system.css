@@ -3753,3 +3753,30 @@ a.tape:hover .tape__sym { color: var(--accent); }
 .rh__date { font-family: var(--font-mono); color: var(--ink-faint); min-width: 5.5em; }
 .rh__stat { color: var(--ink-muted); margin-left: auto; }
 .rh__stat + .rh__stat { margin-left: var(--d-2); }
+
+/* Decision quality — its own semantic dimension, not one of the ten research
+   states. STRONG/ACCEPTABLE/WEAK/INSUFFICIENT map onto the shared pass/info/
+   warn/muted tone vocabulary the same way SIMULATION and PAPER badges do. */
+.dq__line { margin-top: var(--gap); }
+.dq__grade {
+  display: inline-block;
+  font: 600 var(--t-meta)/1 var(--font-mono);
+  letter-spacing: 0.03em;
+  padding: 3px 8px;
+  border-radius: 3px;
+  margin-left: var(--d-2);
+}
+.dq__grade[data-grade='STRONG']       { color: var(--accent); background: var(--accent-wash, transparent); border: 1px solid var(--accent); }
+.dq__grade[data-grade='ACCEPTABLE']   { color: var(--ink); background: var(--surface-2); border: 1px solid var(--rule); }
+.dq__grade[data-grade='WEAK']         { color: var(--warn); background: var(--warn-wash, transparent); border: 1px solid var(--warn); }
+.dq__grade[data-grade='INSUFFICIENT'] { color: var(--ink-faint); background: var(--surface-2); border: 1px solid var(--rule); }
+
+.dq__summary { margin: 4px 0 0; font-size: var(--t-meta); color: var(--ink-muted); }
+.dq__reasons {
+  margin: var(--d-2) 0 0;
+  padding: 0 0 0 1.1em;
+  font-size: var(--t-micro);
+  color: var(--ink-faint);
+  display: grid;
+  gap: 2px;
+}

@@ -41,6 +41,11 @@ DECISION_QUALITY_VERSION = "decision-quality-v1"
 class DecisionQuality(BaseModel):
     grade: str  # "STRONG" | "ACCEPTABLE" | "WEAK" | "INSUFFICIENT"
     version: str = DECISION_QUALITY_VERSION
+    #: Derived, not a second judgement — exactly `grade != "INSUFFICIENT"`.
+    #: Carried as its own field because a caller filtering "what can I rank"
+    #: (Top Ranked Ideas, High Conviction) wants a boolean, not a string
+    #: comparison against a literal that could be mistyped.
+    eligible: bool = True
     #: Present only for INSUFFICIENT — the same machine-readable reasons
     #: explore_eligibility produces, so a UI never has to reconcile two
     #: vocabularies for the same failure.
@@ -98,6 +103,7 @@ def assess(
     if not eligibility.eligible:
         return DecisionQuality(
             grade="INSUFFICIENT",
+            eligible=False,
             reasons=eligibility.reasons,
             summary=(
                 "OmniSignal can score this company, but current evidence is "

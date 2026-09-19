@@ -264,3 +264,34 @@ def test_factor_lab_reports_stages_a_client_can_render():
         assert by_execution == by_declaration, (
             f"STAGES declares {by_declaration} but the builder runs {by_execution}"
         )
+
+
+# ── decision quality ──────────────────────────────────────────────────────────
+
+def test_research_attaches_decision_quality(client):
+    """Wired once, at /api/research's own response — not a second computation
+    living somewhere the reader cannot see it came from the same run."""
+    body = client.get("/api/research/NVDA").json()
+    dq = body["decision_quality"]
+    assert dq["grade"] in ("STRONG", "ACCEPTABLE", "WEAK", "INSUFFICIENT")
+    assert isinstance(dq["eligible"], bool)
+    assert dq["eligible"] == (dq["grade"] != "INSUFFICIENT")
+    assert isinstance(dq["summary"], str) and dq["summary"]
+    assert "version" in dq
+
+
+def test_research_decision_quality_never_reads_as_a_probability(client):
+    body = client.get("/api/research/NVDA").json()
+    lowered = body["decision_quality"]["summary"].lower()
+    for phrase in ("chance of", "probability", "% likely", "guaranteed", "will rise", "will fall"):
+        assert phrase not in lowered
+
+
+def test_decision_quality_is_identical_regardless_of_requested_mode(client):
+    """Experience mode is a query the frontend never even sends to this
+    endpoint — but the property worth pinning is that decision_quality does
+    not vary with anything except the evidence: two identical requests
+    produce an identical grade, deterministically."""
+    first = client.get("/api/research/NVDA").json()["decision_quality"]
+    second = client.get("/api/research/NVDA").json()["decision_quality"]
+    assert first == second

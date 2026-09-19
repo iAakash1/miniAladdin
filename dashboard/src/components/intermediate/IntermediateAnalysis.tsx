@@ -6,6 +6,7 @@ import AskOmniSignal from '@/components/beginner/AskOmniSignal'
 import StockActions from '@/components/beginner/StockActions'
 import EvidenceHealth from '@/components/evidence/EvidenceHealth'
 import ResearchHistory from '@/components/research/ResearchHistory'
+import { DecisionQualityDetail } from '@/components/research/DecisionQualityBadge'
 import AgentObservatory from '@/components/terminal/observatory/AgentObservatory'
 import { EmptyLine, Panel, Prose, StateBlock, Strip } from '@/components/system'
 import WhatIfLab from '@/components/whatif/WhatIfLab'
@@ -102,6 +103,7 @@ export default function IntermediateAnalysis({ ticker }: { ticker: string }) {
           { label: 'Risk score', value: q?.riskScore ?? null, kind: 'count' },
           { label: 'Data complete', value: completeness === null ? null : `${Math.round(completeness * 100)}%` },
         ]} />
+        <DecisionQualityDetail quality={a.decisionQuality} />
         {a.rationale ? <Prose>{a.rationale}</Prose> : null}
       </Panel>
 

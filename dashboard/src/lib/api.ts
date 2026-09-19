@@ -187,6 +187,7 @@ export function normalizeAnalysis(raw: RawResearchResponse): Analysis {
     rationale: raw.rationale ?? null,
     quant: normalizeQuant(raw.quant),
     ai: normalizeAi(raw.ai),
+    decisionQuality: raw.decision_quality ?? null,
 
     /* `?? null`, never `?? 0`. A real zero from the API survives as zero —
        nullish coalescing only fires on null and undefined — while a field the

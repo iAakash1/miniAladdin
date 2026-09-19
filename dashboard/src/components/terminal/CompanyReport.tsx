@@ -32,6 +32,7 @@ import Skeleton from '@/components/ui/Skeleton'
 import { fetchChart, normalizeChart } from '@/lib/api'
 import type { Analysis, PricePoint } from '@/lib/types'
 import EvidenceHealth from '@/components/evidence/EvidenceHealth'
+import { DecisionQualityDetail } from '@/components/research/DecisionQualityBadge'
 import { Panel, Prose } from '@/components/system'
 
 const PriceChart = dynamicImport(() => import('@/components/terminal/PriceChart'), {
@@ -250,6 +251,7 @@ export default function CompanyReport({ analysis, initialChart, isPro, requestUp
       </div>
 
       <div id="scorecard" className="report-section">
+        <DecisionQualityDetail quality={analysis.decisionQuality} />
         <QuantPanel analysis={analysis} />
         <QuantIntelligence symbol={analysis.ticker} />
       </div>

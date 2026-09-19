@@ -92,8 +92,47 @@ def test_an_incompatible_runtime_schema_is_typed_not_500(client, monkeypatch, tm
     body = response.json()
 
     assert response.status_code == 200
-    assert body["reason"] == "ARTIFACT_SCHEMA_INCOMPATIBLE"
-    assert set(body["missing_columns"]) >= {"date", "model", "prediction", "fwd_rank_21"}
+    assert body["reason"] == "SCHEMA_MISMATCH"
+    assert set(body["missing_columns"]) >= {"date", "model", "prediction"}
+
+
+def test_a_missing_target_is_distinct_from_a_broken_base_schema(
+    client, monkeypatch, tmp_path,
+):
+    _deployment_without_artifacts(monkeypatch, tmp_path)
+    path = service._runtime_artifact("EXP-006", "fwd_rank_21", "gradient_boosting")
+    path.parent.mkdir(parents=True)
+    pd.DataFrame({
+        "date": ["2025-01-03"],
+        "symbol": ["AAPL"],
+        "model": ["gradient_boosting"],
+        "prediction": [0.1],
+    }).to_parquet(path, index=False)
+    _write_metadata(path)
+
+    response = client.get("/api/quant/portfolio?method=risk_parity")
+
+    assert response.status_code == 200
+    assert response.json()["reason"] == "TARGET_MISSING"
+
+
+def test_a_missing_model_is_typed_not_500(client, monkeypatch, tmp_path):
+    _deployment_without_artifacts(monkeypatch, tmp_path)
+    path = service._runtime_artifact("EXP-006", "fwd_rank_21", "gradient_boosting")
+    path.parent.mkdir(parents=True)
+    pd.DataFrame({
+        "date": ["2025-01-03"],
+        "symbol": ["AAPL"],
+        "model": ["another_model"],
+        "prediction": [0.1],
+        "fwd_rank_21": [0.2],
+    }).to_parquet(path, index=False)
+    _write_metadata(path)
+
+    response = client.get("/api/quant/portfolio?method=risk_parity")
+
+    assert response.status_code == 200
+    assert response.json()["reason"] == "MODEL_MISSING"
 
 
 def test_render_runtime_dependency_is_explicitly_pinned():

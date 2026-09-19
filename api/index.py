@@ -1772,6 +1772,36 @@ def research_ticker(
         (ai or {}).get("generated"), "fast" if fast else "full", elapsed,
     )
 
+    # How trustworthy the evidence behind this response is — a different
+    # question from what the verdict says, and one the verdict alone cannot
+    # answer. Reuses the same values already computed above for scoring
+    # rather than recomputing anything: `bars` and `last_bar_age_days` are
+    # only ever assigned in the same branch that produces `scorecard`, so
+    # both are referenced here exactly when `scorecard is not None` guards
+    # the reference — never on a path where they would be undefined.
+    #
+    # `asset_type` is passed as None: this endpoint has no asset-type
+    # classification anywhere in it, and explore_eligibility's own gate
+    # treats an unknown type as passing rather than failing, so this is the
+    # honest value rather than a stand-in for "known to be common equity".
+    # `validation_state` is likewise None — this endpoint runs the classic
+    # scoring pipeline, not the LangGraph validator (`/api/analysis-runs`
+    # and `/api/ask` do), so there genuinely is no validation state to report
+    # here, and None correctly leaves that one gate unable to fire rather
+    # than asserting a conflict that was never checked for.
+    from src.services import decision_quality as decision_quality_service
+
+    decision_quality_result = decision_quality_service.assess(
+        asset_type=None,
+        bars=bars if scorecard is not None else None,
+        price=prediction.current_price if scorecard is not None else None,
+        price_age_days=last_bar_age_days if scorecard is not None else None,
+        has_scorecard=scorecard is not None,
+        data_completeness=scorecard.data_completeness if scorecard is not None else None,
+        confidence=scorecard.confidence if scorecard is not None else None,
+        validation_state=None,
+    )
+
     response = {
         "ticker":  ticker,
         "macro":   {"risk_multiplier": multiplier, **macro_stats},
@@ -1784,6 +1814,10 @@ def research_ticker(
         "risk_level":  risk_level,
         "rationale":   rationale,
         "quant":       scorecard.model_dump() if scorecard is not None else None,
+        # How trustworthy the evidence is — never a probability of profit.
+        # See src/services/decision_quality.py for what STRONG/ACCEPTABLE/
+        # WEAK/INSUFFICIENT mean and how each is decided.
+        "decision_quality": decision_quality_result.model_dump(),
         # v4.5 additive: deterministic technical read of the same OHLCV frame
         # the engine scored. Presentation intelligence only — never a scoring
         # input, never fatal, absent when history is too thin.

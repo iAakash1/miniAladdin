@@ -105,7 +105,7 @@ def _validate_runtime_metadata(path: Path) -> None:
 
     if metadata.get("schema_version") != RUNTIME_SCHEMA_VERSION:
         raise PortfolioUnavailable(
-            "ARTIFACT_SCHEMA_INCOMPATIBLE",
+            "SCHEMA_MISMATCH",
             "The deployed portfolio artifact uses an unsupported schema version.",
             remedy="Re-export the runtime portfolio artifact with this release.",
             required_artifact=path.name,
@@ -151,15 +151,21 @@ def _predictions(
         ) from exc
 
     missing = REQUIRED_PREDICTION_COLUMNS.difference(frame.columns)
-    if target not in frame.columns:
-        missing = set(missing) | {target}
     if missing:
         raise PortfolioUnavailable(
-            "ARTIFACT_SCHEMA_INCOMPATIBLE",
+            "SCHEMA_MISMATCH",
             "The deployed portfolio artifact does not match the required prediction schema.",
             remedy="Re-export the runtime portfolio artifact with this release.",
             required_artifact=path.name,
             missing_columns=sorted(missing),
+        )
+    if target not in frame.columns:
+        raise PortfolioUnavailable(
+            "TARGET_MISSING",
+            "The deployed portfolio artifact does not contain the requested target.",
+            remedy="Select a deployed target or export its runtime artifact.",
+            required_artifact=path.name,
+            target=target,
         )
     with _lock:
         _cache.clear()
@@ -280,7 +286,7 @@ def build(
     block = frame[frame["model"] == model_id]
     if block.empty:
         return PortfolioUnavailable(
-            "MODEL_NOT_DEPLOYED",
+            "MODEL_MISSING",
             "The deployed portfolio artifact does not contain the requested model.",
             remedy="Select a deployed model or export its runtime artifact.",
             required_artifact=required_name,
@@ -315,7 +321,7 @@ def build(
     usable = [s for s in selected if s in panel.columns]
     if len(usable) < 10:
         return PortfolioUnavailable(
-            "INSUFFICIENT_COVARIANCE_NAMES",
+            "COVARIANCE_UNAVAILABLE",
             "Too few selected names have enough overlapping history for covariance.",
             names=int(len(usable)),
             required_names=10,

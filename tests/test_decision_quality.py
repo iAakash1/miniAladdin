@@ -113,6 +113,25 @@ def test_insufficient_summary_matches_the_demo_language():
     assert "excluded from Top Ranked Ideas" in quality.summary
 
 
+def test_eligible_is_exactly_grade_not_insufficient():
+    """A caller filtering "what can be ranked" (Top Ranked Ideas, High
+    Conviction) wants a boolean, not a string comparison against a literal
+    that could be mistyped — this pins that the two never disagree."""
+    insufficient = decision_quality.assess(
+        **ELIGIBLE_BASE, data_completeness=0.10, confidence=None,
+    )
+    assert insufficient.eligible is False
+
+    for grade_kwargs in (
+        dict(data_completeness=1.0, confidence=50),   # STRONG
+        dict(data_completeness=0.75, confidence=35),  # ACCEPTABLE
+        dict(data_completeness=0.56, confidence=26),  # WEAK
+    ):
+        quality = decision_quality.assess(**ELIGIBLE_BASE, **grade_kwargs)
+        assert quality.grade != "INSUFFICIENT"
+        assert quality.eligible is True
+
+
 def test_grading_is_deterministic():
     kwargs = dict(ELIGIBLE_BASE, data_completeness=0.8, confidence=40)
     assert decision_quality.assess(**kwargs) == decision_quality.assess(**kwargs)
