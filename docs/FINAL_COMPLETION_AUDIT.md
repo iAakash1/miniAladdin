@@ -2,6 +2,60 @@
 
 Audit date: 2026-09-18. Repository: `iAakash1/miniAladdin`.
 
+## 2026-09-19 continuation result
+
+This continuation preserved the preregistered EXP-008 exactly. The literature
+and local-data audit is a separate EXP-009 design package; neither experiment
+was trained or run, EXP-007 was not rerun, and the sealed holdout was not read.
+
+### Product disposition
+
+| Area | Status | Evidence / remaining boundary |
+|---|---|---|
+| Decision Quality | COMPLETE | Deterministic API field plus Beginner, Intermediate and Advanced rendering; invariance/API/service tests pass |
+| Book / portfolio artifact | COMPLETE | Committed EXP-006 runtime artifact builds the default book; expected deployment failures return typed 200 states including `SCHEMA_MISMATCH`, `TARGET_MISSING`, `MODEL_MISSING`, and `COVARIANCE_UNAVAILABLE` |
+| Paper code path | COMPLETE | Anonymous is 401, authenticated non-owner is 403, configured owner is 200; broker host remains restricted to Alpaca paper |
+| Current signed-in Paper access | BLOCKED_EXTERNAL | The deployed `PAPER_TRADING_OWNERS` must contain the current Clerk subject from the same issuer; no authorization was weakened or id hard-coded |
+| Route/build coverage | COMPLETE locally | Next production build compiled and enumerated all application routes; the public Playwright build check passed |
+| Authenticated browser journey | BLOCKED_EXTERNAL | No real Clerk storage state was supplied; five signed-in Playwright journeys were deliberately skipped |
+| Deployment smoke | COMPLETE for unauthenticated probes | Quant status/methods/book, Paper status, recommendations, Explore, frontend build and inference health returned 200; backend health succeeded on one read-only retry after a cold-start timeout |
+
+### Research disposition
+
+- EXP-006 has weak positive rank signal (Rank IC 0.02895; Newey-West
+  t-statistic 2.66), but 20.15x annual turnover makes the 10 bp result
+  uneconomic (net Sharpe -0.102). This is not a zero-signal result.
+- The selected EXP-006 model uses 27 price/volume/volatility/macro features,
+  while the frozen store has analyst, earnings, fundamental, and options
+  families. However, EXP-005 already found that its first additive versions of
+  those families underperformed the same base. The conclusion is therefore
+  underutilization plus weak first ablations, not “untested rich data.”
+- Existing analyst, earnings, fundamental, and options feature builders and
+  PIT tests were retained. No duplicate ingestion or feature module was added.
+  Consensus analyst revisions are usable; fundamentals remain exposed to
+  restatement-vintage risk; options history/coverage is limited; analyst-level
+  stickiness, target revisions, put/call volume and open interest are absent.
+- The survey reviews 33 primary-source works, including 24 dated 2024--2026,
+  and records a required-field replication register, official/author code,
+  data-family matrix, Qlib comparison, five replication candidates, and seven
+  EXP-009 candidate designs.
+- Recommended EXP-009 order: one fixed turnover-aware buffer, date-grouped
+  learning-to-rank on identical folds/data, then one isolated consensus-
+  revision arm. Neutralization waits for a PIT security master. Options,
+  graph, and text are deferred.
+
+### 2026-09-19 verification record
+
+- Python: **2,629 passed, 5 skipped**, twice consecutively; **141 warnings**
+  each run from covered numerical edge cases/deprecations.
+- Dashboard: **568 passed, 0 failed**.
+- TypeScript, ESLint, and production build: clean; build generated 60 static
+  pages and compiled every dynamic route.
+- Playwright: **1 passed, 5 skipped** without a signed-in storage state.
+- Deployment smoke: eight endpoints passed directly; backend health passed on
+  a read-only retry after its initial 60-second timeout. Authenticated Paper
+  reads/preview were skipped because `CLERK_SMOKE_TOKEN` was unset.
+
 ## Product result
 
 OmniSignal now has three presentation-only experiences over the same research
