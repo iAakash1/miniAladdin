@@ -12,11 +12,16 @@
 | Feasible substitute | Existing 57-feature registry after removing unsafe statement versions; liquid PIT universe |
 | Exact reproduction | Model/evaluation taxonomy and cross-sectional normalization principles only |
 | Approximation | Shorter 2012+ sample, top-250 liquid US universe and different features |
-| Compute/storage | CPU; fixed models in hours; current frozen panel fits locally; <5 GB new artifacts |
+| Original compute | Hardware/runtime not reported in the paper. Monthly panel is about 30k unique stocks, ~6,200 per month and >900 inputs after characteristic–macro interactions |
+| Original result | Trees and neural nets lead several gross OOS comparisons; model-dependent monthly turnover is roughly 110–130%; the paper does not charge transaction costs |
+| MacBook plan | Build 60–120 PIT features in streaming Parquet, then run regularized linear + one boosted tree; 10 min–3 h depending model/seeds |
+| Kaggle plan | Only optional CUDA boosting after a measured Mac run; two independent seed workers, 20–90 min planning range |
+| Estimated data preparation | 3–8 engineering days for SEC facts/security identity plus formula/coverage validation; 1–4 h for a full panel materialization |
 | Complexity | MEDIUM |
 | Leakage risk | Statement restatements, market-cap/identifier history |
 | Licensing risk | Original data requires WRDS; the authors also share a derived characteristic dataset and simulation-only Matlab code (no license), whose redistribution terms were not verified; local open substitutes are not equivalent. No transaction costs are charged in the paper. |
-| Recommended ID | `EXP-009-GKX-LITE` only after core EXP-009, because broad feature comparisons already exist in EXP-005 |
+| Recommendation | **ADAPT** as EXP-011 only after EXP-010A/B and the PIT data build; never claim exact replication |
 
-Recommendation: use GKX as a baseline architecture and reporting standard, not
-as a performance replication claim.
+Recommendation: use GKX as a feature taxonomy, baseline architecture and
+reporting standard, not as a performance replication claim. Keep the proven
+top-k dropout layer fixed so the experiment identifies information gain.

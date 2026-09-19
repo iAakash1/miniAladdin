@@ -12,11 +12,17 @@
 | Feasible substitute | LightGBM LambdaRank and XGBoost pairwise with each date as one query |
 | Exact reproduction | Grouping discipline and rank-versus-point comparison |
 | Approximation | Different market, target horizon, features, costs and portfolio |
-| Compute/storage | CPU, <24 GB; three fixed cells; predictions/metrics <2 GB |
+| Original compute | Not reported; models include RankNet, LambdaMART, ListNet and ListMLE |
+| Original result | Best reported Sharpe 2.156 gross, monthly, with no transaction costs; no strong boosted-regression comparator |
+| MacBook plan | None beyond archived EXP-009B, which completed four eight-fold cells in 628 s CPU |
+| Kaggle plan | None; GPU is not the missing ingredient |
+| Estimated data preparation | None for local approximation; exact CRSP NYSE history is licensed |
 | Complexity | MEDIUM |
 | Leakage risk | Incorrect grouping across dates; ordinal-label transformation; overlapping horizon |
 | Licensing risk | Algorithms open; local input licenses unchanged |
-| Recommended ID | Primary `EXP-009-LTR` candidate |
+| Recommendation | **REJECT NEXT CYCLE** after EXP-009B |
 
-Stop if rank stability/worst-fold evidence and net performance do not improve;
-do not tune NDCG or relevance bins after observing results.
+That stop rule fired. LambdaMART produced ΔIC −0.0139 and net Sharpe −0.32;
+pairwise produced ΔIC +0.0001 and net Sharpe +0.30 versus +0.46 for its matched
+control. Neither improved ordering or turnover. Do not reopen EXP-009 or tune
+relevance bins after seeing the null.
