@@ -226,7 +226,12 @@ def run_walk_forward(
         model = model_factory()
         fold_started = time.perf_counter()
         try:
-            model.fit(X_train_ready, y_train, feature_names=feature_list)
+            # Query models (learning to rank) are told which rows share a date; the
+            # dates are the training fold's own, so no information crosses a fold.
+            model.fit(
+                X_train_ready, y_train, feature_names=feature_list,
+                **({"groups": train[date_column].to_numpy()} if getattr(model, "requires_groups", False) else {}),
+            )
             predictions = model.predict(X_validation_ready)
         except Exception as error:  # noqa: BLE001 — recorded, never hidden
             errors.append(f"fold {fold.index}: {type(error).__name__}: {error}")

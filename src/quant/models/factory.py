@@ -55,6 +55,7 @@ class ModelSpec:
             ElasticNetRegression, LassoRegression, LogisticDirection,
             OrdinaryLeastSquares, RidgeRegression,
         )
+        from src.quant.models.ranking import BoostedL2, BoostedLambdaMART, BoostedPairwise
         from src.quant.models.trees import (
             ExtraTrees, GradientBoostedTrees, HistGradientBoosting, RandomForest,
         )
@@ -73,6 +74,10 @@ class ModelSpec:
             "random_forest": RandomForest,
             "hist_gradient_boosting": HistGradientBoosting,
             "extra_trees": ExtraTrees,
+            # Same boosting loop, different objective (EXP-009B).
+            "boosted_l2": BoostedL2,
+            "boosted_lambdamart": BoostedLambdaMART,
+            "boosted_pairwise": BoostedPairwise,
         }
         if self.kind not in registry:
             raise KeyError(f"unknown model kind {self.kind!r}; known: {sorted(registry)}")

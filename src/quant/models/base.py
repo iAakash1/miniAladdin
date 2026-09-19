@@ -103,7 +103,21 @@ class Model(ABC):
     @abstractmethod
     def _predict(self, X: np.ndarray) -> np.ndarray: ...
 
-    def fit(self, X: np.ndarray, y: np.ndarray, *, feature_names: Optional[Sequence[str]] = None) -> "Model":
+    #: A model that learns from queries (one query per prediction date) sets this
+    #: and receives `groups` — the date of every training row — at fit time. Every
+    #: other model ignores it, so the pipeline's inputs stay identical across the
+    #: comparison. Never used at predict time: a prediction is a function of the
+    #: row's own features.
+    requires_groups: bool = False
+
+    def fit(
+        self,
+        X: np.ndarray,
+        y: np.ndarray,
+        *,
+        feature_names: Optional[Sequence[str]] = None,
+        groups: Optional[np.ndarray] = None,
+    ) -> "Model":
         X = np.asarray(X, dtype=float)
         y = np.asarray(y, dtype=float)
         if X.ndim != 2:
@@ -120,6 +134,11 @@ class Model(ABC):
         if len(X) == 0:
             raise ValueError("cannot fit on an empty training fold")
         self.feature_names = list(feature_names or [f"f{i}" for i in range(X.shape[1])])
+        if groups is not None:
+            groups = np.asarray(groups)
+            if len(groups) != len(X):
+                raise ValueError(f"groups has {len(groups)} entries for {len(X)} rows")
+        self._groups = groups if self.requires_groups else None
         self._fit(X, y)
         self._fitted = True
         return self
