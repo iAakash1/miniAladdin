@@ -1,0 +1,264 @@
+{
+  "domain": "analyst_estimates",
+  "eps": {
+    "contributor_count_current_year": {
+      "null_share": 0.008567870781994186,
+      "quantiles": {
+        "p10": 1.0,
+        "p50": 3.0,
+        "p90": 9.0,
+        "p99": 15.0
+      },
+      "share_equal_1": 0.20056207030108833
+    },
+    "dataset": "dolthub_earnings_eps_estimate",
+    "date_range_read": [
+      "2017-10-26",
+      "2025-05-04"
+    ],
+    "distinct_vintage_dates": 414,
+    "duplicate_symbol_date_period_rows": 0,
+    "fiscal_rollover_current_year": {
+      "events": 31708,
+      "median_abs_relative_change_at_rollover": 0.19565217391304351,
+      "median_abs_relative_change_otherwise": 0.0,
+      "period_end_moves_backward": 49,
+      "rollover_events_by_month": {
+        "1": 2866,
+        "2": 11008,
+        "3": 11372,
+        "4": 2139,
+        "5": 739,
+        "6": 413,
+        "7": 358,
+        "8": 617,
+        "9": 445,
+        "10": 323,
+        "11": 868,
+        "12": 560
+      },
+      "share_of_consecutive_vintage_pairs": 0.020957343728725732
+    },
+    "id_stability": {
+      "gap_over_365_events": 318,
+      "symbols_with_gap_over_365_days": 308
+    },
+    "manifest": {
+      "point_in_time_status": "point_in_time",
+      "retrieved_at": "2026-08-30T09:51:02.475144+00:00",
+      "source_version": null
+    },
+    "non_sunday_vintage_share": 0.052358329070217806,
+    "per_symbol_gap_days_current_year": {
+      "max": 2371.0,
+      "share_1_to_6": 0.025963364966311474,
+      "share_exactly_7": 0.9293724032999819,
+      "share_exactly_7_by_year": {
+        "2017": 0.5610871385328782,
+        "2018": 0.7281514255046208,
+        "2019": 0.9571288788033352,
+        "2020": 0.9826009033648267,
+        "2021": 0.9596569296970231,
+        "2022": 0.9909870660313138,
+        "2023": 0.9557547875730954,
+        "2024": 0.9517604515606912,
+        "2025": 0.9929532812635098
+      },
+      "share_over_28": 0.001214161739298258,
+      "share_over_365": 0.00021018150957912145,
+      "share_over_7": 0.04027751890642164
+    },
+    "periods": {
+      "Current Quarter": 1512978,
+      "Current Year": 1512978,
+      "Next Quarter": 1512978,
+      "Next Year": 1512978
+    },
+    "rows_full_table": 7060412,
+    "rows_read_through_training_date": 6051912,
+    "share_vintage_dates_on_sunday": 0.8985507246376812,
+    "staleness_current_year": {
+      "identical_run_length_weeks": {
+        "max": 52,
+        "p50": 2.0,
+        "p90": 10.0,
+        "p99": 17.0
+      },
+      "runs_of_13_weeks_or_more": 19299,
+      "runs_of_26_weeks_or_more": 856,
+      "share_consecutive_vintages_identical_consensus": 0.7551233395330269
+    },
+    "symbols_full_table": 7029,
+    "universe_coverage": {
+      "by_year": {
+        "2017": 0.9409,
+        "2018": 0.9751,
+        "2019": 0.9851,
+        "2020": 0.9844,
+        "2021": 0.9655,
+        "2022": 0.9761,
+        "2023": 0.9936,
+        "2024": 0.9893,
+        "2025": 0.9869
+      },
+      "in_universe_rows_since_2017_10_26": 94096,
+      "median_vintage_age_days": 3.0,
+      "p95_vintage_age_days": 5.0,
+      "share_matched_to_same_day_vintage": 0.00706725046760755,
+      "share_with_usable_vintage_within_45d": 0.98060491413025,
+      "universe_symbols": 740,
+      "universe_symbols_never_in_table": 22
+    },
+    "value_integrity_current_year": {
+      "abs_consensus_below_0p05_share": 0.018505887065112647,
+      "consensus_exactly_zero": 1777,
+      "high_ge_consensus_ge_low_when_present": 1.0,
+      "high_lt_low": 0,
+      "null_consensus_share": 0.008575802159714154,
+      "null_year_ago_share": 0.04240643287608941,
+      "spread_zero_share_when_count_is_1": 0.9997956802857839
+    },
+    "vintages_per_year": {
+      "2017": 17,
+      "2018": 65,
+      "2019": 54,
+      "2020": 53,
+      "2021": 51,
+      "2022": 52,
+      "2023": 54,
+      "2024": 50,
+      "2025": 18
+    }
+  },
+  "last_training_date_read": "2025-05-09",
+  "sales": {
+    "contributor_count_current_year": {
+      "null_share": 0.10127576210625666,
+      "quantiles": {
+        "p10": 1.0,
+        "p50": 3.0,
+        "p90": 7.0,
+        "p99": 13.0
+      },
+      "share_equal_1": 0.20658132504239982
+    },
+    "dataset": "dolthub_earnings_sales_estimate",
+    "date_range_read": [
+      "2017-10-26",
+      "2025-05-04"
+    ],
+    "distinct_vintage_dates": 414,
+    "duplicate_symbol_date_period_rows": 0,
+    "fiscal_rollover_current_year": {
+      "events": 31708,
+      "median_abs_relative_change_at_rollover": 0.08910136482593015,
+      "median_abs_relative_change_otherwise": 0.0,
+      "period_end_moves_backward": 49,
+      "rollover_events_by_month": {
+        "1": 2866,
+        "2": 11008,
+        "3": 11372,
+        "4": 2139,
+        "5": 739,
+        "6": 413,
+        "7": 358,
+        "8": 617,
+        "9": 445,
+        "10": 323,
+        "11": 868,
+        "12": 560
+      },
+      "share_of_consecutive_vintage_pairs": 0.020957343728725732
+    },
+    "id_stability": {
+      "gap_over_365_events": 318,
+      "symbols_with_gap_over_365_days": 308
+    },
+    "manifest": {
+      "point_in_time_status": "point_in_time",
+      "retrieved_at": "2026-08-30T09:51:27.940521+00:00",
+      "source_version": null
+    },
+    "non_sunday_vintage_share": 0.052358329070217806,
+    "per_symbol_gap_days_current_year": {
+      "max": 2371.0,
+      "share_1_to_6": 0.025963364966311474,
+      "share_exactly_7": 0.9293724032999819,
+      "share_exactly_7_by_year": {
+        "2017": 0.5610871385328782,
+        "2018": 0.7281514255046208,
+        "2019": 0.9571288788033352,
+        "2020": 0.9826009033648267,
+        "2021": 0.9596569296970231,
+        "2022": 0.9909870660313138,
+        "2023": 0.9557547875730954,
+        "2024": 0.9517604515606912,
+        "2025": 0.9929532812635098
+      },
+      "share_over_28": 0.001214161739298258,
+      "share_over_365": 0.00021018150957912145,
+      "share_over_7": 0.04027751890642164
+    },
+    "periods": {
+      "Current Quarter": 1512978,
+      "Current Year": 1512978,
+      "Next Quarter": 1512978,
+      "Next Year": 1512978
+    },
+    "rows_full_table": 7060412,
+    "rows_read_through_training_date": 6051912,
+    "share_vintage_dates_on_sunday": 0.8985507246376812,
+    "staleness_current_year": {
+      "identical_run_length_weeks": {
+        "max": 55,
+        "p50": 1.0,
+        "p90": 10.0,
+        "p99": 17.0
+      },
+      "runs_of_13_weeks_or_more": 24597,
+      "runs_of_26_weeks_or_more": 949,
+      "share_consecutive_vintages_identical_consensus": 0.7181459347062548
+    },
+    "symbols_full_table": 7029,
+    "universe_coverage": {
+      "by_year": {
+        "2017": 0.9342,
+        "2018": 0.9687,
+        "2019": 0.9771,
+        "2020": 0.9816,
+        "2021": 0.9755,
+        "2022": 0.9874,
+        "2023": 0.9925,
+        "2024": 0.9886,
+        "2025": 0.9809
+      },
+      "in_universe_rows_since_2017_10_26": 94096,
+      "median_vintage_age_days": 3.0,
+      "p95_vintage_age_days": 5.0,
+      "share_matched_to_same_day_vintage": 0.00706725046760755,
+      "share_with_usable_vintage_within_45d": 0.980498639687128,
+      "universe_symbols": 740,
+      "universe_symbols_never_in_table": 22
+    },
+    "value_integrity_current_year": {
+      "abs_consensus_below_0p05_share": 3.37083553098591e-05,
+      "consensus_exactly_zero": 51,
+      "high_ge_consensus_ge_low_when_present": 1.0,
+      "high_lt_low": 0,
+      "null_consensus_share": 0.10127576210625666,
+      "null_year_ago_share": 0.1265352172999211,
+      "spread_zero_share_when_count_is_1": 1.0
+    },
+    "vintages_per_year": {
+      "2017": 17,
+      "2018": 65,
+      "2019": 54,
+      "2020": 53,
+      "2021": 51,
+      "2022": 52,
+      "2023": 54,
+      "2024": 50,
+      "2025": 18
+    }
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "calendar": {
+    "announcements_per_symbol_year": {
+      "p10": 1.0,
+      "p50": 4.0,
+      "p90": 4.0
+    },
+    "duplicate_symbol_date": 0,
+    "first_date": "2020-01-22",
+    "is_current_snapshot": true,
+    "last_date_in_snapshot": "2026-10-01",
+    "note": "the table carries dates after its own retrieval; every consumer must bound availability at the observation date",
+    "retrieved_on": "2026-08-29",
+    "rows_by_year": {
+      "2020": 13924,
+      "2021": 15302,
+      "2022": 17015,
+      "2023": 20321,
+      "2024": 19724,
+      "2025": 18033,
+      "2026": 13282
+    },
+    "rows_dated_after_retrieval": 263,
+    "rows_full_table": 117601,
+    "rows_read_through_training_date": 93647,
+    "symbols": 7359,
+    "timing_field": {
+      "share_by_when": {
+        "After market close": 0.422,
+        "Before market open": 0.3263,
+        "UNKNOWN": 0.2517
+      },
+      "unknown_share_by_year": {
+        "2020": 0.1723,
+        "2021": 0.1878,
+        "2022": 0.2255,
+        "2023": 0.3015,
+        "2024": 0.3138,
+        "2025": 0.2589,
+        "2026": 0.264
+      }
+    },
+    "weekend_dated_share": 0.00038264980739959693
+  },
+  "domain": "earnings_calendar_and_history",
+  "eps_history": {
+    "abs_estimate_over_1000": 9,
+    "abs_reported_over_1000": 5,
+    "columns": [
+      "symbol",
+      "period_end_date",
+      "reported",
+      "estimate"
+    ],
+    "estimate_null_share": 0.13979688139939336,
+    "has_announcement_date": false,
+    "reported_null_share": 0.06355914597591306,
+    "rows": 168473,
+    "symbols": 7029
+  },
+  "last_training_date_read": "2025-05-09",
+  "matched_events": {
+    "events_available_next_day_or_later_share": 0.6460931916169045,
+    "events_for_universe_symbols": 16708,
+    "events_matched_through_training_date": 86746,
+    "history_rows_dropped_no_announcement_before_2020": 52161,
+    "matched_by_year": {
+      "2020": 16763,
+      "2021": 15711,
+      "2022": 16458,
+      "2023": 16286,
+      "2024": 15239,
+      "2025": 6289
+    },
+    "report_lag_days": {
+      "p25": 31.0,
+      "p5": 22.0,
+      "p50": 37.0,
+      "p75": 48.0,
+      "p95": 127.75,
+      "p99": 143.0
+    },
+    "unknown_timing_share_of_events": 0.18141470500080695,
+    "with_sue": 60755
+  },
+  "timing_rule": {
+    "after_market_close": "available the next trading day",
+    "before_market_open": "available the same trading day",
+    "during_market_hours_or_unknown": "treated as after-close (next day): conservative",
+    "note": "an after-close result can never enter a same-close feature"
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "domain": "security_master",
+  "symbol_table": {
+    "columns": [
+      "symbol",
+      "security_name",
+      "listing_exchange",
+      "market_category",
+      "is_etf",
+      "is_test_issue",
+      "financial_status",
+      "date"
+    ],
+    "date_range": [
+      "2017-10-26",
+      "2026-08-22"
+    ],
+    "distinct_symbols": 24058,
+    "etf_share": 0.3018538531881287,
+    "has_market_cap": false,
+    "has_sector_or_industry": false,
+    "is_a_current_snapshot": true,
+    "listing_exchange": {
+      "BATS": 2041,
+      "CHX": 1,
+      "IEXG": 3,
+      "NASDAQ": 11394,
+      "NYSE": 6102,
+      "NYSE ARCA": 3803,
+      "NYSE MKT": 714
+    },
+    "point_in_time_status": "publication_lagged",
+    "rows": 24058
+  },
+  "universe_history": {
+    "coverage_classes": [
+      "complete",
+      "partial"
+    ],
+    "end": "2026-07-31",
+    "ever_exited": 906,
+    "mean_entries_per_rebalance": 24.31,
+    "mean_monthly_membership_turnover_share": 0.09724,
+    "name": "liquid",
+    "notes": [
+      "Liquidity-ranked, not index membership. Do not describe a study over this universe as an index backtest.",
+      "Survivorship-free by construction: membership is selected from each month's whole-market cross-section, so names that later delisted are present in the months they were liquid.",
+      "Screens: non-ETF, non-test-issue, close >= 5.0, top 250 by 3-month trailing-median dollar volume (trailing window only), dropped after symbol.last_seen.",
+      "coverage_class is 'partial' before 2017-10-26, where symbol.last_seen has no data and delisting is inferred only from a name leaving the cross-section."
+    ],
+    "point_in_time": true,
+    "size": 250,
+    "snapshots": 184,
+    "start": "2011-01-31",
+    "unique_members": 998
+  }
+}

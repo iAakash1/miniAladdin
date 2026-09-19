@@ -1,0 +1,179 @@
+{
+  "conclusion": "The statements are keyed by fiscal period end with no filing date and no restatement vintage. They can be gated by the earnings calendar only from 2020-01-22, and even then the values are whatever the vendor holds today (possibly restated), not what was filed.",
+  "domain": "financial_statements",
+  "last_training_date_read": "2025-05-09",
+  "tables": {
+    "dolthub_earnings_balance_sheet_assets": {
+      "announcement_lag_days_when_matched": {
+        "p25": 33.0,
+        "p5": 22.0,
+        "p50": 40.0,
+        "p75": 58.0,
+        "p95": 130.0,
+        "p99": 142.0
+      },
+      "duplicate_symbol_period_date_rows": 0,
+      "first_period_end": "2012-10-31",
+      "has_filing_or_acceptance_date": false,
+      "has_restatement_vintage": false,
+      "manifest_point_in_time_status": "publication_lagged",
+      "null_share_by_column": {
+        "cash_and_equivalents": 0.0222,
+        "intangibles": 0.0354,
+        "inventories": 0.0402,
+        "net_property_and_equipment": 0.0259,
+        "receivables": 0.0115,
+        "total_assets": 0.0037,
+        "total_current_assets": 0.0066
+      },
+      "period_kinds": {
+        "Quarter": 207510,
+        "Year": 76861
+      },
+      "rows_before_calendar_start_2020_01_22": 102956,
+      "rows_full_table": 284371,
+      "rows_read_through_training_date": 256352,
+      "share_gateable_via_calendar": 0.4897796779428286,
+      "share_gateable_via_calendar_since_2020": 0.7576850071488439,
+      "share_period_ends_on_month_end": 0.9998698882797472,
+      "share_rows_before_calendar_start": 0.40161964798402194
+    },
+    "dolthub_earnings_balance_sheet_equity": {
+      "announcement_lag_days_when_matched": {
+        "p25": 33.0,
+        "p5": 22.0,
+        "p50": 40.0,
+        "p75": 58.0,
+        "p95": 130.0,
+        "p99": 142.0
+      },
+      "duplicate_symbol_period_date_rows": 0,
+      "first_period_end": "2012-10-31",
+      "has_filing_or_acceptance_date": false,
+      "has_restatement_vintage": false,
+      "manifest_point_in_time_status": "publication_lagged",
+      "null_share_by_column": {
+        "book_value_per_share": 0.0641,
+        "common_stock": 0.0145,
+        "retained_earnings": 0.0095,
+        "shares_outstanding": 0.0641,
+        "total_equity": 0.0072,
+        "treasury_stock": 0.0527
+      },
+      "period_kinds": {
+        "Quarter": 207793,
+        "Year": 76923
+      },
+      "rows_before_calendar_start_2020_01_22": 102956,
+      "rows_full_table": 284716,
+      "rows_read_through_training_date": 256688,
+      "share_gateable_via_calendar": 0.4894268528330113,
+      "share_gateable_via_calendar_since_2020": 0.7565744157441574,
+      "share_period_ends_on_month_end": 0.9998700459405162,
+      "share_rows_before_calendar_start": 0.4010939350495543
+    },
+    "dolthub_earnings_balance_sheet_liabilities": {
+      "announcement_lag_days_when_matched": {
+        "p25": 33.0,
+        "p5": 22.0,
+        "p50": 40.0,
+        "p75": 58.0,
+        "p95": 130.0,
+        "p99": 142.0
+      },
+      "duplicate_symbol_period_date_rows": 0,
+      "first_period_end": "2012-10-31",
+      "has_filing_or_acceptance_date": false,
+      "has_restatement_vintage": false,
+      "manifest_point_in_time_status": "publication_lagged",
+      "null_share_by_column": {
+        "accounts_payable": 0.0127,
+        "long_term_debt": 0.0352,
+        "total_current_liabilities": 0.0081,
+        "total_liabilities": 0.0072
+      },
+      "period_kinds": {
+        "Quarter": 207791,
+        "Year": 76923
+      },
+      "rows_before_calendar_start_2020_01_22": 102956,
+      "rows_full_table": 284714,
+      "rows_read_through_training_date": 256686,
+      "share_gateable_via_calendar": 0.4894306662615024,
+      "share_gateable_via_calendar_since_2020": 0.7565837218169965,
+      "share_period_ends_on_month_end": 0.9998700450276418,
+      "share_rows_before_calendar_start": 0.4010970602214379
+    },
+    "dolthub_earnings_cash_flow_statement": {
+      "announcement_lag_days_when_matched": {
+        "p25": 32.0,
+        "p5": 22.0,
+        "p50": 40.0,
+        "p75": 59.0,
+        "p95": 127.0,
+        "p99": 137.0
+      },
+      "duplicate_symbol_period_date_rows": 0,
+      "first_period_end": "2012-10-31",
+      "has_filing_or_acceptance_date": false,
+      "has_restatement_vintage": false,
+      "manifest_point_in_time_status": "publication_lagged",
+      "null_share_by_column": {
+        "net_cash_from_financing_activities": 0.0292,
+        "net_cash_from_investing_activities": 0.0505,
+        "net_cash_from_operating_activities": 0.0287,
+        "net_income": 0.0307,
+        "payment_of_dividends_and_other_distributions": 0.1139,
+        "property_and_equipment": 0.082
+      },
+      "period_kinds": {
+        "Quarter": 99804,
+        "Year": 76827
+      },
+      "rows_before_calendar_start_2020_01_22": 36648,
+      "rows_full_table": 176631,
+      "rows_read_through_training_date": 146578,
+      "share_gateable_via_calendar": 0.6040197028203413,
+      "share_gateable_via_calendar_since_2020": 0.772776553701955,
+      "share_period_ends_on_month_end": 0.9998244928693151,
+      "share_rows_before_calendar_start": 0.25002387807174337
+    },
+    "dolthub_earnings_income_statement": {
+      "announcement_lag_days_when_matched": {
+        "p25": 32.0,
+        "p5": 22.0,
+        "p50": 40.0,
+        "p75": 58.0,
+        "p95": 130.0,
+        "p99": 142.0
+      },
+      "duplicate_symbol_period_date_rows": 0,
+      "first_period_end": "2012-10-31",
+      "has_filing_or_acceptance_date": false,
+      "has_restatement_vintage": false,
+      "manifest_point_in_time_status": "publication_lagged",
+      "null_share_by_column": {
+        "average_shares": 0.0119,
+        "cost_of_goods": 0.0322,
+        "depreciation_and_amortization": 0.7497,
+        "diluted_net_eps": 0.0697,
+        "gross_profit": 0.0321,
+        "interest_expense": 0.0267,
+        "net_income": 0.0081,
+        "pretax_income": 0.0075,
+        "sales": 0.0239
+      },
+      "period_kinds": {
+        "Quarter": 196879,
+        "Year": 74046
+      },
+      "rows_before_calendar_start_2020_01_22": 98375,
+      "rows_full_table": 270925,
+      "rows_read_through_training_date": 242975,
+      "share_gateable_via_calendar": 0.5096820660561786,
+      "share_gateable_via_calendar_since_2020": 0.7947191777230059,
+      "share_period_ends_on_month_end": 0.999863430838793,
+      "share_rows_before_calendar_start": 0.4048770449634736
+    }
+  }
+}

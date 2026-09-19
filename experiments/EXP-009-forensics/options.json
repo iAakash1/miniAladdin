@@ -1,0 +1,120 @@
+{
+  "domain": "options_aggregates",
+  "last_training_date_read": "2025-05-09",
+  "synchronisation_rule": "Honarvar & Howard (Portfolio Management Research 2025 / SSRN 4766424) report options quotes recorded up to ~10 minutes after the stock close create look-ahead and that lagging the options data substantially reduces earlier predictability. Every options feature must be lagged by at least one session unless the quote time is known.",
+  "tables": {
+    "dolthub_options_chain_daily": {
+      "dates_by_year": {
+        "2019": 48,
+        "2020": 155,
+        "2021": 156,
+        "2022": 151,
+        "2023": 155,
+        "2024": 183,
+        "2025": 93
+      },
+      "day_of_week_of_dates": {
+        "0": 272,
+        "1": 36,
+        "2": 274,
+        "3": 38,
+        "4": 273,
+        "5": 47,
+        "6": 1
+      },
+      "distinct_dates": 941,
+      "duplicate_symbol_date": 0,
+      "first_date": "2019-02-09",
+      "manifest_point_in_time_status": "point_in_time",
+      "null_share_by_column": {
+        "atm_iv": 0.3191,
+        "atm_iv_far": 0.5469,
+        "atm_iv_near": 0.4175,
+        "call_25_iv": 0.1806,
+        "contracts": 0.0,
+        "expirations": 0.0,
+        "put_25_iv": 0.1575,
+        "rel_spread": 0.0005,
+        "strikes": 0.0
+      },
+      "rows_full_table": 1918396,
+      "rows_read_through_training_date": 1408144,
+      "symbols": 2186,
+      "symbols_per_date": {
+        "p10": 1504.0,
+        "p50": 1523.0,
+        "p90": 1634.0
+      },
+      "timestamp_semantics": "date only; the intraday time at which quotes were observed is not recorded",
+      "universe_coverage": {
+        "by_year": {
+          "2019": 0.8675,
+          "2020": 0.8413,
+          "2021": 0.7282,
+          "2022": 0.7967,
+          "2023": 0.8309,
+          "2024": 0.834,
+          "2025": 0.8169
+        },
+        "in_universe_rows_since_first_date": 78232,
+        "share_with_row_within_7_days": 0.8155102771244503
+      }
+    },
+    "dolthub_options_volatility_history": {
+      "dates_by_year": {
+        "2019": 1,
+        "2020": 154,
+        "2021": 156,
+        "2022": 152,
+        "2023": 148,
+        "2024": 183,
+        "2025": 93
+      },
+      "day_of_week_of_dates": {
+        "0": 271,
+        "1": 35,
+        "2": 273,
+        "3": 37,
+        "4": 271
+      },
+      "distinct_dates": 887,
+      "duplicate_symbol_date": 0,
+      "first_date": "2019-05-10",
+      "manifest_point_in_time_status": "point_in_time",
+      "null_share_by_column": {
+        "hv_current": 0.0002,
+        "hv_month_ago": 0.3295,
+        "hv_week_ago": 0.0003,
+        "hv_year_high": 0.0004,
+        "hv_year_low": 0.0004,
+        "iv_current": 0.016,
+        "iv_month_ago": 0.3297,
+        "iv_week_ago": 0.0006,
+        "iv_year_high": 0.0432,
+        "iv_year_low": 0.0432
+      },
+      "rows_full_table": 691007,
+      "rows_read_through_training_date": 498927,
+      "symbols": 717,
+      "symbols_per_date": {
+        "p10": 552.0,
+        "p50": 561.0,
+        "p90": 607.0
+      },
+      "timestamp_semantics": "date only; the intraday time at which quotes were observed is not recorded",
+      "universe_coverage": {
+        "by_year": {
+          "2019": 0.0195,
+          "2020": 0.8235,
+          "2021": 0.7282,
+          "2022": 0.7967,
+          "2023": 0.8144,
+          "2024": 0.8325,
+          "2025": 0.816
+        },
+        "in_universe_rows_since_first_date": 78232,
+        "share_with_row_within_7_days": 0.6899222824419675
+      }
+    }
+  }
+}
