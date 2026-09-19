@@ -1,0 +1,144 @@
+{
+  "cells": [
+    {
+      "id": "A_immediate",
+      "role": "control",
+      "rule": "baseline"
+    },
+    {
+      "anchor": "Novy-Marx & Velikov (2016) sS rule 10%/20% on deciles, scaled 2:1 to quintiles: enter top 20%, retain to top 40%",
+      "family": "B",
+      "id": "B_hysteresis_40",
+      "quantiles": 5,
+      "retain_fraction": 0.4,
+      "role": "treatment",
+      "rule": "rank_hysteresis"
+    },
+    {
+      "anchor": "milder 3:2 band (enter top 20%, retain to top 30%); dose-response companion",
+      "family": "B",
+      "id": "B_hysteresis_30",
+      "quantiles": 5,
+      "retain_fraction": 0.3,
+      "role": "treatment",
+      "rule": "rank_hysteresis"
+    },
+    {
+      "anchor": "Qlib benchmark topk=50, n_drop=5 (10% of k) on a 250-name universe where a quintile is 50 names",
+      "drop_fraction": 0.1,
+      "family": "C",
+      "id": "C_topk_dropout_10",
+      "quantiles": 5,
+      "role": "treatment",
+      "rule": "topk_dropout"
+    },
+    {
+      "anchor": "4 rebalances x 5 sessions = 20 sessions ~ the 21-session label horizon",
+      "family": "D",
+      "id": "D_min_hold_4",
+      "min_hold_periods": 4,
+      "quantiles": 5,
+      "role": "treatment",
+      "rule": "minimum_hold"
+    }
+  ],
+  "costs": {
+    "primary_half_spread_bps": 10.0,
+    "sweep_half_spread_bps": [
+      1.0,
+      3.0,
+      5.0,
+      10.0,
+      20.0
+    ]
+  },
+  "criteria": {
+    "T1_turnover_cut": "annualised one-way turnover <= 0.70 x control (a cut of at least 30%)",
+    "T2_gross_retention": "mean gross period return >= 0.75 x control's",
+    "T3_net_gain": "paired moving-block bootstrap of (net Sharpe at 10 bp, treatment - control): the one-sided lower bound at level 1 - 0.05/4 is > 0",
+    "T4_fold_consistency": "mean net period return exceeds control's in at least 6 of the 8 folds",
+    "carry_forward": "if more than one cell is MECHANISM_CONFIRMED, the one with the highest T2 gross-retention ratio is the mechanism frozen for EXP-009B/C; ties by fewer parameters",
+    "classification": {
+      "EDGE_LOST": "T1 and not T2",
+      "INSUFFICIENT_TURNOVER_CUT": "not T1",
+      "MECHANISM_CONFIRMED": "T1 and T2 and T3 and T4",
+      "NO_RELIABLE_NET_GAIN": "T1 and T2 and (not T3 or not T4)"
+    },
+    "descriptive_only": [
+      "net Sharpe > 0 at 10 bp",
+      "cost share of gross",
+      "break-even half-spread",
+      "max drawdown",
+      "factor-alpha t-statistic",
+      "deflated Sharpe",
+      "capacity proxy"
+    ],
+    "promotion": "NOT ASSESSED - this study cannot promote a model",
+    "validity": {
+      "compared": [
+        "periods",
+        "mean_turnover",
+        "annualised_turnover",
+        "gross_sharpe",
+        "net_sharpe",
+        "cost_share_of_gross",
+        "net_cagr",
+        "total_cost_return"
+      ],
+      "control_must_reproduce_exp006": true,
+      "on_failure": "INVALID - no treatment result is reported",
+      "tolerance_relative": 1e-09
+    }
+  },
+  "engine": {
+    "capital": 1000000.0,
+    "commission_bps": 1.0,
+    "execution_lag_periods": 1,
+    "forward_return_column": "fwd_ret_5",
+    "impact_coefficient": 0.1,
+    "leg_gross": 0.5,
+    "long_short": true,
+    "max_weight": 0.1,
+    "min_names": 10,
+    "quantiles": 5,
+    "rebalance_step_sessions": 5,
+    "turnover_convention": "one-way = sum|delta_w| / 2, annualised x 50.4"
+  },
+  "experiment_id": "EXP-009A",
+  "holdout": {
+    "cutoff": "the sealed window in experiments/EXP-006/metrics.json is never read",
+    "read": false
+  },
+  "inference": {
+    "block_length_periods": 8,
+    "bootstrap": "circular moving-block, paired across cells",
+    "draws": 10000,
+    "family_alpha": 0.05,
+    "hac_newey_west_lags": 4,
+    "n_treatments": 4,
+    "note": "overlap: 21-session labels every 5 sessions give ~4.2 periods of dependence",
+    "seed": 0
+  },
+  "input": {
+    "first_prediction_date": "2017-05-05",
+    "last_prediction_date": "2025-05-09",
+    "model": "gradient_boosting",
+    "note": "frozen out-of-sample predictions; never refit, never altered",
+    "predictions_file": "experiments/EXP-006/predictions_fwd_rank_21.parquet",
+    "refit": false,
+    "rows": 100246,
+    "target": "fwd_rank_21"
+  },
+  "parent_experiment": "EXP-006",
+  "status": "EXPERIMENTAL - PROMOTION NOT ASSESSED",
+  "trials": {
+    "cumulative_evaluations": 160,
+    "declared_treatments": 4,
+    "not_run_in_this_study": [
+      "exponential score smoother",
+      "rebalance-cadence change",
+      "any refit"
+    ],
+    "prior_cumulative_evaluations": 156
+  }
+}

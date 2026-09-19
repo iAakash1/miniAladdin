@@ -297,6 +297,15 @@ def test_run_study_end_to_end_on_synthetic_data(tmp_path, monkeypatch):
     assert "/Users/" not in json.dumps(manifest) and "/home/" not in json.dumps(manifest)
     assert out["metrics"]["decision"]["promotion"] == "NOT ASSESSED"
 
+    rob = X.run_robustness(REPO, output=tmp_path / "out")
+    assert rob["label"].startswith("EXPLORATORY")
+    assert set(rob["cells"]) == set(cells)
+    control = rob["cells"]["A_immediate"]
+    assert control["long_leg_contribution_bp"] + control["short_leg_contribution_bp"] == pytest.approx(
+        control["mean_gross_bp"], abs=1e-6)
+    # It changes no classification: the recorded metrics are untouched.
+    assert json.loads((tmp_path / "out" / "metrics.json").read_text())["decision"] == out["metrics"]["decision"]
+
 
 def test_run_study_refuses_to_report_treatments_if_the_control_does_not_reproduce(tmp_path, monkeypatch):
     from tests.quant.test_weight_rules import panel

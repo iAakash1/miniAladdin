@@ -5,6 +5,7 @@ EXP-009A — command line.
     python -m scripts.quant.exp009a diagnose      # turnover forensics on the frozen baseline
     python -m scripts.quant.exp009a gate          # check the preregistration is pushed
     python -m scripts.quant.exp009a run           # execute (refused without a pushed prereg)
+    python -m scripts.quant.exp009a robustness    # exploratory, post-hoc, changes no classification
 
 `diagnose` evaluates no treatment and reads no forward return in its
 decomposition. `run` calls the preregistration gate first and does nothing
@@ -23,7 +24,7 @@ from src.quant.study import exp009a
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("command", choices=["fingerprint", "diagnose", "gate", "run"])
+    parser.add_argument("command", choices=["fingerprint", "diagnose", "gate", "run", "robustness"])
     args = parser.parse_args()
     logging.basicConfig(level=logging.WARNING)
 
@@ -38,6 +39,9 @@ def main() -> int:
         print(json.dumps({k: result[k] for k in (
             "engine_turnover", "independent_turnover", "independent_vs_engine_relative_difference", "baseline_reproduction",
             "breakeven", "decomposition")}, indent=2, default=str))
+        return 0
+    if args.command == "robustness":
+        print(json.dumps(exp009a.run_robustness(), indent=2, default=str))
         return 0
     result = exp009a.run_study()
     print(json.dumps(result["metrics"]["decision"], indent=2))

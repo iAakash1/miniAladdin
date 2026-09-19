@@ -860,6 +860,70 @@ def run_diagnostics(root: Path = Path("."), *, output: Optional[Path] = None) ->
     return payload
 
 
+def run_robustness(root: Path = Path("."), *, output: Optional[Path] = None) -> dict[str, Any]:
+    """Post-hoc, NON-preregistered robustness of the recorded results.
+
+    Reads the saved period and membership files and the returns panel; fits
+    nothing, adds no cell, and changes no classification. It exists because a
+    preregistered result can be right for the wrong reason, and the reader should
+    see where the gross difference came from: which leg, whether two thin dates
+    or one strong fold carry it, and whether exposure changed. Everything here is
+    exploratory and is labelled so in the output.
+    """
+    root = Path(root)
+    output = output or (root / OUTPUT_DIR)
+    arm_firewall(root)
+    predictions, _ = load_frozen_predictions(root)
+    panel = build_returns_panel(Date.fromisoformat(DEFINITION["input"]["last_prediction_date"]), root=root)
+    fold_map = fold_of_dates(predictions)
+    thin = {Date(2019, 9, 17), Date(2020, 2, 17)}
+    returns = panel.set_index(["date", "symbol"])["fwd_ret_5"]
+
+    def _sharpe(x: np.ndarray) -> Optional[float]:
+        return float(x.mean() / x.std(ddof=1) * math.sqrt(PERIODS_PER_YEAR)) if len(x) > 2 and x.std(ddof=1) > 0 else None
+
+    out: dict[str, Any] = {
+        "label": "EXPLORATORY - not preregistered - changes no classification",
+        "thin_dates_excluded_in_variant": sorted(str(d) for d in thin),
+        "cells": {},
+    }
+    for cell in DEFINITION["cells"]:
+        cid = cell["id"]
+        periods = pd.read_parquet(output / f"periods_{cid}.parquet")
+        weights = pd.read_parquet(output / f"membership_{cid}.parquet")
+        weights["fwd"] = returns.reindex(pd.MultiIndex.from_frame(weights[["date", "symbol"]])).to_numpy()
+        weights["contribution"] = weights["weight"] * weights["fwd"].fillna(0.0)
+        by_leg = weights.assign(leg=np.where(weights["weight"] > 0, "long", "short")).groupby(
+            ["date", "leg"])["contribution"].sum().unstack(fill_value=0.0)
+        frame = periods.assign(fold=[fold_map.get(d) for d in periods["date"]]).merge(
+            by_leg.reset_index(), on="date", how="left")
+        keep_thin = ~frame["date"].isin(thin)
+        keep_fold5 = frame["fold"] != 5
+        out["cells"][cid] = {
+            "mean_gross_bp": float(frame["gross_return"].mean() * 1e4),
+            "long_leg_contribution_bp": float(frame["long"].mean() * 1e4),
+            "short_leg_contribution_bp": float(frame["short"].mean() * 1e4),
+            "mean_gross_exposure": float(frame["gross_exposure"].mean()),
+            "mean_net_exposure": float(frame["net_exposure"].mean()),
+            "net_sharpe_all": _sharpe(frame["net_return"].to_numpy()),
+            "net_sharpe_excluding_thin_dates": _sharpe(frame.loc[keep_thin, "net_return"].to_numpy()),
+            "net_sharpe_excluding_fold_5": _sharpe(frame.loc[keep_fold5, "net_return"].to_numpy()),
+            "gross_sharpe_excluding_thin_dates": _sharpe(frame.loc[keep_thin, "gross_return"].to_numpy()),
+            "gross_sharpe_excluding_fold_5": _sharpe(frame.loc[keep_fold5, "gross_return"].to_numpy()),
+            "mean_gross_bp_excluding_thin_dates": float(frame.loc[keep_thin, "gross_return"].mean() * 1e4),
+            "mean_gross_bp_excluding_fold_5": float(frame.loc[keep_fold5, "gross_return"].mean() * 1e4),
+            "share_of_periods_with_positive_gross": float((frame["gross_return"] > 0).mean()),
+        }
+    control = out["cells"]["A_immediate"]
+    for cid, entry in out["cells"].items():
+        entry["gross_bp_excluding_thin_dates_vs_control_ratio"] = (
+            entry["mean_gross_bp_excluding_thin_dates"] / control["mean_gross_bp_excluding_thin_dates"])
+        entry["gross_bp_excluding_fold_5_vs_control_ratio"] = (
+            entry["mean_gross_bp_excluding_fold_5"] / control["mean_gross_bp_excluding_fold_5"])
+    _write(output, "robustness_exploratory.json", out)
+    return out
+
+
 def _read_factors(root: Path):
     try:
         from src.quant.datasets.store import RawStore

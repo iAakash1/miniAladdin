@@ -1,0 +1,123 @@
+{
+  "baseline_reproduction": {
+    "compared": [
+      {
+        "match": true,
+        "metric": "periods",
+        "recorded_exp006": 403,
+        "reproduced": 403
+      },
+      {
+        "match": true,
+        "metric": "mean_turnover",
+        "recorded_exp006": 0.399773636501747,
+        "reproduced": 0.399773636501747
+      },
+      {
+        "match": true,
+        "metric": "annualised_turnover",
+        "recorded_exp006": 20.14859127968805,
+        "reproduced": 20.14859127968805
+      },
+      {
+        "match": true,
+        "metric": "gross_sharpe",
+        "recorded_exp006": 0.38444407774245604,
+        "reproduced": 0.38444407774245604
+      },
+      {
+        "match": true,
+        "metric": "net_sharpe",
+        "recorded_exp006": -0.102177804608853,
+        "reproduced": -0.102177804608853
+      },
+      {
+        "match": true,
+        "metric": "cost_share_of_gross",
+        "recorded_exp006": 1.2660669268857214,
+        "reproduced": 1.2660669268857214
+      },
+      {
+        "match": true,
+        "metric": "net_cagr",
+        "recorded_exp006": -0.022145460362358538,
+        "reproduced": -0.022145460362358538
+      },
+      {
+        "match": true,
+        "metric": "total_cost_return",
+        "recorded_exp006": 0.5209584009256704,
+        "reproduced": 0.5209584009256704
+      }
+    ],
+    "passed": true
+  },
+  "compute": {
+    "bootstrap_draws": 10000,
+    "cpu_count": 12,
+    "platform": "macOS-27.0-arm64-arm-64bit",
+    "python": "3.12.11",
+    "seed": 0,
+    "trials_counted_for_deflation": 160,
+    "wall_seconds": 121.6
+  },
+  "decision": {
+    "carried_forward": "C_topk_dropout_10",
+    "confirmed_cells": [
+      "C_topk_dropout_10"
+    ],
+    "promotion": "NOT ASSESSED",
+    "summary": "C_topk_dropout_10 carried forward as the frozen turnover mechanism"
+  },
+  "definition_fingerprint": "d59f60494560d0b0a62e3edcadd069366bd47f4e5aa1bc5564e1247c14b2d0a6",
+  "definition_sha256": "4afdc19a77d93060aacdbf95aebf8289fbbd4bc573ee922021c35ed6058f0667",
+  "experiment_id": "EXP-009A",
+  "git_commit": "155e9763f0be62c556f6584b7377274a522a1c4a",
+  "git_dirty": false,
+  "holdout": {
+    "end": "2026-08-28",
+    "firewall": {
+      "breaches_prevented": 0,
+      "checks": 2,
+      "contract_armed": false,
+      "contract_path": "docs/HOLDOUT_CONTRACT.md",
+      "contract_readable": true,
+      "contract_state": "NOT_ARMED",
+      "engaged": true,
+      "override_reason": null,
+      "window": {
+        "active": true,
+        "end": "2026-08-28",
+        "start": "2025-08-28"
+      }
+    },
+    "start": "2025-08-28",
+    "touched": false
+  },
+  "input": {
+    "file": "experiments/EXP-006/predictions_fwd_rank_21.parquet",
+    "file_sha256": "d7616f54c3f65f74558c9d186640c9fab123acff99cd95525e43dabc13eea747",
+    "first_date": "2017-05-05",
+    "last_date": "2025-05-09",
+    "model": "gradient_boosting",
+    "model_rows_sha256": "9d78f8fae7e94fd82e47731d2157259b19209402e9520d29d5b88c45980a6910",
+    "rows": 100246,
+    "symbols": 754
+  },
+  "module_sha256": "ad894c4d754dd120fc53b38ad8a17a7c905d6032496d6a4ca5407502756505d4",
+  "panel_integrity": {
+    "dates_checked": 404,
+    "label_rank_agreement_mean_spearman": 1.0,
+    "label_rank_agreement_min_spearman": 0.9999999999999998,
+    "passed": true,
+    "prediction_rows_without_return": 0
+  },
+  "parent": "EXP-006",
+  "preregistration_commit": "155e9763f0be62c556f6584b7377274a522a1c4a",
+  "preregistration_document": "docs/EXP_009A_TURNOVER_PREREGISTRATION.md",
+  "preregistration_sha256": "d4a56d4b40f070811d3de0217e8b8022b5d8cefce716eb75b38d2e48de377fc5",
+  "pushed_to_origin_main": true,
+  "returns_panel_sha256": "d1f10c93dc747b949429aaba390e87a8412b1a79cdf8f672c15c68cacba0919e",
+  "rules_sha256": "9b1f1edef29d8de73664b2c3c560901f33d2c93a013eee8a5f1961a4c3691293",
+  "status": "EXPERIMENTAL - PROMOTION NOT ASSESSED"
+}
