@@ -1,0 +1,141 @@
+{
+  "checks": {
+    "alfred_macro_vintages": {
+      "detail": "BLOCKED_EXTERNAL_FRED_KEY: no FRED_API_KEY in the environment; no macro vintage data exists",
+      "series": [
+        "DGS3MO",
+        "DGS2",
+        "DGS10"
+      ],
+      "status": "BLOCKED"
+    },
+    "holdout_exclusion": {
+      "detail": {
+        "cutoff": "2025-05-09 23:59:59",
+        "holdout_start": "2025-08-26 00:00:00",
+        "problems": []
+      },
+      "status": "PASS"
+    },
+    "identity_intervals_and_ticker_reuse": {
+      "detail": {
+        "grades": {
+          "A_CONFIRMED": 828,
+          "B_CONSISTENT": 33,
+          "C_PARTIAL": 1,
+          "D_NO_PERIODIC_FILINGS": 96,
+          "X_CONTRADICTED": 18
+        },
+        "intervals": 976,
+        "problems": [],
+        "tickers_with_more_than_one_cik": 2
+      },
+      "status": "PASS"
+    },
+    "raw_and_curated_hashes": {
+      "detail": {
+        "datasets": 18,
+        "first_partition_mismatches": []
+      },
+      "status": "PASS"
+    },
+    "restatement_invariance_real_data": {
+      "detail": {
+        "amendment_rows_after_cut": 11347,
+        "identical_as_of_view": true,
+        "identical_first_reported": true,
+        "identical_rows": true,
+        "later_vintages_of_pre_cut_keys": 150514,
+        "note": "the test bites only if later vintages of pre-cut keys exist",
+        "quarters": [
+          "2019q1",
+          "2019q2",
+          "2019q3",
+          "2019q4"
+        ],
+        "rows_before_cut": 485959,
+        "truncation": "2019-07-01 00:00:00"
+      },
+      "status": "PASS"
+    },
+    "sec_archive_integrity": {
+      "detail": {
+        "archives": 58,
+        "bytes": 5259572200,
+        "continuous": true,
+        "problems": []
+      },
+      "reverified_now": false,
+      "status": "PASS"
+    },
+    "sec_availability_after_close_rule": {
+      "detail": {
+        "after_close_available_same_day": 0,
+        "available_before_acceptance": 0,
+        "close": "16:00:00",
+        "rows": 200000,
+        "timezone": "America/New_York"
+      },
+      "status": "PASS"
+    },
+    "sec_fact_store_v3": {
+      "detail": {
+        "problems": [],
+        "quarters": 58,
+        "rows": 14574206
+      },
+      "status": "PASS"
+    },
+    "security_master_pit_gate": {
+      "detail": {
+        "failures": [
+          "year 2015: trusted identity 0.942 < 0.95",
+          "year 2016: trusted identity 0.948 < 0.95",
+          "year 2018: trusted identity 0.929 < 0.95",
+          "year 2019: trusted identity 0.934 < 0.95",
+          "year 2020: trusted identity 0.935 < 0.95",
+          "year 2021: trusted identity 0.911 < 0.95",
+          "year 2022: trusted identity 0.931 < 0.95",
+          "year 2023: trusted identity 0.938 < 0.95",
+          "year 2024: trusted identity 0.945 < 0.95",
+          "year 2025: trusted identity 0.937 < 0.95"
+        ],
+        "neutralization_allowed": false,
+        "security_master_pit": false,
+        "size_features_allowed": false,
+        "unresolved_tickers": 37
+      },
+      "status": "PARTIAL"
+    },
+    "shares_and_market_cap": {
+      "detail": {
+        "by_basis": {
+          "BALANCE_SHEET": 45095,
+          "DEI_COVER": 33028,
+          "WEIGHTED_AVG_PROXY": 69497
+        },
+        "required": 0.9,
+        "shares_vintages": 147620,
+        "worst_fold_market_cap_share_of_identified": 0.9078348639033672
+      },
+      "status": "PASS"
+    },
+    "sic_and_french_industries": {
+      "detail": {
+        "ciks": 802,
+        "intervals": 925,
+        "missing_share": {
+          "ff12": 0.0,
+          "ff17": 0.0,
+          "ff48": 0.0
+        },
+        "monotone": true,
+        "source": "SEC sic as of the filing date (per the FSDS readme) mapped by the Kenneth French SIC files; no GICS"
+      },
+      "status": "PASS"
+    }
+  },
+  "missing_is_not_zero": true,
+  "status": "BLOCKED",
+  "validated_at": "2026-09-19T19:30:16+00:00"
+}

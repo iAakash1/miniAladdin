@@ -63,25 +63,6 @@ def build_master() -> dict:
     return report
 
 
-def validate() -> dict:
-    sec = coverage_report(CURATED_SEC)
-    master_path = MANIFESTS / "security_master_coverage.json"
-    master = json.loads(master_path.read_text()) if master_path.exists() else {"status": "NOT_BUILT"}
-    result = {
-        "status": "PASS" if sec.get("status") == "BUILT" and master.get("identity_intervals", 0) > 0 else "FAIL",
-        "sec": sec, "security_master": master,
-        "checks": {
-            "accepted_at_present": bool(sec.get("rows", 0) and sec.get("accepted_min")),
-            "no_future_acceptances": not sec.get("accepted_max", "9999").startswith(("2026", "2027")),
-            "conflicts_surfaced": "conflict_count" in sec,
-            "neutralization_prohibited": master.get("neutralization_allowed") is False,
-        },
-    }
-    result["status"] = "PASS" if all(result["checks"].values()) else "FAIL"
-    atomic_json(MANIFESTS / "pit_data_validation.json", result)
-    return result
-
-
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=["estimate", "download-sec", "verify-sec", "build-fundamentals", "build-facts-v3", "build-security-master-v3", "build-rich-panel", "build-security-master", "validate-all", "build-alfred", "validate", "all"])
@@ -119,7 +100,7 @@ def main() -> int:
         from src.quant.pit import rich_panel_build
         manifest = rich_panel_build.build(ROOT)
         result = {k: manifest[k] for k in ("dataset_id", "rows", "securities", "feature_count", "new_feature_count", "feature_hash", "content_hash", "controls_allowed")}
-    elif args.command == "validate-all":
+    elif args.command in ("validate-all", "validate"):
         from src.quant.pit.validate_all import validate_all
         result = validate_all(ROOT, reverify_archives=args.reverify_archives)
         atomic_json(MANIFESTS / "pit_validation.json", result)
@@ -131,8 +112,6 @@ def main() -> int:
         result = build_master()
     elif args.command == "build-alfred":
         result = download_alfred(RAW_ALFRED, MANIFESTS / "alfred_manifest.json")
-    elif args.command == "validate":
-        result = validate()
     else:
         estimate = estimate_download(user_agent=os.environ.get("SEC_USER_AGENT", "miniAladdin-research aakashjawle101@gmail.com"))
         print(json.dumps({"estimate": estimate}, indent=2), flush=True)
@@ -141,7 +120,10 @@ def main() -> int:
         build_all_fundamentals()
         build_master()
         alfred = download_alfred(RAW_ALFRED, MANIFESTS / "alfred_manifest.json")
-        result = {"validation": validate(), "alfred": alfred}
+        from src.quant.pit.validate_all import validate_all
+        validation = validate_all(ROOT)
+        atomic_json(MANIFESTS / "pit_validation.json", validation)
+        result = {"validation": {"status": validation["status"]}, "alfred": alfred}
     print(json.dumps(result, indent=2, default=str))
     return 0 if result.get("status", result.get("validation", {}).get("status", "PASS")) != "FAIL" else 1
 
