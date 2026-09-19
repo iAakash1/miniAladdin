@@ -33,6 +33,13 @@ def test_filing_vintages_do_not_rewrite_history_and_truncate_invariant():
     pd.testing.assert_frame_equal(facts[facts["accepted_at"] <= pd.Timestamp("2024-01-02 23:59:59")].reset_index(drop=True), truncated)
 
 
+def test_formatted_sec_accepted_timestamp_is_preserved():
+    sub, num = _inputs()
+    sub.loc[0, "accepted"] = "2024-01-02 15:30:00.0"
+    facts = curate_sec_rows(sub.iloc[:1], num.iloc[:1], archive_hash="abc")
+    assert facts.iloc[0]["accepted_at"] == pd.Timestamp("2024-01-02 15:30:00")
+
+
 def test_conflicts_are_surfaced_and_contexts_not_mixed():
     sub, num = _inputs()
     num = pd.concat([num, pd.DataFrame([{**num.iloc[0].to_dict(), "value": 11.0}]),

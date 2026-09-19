@@ -1,0 +1,83 @@
+{
+  "checks": {
+    "accepted_at_present": true,
+    "conflicts_surfaced": true,
+    "neutralization_prohibited": true,
+    "no_future_acceptances": true
+  },
+  "sec": {
+    "accepted_max": "2025-05-09 20:28:00",
+    "accepted_min": "2011-01-03 17:07:00",
+    "companies": 797,
+    "companies_by_fact": {
+      "assets": 797,
+      "capital_expenditure": 601,
+      "cash": 748,
+      "current_assets": 662,
+      "current_liabilities": 662,
+      "equity": 748,
+      "gross_profit": 376,
+      "liabilities": 628,
+      "net_income": 797,
+      "operating_cash_flow": 746,
+      "operating_income": 622,
+      "revenue": 716,
+      "shares_outstanding": 638
+    },
+    "conflict_count": 516903,
+    "coverage_by_fact": {
+      "assets": 291860,
+      "capital_expenditure": 113983,
+      "cash": 281276,
+      "current_assets": 102176,
+      "current_liabilities": 103037,
+      "equity": 1129457,
+      "gross_profit": 102041,
+      "liabilities": 109527,
+      "net_income": 599174,
+      "operating_cash_flow": 116084,
+      "operating_income": 333447,
+      "revenue": 1347678,
+      "shares_outstanding": 107569
+    },
+    "coverage_by_year": {
+      "2011": 164327,
+      "2012": 208862,
+      "2013": 225466,
+      "2014": 237839,
+      "2015": 248131,
+      "2016": 254934,
+      "2017": 271997,
+      "2018": 333680,
+      "2019": 444282,
+      "2020": 436531,
+      "2021": 428561,
+      "2022": 427546,
+      "2023": 433202,
+      "2024": 437129,
+      "2025": 184822
+    },
+    "fallback_tag_rate": 0.37844269816471754,
+    "missing_value_rate": 0.003018802446705503,
+    "rows": 4737309,
+    "status": "BUILT",
+    "tag_map_version": "sec-core-facts-v2"
+  },
+  "security_master": {
+    "classification_rows": 894,
+    "exit_event_quality": "APPROXIMATED from local last_seen; returns UNKNOWN",
+    "exit_events": 815,
+    "ff_mapping_version": "french-12-sic-2024-07",
+    "identity_evidence": "current SEC snapshot only; no historical dates inferred",
+    "identity_intervals": 815,
+    "neutralization_allowed": false,
+    "neutralization_blocker": "historical identity intervals remain incomplete; current ticker snapshot is not back-dated",
+    "resolved_current_only": 815,
+    "shares_rows": 109924,
+    "shares_security_coverage": 645,
+    "sic_coverage_of_resolved": 0.9865030674846625,
+    "universe_members": 998,
+    "unresolved": 183
+  },
+  "status": "PASS"
+}

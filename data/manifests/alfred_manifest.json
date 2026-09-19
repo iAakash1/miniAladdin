@@ -1,0 +1,9 @@
+{
+  "note": "No credential was printed or persisted; rerun after exporting FRED_API_KEY.",
+  "series": [
+    "DGS3MO",
+    "DGS2",
+    "DGS10"
+  ],
+  "status": "BLOCKED_EXTERNAL_FRED_KEY"
+}

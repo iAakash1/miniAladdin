@@ -56,7 +56,8 @@ def build_all_fundamentals() -> dict:
 
 def build_master() -> dict:
     report = build_security_master(RAW_SECURITY / "company_tickers_exchange.json", universe_symbols(),
-                                   CURATED_SEC, CURATED_SECURITY)
+                                   CURATED_SEC, CURATED_SECURITY,
+                                   local_symbol_snapshot=ROOT / "data/research/raw/dolthub_stocks_symbol/part-all.parquet")
     atomic_json(MANIFESTS / "security_master_coverage.json", report)
     return report
 

@@ -22,7 +22,10 @@ def download_alfred(raw_dir: Path, manifest_path: Path, *, api_key: str | None =
                     realtime_start: str = "2011-01-01", realtime_end: str = "2025-05-09") -> dict[str, Any]:
     key = api_key or os.environ.get("FRED_API_KEY")
     if not key:
-        return {"status": "BLOCKED_EXTERNAL_FRED_KEY", "series": list(SERIES)}
+        blocked = {"status": "BLOCKED_EXTERNAL_FRED_KEY", "series": list(SERIES),
+                   "note": "No credential was printed or persisted; rerun after exporting FRED_API_KEY."}
+        atomic_json(Path(manifest_path), blocked)
+        return blocked
     raw_dir = Path(raw_dir)
     raw_dir.mkdir(parents=True, exist_ok=True)
     records = []

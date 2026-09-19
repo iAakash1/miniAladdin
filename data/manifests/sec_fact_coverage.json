@@ -1,0 +1,466 @@
+{
+  "accepted_max": "2025-05-09 20:28:00",
+  "accepted_min": "2011-01-03 17:07:00",
+  "companies": 797,
+  "companies_by_fact": {
+    "assets": 797,
+    "capital_expenditure": 601,
+    "cash": 748,
+    "current_assets": 662,
+    "current_liabilities": 662,
+    "equity": 748,
+    "gross_profit": 376,
+    "liabilities": 628,
+    "net_income": 797,
+    "operating_cash_flow": 746,
+    "operating_income": 622,
+    "revenue": 716,
+    "shares_outstanding": 638
+  },
+  "conflict_count": 516903,
+  "coverage_by_fact": {
+    "assets": 291860,
+    "capital_expenditure": 113983,
+    "cash": 281276,
+    "current_assets": 102176,
+    "current_liabilities": 103037,
+    "equity": 1129457,
+    "gross_profit": 102041,
+    "liabilities": 109527,
+    "net_income": 599174,
+    "operating_cash_flow": 116084,
+    "operating_income": 333447,
+    "revenue": 1347678,
+    "shares_outstanding": 107569
+  },
+  "coverage_by_year": {
+    "2011": 164327,
+    "2012": 208862,
+    "2013": 225466,
+    "2014": 237839,
+    "2015": 248131,
+    "2016": 254934,
+    "2017": 271997,
+    "2018": 333680,
+    "2019": 444282,
+    "2020": 436531,
+    "2021": 428561,
+    "2022": 427546,
+    "2023": 433202,
+    "2024": 437129,
+    "2025": 184822
+  },
+  "fallback_tag_rate": 0.37844269816471754,
+  "missing_value_rate": 0.003018802446705503,
+  "quarter_shards": [
+    {
+      "ciks": 421,
+      "conflicts": 5070,
+      "output_sha256": "2e96631bfb291268ce1b4269b064e5438a9c09df25aa930919744fefc79da3e3",
+      "quarter": "2011q1",
+      "rows": 42944
+    },
+    {
+      "ciks": 434,
+      "conflicts": 3243,
+      "output_sha256": "f1c656f44e50c5a445022a0489ec83ccd4b4a886e29b355f23229fe50c6b5f93",
+      "quarter": "2011q2",
+      "rows": 28964
+    },
+    {
+      "ciks": 475,
+      "conflicts": 5489,
+      "output_sha256": "339c18408196b3d77d02dbf382b765bfd1a1d342ead84d276f87dea5767be675",
+      "quarter": "2011q3",
+      "rows": 45071
+    },
+    {
+      "ciks": 475,
+      "conflicts": 5801,
+      "output_sha256": "f7fa4f807809fadfdac0f4083be9d8d3d5e2b9cc1b890378eef7f7b3e44607be",
+      "quarter": "2011q4",
+      "rows": 47348
+    },
+    {
+      "ciks": 485,
+      "conflicts": 7738,
+      "output_sha256": "29215b76d0881178af5e63410ac0b24e4af019f1748ce32214fd3faf36a57a97",
+      "quarter": "2012q1",
+      "rows": 64202
+    },
+    {
+      "ciks": 493,
+      "conflicts": 5070,
+      "output_sha256": "dd21297e0a873acd9c5da43b38c4f54bad79f3e6a5317e7eb4b1ef1866a646bc",
+      "quarter": "2012q2",
+      "rows": 42392
+    },
+    {
+      "ciks": 491,
+      "conflicts": 6300,
+      "output_sha256": "5f67e543c37c1798461f0ea3d25bb50b2e1b8a8cb2d5e5a03349a30e64bc3784",
+      "quarter": "2012q3",
+      "rows": 51178
+    },
+    {
+      "ciks": 497,
+      "conflicts": 6226,
+      "output_sha256": "cc0630af3d158818db9eb8b30d4d7e02e8cf445d773bcac270414aaa7ef329b6",
+      "quarter": "2012q4",
+      "rows": 51090
+    },
+    {
+      "ciks": 494,
+      "conflicts": 8153,
+      "output_sha256": "f31062f41223ff38d5c95c992a97825020891533eedce631d16aa47330864215",
+      "quarter": "2013q1",
+      "rows": 66938
+    },
+    {
+      "ciks": 510,
+      "conflicts": 5616,
+      "output_sha256": "3fdc867e8cead3e8f266c445d3cf71af45e7798463fe44a008a660e5f5f01393",
+      "quarter": "2013q2",
+      "rows": 46269
+    },
+    {
+      "ciks": 508,
+      "conflicts": 6801,
+      "output_sha256": "639be8ff9e8238b5f68f742ab4273a8fd62d41bf475df18510fcf5924d253064",
+      "quarter": "2013q3",
+      "rows": 56194
+    },
+    {
+      "ciks": 514,
+      "conflicts": 6741,
+      "output_sha256": "5c6ca770e1526bfca57e9ba2a06214ddcfb05706c59fa279ea7fc3d11e4e2cc7",
+      "quarter": "2013q4",
+      "rows": 56065
+    },
+    {
+      "ciks": 518,
+      "conflicts": 8688,
+      "output_sha256": "8a06709fcbddf35a8d589ecfe8302507244b84fbb2909939592b5f80385e8cd0",
+      "quarter": "2014q1",
+      "rows": 72823
+    },
+    {
+      "ciks": 535,
+      "conflicts": 5868,
+      "output_sha256": "5d169a89b31ca1c18c00ad3dcb522ff6b0214c4cca85874bd831fb5fb29b2abb",
+      "quarter": "2014q2",
+      "rows": 48134
+    },
+    {
+      "ciks": 533,
+      "conflicts": 7186,
+      "output_sha256": "e7ac8a042983c50c296fbfafbc91395eba9c0254cb3f9dca8981adb0e1b0c236",
+      "quarter": "2014q3",
+      "rows": 59607
+    },
+    {
+      "ciks": 536,
+      "conflicts": 6950,
+      "output_sha256": "9e7f06a779c19c52567588f381c74637cc24481e5a3708ea75c9908b165d34d1",
+      "quarter": "2014q4",
+      "rows": 57275
+    },
+    {
+      "ciks": 540,
+      "conflicts": 8828,
+      "output_sha256": "df633f39c6ba28ec3b9e4913890a32ac24d21f830b6525419859a28b7c8e3e44",
+      "quarter": "2015q1",
+      "rows": 74830
+    },
+    {
+      "ciks": 556,
+      "conflicts": 6221,
+      "output_sha256": "e0529803c45c5394d433a3e2b956d71b7a6afb56cab8ca1a473f24f9d15d271a",
+      "quarter": "2015q2",
+      "rows": 50392
+    },
+    {
+      "ciks": 555,
+      "conflicts": 7143,
+      "output_sha256": "cb3e3add5480b7c8a5934b07318d94ba6979404a28ee640773dc9dc06decb72e",
+      "quarter": "2015q3",
+      "rows": 59791
+    },
+    {
+      "ciks": 559,
+      "conflicts": 7504,
+      "output_sha256": "ce4bcd81771a478c6d529ae95da7a0af750c818b56f412eaa23ceb1f5b346cdf",
+      "quarter": "2015q4",
+      "rows": 63118
+    },
+    {
+      "ciks": 565,
+      "conflicts": 9499,
+      "output_sha256": "ac33d6d5645c2080b165d92982a46aa6aea1e4a1cbef3887f4ae6a39ec437130",
+      "quarter": "2016q1",
+      "rows": 80179
+    },
+    {
+      "ciks": 574,
+      "conflicts": 6411,
+      "output_sha256": "378d0cba71fcaf6fa098997868afc9c053430e1a1a815bc483f96e854e79230b",
+      "quarter": "2016q2",
+      "rows": 52787
+    },
+    {
+      "ciks": 511,
+      "conflicts": 6832,
+      "output_sha256": "39a16761d928c0e756c7b6d37a8be7b906da5a106f0609b4d6c73bdecc3fdf55",
+      "quarter": "2016q3",
+      "rows": 57366
+    },
+    {
+      "ciks": 569,
+      "conflicts": 7786,
+      "output_sha256": "a49c25021d9ca7515a47250954acd74e2a6043864fe1264db2c67bbd71d2f600",
+      "quarter": "2016q4",
+      "rows": 64602
+    },
+    {
+      "ciks": 580,
+      "conflicts": 9957,
+      "output_sha256": "01e87c774eee451334ec0c56d7b7af05035eb229e4c4bd44431b0018c2b5d021",
+      "quarter": "2017q1",
+      "rows": 84125
+    },
+    {
+      "ciks": 590,
+      "conflicts": 6801,
+      "output_sha256": "3471ea273785b3fc9738d2fc60d0f3e18ba0ac3ccd63860601f41ed88fadccf0",
+      "quarter": "2017q2",
+      "rows": 55789
+    },
+    {
+      "ciks": 574,
+      "conflicts": 7877,
+      "output_sha256": "15784f0e67e73b37428ee4b3da74954acfe5bf58d43f9533dc4516e6d3e6f03e",
+      "quarter": "2017q3",
+      "rows": 65484
+    },
+    {
+      "ciks": 584,
+      "conflicts": 8056,
+      "output_sha256": "7f370b5b98e2f0998d6f25639c9bb033174aaeee088b814c516593650798ef47",
+      "quarter": "2017q4",
+      "rows": 66599
+    },
+    {
+      "ciks": 611,
+      "conflicts": 10421,
+      "output_sha256": "bcaede2d725afa2e45068e42d7e8f28a1b783d6324611fe39c153c6b4900d525",
+      "quarter": "2018q1",
+      "rows": 88656
+    },
+    {
+      "ciks": 614,
+      "conflicts": 7933,
+      "output_sha256": "68f5e361233ca76e2c72cbc0f7bc22ff1201975e6420bbf48341d8d4200c0e76",
+      "quarter": "2018q2",
+      "rows": 65754
+    },
+    {
+      "ciks": 610,
+      "conflicts": 9220,
+      "output_sha256": "32bed4361c755ee623058867cb29a5dbe4d92eeead814fd455cf2fc1968ad4fb",
+      "quarter": "2018q3",
+      "rows": 86601
+    },
+    {
+      "ciks": 595,
+      "conflicts": 9641,
+      "output_sha256": "6ef220f898e860d9bae7556cb4ce0740230f17ec7baf1331a8f43b12c3263946",
+      "quarter": "2018q4",
+      "rows": 92669
+    },
+    {
+      "ciks": 638,
+      "conflicts": 12120,
+      "output_sha256": "928b0ed5f73cdfb1230c19dc33acf3c96822c60de1193ebce8d8815ba43075c9",
+      "quarter": "2019q1",
+      "rows": 113550
+    },
+    {
+      "ciks": 638,
+      "conflicts": 9439,
+      "output_sha256": "ccdd0025d3a212d12546e4c95d87bb97a98c0cb556426909203db8d0ff091ef2",
+      "quarter": "2019q2",
+      "rows": 89953
+    },
+    {
+      "ciks": 637,
+      "conflicts": 11480,
+      "output_sha256": "da21c471a00273e80e0c28d4c98b0569ac08737a9ea5366af93fbd83dc4b9f3b",
+      "quarter": "2019q3",
+      "rows": 117598
+    },
+    {
+      "ciks": 626,
+      "conflicts": 12339,
+      "output_sha256": "02c18bea484ef41ff6424212dd3dac0e79a88ce2c6602c6b20cd25ddb4662a51",
+      "quarter": "2019q4",
+      "rows": 123181
+    },
+    {
+      "ciks": 669,
+      "conflicts": 12239,
+      "output_sha256": "f6f794e6a4cb4db565ac4f2a565d4a44bc981b88818765504913938903b6640d",
+      "quarter": "2020q1",
+      "rows": 118268
+    },
+    {
+      "ciks": 653,
+      "conflicts": 8576,
+      "output_sha256": "730a76cb40c0fcc474e7fa6895579a7d76b17001d4e7cddf8a4afd30f78228e5",
+      "quarter": "2020q2",
+      "rows": 83330
+    },
+    {
+      "ciks": 662,
+      "conflicts": 11218,
+      "output_sha256": "59b8ab354df0fb207decc40b1b69dde3907ca0965c00501eeb55b7dadf32be88",
+      "quarter": "2020q3",
+      "rows": 115370
+    },
+    {
+      "ciks": 658,
+      "conflicts": 11965,
+      "output_sha256": "03f8e7ab1a53fd5a01c11904e812a9256bf00fa04ba507335cf9e72762e0079b",
+      "quarter": "2020q4",
+      "rows": 119563
+    },
+    {
+      "ciks": 708,
+      "conflicts": 11447,
+      "output_sha256": "2bf77dae20a5cbff2f4d563312ed7262fc8d4294813c7f19439fa9ea1aeef741",
+      "quarter": "2021q1",
+      "rows": 113196
+    },
+    {
+      "ciks": 692,
+      "conflicts": 9141,
+      "output_sha256": "6c2188b0684c370d382d5d9972de03faf0067a411b1f3766eb52a8a21dfe5f49",
+      "quarter": "2021q2",
+      "rows": 86441
+    },
+    {
+      "ciks": 697,
+      "conflicts": 11150,
+      "output_sha256": "3f6edcebb72510e19eccf6f46e926b50922f43e73273b98d4a256bee6693ea60",
+      "quarter": "2021q3",
+      "rows": 113124
+    },
+    {
+      "ciks": 675,
+      "conflicts": 11629,
+      "output_sha256": "7c736a21795c60e3a3a8d4572302d111e45b0c33578355c9168d6e5c2a27c5f1",
+      "quarter": "2021q4",
+      "rows": 115800
+    },
+    {
+      "ciks": 722,
+      "conflicts": 11104,
+      "output_sha256": "b36ca52068fbca18413337a327858277852a7b3aca088cc71679d9de6d61439e",
+      "quarter": "2022q1",
+      "rows": 108038
+    },
+    {
+      "ciks": 713,
+      "conflicts": 9029,
+      "output_sha256": "550f5e7485030a15cc02ba4271360d0ce80fbef7d85639c794c5fb0213dec347",
+      "quarter": "2022q2",
+      "rows": 86512
+    },
+    {
+      "ciks": 711,
+      "conflicts": 11536,
+      "output_sha256": "b53fc1a48315c2cf8b168abd17b73aa48df1f4f1c390873c0d01096fa915f144",
+      "quarter": "2022q3",
+      "rows": 114938
+    },
+    {
+      "ciks": 690,
+      "conflicts": 11947,
+      "output_sha256": "88446b5a0b1e5ee8763792c61e95428f91a286c4070e9853c650f3ab63d49bec",
+      "quarter": "2022q4",
+      "rows": 118058
+    },
+    {
+      "ciks": 735,
+      "conflicts": 11267,
+      "output_sha256": "678443d5786a1a21c6ec3acb30011df1aae2ce625c9c7e46eaaa99a3538dadf2",
+      "quarter": "2023q1",
+      "rows": 108588
+    },
+    {
+      "ciks": 722,
+      "conflicts": 9434,
+      "output_sha256": "4b0deee4a50c2981484504231ed70770105e82cd731bbcb3be8c7e3c2868d69e",
+      "quarter": "2023q2",
+      "rows": 89528
+    },
+    {
+      "ciks": 711,
+      "conflicts": 11731,
+      "output_sha256": "0293a0a780b405376d5ad5d4319523637f2cd6c08ce068cdfd19f79c3a697176",
+      "quarter": "2023q3",
+      "rows": 116242
+    },
+    {
+      "ciks": 692,
+      "conflicts": 12279,
+      "output_sha256": "6129b33428f34a6967d0d985444feb94f1c4f8b5a61443c2bea002bcf8fad529",
+      "quarter": "2023q4",
+      "rows": 118844
+    },
+    {
+      "ciks": 729,
+      "conflicts": 11399,
+      "output_sha256": "90bd24e81f90c722795699fccc74c80bd98f2be09e5d3d9cd66d3e1a90b4255b",
+      "quarter": "2024q1",
+      "rows": 109081
+    },
+    {
+      "ciks": 735,
+      "conflicts": 9688,
+      "output_sha256": "1f3f88f3a7e8096ff80191452dfe8aed0bec67a6f6d36c8a41a087472547629e",
+      "quarter": "2024q2",
+      "rows": 89797
+    },
+    {
+      "ciks": 729,
+      "conflicts": 11940,
+      "output_sha256": "c53257efedd86707982dbeb8c7e7ce7839d0fd036a151bfdad60a7a2773da4dc",
+      "quarter": "2024q3",
+      "rows": 117236
+    },
+    {
+      "ciks": 704,
+      "conflicts": 12463,
+      "output_sha256": "e4e3992afaf97d6119185aa6940b7392bb27655737e95595a6563231c060dc73",
+      "quarter": "2024q4",
+      "rows": 121015
+    },
+    {
+      "ciks": 749,
+      "conflicts": 11480,
+      "output_sha256": "04844ac044d0a512cc2c0aa302ba5ea8820596d1bb03dc70e06e80bc43ad7337",
+      "quarter": "2025q1",
+      "rows": 109861
+    },
+    {
+      "ciks": 610,
+      "conflicts": 7793,
+      "output_sha256": "7918515ee7390488367cbcaf8e19efd9d49caeaf24c9ffe9ebaa9edd89e3036e",
+      "quarter": "2025q2",
+      "rows": 74961
+    }
+  ],
+  "rows": 4737309,
+  "status": "BUILT",
+  "tag_map_version": "sec-core-facts-v2"
+}

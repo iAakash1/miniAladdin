@@ -1,0 +1,16 @@
+{
+  "classification_rows": 894,
+  "exit_event_quality": "APPROXIMATED from local last_seen; returns UNKNOWN",
+  "exit_events": 815,
+  "ff_mapping_version": "french-12-sic-2024-07",
+  "identity_evidence": "current SEC snapshot only; no historical dates inferred",
+  "identity_intervals": 815,
+  "neutralization_allowed": false,
+  "neutralization_blocker": "historical identity intervals remain incomplete; current ticker snapshot is not back-dated",
+  "resolved_current_only": 815,
+  "shares_rows": 109924,
+  "shares_security_coverage": 645,
+  "sic_coverage_of_resolved": 0.9865030674846625,
+  "universe_members": 998,
+  "unresolved": 183
+}

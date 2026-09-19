@@ -28,7 +28,7 @@ from src.quant.pit.calendar import TradingCalendar
 
 SEC_BASE = "https://www.sec.gov/files/dera/data/financial-statement-data-sets"
 SEC_TICKERS_URL = "https://www.sec.gov/files/company_tickers_exchange.json"
-TAG_MAP_VERSION = "sec-core-facts-v1"
+TAG_MAP_VERSION = "sec-core-facts-v2"
 FF_INDUSTRY_VERSION = "french-12-sic-2024-07"
 DEFAULT_USER_AGENT = "miniAladdin-research aakashjawle101@gmail.com"
 REQUIRED_MEMBERS = {"sub.txt", "num.txt", "tag.txt", "pre.txt"}
@@ -48,7 +48,7 @@ TAG_MAP: dict[str, dict[str, Any]] = {
     "cash": {"context": "instant", "tags": ["CashAndCashEquivalentsAtCarryingValue", "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents"]},
     "operating_cash_flow": {"context": "duration", "tags": ["NetCashProvidedByUsedInOperatingActivities"]},
     "capital_expenditure": {"context": "duration", "tags": ["PaymentsToAcquirePropertyPlantAndEquipment"]},
-    "shares_outstanding": {"context": "instant", "tags": ["EntityCommonStockSharesOutstanding"]},
+    "shares_outstanding": {"context": "instant", "tags": ["EntityCommonStockSharesOutstanding", "CommonStockSharesOutstanding"]},
 }
 TAG_LOOKUP = {
     tag: (fact, priority, spec["context"])
@@ -205,8 +205,18 @@ def download_sec(raw_dir: Path, manifest_path: Path, *, user_agent: str = DEFAUL
 
 
 def _parse_accepted(values: pd.Series) -> pd.Series:
-    text = values.astype("string").str.replace(".0", "", regex=False).str.zfill(14)
-    return pd.to_datetime(text, format="%Y%m%d%H%M%S", errors="coerce")
+    text = values.astype("string").str.replace(r"\.0$", "", regex=True).str.strip()
+    # SEC archives changed from compact YYYYMMDDHHMMSS to a formatted timestamp.
+    # Parsing both is part of the source contract; accepted_at may never be
+    # manufactured from filed or period end when one representation changes.
+    formatted = pd.to_datetime(text, errors="coerce", format="mixed")
+    missing = formatted.isna()
+    if missing.any():
+        formatted.loc[missing] = pd.to_datetime(
+            text.loc[missing].str.replace(r"\D", "", regex=True).str[:14],
+            format="%Y%m%d%H%M%S", errors="coerce",
+        )
+    return formatted
 
 
 def available_session(accepted_at: datetime | pd.Timestamp, calendar: TradingCalendar,
@@ -398,7 +408,7 @@ def validate_identity_intervals(intervals: pd.DataFrame) -> None:
 
 
 def build_security_master(ticker_snapshot: Path, universe_symbols: Sequence[str], facts_dir: Path,
-                          output_dir: Path) -> dict[str, Any]:
+                          output_dir: Path, *, local_symbol_snapshot: Path | None = None) -> dict[str, Any]:
     payload = json.loads(Path(ticker_snapshot).read_text())
     current = pd.DataFrame(payload["data"], columns=[str(field).lower() for field in payload["fields"]])
     current["ticker"] = current["ticker"].astype(str).str.upper()
@@ -417,16 +427,26 @@ def build_security_master(ticker_snapshot: Path, universe_symbols: Sequence[str]
     fact_paths = sorted(Path(facts_dir).glob("facts-*.parquet"))
     metadata = [pd.read_parquet(path, columns=["cik", "sic", "accepted_at", "accession"]).dropna(subset=["sic"]) for path in fact_paths]
     classifications = pd.concat(metadata, ignore_index=True) if metadata else pd.DataFrame(columns=["cik", "sic", "accepted_at", "accession"])
-    classifications = classifications.sort_values("accepted_at").drop_duplicates(["cik", "accepted_at", "sic"])
+    classifications = classifications.sort_values(["cik", "accepted_at", "accession"]).drop_duplicates(["cik", "accepted_at", "sic"])
+    # One SIC state per acceptance instant; a later different SIC closes the
+    # former interval. Repeated filings with the same SIC create no new state.
+    classifications = classifications.drop_duplicates(["cik", "accepted_at"], keep="last")
+    classifications = classifications[
+        classifications.groupby("cik")["sic"].shift().ne(classifications["sic"])
+    ].copy()
     classifications = classifications.merge(identities[["cik", "security_id"]], on="cik", how="inner")
-    classifications["effective_from"] = pd.to_datetime(classifications["accepted_at"]).dt.date
-    classifications["effective_to"] = pd.NaT
+    classifications = classifications.sort_values(["security_id", "accepted_at"])
+    classifications["effective_from"] = pd.to_datetime(classifications["accepted_at"])
+    classifications["effective_to"] = (
+        classifications.groupby("security_id")["effective_from"].shift(-1) - pd.Timedelta(microseconds=1)
+    )
     classifications["ff_industry"] = classifications["sic"].map(ff12_from_sic)
     classifications["source_accession"] = classifications["accession"]
     classifications["mapping_version"] = FF_INDUSTRY_VERSION
     classifications = classifications[["security_id", "sic", "ff_industry", "effective_from", "effective_to", "source_accession", "mapping_version"]]
 
-    shares_parts = [pd.read_parquet(path) for path in fact_paths]
+    share_columns = ["cik", "canonical_fact", "period_end", "accepted_at", "accession", "form", "tag", "unit", "value", "amendment"]
+    shares_parts = [pd.read_parquet(path, columns=share_columns) for path in fact_paths]
     shares = pd.concat(shares_parts, ignore_index=True) if shares_parts else pd.DataFrame(columns=CURATED_COLUMNS)
     shares = shares[shares["canonical_fact"] == "shares_outstanding"].merge(identities[["cik", "security_id"]], on="cik", how="inner")
     shares = shares.rename(columns={"accession": "accession"})
@@ -438,10 +458,24 @@ def build_security_master(ticker_snapshot: Path, universe_symbols: Sequence[str]
     ambiguous = set(duplicates[duplicates > 1].index)
     resolution["resolution_status"] = np.where(resolution["security_id"].isna(), "UNRESOLVED_NO_SEC_CURRENT_MATCH",
                                                  np.where(resolution["ticker"].isin(ambiguous), "UNRESOLVED_AMBIGUOUS", "RESOLVED_CURRENT_ONLY"))
+
+    exits = pd.DataFrame(columns=["security_id", "event_date", "form", "reason", "last_trade_date", "return_treatment", "source_accession"])
+    if local_symbol_snapshot is not None and Path(local_symbol_snapshot).exists():
+        local = pd.read_parquet(local_symbol_snapshot, columns=["symbol", "date"])
+        local = local.rename(columns={"symbol": "ticker", "date": "event_date"})
+        local["ticker"] = local["ticker"].astype(str).str.upper()
+        exits = local.merge(identities[["ticker", "security_id"]], on="ticker", how="inner")
+        exits["form"] = pd.NA
+        exits["reason"] = "APPROXIMATED_LOCAL_LAST_SEEN"
+        exits["last_trade_date"] = exits["event_date"]
+        exits["return_treatment"] = "UNKNOWN_NO_CRSP_DELISTING_RETURN"
+        exits["source_accession"] = pd.NA
+        exits = exits[["security_id", "event_date", "form", "reason", "last_trade_date", "return_treatment", "source_accession"]]
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     for name, frame in (("security_identity_interval", identities), ("security_classification_interval", classifications),
-                        ("shares_fact_vintage", shares), ("universe_resolution", resolution)):
+                        ("shares_fact_vintage", shares), ("security_exit_event", exits),
+                        ("universe_resolution", resolution)):
         temporary = output_dir / f"{name}.parquet.tmp"
         frame.to_parquet(temporary, compression="zstd", index=False)
         os.replace(temporary, output_dir / f"{name}.parquet")
@@ -453,6 +487,7 @@ def build_security_master(ticker_snapshot: Path, universe_symbols: Sequence[str]
         "identity_intervals": len(identities), "classification_rows": len(classifications),
         "sic_coverage_of_resolved": float(classifications["security_id"].nunique() / max(resolved["security_id"].nunique(), 1)),
         "shares_rows": len(shares), "shares_security_coverage": int(shares["security_id"].nunique()),
+        "exit_events": len(exits), "exit_event_quality": "APPROXIMATED from local last_seen; returns UNKNOWN",
         "neutralization_allowed": False,
         "neutralization_blocker": "historical identity intervals remain incomplete; current ticker snapshot is not back-dated",
         "ff_mapping_version": FF_INDUSTRY_VERSION,

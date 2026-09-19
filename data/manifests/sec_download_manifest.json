@@ -1,0 +1,1118 @@
+{
+  "archives": [
+    {
+      "bytes": 19615544,
+      "filename": "2011q1.zip",
+      "http": {
+        "Content-Length": "19615544",
+        "Last-Modified": "Fri, 27 Dec 2024 18:38:58 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 1,
+      "retrieved_at": "2026-09-19T16:05:07.079390+00:00",
+      "sha256": "e63b781a5e57e55d68e110a06d3f697e942a60e17f093bbdc1a16ac7152a7df5",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2011q1.zip",
+      "year": 2011
+    },
+    {
+      "bytes": 15001310,
+      "filename": "2011q2.zip",
+      "http": {
+        "Content-Length": "15001310",
+        "Last-Modified": "Fri, 27 Dec 2024 18:40:06 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 2,
+      "retrieved_at": "2026-09-19T16:05:08.337576+00:00",
+      "sha256": "10a6f98f14d2a341e938a379ea32beb4857b01d59facf04e6e7b3c68558a95d1",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2011q2.zip",
+      "year": 2011
+    },
+    {
+      "bytes": 57941919,
+      "filename": "2011q3.zip",
+      "http": {
+        "Content-Length": "57941919",
+        "Last-Modified": "Fri, 27 Dec 2024 18:41:27 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 3,
+      "retrieved_at": "2026-09-19T16:05:13.866794+00:00",
+      "sha256": "43b9beb243c6686a29df5cf817ed2cb3a7c86a7398bbc56e2fb4d0cf4784ac28",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2011q3.zip",
+      "year": 2011
+    },
+    {
+      "bytes": 64306658,
+      "filename": "2011q4.zip",
+      "http": {
+        "Content-Length": "64306658",
+        "Last-Modified": "Fri, 27 Dec 2024 18:42:43 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 4,
+      "retrieved_at": "2026-09-19T16:05:19.484014+00:00",
+      "sha256": "0f674f68094cc65c83da3c142775dcfd091250e293783c3e8211ee4e97bc083f",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2011q4.zip",
+      "year": 2011
+    },
+    {
+      "bytes": 85474601,
+      "filename": "2012q1.zip",
+      "http": {
+        "Content-Length": "85474601",
+        "Last-Modified": "Fri, 27 Dec 2024 18:44:09 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 1,
+      "retrieved_at": "2026-09-19T16:05:26.945034+00:00",
+      "sha256": "42ed1a5ecac978d4338bd51cd4bc15bf60cc821291eea492f8172fc4e803d5f6",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2012q1.zip",
+      "year": 2012
+    },
+    {
+      "bytes": 80075771,
+      "filename": "2012q2.zip",
+      "http": {
+        "Content-Length": "80075771",
+        "Last-Modified": "Fri, 27 Dec 2024 18:45:24 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 2,
+      "retrieved_at": "2026-09-19T16:05:33.881516+00:00",
+      "sha256": "0dbb10aa316c674f07849a28e67a25a0a59bd6ef2bc214cd1800c8a2d2a05df6",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2012q2.zip",
+      "year": 2012
+    },
+    {
+      "bytes": 89608234,
+      "filename": "2012q3.zip",
+      "http": {
+        "Content-Length": "89608234",
+        "Last-Modified": "Fri, 27 Dec 2024 18:47:12 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 3,
+      "retrieved_at": "2026-09-19T16:05:41.733973+00:00",
+      "sha256": "a5b705fab7948837fc890d820c2b809d4afdb0ff1836129ad5a16127275f0ebf",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2012q3.zip",
+      "year": 2012
+    },
+    {
+      "bytes": 95805256,
+      "filename": "2012q4.zip",
+      "http": {
+        "Content-Length": "95805256",
+        "Last-Modified": "Fri, 27 Dec 2024 18:48:52 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 4,
+      "retrieved_at": "2026-09-19T16:05:50.276414+00:00",
+      "sha256": "af6629de7547f5d75c85abf170550b9466768071fcd419d5fdf1a1d026436e98",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2012q4.zip",
+      "year": 2012
+    },
+    {
+      "bytes": 99173442,
+      "filename": "2013q1.zip",
+      "http": {
+        "Content-Length": "99173442",
+        "Last-Modified": "Fri, 27 Dec 2024 18:50:22 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 1,
+      "retrieved_at": "2026-09-19T16:05:59.074196+00:00",
+      "sha256": "329f4e3e40c0351001037ad1dea3fd28c07100f6f6d6d64d5998ea01b060a790",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2013q1.zip",
+      "year": 2013
+    },
+    {
+      "bytes": 96917655,
+      "filename": "2013q2.zip",
+      "http": {
+        "Content-Length": "96917655",
+        "Last-Modified": "Fri, 27 Dec 2024 18:52:49 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 2,
+      "retrieved_at": "2026-09-19T16:06:08.204604+00:00",
+      "sha256": "7cc764386ea9cb01d62e1a9f4fac38dc9c741e96886a953ddaad2def4eb489c7",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2013q2.zip",
+      "year": 2013
+    },
+    {
+      "bytes": 98355005,
+      "filename": "2013q3.zip",
+      "http": {
+        "Content-Length": "98355005",
+        "Last-Modified": "Fri, 27 Dec 2024 18:54:17 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 3,
+      "retrieved_at": "2026-09-19T16:06:16.825616+00:00",
+      "sha256": "c9134387b650a9194f14b3f832f16aa1a72255c20a0e0b954001a643933cc849",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2013q3.zip",
+      "year": 2013
+    },
+    {
+      "bytes": 92335773,
+      "filename": "2013q4.zip",
+      "http": {
+        "Content-Length": "92335773",
+        "Last-Modified": "Fri, 27 Dec 2024 18:55:38 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 4,
+      "retrieved_at": "2026-09-19T16:06:24.948716+00:00",
+      "sha256": "7781ac25ddbd4f6eb8eb85e838656181fb06e8bc16b1dd5efccb9e21f8f5baa7",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2013q4.zip",
+      "year": 2013
+    },
+    {
+      "bytes": 102843522,
+      "filename": "2014q1.zip",
+      "http": {
+        "Content-Length": "102843522",
+        "Last-Modified": "Fri, 27 Dec 2024 18:57:10 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 1,
+      "retrieved_at": "2026-09-19T16:06:34.133774+00:00",
+      "sha256": "bf55481c6e0088fb45e8efeb2d8de6912a9c3533da918376a24ca5f84144680f",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2014q1.zip",
+      "year": 2014
+    },
+    {
+      "bytes": 85032839,
+      "filename": "2014q2.zip",
+      "http": {
+        "Content-Length": "85032839",
+        "Last-Modified": "Fri, 27 Dec 2024 18:58:56 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 2,
+      "retrieved_at": "2026-09-19T16:06:41.558674+00:00",
+      "sha256": "ab03600231a08369a980a31dde8bb78b6cd49f56d39ab7b90ca5bc0cfd52aa7f",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2014q2.zip",
+      "year": 2014
+    },
+    {
+      "bytes": 87408142,
+      "filename": "2014q3.zip",
+      "http": {
+        "Content-Length": "87408142",
+        "Last-Modified": "Fri, 27 Dec 2024 19:02:33 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 3,
+      "retrieved_at": "2026-09-19T16:06:49.222673+00:00",
+      "sha256": "4d10510a2f17a6da8012d83f66bed7fbb434bca2529f7b2a92043c522d2c52b1",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2014q3.zip",
+      "year": 2014
+    },
+    {
+      "bytes": 87639973,
+      "filename": "2014q4.zip",
+      "http": {
+        "Content-Length": "87639973",
+        "Last-Modified": "Fri, 27 Dec 2024 19:04:17 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 4,
+      "retrieved_at": "2026-09-19T16:06:56.814986+00:00",
+      "sha256": "c82395b7df380a95b30d652784372a5439dea9ed750d89784822bb643cbc4930",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2014q4.zip",
+      "year": 2014
+    },
+    {
+      "bytes": 98944359,
+      "filename": "2015q1.zip",
+      "http": {
+        "Content-Length": "98944359",
+        "Last-Modified": "Fri, 27 Dec 2024 19:07:38 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 1,
+      "retrieved_at": "2026-09-19T16:07:05.581508+00:00",
+      "sha256": "baa9e434480b8299593b781e8156f855e0c4548677329f166f495cbae287e52e",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2015q1.zip",
+      "year": 2015
+    },
+    {
+      "bytes": 78908272,
+      "filename": "2015q2.zip",
+      "http": {
+        "Content-Length": "78908272",
+        "Last-Modified": "Fri, 27 Dec 2024 19:08:53 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 2,
+      "retrieved_at": "2026-09-19T16:07:12.561803+00:00",
+      "sha256": "d3cac325930af6ef145d26fb7e035d7933e900ce174a11adaabb33abd87fbfa1",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2015q2.zip",
+      "year": 2015
+    },
+    {
+      "bytes": 82751989,
+      "filename": "2015q3.zip",
+      "http": {
+        "Content-Length": "82751989",
+        "Last-Modified": "Fri, 27 Dec 2024 19:10:25 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 3,
+      "retrieved_at": "2026-09-19T16:07:19.813259+00:00",
+      "sha256": "9301fa2e346aa6b3a48a36cafab80d1aab5d7970e60bfd168d53ba852a4deca9",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2015q3.zip",
+      "year": 2015
+    },
+    {
+      "bytes": 83007568,
+      "filename": "2015q4.zip",
+      "http": {
+        "Content-Length": "83007568",
+        "Last-Modified": "Fri, 27 Dec 2024 19:11:40 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 4,
+      "retrieved_at": "2026-09-19T16:07:27.132487+00:00",
+      "sha256": "1723b41ef2a1d3ea6595f6052ef229a80e03cd183391ca9e297a894f9e589d83",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2015q4.zip",
+      "year": 2015
+    },
+    {
+      "bytes": 95470843,
+      "filename": "2016q1.zip",
+      "http": {
+        "Content-Length": "95470843",
+        "Last-Modified": "Fri, 27 Dec 2024 19:31:58 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 1,
+      "retrieved_at": "2026-09-19T16:07:35.500879+00:00",
+      "sha256": "5c89a6badede1b47ab540913c7484795c7fc4c2a4672ac601b34b8c0afe5a698",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2016q1.zip",
+      "year": 2016
+    },
+    {
+      "bytes": 73848835,
+      "filename": "2016q2.zip",
+      "http": {
+        "Content-Length": "73848835",
+        "Last-Modified": "Fri, 27 Dec 2024 19:33:15 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 2,
+      "retrieved_at": "2026-09-19T16:07:41.857010+00:00",
+      "sha256": "e91daef1f83ab3a6a7a25425f1f09ac6c100be8e42ac7a54e539e1b0c303449c",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2016q2.zip",
+      "year": 2016
+    },
+    {
+      "bytes": 71116399,
+      "filename": "2016q3.zip",
+      "http": {
+        "Content-Length": "71116399",
+        "Last-Modified": "Fri, 27 Dec 2024 19:34:30 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 3,
+      "retrieved_at": "2026-09-19T16:07:48.033612+00:00",
+      "sha256": "4d014b8ee4476887aba067c59bfef967d4b12c905d4b1b3f89e8ff7ff7310156",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2016q3.zip",
+      "year": 2016
+    },
+    {
+      "bytes": 79400707,
+      "filename": "2016q4.zip",
+      "http": {
+        "Content-Length": "79400707",
+        "Last-Modified": "Fri, 27 Dec 2024 19:35:59 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 4,
+      "retrieved_at": "2026-09-19T16:07:55.249873+00:00",
+      "sha256": "b8a9550c386ea95eefcc95fc3b3c19f2b1428c0a7f46d5d547a671c3f9284e26",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2016q4.zip",
+      "year": 2016
+    },
+    {
+      "bytes": 92433981,
+      "filename": "2017q1.zip",
+      "http": {
+        "Content-Length": "92433981",
+        "Last-Modified": "Fri, 27 Dec 2024 19:37:06 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 1,
+      "retrieved_at": "2026-09-19T16:08:03.330484+00:00",
+      "sha256": "ffb6989983c4c9f87e2f39166b20e4a21f024f0fe1adccc199e08da5fc94a915",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2017q1.zip",
+      "year": 2017
+    },
+    {
+      "bytes": 71429748,
+      "filename": "2017q2.zip",
+      "http": {
+        "Content-Length": "71429748",
+        "Last-Modified": "Fri, 27 Dec 2024 19:37:52 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 2,
+      "retrieved_at": "2026-09-19T16:08:09.596172+00:00",
+      "sha256": "63a590d7deaac8f82d22f08cb2ada46f199341ecc7e7a8a0a7d6a181cec1d53b",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2017q2.zip",
+      "year": 2017
+    },
+    {
+      "bytes": 74356472,
+      "filename": "2017q3.zip",
+      "http": {
+        "Content-Length": "74356472",
+        "Last-Modified": "Fri, 27 Dec 2024 19:38:44 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 3,
+      "retrieved_at": "2026-09-19T16:08:15.997286+00:00",
+      "sha256": "5aa58d799c4fb3f5f98974eb713696d1aebe747a01a794e7ac58517631b5735d",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2017q3.zip",
+      "year": 2017
+    },
+    {
+      "bytes": 76051784,
+      "filename": "2017q4.zip",
+      "http": {
+        "Content-Length": "76051784",
+        "Last-Modified": "Fri, 27 Dec 2024 19:39:31 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 4,
+      "retrieved_at": "2026-09-19T16:08:22.566114+00:00",
+      "sha256": "be03bfd71f356a7f53d82a40ee907bb51aec4f61d6ce97f059f2df785bc37658",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2017q4.zip",
+      "year": 2017
+    },
+    {
+      "bytes": 93176693,
+      "filename": "2018q1.zip",
+      "http": {
+        "Content-Length": "93176693",
+        "Last-Modified": "Fri, 27 Dec 2024 19:40:24 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 1,
+      "retrieved_at": "2026-09-19T16:08:30.693953+00:00",
+      "sha256": "f7f0083d28779ff373cd097ded88d5408eae9cc178f89014ca3ed8b24dc84185",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2018q1.zip",
+      "year": 2018
+    },
+    {
+      "bytes": 91972487,
+      "filename": "2018q2.zip",
+      "http": {
+        "Content-Length": "91972487",
+        "Last-Modified": "Fri, 27 Dec 2024 19:41:14 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 2,
+      "retrieved_at": "2026-09-19T16:08:38.871453+00:00",
+      "sha256": "99daaf8af1fb1ba94b100613536d9dbee5e9a356f0736190963a3a68af623d54",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2018q2.zip",
+      "year": 2018
+    },
+    {
+      "bytes": 87202498,
+      "filename": "2018q3.zip",
+      "http": {
+        "Content-Length": "87202498",
+        "Last-Modified": "Fri, 27 Dec 2024 19:42:07 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 3,
+      "retrieved_at": "2026-09-19T16:08:46.485234+00:00",
+      "sha256": "30030056223c456d5cb7a42722ffa990345fda12deb5cfff723b1ae47dc9bf8d",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2018q3.zip",
+      "year": 2018
+    },
+    {
+      "bytes": 62895777,
+      "filename": "2018q4.zip",
+      "http": {
+        "Content-Length": "62895777",
+        "Last-Modified": "Fri, 27 Dec 2024 19:42:48 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 4,
+      "retrieved_at": "2026-09-19T16:08:51.935320+00:00",
+      "sha256": "ecc103d0979dacdf6cfcc7f0b2273f7b6046c41a3aa7f2e2aacfb8ccd45bc122",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2018q4.zip",
+      "year": 2018
+    },
+    {
+      "bytes": 95895180,
+      "filename": "2019q1.zip",
+      "http": {
+        "Content-Length": "95895180",
+        "Last-Modified": "Fri, 27 Dec 2024 19:43:35 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 1,
+      "retrieved_at": "2026-09-19T16:09:00.378123+00:00",
+      "sha256": "49f6f0a00b6f1792d22893a3e261f7a329377048eb826079f1a16c7895b76d9d",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2019q1.zip",
+      "year": 2019
+    },
+    {
+      "bytes": 90155728,
+      "filename": "2019q2.zip",
+      "http": {
+        "Content-Length": "90155728",
+        "Last-Modified": "Fri, 27 Dec 2024 19:44:22 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 2,
+      "retrieved_at": "2026-09-19T16:09:08.442523+00:00",
+      "sha256": "765e42efd43687b4ac4ea59c83213857a52dca0a4bd5c490034bd5bea2b6fac3",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2019q2.zip",
+      "year": 2019
+    },
+    {
+      "bytes": 89829588,
+      "filename": "2019q3.zip",
+      "http": {
+        "Content-Length": "89829588",
+        "Last-Modified": "Fri, 27 Dec 2024 19:45:08 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 3,
+      "retrieved_at": "2026-09-19T16:09:16.335420+00:00",
+      "sha256": "4c57e36f04b54a2b9917537e12974cba68353f765affbf168bd506478780e13e",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2019q3.zip",
+      "year": 2019
+    },
+    {
+      "bytes": 98753299,
+      "filename": "2019q4.zip",
+      "http": {
+        "Content-Length": "98753299",
+        "Last-Modified": "Fri, 27 Dec 2024 19:45:54 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 4,
+      "retrieved_at": "2026-09-19T16:09:25.044571+00:00",
+      "sha256": "1f997c123b6d2fe892eeca0a5f12687e718ab5ae031f148b4a5d82f2689daec3",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2019q4.zip",
+      "year": 2019
+    },
+    {
+      "bytes": 96584608,
+      "filename": "2020q1.zip",
+      "http": {
+        "Content-Length": "96584608",
+        "Last-Modified": "Fri, 27 Dec 2024 19:46:54 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 1,
+      "retrieved_at": "2026-09-19T16:09:33.556013+00:00",
+      "sha256": "48ed9834c66d565c21130d087eae941b25770e2d7cc8351d17652612289fcd67",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2020q1.zip",
+      "year": 2020
+    },
+    {
+      "bytes": 82008710,
+      "filename": "2020q2.zip",
+      "http": {
+        "Content-Length": "82008710",
+        "Last-Modified": "Fri, 27 Dec 2024 19:47:56 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 2,
+      "retrieved_at": "2026-09-19T16:09:40.663294+00:00",
+      "sha256": "bd796ea10c88e21205da013f9c3f6a20b2b14d3de94f0075e9f529e0ef9a3543",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2020q2.zip",
+      "year": 2020
+    },
+    {
+      "bytes": 87582976,
+      "filename": "2020q3.zip",
+      "http": {
+        "Content-Length": "87582976",
+        "Last-Modified": "Fri, 27 Dec 2024 19:48:49 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 3,
+      "retrieved_at": "2026-09-19T16:09:48.180172+00:00",
+      "sha256": "6a402070d4b1f12db0d2256533b38705735684ecb58bc12ce53a61dd12abe26e",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2020q3.zip",
+      "year": 2020
+    },
+    {
+      "bytes": 89811373,
+      "filename": "2020q4.zip",
+      "http": {
+        "Content-Length": "89811373",
+        "Last-Modified": "Fri, 27 Dec 2024 19:49:48 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 4,
+      "retrieved_at": "2026-09-19T16:09:56.138303+00:00",
+      "sha256": "7cabec2c9b90511983623e6db3869b24c7a894466bd409f060a8da32790ae68e",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2020q4.zip",
+      "year": 2020
+    },
+    {
+      "bytes": 97900752,
+      "filename": "2021q1.zip",
+      "http": {
+        "Content-Length": "97900752",
+        "Last-Modified": "Fri, 27 Dec 2024 19:50:47 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 1,
+      "retrieved_at": "2026-09-19T16:10:04.724782+00:00",
+      "sha256": "6a776a9fa3d974476101efa9a4bfc531b7cdc2763abd45a6f70dd240a223843b",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2021q1.zip",
+      "year": 2021
+    },
+    {
+      "bytes": 90864175,
+      "filename": "2021q2.zip",
+      "http": {
+        "Content-Length": "90864175",
+        "Last-Modified": "Fri, 27 Dec 2024 19:51:32 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 2,
+      "retrieved_at": "2026-09-19T16:10:12.660839+00:00",
+      "sha256": "528b91432896eba74661c20481edb327809f3a0bf00e01d81821fe8e6078bc33",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2021q2.zip",
+      "year": 2021
+    },
+    {
+      "bytes": 97252395,
+      "filename": "2021q3.zip",
+      "http": {
+        "Content-Length": "97252395",
+        "Last-Modified": "Fri, 27 Dec 2024 19:52:28 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 3,
+      "retrieved_at": "2026-09-19T16:10:21.293926+00:00",
+      "sha256": "0fae2ceb149c0fe7e83b35b19157f910c864dee7e25d5ecf8b93dc42ee261b99",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2021q3.zip",
+      "year": 2021
+    },
+    {
+      "bytes": 102642081,
+      "filename": "2021q4.zip",
+      "http": {
+        "Content-Length": "102642081",
+        "Last-Modified": "Fri, 27 Dec 2024 19:53:40 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 4,
+      "retrieved_at": "2026-09-19T16:10:30.386917+00:00",
+      "sha256": "30d21449c0488e71dfb88ba8f85644a0e72194864e95111b3c1c120b3514c594",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2021q4.zip",
+      "year": 2021
+    },
+    {
+      "bytes": 103669919,
+      "filename": "2022q1.zip",
+      "http": {
+        "Content-Length": "103669919",
+        "Last-Modified": "Fri, 27 Dec 2024 19:54:33 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 1,
+      "retrieved_at": "2026-09-19T16:10:39.633582+00:00",
+      "sha256": "2ebeef77727a383f878bc28ff22498fd292a8dbab04216877b4b130ca00c1520",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2022q1.zip",
+      "year": 2022
+    },
+    {
+      "bytes": 97089251,
+      "filename": "2022q2.zip",
+      "http": {
+        "Content-Length": "97089251",
+        "Last-Modified": "Fri, 27 Dec 2024 19:56:32 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 2,
+      "retrieved_at": "2026-09-19T16:10:48.157182+00:00",
+      "sha256": "8939a4cafeabf7c94bde48be0e8c444f6332e4a9663698a89242eddd1036d27e",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2022q2.zip",
+      "year": 2022
+    },
+    {
+      "bytes": 97589396,
+      "filename": "2022q3.zip",
+      "http": {
+        "Content-Length": "97589396",
+        "Last-Modified": "Fri, 27 Dec 2024 19:57:19 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 3,
+      "retrieved_at": "2026-09-19T16:10:56.616005+00:00",
+      "sha256": "4bbfdc953177acf1a430a9f0a624dd8244bc81292d42872107d0446d06167c26",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2022q3.zip",
+      "year": 2022
+    },
+    {
+      "bytes": 111091525,
+      "filename": "2022q4.zip",
+      "http": {
+        "Content-Length": "111091525",
+        "Last-Modified": "Fri, 27 Dec 2024 19:58:16 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 4,
+      "retrieved_at": "2026-09-19T16:11:06.350401+00:00",
+      "sha256": "83bdc7a9545479eb64d118688c888ba8e7554ebc774f3ab8a8b0cc1decb87f28",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2022q4.zip",
+      "year": 2022
+    },
+    {
+      "bytes": 113974946,
+      "filename": "2023q1.zip",
+      "http": {
+        "Content-Length": "113974946",
+        "Last-Modified": "Fri, 27 Dec 2024 19:59:20 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 1,
+      "retrieved_at": "2026-09-19T16:11:16.540866+00:00",
+      "sha256": "479638c1be4088fa2ae42d2947468913eaff5ad0f093c412ba4340af8a8f791e",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2023q1.zip",
+      "year": 2023
+    },
+    {
+      "bytes": 116914392,
+      "filename": "2023q2.zip",
+      "http": {
+        "Content-Length": "116914392",
+        "Last-Modified": "Fri, 27 Dec 2024 20:00:18 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 2,
+      "retrieved_at": "2026-09-19T16:11:26.817513+00:00",
+      "sha256": "f028f1e8d24313e7619aa87c7c683a459452e7e81a8e5ba72d7ce39ddf62bda9",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2023q2.zip",
+      "year": 2023
+    },
+    {
+      "bytes": 117776944,
+      "filename": "2023q3.zip",
+      "http": {
+        "Content-Length": "117776944",
+        "Last-Modified": "Fri, 27 Dec 2024 20:01:25 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 3,
+      "retrieved_at": "2026-09-19T16:11:37.394782+00:00",
+      "sha256": "f075d721dde4393dabd49c1746578294ada4665ec29c85c2b3184f44f6f09187",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2023q3.zip",
+      "year": 2023
+    },
+    {
+      "bytes": 120272357,
+      "filename": "2023q4.zip",
+      "http": {
+        "Content-Length": "120272357",
+        "Last-Modified": "Fri, 27 Dec 2024 20:02:15 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 4,
+      "retrieved_at": "2026-09-19T16:11:48.146108+00:00",
+      "sha256": "ad23c5505e59b7305e16bfebb8bb839476689330b85a3e1ce216f809b18d1521",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2023q4.zip",
+      "year": 2023
+    },
+    {
+      "bytes": 124336804,
+      "filename": "2024q1.zip",
+      "http": {
+        "Content-Length": "124336804",
+        "Last-Modified": "Fri, 27 Dec 2024 20:03:19 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 1,
+      "retrieved_at": "2026-09-19T16:11:58.982033+00:00",
+      "sha256": "94c7894b00903f8ff7186c4250ba1c1daa1bde8b3a0b26fae68f72608b2ffc9b",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2024q1.zip",
+      "year": 2024
+    },
+    {
+      "bytes": 119119954,
+      "filename": "2024q2.zip",
+      "http": {
+        "Content-Length": "119119954",
+        "Last-Modified": "Fri, 27 Dec 2024 20:04:15 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 2,
+      "retrieved_at": "2026-09-19T16:12:09.431401+00:00",
+      "sha256": "698796e9f0946501d3dc74e7696a6c8c71cf32b66026e053722a784236b37761",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2024q2.zip",
+      "year": 2024
+    },
+    {
+      "bytes": 118280418,
+      "filename": "2024q3.zip",
+      "http": {
+        "Content-Length": "118280418",
+        "Last-Modified": "Fri, 27 Dec 2024 20:05:19 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 3,
+      "retrieved_at": "2026-09-19T16:12:19.780935+00:00",
+      "sha256": "b1823f2d65189f0d5ecbb1968d683c59df762129ae1b23bda0394093a69e0da9",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2024q3.zip",
+      "year": 2024
+    },
+    {
+      "bytes": 122932548,
+      "filename": "2024q4.zip",
+      "http": {
+        "Content-Length": "122932548",
+        "Last-Modified": "Thu, 16 Jan 2025 16:58:33 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 4,
+      "retrieved_at": "2026-09-19T16:12:30.846100+00:00",
+      "sha256": "9a2cbbaf39c94aa642b33d512f4def92b198d3bfd12d2267bcd27abe55b9902d",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2024q4.zip",
+      "year": 2024
+    },
+    {
+      "bytes": 127765057,
+      "filename": "2025q1.zip",
+      "http": {
+        "Content-Length": "127765057",
+        "Last-Modified": "Thu, 10 Apr 2025 17:48:03 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 1,
+      "retrieved_at": "2026-09-19T16:12:42.186474+00:00",
+      "sha256": "4386e7057cc216b6fc729d8f957998acb831d29be7b16f6d8ed0f6b1ab74eba5",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2025q1.zip",
+      "year": 2025
+    },
+    {
+      "bytes": 78973768,
+      "filename": "2025q2.zip",
+      "http": {
+        "Content-Length": "78973768",
+        "Last-Modified": "Tue, 08 Jul 2025 15:05:32 GMT"
+      },
+      "members": [
+        "num.txt",
+        "pre.txt",
+        "sub.txt",
+        "tag.txt"
+      ],
+      "quarter": 2,
+      "retrieved_at": "2026-09-19T16:12:49.248931+00:00",
+      "sha256": "81bf19bdb5606d5ee0164a8de8b7e96d5546170e42e59bcbf95b652ca83ac5d7",
+      "url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/2025q2.zip",
+      "year": 2025
+    }
+  ],
+  "company_tickers_snapshot": {
+    "bytes": 523768,
+    "filename": "company_tickers_exchange.json",
+    "historical_use": "current bootstrap only; never back-dated",
+    "retrieved_at": "2026-09-19T16:12:49.875451+00:00",
+    "sha256": "a4aa20329b32644f7ac3b50ef5fa431343ada802f91286c58423afa88c8f0e55",
+    "url": "https://www.sec.gov/files/company_tickers_exchange.json"
+  },
+  "fair_access_max_requests_per_second": 10,
+  "schema": "sub/num/tag/pre",
+  "source": "SEC Financial Statement Data Sets",
+  "total_bytes": 5260095968
+}
