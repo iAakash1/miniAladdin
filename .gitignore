@@ -97,6 +97,12 @@ data/panel/
 # Training and ingestion logs — reproducible output, often large.
 /logs/
 
+# Legally accessible research papers are retained for local reading only.
+# Commit citation metadata and paraphrased notes under docs/, never PDFs.
+/research_papers/
+/.local/research_papers/
+/papers/
+
 # Experiment artifacts: keep the ones a decision rests on, exclude the bulk.
 #
 # metrics/config/manifest/folds/portfolio are small and are the evidence a
