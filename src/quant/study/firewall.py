@@ -202,10 +202,46 @@ class HoldoutFirewall:
             return
         self.assert_clear(pd.DataFrame({"date": list(dates)}), context=context)
 
+    def holdout_state(self) -> str:
+        """The one-word answer a reader actually needs: is the holdout sealed?
+
+        `contract_armed` is easy to misread. "Armed" here is the *unsealing*
+        contract (`docs/HOLDOUT_CONTRACT.md`, `| Armed | ...`): a human arming it is
+        what lifts the firewall. So `contract_armed: false` is the SAFE, expected
+        state — the holdout is still closed — and `engaged: true` beside it means the
+        firewall is blocking. Reading `NOT_ARMED` as "the protection is not armed"
+        gets it exactly backwards, which is why this state exists.
+
+        SEALED                        a window is declared, the contract is readable and
+                                      unarmed, no override: any holdout row is refused
+        SEALED_CONTRACT_UNREADABLE    as above but the contract could not be read; the
+                                      firewall still blocks (unreadable is never "open")
+        UNSEALED_CONTRACT_ARMED       a human armed the contract: access is permitted
+        UNSEALED_OVERRIDE             a logged override is in force
+        NO_WINDOW_DECLARED            no window has been declared, so nothing is being
+                                      guarded — a run that reports this has not armed the
+                                      firewall and must not be described as sealed
+        """
+        if not self.window.active:
+            return "NO_WINDOW_DECLARED"
+        if self._override_reason is not None:
+            return "UNSEALED_OVERRIDE"
+        if self.contract_armed():
+            return "UNSEALED_CONTRACT_ARMED"
+        return "SEALED" if self.contract_readable() else "SEALED_CONTRACT_UNREADABLE"
+
     def status(self) -> dict[str, Any]:
         readable = self.contract_readable()
         armed = self.contract_armed()
+        state = self.holdout_state()
         return {
+            #: Unambiguous summary; the fields below are the detail behind it.
+            "holdout_state": state,
+            "holdout_access": "BLOCKED" if state.startswith("SEALED") else "PERMITTED_OR_UNGUARDED",
+            "reading_note": (
+                "contract_armed=false means the holdout-evaluation contract has NOT been armed, i.e. "
+                "the holdout is closed; engaged=true means the firewall is blocking it"
+            ),
             "window": self.window.as_dict(),
             "contract_path": str(self.contract_path),
             "contract_armed": armed,
