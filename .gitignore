@@ -73,6 +73,10 @@ data/panel/
 # it means only the clones.
 /datasets/
 /data/research/
+/data/raw/
+/data/curated/
+/data/cache/
+/data/tmp/
 
 # ...except the model register, which is not data.
 #
