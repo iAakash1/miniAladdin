@@ -62,24 +62,37 @@ DEFINITION: dict[str, Any] = {
              "features_dedup": [f for f in exp009b.FEATURES if f != DROPPED],
              "folds": "the 8 folds recorded in experiments/EXP-006/metrics.json"},
     "model": {"name": "gradient_boosting", "kind": "gradient_boosting", "params": "repository defaults (unchanged)", "seed": 0},
-    "arms": [{"id": "FULL", "features": 27}, {"id": "DEDUP", "features": 26}],
+    "arms": [
+        {"id": "FULL", "features": 27, "seed": 0},
+        {"id": "DEDUP", "features": 26, "seed": 0},
+        {"id": "NOISE", "features": 27, "seed": 1,
+         "role": "descriptive noise reference only: the same 27-feature model with a different seed; enters no criterion"},
+    ],
     "gates": {
         "dataset_and_panel": "rebuilt dataset id and returns-panel hash equal the preregistered values",
         "full_reproduces": "the FULL arm equals EXP-006's frozen gradient_boosting predictions to 1e-9",
         "duplicate_is_exact": "the absolute correlation of the two columns on universe rows is >= 0.99999 (measured -0.999996 in the frozen panel: rank ties and a constant offset of 2/N separate them from -1)",
     },
     "criteria": {
-        "E_ordering": "the paired per-date Rank-IC difference (DEDUP - FULL) has |mean| <= 0.002 AND its two-sided 95% HAC interval "
-                      "(Bartlett, 4 lags, z = 1.96) lies within [-0.004, +0.004]",
-        "E_economics": "under top-k dropout at 10 bp, |net Sharpe difference| <= 0.10 AND the annualised turnover ratio is within [0.9, 1.1]",
+        "margins": (
+            "set from the noise floor EXP-009B measured for a change that alters no information — a different bagging "
+            "implementation moved mean Rank IC by 0.0031 and net Sharpe under top-k dropout by 0.067 — not from any "
+            "EXP-009D outcome"
+        ),
+        "E_ordering": "the paired per-date Rank-IC difference (DEDUP - FULL) has |mean| <= 0.005 AND |mean| + 1.96 x HAC SE "
+                      "(Bartlett, 4 lags) <= 0.010",
+        "E_economics": "under top-k dropout at 10 bp, |net Sharpe difference| <= 0.20 AND the annualised turnover ratio is within [0.9, 1.1]",
         "classification": {"EQUIVALENT": "E_ordering and E_economics",
-                           "DIFFERENT": "otherwise (the duplicate is not harmless and the 27-feature set stays)"},
+                           "DIFFERENT": "otherwise (the duplicate is not demonstrably harmless and the 27-feature set stays)"},
         "consequence": "EQUIVALENT: later experiments may use the 26-feature set without a separate justification. "
                        "DIFFERENT: nothing changes. Either way EXP-006, EXP-009A, EXP-009B and EXP-009C keep the 27 features.",
+        "descriptive": "the NOISE arm's own differences from FULL are reported beside DEDUP's so the reader can see whether DEDUP "
+                       "moved more than a reseed does",
         "promotion": "NOT ASSESSED",
     },
     "inference": {"hac_lags": 4, "seed": 0},
-    "trials": {"declared": 1, "note": "the DEDUP fit", "prior_cumulative_evaluations": 164, "cumulative_evaluations": 165},
+    "trials": {"declared": 2, "note": "the DEDUP fit and the seed-noise reference", "prior_cumulative_evaluations": 164,
+               "cumulative_evaluations": 166},
     "holdout": {"read": False},
 }
 
@@ -99,9 +112,9 @@ def prereg_gate(root: Path = Path("."), *, fetch: bool = True) -> dict[str, Any]
 
 
 def classify(ic_diff: dict[str, Any], econ: dict[str, Any]) -> dict[str, Any]:
-    e_order = bool(abs(ic_diff["mean_difference"]) <= 0.002
-                   and abs(ic_diff["mean_difference"]) + 1.96 * ic_diff["hac_se"] <= 0.004)
-    e_econ = bool(abs(econ["net_sharpe_difference"]) <= 0.10 and 0.9 <= econ["turnover_ratio"] <= 1.1)
+    e_order = bool(abs(ic_diff["mean_difference"]) <= 0.005
+                   and abs(ic_diff["mean_difference"]) + 1.96 * ic_diff["hac_se"] <= 0.010)
+    e_econ = bool(abs(econ["net_sharpe_difference"]) <= 0.20 and 0.9 <= econ["turnover_ratio"] <= 1.1)
     return {"E_ordering": e_order, "E_economics": e_econ,
             "classification": "EQUIVALENT" if (e_order and e_econ) else "DIFFERENT", "promotion": "NOT ASSESSED"}
 
@@ -142,9 +155,13 @@ def run_study(root: Path = Path("."), *, output: Optional[Path] = None) -> dict[
 
     plan = exp009b.recorded_plan(root)
     arms = {}
-    for label, features in (("FULL", exp009b.FEATURES), ("DEDUP", DEFINITION["data"]["features_dedup"])):
+    for label, features, seed in (
+        ("FULL", exp009b.FEATURES, 0),
+        ("DEDUP", DEFINITION["data"]["features_dedup"], 0),
+        ("NOISE", exp009b.FEATURES, 1),
+    ):
         results, failures, _ = evaluate_specs(
-            [ModelSpec(f"gb_{label}", "gradient_boosting", (), 0)], frame, plan,
+            [ModelSpec(f"gb_{label}", "gradient_boosting", (), seed)], frame, plan,
             features=features, label=LABEL, step_sessions=5, workers=1)
         if failures or not results:
             manifest["decision"] = f"INVALID - {label} failed: {failures}"
@@ -173,6 +190,16 @@ def run_study(root: Path = Path("."), *, output: Optional[Path] = None) -> dict[
         "periods_compared": int(len(common)),
     }
     criteria = classify({"mean_difference": hac["mean"], "hac_se": hac["hac_se"]}, econ)
+    noise_hac = exp009a.newey_west_mean_t(
+        (cells["NOISE"]["_ic_series"] - cells["FULL"]["_ic_series"]).dropna().to_numpy(), DEFINITION["inference"]["hac_lags"])
+    noise_econ = {
+        "net_sharpe_difference": cells["NOISE"]["portfolios"]["C_topk_dropout_10"]["metrics_at_10bp"]["net_sharpe"]
+        - cells["FULL"]["portfolios"]["C_topk_dropout_10"]["metrics_at_10bp"]["net_sharpe"],
+        "turnover_ratio": cells["NOISE"]["portfolios"]["C_topk_dropout_10"]["metrics_at_10bp"]["annualised_turnover"]
+        / cells["FULL"]["portfolios"]["C_topk_dropout_10"]["metrics_at_10bp"]["annualised_turnover"]}
+    noise_reference = {"paired_ic": {"mean_difference": noise_hac["mean"], "hac_se": noise_hac["hac_se"]},
+                       "economics": noise_econ, "would_be_classified": classify(
+                           {"mean_difference": noise_hac["mean"], "hac_se": noise_hac["hac_se"]}, noise_econ)["classification"]}
     identical = float((arms["DEDUP"].predictions.set_index(["date", "symbol"])["prediction"]
                        - arms["FULL"].predictions.set_index(["date", "symbol"])["prediction"]).abs().max())
     decision = {"classification": criteria["classification"], "promotion": "NOT ASSESSED"}
@@ -189,7 +216,8 @@ def run_study(root: Path = Path("."), *, output: Optional[Path] = None) -> dict[
         "definition": DEFINITION, "cells": exp009b._strip(cells),
         "paired_ic": {"mean_difference": hac["mean"], "hac_se": hac["hac_se"], "hac_t": hac["hac_t"],
                       "ci95": [hac["mean"] - 1.96 * hac["hac_se"], hac["mean"] + 1.96 * hac["hac_se"]]},
-        "economics": econ, "max_abs_prediction_difference_between_arms": identical,
+        "economics": econ, "noise_reference": noise_reference,
+        "max_abs_prediction_difference_between_arms": identical,
         "criteria": criteria, "decision": decision,
         "rank_ic": {k: ic_summary(cells[k]["_ic_series"], horizon_sessions=21, step_sessions=5) for k in cells}})
     manifest["output_sha256"] = {p.name: prereg.sha256_file(p) for p in sorted(output.glob("*")) if p.name != "manifest.json"}
