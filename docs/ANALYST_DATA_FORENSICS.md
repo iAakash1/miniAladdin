@@ -39,6 +39,32 @@ standing residual risk, not a resolved one.
 | Coverage of the traded universe | **98.1%** of in-universe rows since 2017-10-26 have a usable (non-null, ≤ 45-day-old) vintage; by year 94.1% (2017), 97.5%, 98.5%, 98.4%, 96.6%, 97.6%, 99.4%, 98.9%, 98.7% (2025); median vintage age 3 days, p95 5; 22 of 740 universe symbols never appear | coverage is good from 2019; 2017-18 thinner |
 | Same-day vintage matches | 0.7% of panel rows | resolved by a strictly-earlier attach |
 
+## 2b. Independent evidence that the vintages are real as-of snapshots (added before EXP-009C)
+
+A vendor `date` column that *says* "vintage" proves nothing on its own. The strongest local test
+ties it to a **second, independently sourced table**: the earnings calendar's announcement dates.
+For 19,499 matched (symbol, quarter) events through 2025-04, the estimate table's "Current Quarter"
+label should roll to the next period **just after** the company reports — if the snapshots were
+backfilled from a later state, the roll would not line up with an announcement date recorded elsewhere.
+(`experiments/EXP-009-forensics/analyst_timing.json`.)
+
+| Test | Result |
+|---|---|
+| Last vintage still labelling the announced quarter as "Current Quarter", minus the announcement date | median **−3 days** (p25 −4, p75 −2, p95 −1); **99.3%** within +8 days |
+| First vintage labelled with a *later* period, minus the announcement date | median **+4 days** (p25 +3, p75 +5, p95 +10) — the label rolls right after the report |
+| Last pre-announcement consensus **equals the realised EPS** (±0.5¢) | **5.7%** (median absolute surprise $0.07) — consensus is not contaminated by the answer |
+| Last pre-announcement consensus equals `eps_history.estimate` (±0.5¢) | 87.4% — the two tables describe the same pre-report consensus |
+| 8% of events roll ≥ 30 days *before* the announcement | early or unusual quarter handling; these are exactly the cases a same-period rule already NULLs |
+
+Real-data gates (`exp009c.pit_gates`, run before registration; 16 s): truncation invariance ✓,
+rewriting every vintage after 2022-12-31 changes no earlier feature over 352,161 panel rows ✓, and none of
+34,090 attached rows draws from a vintage dated on or after its own date ✓.
+
+Coverage of the eight PIT features on in-universe rows (non-null share; `analyst_feature_coverage.json`):
+`rev_4w` 76% (2018), 86-91% (2019-24); `rev_13w` 56-72% (lower in the first months of each year, when
+fiscal rollover nulls a 13-week comparison — a *predictable calendar of missingness* the study must not
+mistake for signal); dispersion and coverage 95-99%; acceleration 60-82%. Nothing before 2017-10.
+
 ## 3. What `estimates.py` (the earlier construction) got right and wrong
 
 Right: revisions only where `period_end_date` is unchanged; NULL for near-zero
@@ -87,16 +113,23 @@ consensus gives NULL; dispersion is NULL for one analyst; missing stays missing;
 and a check on the **real** vintage table (150 symbols, cutoff 2022-12-31) proves
 truncation invariance and strict attach on real data.
 
-## 6. Verdict for EXP-009C
+## 6. Go / no-go for EXP-009C
 
-**The data passes the PIT audit for a single, isolated, low-prior arm.** Coverage
-is 98% of the traded universe; the vintage structure is unambiguous; every
-identified hazard (rollover, cadence, same-day, single analyst, reuse) is handled
-by the construction and covered by a test. **What the audit cannot establish**: the
-vendor's true capture times; whether `consensus` is a mean or median; whether `count`
-includes stale analysts. The literature does not transfer: the evidence for analyst
-revisions is on IBES-like data with monthly vintages and analyst identity, and the
-one 2026 paper that adds predictive value (stickiness) is not reproducible here.
-Prior evidence in this repository (EXP-005 ablation) is negative. EXP-009C is
-therefore preregistered as a bounded test with a low prior, and a null result is an
-expected and acceptable outcome.
+| Requirement | Evidence | Status |
+|---|---|---|
+| Usable vintage timestamp | `date` = vintage; unique keys; weekly Sunday cadence (93% exactly 7 days, ≥ 95% from 2019); consistent with an independent table (§2b). Intraday capture time unknown → strict-before attach | **PASS** (residual: vendor semantics inferred, not documented) |
+| Correct historical ordering | 0 duplicate keys; per-symbol dates sorted; 49 backward `period_end_date` moves in 6M rows, handled by the same-period rule | **PASS** |
+| No future-consensus leakage | consensus equals the realised EPS on only 5.7% of events; the period label rolls 3-4 days *after* announcements; real-data truncation, perturbation and strict-attach gates pass | **PASS** |
+| Safe fiscal-period mapping | revisions only where `period_end_date` is unchanged; 31,708 rollover events NULLed; tested | **PASS** |
+| Rollover protection | tested on a constructed rollover and measured on the real table (median jump 19.6% vs 0.0%) | **PASS** |
+| Reasonable universe coverage | 98.1% of in-universe rows have a usable vintage; 94% in 2017, 97-99% later; **but** the tables start 2017-10-26, so folds 0-2 cannot learn from them | **PASS with a preregistered evaluable-fold rule** (folds 3-7) |
+| Staleness detection | 75.5% of consecutive vintages unchanged (normal); runs ≥ 26 weeks measurable (856); 45-day age rule | **PASS** |
+| Known missingness semantics | consensus null 0.9% (sales 10%); missing stays missing; `count = 1` → dispersion NULL; 13-week features null around fiscal rollover (calendar-dependent) | **PASS with a documented artifact risk** |
+| Source / licence for internal research | manifest and catalogue: "Open data on DoltHub"; **redistribution terms of the upstream vendor unverified** — outputs committed here are aggregates only | **PASS for internal research; redistribution NOT cleared** |
+
+**Verdict: GO, as a single, isolated, low-prior arm.** The data passes every required check; that is not a
+finding that analyst revisions help. The literature does not transfer (IBES-like monthly data with analyst
+identity; the one 2026 paper that adds value needs identity this data lacks), this repository's EXP-005
+ablation was negative, coverage begins 2017-10 (five evaluable folds), and the missingness has a seasonal
+pattern a tree could exploit. A null result is the expected outcome, and is recorded as such in the
+preregistration.

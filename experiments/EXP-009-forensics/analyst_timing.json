@@ -1,0 +1,22 @@
+{
+  "events_used": 19499,
+  "first_later_period_vintage_minus_announcement_days": {
+    "5": -85.0,
+    "25": 3.0,
+    "50": 4.0,
+    "75": 5.0,
+    "95": 10.0
+  },
+  "last_vintage_minus_announcement_days": {
+    "5": -93.0,
+    "25": -4.0,
+    "50": -3.0,
+    "75": -2.0,
+    "95": -1.0
+  },
+  "median_abs_surprise": 0.07,
+  "share_last_preannouncement_consensus_equals_actual": 0.056911866390085636,
+  "share_last_preannouncement_consensus_equals_history_estimate": 0.8743145898290506,
+  "share_last_vintage_within_8d_after_announcement_or_earlier": 0.9934355607979897,
+  "share_roll_before_announcement": 0.07575913007796471
+}

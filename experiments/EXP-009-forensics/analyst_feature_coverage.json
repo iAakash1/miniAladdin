@@ -1,0 +1,124 @@
+{
+ "coverage_by_year": {
+  "2014": {
+   "analyst_eps_coverage_chg_13w_xs": 0.0,
+   "analyst_eps_coverage_xs": 0.0,
+   "analyst_eps_dispersion_xs": 0.0,
+   "analyst_eps_rev_13w_xs": 0.0,
+   "analyst_eps_rev_4w_xs": 0.0,
+   "analyst_eps_rev_acceleration_xs": 0.0,
+   "analyst_sales_rev_13w_xs": 0.0,
+   "analyst_sales_rev_4w_xs": 0.0
+  },
+  "2015": {
+   "analyst_eps_coverage_chg_13w_xs": 0.0,
+   "analyst_eps_coverage_xs": 0.0,
+   "analyst_eps_dispersion_xs": 0.0,
+   "analyst_eps_rev_13w_xs": 0.0,
+   "analyst_eps_rev_4w_xs": 0.0,
+   "analyst_eps_rev_acceleration_xs": 0.0,
+   "analyst_sales_rev_13w_xs": 0.0,
+   "analyst_sales_rev_4w_xs": 0.0
+  },
+  "2016": {
+   "analyst_eps_coverage_chg_13w_xs": 0.0,
+   "analyst_eps_coverage_xs": 0.0,
+   "analyst_eps_dispersion_xs": 0.0,
+   "analyst_eps_rev_13w_xs": 0.0,
+   "analyst_eps_rev_4w_xs": 0.0,
+   "analyst_eps_rev_acceleration_xs": 0.0,
+   "analyst_sales_rev_13w_xs": 0.0,
+   "analyst_sales_rev_4w_xs": 0.0
+  },
+  "2017": {
+   "analyst_eps_coverage_chg_13w_xs": 0.0,
+   "analyst_eps_coverage_xs": 0.166,
+   "analyst_eps_dispersion_xs": 0.165,
+   "analyst_eps_rev_13w_xs": 0.0,
+   "analyst_eps_rev_4w_xs": 0.066,
+   "analyst_eps_rev_acceleration_xs": 0.016,
+   "analyst_sales_rev_13w_xs": 0.0,
+   "analyst_sales_rev_4w_xs": 0.066
+  },
+  "2018": {
+   "analyst_eps_coverage_chg_13w_xs": 0.684,
+   "analyst_eps_coverage_xs": 0.975,
+   "analyst_eps_dispersion_xs": 0.969,
+   "analyst_eps_rev_13w_xs": 0.56,
+   "analyst_eps_rev_4w_xs": 0.763,
+   "analyst_eps_rev_acceleration_xs": 0.604,
+   "analyst_sales_rev_13w_xs": 0.555,
+   "analyst_sales_rev_4w_xs": 0.756
+  },
+  "2019": {
+   "analyst_eps_coverage_chg_13w_xs": 0.902,
+   "analyst_eps_coverage_xs": 0.985,
+   "analyst_eps_dispersion_xs": 0.976,
+   "analyst_eps_rev_13w_xs": 0.668,
+   "analyst_eps_rev_4w_xs": 0.869,
+   "analyst_eps_rev_acceleration_xs": 0.762,
+   "analyst_sales_rev_13w_xs": 0.663,
+   "analyst_sales_rev_4w_xs": 0.873
+  },
+  "2020": {
+   "analyst_eps_coverage_chg_13w_xs": 0.968,
+   "analyst_eps_coverage_xs": 0.984,
+   "analyst_eps_dispersion_xs": 0.97,
+   "analyst_eps_rev_13w_xs": 0.724,
+   "analyst_eps_rev_4w_xs": 0.911,
+   "analyst_eps_rev_acceleration_xs": 0.824,
+   "analyst_sales_rev_13w_xs": 0.725,
+   "analyst_sales_rev_4w_xs": 0.913
+  },
+  "2021": {
+   "analyst_eps_coverage_chg_13w_xs": 0.908,
+   "analyst_eps_coverage_xs": 0.966,
+   "analyst_eps_dispersion_xs": 0.949,
+   "analyst_eps_rev_13w_xs": 0.692,
+   "analyst_eps_rev_4w_xs": 0.856,
+   "analyst_eps_rev_acceleration_xs": 0.753,
+   "analyst_sales_rev_13w_xs": 0.705,
+   "analyst_sales_rev_4w_xs": 0.878
+  },
+  "2022": {
+   "analyst_eps_coverage_chg_13w_xs": 0.953,
+   "analyst_eps_coverage_xs": 0.976,
+   "analyst_eps_dispersion_xs": 0.967,
+   "analyst_eps_rev_13w_xs": 0.718,
+   "analyst_eps_rev_4w_xs": 0.88,
+   "analyst_eps_rev_acceleration_xs": 0.798,
+   "analyst_sales_rev_13w_xs": 0.73,
+   "analyst_sales_rev_4w_xs": 0.904
+  },
+  "2023": {
+   "analyst_eps_coverage_chg_13w_xs": 0.966,
+   "analyst_eps_coverage_xs": 0.994,
+   "analyst_eps_dispersion_xs": 0.99,
+   "analyst_eps_rev_13w_xs": 0.714,
+   "analyst_eps_rev_4w_xs": 0.891,
+   "analyst_eps_rev_acceleration_xs": 0.802,
+   "analyst_sales_rev_13w_xs": 0.714,
+   "analyst_sales_rev_4w_xs": 0.892
+  },
+  "2024": {
+   "analyst_eps_coverage_chg_13w_xs": 0.94,
+   "analyst_eps_coverage_xs": 0.989,
+   "analyst_eps_dispersion_xs": 0.984,
+   "analyst_eps_rev_13w_xs": 0.69,
+   "analyst_eps_rev_4w_xs": 0.878,
+   "analyst_eps_rev_acceleration_xs": 0.757,
+   "analyst_sales_rev_13w_xs": 0.691,
+   "analyst_sales_rev_4w_xs": 0.878
+  },
+  "2025": {
+   "analyst_eps_coverage_chg_13w_xs": 0.98,
+   "analyst_eps_coverage_xs": 0.987,
+   "analyst_eps_dispersion_xs": 0.978,
+   "analyst_eps_rev_13w_xs": 0.428,
+   "analyst_eps_rev_4w_xs": 0.815,
+   "analyst_eps_rev_acceleration_xs": 0.629,
+   "analyst_sales_rev_13w_xs": 0.426,
+   "analyst_sales_rev_4w_xs": 0.81
+  }
+ }
+}
