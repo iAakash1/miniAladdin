@@ -2,7 +2,7 @@
 
 | Item | Assessment |
 |---|---|
-| Original paper | [Machine Learning and the Implementable Efficient Frontier](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4187217), Jensen, Kelly, Malamud & Pedersen, 2024 working paper |
+| Original paper | [Machine Learning and the Implementable Efficient Frontier](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4187217), Jensen, Kelly, Malamud & Pedersen, SSRN 2024, published in the Review of Financial Studies 2026 |
 | Hypothesis | Learning portfolio weights under trading costs improves the net implementable frontier |
 | Original data/target | Large characteristic-based equity panel; economic portfolio objective |
 | Original model | ML maps characteristics to weights with costs embedded; produces economic feature importance |

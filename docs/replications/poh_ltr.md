@@ -4,8 +4,8 @@
 |---|---|
 | Original paper | [Building Cross-Sectional Systematic Strategies by Learning to Rank](https://arxiv.org/abs/2012.07149), Poh, Lim, Zohren & Roberts |
 | Hypothesis | Pairwise/listwise structure improves asset ordering versus sorting point forecasts |
-| Original data/target | Cross-sectional momentum inputs and forward relative performance across instruments |
-| Original model | Modern pairwise/listwise LTR; paper reports about threefold Sharpe improvement over traditional methods |
+| Original data/target | CRSP NYSE common stocks 1980-2019; price-based momentum inputs; 21-day volatility-normalised return learned as ranks |
+| Original model | Modern pairwise/listwise LTR; paper reports about threefold Sharpe improvement over the best heuristic ranking (2.16 vs 0.70), **gross of transaction costs**, monthly, NYSE 1980-2019, momentum-only |
 | Evaluation | Temporal OOS systematic-strategy backtests |
 | Data we have | Date-grouped US stock panel, continuous `fwd_rank_21`, fixed folds/cost engine |
 | Data we lack | Exact same market/instrument panel and complete original implementation assumptions |

@@ -15,7 +15,7 @@
 | Compute/storage | CPU; fixed models in hours; current frozen panel fits locally; <5 GB new artifacts |
 | Complexity | MEDIUM |
 | Leakage risk | Statement restatements, market-cap/identifier history |
-| Licensing risk | Original data requires WRDS; local open substitutes are not equivalent |
+| Licensing risk | Original data requires WRDS; the authors also share a derived characteristic dataset and simulation-only Matlab code (no license), whose redistribution terms were not verified; local open substitutes are not equivalent. No transaction costs are charged in the paper. |
 | Recommended ID | `EXP-009-GKX-LITE` only after core EXP-009, because broad feature comparisons already exist in EXP-005 |
 
 Recommendation: use GKX as a baseline architecture and reporting standard, not
