@@ -1,0 +1,75 @@
+"""Definitions for every characteristic in the rich PIT panel: formula, inputs, limitation.
+
+`docs/PIT_FEATURE_CATALOG.md` is generated from this table plus measured coverage, so a feature cannot enter the
+panel without a definition here (`tests/quant/test_rich_panel_catalog.py` enforces one-to-one).
+"""
+
+from __future__ import annotations
+
+# name: (formula, SEC facts / other inputs, known limitation)
+CATALOG: dict[str, tuple[str, str, str]] = {
+    "gross_profitability": ("TTM gross profit / total assets (Novy-Marx 2013); gross profit = GrossProfit, else revenue - cost of revenue", "gross_profit or revenue, cost_of_revenue; assets", "gross profit is a small-coverage tag; the fallback needs both revenue and cost"),
+    "roa": ("TTM net income / total assets", "net_income; assets", "end-of-period, not average, assets"),
+    "roe": ("TTM net income / stockholders' equity, equity > 0", "net_income; equity", "undefined for non-positive equity"),
+    "operating_profitability": ("TTM operating income / total assets", "operating_income; assets", "OperatingIncomeLoss is absent for some banks/insurers"),
+    "cash_profitability": ("TTM operating cash flow / total assets", "operating_cash_flow; assets", ""),
+    "gross_margin": ("TTM gross profit / TTM revenue", "gross_profit or revenue, cost_of_revenue", "financials have no gross profit"),
+    "operating_margin": ("TTM operating income / TTM revenue", "operating_income; revenue", ""),
+    "net_margin": ("TTM net income / TTM revenue", "net_income; revenue", ""),
+    "cash_flow_margin": ("TTM operating cash flow / TTM revenue", "operating_cash_flow; revenue", ""),
+    "ebitda_margin": ("(TTM operating income + TTM depreciation & amortisation) / TTM revenue", "operating_income, depreciation_amortization; revenue", "D&A from the cash-flow statement"),
+    "asset_turnover": ("TTM revenue / total assets", "revenue; assets", ""),
+    "book_to_market": ("stockholders' equity / market capitalisation", "equity; PIT shares x close", "negative equity gives a negative ratio (kept)"),
+    "earnings_yield": ("TTM net income / market capitalisation", "net_income; market cap", ""),
+    "sales_yield": ("TTM revenue / market capitalisation", "revenue; market cap", ""),
+    "fcf_yield": ("(TTM operating cash flow - TTM capital expenditure) / market capitalisation", "operating_cash_flow, capital_expenditure; market cap", "capex tag covers PP&E payments only"),
+    "ocf_yield": ("TTM operating cash flow / market capitalisation", "operating_cash_flow; market cap", ""),
+    "operating_income_to_ev": ("TTM operating income / enterprise value; EV = market cap + (long-term + short-term debt) - cash", "operating_income, long_term_debt, short_term_debt, cash; market cap", "needs both debt legs reported (an absent tag is not read as zero debt)"),
+    "gross_profit_to_ev": ("TTM gross profit / enterprise value", "as above", "as above"),
+    "sales_to_ev": ("TTM revenue / enterprise value", "as above", "as above"),
+    "asset_growth": ("total assets / total assets one year earlier - 1 (base > 0)", "assets, assets_1y", "year-ago balance needs the year-ago comparative or filing"),
+    "capex_to_assets": ("TTM capital expenditure / total assets", "capital_expenditure; assets", ""),
+    "capex_to_revenue": ("TTM capital expenditure / TTM revenue", "capital_expenditure; revenue", ""),
+    "capex_growth": ("TTM capital expenditure / year-ago TTM - 1 (base > 0)", "capital_expenditure", ""),
+    "inventory_growth": ("inventory / inventory one year earlier - 1 (base > 0)", "inventory", "absent for non-inventory businesses"),
+    "inventory_to_assets_change": ("(inventory - year-ago inventory) / year-ago total assets", "inventory, assets_1y", ""),
+    "working_capital_growth": ("change in non-cash working capital [(current assets - cash) - current liabilities] / year-ago assets", "current_assets, cash, current_liabilities, assets_1y", "unclassified balance sheets have no current items"),
+    "receivables_growth": ("net receivables / year-ago - 1 (base > 0)", "accounts_receivable", ""),
+    "accruals": ("(TTM net income - TTM operating cash flow) / total assets (Sloan 1996)", "net_income, operating_cash_flow; assets", "balance-sheet accruals variants not built"),
+    "cash_flow_quality": ("TTM operating cash flow / TTM net income, net income > 0", "operating_cash_flow, net_income", "undefined for losses"),
+    "gross_margin_stability": ("- standard deviation of TTM gross margin over the last (up to) 8 filings, >= 5 observations", "gross_margin history", "history is per filing, including amendments"),
+    "roa_stability": ("- standard deviation of TTM ROA over the last (up to) 8 filings, >= 5 observations", "roa history", ""),
+    "cash_conversion": ("(TTM operating cash flow - TTM capital expenditure) / TTM net income, net income > 0", "operating_cash_flow, capital_expenditure, net_income", ""),
+    "debt_to_assets": ("(long-term + short-term debt) / total assets", "long_term_debt, short_term_debt; assets", "both debt legs must be reported"),
+    "debt_to_equity": ("(long-term + short-term debt) / equity, equity > 0", "as above; equity", ""),
+    "net_debt_to_assets": ("(debt - cash) / total assets", "debt legs, cash; assets", ""),
+    "liabilities_to_assets": ("total liabilities / total assets; liabilities = Liabilities, else assets - equity", "liabilities or (assets, equity)", "the fallback includes non-controlling interest in equity"),
+    "current_ratio": ("current assets / current liabilities", "current_assets, current_liabilities", "unclassified balance sheets"),
+    "cash_to_assets": ("cash and equivalents / total assets", "cash; assets", ""),
+    "revenue_growth": ("TTM revenue / year-ago TTM revenue - 1 (base > 0)", "revenue TTM now and at the year-ago filing", ""),
+    "gross_profit_growth": ("(TTM gross profit - year-ago TTM) / year-ago total assets", "gross_profit; assets_1y", "scaled by assets to avoid sign problems"),
+    "earnings_growth": ("(TTM net income - year-ago TTM) / year-ago total assets", "net_income; assets_1y", ""),
+    "operating_income_growth": ("(TTM operating income - year-ago TTM) / year-ago total assets", "operating_income; assets_1y", ""),
+    "ocf_growth": ("(TTM operating cash flow - year-ago TTM) / year-ago total assets", "operating_cash_flow; assets_1y", ""),
+    "fcf_growth": ("(TTM free cash flow - year-ago TTM) / year-ago total assets", "operating_cash_flow, capital_expenditure; assets_1y", ""),
+    "debt_growth": ("(debt - year-ago debt) / year-ago total assets", "debt legs now and a year ago; assets_1y", ""),
+    "equity_issuance_proxy": ("((equity - year-ago equity) - TTM net income) / year-ago assets: equity change not explained by earnings", "equity, net_income; assets_1y", "also picks up dividends, buybacks, OCI"),
+    "shares_growth": ("split-adjusted shares outstanding / shares one year (365 days) earlier - 1", "PIT shares vintage (cover page, else balance sheet); splits", "share basis can differ between the two dates"),
+    "seasonal_ni_surprise": ("(discrete-quarter net income - same quarter a year earlier) / std of the previous 8 such differences (>= 4)", "net_income YTD algebra", "not analyst-based; a seasonal-difference SUE"),
+    "filing_lag_days": ("days from the latest report's period end to its acceptance", "accepted_at, report period", "a reporting-behaviour signal"),
+    "days_since_report": ("calendar days since the latest report became usable", "available session", ""),
+    "log_market_cap": ("log(PIT shares outstanding x unadjusted close)", "PIT shares; close", "CONTROL - present only if the security-master gate allows size features"),
+    "industry_rel_roa": ("ROA minus the (date, Fama-French 12) mean; groups < 5 names stay missing", "roa; ff12", "CONTROL - gated; SIC-based industries, not GICS"),
+    "industry_rel_gross_profitability": ("gross profitability minus its (date, FF12) mean", "gross_profitability; ff12", "CONTROL - gated"),
+    "industry_rel_book_to_market": ("book-to-market minus its (date, FF12) mean", "book_to_market; ff12", "CONTROL - gated"),
+    "industry_rel_operating_margin": ("operating margin minus its (date, FF12) mean", "operating_margin; ff12", "CONTROL - gated"),
+    "industry_rel_asset_growth": ("asset growth minus its (date, FF12) mean", "asset_growth; ff12", "CONTROL - gated"),
+    "industry_rel_earnings_yield": ("earnings yield minus its (date, FF12) mean", "earnings_yield; ff12", "CONTROL - gated"),
+}
+
+COMMON = {
+    "timestamp_rule": "usable from the availability session of the filing that reports it: accepted (US Eastern) before 16:00 on a session -> that session; at or after 16:00 or on a non-session day -> the next session",
+    "minimum_lag": "0 sessions after availability; an after-close acceptance is therefore lagged by at least one session. Median filing lag from period end is reported per feature family in the audit",
+    "cross_sectional_transform": "winsorise at the 1st/99th percentile within the date's point-in-time universe, then percentile rank scaled to [-1, 1] (`_xs`); fewer than 10 names with a value -> missing",
+    "missing_policy": "missing stays missing (NaN) into the model; it is never zero, never forward-filled beyond the staleness limit (550 days for a report, 400 days for shares); training-fold-local median imputation happens only inside the walk-forward fold",
+}
