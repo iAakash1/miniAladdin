@@ -11,7 +11,7 @@ to assumptions.
 |---|---|---|---|---|---|---|---|
 | [SEC EDGAR APIs](https://www.sec.gov/search-filings/edgar-application-programming-interfaces) | OPEN | Submissions, XBRL company facts; Forms 3/4/5, 8-K, 10-Q/K, 13F through EDGAR | Acceptance/accession timestamps support PIT versioning | Free; no API key; fair-access limits; nightly bulk archives | Public filings, but SEC access policy and third-party exhibit rights still apply | High; JSON/XML, stable identifiers, local parser needed | **Acquire first** |
 | [FRED/ALFRED](https://fred.stlouisfed.org/docs/api/fred/) | FREE WITH API KEY | Macro/rates, economic release vintages | ALFRED real-time periods explicitly support vintages | Free API key | Some series include third-party restrictions; inspect each series | High; replaces non-vintage macro ambiguity | **Acquire/normalize first** |
-| Existing local Dolt + Parquet | OPEN per manifests | OHLCV, actions, rates, options aggregates, earnings, estimates, statements | Mixed; estimates vintage dated, statement revisions unknown | Already present, ~14 GB raw | Manifests say open; retain source/version and verify upstream terms before redistribution | Highest; first task is provenance/quality, not another download | **Audit and exploit before buying** |
+| Existing local Dolt + Parquet | OPEN per manifests | OHLCV, actions, rates, options aggregates, earnings, estimates, statements | Mixed; estimates vintage dated, statement revisions unknown | Already present, ~14 GB raw | Manifests say open; retain source/version and verify upstream terms before redistribution | Highest; first task is provenance/quality, not another download | **Use price/volume; quarantine statement history; analyst arm already null** |
 | [Alpha Vantage](https://www.alphavantage.co/documentation/) | FREE KEY / PAID | Equities, historical options, fundamentals, estimates, news, transcripts, insider/institutional | Historical endpoints exist; true estimate/restatement vintages not established by docs | Free throttled tier; many full/history endpoints premium | Terms must be checked for storage/redistribution | Easy REST; broad fallback, weaker research provenance | **Pilot only** |
 | [Finnhub](https://finnhub.io/docs/api/) | FREE KEY / PAID | Prices, fundamentals, estimates, ownership, news | Historical revision guarantees unverified | Free/paid tiers | Commercial/storage rights plan-specific | Easy REST | **Do not rely on for PIT until contract confirms** |
 | [Financial Modeling Prep](https://site.financialmodelingprep.com/developer/docs) | FREE KEY / PAID | Prices, statements, estimates, earnings, transcripts | Historical availability/revision guarantees unverified | Free/paid | Plan-specific | Easy REST | **Operational fallback, not PIT authority** |
@@ -47,19 +47,44 @@ to assumptions.
    contract identifier, retrieval time, schema/version, date/symbol coverage,
    row count, and SHA-256.
 
+## Acquisition properties needed for replication
+
+Values are planning ranges. Vendor prices and entitlements are deliberately
+not guessed; `quote/plan` means verify in a contract before purchase.
+
+| Source / family | Historical depth and frequency | Bulk/API and rate | PIT quality | US coverage | Storage / acquisition estimate | Student access / cost | Redistribution | Closest paper use |
+|---|---|---|---|---|---|---|---|---|
+| SEC Financial Statement Data Sets | 2009+, quarterly bulk publication; facts at filing granularity | Quarterly ZIPs; `sub`, `num`, `tag`, `pre` | **High** when keyed by accession and accepted/filed; amendments retained | SEC filers | 5–20 GB raw/cache; hours to download, days to normalize | Open/free | Public-record access policy applies; commit derived metadata, not bulk corpus | GKX-style PIT fundamentals |
+| SEC Submissions / Company Facts | XBRL required from 2009; real-time JSON plus nightly bulk ZIPs | No key; SEC maximum 10 requests/s across machines; bulk preferred | High for filing availability; Company Facts can contain multiple filing vintages that must not be collapsed | SEC registrants including domestic/foreign forms listed by SEC | 1–10 GB targeted; 1–3 days initial pipeline | Open/free | Respect SEC policy and exhibit rights | Identity, facts, filing text |
+| SEC Form 4 | Electronic filings since early 2000s; event/filer transaction detail | EDGAR index/bulk/XML | High if acceptance time and amendment retained | Section 16 reporters | 1–5 GB targeted; several engineering days | Open/free | Public filing; no blanket right over third-party attachments | Insider events |
+| SEC 13F | Quarterly, up to 45-day reporting lag; amendments | EDGAR XML/bulk | High for *reported-at* time, not quarter-end availability | US institutional managers in scope | 2–10 GB; 1–2 weeks entity/security mapping | Open/free | Public filing; identifiers/mappings need terms | Institutional ownership change |
+| FRED / ALFRED | Series-dependent; daily to annual; real-time vintages for ALFRED | API key, series endpoints | **High** for vintage macro when real-time periods are retained | Macro, not securities | <5 GB; hours-days | Free | Series-specific third-party restrictions | Macro state controls |
+| OpenFIGI | Current mapping service, not a complete historical master | API: 25 requests/min and 10 jobs/request without key; 25/6 sec and 100 jobs with key | Mapping response is not a historical effective-date record | Broad identifiers | <100 MB; hours for 998 names | Free; free account raises limit | OpenFIGI terms apply; do not assume mapping redistribution | Identity cross-check only |
+| Exchange symbol directories/notices | Current daily files and dated notices; archival depth varies | Download/files; exchange-specific | Medium if snapshots are archived prospectively | Listed US instruments | <10 GB; ongoing daily job | Mixed open metadata / paid feeds | Exchange-specific | Listing/exchange status |
+| CRSP / Compustat / IBES / OptionMetrics through WRDS | Decades; daily/monthly/event/vendor-specific | Institutional bulk/query | Research-grade, but PIT semantics still field-specific | Strong | Tens to hundreds of GB; days-weeks | Academic institution subscription; commercial otherwise | Raw redistribution prohibited | Most canonical papers |
+| Cboe DataShop / OptionMetrics | Roughly 1996/2012+ depending product; daily/intraday contracts | Bulk commercial delivery | High timestamps, but synchronization/filtering still required | Listed US options | 0.1–2+ TB contract-level; days-weeks | Paid; academic terms may exist | Restricted | IV surface/moments |
+| Massive / Polygon-style market APIs | Plan-specific daily/intraday stocks/options | API/bulk by plan | Good timestamps; corrections/history require contract review | US market | 50 GB–TB; days | Paid | Restricted | Feasible option-chain substitute |
+| Analyst vendors (IBES/Refinitiv/FactSet) | Decades, estimate-level snapshots depending product | Licensed bulk/API | Potentially high with contributor/effective timestamps | Broad US | 10–100+ GB; weeks to validate | Academic/commercial | Restricted | Stickiness, breadth, acceleration |
+| News/transcript vendors | Provider-dependent archives and timestamps | Licensed feeds | Variable; corrections/publication time are critical | Broad | 100 GB–TB with text/audio | Commercial, often costly | Strongly restricted | FinBERT/LLM/transcripts |
+| Alpha Vantage / Finnhub / FMP / Tiingo / Twelve Data | Plan-specific | REST, rate/credit limits | **Unproven for revision-vintage research** unless contract says otherwise | Broad but endpoint-dependent | GB-scale targeted | Free/paid tiers | Plan-specific | Operational fallback, not canonical replication |
+| Nasdaq Data Link | Dataset-specific | API/bulk | Dataset-specific | Dataset-specific | Dataset-specific | Free/paid marketplace | Dataset-specific | Discovery/procurement channel only |
+
 ## Ranked acquisition recommendation
 
 | Rank | Acquisition | Expected alpha value | Cost/effort | Reason |
 |---:|---|---|---|---|
-| 1 | SEC filing-time corpus: 8-K earnings exhibits plus Forms 3/4/5 | Medium-high, orthogonal event information | Low cash / medium engineering | Open, timestamped, improves provenance and supports recent earnings-text/insider hypotheses |
-| 2 | PIT security master and delisting layer (WRDS/CRSP if licensed; otherwise curated SEC/exchange mapping) | High reliability value; medium alpha-enabling value | Medium-high | Required for neutralization, survivorship, sectors and realistic exits |
-| 3 | Repair/audit existing analyst-estimate revisions | Medium-high | Low cash / medium validation | Seven million local rows already exist; buying duplicates before proving quality is wasteful |
-| 4 | ALFRED vintage macro | Low direct alpha, high leakage-control value | Low | Removes revised-macro ambiguity cheaply |
-| 5 | Contract-level Cboe/Massive/OptionMetrics options | Uncertain/mixed | High cash/storage/engineering | Literature is synchronization-sensitive and incremental power is mixed |
-| 6 | Licensed news/transcript archive | Potentially medium | High license and NLP burden | Valuable only with durable rights and exact availability times |
+| 1 | SEC as-reported numeric facts (`sub`/`num`/`tag`/`pre`) | **High information-content prior** | Low cash / medium-high engineering | Enables broad profitability/value/investment panel with auditable vintages |
+| 2 | PIT CIK/ticker/SIC/shares/security master and delisting layer | High reliability and alpha-enabling value | Medium-high | Required for identity, size/industry controls, survivorship and realistic exits |
+| 3 | ALFRED vintage macro | Low direct alpha, high leakage-control value | Low | Removes revised-macro ambiguity cheaply |
+| 4 | SEC filing text and earnings exhibits | Medium, orthogonal event information | Low cash / high engineering | Supported by filing/earnings-text studies; follows numeric SEC build |
+| 5 | SEC Form 4 / 13F | Uncertain-to-medium | Low cash / high mapping work | Public and orthogonal, but lag/event semantics require separate preregistration |
+| 6 | Contract-level Cboe/Massive/OptionMetrics options | Uncertain/mixed | High cash/storage/engineering | Synchronization-sensitive and weak incremental evidence; local aggregates are insufficient |
+| 7 | Licensed analyst-level or news/transcript archive | Potentially medium | High license and validation burden | Only justified if it supplies genuinely new granularity/rights, not another consensus snapshot |
 
-Immediate conclusion: do not buy a broad market-data bundle for EXP-008.
-First formalize the data manifest and exploit the existing estimate/earnings
-inventory; independently build the public SEC event corpus. Defer options until
-the low-cost objective/turnover experiment establishes that model research can
-clear net-economic gates.
+Post-EXP-009 conclusion: do not retest the same analyst aggregates, do not buy a
+broad bundle, and do not prioritize options. Build the SEC numeric/PIT identity
+foundation first. The official SEC API page confirms real-time submissions and
+XBRL APIs plus nightly `submissions.zip` and `companyfacts.zip`; the Financial
+Statement Data Set documentation links `NUM` to `SUB` by accession and tags to
+`TAG`/`PRE`. Use quarterly bulk files for reproducibility and keep the API for
+incremental refreshes.

@@ -3,8 +3,9 @@
 Search cutoff: 2026-09-19. Scope: cross-sectional return ranking/selection,
 learning to rank, probability/distribution forecasts, alternative data, and
 net portfolio construction. This is a decision survey, not a claim that every
-working paper has survived peer review. Of the 33 works below, 24 are dated
-2024--2026. Peer-reviewed work is separated from working/preprint evidence.
+working paper has survived peer review. Of the 34 works below, 25 are dated
+2024--2026 (18 from 2024, 3 from 2025 and 4 from 2026); 9 are foundational
+2014–2023 works. Peer-reviewed work is separated from working/preprint evidence.
 
 ## Verification addendum (2026-09-19)
 
@@ -27,6 +28,10 @@ qualifiers rather than replacements are listed here:
 - **Bianchi & Zheng**, **Chen-Hanauer-Kalsbach**, **Brownlees & Souza**: primary
   text unreachable (SSRN HTTP 403); their figures are UNVERIFIED and must not
   be cited as fact.
+- **Post-EXP-009 evidence:** the turnover hypothesis reproduced (top-k dropout
+  cut turnover 66%), but ranking losses and aggregate analyst revisions did not.
+  Those outcomes update implementation priority; they do not rewrite the
+  preregistered studies or the papers.
 
 ## Method
 
@@ -58,7 +63,7 @@ costs; LTR = learning to rank; NN = neural network.
 | [Brownlees & Souza, How To Bet On Winners (and Losers)](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5352643) | 2025, working paper | Winner/loser decisions rather than conditional mean | Classification/statistical decision framing | Decision-aligned losses can outperform mean regression for selection. Review pending. | Direct support for rank/classification objective test; MEDIUM |
 | [He, Lv & Zhou, Empirical Asset Pricing with Probability Forecasts](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4717935) | 2024, working paper | Probability of relative return outcomes | Probability forecasts, OOS portfolios | Probability framing can improve portfolio decisions. Calibration and search choices matter. | Candidate after ranking baseline; MEDIUM |
 | [Girardi, Koerber & Schlag, Nonlinearities and Pricing Complexity](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5502838) | 2024, working paper | Nonlinear CS relations | Flexible ML/OOS comparison | Nonlinearity is heterogeneous rather than universally valuable. | Supports restrained model family; MEDIUM |
-| [Azevedo, Hoegner & Velikov, Expected Returns on ML Strategies](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4702406) | 2024, rev. 2025, working paper | Published/implementable ML strategies | Post-publication and TC analysis | Costs and decay reduce reported performance materially (paper reports 57% combined reduction). Working-paper estimates. | Makes net-first gates mandatory; MEDIUM |
+| [Azevedo, Hoegner & Velikov, Expected Returns on ML Strategies](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4702406) | 2024, rev. 2025, working paper | Published/implementable ML strategies | Post-publication and TC analysis | The abstract reports that selected sophisticated strategies remain profitable net; exact decay decomposition was not verified. | Supports net-first evaluation without supplying an OmniSignal prior; MEDIUM |
 | [Chin, ML and the Cross-Section of Stock Returns](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4282614) | 2022, rev. 2026, working paper | Technical indicators and rolling US CS prediction | ML with rolling retraining | Technical inputs can contain OOS rank information. Revision history and publication status limit certainty. | Comparable feature family; MEDIUM-LOW |
 | [Chin & Lin, ML and Technical Analysis in International Markets](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6579120) | 2024, posted 2026, working paper | International equities/technical indicators | ML/OOS country tests | Tests portability of technical ML. Recent posting and reproducibility pending. | Regime/generalization context; LOW-MEDIUM |
 | [Honarvar & Howard, Better Opt Out](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4766424) | 2024, working paper | Options-implied signals for underlying returns | Corrected synchronization and subperiod tests | Predictability weakens post-2008 and after look-ahead correction. | Strong warning against prioritizing costly options ingestion; MEDIUM |
@@ -72,11 +77,12 @@ costs; LTR = learning to rank; NN = neural network.
 | [Kwon, Lee & Yoo, Disagreement versus Uncertainty](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4921479) | 2024, rev. 2026, working paper | Analyst forecast distributions | Disagreement/uncertainty decomposition | Distinguishing disagreement from uncertainty can matter for returns. | Motivates careful estimate-revision features; MEDIUM |
 | [Listwise Learning-to-Rank for Long-Short Portfolios](https://arxiv.org/abs/2104.12484) | 2021, preprint | Direct stock ranking for long/short selection | Listwise LTR; portfolio evaluation | Aligns loss with ordering rather than point error. Narrow/preprint evidence and cost sensitivity. | Direct EXP-009 objective precedent; MEDIUM-LOW |
 | [Interpretable Stock Selection with LambdaMART and SHAP](https://www.sciencedirect.com/science/article/pii/S1938025922000073) | 2022, journal article | Stock selection/ranking | LambdaMART plus SHAP | Demonstrates ranked selection and interpretation. Setting and external validity are limited. | Implementation precedent, not performance prior; MEDIUM |
+| [Celeny et al., Cyber Risk and the Cross-Section of Stock Returns](https://arxiv.org/abs/2402.04775) | 2024, preprint | 7,059 US firms, 60,470 SEC 10-Ks, 2007–2022 | doc2vec DM/DBOW trained with MITRE; quarterly value-weight sorts; no implementation-cost analysis found | Filing text creates a distinct risk score and positive high-minus-low portfolio in the sample. CRSP/Compustat inputs remain licensed and result is not a 21-day selector. | Strong lawful SEC-text construction precedent; MEDIUM-LOW |
 | [Qian et al., MDGNN](https://arxiv.org/abs/2402.06633) | 2024, preprint | Graph-based stock movement prediction on public benchmarks | Multi-relational dynamic GNN | Graph relations improve benchmark movement forecasts. Benchmark differs from liquid-US rank economics. | Defer until simpler relational controls pass; LOW-MEDIUM |
 | [Poh, Lim, Zohren & Roberts, Building Cross-Sectional Strategies by LTR](https://arxiv.org/abs/2012.07149) | 2020, preprint | Cross-sectional momentum across instruments | Pairwise/listwise ranking; OOS trading | Reports roughly threefold Sharpe improvement over traditional ranking in its setting. Preprint, portability and cost detail constrain the prior. | Strong LTR precedent; MEDIUM |
-| [Jensen, Kelly, Malamud & Pedersen, Implementable Efficient Frontier](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4187217) | 2024, SFI working paper | ML portfolio weights under trading costs | Economic objective and cost-aware optimization | Directly learns implementable weights and economic feature importance. Complex end-to-end objective is harder to attribute and reproduce. | Strong net-objective evidence; MEDIUM-HIGH |
+| [Jensen, Kelly, Malamud & Pedersen, Implementable Efficient Frontier](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4187217) | 2026, Review of Financial Studies (2024 working-paper version) | ML portfolio weights under trading costs | Economic objective and cost-aware optimization | Directly learns implementable weights and economic feature importance. Official code reports 25–75 GB/job on Slurm; exact run is infeasible here. | Strong net-objective principle; exact replication rejected; MEDIUM-HIGH |
 | [Cakici & Zaremba, Getting the Target Right](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6615698) | 2026, preprint | 35 markets, 1994--2024 | Raw versus ordinal/rank targets | Ordinal targets nearly triple predictive accuracy and double portfolio returns on average, but lose magnitude information in high-dispersion/skewed settings. | Direct target evidence; MEDIUM |
-| [Bianchi & Zheng, Posterior Uncertainty in Portfolio Policies](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6359140) | 2026, preprint | Characteristic-based portfolio policies | Bayesian NN position intervals/no-trade rule | Holding inside credible intervals reduces turnover 24--45% with little performance change. Model complexity and preprint status limit transfer. | Evidence for no-trade regions; MEDIUM |
+| [Bianchi & Zheng, Posterior Uncertainty in Portfolio Policies](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6359140) | 2026, preprint | Characteristic-based portfolio policies | Bayesian NN position intervals/no-trade rule | Primary text was unavailable; numerical turnover claims remain **UNVERIFIED** and are not used. | No-trade concept only; LOW pending verification |
 | [Analyst Stickiness and Stock Return Predictability](https://doi.org/10.1093/rof/rfag022) | 2026, Review of Finance | Analyst-level forecast revisions | Sticky-analyst consensus revision | Sticky analysts' revisions predict more strongly, especially under forecast difficulty. Requires analyst-level IBES-like history absent locally. | Validates revision family, not directly reproducible; HIGH |
 | [Campbell et al., Expectations Matter](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4495297) | 2024, working paper | Firm earnings forecasts | ML forecasts versus analysts | About 90% of evaluated ML specifications fail to beat analysts; best models correct nonlinear analyst biases. | Warns against assuming richer model beats consensus; MEDIUM |
 
@@ -114,11 +120,12 @@ means sufficient raw data for full replication, not merely a sample or schema.
 | Kwon, Lee & Yoo | 2024/26 | SSRN preprint | US | analyst-covered equities | NR | future returns | analyst forecasts | dispersion/decomposition | CS regressions/portfolios | temporal tests | portfolio returns | disagreement and uncertainty differ economically | NR | No, analyst data licensed | Requires exact forecast vintages | Better estimate representation | Vendor access and preprint | Existing estimate audit |
 | Zhang, Wu & Chen, *Constructing long-short stock portfolio with a new listwise learn-to-rank algorithm* | 2021 | arXiv preprint | China | 80 of 3,712 A-shares (missing-data filter) | 2006--2019 | ranked stock list | 68-factor weekly panel | 68 factors | new listwise neural LTR | OOS long/short | 30 bp per trade charged | excess return 38%, Sharpe 2.01, turnover 0.48 (MLP: Sharpe 0.72, turnover 0.39) | [Author code and data](https://github.com/TCtobychen/ListFold) (no license) | Paper states data are open; 80 survivor-filtered stocks | PIT quality NR | Loss emphasizes both tails | Different market; 80-stock filtered universe; preprint; costs (30 bp) were charged | Direct rank-objective precedent |
 | LambdaMART + SHAP stock selection | 2022 | journal article | NR | stocks | NR | ranking | factor panel | factors | LambdaMART + SHAP | OOS | NR | demonstrates interpretable ranked selection | NR | NR | NR | Ranking plus interpretation | Setting/external validity limited | Implementation precedent |
+| Celeny et al., Cyber Risk | 2024 | arXiv preprint | US | 7,059 SEC filers | 2007–2022; portfolios 2009–2022 | most-recent 10-K cyber score / future portfolio return | SEC 10-K, MITRE, CRSP/Compustat | doc2vec document score + controls | DM/DBOW doc2vec then sorts/regressions | 2008 validation documents; chronological portfolio sample | none found | positive high-minus-low returns/alphas reported | author repo reported | SEC/MITRE open; CRSP/Compustat licensed | filing date supports PIT; identity/returns still need mapping | Scalable filing-text construction | preprint; annual text, no turnover/cost analysis | Later SEC-text candidate |
 | Qian et al., MDGNN | 2024 | arXiv preprint | benchmark markets | public benchmark universes | benchmark periods | stock movement class/rank | prices + relation graphs | dynamic relations | multi-relational GNN | benchmark temporal split | TC not central | improves benchmark prediction | NR | Benchmark data partly public | Benchmark-dependent | Dynamic multi-graph architecture | Not comparable to US net-long/short research | Defer graph complexity |
-| Poh, Lim, Zohren & Roberts | 2020 | arXiv preprint | US equities (CRSP, NYSE common stocks) | price > $1, 100 long / 100 short | 1980--2019 | 21-day volatility-normalised return, learned as ranks | CRSP | price-based momentum/MACD features only | pairwise/listwise LTR (LambdaMART best) | 5-year retrain windows, temporal OOS | **none: all returns computed without transaction costs** | LambdaMART Sharpe 2.16 vs 0.70 (best heuristic) and 0.27 (MLP), gross, vol-scaled to 15% | Paper-linked implementation details; license not verified | No turnkey OmniSignal-equivalent panel | Price histories are naturally timestamped; exact execution alignment is study-specific | Directly aligns training with rank selection | Different instruments and preprint evidence | Primary EXP-009 LTR replication candidate |
+| Poh, Lim, Zohren & Roberts | 2020 | arXiv preprint | US equities (CRSP, NYSE common stocks) | price > $1, 100 long / 100 short | 1980--2019 | 21-day volatility-normalised return, learned as ranks | CRSP | price-based momentum/MACD features only | pairwise/listwise LTR (LambdaMART best) | 5-year retrain windows, temporal OOS | **none: all returns computed without transaction costs** | LambdaMART Sharpe 2.16 vs 0.70 (best heuristic) and 0.27 (MLP), gross, vol-scaled to 15% | Paper-linked implementation details; license not verified | No turnkey OmniSignal-equivalent panel | Price histories are naturally timestamped; exact execution alignment is study-specific | Directly aligns training with rank selection | Different instruments and preprint evidence | Adaptation completed; EXP-009B found no ordering gain, so reject next cycle |
 | Jensen, Kelly, Malamud & Pedersen | 2024 (SSRN); published RFS 2026 | RFS | global/equity applications | characteristic-managed portfolios | paper sample | implementable portfolio weights/economic utility | market and characteristic data | firm characteristics and trading costs | cost-aware portfolio policy | temporal OOS economic tests | explicit transaction-cost-aware objective | shifts the efficient frontier after implementation frictions | Author repository exists (no license; needs WRDS/Markit data) | Core datasets are not an open turnkey package | Depends on source construction | Learns an implementable rather than frictionless policy | Complex end-to-end objective weakens attribution | Supports isolated turnover-aware construction |
 | Cakici & Zaremba | 2026 | SSRN preprint | 35 markets | broad international equities | 1994--2024 | raw versus ordinal future-return targets | market/characteristic panels | firm characteristics | comparative ML models | temporal international OOS | portfolio evaluation; exact cost portability must be verified | ordinal targets improve average predictive and portfolio results in the reported tests | NR | No verified open full panel | Study-specific lagging | Direct evidence on target transformation | Very recent preprint; magnitude information can matter | Supports fixed rank-target comparison in EXP-009 |
-| Bianchi & Zheng | 2026 | SSRN preprint | characteristic portfolios | equities | paper sample | posterior portfolio-position distribution | returns and characteristics | characteristic signals | Bayesian neural portfolio policy | temporal OOS | explicit no-trade rule | reported turnover reduction with limited performance change | NR | No verified open full data package | Study-specific | Converts uncertainty into a no-trade region | Recent preprint and model complexity | Supports a simple preregistered buffer, not immediate model adoption |
+| Bianchi & Zheng | 2026 | SSRN preprint | characteristic portfolios | equities | paper sample | posterior portfolio-position distribution | returns and characteristics | characteristic signals | Bayesian neural portfolio policy | temporal OOS | cost/no-trade treatment claimed but primary text unavailable | **UNVERIFIED** | NR | No verified open full data package | Study-specific | Converts uncertainty into a no-trade region | Recent preprint and inaccessible primary text | Concept only; no numeric reliance |
 | Analyst Stickiness and Stock Return Predictability | 2026 | Review of Finance | US | analyst-covered firms | paper sample | future returns following analyst revisions | analyst-level forecast histories | analyst stickiness and revisions | portfolio sorts/regressions | temporal portfolio tests | economic portfolio evaluation | revisions by sticky analysts are reported as more predictive | NR | No; analyst-level history is licensed | Requires analyst-level vintages | Identifies heterogeneity inside consensus revisions | Local store lacks analyst identifiers | Supports revision family but is not exactly locally reproducible |
 | Campbell et al., Expectations Matter | 2024 | SSRN working paper | US | analyst-covered firms | paper sample | earnings/return outcomes | analyst forecasts plus firm data | expectations and nonlinear corrections | broad ML comparison | temporal OOS | not primarily a turnover study | most tested ML specifications do not beat analysts; selected models correct nonlinear bias | NR | No verified open full panel | Requires vintage forecasts | Strong negative result against indiscriminate model complexity | Working paper and vendor dependence | Supports using consensus as information, not merely adding model size |
 
@@ -180,17 +187,40 @@ faithful replication. S/Z/B means sector/size/beta neutralization.
 | Ensembles | GKX/quantile NN/model combinations | Rank/model averaging can reduce variance, but adds a trial and must be registered |
 | Uncertainty/selective prediction | probability/quantile works | Better decision framing; conformal/abstention evidence for this exact task remains early |
 
+## Target formulas and cadence evidence
+
+Exact formulas are recorded when the public paper/config exposes them; `NR` in
+the full register is intentional for abstract-only studies.
+
+| Study | Target / objective actually used | Horizon and decision cadence |
+|---|---|---|
+| GKX | `y[i,t] = r[i,t+1] - r[f,t+1]`; prediction losses include MSE/Huber and models are compared on OOS return forecasts | Next month; monthly characteristics and portfolios. Monthly inputs at `t`, quarterly lagged at least 4 months, annual at least 6 months |
+| Poh et al. | Order stocks by realized 21-trading-day forward return; pairwise/listwise losses optimize within-date ranking. Portfolio return scales each selected asset by ex-ante EW volatility and a 15% target-volatility factor | 21 trading days; portfolio rebalanced on the last trading day of each month |
+| ListFold | `y[i,t] = rank_cs(r[i,t+1])`; ListFold/ListMLE-style permutation likelihood emphasizes both tails | Weekly labels and weekly portfolio; 300-week train, 16-week test |
+| Qlib Alpha158 config | `y[t] = close[t+2] / close[t+1] - 1`, then cross-sectional z-score; one-day offset separates signal and execution | Next day; daily signal and top-k/dropout update |
+| Barunik et al. | `Q_tau(r[i,t+1] | F_t)` for 37 values of `tau`; pinball loss `rho_tau(u)=u(tau-1[u<0])`; second stage maps standardized quantiles and market volatility to 22-day raw-return quantiles | 22 trading days; monthly portfolios, annual expanding retraining |
+| Chen–Pelger–Zhu | Choose SDF weights to minimize unconditional/conditional pricing moments; an adversary selects moments with largest pricing discrepancy | Monthly; fixed train/validation/test epochs rather than portfolio rebalancing study |
+| OmniSignal | `rank_cs(prod_{j=1..21}(1+r[i,t+j])-1)` with prediction time before the forward window | 21 sessions, but current book updated every ~5 sessions |
+
+The papers align label and portfolio cadence more often than OmniSignal does:
+GKX is monthly/monthly, Poh is 21-day/monthly, Barunik is 22-day/monthly, and
+Qlib is next-day/daily. They do not prove that 21-session cadence will win here,
+but they make one preregistered 5d-versus-21d test scientifically justified.
+Overlapping 21-session labels require block/HAC inference regardless of cadence.
+
 ## Official and author code reviewed
 
 | Repository | Relationship | License / activity evidence | Training/data support | Reproducibility conclusion |
 |---|---|---|---|---|
 | [LouisChen1992/Deep_Learning_in_Asset_Pricing](https://github.com/LouisChen1992/Deep_Learning_in_Asset_Pricing) | Author repository for Chen–Pelger–Zhu | 13 commits; no license visible, so reuse rights are **not assumed** | FFN/GAN/linear notebooks, empirical outputs, links to data/models | Method inspectable; full data/licensed-use and environment not turnkey |
 | [ondrejtobek/quantile-neural-networks](https://github.com/ondrejtobek/quantile-neural-networks) | Author replication package | MIT; package assembled April 2026; 9 commits visible | Full processing/training/analytics scripts and minimum notebook; licensed WRDS/LSEG inputs omitted except schemas/samples | Strongest package reviewed; full replication still requires proprietary inputs and much larger GPU/RAM host |
-| [TCtobychen/ListFoldofficialpytorch](https://github.com/TCtobychen/ListFoldofficialpytorch) | Code linked for the listwise LTR paper | License and recent maintenance not verified | PyTorch ranking implementation; original dataset availability not verified | Algorithm reference only until license/data are verified |
+| [TCtobychen/ListFold](https://github.com/TCtobychen/ListFold) | Repository named in the listwise LTR paper | No license; reviewed commit `97939a5` | PyTorch implementation and links to feature/price arrays; 21 rolling pairs | Reference-only. The 80-stock survivor-filtered sample undermines portability |
 | [microsoft/qlib](https://github.com/microsoft/qlib) | Official research platform | MIT; active large repository (2,000+ commits visible) | Alpha158/360 handlers, many models, strategy/backtest workflows and tests | Reproducible framework examples; China/community data and assumptions are not an OmniSignal substitute |
+| [theisij/ml-and-the-implementable-efficient-frontier](https://github.com/theisij/ml-and-the-implementable-efficient-frontier) | Official JKMP replication | No license; reviewed commit `13d836b` | Full Slurm workflow and measured RAM/runtime disclosures; requires JKP/WRDS and optional Markit | Exact run needs 25–75 GB/job and cluster arrays; neither available environment fits |
 
-Community GKX replications were found, but no author-designated official GKX
-repository was verified. They are not cited as official code.
+The GKX paper links a small author simulation repository and a derived public
+characteristic dataset, but not the full empirical pipeline; no repository
+license was found. Community replications are not cited as official code.
 
 ## Answers to RQ1--RQ10
 
@@ -253,16 +283,21 @@ cost curves. A positive aggregate IC is insufficient.
 Recent evidence reinforces that design and implementation can dominate model
 choice. Score smoothing, entry/exit buffers, neutralization, constraints and
 abstention are legitimate hypotheses only when isolated from the predictive
-model. EXP-006's 20.15x turnover makes this the most urgent design axis.
+model. EXP-006's 20.15x turnover made this the most urgent design axis;
+EXP-009A has now confirmed one bounded-replacement solution, so the rule should
+be frozen while information changes are tested.
 
-## Governance boundary and decision for EXP-009
+## Post-EXP-009 governance boundary and decision
 
-EXP-008 remains exactly as preregistered. None of the findings in this survey
-changes its hypothesis, five trials, data, target, or analysis plan.
+EXP-008 remains exactly as preregistered. EXP-009 now exists and is immutable:
+its turnover result succeeded, its two ranking objectives failed, its analyst
+arm failed, and duplicate-axis removal was equivalent. Nothing in this survey
+retrofits a threshold, trial or interpretation into either study.
 
-The literature-supported follow-on is a separately preregistered EXP-009. It
-should first isolate point regression versus date-grouped learning to rank on
-identical data and folds, then isolate immediate replacement versus one fixed
-rank buffer/no-trade rule. An analyst-revision arm may follow only after those
-choices are frozen. Options, text, graph features, and a new vendor do not
-belong in the first EXP-009 because they weaken attribution and reproducibility.
+The immediate follow-on is a new **EXP-010A** ten-seed noise-floor study, then a
+new **EXP-010B** 5d-versus-21d cadence study on frozen predictions. The next
+information study becomes **EXP-011** only after an SEC as-reported fundamentals
+panel and PIT security master exist. Its primary comparison is base data versus
+base+PIT data under regularized linear and conservative boosted-tree models,
+with the successful top-k dropout rule held fixed. Options, graphs and large
+neural models are not supported for the next cycle.

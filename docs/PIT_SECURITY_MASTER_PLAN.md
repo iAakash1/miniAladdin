@@ -36,7 +36,13 @@ stable identifier.
 
 ## 3. Plan
 
-The external-source details below (EDGAR header fields, OpenFIGI, symbol-directory files) are stated from public documentation as remembered and **must be confirmed against the live pages before any build starts**.
+The external-source details below were rechecked on 2026-09-19 against the
+[SEC EDGAR API documentation](https://www.sec.gov/search-filings/edgar-application-programming-interfaces),
+[SEC fair-access limit](https://www.sec.gov/filergroup/announcements-old/new-rate-control-limits),
+and [OpenFIGI API documentation](https://www.openfigi.com/api/documentation).
+The SEC publishes filer submission history (including current/former names,
+exchanges and tickers), real-time APIs and a nightly bulk `submissions.zip`;
+OpenFIGI is a mapping service, not a historical effective-date authority.
 
 | Need | Free/public source | Method | Limits |
 |---|---|---|---|
@@ -53,6 +59,37 @@ cap; (4) a feature-level flag `security_master_pit: true/false` recorded in ever
 dataset manifest. Each step ships with a leakage test in the style of
 `tests/quant/test_analyst_pit.py`. None is started here: it is a data-engineering
 project that should precede — not ride along with — any neutralisation experiment.
+
+## 3A. Concrete schema and tests
+
+Store intervals rather than overwriting identity:
+
+| Table | Minimum columns |
+|---|---|
+| `security_identity_interval` | `security_id`, `cik`, `ticker`, `exchange`, `name`, `effective_from`, `effective_to`, `source`, `accession`, `retrieved_at` |
+| `security_classification_interval` | `security_id`, `sic`, `ff_industry`, `effective_from`, `effective_to`, `source_accession` |
+| `shares_fact_vintage` | `security_id`, `period_end`, `accepted_at`, `accession`, `form`, `tag`, `unit`, `value`, `is_amendment` |
+| `security_exit_event` | `security_id`, `event_date`, `form`, `reason`, `last_trade_date`, `return_treatment`, `source_accession` |
+
+Identity inference may use a later filing only from its acceptance time forward.
+OpenFIGI mappings are cross-checks; they never manufacture a historical start
+date. Archive exchange symbol files prospectively with content hashes.
+
+Required gates:
+
+1. no overlapping identity intervals for one security/share class;
+2. ticker reuse produces distinct `security_id` values;
+3. truncating the source at date *t* leaves every interval and feature before
+   *t* byte-identical;
+4. an after-close acceptance becomes usable next session;
+5. amendments never overwrite the original vintage;
+6. all universe rows either resolve to one identity or carry an explicit
+   unresolved reason; and
+7. size/industry neutralization is prohibited until coverage and unresolved
+   identity rates are reported by fold.
+
+For the initial 998-name universe, expected curated storage is well below 2 GB
+and the work is CPU/data-engineering bound. It belongs on the MacBook.
 
 ## 4. Classification
 

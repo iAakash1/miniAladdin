@@ -291,3 +291,74 @@ OmniSignal outcome.
 3. **C (analyst)** is a low-prior hypothesis; it runs only if a point-in-time
    audit passes, on a single BASE vs BASE+analyst arm.
 4. Nothing here changes EXP-008.
+
+---
+
+## S13. Barunik, Hronec & Tobek — return-distribution networks — FULL-TEXT + CODE
+
+| Field | Verified content |
+|---|---|
+| Data | US CRSP/Compustat/IBES plus LSEG international inputs. The network uses 176 stock characteristics and 18 market/volatility inputs, **194 total**. Accounting data are lagged; the authors state features use information available at prediction time. |
+| Target | **37 conditional quantiles** of next 22-day return. A standardized-return subnetwork and market-volatility subnetwork reconstruct raw-return quantiles and moments. |
+| Validation | Initial US train/validation through 1994, annual expanding retraining, 1995–2018 OOS; separate full/liquid and regional samples. Monthly equal-weight decile portfolios. |
+| Costs | The PDF contains no transaction-cost or turnover analysis. This is gross distribution-forecast evidence, not net implementation evidence. |
+| Reported compute | Official MIT repository: Ubuntu, 16 CPU cores, RTX 4090 24 GB, 128 GB RAM. Full scripts >2 months; data ~2 weeks, tuning ~3, all NNs ~2, GARCH ~1, simulations ~2; minimum notebook ~4 days. |
+| Reproducibility | Code is strong, but full licensed WRDS/LSEG inputs are omitted. Exact replication fits neither the M4/24 GB nor Kaggle T4x2/29 GB-session environment. |
+| Decision | DEFER. A reduced quantile study is warranted only after a rich PIT numeric panel demonstrates stable mean/rank signal net of costs. |
+
+## S14. Chen, Pelger & Zhu — deep SDF — FULL-TEXT + CODE
+
+| Field | Verified content |
+|---|---|
+| Data | All CRSP securities, roughly 31,000 over 1967–2016, with **46 firm characteristics** and **178 macro time series** (including FRED-MD and cross-sectional characteristic aggregates). |
+| Split | 1967–1986 training, 1987–1991 validation, 1992–2016 test. |
+| Model / target | Feed-forward SDF weights, LSTM macro state, and adversarial conditional-moment network; nine-fit ensembles. The objective is an SDF/no-arbitrage moment condition, not stock rank. |
+| Costs | The paper analyzes turnover/liquidity cutoffs but is not a retail net-cost stock-selection replication. Hardware/runtime are not reported. |
+| Reproducibility | Official author repository exists at reviewed commit `c25b1e7`, but no license is present and CRSP/Compustat inputs are licensed. |
+| Decision | REJECT for the next cycle. Economic restrictions are useful; exact adversarial SDF complexity is not. |
+
+## S15. Qian et al. MDGNN — FULL-TEXT
+
+| Field | Verified content |
+|---|---|
+| Data | CSI100/CSI300; 42 node features: 25 market, 12 valuation, 4 categorical and 1 institutional-consensus feature. Graphs contain 100/300 stocks, 196/202 banks, 97/191 industries and **18,950,706 / 62,500,988 edges**. |
+| Target / validation | Daily probability of positive return. Seven six-month training cycles from 2020 to 2023, final month validation, next six months prediction. |
+| Model / compute | Multi-relational graph attention plus temporal transformer; hidden size 128, two layers, window 10, 500 epochs; **Nvidia V100**. Runtime/VRAM not reported. |
+| Portfolio/costs | Reports IC, IR, cumulative return and precision@30; CSI300 IC 0.0322/IR 0.2488. No transaction costs or turnover. |
+| Decision | REJECT now. Relation provenance and data are absent, and the China movement benchmark is not a US liquid-250 net ranking test. |
+
+## S16. Celeny et al. — SEC 10-K cyber-risk text — FULL-TEXT
+
+| Field | Verified content |
+|---|---|
+| Data | 7,059 CRSP/Compustat firms, 60,470 SEC 10-Ks, 2007–2022; most-recent filing score drives 2009–2022 portfolios. |
+| Text model | Gensim doc2vec DM/DBOW trained on 2007 filings plus 785 MITRE ATT&CK descriptions, >1.7 million training paragraphs; 2008 documents validate the specification. |
+| Portfolio | Quarterly rebalanced, value-weighted cyber-risk quintiles; most recent 10-K is the signal. Positive high-minus-low excess returns/alphas are reported. |
+| Costs / compute | No transaction-cost or turnover analysis found; hardware/runtime not reported. |
+| Reproducibility | SEC/MITRE text is open, but exact CRSP/Compustat returns/controls are licensed. Filing timestamps support a lawful PIT adaptation once CIK identity exists. |
+| Decision | ADAPT LATER as a filing-text precedent, after numeric XBRL facts and the security master. |
+
+## Compute and replication correction
+
+The original S6 description understated JKMP's public reproducibility evidence:
+the official repository gives exact Slurm job requirements even though the
+paper text was inaccessible. Twelve model jobs used about 75 GB RAM each and up
+to five hours; downstream jobs used roughly 25–70 GB and up to 2 days 16 hours.
+That makes the exact feasibility verdict observable: **neither** the 24 GB Mac
+nor Kaggle's ~29 GB host can run individual jobs as reported. The correct
+adaptation is the already isolated turnover layer, not an undersized claim of
+replication.
+
+## Post-EXP-009 empirical update
+
+The preregistered tests have now resolved three survey hypotheses locally:
+
+- top-k dropout confirmed the turnover mechanism (20.15x → 6.90x; net Sharpe
+  −0.102 → +0.390 at 10 bp), though not a stronger signal;
+- LambdaMART and pairwise ranking failed to improve ordering; and
+- eight PIT aggregate analyst features failed on their evaluable folds.
+
+These results elevate the **data** gap over the model gap. The next defensible
+replication is a broad SEC-as-reported characteristic panel with regularized
+linear and boosted-tree baselines—not a third ranking loss, a graph, or a deep
+distributional model.

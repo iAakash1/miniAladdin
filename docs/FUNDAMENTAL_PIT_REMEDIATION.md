@@ -54,11 +54,15 @@ reached, now with measured coverage.
 
 ## 3. Remediation plan: an as-reported dataset from SEC EDGAR
 
-The clean fix is a source that records *what was filed and when*. The EDGAR facts below (dataset names, the `filed`/`accepted` fields, the XBRL phase-in dates, fair-access limits) are stated from the SEC's public documentation as remembered and were **not re-verified in this pass**; the first step of the project is to confirm them against the current SEC pages.
+The clean fix is a source that records *what was filed and when*. The EDGAR
+facts below were rechecked on 2026-09-19 against the
+[official API page](https://www.sec.gov/search-filings/edgar-application-programming-interfaces),
+[Financial Statement Data Set specification](https://www.sec.gov/dera/data/fsds.pdf),
+and [10-request/second fair-access notice](https://www.sec.gov/filergroup/announcements-old/new-rate-control-limits).
 
 | Step | Detail |
 |---|---|
-| Source | SEC EDGAR **Financial Statement Data Sets** (quarterly bulk files of XBRL `sub`, `num`, `tag`, `pre`) and the **XBRL "Frames"/company-facts** APIs. The data are public; the SEC's fair-access rule (a declared User-Agent and a modest request rate) applies. |
+| Source | SEC EDGAR **Financial Statement Data Sets** (quarterly bulk files of XBRL `sub`, `num`, `tag`, `pre`) and Submissions/Company Facts APIs. The SEC says the JSON APIs are real-time and the bulk ZIPs are republished nightly. Bulk is canonical for rebuilds; API is for incremental refresh. Automated traffic must remain at or below 10 requests/second across machines. |
 | PIT key | `sub.filed` and `sub.accepted` (a datetime): the value is knowable from `accepted` (next session if after 16:00 ET). `adsh` (accession number) is the immutable vintage id. |
 | Restatements | A 10-K/A or later 10-Q that restates a prior period arrives as a **new row with a later `filed`**. As-first-reported = earliest `filed` per (cik, tag, period); as-of-t = latest `filed` ≤ t. Both are recoverable. |
 | Identity | `cik` (stable) ↔ ticker via SEC `company_tickers.json` **with effective dates from the filing header history**, not a current snapshot (see `docs/PIT_SECURITY_MASTER_PLAN.md`). |
@@ -68,8 +72,46 @@ The clean fix is a source that records *what was filed and when*. The EDGAR fact
 | Cost | Free data; storage ~ a few GB; a bounded engineering project (days, not hours), separate from research. |
 | Not to be done | Do not backfill by assuming a fixed reporting lag; do not attach today's values at historical dates; do not rely on a vendor's "PIT" label without a vintage column. |
 
-Until that dataset exists and passes the tests above, fundamentals stay out of
-EXP-009 and any statement-based result is labelled NOT POINT-IN-TIME.
+## 3A. Canonical fact selection
+
+Never use the SEC Frames API as the sole training source: it returns one
+last-filed fact aligned to a calendar frame and can obscure issuer fiscal
+calendars and revision history. Preserve raw quarterly data-set rows and create
+two explicit views:
+
+- `first_reported`: earliest accepted accession for
+  `(cik, taxonomy, tag, unit, period_start, period_end, fiscal_period, form)`;
+- `as_of`: latest accepted accession satisfying `accepted_at <= decision_time`.
+
+Keep `adsh/accession`, `filed`, `accepted_at`, `form`, `fy`, `fp`, `frame`,
+`tag`, taxonomy/version, `unit`, `value`, `period_start`, `period_end`, context
+dimensions, amendment flag and source-file hash. Apply an exchange-calendar
+availability rule: accepted after the chosen close cutoff becomes usable on the
+next trading session. Do not infer `accepted_at` from fiscal period end.
+
+Tag maps are versioned code/data, not ad-hoc coalesces. For each feature, record
+numerator/denominator tags, duration versus instant context, unit conversions,
+TTM construction, fallback priority and coverage. Start with 15–30 robust
+features; do not reproduce 94 characteristics until their PIT semantics pass.
+
+Required automated gates:
+
+1. a later 10-K/A or 10-Q/A cannot alter any feature before its acceptance;
+2. source truncation at *t* reproduces all pre-*t* curated rows exactly;
+3. every fact resolves to one CIK/security interval or is quarantined;
+4. duration facts use compatible start/end contexts and no annual/quarterly mix;
+5. duplicate/conflicting facts are reported rather than silently averaged;
+6. hand-check at least 25 issuer-periods against filing HTML/XBRL; and
+7. coverage and tag-fallback rates are published by year and fold.
+
+Planning envelope: 5–20 GB raw/cache, 1–5 GB curated, 8–18 GB peak RAM when
+processed in quarter shards, one to six hours per full rebuild after the parser
+exists, and roughly 3–8 engineering days for the first audited release. This is
+a MacBook data job; GPUs add no value.
+
+Until that dataset exists and passes the tests above, statement fundamentals
+remain excluded from every new historical model. EXP-009 is complete and is not
+rewritten; its exclusion decision remains part of its immutable record.
 
 ## 4. Reproducibility classification
 
