@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -24,6 +25,30 @@ def foreign_facts() -> dict:
     atomic_json(MANIFESTS / "foreign_facts_v4.json", report)
     X.mapping_table().to_csv(ROOT / "data/manifests/ifrs_core_facts_v1_map.csv", index=False)
     return {k: v for k, v in report.items() if k != "quarters"}
+
+
+def foreign_invariance() -> dict:
+    """Real-data parser invariance on a high-volume archive; no labels or outcomes are read."""
+    from src.quant.pit import foreign_facts as X
+
+    download = json.loads((MANIFESTS / "sec_download_manifest.json").read_text())
+    hashes = {row["filename"]: row["sha256"] for row in download["archives"]}
+    archive = "2024q2.zip"
+    report = X.validate_chunk_invariance(
+        RAW_SEC / archive, hashes[archive], calendar=TradingCalendar.from_dates(trading_dates())
+    )
+    atomic_json(MANIFESTS / "foreign_chunk_invariance.json", report)
+    manifest_path = MANIFESTS / "foreign_facts_v4.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["store_content_hash"] = hashlib.sha256(json.dumps(
+        [(row["quarter"], row["output_sha256"]) for row in manifest["quarters"]], separators=(",", ":")
+    ).encode()).hexdigest()
+    manifest["chunk_invariance"] = {
+        "status": report["status"], "archive": archive,
+        "chunk_rows": report["chunk_rows"], "manifest": "data/manifests/foreign_chunk_invariance.json",
+    }
+    atomic_json(manifest_path, manifest)
+    return report
 
 
 def security_master() -> dict:
@@ -71,10 +96,12 @@ def validate() -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["foreign-facts", "security-master", "measure", "alfred", "rich-panel-v2", "validate"])
+    parser.add_argument("command", choices=["foreign-facts", "foreign-invariance", "security-master", "measure", "alfred", "rich-panel-v2", "validate"])
     args = parser.parse_args()
     if args.command == "foreign-facts":
         result = foreign_facts()
+    elif args.command == "foreign-invariance":
+        result = foreign_invariance()
     elif args.command == "rich-panel-v2":
         result = rich_panel_v2()
     elif args.command == "validate":

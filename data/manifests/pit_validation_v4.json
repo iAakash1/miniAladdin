@@ -15,14 +15,14 @@
       "problems": {
         "accepted_after_cutoff": 0,
         "available_before_acceptance": 0,
-        "duplicate_keys": 1317,
-        "filings_with_two_currencies": 309,
+        "duplicate_keys": 0,
+        "filings_with_two_currencies": 0,
         "non_annual_forms": 0,
         "null_values": 0,
         "row_count_vs_manifest": 0
       },
-      "rows": 343084,
-      "status": "FAIL"
+      "rows": 342556,
+      "status": "PASS"
     },
     "fundamental_truncation_invariance": {
       "domestic_sample": 150,
@@ -149,6 +149,6 @@
       }
     }
   },
-  "status": "FAIL",
+  "status": "PARTIAL",
   "version": "pit-validation-v4"
 }

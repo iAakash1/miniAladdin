@@ -1,15 +1,35 @@
 {
   "accepted_cutoff": "2025-05-09 23:59:59",
+  "chunk_invariance": {
+    "archive": "2024q2.zip",
+    "chunk_rows": [
+      25000,
+      900000
+    ],
+    "manifest": "data/manifests/foreign_chunk_invariance.json",
+    "status": "PASS"
+  },
+  "currency_policy": {
+    "non_monetary": "declared unit handling; never forced to currency",
+    "rule": "most frequent currency among mapped core monetary facts",
+    "scope": "filing-global two-pass",
+    "tie_break": "ascending ISO currency code"
+  },
   "exclusion_counts": {
     "annual_filing_rows": 7088070,
     "considered": 7088070,
     "context_mismatch_excluded": 126,
-    "curated": 343084,
+    "curated": 342556,
+    "currency_ties": 0,
     "dimensional_excluded": 1091077,
+    "filings_missing_reporting_currency": 0,
+    "filings_with_mapped_facts": 9979,
+    "filings_with_reporting_currency": 9979,
     "mapped_tag_rows": 1456667,
-    "null_value_excluded": 1246,
-    "other_currency_excluded": 20923,
-    "other_family_excluded": 211
+    "null_value_excluded": 1245,
+    "other_currency_excluded": 21448,
+    "other_family_excluded": 215,
+    "taxonomy_family_ties": 1
   },
   "forms": {
     "20-F": 7898,
@@ -38,9 +58,9 @@
     {
       "ciks": 22,
       "filings": 22,
-      "output_sha256": "1d88c466315d93471ef867cd1219442ec24418f36a60e3935f9dce7ae0ebed5b",
+      "output_sha256": "7a340b013055ba659397010ef25265256027f8d1004f037751ddb75af567c550",
       "quarter": "2011q3",
-      "rows": 707
+      "rows": 703
     },
     {
       "ciks": 5,
@@ -59,16 +79,16 @@
     {
       "ciks": 235,
       "filings": 244,
-      "output_sha256": "cd8e8cde869ae710c0be0dedb3a55bdf9e766593acf2717d45df678fcd556e9c",
+      "output_sha256": "ced0fa0a13f03b3055633f7d2ccf23642d23bdb7294a5d096793a96a359555bb",
       "quarter": "2012q2",
-      "rows": 8582
+      "rows": 8579
     },
     {
       "ciks": 33,
       "filings": 33,
-      "output_sha256": "c962ae5f7edde766b351632078e354a7b61a0b50658ff032eccaf2fbe23ae14d",
+      "output_sha256": "b9a5fc676fe8624a05f588e4e3940072a4a61e81891b3c2dc77567d96d573c73",
       "quarter": "2012q3",
-      "rows": 1088
+      "rows": 1086
     },
     {
       "ciks": 15,
@@ -80,23 +100,23 @@
     {
       "ciks": 91,
       "filings": 92,
-      "output_sha256": "c934ffed0b644a248ca229851179130f7d8d99daa5efa0aec5ccd9b74ab25a54",
+      "output_sha256": "e52fe061f55ea7920a77fd61fdf4326e38c0c043ea304decabc7559f3dc44eaa",
       "quarter": "2013q1",
-      "rows": 3101
+      "rows": 3099
     },
     {
       "ciks": 228,
       "filings": 236,
-      "output_sha256": "d8f9c693f1e357ce737b0788575c6b6d9d06db42d1d29a25bd146092e8974298",
+      "output_sha256": "768f10cb1e889291746653ea03be9a5bc687dc2451040639c84f37920c0e9d13",
       "quarter": "2013q2",
-      "rows": 8456
+      "rows": 8441
     },
     {
       "ciks": 28,
       "filings": 28,
-      "output_sha256": "677cdc06e738d6e3db21cdaa4e9ea83bffcf518be496a31afce37a4e0ef57fce",
+      "output_sha256": "c4335742d12cebfef9512ca35e4794b350610a708d205f585b8d4213d47bed55",
       "quarter": "2013q3",
-      "rows": 1011
+      "rows": 1008
     },
     {
       "ciks": 13,
@@ -108,23 +128,23 @@
     {
       "ciks": 113,
       "filings": 116,
-      "output_sha256": "a1fb7d976b29217190d34c399f42fcb20b2071ce89f1b84868f095160f97b22c",
+      "output_sha256": "5806d464768d1904088ba7128fa43f66edde789da95b028edb0bcfc76745b4ee",
       "quarter": "2014q1",
-      "rows": 4038
+      "rows": 4036
     },
     {
       "ciks": 187,
       "filings": 188,
-      "output_sha256": "d111032e92cf767e42ac0a77399afae8a476dbb4d94232ebf51d6d19903b5589",
+      "output_sha256": "05c5b2c66b96409379e6b624e5ff85c3a4ff6739dcb1ec19a906630a7a7f2163",
       "quarter": "2014q2",
-      "rows": 6742
+      "rows": 6731
     },
     {
       "ciks": 28,
       "filings": 29,
-      "output_sha256": "260f532a14fbb40bdd3c31ea4b16cb007fe3d386141fa6a44366ec79b1d10dcf",
+      "output_sha256": "3a384633b00ce12eb17d6f3de80235343d9c43c7b797f1ddf453526d5d104b30",
       "quarter": "2014q3",
-      "rows": 983
+      "rows": 982
     },
     {
       "ciks": 5,
@@ -136,16 +156,16 @@
     {
       "ciks": 108,
       "filings": 108,
-      "output_sha256": "12950ad2eeaa0bbd5e784fa0c52298471c770695510053de41532e993edf9a1e",
+      "output_sha256": "0b0cd8263155558210e2c3b4ee3d4e147d7e73e420c7bd8d430d276b6a5845a9",
       "quarter": "2015q1",
-      "rows": 3713
+      "rows": 3708
     },
     {
       "ciks": 184,
       "filings": 185,
-      "output_sha256": "812e74c54d04cfd47dc588adea6231544247b399bdbc3e257bc9429f9bbf144e",
+      "output_sha256": "f47da54320b0377b50ae88a022448971989867f3d388544c8cd0b2a87cfe0b94",
       "quarter": "2015q2",
-      "rows": 6680
+      "rows": 6666
     },
     {
       "ciks": 23,
@@ -164,16 +184,16 @@
     {
       "ciks": 99,
       "filings": 99,
-      "output_sha256": "ee268a17491849576f6f2adb6f2ac60cfe302773f92846290331af765e51491e",
+      "output_sha256": "bdb27584a1e31dad2f832b4aae50af3a4bde3857bcc38cda9047642d61f5d0da",
       "quarter": "2016q1",
-      "rows": 3377
+      "rows": 3373
     },
     {
       "ciks": 175,
       "filings": 177,
-      "output_sha256": "cf9c9419750a8ba93d39b4a3136a6c0968a91a7dc7f97c734add796b9b2aee21",
+      "output_sha256": "e91c7491f14a76dc16c450e8549057d76517ecd0d8ab0a0a9a0378132b6deaee",
       "quarter": "2016q2",
-      "rows": 6323
+      "rows": 6321
     },
     {
       "ciks": 12,
@@ -185,30 +205,30 @@
     {
       "ciks": 8,
       "filings": 8,
-      "output_sha256": "7ddf927aedbf8905e993827e68cf8d8859d581436dddd57ae39d52c02a6f8f4e",
+      "output_sha256": "1753cd51c7e6c75ffa0831665b0423957c6884d0df4a92973c45a0b98dbb2c35",
       "quarter": "2016q4",
-      "rows": 314
+      "rows": 313
     },
     {
       "ciks": 111,
       "filings": 112,
-      "output_sha256": "90a9de3bd26784b77de72b4b1c49d37154026b0ebdbbd72b5bb6dbd76435997e",
+      "output_sha256": "4e62266c04debbc3699a68845afdbecaee9f082d22ac46120dec929d2e780b15",
       "quarter": "2017q1",
-      "rows": 3805
+      "rows": 3800
     },
     {
       "ciks": 157,
       "filings": 159,
-      "output_sha256": "52233878d49f8bfe4f064d89dc756fc7b97bf5ea712957962b3873a36eb08d91",
+      "output_sha256": "ccb8eac456f83dd3f5f651338b9afd74f34bb35d6c4ed2648644f3202793f42f",
       "quarter": "2017q2",
-      "rows": 5670
+      "rows": 5665
     },
     {
       "ciks": 17,
       "filings": 17,
-      "output_sha256": "8269a0ea2bda73b27965c157457dda6ac640d6f191ec802a75d0aa374eab76d6",
+      "output_sha256": "452255622b1a56bcd4f2c2076d0fafc009137b24b29a5813089a41e780ed364c",
       "quarter": "2017q3",
-      "rows": 568
+      "rows": 566
     },
     {
       "ciks": 13,
@@ -220,23 +240,23 @@
     {
       "ciks": 304,
       "filings": 307,
-      "output_sha256": "8cc36b054671857c4d4e323b3746cec19292f97d76430b916552bea44cc8dbe6",
+      "output_sha256": "81faaafb0f2a9d2cd2874c210db6d61b695c9af55ec9724225e604dbcbbe2af1",
       "quarter": "2018q1",
-      "rows": 9531
+      "rows": 9520
     },
     {
       "ciks": 378,
       "filings": 381,
-      "output_sha256": "01a3e4d9b67657c8e964256f3081597216f266cd9df021deb76ac19e8a199f01",
+      "output_sha256": "633987662e9995b7aad84d48fa662d58a4978fb2f8d6e3e84d5d7e4ddb8001ea",
       "quarter": "2018q2",
-      "rows": 13288
+      "rows": 13266
     },
     {
       "ciks": 50,
       "filings": 50,
-      "output_sha256": "573736ec9680bc5574075891df72bbebaad801d731eebcc88ff17f2292d6536f",
+      "output_sha256": "974f125497ed88ab802361d9f513de12fe3b7c7e1df3ec5df0e7976bbd8c8f28",
       "quarter": "2018q3",
-      "rows": 1654
+      "rows": 1651
     },
     {
       "ciks": 44,
@@ -248,44 +268,44 @@
     {
       "ciks": 322,
       "filings": 327,
-      "output_sha256": "2da1050ba01cb7c8515f7c5b7f828b4bd7971af7a120737f6145f61024ef5d75",
+      "output_sha256": "cc353328a6f3439ce1ffd2b2981f5094e67389031a839319031d0798aba02fee",
       "quarter": "2019q1",
-      "rows": 10392
+      "rows": 10385
     },
     {
       "ciks": 405,
       "filings": 408,
-      "output_sha256": "245ca51810be49b8d6d22f8b04d8e85b2942b74dc8d7c85c5e3946640333ccee",
+      "output_sha256": "f84b3acd78cc3f474fc924730abcb83e5302a91522059615b09160fa64daedfb",
       "quarter": "2019q2",
-      "rows": 14630
+      "rows": 14606
     },
     {
       "ciks": 55,
       "filings": 57,
-      "output_sha256": "21b562d625f3bb7683105dd7a50ddac4d7b9271f635cc301eea8a7068acf4fdf",
+      "output_sha256": "be464c398b5b2d0e62569ca52d597e20aee37d54c855dbc803c2d9798e45785d",
       "quarter": "2019q3",
-      "rows": 2002
+      "rows": 1996
     },
     {
       "ciks": 56,
       "filings": 58,
-      "output_sha256": "84b94a259c3f207c4c57757f1d4f46a3d36ce30d0d814008fbf9f0d73bc20f11",
+      "output_sha256": "1385457d2725c5b49883d4125967f34a5499fbba6b0ef82542ef8f56220176fd",
       "quarter": "2019q4",
-      "rows": 1912
+      "rows": 1910
     },
     {
       "ciks": 312,
       "filings": 314,
-      "output_sha256": "319bb2c90b7a0b3358c0c02f7955dc53135e0facafc06329642d2d2a7378618b",
+      "output_sha256": "7b1390eb59f7d260db706214c20b118570e6bf3aab42b49460e73e63c32d8d15",
       "quarter": "2020q1",
-      "rows": 9891
+      "rows": 9886
     },
     {
       "ciks": 417,
       "filings": 423,
-      "output_sha256": "f7e201f3ed0777bd8679798b8d5da373cbed9e78d30c2449df10d0a061504e3b",
+      "output_sha256": "fdd4242ff4c342cf14195df1097b10c95ee359ec7f3a6fbcb76279360670408f",
       "quarter": "2020q2",
-      "rows": 15224
+      "rows": 15195
     },
     {
       "ciks": 60,
@@ -304,130 +324,131 @@
     {
       "ciks": 381,
       "filings": 385,
-      "output_sha256": "48cc89b70d0ab925c5f712b824d1d95deb0f18b33358065b97053fa18fd7358d",
+      "output_sha256": "e74a13ce33d581ec4fde2810e8191439ef080769b0bebf3e30b7f982c9c99d6a",
       "quarter": "2021q1",
-      "rows": 12198
+      "rows": 12193
     },
     {
       "ciks": 450,
       "filings": 455,
-      "output_sha256": "2802e20f71d792c2d19544770da015971d32df25b90660d304f513c27e552811",
+      "output_sha256": "192d3b760f1da9bf31c2cbf14079e85f5d72452954dfc68ba9cfe567448ffaaf",
       "quarter": "2021q2",
-      "rows": 16237
+      "rows": 16207
     },
     {
       "ciks": 59,
       "filings": 60,
-      "output_sha256": "38bc6ba25cf1a09f8a6c2cf49c68efb0a45d5256955d783df7fc429641e77150",
+      "output_sha256": "ff331b17da559cf2699fc2eb3756b33d149badc5adcb436ee50726320a79b869",
       "quarter": "2021q3",
-      "rows": 2148
+      "rows": 2142
     },
     {
       "ciks": 69,
       "filings": 71,
-      "output_sha256": "3a1cf1eb26fbdd3f6c980bd14a48ffaaa8913262afd808dcb7767e95e50d6705",
+      "output_sha256": "0524617705c567a6acd59f04db7debaed4fbe43a79e621261eaff752bfb74bc3",
       "quarter": "2021q4",
-      "rows": 2350
+      "rows": 2347
     },
     {
       "ciks": 410,
       "filings": 418,
-      "output_sha256": "7fc56ae84a7aa2e8814ccb4708dc76b8c9f1a3048ad5f4bbf5108e5a60a8255b",
+      "output_sha256": "e19fad4073099e6e52bc3d9e61b7625299510a3b80215e161445f3163e4c81bf",
       "quarter": "2022q1",
-      "rows": 13300
+      "rows": 13295
     },
     {
       "ciks": 536,
       "filings": 544,
-      "output_sha256": "4afbf0f06942e4902812c6fa0894cc27f9cef85002ccdf7d58b08ff92d472118",
+      "output_sha256": "eb9c18dd0d981786f74c97ac34c6ca67a4deb6ae1a7a7bef4b2e01d2a51b40f9",
       "quarter": "2022q2",
-      "rows": 19418
+      "rows": 19368
     },
     {
       "ciks": 100,
       "filings": 103,
-      "output_sha256": "0eb467c56c35e1a92d5f56c6fb4cf6a2adc8966965d36030a1598852a68bac7c",
+      "output_sha256": "229abb67417e1b3f49d99c34693af41b363ca14d356dc26e13bfb467eae4e287",
       "quarter": "2022q3",
-      "rows": 3560
+      "rows": 3543
     },
     {
       "ciks": 72,
       "filings": 76,
-      "output_sha256": "7875f64c8224e6eb49d98fc1737c149d9f6496c26a4f99ad91a5bf210e3f6937",
+      "output_sha256": "64deca97de217c2a5ee05d19db96a0581f344293c21265655f4602a5168ecc4f",
       "quarter": "2022q4",
-      "rows": 2486
+      "rows": 2484
     },
     {
       "ciks": 442,
       "filings": 457,
-      "output_sha256": "327e3e8d9236eabba36ef7feedffb3fc6248833f4b8338fd9dc0453f3fb55235",
+      "output_sha256": "3730852a0f214ebd9591c16f3f535a99d0f0746a1886effed9199319c33d1ea2",
       "quarter": "2023q1",
-      "rows": 14792
+      "rows": 14784
     },
     {
       "ciks": 536,
       "filings": 553,
-      "output_sha256": "6f60029d8af61ca27862b9a6a9db8ba74e274da06cbc9ebbafc1e00453915873",
+      "output_sha256": "3d1114f8e9bda0231476254ad0efcb9a2417a314bc2ab54c3b92ff504a272fdf",
       "quarter": "2023q2",
-      "rows": 19604
+      "rows": 19540
     },
     {
       "ciks": 79,
       "filings": 84,
-      "output_sha256": "ea03b9f9e44c56a153cc81c25d42ca343d551a9eb8cfb6a360b91d0afe79e10f",
+      "output_sha256": "af73d80323937de4e4cbfe86021cfcbf159eec5ecc9698227c3aad77811c48f8",
       "quarter": "2023q3",
-      "rows": 2997
+      "rows": 2989
     },
     {
       "ciks": 74,
       "filings": 79,
-      "output_sha256": "d459819b8c4b71735cd985bbd3d637a60eaa986cd5298cf4fa11b96b72bcdc53",
+      "output_sha256": "b20d6911676d59986dafcccfc4dfe5691eee14b36388bf8527b4dbff4d7a75de",
       "quarter": "2023q4",
-      "rows": 2655
+      "rows": 2648
     },
     {
       "ciks": 433,
       "filings": 442,
-      "output_sha256": "847806d3e551f7e7742264846e241d59227b449d0861a843d102f656034bbe8c",
+      "output_sha256": "388a875b999c40ffb637d58d1a6b5fd32ef747cba782aa9f26cf2728dbf197bc",
       "quarter": "2024q1",
-      "rows": 14532
+      "rows": 14525
     },
     {
       "ciks": 534,
       "filings": 546,
-      "output_sha256": "be1028b58a2a071aa20106cb39597c200079447bfdb8334fa1d67aadd7888c9d",
+      "output_sha256": "d32475d43fb3f5917e3fb9f3aaa2022a3d531e0e929521a9a2b86bfad843f151",
       "quarter": "2024q2",
-      "rows": 19709
+      "rows": 19633
     },
     {
       "ciks": 102,
       "filings": 107,
-      "output_sha256": "a9aa2b16ae1115c37b7d36f5168e7bc1d9fb2a76f39ee3abbaa937168d32bc81",
+      "output_sha256": "d1327ed870d7725ca2cb622a69be73173c5b4fb3759a6c1b71960b8135152353",
       "quarter": "2024q3",
-      "rows": 3736
+      "rows": 3725
     },
     {
       "ciks": 101,
       "filings": 106,
-      "output_sha256": "36f1ed63c35762d64cf0f72094bb5d52c5de203da4aef8d3fbec22492308acad",
+      "output_sha256": "047b59ff91507a7e68a51d592fe6a2ec94d801174db7487768cefef624607d45",
       "quarter": "2024q4",
-      "rows": 3578
+      "rows": 3571
     },
     {
       "ciks": 453,
       "filings": 460,
-      "output_sha256": "15cc40c1d9666771be048231b751742948446db585861640b1bb27c206241c51",
+      "output_sha256": "e301b9bc1e3abb7fa46e370ce99f2d5569acd4c7d1379363ced60db8a96867a4",
       "quarter": "2025q1",
-      "rows": 15327
+      "rows": 15310
     },
     {
       "ciks": 430,
       "filings": 439,
-      "output_sha256": "f08ba2c7cee3044ac68146d572324018e542104dab5cefe1c594dfecb2102f07",
+      "output_sha256": "0ebdc96188f34f699591fbf3edbb3b76661cb13ce145baade844d322683ed0aa",
       "quarter": "2025q2",
-      "rows": 16306
+      "rows": 16291
     }
   ],
   "registry_ciks": 1838,
-  "registry_filings": 13709
+  "registry_filings": 13709,
+  "store_content_hash": "a49476f4e8a226591dae3c294e7d77d6cae2d4dc617186ea33379701da0190be"
 }

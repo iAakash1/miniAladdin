@@ -1,0 +1,59 @@
+{
+  "archive": "2024q2.zip",
+  "archive_sha256": "698796e9f0946501d3dc74e7696a6c8c71cf32b66026e053722a784236b37761",
+  "builds": [
+    {
+      "chunk_rows": 25000,
+      "content_hash": "77d49a7c1abfba1c9ffb146a2977a0f12cb50892a3d19c775f951f7005f0e283",
+      "exclusion_counts": {
+        "annual_filing_rows": 416626,
+        "considered": 416626,
+        "context_mismatch_excluded": 2,
+        "curated": 19633,
+        "currency_ties": 0,
+        "dimensional_excluded": 69229,
+        "filings_missing_reporting_currency": 0,
+        "filings_with_mapped_facts": 546,
+        "filings_with_reporting_currency": 546,
+        "mapped_tag_rows": 90853,
+        "null_value_excluded": 66,
+        "other_currency_excluded": 1923,
+        "other_family_excluded": 0,
+        "taxonomy_family_ties": 0
+      },
+      "filings": 546,
+      "filings_with_two_currencies": 0,
+      "registry_rows": 608,
+      "rows": 19633
+    },
+    {
+      "chunk_rows": 900000,
+      "content_hash": "77d49a7c1abfba1c9ffb146a2977a0f12cb50892a3d19c775f951f7005f0e283",
+      "exclusion_counts": {
+        "annual_filing_rows": 416626,
+        "considered": 416626,
+        "context_mismatch_excluded": 2,
+        "curated": 19633,
+        "currency_ties": 0,
+        "dimensional_excluded": 69229,
+        "filings_missing_reporting_currency": 0,
+        "filings_with_mapped_facts": 546,
+        "filings_with_reporting_currency": 546,
+        "mapped_tag_rows": 90853,
+        "null_value_excluded": 66,
+        "other_currency_excluded": 1923,
+        "other_family_excluded": 0,
+        "taxonomy_family_ties": 0
+      },
+      "filings": 546,
+      "filings_with_two_currencies": 0,
+      "registry_rows": 608,
+      "rows": 19633
+    }
+  ],
+  "chunk_rows": [
+    25000,
+    900000
+  ],
+  "status": "PASS"
+}

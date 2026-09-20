@@ -18,6 +18,8 @@ Concepts are limited to those the existing characteristics need.  Every mapping 
 
 from __future__ import annotations
 
+import hashlib
+import json
 import os
 import zipfile
 from collections import defaultdict
@@ -83,6 +85,13 @@ for _fact in IFRS_FACTS:
             FOREIGN_TAG_INDEX.setdefault((_fam, _tag), []).append((_fact, _priority))
 
 FOREIGN_COLUMNS = S.CURATED_COLUMNS + ["currency", "taxonomy_family", "map_version"]
+
+
+def foreign_content_hash(facts: pd.DataFrame) -> str:
+    """Order-independent hash including the foreign currency/taxonomy policy fields."""
+    columns = [c for c in FOREIGN_COLUMNS if c != "available_session"]
+    frame = facts.reindex(columns=columns).astype(str).sort_values(columns, kind="stable")
+    return hashlib.sha256(pd.util.hash_pandas_object(frame, index=False).to_numpy().tobytes()).hexdigest()
 
 
 def read_foreign_registry(zip_path: Path, *, accepted_cutoff: str | pd.Timestamp = "2025-05-09 23:59:59") -> pd.DataFrame:
@@ -286,8 +295,6 @@ def mapping_table() -> pd.DataFrame:
 
 def build_foreign_store(raw_dir: Path, download_manifest, out_dir: Path, *, calendar: Optional[TradingCalendar],
                         accepted_cutoff: str = "2025-05-09 23:59:59", progress: bool = True) -> dict[str, Any]:
-    import json
-
     raw_dir, out_dir = Path(raw_dir), Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     hashes = {r["filename"]: r["sha256"] for r in json.loads(Path(download_manifest).read_text())["archives"]}
@@ -308,8 +315,43 @@ def build_foreign_store(raw_dir: Path, download_manifest, out_dir: Path, *, cale
     registry_all = pd.concat(registries, ignore_index=True).sort_values(["accepted_at", "adsh"], kind="stable")
     registry_all.to_parquet(out_dir / "filings_foreign.parquet", compression="zstd", index=False)
     forms = registry_all["form"].value_counts().to_dict()
+    store_hash = hashlib.sha256(json.dumps(
+        [(item["quarter"], item["output_sha256"]) for item in summaries], separators=(",", ":")
+    ).encode()).hexdigest()
     return {"map_version": IFRS_MAP_VERSION, "accepted_cutoff": accepted_cutoff, "registry_filings": int(len(registry_all)),
             "registry_ciks": int(registry_all["cik"].nunique()), "forms": {k: int(v) for k, v in forms.items()},
+            "store_content_hash": store_hash,
             "currency_policy": {"scope": "filing-global two-pass", "rule": "most frequent currency among mapped core monetary facts",
                                 "tie_break": "ascending ISO currency code", "non_monetary": "declared unit handling; never forced to currency"},
             "exclusion_counts": totals, "quarters": summaries}
+
+
+def validate_chunk_invariance(zip_path: Path, archive_sha256: str, *, calendar: Optional[TradingCalendar],
+                              chunk_rows: tuple[int, int] = (25_000, 900_000),
+                              accepted_cutoff: str = "2025-05-09 23:59:59") -> dict[str, Any]:
+    """Rebuild one real archive twice and prove parser chunking cannot change curated content."""
+    builds = []
+    for size in chunk_rows:
+        registry, facts, counts = curate_foreign_archive(
+            Path(zip_path), archive_sha256, calendar=calendar,
+            accepted_cutoff=accepted_cutoff, chunk_rows=size,
+        )
+        currency_counts = facts.groupby("accession")["currency"].nunique() if len(facts) else pd.Series(dtype=int)
+        builds.append({
+            "chunk_rows": size,
+            "rows": int(len(facts)),
+            "filings": int(facts["accession"].nunique()) if len(facts) else 0,
+            "registry_rows": int(len(registry)),
+            "content_hash": foreign_content_hash(facts),
+            "filings_with_two_currencies": int((currency_counts > 1).sum()),
+            "exclusion_counts": counts,
+        })
+    comparable = ("rows", "filings", "registry_rows", "content_hash", "filings_with_two_currencies", "exclusion_counts")
+    passed = all(builds[0][key] == builds[1][key] for key in comparable) and builds[0]["filings_with_two_currencies"] == 0
+    return {
+        "status": "PASS" if passed else "FAIL",
+        "archive": Path(zip_path).name,
+        "archive_sha256": archive_sha256,
+        "chunk_rows": list(chunk_rows),
+        "builds": builds,
+    }
