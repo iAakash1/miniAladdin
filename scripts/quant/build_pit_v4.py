@@ -54,14 +54,23 @@ def rich_panel_v2() -> dict:
                                      "incremental_feature_count", "old_feature_hash", "incremental_feature_hash", "old_block_invariance")}
 
 
+def alfred() -> dict:
+    """Vintage table when FRED_API_KEY is present; otherwise records BLOCKED_EXTERNAL_FRED_KEY.  Never prints the key."""
+    from src.quant.pit import alfred_vintage as A
+
+    return A.build(ROOT / "data/raw/alfred", MANIFESTS / "alfred_manifest.json")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["foreign-facts", "security-master", "measure", "rich-panel-v2"])
+    parser.add_argument("command", choices=["foreign-facts", "security-master", "measure", "alfred", "rich-panel-v2"])
     args = parser.parse_args()
     if args.command == "foreign-facts":
         result = foreign_facts()
     elif args.command == "rich-panel-v2":
         result = rich_panel_v2()
+    elif args.command == "alfred":
+        result = alfred()
     elif args.command == "measure":
         result = measure_only()
     elif args.command == "security-master":

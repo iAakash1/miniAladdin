@@ -1,9 +1,11 @@
 {
-  "note": "No credential was printed or persisted; rerun after exporting FRED_API_KEY.",
+  "adds_predictor_columns": false,
+  "note": "no FRED_API_KEY in the environment; no vintage data exists; revised FRED data is not substituted",
   "series": [
     "DGS3MO",
     "DGS2",
     "DGS10"
   ],
-  "status": "BLOCKED_EXTERNAL_FRED_KEY"
+  "status": "BLOCKED_EXTERNAL_FRED_KEY",
+  "version": "alfred-vintage-v1"
 }
