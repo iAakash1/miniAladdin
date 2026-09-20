@@ -25,16 +25,23 @@ PER_STRATUM = 3
 MARKET_CLOSE = Clock(16, 0)
 RELATIVE_TOLERANCE = 1e-9
 
-# Frozen order: hard cases first, so an issuer-period that qualifies for several strata is audited under the hardest one.
-STRATA = (
+# Frozen order (docs/DATA_COMPLETION_GATE_2026.md section 7, operationalised in Amendment A1.2): an issuer-period that qualifies for several
+# strata is audited once, under the first one listed.
+FROZEN_STRATA = ("AMENDMENT", "AFTER_CLOSE_ACCEPTANCE", "TICKER_REUSE_OR_SUCCESSION", "FOREIGN_FILER", "MULTIPLE_SHARE_CLASSES", "DELISTED_NAME",
+                 "MISSING_FACT", "RESTATEMENT", "SPLIT", "UNCONSTRAINED")
+# The first run's hard-case list: reported separately, beside the frozen audit.
+SUPPLEMENTARY_STRATA = (
     "AMENDED_ANNUAL_FILING", "SUCCESSION_OR_TICKER_REUSE", "EXITING_SECURITY", "MIXED_FILER_REGIME", "NON_USD_REPORTING_CURRENCY",
     "IFRS_20F", "US_GAAP_20F", "FORM_40F", "MULTI_CLASS_SHARES", "SHARES_PROXY_TIER", "IDENTITY_GRADE_B_OR_C", "FORMER_NAME", "DOMESTIC_10K_GRADE_A",
 )
-RAW_TAGS = {
+STRATA = FROZEN_STRATA
+# Independent *definitions* used only for DEFINITION_NOTE (total profit including non-controlling interest, total revenue); never for pass/fail.
+ALTERNATE_TAGS = {
     "assets": ("Assets",),
-    "net_income": ("NetIncomeLoss", "ProfitLoss", "ProfitLossAttributableToOwnersOfParent"),
-    "revenue": ("Revenues", "Revenue", "RevenueFromContractWithCustomerExcludingAssessedTax", "SalesRevenueNet", "RevenueFromContractsWithCustomers"),
+    "net_income": ("ProfitLoss", "NetIncomeLoss"),
+    "revenue": ("Revenues", "Revenue"),
 }
+RAW_TAGS = ALTERNATE_TAGS
 FLOW_QTRS = {"assets": "0", "net_income": "4", "revenue": "4"}
 
 
@@ -72,26 +79,41 @@ def available_session_independent(accepted_at: pd.Timestamp, sessions: Sequence[
     return index[later].date() if later < len(index) else None
 
 
-def raw_values(zip_path: Path, wanted: Mapping[str, tuple[str, Optional[str]]], chunk_rows: int = 600_000) -> dict[str, dict[str, Optional[float]]]:
-    """{accession: {concept: value}} straight from num.txt.  `wanted[accession] = (period_end 'YYYYMMDD', currency or None -> USD)`."""
-    out: dict[str, dict[str, Optional[float]]] = {a: {k: None for k in RAW_TAGS} for a in wanted}
-    tag_found: dict[str, dict[str, Optional[str]]] = {a: {k: None for k in RAW_TAGS} for a in wanted}
+def raw_values(zip_path: Path, wanted: Mapping[str, Mapping[str, Any]], chunk_rows: int = 600_000) -> dict[str, dict[str, Any]]:
+    """Straight from num.txt.  `wanted[accession] = {"period_end": 'YYYYMMDD', "currency": str|None, "tags": {concept: curated tag}, "share_tag": str|None}`.
+
+    Returns per accession: `same_tag` {concept: value of the tag the curated row cites}, `alternate` {concept: (tag, value)} under the alternate
+    definitions, and `shares` [(segments, value)] rows of the stored share tag (any segment - so per-class rows are visible)."""
+    out: dict[str, dict[str, Any]] = {a: {"same_tag": {k: None for k in FLOW_QTRS}, "alternate": {k: None for k in FLOW_QTRS}, "mapped_present": {k: [] for k in FLOW_QTRS}, "shares": []} for a in wanted}
     with zipfile.ZipFile(zip_path) as archive:
         member = next(m for m in archive.namelist() if Path(m).name.lower() == "num.txt")
         with archive.open(member) as handle:
             for chunk in pd.read_csv(handle, sep="\t", low_memory=False, chunksize=chunk_rows, dtype=str,
                                      usecols=["adsh", "tag", "version", "ddate", "qtrs", "uom", "segments", "coreg", "value"]):
-                chunk = chunk[chunk["adsh"].isin(wanted) & chunk["segments"].isna() & chunk["coreg"].isna()]
+                chunk = chunk[chunk["adsh"].isin(wanted)]
                 for adsh, group in chunk.groupby("adsh"):
-                    period_end, currency = wanted[adsh]
-                    group = group[(group["ddate"] == period_end) & (group["uom"] == (currency or "USD"))]
-                    for concept, tags in RAW_TAGS.items():
-                        subset = group[group["qtrs"] == FLOW_QTRS[concept]]
-                        for rank, tag in enumerate(tags):
+                    spec = wanted[adsh]
+                    share_tag = spec.get("share_tag")
+                    if share_tag:
+                        for row in group[(group["tag"] == share_tag) & group["coreg"].isna()].itertuples(index=False):
+                            out[adsh]["shares"].append((None if pd.isna(row.segments) else str(row.segments), float(row.value)))
+                    if not spec.get("period_end"):
+                        continue
+                    plain = group[group["segments"].isna() & group["coreg"].isna() & (group["ddate"] == spec["period_end"]) & (group["uom"] == (spec.get("currency") or "USD"))]
+                    for concept in FLOW_QTRS:
+                        subset = plain[plain["qtrs"] == FLOW_QTRS[concept]]
+                        cited = spec["tags"].get(concept)
+                        if cited is not None:
+                            hit = subset[subset["tag"] == cited]
+                            if len(hit):
+                                out[adsh]["same_tag"][concept] = float(hit["value"].astype(float).iloc[0])
+                        for tag in spec.get("mapped", {}).get(concept, ()):
+                            if len(subset[subset["tag"] == tag]):
+                                out[adsh]["mapped_present"][concept].append(tag)
+                        for tag in ALTERNATE_TAGS[concept]:
                             hit = subset[subset["tag"] == tag]
-                            if len(hit) and (tag_found[adsh][concept] is None or rank < tags.index(tag_found[adsh][concept])):
-                                out[adsh][concept] = float(hit["value"].astype(float).iloc[0])
-                                tag_found[adsh][concept] = tag
+                            if len(hit):
+                                out[adsh]["alternate"][concept] = (tag, float(hit["value"].astype(float).iloc[0]))
                                 break
     return out
 
@@ -104,13 +126,36 @@ def close(a: Optional[float], b: Optional[float]) -> Optional[bool]:
 
 
 def verdict(record: Mapping[str, Any]) -> str:
-    """PASS: every comparable value agrees and timing is right.  NEEDS_REVIEW: a disagreement or a missing comparison that a person must read."""
+    """Amendment A1.3.  FAIL: any comparable value disagrees.  NEEDS_REVIEW: no curated fact to trace.  PASS otherwise.
+    DEFINITION_NOTE (alternate tag differs by more than 1%) and share-count observations are reported, never turned into a pass or a fail."""
     checks = [record.get("availability_ok")]
-    for concept in RAW_TAGS:
-        checks += [record.get(f"{concept}_raw_vs_curated"), record.get(f"{concept}_curated_vs_snapshot")]
-    checks.append(record.get("roa_recomputed_vs_snapshot"))
+    for concept in FLOW_QTRS:
+        checks += [record.get(f"{concept}_same_tag_vs_curated"), record.get(f"{concept}_curated_vs_snapshot")]
+    checks += [record.get("roa_recomputed_vs_snapshot"), record.get("shares_stored_vs_raw")]
+    checks += [None if record.get(f"{c}_dropped_fact") is None else not record[f"{c}_dropped_fact"] for c in FLOW_QTRS]      # a mapped tag present in the source but absent from curated is a failure
     if any(c is False for c in checks):
         return "FAIL"
     if record.get("curated_facts") == 0:
         return "NEEDS_REVIEW"
     return "PASS"
+
+
+def definition_note(curated: Optional[float], alternate: Optional[tuple]) -> Optional[str]:
+    """A note (never a failure) when a different definition available in the same filing differs from the curated value by more than 1%."""
+    if curated is None or alternate is None:
+        return None
+    tag, value = alternate
+    if abs(curated - value) <= 0.01 * max(1.0, abs(curated), abs(value)):
+        return None
+    return f"{tag}={value:.6g} vs curated {curated:.6g}"
+
+
+def shares_reconcile(stored: Optional[float], raw_rows: Sequence[tuple]) -> Optional[bool]:
+    """Stored share value equals the raw un-dimensioned value, or the sum of the per-class rows; None when there is nothing to compare."""
+    if stored is None or not raw_rows:
+        return None
+    plain = [v for s, v in raw_rows if s is None]
+    classes = [v for s, v in raw_rows if s is not None]
+    if plain and close(stored, plain[0]):
+        return True
+    return bool(classes and close(stored, float(sum(classes))))
