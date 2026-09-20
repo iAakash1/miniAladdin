@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from src.quant.model_lab.aggregate import complete_outer_records, load_outer_predictions
 from src.quant.model_lab.ensemble import equal_weight_rank_average, prediction_rank_correlation
 from src.quant.model_lab.evaluation import prediction_hash
 from src.quant.model_lab.inner_cv import assert_outer_isolation, build_inner_plan
@@ -91,6 +92,39 @@ def test_commit_invalidation_is_one_way_and_requires_a_reason(tmp_path):
     assert registry.invalidate_commit("abc", reason="repeat audit") == 0
     with pytest.raises(ValueError, match="reason"):
         registry.invalidate_commit("abc", reason="  ")
+
+
+def test_campaign_aggregation_refuses_partial_outer_folds(tmp_path):
+    registry = TrialRegistry(tmp_path / "trials.sqlite")
+    for fold in range(7):
+        registry.put(_record(f"MLT-OUTER-{fold}").model_copy(update={
+            "phase": "OUTER_EVALUATION", "outer_fold": fold,
+        }))
+    with pytest.raises(RuntimeError, match="all eight"):
+        complete_outer_records(registry, "ridge", method_commit="abc")
+
+
+def test_outer_prediction_loader_verifies_hashes_and_fold_identity(tmp_path):
+    registry = TrialRegistry(tmp_path / "trials.sqlite")
+    prediction_root = tmp_path / "data/research/model_lab/predictions"
+    prediction_root.mkdir(parents=True)
+    for fold in range(8):
+        trial_id = f"MLT-OUTER-{fold}"
+        frame = pd.DataFrame({
+            "date": pd.to_datetime([f"2020-{fold + 1:02d}-03"]),
+            "symbol": ["A"], "outer_fold": [fold],
+            "prediction": [float(fold)], "fwd_rank_21": [0.0],
+        })
+        digest = prediction_hash(frame)
+        frame.to_parquet(prediction_root / f"{trial_id}.parquet", index=False)
+        registry.put(_record(trial_id).model_copy(update={
+            "phase": "OUTER_EVALUATION", "outer_fold": fold,
+            "prediction_hash": digest,
+        }))
+    records = complete_outer_records(registry, "ridge", method_commit="abc")
+    combined = load_outer_predictions(records, root=tmp_path)
+    assert len(combined) == 8
+    assert sorted(combined["outer_fold"].unique()) == list(range(8))
 
 
 def test_published_summary_keeps_noncomplete_trial_provenance(tmp_path):

@@ -17,6 +17,8 @@ def main() -> int:
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("plan")
     sub.add_parser("status")
+    aggregate = sub.add_parser("aggregate")
+    aggregate.add_argument("--method-commit", required=True)
     run = sub.add_parser("run")
     run.add_argument("--stage", choices=("smoke", "screening"), default="smoke")
     run.add_argument("--families", nargs="+", default=["ridge", "elastic_net", "extra_trees", "hist_gradient_boosting"])
@@ -29,6 +31,14 @@ def main() -> int:
         return 0
     if args.command == "status":
         print(json.dumps(build_summary(registry), indent=2))
+        return 0
+    if args.command == "aggregate":
+        from src.quant.model_lab.aggregate import write_campaign_report
+
+        path = write_campaign_report(
+            registry, method_commit=args.method_commit, root=Path("."),
+        )
+        print(json.dumps({"campaign_report": str(path)}, indent=2))
         return 0
 
     outer_folds = [0] if args.stage == "smoke" else range(8)

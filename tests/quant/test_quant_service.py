@@ -115,9 +115,22 @@ def test_model_lab_read_layer_preserves_failure_evidence(tmp_path):
         "campaign_id": "MODEL-LAB-TEST",
         "retained_noncomplete_trials": [{"trial_id": "MLT-BAD", "status": "FAILED"}],
     }), encoding="utf-8")
-    result = service.model_lab(summary)
+    result = service.model_lab(summary, tmp_path / "missing-campaign.json")
     assert result["status"] == "AVAILABLE"
     assert result["retained_noncomplete_trials"][0]["status"] == "FAILED"
+    assert result["campaign_results"] is None
+
+
+def test_model_lab_read_layer_includes_complete_campaign_report(tmp_path):
+    summary = tmp_path / "summary.json"
+    campaign = tmp_path / "campaign.json"
+    summary.write_text(json.dumps({"campaign_id": "MODEL-LAB-TEST"}), encoding="utf-8")
+    campaign.write_text(json.dumps({
+        "outer_oos_only": True,
+        "candidate_eligibility": {"status": "ZERO_ELIGIBLE_CANDIDATES"},
+    }), encoding="utf-8")
+    result = service.model_lab(summary, campaign)
+    assert result["campaign_results"]["outer_oos_only"] is True
 
 
 # ── the verdict cannot outrun the evidence ──────────────────────────────────
