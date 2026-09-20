@@ -585,7 +585,7 @@ def _build_commit() -> str:
 
 @app.get("/api/health")
 def health():
-    """Health check — reports which API keys are configured."""
+    """Fast process liveness. Research readiness lives at /api/system/health."""
     environment = deployment.environment_name()
     missing_persistence = [
         name
@@ -635,6 +635,14 @@ def health():
         },
         "environment": environment,
     }
+
+
+@app.get("/api/system/health", tags=["ops"])
+def system_health():
+    """Canonical component health; blocked research never appears healthy."""
+    from src.services import system_health as health_service
+
+    return health_service.snapshot(build_commit=_build_commit()).model_dump()
 
 
 @app.get("/api/macro")
@@ -2528,6 +2536,17 @@ def analysis_run(ticker: str):
     agents = state.get("agent_results", {}) or {}
     validation = state.get("validation")
 
+    if "langgraph: unavailable" in state.get("errors", []):
+        return availability.dependency_unavailable(
+            "The analysis graph dependency is unavailable; no analysis was run.",
+            reason="LANGGRAPH_UNAVAILABLE",
+        ).payload(
+            symbol=symbol,
+            run_id=state.get("run_id"),
+            graph_version=state.get("graph_version"),
+            agent_schema_version=state.get("agent_schema_version"),
+        )
+
     if not agents and state.get("model_signal") is None:
         return availability.empty(
             "No provider returned evidence for this security, so no analysis "
@@ -2561,7 +2580,11 @@ def analysis_run(ticker: str):
             }
             for result in agents.values()
         ],
-        reconciliation=state.get("reconciliation"),
+        reconciliation=(
+            state["reconciliation"].model_dump()
+            if hasattr(state.get("reconciliation"), "model_dump")
+            else state.get("reconciliation")
+        ),
         validation=validation.model_dump() if validation is not None else None,
         explanation=state.get("explanation"),
         narrative_source=state.get("narrative_source"),
