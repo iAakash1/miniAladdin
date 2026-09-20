@@ -2889,6 +2889,14 @@ def quant_status():
     }
 
 
+@app.get("/api/quant/model-lab", tags=["quant"])
+def quant_model_lab():
+    """Declared model universe plus every published trial, including failures."""
+    from src.services import quant_service
+
+    return quant_service.model_lab()
+
+
 @app.get("/api/quant/experiments", tags=["quant"])
 def quant_experiments():
     """Every experiment on disk, newest first, with invalidated ones marked VOID.

@@ -10,6 +10,7 @@ from src.quant.model_lab.ensemble import equal_weight_rank_average, prediction_r
 from src.quant.model_lab.evaluation import prediction_hash
 from src.quant.model_lab.inner_cv import assert_outer_isolation, build_inner_plan
 from src.quant.model_lab.registry import TrialRecord, TrialRegistry, TrialStatus
+from src.quant.model_lab.report import build_summary
 from src.quant.model_lab.robustness import distribution, overfit_flag
 from src.quant.model_lab.runner import load_dataset
 from src.quant.model_lab.search_space import FAMILIES, build_spec, families
@@ -78,6 +79,18 @@ def test_trial_registry_is_resume_safe_and_retains_failures(tmp_path):
     registry.put(complete.model_copy(update={"metrics": {"mean_inner_rank_ic": 0.01}}))
     assert len(registry.records()) == 2
     assert registry.get(complete.trial_id).metrics["mean_inner_rank_ic"] == 0.01
+
+
+def test_published_summary_keeps_noncomplete_trial_provenance(tmp_path):
+    registry = TrialRegistry(tmp_path / "trials.sqlite")
+    registry.put(_record("MLT-COMPLETE"))
+    registry.put(_record("MLT-INVALID", TrialStatus.INVALID).model_copy(update={
+        "error": "superseded implementation smoke",
+    }))
+    summary = build_summary(registry)
+    assert summary["statuses"]["INVALID"] == 1
+    assert summary["retained_noncomplete_trials"][0]["trial_id"] == "MLT-INVALID"
+    assert summary["retained_noncomplete_trials"][0]["error"] == "superseded implementation smoke"
 
 
 def test_trial_identity_is_deterministic_and_parameter_sensitive():

@@ -103,6 +103,23 @@ def test_missing_experiment_reports_a_remedy_not_an_empty_page():
     assert "python -m src.quant.study.run" in result["remedy"]
 
 
+def test_missing_model_lab_summary_is_explicit(tmp_path):
+    result = service.model_lab(tmp_path / "missing.json")
+    assert result["status"] == "NOT_CONFIGURED"
+    assert result["reason"] == "MODEL_LAB_SUMMARY_MISSING"
+
+
+def test_model_lab_read_layer_preserves_failure_evidence(tmp_path):
+    summary = tmp_path / "model-lab.json"
+    summary.write_text(json.dumps({
+        "campaign_id": "MODEL-LAB-TEST",
+        "retained_noncomplete_trials": [{"trial_id": "MLT-BAD", "status": "FAILED"}],
+    }), encoding="utf-8")
+    result = service.model_lab(summary)
+    assert result["status"] == "AVAILABLE"
+    assert result["retained_noncomplete_trials"][0]["status"] == "FAILED"
+
+
 # ── the verdict cannot outrun the evidence ──────────────────────────────────
 
 

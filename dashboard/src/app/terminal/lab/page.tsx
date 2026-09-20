@@ -3,18 +3,19 @@ import type { Metadata } from 'next'
 import Workbench from '@/components/system/Workbench'
 import ModelWorkbench from '@/components/terminal/models2/ModelWorkbench'
 import DeployedModel from '@/components/terminal/models2/DeployedModel'
+import ModelLab from '@/components/terminal/models2/ModelLab'
 import { Panel } from '@/components/system'
 
 export const metadata: Metadata = {
-  title: 'Models — miniAladdin',
+  title: 'Quant Lab — OmniSignal',
   description: 'What each model is, what it learned, and how much of the training fit survived out of sample.',
 }
 
 export default function LabPage() {
   return (
     <Workbench
-      title="Models"
-      subtitle="what was learned, and what survived"
+      title="Quant Lab"
+      subtitle="declared search → nested selection → outer evidence"
       rail={[
         { label: 'Study', state: 'recorded', detail: 'recorded artifact' },
       ]}
@@ -44,6 +45,7 @@ export default function LabPage() {
         </>
       }
     >
+      <ModelLab />
       <ModelWorkbench />
       {/* What is actually deployed, and what it will say if you ask it. Kept
           on the same page as the training evidence deliberately: a prediction

@@ -25,7 +25,7 @@ const pillars = [
   {
     title: 'Research Lab', state: 'blocked' as const,
     body: 'Datasets, experiments, model cards and holdout governance preserve negative and blocked results.',
-    href: '/terminal/experiments', action: 'Inspect experiments',
+    href: '/terminal/lab', action: 'Open Quant Lab',
   },
 ]
 

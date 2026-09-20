@@ -54,6 +54,7 @@ METRICS_NAME = "metrics.json"
 #: artifact, which is a different shape and an equally complete result.
 SELECTION_ROOT = Path(os.environ.get("QUANT_ARTIFACT_ROOT", "artifacts/experiments"))
 SELECTION_NAME = "final_selection.json"
+MODEL_LAB_SUMMARY = Path("data/manifests/model_lab_summary.json")
 
 #: Train-minus-validation IC above which a model is called overfit regardless of
 #: what else it does. EXP-004's deliberately over-parameterised control sat at
@@ -110,6 +111,19 @@ def _unavailable(detail: str) -> dict[str, Any]:
         "detail": detail,
         "remedy": "python -m src.quant.study.run --experiment EXP-005",
     }
+
+
+def model_lab(summary_path: Path | str = MODEL_LAB_SUMMARY) -> dict[str, Any]:
+    """Committed, read-only view of the exploratory Model Lab ledger."""
+    payload = _read(Path(summary_path))
+    if payload is None:
+        return {
+            "status": "NOT_CONFIGURED",
+            "message": "No Model Lab summary has been published.",
+            "reason": "MODEL_LAB_SUMMARY_MISSING",
+            "remedy": "python -m scripts.quant.model_lab run --stage smoke",
+        }
+    return {"status": "AVAILABLE", **payload}
 
 
 def _experiment_dirs(root: Path) -> list[Path]:

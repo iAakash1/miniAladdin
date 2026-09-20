@@ -124,6 +124,7 @@ def test_internal_entries_carry_a_reason() -> None:
         "/api/quant/selection/{experiment_id}",
         "/api/quant/portfolio",
         "/api/quant/status",
+        "/api/quant/model-lab",
         "/api/ml/provenance/{label}/{model_id}",
         "/api/providers/capabilities",
         "/api/providers/health",

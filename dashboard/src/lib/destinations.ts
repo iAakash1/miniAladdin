@@ -76,7 +76,7 @@ export const DESTINATIONS: DestinationGroup[] = [
       { href: '/terminal/research', label: 'Research OS', glyph: 'O', key: 'q', answers: 'the complete evidence-to-decision-to-governance chain' },
       { href: '/terminal/factorlab', label: 'Factors', glyph: 'K', key: 'f', answers: 'what explains cross-sectional behaviour' },
       { href: '/terminal/signals', label: 'Signals', glyph: 'S', key: 'g', answers: 'what the search found, and what it cost in significance' },
-      { href: '/terminal/lab', label: 'Models', glyph: 'µ', key: 'm', answers: 'what was trained, and what survived out of sample' },
+      { href: '/terminal/lab', label: 'Quant Lab', glyph: 'µ', key: 'm', answers: 'the declared model universe, every trial, and what survived out of sample' },
       { href: '/terminal/relationships', label: 'Relationships', glyph: '◇', key: 'h', answers: 'what connects to what, and on whose authority' },
       { href: '/terminal/compare', label: 'Compare', glyph: '⇄', key: 'w', answers: 'one object against another, where that is meaningful' },
     ],
