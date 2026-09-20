@@ -1,0 +1,1378 @@
+{
+  "admission": {
+    "controls": {
+      "admitted_columns": [],
+      "market_cap_gate_passed": false,
+      "passed": false,
+      "security_master_pit": true
+    },
+    "enough_for_exp012": true,
+    "foreign": {
+      "admitted_columns": [
+        "fc_roa_xs",
+        "fc_roe_xs",
+        "fc_operating_profitability_xs",
+        "fc_cash_profitability_xs",
+        "fc_gross_margin_xs",
+        "fc_operating_margin_xs",
+        "fc_net_margin_xs",
+        "fc_cash_flow_margin_xs",
+        "fc_asset_turnover_xs",
+        "fc_asset_growth_xs",
+        "fc_capex_to_assets_xs",
+        "fc_accruals_xs",
+        "fc_cash_flow_quality_xs",
+        "fc_liabilities_to_assets_xs",
+        "fc_current_ratio_xs",
+        "fc_cash_to_assets_xs",
+        "fc_revenue_growth_xs",
+        "fc_earnings_growth_xs"
+      ],
+      "coverage": {
+        "folds": {
+          "fold_0": {
+            "any_value_share": 0.5933609958506224,
+            "column_coverage": {
+              "fc_accruals_xs": 0.5871369294605809,
+              "fc_asset_growth_xs": 0.5933609958506224,
+              "fc_asset_turnover_xs": 0.5933609958506224,
+              "fc_capex_to_assets_xs": 0.37136929460580914,
+              "fc_cash_flow_margin_xs": 0.5871369294605809,
+              "fc_cash_flow_quality_xs": 0.42323651452282157,
+              "fc_cash_profitability_xs": 0.5871369294605809,
+              "fc_cash_to_assets_xs": 0.5933609958506224,
+              "fc_current_ratio_xs": 0.5933609958506224,
+              "fc_earnings_growth_xs": 0.553941908713693,
+              "fc_gross_margin_xs": 0.491701244813278,
+              "fc_liabilities_to_assets_xs": 0.5933609958506224,
+              "fc_net_margin_xs": 0.5933609958506224,
+              "fc_operating_margin_xs": 0.5933609958506224,
+              "fc_operating_profitability_xs": 0.5933609958506224,
+              "fc_revenue_growth_xs": 0.45228215767634855,
+              "fc_roa_xs": 0.5933609958506224,
+              "fc_roe_xs": 0.5933609958506224
+            },
+            "name_dates": 482,
+            "securities": 13,
+            "share_with_min_columns": 0.5933609958506224
+          },
+          "fold_1": {
+            "any_value_share": 0.8380281690140845,
+            "column_coverage": {
+              "fc_accruals_xs": 0.7693661971830986,
+              "fc_asset_growth_xs": 0.8380281690140845,
+              "fc_asset_turnover_xs": 0.8028169014084507,
+              "fc_capex_to_assets_xs": 0.5845070422535211,
+              "fc_cash_flow_margin_xs": 0.7341549295774648,
+              "fc_cash_flow_quality_xs": 0.5669014084507042,
+              "fc_cash_profitability_xs": 0.7693661971830986,
+              "fc_cash_to_assets_xs": 0.8380281690140845,
+              "fc_current_ratio_xs": 0.8080985915492958,
+              "fc_earnings_growth_xs": 0.4278169014084507,
+              "fc_gross_margin_xs": 0.7288732394366197,
+              "fc_liabilities_to_assets_xs": 0.8380281690140845,
+              "fc_net_margin_xs": 0.8028169014084507,
+              "fc_operating_margin_xs": 0.7869718309859155,
+              "fc_operating_profitability_xs": 0.7940140845070423,
+              "fc_revenue_growth_xs": 0.4278169014084507,
+              "fc_roa_xs": 0.8380281690140845,
+              "fc_roe_xs": 0.8380281690140845
+            },
+            "name_dates": 568,
+            "securities": 22,
+            "share_with_min_columns": 0.8380281690140845
+          },
+          "fold_2": {
+            "any_value_share": 0.9662921348314607,
+            "column_coverage": {
+              "fc_accruals_xs": 0.9662921348314607,
+              "fc_asset_growth_xs": 0.9662921348314607,
+              "fc_asset_turnover_xs": 0.851685393258427,
+              "fc_capex_to_assets_xs": 0.48089887640449436,
+              "fc_cash_flow_margin_xs": 0.851685393258427,
+              "fc_cash_flow_quality_xs": 0.7662921348314606,
+              "fc_cash_profitability_xs": 0.9662921348314607,
+              "fc_cash_to_assets_xs": 0.9662921348314607,
+              "fc_current_ratio_xs": 0.7595505617977528,
+              "fc_earnings_growth_xs": 0.7932584269662921,
+              "fc_gross_margin_xs": 0.7595505617977528,
+              "fc_liabilities_to_assets_xs": 0.9662921348314607,
+              "fc_net_margin_xs": 0.851685393258427,
+              "fc_operating_margin_xs": 0.851685393258427,
+              "fc_operating_profitability_xs": 0.9550561797752809,
+              "fc_revenue_growth_xs": 0.7573033707865169,
+              "fc_roa_xs": 0.9662921348314607,
+              "fc_roe_xs": 0.9662921348314607
+            },
+            "name_dates": 445,
+            "securities": 19,
+            "share_with_min_columns": 0.9662921348314607
+          },
+          "fold_3": {
+            "any_value_share": 0.9236016371077762,
+            "column_coverage": {
+              "fc_accruals_xs": 0.9236016371077762,
+              "fc_asset_growth_xs": 0.9236016371077762,
+              "fc_asset_turnover_xs": 0.8553888130968622,
+              "fc_capex_to_assets_xs": 0.6425648021828103,
+              "fc_cash_flow_margin_xs": 0.8553888130968622,
+              "fc_cash_flow_quality_xs": 0.5334242837653479,
+              "fc_cash_profitability_xs": 0.9236016371077762,
+              "fc_cash_to_assets_xs": 0.9236016371077762,
+              "fc_current_ratio_xs": 0.8035470668485676,
+              "fc_earnings_growth_xs": 0.8799454297407913,
+              "fc_gross_margin_xs": 0.8226466575716235,
+              "fc_liabilities_to_assets_xs": 0.9236016371077762,
+              "fc_net_margin_xs": 0.8553888130968622,
+              "fc_operating_margin_xs": 0.800818553888131,
+              "fc_operating_profitability_xs": 0.869031377899045,
+              "fc_revenue_growth_xs": 0.8117326057298773,
+              "fc_roa_xs": 0.9236016371077762,
+              "fc_roe_xs": 0.8567530695770805
+            },
+            "name_dates": 733,
+            "securities": 25,
+            "share_with_min_columns": 0.9236016371077762
+          },
+          "fold_4": {
+            "any_value_share": 1.0,
+            "column_coverage": {
+              "fc_accruals_xs": 1.0,
+              "fc_asset_growth_xs": 1.0,
+              "fc_asset_turnover_xs": 0.9406880189798339,
+              "fc_capex_to_assets_xs": 0.66429418742586,
+              "fc_cash_flow_margin_xs": 0.9406880189798339,
+              "fc_cash_flow_quality_xs": 0.6358244365361803,
+              "fc_cash_profitability_xs": 1.0,
+              "fc_cash_to_assets_xs": 1.0,
+              "fc_current_ratio_xs": 0.8896797153024911,
+              "fc_earnings_growth_xs": 0.9098457888493475,
+              "fc_gross_margin_xs": 0.9098457888493475,
+              "fc_liabilities_to_assets_xs": 1.0,
+              "fc_net_margin_xs": 0.9406880189798339,
+              "fc_operating_margin_xs": 0.8991696322657177,
+              "fc_operating_profitability_xs": 0.9584816132858838,
+              "fc_revenue_growth_xs": 0.8505338078291815,
+              "fc_roa_xs": 1.0,
+              "fc_roe_xs": 0.9513641755634639
+            },
+            "name_dates": 843,
+            "securities": 29,
+            "share_with_min_columns": 1.0
+          },
+          "fold_5": {
+            "any_value_share": 0.9924924924924925,
+            "column_coverage": {
+              "fc_accruals_xs": 0.9804804804804805,
+              "fc_asset_growth_xs": 0.9924924924924925,
+              "fc_asset_turnover_xs": 0.9819819819819819,
+              "fc_capex_to_assets_xs": 0.5555555555555556,
+              "fc_cash_flow_margin_xs": 0.96996996996997,
+              "fc_cash_flow_quality_xs": 0.7417417417417418,
+              "fc_cash_profitability_xs": 0.9804804804804805,
+              "fc_cash_to_assets_xs": 0.9924924924924925,
+              "fc_current_ratio_xs": 0.9804804804804805,
+              "fc_earnings_growth_xs": 0.9864864864864865,
+              "fc_gross_margin_xs": 0.8438438438438438,
+              "fc_liabilities_to_assets_xs": 0.9924924924924925,
+              "fc_net_margin_xs": 0.9819819819819819,
+              "fc_operating_margin_xs": 0.8498498498498499,
+              "fc_operating_profitability_xs": 0.8603603603603603,
+              "fc_revenue_growth_xs": 0.975975975975976,
+              "fc_roa_xs": 0.9924924924924925,
+              "fc_roe_xs": 0.9924924924924925
+            },
+            "name_dates": 666,
+            "securities": 19,
+            "share_with_min_columns": 0.9924924924924925
+          },
+          "fold_6": {
+            "any_value_share": 0.9495798319327731,
+            "column_coverage": {
+              "fc_accruals_xs": 0.9327731092436975,
+              "fc_asset_growth_xs": 0.9495798319327731,
+              "fc_asset_turnover_xs": 0.8907563025210085,
+              "fc_capex_to_assets_xs": 0.5865546218487395,
+              "fc_cash_flow_margin_xs": 0.8739495798319328,
+              "fc_cash_flow_quality_xs": 0.6941176470588235,
+              "fc_cash_profitability_xs": 0.9327731092436975,
+              "fc_cash_to_assets_xs": 0.9495798319327731,
+              "fc_current_ratio_xs": 0.9361344537815126,
+              "fc_earnings_growth_xs": 0.9495798319327731,
+              "fc_gross_margin_xs": 0.7764705882352941,
+              "fc_liabilities_to_assets_xs": 0.9495798319327731,
+              "fc_net_margin_xs": 0.8907563025210085,
+              "fc_operating_margin_xs": 0.8436974789915966,
+              "fc_operating_profitability_xs": 0.8957983193277311,
+              "fc_revenue_growth_xs": 0.8907563025210085,
+              "fc_roa_xs": 0.9495798319327731,
+              "fc_roe_xs": 0.9495798319327731
+            },
+            "name_dates": 595,
+            "securities": 21,
+            "share_with_min_columns": 0.9495798319327731
+          },
+          "fold_7": {
+            "any_value_share": 0.9940711462450593,
+            "column_coverage": {
+              "fc_accruals_xs": 0.9683794466403162,
+              "fc_asset_growth_xs": 0.9940711462450593,
+              "fc_asset_turnover_xs": 0.9011857707509882,
+              "fc_capex_to_assets_xs": 0.650197628458498,
+              "fc_cash_flow_margin_xs": 0.8754940711462451,
+              "fc_cash_flow_quality_xs": 0.9071146245059288,
+              "fc_cash_profitability_xs": 0.9683794466403162,
+              "fc_cash_to_assets_xs": 0.9940711462450593,
+              "fc_current_ratio_xs": 0.924901185770751,
+              "fc_earnings_growth_xs": 0.8992094861660079,
+              "fc_gross_margin_xs": 0.8596837944664032,
+              "fc_liabilities_to_assets_xs": 0.9940711462450593,
+              "fc_net_margin_xs": 0.9011857707509882,
+              "fc_operating_margin_xs": 0.8063241106719368,
+              "fc_operating_profitability_xs": 0.8992094861660079,
+              "fc_revenue_growth_xs": 0.782608695652174,
+              "fc_roa_xs": 0.9940711462450593,
+              "fc_roe_xs": 0.9782608695652174
+            },
+            "name_dates": 506,
+            "securities": 19,
+            "share_with_min_columns": 0.9940711462450593
+          }
+        }
+      },
+      "dropped_columns": [],
+      "failures": [],
+      "gate": {
+        "foreign_min_column_coverage": 0.3,
+        "foreign_min_columns_present": 5,
+        "foreign_min_securities_per_fold": 8,
+        "foreign_min_share_with_columns": 0.5,
+        "minimum_incremental_columns": 5
+      },
+      "passed": true
+    },
+    "minimum_incremental_columns": 5
+  },
+  "alfred": {
+    "adds_predictor_columns": false,
+    "note": "no FRED_API_KEY in the environment; no vintage data exists; revised FRED data is not substituted",
+    "series": [
+      "DGS3MO",
+      "DGS2",
+      "DGS10"
+    ],
+    "status": "BLOCKED_EXTERNAL_FRED_KEY",
+    "version": "alfred-vintage-v1"
+  },
+  "build_commit": "2538f12fdda801ef713a50578b170c1da94b8e19",
+  "build_dirty": false,
+  "build_seconds": 212.8,
+  "built_at": "2026-09-20T07:44:06+00:00",
+  "content_hash": "361bd5029c7914449d814f419ab7e1633e144343c335c9db73659f3224a5fc94",
+  "coverage": {
+    "fc_accruals_xs": {
+      "by_filer_regime": {
+        "DOMESTIC_10K": 0.0,
+        "FOREIGN_20F_40F": 0.7500374644088116,
+        "MIXED": 0.612037708484409,
+        "UNRESOLVED": 0.0
+      },
+      "by_identity_grade": {
+        "A_CONFIRMED": 0.030783113622096674,
+        "B_CONSISTENT": 0.19378207063084818,
+        "C_PARTIAL": 0.0,
+        "D_NO_PERIODIC_FILINGS": 0.0,
+        "NONE": 0.0,
+        "X_CONTRADICTED": 0.0
+      },
+      "by_period": {
+        "fold_0": 0.03096023888103096,
+        "fold_1": 0.043337120597305635,
+        "fold_2": 0.04161279896574014,
+        "fold_3": 0.05623648161499639,
+        "fold_4": 0.07166934189406099,
+        "fold_5": 0.05527204208212295,
+        "fold_6": 0.04843099583733589,
+        "fold_7": 0.041428010984699885,
+        "train_only": 0.025005776488408512
+      },
+      "by_share_basis": {
+        "BALANCE_SHEET": 0.0,
+        "DEI_COVER": 0.0,
+        "NONE": 0.2544592360567302,
+        "WEIGHTED_AVG_PROXY": 0.0
+      },
+      "by_year": {
+        "2014": 0.027623170480313337,
+        "2015": 0.021841747339787183,
+        "2016": 0.0276,
+        "2017": 0.028876333961079723,
+        "2018": 0.03721042860602147,
+        "2019": 0.04381107491856678,
+        "2020": 0.043735508115455346,
+        "2021": 0.07686129628142317,
+        "2022": 0.05921620984842535,
+        "2023": 0.04971181556195965,
+        "2024": 0.04144,
+        "2025": 0.0442714126807564
+      },
+      "exiting_within_30_days": 0.0,
+      "first_valid_date": "2014-04-03",
+      "not_exiting": 0.04202381037914113,
+      "overall": 0.041990925537719326
+    },
+    "fc_asset_growth_xs": {
+      "by_filer_regime": {
+        "DOMESTIC_10K": 0.0,
+        "FOREIGN_20F_40F": 0.7621759328637794,
+        "MIXED": 0.612037708484409,
+        "UNRESOLVED": 0.0
+      },
+      "by_identity_grade": {
+        "A_CONFIRMED": 0.03087727558066541,
+        "B_CONSISTENT": 0.20072441895562934,
+        "C_PARTIAL": 0.0,
+        "D_NO_PERIODIC_FILINGS": 0.0,
+        "NONE": 0.0,
+        "X_CONTRADICTED": 0.0
+      },
+      "by_period": {
+        "fold_0": 0.031195976740531196,
+        "fold_1": 0.04650219120272683,
+        "fold_2": 0.04161279896574014,
+        "fold_3": 0.05623648161499639,
+        "fold_4": 0.07166934189406099,
+        "fold_5": 0.0559001334694198,
+        "fold_6": 0.04923150816522574,
+        "fold_7": 0.042448018830914085,
+        "train_only": 0.02521116274293343
+      },
+      "by_share_basis": {
+        "BALANCE_SHEET": 0.0,
+        "DEI_COVER": 0.0,
+        "NONE": 0.25798312016009745,
+        "WEIGHTED_AVG_PROXY": 0.0
+      },
+      "by_year": {
+        "2014": 0.02844774273345702,
+        "2015": 0.021841747339787183,
+        "2016": 0.0276,
+        "2017": 0.028876333961079723,
+        "2018": 0.039389781257567195,
+        "2019": 0.04503257328990228,
+        "2020": 0.043735508115455346,
+        "2021": 0.07686129628142317,
+        "2022": 0.05953035419775387,
+        "2023": 0.05059237912263849,
+        "2024": 0.0424,
+        "2025": 0.04516129032258064
+      },
+      "exiting_within_30_days": 0.0,
+      "first_valid_date": "2014-04-03",
+      "not_exiting": 0.04260577800449768,
+      "overall": 0.042572437756655084
+    },
+    "fc_asset_turnover_xs": {
+      "by_filer_regime": {
+        "DOMESTIC_10K": 0.0,
+        "FOREIGN_20F_40F": 0.7157200659373595,
+        "MIXED": 0.5895576504713561,
+        "UNRESOLVED": 0.0
+      },
+      "by_identity_grade": {
+        "A_CONFIRMED": 0.02954331450094162,
+        "B_CONSISTENT": 0.18351946875943254,
+        "C_PARTIAL": 0.0,
+        "D_NO_PERIODIC_FILINGS": 0.0,
+        "NONE": 0.0,
+        "X_CONTRADICTED": 0.0
+      },
+      "by_period": {
+        "fold_0": 0.029545811724029546,
+        "fold_1": 0.044067521506248986,
+        "fold_2": 0.03749191984486102,
+        "fold_3": 0.052231034206520865,
+        "fold_4": 0.06765650080256821,
+        "fold_5": 0.055350553505535055,
+        "fold_6": 0.04642971501761127,
+        "fold_7": 0.03876029815613966,
+        "train_only": 0.023927498652152705
+      },
+      "by_share_basis": {
+        "BALANCE_SHEET": 0.0,
+        "DEI_COVER": 0.0,
+        "NONE": 0.24314800313234142,
+        "WEIGHTED_AVG_PROXY": 0.0
+      },
+      "by_year": {
+        "2014": 0.027107812822098537,
+        "2015": 0.021841747339787183,
+        "2016": 0.0252,
+        "2017": 0.026679221594475833,
+        "2018": 0.03866333037371862,
+        "2019": 0.040960912052117264,
+        "2020": 0.039337970736387624,
+        "2021": 0.0728455545739298,
+        "2022": 0.05819524071310767,
+        "2023": 0.04811079090617996,
+        "2024": 0.03888,
+        "2025": 0.042046718576195775
+      },
+      "exiting_within_30_days": 0.0,
+      "first_valid_date": "2014-04-03",
+      "not_exiting": 0.040155766149601604,
+      "overall": 0.0401243431065675
+    },
+    "fc_capex_to_assets_xs": {
+      "by_filer_regime": {
+        "DOMESTIC_10K": 0.0,
+        "FOREIGN_20F_40F": 0.4868874569159299,
+        "MIXED": 0.612037708484409,
+        "UNRESOLVED": 0.0
+      },
+      "by_identity_grade": {
+        "A_CONFIRMED": 0.026098556183301945,
+        "B_CONSISTENT": 0.07717074152329208,
+        "C_PARTIAL": 0.0,
+        "D_NO_PERIODIC_FILINGS": 0.0,
+        "NONE": 0.0,
+        "X_CONTRADICTED": 0.0
+      },
+      "by_period": {
+        "fold_0": 0.022787993085022787,
+        "fold_1": 0.034815776659633174,
+        "fold_2": 0.02415966386554622,
+        "fold_3": 0.03973403829207722,
+        "fold_4": 0.048956661316211875,
+        "fold_5": 0.03305330925649682,
+        "fold_6": 0.031940441882804996,
+        "fold_7": 0.028795606120047078,
+        "train_only": 0.02007650637981053
+      },
+      "by_share_basis": {
+        "BALANCE_SHEET": 0.0,
+        "DEI_COVER": 0.0,
+        "NONE": 0.17806490907508918,
+        "WEIGHTED_AVG_PROXY": 0.0
+      },
+      "by_year": {
+        "2014": 0.027313955885384458,
+        "2015": 0.016081286502920233,
+        "2016": 0.01992,
+        "2017": 0.021892655367231638,
+        "2018": 0.02857373476471063,
+        "2019": 0.02939739413680782,
+        "2020": 0.027664507875589668,
+        "2021": 0.056140069070757366,
+        "2022": 0.03510563103746171,
+        "2023": 0.03234069804674992,
+        "2024": 0.02808,
+        "2025": 0.030478309232480533
+      },
+      "exiting_within_30_days": 0.0,
+      "first_valid_date": "2014-04-03",
+      "not_exiting": 0.029407327044251093,
+      "overall": 0.029384314964247767
+    },
+    "fc_cash_flow_margin_xs": {
+      "by_filer_regime": {
+        "DOMESTIC_10K": 0.0,
+        "FOREIGN_20F_40F": 0.7047804585643639,
+        "MIXED": 0.5895576504713561,
+        "UNRESOLVED": 0.0
+      },
+      "by_identity_grade": {
+        "A_CONFIRMED": 0.029511927181418707,
+        "B_CONSISTENT": 0.17657712043465137,
+        "C_PARTIAL": 0.0,
+        "D_NO_PERIODIC_FILINGS": 0.0,
+        "NONE": 0.0,
+        "X_CONTRADICTED": 0.0
+      },
+      "by_period": {
+        "fold_0": 0.02931007386452931,
+        "fold_1": 0.04090245090082779,
+        "fold_2": 0.03749191984486102,
+        "fold_3": 0.052231034206520865,
+        "fold_4": 0.06765650080256821,
+        "fold_5": 0.0547224621182382,
+        "fold_6": 0.04562920268972142,
+        "fold_7": 0.03774029030992546,
+        "train_only": 0.023927498652152705
+      },
+      "by_share_basis": {
+        "BALANCE_SHEET": 0.0,
+        "DEI_COVER": 0.0,
+        "NONE": 0.2399721569651092,
+        "WEIGHTED_AVG_PROXY": 0.0
+      },
+      "by_year": {
+        "2014": 0.027107812822098537,
+        "2015": 0.021841747339787183,
+        "2016": 0.0252,
+        "2017": 0.026679221594475833,
+        "2018": 0.0364839777221729,
+        "2019": 0.03973941368078176,
+        "2020": 0.039337970736387624,
+        "2021": 0.0728455545739298,
+        "2022": 0.05788109636377916,
+        "2023": 0.04723022734550112,
+        "2024": 0.03792,
+        "2025": 0.041156840934371525
+      },
+      "exiting_within_30_days": 0.0,
+      "first_valid_date": "2014-04-03",
+      "not_exiting": 0.03963127680823089,
+      "overall": 0.03960026419320564
+    },
+    "fc_cash_flow_quality_xs": {
+      "by_filer_regime": {
+        "DOMESTIC_10K": 0.0,
+        "FOREIGN_20F_40F": 0.5543233927768619,
+        "MIXED": 0.4604786076867295,
+        "UNRESOLVED": 0.0
+      },
+      "by_identity_grade": {
+        "A_CONFIRMED": 0.023360012554927808,
+        "B_CONSISTENT": 0.1365328503873629,
+        "C_PARTIAL": 0.0,
+        "D_NO_PERIODIC_FILINGS": 0.0,
+        "NONE": 0.0,
+        "X_CONTRADICTED": 0.0
+      },
+      "by_period": {
+        "fold_0": 0.0231023102310231,
+        "fold_1": 0.030433371205973055,
+        "fold_2": 0.02949256625727214,
+        "fold_3": 0.03220379716414323,
+        "fold_4": 0.04703049759229534,
+        "fold_5": 0.04192510010206485,
+        "fold_6": 0.034021773935318605,
+        "fold_7": 0.03899568458218909,
+        "train_only": 0.021976329234166002
+      },
+      "by_share_basis": {
+        "BALANCE_SHEET": 0.0,
+        "DEI_COVER": 0.0,
+        "NONE": 0.18854955190115721,
+        "WEIGHTED_AVG_PROXY": 0.0
+      },
+      "by_year": {
+        "2014": 0.024737167594310452,
+        "2015": 0.01888151052084167,
+        "2016": 0.02392,
+        "2017": 0.02236346516007533,
+        "2018": 0.02817015094035031,
+        "2019": 0.028583061889250815,
+        "2020": 0.029183657151994884,
+        "2021": 0.04585977029957433,
+        "2022": 0.044058744993324434,
+        "2023": 0.03442203009926353,
+        "2024": 0.03624,
+        "2025": 0.04315906562847609
+      },
+      "exiting_within_30_days": 0.0,
+      "first_valid_date": "2014-04-03",
+      "not_exiting": 0.031138860349324272,
+      "overall": 0.031114493294661573
+    },
+    "fc_cash_profitability_xs": {
+      "by_filer_regime": {
+        "DOMESTIC_10K": 0.0,
+        "FOREIGN_20F_40F": 0.7512363254907838,
+        "MIXED": 0.612037708484409,
+        "UNRESOLVED": 0.0
+      },
+      "by_identity_grade": {
+        "A_CONFIRMED": 0.0308458882611425,
+        "B_CONSISTENT": 0.19378207063084818,
+        "C_PARTIAL": 0.0,
+        "D_NO_PERIODIC_FILINGS": 0.0,
+        "NONE": 0.0,
+        "X_CONTRADICTED": 0.0
+      },
+      "by_period": {
+        "fold_0": 0.03096023888103096,
+        "fold_1": 0.043337120597305635,
+        "fold_2": 0.04161279896574014,
+        "fold_3": 0.05623648161499639,
+        "fold_4": 0.07166934189406099,
+        "fold_5": 0.05527204208212295,
+        "fold_6": 0.04843099583733589,
+        "fold_7": 0.041428010984699885,
+        "train_only": 0.02521116274293343
+      },
+      "by_share_basis": {
+        "BALANCE_SHEET": 0.0,
+        "DEI_COVER": 0.0,
+        "NONE": 0.25480727399286524,
+        "WEIGHTED_AVG_PROXY": 0.0
+      },
+      "by_year": {
+        "2014": 0.02844774273345702,
+        "2015": 0.021841747339787183,
+        "2016": 0.0276,
+        "2017": 0.028876333961079723,
+        "2018": 0.03721042860602147,
+        "2019": 0.04381107491856678,
+        "2020": 0.043735508115455346,
+        "2021": 0.07686129628142317,
+        "2022": 0.05921620984842535,
+        "2023": 0.04971181556195965,
+        "2024": 0.04144,
+        "2025": 0.0442714126807564
+      },
+      "exiting_within_30_days": 0.0,
+      "first_valid_date": "2014-04-03",
+      "not_exiting": 0.042081288663126964,
+      "overall": 0.04204835884329323
+    },
+    "fc_cash_to_assets_xs": {
+      "by_filer_regime": {
+        "DOMESTIC_10K": 0.0,
+        "FOREIGN_20F_40F": 0.7621759328637794,
+        "MIXED": 0.612037708484409,
+        "UNRESOLVED": 0.0
+      },
+      "by_identity_grade": {
+        "A_CONFIRMED": 0.03087727558066541,
+        "B_CONSISTENT": 0.20072441895562934,
+        "C_PARTIAL": 0.0,
+        "D_NO_PERIODIC_FILINGS": 0.0,
+        "NONE": 0.0,
+        "X_CONTRADICTED": 0.0
+      },
+      "by_period": {
+        "fold_0": 0.031195976740531196,
+        "fold_1": 0.04650219120272683,
+        "fold_2": 0.04161279896574014,
+        "fold_3": 0.05623648161499639,
+        "fold_4": 0.07166934189406099,
+        "fold_5": 0.0559001334694198,
+        "fold_6": 0.04923150816522574,
+        "fold_7": 0.042448018830914085,
+        "train_only": 0.02521116274293343
+      },
+      "by_share_basis": {
+        "BALANCE_SHEET": 0.0,
+        "DEI_COVER": 0.0,
+        "NONE": 0.25798312016009745,
+        "WEIGHTED_AVG_PROXY": 0.0
+      },
+      "by_year": {
+        "2014": 0.02844774273345702,
+        "2015": 0.021841747339787183,
+        "2016": 0.0276,
+        "2017": 0.028876333961079723,
+        "2018": 0.039389781257567195,
+        "2019": 0.04503257328990228,
+        "2020": 0.043735508115455346,
+        "2021": 0.07686129628142317,
+        "2022": 0.05953035419775387,
+        "2023": 0.05059237912263849,
+        "2024": 0.0424,
+        "2025": 0.04516129032258064
+      },
+      "exiting_within_30_days": 0.0,
+      "first_valid_date": "2014-04-03",
+      "not_exiting": 0.04260577800449768,
+      "overall": 0.042572437756655084
+    },
+    "fc_current_ratio_xs": {
+      "by_filer_regime": {
+        "DOMESTIC_10K": 0.0,
+        "FOREIGN_20F_40F": 0.7103251910684849,
+        "MIXED": 0.6062364031907179,
+        "UNRESOLVED": 0.0
+      },
+      "by_identity_grade": {
+        "A_CONFIRMED": 0.02996704331450094,
+        "B_CONSISTENT": 0.1767783479223262,
+        "C_PARTIAL": 0.0,
+        "D_NO_PERIODIC_FILINGS": 0.0,
+        "NONE": 0.0,
+        "X_CONTRADICTED": 0.0
+      },
+      "by_period": {
+        "fold_0": 0.031195976740531196,
+        "fold_1": 0.045122545041389385,
+        "fold_2": 0.03353264382676147,
+        "fold_3": 0.049186894176079465,
+        "fold_4": 0.06420545746388442,
+        "fold_5": 0.05527204208212295,
+        "fold_6": 0.04859109830291387,
+        "fold_7": 0.039701843860337385,
+        "train_only": 0.025082796333855358
+      },
+      "by_share_basis": {
+        "BALANCE_SHEET": 0.0,
+        "DEI_COVER": 0.0,
+        "NONE": 0.24258244148612199,
+        "WEIGHTED_AVG_PROXY": 0.0
+      },
+      "by_year": {
+        "2014": 0.02844774273345702,
+        "2015": 0.02144171533722698,
+        "2016": 0.0276,
+        "2017": 0.028876333961079723,
+        "2018": 0.03906691419807894,
+        "2019": 0.03925081433224756,
+        "2020": 0.03613976173342928,
+        "2021": 0.06834792386153722,
+        "2022": 0.05740987983978638,
+        "2023": 0.04971181556195965,
+        "2024": 0.04104,
+        "2025": 0.041156840934371525
+      },
+      "exiting_within_30_days": 0.0,
+      "first_valid_date": "2014-04-03",
+      "not_exiting": 0.04006236393812463,
+      "overall": 0.040031013985009904
+    },
+    "fc_earnings_growth_xs": {
+      "by_filer_regime": {
+        "DOMESTIC_10K": 0.0,
+        "FOREIGN_20F_40F": 0.673160497527349,
+        "MIXED": 0.551849166062364,
+        "UNRESOLVED": 0.0
+      },
+      "by_identity_grade": {
+        "A_CONFIRMED": 0.028083804143126178,
+        "B_CONSISTENT": 0.16842740718382132,
+        "C_PARTIAL": 0.0,
+        "D_NO_PERIODIC_FILINGS": 0.0,
+        "NONE": 0.0,
+        "X_CONTRADICTED": 0.0
+      },
+      "by_period": {
+        "fold_0": 0.0297029702970297,
+        "fold_1": 0.025564031813017366,
+        "fold_2": 0.03482546864899806,
+        "fold_3": 0.05279179684370744,
+        "fold_4": 0.062359550561797754,
+        "fold_5": 0.05558608777577138,
+        "fold_6": 0.04923150816522574,
+        "fold_7": 0.038681836014123186,
+        "train_only": 0.022515468152293907
+      },
+      "by_share_basis": {
+        "BALANCE_SHEET": 0.0,
+        "DEI_COVER": 0.0,
+        "NONE": 0.2285304098146698,
+        "WEIGHTED_AVG_PROXY": 0.0
+      },
+      "by_year": {
+        "2014": 0.027313955885384458,
+        "2015": 0.017041363309064726,
+        "2016": 0.02488,
+        "2017": 0.028876333961079723,
+        "2018": 0.02486076358059569,
+        "2019": 0.030781758957654722,
+        "2020": 0.04325577676501159,
+        "2021": 0.06569753433459159,
+        "2022": 0.05764548810178277,
+        "2023": 0.05059237912263849,
+        "2024": 0.04,
+        "2025": 0.041156840934371525
+      },
+      "exiting_within_30_days": 0.0,
+      "first_valid_date": "2014-04-03",
+      "not_exiting": 0.03774167822219668,
+      "overall": 0.0377121442724636
+    },
+    "fc_gross_margin_xs": {
+      "by_filer_regime": {
+        "DOMESTIC_10K": 0.0,
+        "FOREIGN_20F_40F": 0.6530795744043159,
+        "MIXED": 0.574329224075417,
+        "UNRESOLVED": 0.0
+      },
+      "by_identity_grade": {
+        "A_CONFIRMED": 0.028578154425612054,
+        "B_CONSISTENT": 0.15172552570681155,
+        "C_PARTIAL": 0.0,
+        "D_NO_PERIODIC_FILINGS": 0.0,
+        "NONE": 0.0,
+        "X_CONTRADICTED": 0.0
+      },
+      "by_period": {
+        "fold_0": 0.025695426685525696,
+        "fold_1": 0.040658983931180004,
+        "fold_2": 0.034179056237879764,
+        "fold_3": 0.05030841945045261,
+        "fold_4": 0.06556982343499197,
+        "fold_5": 0.04812750255162126,
+        "fold_6": 0.04098623118796029,
+        "fold_7": 0.037112593173793645,
+        "train_only": 0.021976329234166002
+      },
+      "by_share_basis": {
+        "BALANCE_SHEET": 0.0,
+        "DEI_COVER": 0.0,
+        "NONE": 0.22404942138693118,
+        "WEIGHTED_AVG_PROXY": 0.0
+      },
+      "by_year": {
+        "2014": 0.021645021645021644,
+        "2015": 0.020321625730058406,
+        "2016": 0.0252,
+        "2017": 0.023697426239799122,
+        "2018": 0.035111792719347806,
+        "2019": 0.03794788273615635,
+        "2020": 0.03637962740865115,
+        "2021": 0.07188177656413139,
+        "2022": 0.05175528155187309,
+        "2023": 0.04234710214537304,
+        "2024": 0.03592,
+        "2025": 0.040266963292547274
+      },
+      "exiting_within_30_days": 0.0,
+      "first_valid_date": "2014-04-03",
+      "not_exiting": 0.03700164531587909,
+      "overall": 0.036972690463199606
+    },
+    "fc_liabilities_to_assets_xs": {
+      "by_filer_regime": {
+        "DOMESTIC_10K": 0.0,
+        "FOREIGN_20F_40F": 0.7621759328637794,
+        "MIXED": 0.612037708484409,
+        "UNRESOLVED": 0.0
+      },
+      "by_identity_grade": {
+        "A_CONFIRMED": 0.03087727558066541,
+        "B_CONSISTENT": 0.20072441895562934,
+        "C_PARTIAL": 0.0,
+        "D_NO_PERIODIC_FILINGS": 0.0,
+        "NONE": 0.0,
+        "X_CONTRADICTED": 0.0
+      },
+      "by_period": {
+        "fold_0": 0.031195976740531196,
+        "fold_1": 0.04650219120272683,
+        "fold_2": 0.04161279896574014,
+        "fold_3": 0.05623648161499639,
+        "fold_4": 0.07166934189406099,
+        "fold_5": 0.0559001334694198,
+        "fold_6": 0.04923150816522574,
+        "fold_7": 0.042448018830914085,
+        "train_only": 0.02521116274293343
+      },
+      "by_share_basis": {
+        "BALANCE_SHEET": 0.0,
+        "DEI_COVER": 0.0,
+        "NONE": 0.25798312016009745,
+        "WEIGHTED_AVG_PROXY": 0.0
+      },
+      "by_year": {
+        "2014": 0.02844774273345702,
+        "2015": 0.021841747339787183,
+        "2016": 0.0276,
+        "2017": 0.028876333961079723,
+        "2018": 0.039389781257567195,
+        "2019": 0.04503257328990228,
+        "2020": 0.043735508115455346,
+        "2021": 0.07686129628142317,
+        "2022": 0.05953035419775387,
+        "2023": 0.05059237912263849,
+        "2024": 0.0424,
+        "2025": 0.04516129032258064
+      },
+      "exiting_within_30_days": 0.0,
+      "first_valid_date": "2014-04-03",
+      "not_exiting": 0.04260577800449768,
+      "overall": 0.042572437756655084
+    },
+    "fc_net_margin_xs": {
+      "by_filer_regime": {
+        "DOMESTIC_10K": 0.0,
+        "FOREIGN_20F_40F": 0.7145212048553874,
+        "MIXED": 0.5895576504713561,
+        "UNRESOLVED": 0.0
+      },
+      "by_identity_grade": {
+        "A_CONFIRMED": 0.029480539861895794,
+        "B_CONSISTENT": 0.18351946875943254,
+        "C_PARTIAL": 0.0,
+        "D_NO_PERIODIC_FILINGS": 0.0,
+        "NONE": 0.0,
+        "X_CONTRADICTED": 0.0
+      },
+      "by_period": {
+        "fold_0": 0.029545811724029546,
+        "fold_1": 0.044067521506248986,
+        "fold_2": 0.03749191984486102,
+        "fold_3": 0.052231034206520865,
+        "fold_4": 0.06765650080256821,
+        "fold_5": 0.055350553505535055,
+        "fold_6": 0.04642971501761127,
+        "fold_7": 0.03876029815613966,
+        "train_only": 0.02372211239762779
+      },
+      "by_share_basis": {
+        "BALANCE_SHEET": 0.0,
+        "DEI_COVER": 0.0,
+        "NONE": 0.2427999651962064,
+        "WEIGHTED_AVG_PROXY": 0.0
+      },
+      "by_year": {
+        "2014": 0.026283240568954855,
+        "2015": 0.021841747339787183,
+        "2016": 0.0252,
+        "2017": 0.026679221594475833,
+        "2018": 0.03866333037371862,
+        "2019": 0.040960912052117264,
+        "2020": 0.039337970736387624,
+        "2021": 0.0728455545739298,
+        "2022": 0.05819524071310767,
+        "2023": 0.04811079090617996,
+        "2024": 0.03888,
+        "2025": 0.042046718576195775
+      },
+      "exiting_within_30_days": 0.0,
+      "first_valid_date": "2014-04-03",
+      "not_exiting": 0.04009828786561577,
+      "overall": 0.040066909800993596
+    },
+    "fc_operating_margin_xs": {
+      "by_filer_regime": {
+        "DOMESTIC_10K": 0.0,
+        "FOREIGN_20F_40F": 0.677806084219991,
+        "MIXED": 0.5895576504713561,
+        "UNRESOLVED": 0.0
+      },
+      "by_identity_grade": {
+        "A_CONFIRMED": 0.02811519146264909,
+        "B_CONSISTENT": 0.17637589294697656,
+        "C_PARTIAL": 0.0,
+        "D_NO_PERIODIC_FILINGS": 0.0,
+        "NONE": 0.0,
+        "X_CONTRADICTED": 0.0
+      },
+      "by_period": {
+        "fold_0": 0.029545811724029546,
+        "fold_1": 0.043337120597305635,
+        "fold_2": 0.03749191984486102,
+        "fold_3": 0.049026676279740444,
+        "fold_4": 0.06484751203852328,
+        "fold_5": 0.04844154824526969,
+        "fold_6": 0.04418828049951969,
+        "fold_7": 0.034994115339348764,
+        "train_only": 0.023799132243074634
+      },
+      "by_share_basis": {
+        "BALANCE_SHEET": 0.0,
+        "DEI_COVER": 0.0,
+        "NONE": 0.23214130340207081,
+        "WEIGHTED_AVG_PROXY": 0.0
+      },
+      "by_year": {
+        "2014": 0.027107812822098537,
+        "2015": 0.02144171533722698,
+        "2016": 0.0252,
+        "2017": 0.026679221594475833,
+        "2018": 0.03793687948987005,
+        "2019": 0.040960912052117264,
+        "2020": 0.03797873191013033,
+        "2021": 0.0686691831981367,
+        "2022": 0.05309039503651928,
+        "2023": 0.04418828049951969,
+        "2024": 0.03584,
+        "2025": 0.03804226918798665
+      },
+      "exiting_within_30_days": 0.0,
+      "first_valid_date": "2014-04-03",
+      "not_exiting": 0.03833801541854968,
+      "overall": 0.038308014817792835
+    },
+    "fc_operating_profitability_xs": {
+      "by_filer_regime": {
+        "DOMESTIC_10K": 0.0,
+        "FOREIGN_20F_40F": 0.720515510265248,
+        "MIXED": 0.612037708484409,
+        "UNRESOLVED": 0.0
+      },
+      "by_identity_grade": {
+        "A_CONFIRMED": 0.029449152542372882,
+        "B_CONSISTENT": 0.19106549954723814,
+        "C_PARTIAL": 0.0,
+        "D_NO_PERIODIC_FILINGS": 0.0,
+        "NONE": 0.0,
+        "X_CONTRADICTED": 0.0
+      },
+      "by_period": {
+        "fold_0": 0.031195976740531196,
+        "fold_1": 0.044473299788995294,
+        "fold_2": 0.04120879120879121,
+        "fold_3": 0.05303212368821597,
+        "fold_4": 0.06886035313001605,
+        "fold_5": 0.04899112820915443,
+        "fold_6": 0.046669868715978224,
+        "fold_7": 0.038681836014123186,
+        "train_only": 0.025082796333855358
+      },
+      "by_share_basis": {
+        "BALANCE_SHEET": 0.0,
+        "DEI_COVER": 0.0,
+        "NONE": 0.24588880187940484,
+        "WEIGHTED_AVG_PROXY": 0.0
+      },
+      "by_year": {
+        "2014": 0.02844774273345702,
+        "2015": 0.02144171533722698,
+        "2016": 0.0276,
+        "2017": 0.028876333961079723,
+        "2018": 0.03834046331423036,
+        "2019": 0.044055374592833874,
+        "2020": 0.04197649316382825,
+        "2021": 0.07268492490563007,
+        "2022": 0.054425508521165476,
+        "2023": 0.04634966378482228,
+        "2024": 0.03936,
+        "2025": 0.041156840934371525
+      },
+      "exiting_within_30_days": 0.0,
+      "first_valid_date": "2014-04-03",
+      "not_exiting": 0.04060840763599003,
+      "overall": 0.04057663038796198
+    },
+    "fc_revenue_growth_xs": {
+      "by_filer_regime": {
+        "DOMESTIC_10K": 0.0,
+        "FOREIGN_20F_40F": 0.6262550576951895,
+        "MIXED": 0.4807831762146483,
+        "UNRESOLVED": 0.0
+      },
+      "by_identity_grade": {
+        "A_CONFIRMED": 0.025800376647834276,
+        "B_CONSISTENT": 0.15635375792333234,
+        "C_PARTIAL": 0.0,
+        "D_NO_PERIODIC_FILINGS": 0.0,
+        "NONE": 0.0,
+        "X_CONTRADICTED": 0.0
+      },
+      "by_period": {
+        "fold_0": 0.0242024202420242,
+        "fold_1": 0.02418438565167992,
+        "fold_2": 0.029815772462831288,
+        "fold_3": 0.047664824160858765,
+        "fold_4": 0.05834670947030498,
+        "fold_5": 0.05503650781188663,
+        "fold_6": 0.04642971501761127,
+        "fold_7": 0.03405256963515104,
+        "train_only": 0.021308823906960025
+      },
+      "by_share_basis": {
+        "BALANCE_SHEET": 0.0,
+        "DEI_COVER": 0.0,
+        "NONE": 0.21064996084573218,
+        "WEIGHTED_AVG_PROXY": 0.0
+      },
+      "by_year": {
+        "2014": 0.026386312100597813,
+        "2015": 0.017041363309064726,
+        "2016": 0.02248,
+        "2017": 0.023932831136220967,
+        "2018": 0.023246428283154413,
+        "2019": 0.02744299674267101,
+        "2020": 0.03685935875909491,
+        "2021": 0.06168179262709823,
+        "2022": 0.056310374617136574,
+        "2023": 0.04811079090617996,
+        "2024": 0.03648,
+        "2025": 0.035372636262513905
+      },
+      "exiting_within_30_days": 0.0,
+      "first_valid_date": "2014-04-03",
+      "not_exiting": 0.034788731382424574,
+      "overall": 0.03476150819860437
+    },
+    "fc_roa_xs": {
+      "by_filer_regime": {
+        "DOMESTIC_10K": 0.0,
+        "FOREIGN_20F_40F": 0.7609770717818073,
+        "MIXED": 0.612037708484409,
+        "UNRESOLVED": 0.0
+      },
+      "by_identity_grade": {
+        "A_CONFIRMED": 0.030814500941619586,
+        "B_CONSISTENT": 0.20072441895562934,
+        "C_PARTIAL": 0.0,
+        "D_NO_PERIODIC_FILINGS": 0.0,
+        "NONE": 0.0,
+        "X_CONTRADICTED": 0.0
+      },
+      "by_period": {
+        "fold_0": 0.031195976740531196,
+        "fold_1": 0.04650219120272683,
+        "fold_2": 0.04161279896574014,
+        "fold_3": 0.05623648161499639,
+        "fold_4": 0.07166934189406099,
+        "fold_5": 0.0559001334694198,
+        "fold_6": 0.04923150816522574,
+        "fold_7": 0.042448018830914085,
+        "train_only": 0.025005776488408512
+      },
+      "by_share_basis": {
+        "BALANCE_SHEET": 0.0,
+        "DEI_COVER": 0.0,
+        "NONE": 0.2576350822239624,
+        "WEIGHTED_AVG_PROXY": 0.0
+      },
+      "by_year": {
+        "2014": 0.027623170480313337,
+        "2015": 0.021841747339787183,
+        "2016": 0.0276,
+        "2017": 0.028876333961079723,
+        "2018": 0.039389781257567195,
+        "2019": 0.04503257328990228,
+        "2020": 0.043735508115455346,
+        "2021": 0.07686129628142317,
+        "2022": 0.05953035419775387,
+        "2023": 0.05059237912263849,
+        "2024": 0.0424,
+        "2025": 0.04516129032258064
+      },
+      "exiting_within_30_days": 0.0,
+      "first_valid_date": "2014-04-03",
+      "not_exiting": 0.04254829972051184,
+      "overall": 0.04251500445108118
+    },
+    "fc_roe_xs": {
+      "by_filer_regime": {
+        "DOMESTIC_10K": 0.0,
+        "FOREIGN_20F_40F": 0.7462910235276488,
+        "MIXED": 0.612037708484409,
+        "UNRESOLVED": 0.0
+      },
+      "by_identity_grade": {
+        "A_CONFIRMED": 0.03031230382925298,
+        "B_CONSISTENT": 0.19730355166515745,
+        "C_PARTIAL": 0.0,
+        "D_NO_PERIODIC_FILINGS": 0.0,
+        "NONE": 0.0,
+        "X_CONTRADICTED": 0.0
+      },
+      "by_period": {
+        "fold_0": 0.031195976740531196,
+        "fold_1": 0.04650219120272683,
+        "fold_2": 0.04161279896574014,
+        "fold_3": 0.052311143154690376,
+        "fold_4": 0.06837881219903692,
+        "fold_5": 0.0559001334694198,
+        "fold_6": 0.04923150816522574,
+        "fold_7": 0.04182032169478227,
+        "train_only": 0.025005776488408512
+      },
+      "by_share_basis": {
+        "BALANCE_SHEET": 0.0,
+        "DEI_COVER": 0.0,
+        "NONE": 0.2533716175063082,
+        "WEIGHTED_AVG_PROXY": 0.0
+      },
+      "by_year": {
+        "2014": 0.027623170480313337,
+        "2015": 0.021841747339787183,
+        "2016": 0.0276,
+        "2017": 0.028876333961079723,
+        "2018": 0.039389781257567195,
+        "2019": 0.04503257328990228,
+        "2020": 0.04205644838890221,
+        "2021": 0.07131957272508233,
+        "2022": 0.05953035419775387,
+        "2023": 0.05059237912263849,
+        "2024": 0.0424,
+        "2025": 0.04338153503893215
+      },
+      "exiting_within_30_days": 0.0,
+      "first_valid_date": "2014-04-03",
+      "not_exiting": 0.041844190741685404,
+      "overall": 0.041811446457800876
+    }
+  },
+  "dataset_id": "ds-richpit2-361bd5029c791444",
+  "date_max": "2025-05-09",
+  "date_min": "2014-04-03",
+  "feature_count": 94,
+  "feature_hash": "4b9b2516c94b65eaacc256e0ba4097d1ff9c5900daa6caace484333ee2a3d1dd",
+  "features": [
+    "acceleration_xs",
+    "dist_52w_high_xs",
+    "ma_gap_xs",
+    "mom_21_xs",
+    "mom_252_21_xs",
+    "mom_63_xs",
+    "reversal_5_xs",
+    "trend_strength_63_xs",
+    "downside_vol_63_xs",
+    "vol_21_xs",
+    "vol_63_xs",
+    "vol_ratio_xs",
+    "amihud_21_xs",
+    "log_dollar_volume_21_xs",
+    "volume_shock_xs",
+    "market_drawdown",
+    "market_mom_21",
+    "market_mom_252",
+    "market_vol_21",
+    "market_vol_63",
+    "market_vol_percentile",
+    "rates_change_63",
+    "rates_curvature",
+    "rates_level",
+    "rates_short",
+    "rates_slope",
+    "gross_profitability_xs",
+    "roa_xs",
+    "roe_xs",
+    "operating_profitability_xs",
+    "cash_profitability_xs",
+    "gross_margin_xs",
+    "operating_margin_xs",
+    "net_margin_xs",
+    "cash_flow_margin_xs",
+    "ebitda_margin_xs",
+    "asset_turnover_xs",
+    "asset_growth_xs",
+    "capex_to_assets_xs",
+    "capex_to_revenue_xs",
+    "capex_growth_xs",
+    "inventory_growth_xs",
+    "inventory_to_assets_change_xs",
+    "working_capital_growth_xs",
+    "receivables_growth_xs",
+    "accruals_xs",
+    "cash_flow_quality_xs",
+    "gross_margin_stability_xs",
+    "roa_stability_xs",
+    "cash_conversion_xs",
+    "debt_to_assets_xs",
+    "debt_to_equity_xs",
+    "net_debt_to_assets_xs",
+    "liabilities_to_assets_xs",
+    "current_ratio_xs",
+    "cash_to_assets_xs",
+    "revenue_growth_xs",
+    "gross_profit_growth_xs",
+    "earnings_growth_xs",
+    "operating_income_growth_xs",
+    "ocf_growth_xs",
+    "fcf_growth_xs",
+    "debt_growth_xs",
+    "equity_issuance_proxy_xs",
+    "seasonal_ni_surprise_xs",
+    "filing_lag_days_xs",
+    "book_to_market_xs",
+    "earnings_yield_xs",
+    "sales_yield_xs",
+    "fcf_yield_xs",
+    "ocf_yield_xs",
+    "operating_income_to_ev_xs",
+    "gross_profit_to_ev_xs",
+    "sales_to_ev_xs",
+    "shares_growth_xs",
+    "days_since_report_xs",
+    "fc_roa_xs",
+    "fc_roe_xs",
+    "fc_operating_profitability_xs",
+    "fc_cash_profitability_xs",
+    "fc_gross_margin_xs",
+    "fc_operating_margin_xs",
+    "fc_net_margin_xs",
+    "fc_cash_flow_margin_xs",
+    "fc_asset_turnover_xs",
+    "fc_asset_growth_xs",
+    "fc_capex_to_assets_xs",
+    "fc_accruals_xs",
+    "fc_cash_flow_quality_xs",
+    "fc_liabilities_to_assets_xs",
+    "fc_current_ratio_xs",
+    "fc_cash_to_assets_xs",
+    "fc_revenue_growth_xs",
+    "fc_earnings_growth_xs"
+  ],
+  "ff_map_version": {
+    "ff12": "d801141acf039f2e06e6d4d9ba2b3992e9747a1d82fabd53ef21da4a3af79fff",
+    "ff17": "c3b19f0483ca8ed2d701ffaaef4ad6236ef086084374025e4f6e5c0e85e10289",
+    "ff48": "f37edffc024fe7b91b794dd933244430da2de212df2549dc448c0dfcca45d740"
+  },
+  "frozen_dataset": {
+    "content_hash": "ff3d3f556488b7daa20bbbeab49d1f0abad9a869976b593f211cf92b6eb7c5da",
+    "dataset_id": "ds-richpit-ff3d3f556488b7da",
+    "panel_checks": {
+      "baseline_values_hash": true,
+      "content_hash": true,
+      "feature_hash": true,
+      "features_present": true,
+      "last_date_before_holdout": true,
+      "no_label_in_features": true,
+      "rows": true
+    }
+  },
+  "holdout": {
+    "end": "2026-08-28",
+    "start": "2025-08-26",
+    "touched": false
+  },
+  "ifrs_map_version": "ifrs-core-facts-v1",
+  "incremental_feature_count": 18,
+  "incremental_feature_hash": "6176eb288d4fcbf93e617a874b0851ee59761cb0ab4a2369dcca6c1402600d43",
+  "incremental_features": [
+    "fc_roa_xs",
+    "fc_roe_xs",
+    "fc_operating_profitability_xs",
+    "fc_cash_profitability_xs",
+    "fc_gross_margin_xs",
+    "fc_operating_margin_xs",
+    "fc_net_margin_xs",
+    "fc_cash_flow_margin_xs",
+    "fc_asset_turnover_xs",
+    "fc_asset_growth_xs",
+    "fc_capex_to_assets_xs",
+    "fc_accruals_xs",
+    "fc_cash_flow_quality_xs",
+    "fc_liabilities_to_assets_xs",
+    "fc_current_ratio_xs",
+    "fc_cash_to_assets_xs",
+    "fc_revenue_growth_xs",
+    "fc_earnings_growth_xs"
+  ],
+  "old_block_invariance": {
+    "cells_compared": 10586192,
+    "changed_cells": 0,
+    "columns": 76,
+    "common_rows": 139292,
+    "old_block_hash_frozen": "c4a8fea46a13c7ddcb0df8a2b14f567f2a857bbf0365435f45f43fb8550d6bfd",
+    "old_block_hash_v2": "c4a8fea46a13c7ddcb0df8a2b14f567f2a857bbf0365435f45f43fb8550d6bfd",
+    "rows_only_in_frozen": 0,
+    "rows_only_in_v2": 0
+  },
+  "old_feature_count": 76,
+  "old_feature_hash": "7212297bc55a45f66ffceb3548000e899773e1959e365b266fb477f24d8b8614",
+  "primary_target": "fwd_rank_21",
+  "rows": 139292,
+  "sec_fact_version": "sec-core-facts-v3",
+  "securities": 839,
+  "security_master_pit": true,
+  "security_master_version": "security-master-v4",
+  "source_manifests": {
+    "foreign_facts_v4.json": {
+      "sha256": "c75a92492c1dd60fc82d216c52d51140b6d6f8c3b6658f604bbd4398e2c2e118"
+    },
+    "sec_archive_verification.json": {
+      "sha256": "069ac50cb8ac036999fdf3f629f888f2db2e3bb6b148e30973ad366f04c37410"
+    },
+    "sec_fact_coverage_v3.json": {
+      "sha256": "b80a00c18608b0d27a3bd3518cef1e2ea8c7b875099b84e54d7ebd93f774df75"
+    },
+    "security_master_coverage_v4.json": {
+      "sha256": "3d6d7da8a1bde1dda1257e78d18cd02ec4fd901f36154bf6a744fddb228db60a"
+    }
+  },
+  "targets": [
+    "fwd_rank_21",
+    "fwd_ret_5",
+    "fwd_ret_21"
+  ],
+  "tickers": 874,
+  "version": "rich-pit-v2"
+}
