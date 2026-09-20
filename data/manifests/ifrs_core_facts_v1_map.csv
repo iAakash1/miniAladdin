@@ -1,0 +1,40 @@
+canonical_fact,taxonomy,tag,unit_requirement,context,priority,is_fallback,semantic_caveat,map_version
+revenue,ifrs,Revenue,reporting currency of the filing,duration,0,False,IFRS `Revenue` is the entity's own total-revenue line; banks/insurers use other lines and are unmapped,ifrs-core-facts-v1
+revenue,ifrs,RevenueFromContractsWithCustomers,reporting currency of the filing,duration,1,True,IFRS `Revenue` is the entity's own total-revenue line; banks/insurers use other lines and are unmapped,ifrs-core-facts-v1
+revenue,us-gaap,RevenueFromContractWithCustomerExcludingAssessedTax,reporting currency of the filing,duration,0,False,,ifrs-core-facts-v1
+revenue,us-gaap,Revenues,reporting currency of the filing,duration,1,True,,ifrs-core-facts-v1
+revenue,us-gaap,SalesRevenueNet,reporting currency of the filing,duration,2,True,,ifrs-core-facts-v1
+revenue,us-gaap,RevenueFromContractWithCustomerIncludingAssessedTax,reporting currency of the filing,duration,3,True,,ifrs-core-facts-v1
+cost_of_revenue,ifrs,CostOfSales,reporting currency of the filing,duration,0,False,,ifrs-core-facts-v1
+cost_of_revenue,us-gaap,CostOfRevenue,reporting currency of the filing,duration,0,False,,ifrs-core-facts-v1
+cost_of_revenue,us-gaap,CostOfGoodsAndServicesSold,reporting currency of the filing,duration,1,True,,ifrs-core-facts-v1
+cost_of_revenue,us-gaap,CostOfGoodsSold,reporting currency of the filing,duration,2,True,,ifrs-core-facts-v1
+gross_profit,ifrs,GrossProfit,reporting currency of the filing,duration,0,False,many IFRS issuers present expenses by nature and report no gross profit; the ratio falls back to revenue minus cost of sales only when both exist,ifrs-core-facts-v1
+gross_profit,us-gaap,GrossProfit,reporting currency of the filing,duration,0,False,,ifrs-core-facts-v1
+operating_income,ifrs,ProfitLossFromOperatingActivities,reporting currency of the filing,duration,0,False,IFRS defines no standard operating-profit line; `ProfitLossFromOperatingActivities` follows the issuer's own definition and is not comparable with US-GAAP OperatingIncomeLoss,ifrs-core-facts-v1
+operating_income,us-gaap,OperatingIncomeLoss,reporting currency of the filing,duration,0,False,,ifrs-core-facts-v1
+net_income,ifrs,ProfitLossAttributableToOwnersOfParent,reporting currency of the filing,duration,0,False,parent-attributable profit first (like NetIncomeLoss); `ProfitLoss` includes non-controlling interests and is a fallback only,ifrs-core-facts-v1
+net_income,ifrs,ProfitLoss,reporting currency of the filing,duration,1,True,parent-attributable profit first (like NetIncomeLoss); `ProfitLoss` includes non-controlling interests and is a fallback only,ifrs-core-facts-v1
+net_income,us-gaap,NetIncomeLoss,reporting currency of the filing,duration,0,False,,ifrs-core-facts-v1
+net_income,us-gaap,ProfitLoss,reporting currency of the filing,duration,1,True,,ifrs-core-facts-v1
+operating_cash_flow,ifrs,CashFlowsFromUsedInOperatingActivities,reporting currency of the filing,duration,0,False,`CashFlowsFromUsedInOperations` (before interest and tax) is a different quantity and is deliberately NOT a fallback,ifrs-core-facts-v1
+operating_cash_flow,us-gaap,NetCashProvidedByUsedInOperatingActivities,reporting currency of the filing,duration,0,False,,ifrs-core-facts-v1
+operating_cash_flow,us-gaap,NetCashProvidedByUsedInOperatingActivitiesContinuingOperations,reporting currency of the filing,duration,1,True,,ifrs-core-facts-v1
+capital_expenditure,ifrs,PurchaseOfPropertyPlantAndEquipmentClassifiedAsInvestingActivities,reporting currency of the filing,duration,0,False,a payment; the sign is as reported and the share of negative values is measured in the coverage audit,ifrs-core-facts-v1
+capital_expenditure,us-gaap,PaymentsToAcquirePropertyPlantAndEquipment,reporting currency of the filing,duration,0,False,,ifrs-core-facts-v1
+capital_expenditure,us-gaap,PaymentsToAcquireProductiveAssets,reporting currency of the filing,duration,1,True,,ifrs-core-facts-v1
+assets,ifrs,Assets,reporting currency of the filing,instant,0,False,,ifrs-core-facts-v1
+assets,us-gaap,Assets,reporting currency of the filing,instant,0,False,,ifrs-core-facts-v1
+current_assets,ifrs,CurrentAssets,reporting currency of the filing,instant,0,False,,ifrs-core-facts-v1
+current_assets,us-gaap,AssetsCurrent,reporting currency of the filing,instant,0,False,,ifrs-core-facts-v1
+liabilities,ifrs,Liabilities,reporting currency of the filing,instant,0,False,,ifrs-core-facts-v1
+liabilities,us-gaap,Liabilities,reporting currency of the filing,instant,0,False,,ifrs-core-facts-v1
+current_liabilities,ifrs,CurrentLiabilities,reporting currency of the filing,instant,0,False,,ifrs-core-facts-v1
+current_liabilities,us-gaap,LiabilitiesCurrent,reporting currency of the filing,instant,0,False,,ifrs-core-facts-v1
+equity,ifrs,EquityAttributableToOwnersOfParent,reporting currency of the filing,instant,0,False,parent equity first (like StockholdersEquity); `Equity` includes non-controlling interests and is a fallback only,ifrs-core-facts-v1
+equity,ifrs,Equity,reporting currency of the filing,instant,1,True,parent equity first (like StockholdersEquity); `Equity` includes non-controlling interests and is a fallback only,ifrs-core-facts-v1
+equity,us-gaap,StockholdersEquity,reporting currency of the filing,instant,0,False,,ifrs-core-facts-v1
+equity,us-gaap,StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest,reporting currency of the filing,instant,1,True,,ifrs-core-facts-v1
+cash,ifrs,CashAndCashEquivalents,reporting currency of the filing,instant,0,False,,ifrs-core-facts-v1
+cash,us-gaap,CashAndCashEquivalentsAtCarryingValue,reporting currency of the filing,instant,0,False,,ifrs-core-facts-v1
+cash,us-gaap,CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents,reporting currency of the filing,instant,1,True,,ifrs-core-facts-v1
