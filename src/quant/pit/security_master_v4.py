@@ -189,6 +189,13 @@ def build(root: Path, *, network: bool = True) -> dict[str, Any]:
             "registry": registry, "submissions_fetched": len(fetched)}
 
 
+def multi_listed_ciks(identities: pd.DataFrame) -> set[int]:
+    """CIKs with two or more trusted securities (Amendment A1, D5).  Identity table only; no name parsing."""
+    trusted = identities[identities["status"].isin(C.TRUSTED_GRADES)]
+    per_cik = trusted.groupby("cik")["security_id"].nunique()
+    return {int(c) for c in per_cik[per_cik > 1].index}
+
+
 def tier_table(panel: pd.DataFrame, key: str) -> dict[str, Any]:
     """Share tiers never merged: cover-page (exact), balance-sheet (fallback), weighted-average proxy, and missing, among domestic identified name-dates."""
     out = {}
@@ -230,7 +237,8 @@ def measure(root: Path, built: Mapping[str, Any], folds: list[dict[str, Any]]) -
     panel = C.attach_shares(panel, built["shares"], C.split_factor_table(splits))
     panel = panel.merge(built["ohlcv"][["date", "symbol", "close"]], on=["date", "symbol"], how="left")
     regime = panel["cik"].map(built["regimes"])
-    panel = C4.apply_foreign_policy(panel, built["regimes"])
+    multi_listed = multi_listed_ciks(built["identities"])
+    panel = C4.apply_foreign_policy(panel, built["regimes"], multi_listed)
     tables = C.coverage_tables(panel, folds)
     domestic = panel[~panel["foreign"]].copy()
     tables_domestic = C.coverage_tables(domestic.assign(security_id=domestic["security_id"]), folds)
@@ -254,6 +262,7 @@ def measure(root: Path, built: Mapping[str, Any], folds: list[dict[str, Any]]) -
         "exit_events": int(len(exits)), "exit_classification": {k: int(v) for k, v in exits["classification"].value_counts().items()},
         "exit_event_types": {k: int(v) for k, v in exits["event_type"].value_counts().items()},
         "filer_regime_of_identities": {k: int(v) for k, v in built["identities"]["filer_regime"].value_counts().items()},
+        "multi_listed_ciks": len(multi_listed), "multi_listed_securities": int(built["identities"][built["identities"]["cik"].isin(multi_listed) & built["identities"]["status"].isin(C.TRUSTED_GRADES)]["security_id"].nunique()),
         "foreign_identified_name_dates": int(len(foreign_identified)), "foreign_identified_securities": int(foreign_identified["security_id"].nunique()),
         "coverage": gated, "coverage_all_rows": tables, "share_tiers_by_year": tier_table(identified, "year"), "share_tiers_by_period": tier_table(identified, "period"),
         "share_tier_security_distribution": {"securities": int(per_security.size), "with_at_least_90pct_exact": int((per_security >= 0.9).sum()),

@@ -349,3 +349,43 @@ def test_the_v2_manifest_if_built_records_the_invariants():
     assert m["feature_count"] == 76 + m["incremental_feature_count"] and m["date_max"] <= "2025-05-09"
     assert m["dataset_id"] == f"ds-richpit2-{m['content_hash'][:16]}" and m["old_feature_hash"] == "7212297bc55a45f66ffceb3548000e899773e1959e365b266fb477f24d8b8614"
     assert m["alfred"]["status"] in ("BLOCKED_EXTERNAL_FRED_KEY", "BUILT") and m["ifrs_map_version"] == "ifrs-core-facts-v1"
+
+
+# ── D5: multi-listed issuers have no share count (Amendment A1) ──────────────
+
+def test_multi_listed_ciks_come_from_the_identity_table_only():
+    ids = pd.DataFrame({"security_id": ["a", "b", "c", "d", "e"], "cik": [1, 1, 2, 3, 3], "status": ["A_CONFIRMED", "B_CONSISTENT", "A_CONFIRMED", "A_CONFIRMED", "X_CONTRADICTED"]})
+    assert V4.multi_listed_ciks(ids) == {1}                      # cik 3 has one *trusted* security; cik 2 has one
+
+
+def test_a_class_a_equivalent_share_count_never_meets_a_class_b_price():
+    panel = pd.DataFrame({"cik": [1.0, 1.0, 2.0], "shares_outstanding": [1_642_558.0, 1_642_558.0, 500.0], "shares_basis": ["WEIGHTED_AVG_PROXY"] * 2 + ["DEI_COVER"],
+                          "shares_age_days": [10, 10, 10], "multi_class_summed": [False] * 3, "close": [300.0, 450_000.0, 10.0]})
+    out = C4.apply_foreign_policy(panel, {1: "DOMESTIC_10K", 2: "DOMESTIC_10K"}, multi_listed={1})
+    assert out["market_cap"].isna().tolist() == [True, True, False] and out.loc[2, "market_cap"] == 5000.0
+    assert out["multi_listed"].tolist() == [True, True, False] and pd.isna(out.loc[0, "shares_basis"])
+
+
+def test_excluded_names_stay_in_the_denominator_of_the_size_gate():
+    panel = pd.DataFrame({"security_id": ["s"] * 4, "date": pd.to_datetime(["2020-01-03"] * 4), "cik": [1.0, 1.0, 2.0, 2.0],
+                          "shares_outstanding": [10.0] * 4, "close": [1.0] * 4, "shares_basis": ["DEI_COVER"] * 4, "shares_age_days": [1] * 4, "multi_class_summed": [False] * 4})
+    out = C4.apply_foreign_policy(panel, {1: "DOMESTIC_10K", 2: "DOMESTIC_10K"}, multi_listed={1})
+    assert out["market_cap"].notna().mean() == 0.5              # a half-missing population is measured as 0.5, not 1.0
+
+
+def test_the_control_gate_fails_mechanically_when_market_cap_falls_under_the_frozen_floor():
+    fold = {f"fold_{i}": 0.9119 for i in range(8)}
+    assert V2.control_gate({"security_master_pit": True}, fold)["passed"]
+    below = {**fold, "fold_0": 0.8684}
+    gate = V2.control_gate({"security_master_pit": True}, below)
+    assert not gate["passed"] and gate["admitted_columns"] == [] and not gate["market_cap_gate_passed"] and gate["security_master_pit"]
+
+
+def test_the_committed_coverage_manifest_applies_d5_and_the_unchanged_threshold():
+    path = REPO / "data/manifests/security_master_coverage_v4.json"
+    if not path.exists():
+        pytest.skip("coverage manifest not present")
+    m = json.loads(path.read_text())
+    floor = C.THRESHOLDS["size_feature_share_min_each_validation_fold"]
+    by_fold = {k: v["market_cap_of_identified"] for k, v in m["coverage"]["by_period"].items() if k.startswith("fold_")}
+    assert m["multi_listed_ciks"] > 0 and m["size_features_allowed"] == all(v >= floor for v in by_fold.values()) and floor == 0.90

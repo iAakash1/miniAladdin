@@ -93,6 +93,9 @@ def build(root: Path) -> dict[str, Any]:
     folds = [f.as_dict() for f in exp009b.recorded_plan(root).folds]
     splits = pd.read_parquet(root / "data/research/raw/dolthub_stocks_split/part-all.parquet")
 
+    multi_listed = V4.multi_listed_ciks(identities)
+    foreign_regime_ciks = {int(c) for c, r in regimes.items() if r == "FOREIGN_20F_40F"}
+    shares = shares[~shares["cik"].isin(multi_listed | foreign_regime_ciks)]                # D2 + D5: no share count, so no market cap
     domestic_snapshots = F.build_snapshots(load_facts(root, domestic_ciks))
     frame_v1 = R.build_panel(base, identities=identities, classification=classification, shares=shares, snapshots=domestic_snapshots,
                              split_table=C.split_factor_table(splits), controls_allowed=True)     # v1 code, v4 inputs; only the CONTROL columns are used

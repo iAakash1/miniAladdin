@@ -11,7 +11,7 @@ CIK's latest filing accepted <= the row's date is at most 400 days old.
 
 from __future__ import annotations
 
-from typing import Mapping, Optional
+from typing import Iterable, Mapping, Optional
 
 import numpy as np
 import pandas as pd
@@ -47,13 +47,17 @@ def attach_classification_pit(rows: pd.DataFrame, classification: pd.DataFrame, 
     return out
 
 
-def apply_foreign_policy(panel: pd.DataFrame, regimes: Mapping[int, str]) -> pd.DataFrame:
-    """Definition D2: shares, share basis and market capitalisation are undefined for foreign filers (ADS ratio and FX are not point-in-time)."""
+def apply_foreign_policy(panel: pd.DataFrame, regimes: Mapping[int, str], multi_listed: Iterable[int] = ()) -> pd.DataFrame:
+    """Share policy.  D2: shares, share basis and market capitalisation are undefined for foreign filers (ADS ratio and FX are not point-in-time).
+    D5 (Amendment A1): also undefined for any CIK with two or more trusted securities in the universe - a per-issuer share count times a per-class price
+    is wrong when the classes carry different economics (Berkshire: a Class-A-equivalent count against the Class B price)."""
     out = panel.copy()
     out["foreign"] = out["cik"].map(regimes).eq("FOREIGN_20F_40F")
+    out["multi_listed"] = out["cik"].isin(set(multi_listed))
+    undefined = out["foreign"] | out["multi_listed"]
     for column in ("shares_outstanding", "shares_basis", "shares_age_days", "multi_class_summed"):
         if column in out:
-            out[column] = out[column].where(~out["foreign"])
+            out[column] = out[column].where(~undefined)
     if "close" in out:
         out["market_cap"] = out["shares_outstanding"] * out["close"]
     return out
