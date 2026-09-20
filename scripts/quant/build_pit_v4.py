@@ -61,14 +61,24 @@ def alfred() -> dict:
     return A.build(ROOT / "data/raw/alfred", MANIFESTS / "alfred_manifest.json")
 
 
+def validate() -> dict:
+    from src.quant.pit.validate_v4 import validate_v4
+
+    result = validate_v4(ROOT)
+    atomic_json(MANIFESTS / "pit_validation_v4.json", result)
+    return {"status": result["status"], **{k: v["status"] for k, v in result["checks"].items()}}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["foreign-facts", "security-master", "measure", "alfred", "rich-panel-v2"])
+    parser.add_argument("command", choices=["foreign-facts", "security-master", "measure", "alfred", "rich-panel-v2", "validate"])
     args = parser.parse_args()
     if args.command == "foreign-facts":
         result = foreign_facts()
     elif args.command == "rich-panel-v2":
         result = rich_panel_v2()
+    elif args.command == "validate":
+        result = validate()
     elif args.command == "alfred":
         result = alfred()
     elif args.command == "measure":

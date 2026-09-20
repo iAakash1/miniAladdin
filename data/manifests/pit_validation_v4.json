@@ -1,0 +1,154 @@
+{
+  "checks": {
+    "alfred": {
+      "reason": "BLOCKED_EXTERNAL_FRED_KEY: no FRED_API_KEY; no vintage table; revised data not substituted; ALFRED would add no predictor columns",
+      "series": [
+        "DGS3MO",
+        "DGS2",
+        "DGS10"
+      ],
+      "status": "BLOCKED"
+    },
+    "foreign_store": {
+      "ciks": 1831,
+      "filings": 9979,
+      "problems": {
+        "accepted_after_cutoff": 0,
+        "available_before_acceptance": 0,
+        "duplicate_keys": 1317,
+        "filings_with_two_currencies": 309,
+        "non_annual_forms": 0,
+        "null_values": 0,
+        "row_count_vs_manifest": 0
+      },
+      "rows": 343084,
+      "status": "FAIL"
+    },
+    "fundamental_truncation_invariance": {
+      "domestic_sample": 150,
+      "foreign_ciks": 98,
+      "points": {
+        "2016-12-30": {
+          "domestic_sample_150": {
+            "cells_compared": 113692,
+            "changed_cells": 0,
+            "same_snapshot_set": true,
+            "snapshots_full": 2644,
+            "snapshots_truncated": 2644
+          },
+          "foreign_all": {
+            "cells_compared": 6923,
+            "changed_cells": 0,
+            "same_snapshot_set": true,
+            "snapshots_full": 161,
+            "snapshots_truncated": 161
+          }
+        },
+        "2021-06-30": {
+          "domestic_sample_150": {
+            "cells_compared": 213796,
+            "changed_cells": 0,
+            "same_snapshot_set": true,
+            "snapshots_full": 4972,
+            "snapshots_truncated": 4972
+          },
+          "foreign_all": {
+            "cells_compared": 21672,
+            "changed_cells": 0,
+            "same_snapshot_set": true,
+            "snapshots_full": 504,
+            "snapshots_truncated": 504
+          }
+        }
+      },
+      "status": "PASS"
+    },
+    "holdout_exclusion": {
+      "cutoff": "2025-05-09 23:59:59",
+      "holdout_start": "2025-08-26 00:00:00",
+      "latest": {
+        "exit_effective_date": "2025-05-08 00:00:00",
+        "foreign_facts_accepted_at": "2025-05-09 21:52:00",
+        "identity_effective_from": "2025-04-28 00:00:00",
+        "identity_effective_to": "2025-05-08 00:00:00",
+        "shares_accepted_at": "2025-05-09 17:21:00"
+      },
+      "status": "PASS"
+    },
+    "identity_cik_stability": {
+      "points": {
+        "2016-12-30": {
+          "cik_unchanged": 0.9759036144578314,
+          "grade_unchanged": 0.7991967871485943,
+          "tickers": 747
+        },
+        "2021-06-30": {
+          "cik_unchanged": 0.9910813823857302,
+          "grade_unchanged": 0.9409141583054627,
+          "tickers": 897
+        }
+      },
+      "reason": "trust grades are a retrospective judgement over the whole price window (documented); the CIK assignment stability is reported",
+      "status": "PARTIAL"
+    },
+    "industry_and_share_truncation_invariance": {
+      "points": {
+        "2016-12-30": {
+          "industry_rows_changed": 0,
+          "rows": 34701,
+          "share_rows_changed": 0
+        },
+        "2021-06-30": {
+          "industry_rows_changed": 0,
+          "rows": 90850,
+          "share_rows_changed": 0
+        }
+      },
+      "status": "PASS"
+    },
+    "rich_pit_v2_dataset": {
+      "dataset_id": "ds-richpit2-361bd5029c791444",
+      "features": 94,
+      "problems": {
+        "built_from_dirty_tree": false,
+        "content_hash_mismatch": false,
+        "dataset_id_mismatch": false,
+        "duplicate_keys": 0,
+        "feature_count_mismatch": false,
+        "foreign_values_on_domestic_regime": 0,
+        "holdout_touched": false,
+        "incremental_out_of_range": 0,
+        "incremental_without_identity": 0,
+        "old_block_changed_cells": 0,
+        "old_feature_hash_mismatch": false,
+        "rows_after_cutoff": 0,
+        "rows_in_holdout": 0
+      },
+      "rows": 139292,
+      "status": "PASS"
+    },
+    "security_master_gate_consistency": {
+      "recomputed": {
+        "neutralization_allowed": false,
+        "security_master_pit": true,
+        "size_features_allowed": false
+      },
+      "status": "PASS",
+      "stored": {
+        "neutralization_allowed": false,
+        "security_master_pit": true,
+        "size_features_allowed": false
+      },
+      "thresholds": {
+        "identity_contradicted_share_max": 0.02,
+        "identity_trusted_share_min_each_validation_fold": 0.95,
+        "identity_trusted_share_min_each_year_from_2015": 0.95,
+        "note": "shares / market-cap coverage gate size-dependent features and neutralisation separately (>= 0.90 in every fold)",
+        "sic_share_of_identified_min": 0.95,
+        "size_feature_share_min_each_validation_fold": 0.9
+      }
+    }
+  },
+  "status": "FAIL",
+  "version": "pit-validation-v4"
+}

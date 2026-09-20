@@ -105,7 +105,10 @@ def main() -> int:
         result = validate_all(ROOT, reverify_archives=args.reverify_archives)
         atomic_json(MANIFESTS / "pit_validation.json", result)
         print(json.dumps({"status": result["status"], **{k: v["status"] for k, v in result["checks"].items()}}, indent=2))
-        return 1 if result["status"] == "FAIL" else 0
+        from scripts.quant.build_pit_v4 import validate as validate_v4_checks          # data-completion cycle: same PASS/PARTIAL/BLOCKED/FAIL vocabulary
+        v4 = validate_v4_checks()
+        print(json.dumps({"v4": v4}, indent=2))
+        return 1 if result["status"] == "FAIL" or v4["status"] == "FAIL" else 0
     elif args.command == "build-fundamentals":
         result = build_all_fundamentals()
     elif args.command == "build-security-master":
