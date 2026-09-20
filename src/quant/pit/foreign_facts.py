@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import os
 import zipfile
+from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
@@ -115,7 +116,9 @@ def reporting_currencies(rows: pd.DataFrame) -> pd.Series:
 
 
 def curate_foreign_num(num: pd.DataFrame, registry: pd.DataFrame, *, archive_name: str, archive_sha256: str,
-                       calendar: Optional[TradingCalendar] = None) -> tuple[pd.DataFrame, dict[str, int]]:
+                       calendar: Optional[TradingCalendar] = None,
+                       filing_family: Optional[pd.Series] = None,
+                       reporting_currency: Optional[pd.Series] = None) -> tuple[pd.DataFrame, dict[str, int]]:
     counts = {"considered": len(num)}
     num = num[num["adsh"].isin(set(registry["adsh"]))].copy()
     counts["annual_filing_rows"] = len(num)
@@ -128,10 +131,10 @@ def curate_foreign_num(num: pd.DataFrame, registry: pd.DataFrame, *, archive_nam
     num = num[~dimensional]
     if num.empty:
         return pd.DataFrame(columns=FOREIGN_COLUMNS), counts
-    family = filing_families(num)
+    family = filing_families(num) if filing_family is None else filing_family
     num = num[num["family"] == num["adsh"].map(family)]
     counts["other_family_excluded"] = counts["mapped_tag_rows"] - counts["dimensional_excluded"] - len(num)
-    currency = reporting_currencies(num)
+    currency = reporting_currencies(num) if reporting_currency is None else reporting_currency
     num["currency"] = num["adsh"].map(currency)
     expanded = []
     for (fam, tag), group in num.groupby(["family", "tag"], sort=False):
@@ -171,6 +174,70 @@ def curate_foreign_num(num: pd.DataFrame, registry: pd.DataFrame, *, archive_nam
     return out, counts
 
 
+def filing_policy(zip_path: Path, wanted: set[str], *, chunk_rows: int = 600_000
+                  ) -> tuple[pd.Series, pd.Series, dict[str, int]]:
+    """Pass 1: select one taxonomy family and one reporting currency per filing.
+
+    Counts span the entire archive, never one parser chunk.  The frozen rules
+    are preserved: the most frequent taxonomy family (IFRS wins a family tie)
+    and then the most frequent three-letter currency among mapped monetary
+    facts in that family. Currency ties use ascending ISO code, a deterministic
+    rule fixed before the repaired store is built and unrelated to coverage.
+    """
+    family_counts: dict[tuple[str, str], int] = defaultdict(int)
+    currency_counts: dict[tuple[str, str, str], int] = defaultdict(int)
+    with zipfile.ZipFile(zip_path) as archive:
+        member = next(m for m in archive.namelist() if Path(m).name.lower() == "num.txt")
+        with archive.open(member) as handle:
+            for chunk in pd.read_csv(handle, sep="\t", low_memory=False, chunksize=chunk_rows, dtype={
+                    "adsh": "string", "tag": "string", "version": "string", "uom": "string",
+                    "segments": "string", "coreg": "string", "ddate": "string"}):
+                rows = chunk[chunk["adsh"].isin(wanted)].copy()
+                if rows.empty:
+                    continue
+                rows["family"] = rows["version"].astype("string").str.split("/").str[0]
+                keys = list(zip(rows["family"], rows["tag"]))
+                rows = rows[[key in FOREIGN_TAG_INDEX for key in keys]]
+                rows = rows[rows["segments"].isna() & rows["coreg"].isna()]
+                if rows.empty:
+                    continue
+                for (adsh, family), count in rows.groupby(["adsh", "family"], observed=True).size().items():
+                    family_counts[(str(adsh), str(family))] += int(count)
+                monetary = rows[rows["uom"].astype("string").str.match(_CURRENCY_CODE, na=False)]
+                for (adsh, family, unit), count in monetary.groupby(["adsh", "family", "uom"], observed=True).size().items():
+                    currency_counts[(str(adsh), str(family), str(unit))] += int(count)
+
+    accessions = sorted({adsh for adsh, _ in family_counts})
+    families: dict[str, str] = {}
+    family_ties = 0
+    for adsh in accessions:
+        by_family = {family: family_counts.get((adsh, family), 0) for family in ("ifrs", "us-gaap")}
+        maximum = max(by_family.values())
+        tied = [family for family, count in by_family.items() if count == maximum]
+        family_ties += int(len(tied) > 1)
+        families[adsh] = "ifrs" if "ifrs" in tied else tied[0]
+
+    currencies: dict[str, str] = {}
+    currency_ties = 0
+    for adsh, family in families.items():
+        by_unit = {unit: count for (accession, fam, unit), count in currency_counts.items()
+                   if accession == adsh and fam == family}
+        if not by_unit:
+            continue
+        maximum = max(by_unit.values())
+        tied = sorted(unit for unit, count in by_unit.items() if count == maximum)
+        currency_ties += int(len(tied) > 1)
+        currencies[adsh] = tied[0]
+    diagnostics = {
+        "filings_with_mapped_facts": len(families),
+        "filings_with_reporting_currency": len(currencies),
+        "filings_missing_reporting_currency": len(families) - len(currencies),
+        "taxonomy_family_ties": family_ties,
+        "currency_ties": currency_ties,
+    }
+    return pd.Series(families, dtype="string"), pd.Series(currencies, dtype="string"), diagnostics
+
+
 def curate_foreign_archive(zip_path: Path, archive_sha256: str, *, calendar: Optional[TradingCalendar] = None,
                            accepted_cutoff: str | pd.Timestamp = "2025-05-09 23:59:59", chunk_rows: int = 600_000
                            ) -> tuple[pd.DataFrame, pd.DataFrame, dict[str, int]]:
@@ -179,16 +246,23 @@ def curate_foreign_archive(zip_path: Path, archive_sha256: str, *, calendar: Opt
     annual = registry[registry["form"].isin(FOREIGN_ANNUAL_FORMS)]
     total: dict[str, int] = {}
     parts = []
+    # Two-pass design: policy is filing-global even when a filing crosses CSV
+    # chunks.  Pass 1 holds only small accession counters; pass 2 emits rows.
+    wanted = set(annual["adsh"])
+    family, currency, policy = filing_policy(zip_path, wanted, chunk_rows=chunk_rows)
+    total.update(policy)
     with zipfile.ZipFile(zip_path) as archive:
         member = next(m for m in archive.namelist() if Path(m).name.lower() == "num.txt")
-        wanted = set(annual["adsh"])
         with archive.open(member) as handle:
             for chunk in pd.read_csv(handle, sep="\t", low_memory=False, chunksize=chunk_rows, dtype={
                     "adsh": "string", "tag": "string", "version": "string", "uom": "string", "segments": "string", "coreg": "string", "ddate": "string"}):
                 chunk = chunk[chunk["adsh"].isin(wanted)]
                 if chunk.empty:
                     continue
-                rows, counts = curate_foreign_num(chunk, annual, archive_name=zip_path.name, archive_sha256=archive_sha256, calendar=calendar)
+                rows, counts = curate_foreign_num(
+                    chunk, annual, archive_name=zip_path.name, archive_sha256=archive_sha256,
+                    calendar=calendar, filing_family=family, reporting_currency=currency,
+                )
                 for key, value in counts.items():
                     total[key] = total.get(key, 0) + value
                 if len(rows):
@@ -236,4 +310,6 @@ def build_foreign_store(raw_dir: Path, download_manifest, out_dir: Path, *, cale
     forms = registry_all["form"].value_counts().to_dict()
     return {"map_version": IFRS_MAP_VERSION, "accepted_cutoff": accepted_cutoff, "registry_filings": int(len(registry_all)),
             "registry_ciks": int(registry_all["cik"].nunique()), "forms": {k: int(v) for k, v in forms.items()},
+            "currency_policy": {"scope": "filing-global two-pass", "rule": "most frequent currency among mapped core monetary facts",
+                                "tie_break": "ascending ISO currency code", "non_monetary": "declared unit handling; never forced to currency"},
             "exclusion_counts": totals, "quarters": summaries}

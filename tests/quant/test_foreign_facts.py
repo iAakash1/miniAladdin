@@ -118,3 +118,66 @@ def test_truncating_the_source_leaves_earlier_foreign_facts_identical():
     early, _ = curate(rows, early_registry)
     cut = full[full["accepted_at"] <= pd.Timestamp("2023-06-01")].reset_index(drop=True)
     assert S.content_hash(cut) == S.content_hash(early)
+
+
+def _archive(tmp_path, rows):
+    import zipfile
+
+    path = tmp_path / "2023q1.zip"
+    pd.DataFrame(rows).to_csv(tmp_path / "num.txt", sep="\t", index=False)
+    with zipfile.ZipFile(path, "w") as archive:
+        archive.write(tmp_path / "num.txt", "num.txt")
+    return path
+
+
+def test_currency_policy_is_filing_global_across_chunk_boundaries(tmp_path, monkeypatch):
+    registry = reg()
+    # EUR wins 3:2 globally, while either two-row parser chunk can appear to
+    # prefer USD. The USD values are convenience translations and must vanish.
+    rows = [num("Assets", 1000, uom="EUR"), num("Liabilities", 400, uom="USD"),
+            num("Revenue", 500, uom="EUR", qtrs=4), num("CashAndCashEquivalents", 50, uom="USD"),
+            num("Equity", 600, uom="EUR")]
+    path = _archive(tmp_path, rows)
+    monkeypatch.setattr(X, "read_foreign_registry", lambda *a, **k: registry)
+    _, facts, counts = X.curate_foreign_archive(path, "h" * 64, calendar=CAL, chunk_rows=2)
+    assert set(facts["currency"]) == {"EUR"} and set(facts["unit"]) == {"EUR"}
+    assert 400 not in set(facts["value"]) and 50 not in set(facts["value"])
+    assert facts.groupby("accession")["currency"].nunique().max() == 1
+    assert counts["other_currency_excluded"] == 2
+
+
+def test_two_pass_result_is_chunk_size_invariant_and_deterministic(tmp_path, monkeypatch):
+    registry = reg()
+    rows = [num("Assets", 1000, uom="JPY"), num("Liabilities", 400, uom="USD"),
+            num("Revenue", 500, uom="JPY", qtrs=4), num("CashAndCashEquivalents", 50, uom="USD"),
+            num("Equity", 600, uom="JPY")]
+    path = _archive(tmp_path, rows)
+    monkeypatch.setattr(X, "read_foreign_registry", lambda *a, **k: registry)
+    _, small, small_counts = X.curate_foreign_archive(path, "h" * 64, calendar=CAL, chunk_rows=1)
+    _, large, large_counts = X.curate_foreign_archive(path, "h" * 64, calendar=CAL, chunk_rows=100)
+    pd.testing.assert_frame_equal(small, large)
+    assert small_counts == large_counts
+    _, repeated, repeated_counts = X.curate_foreign_archive(path, "h" * 64, calendar=CAL, chunk_rows=1)
+    pd.testing.assert_frame_equal(small, repeated)
+    assert small_counts == repeated_counts
+
+
+def test_currency_tie_uses_alphabetical_iso_code_not_coverage(tmp_path, monkeypatch):
+    registry = reg()
+    rows = [num("Assets", 1000, uom="USD"), num("Liabilities", 400, uom="EUR")]
+    path = _archive(tmp_path, rows)
+    monkeypatch.setattr(X, "read_foreign_registry", lambda *a, **k: registry)
+    _, facts, counts = X.curate_foreign_archive(path, "h" * 64, calendar=CAL, chunk_rows=1)
+    assert counts["currency_ties"] == 1
+    assert set(facts["currency"]) == {"EUR"} and list(facts["canonical_fact"]) == ["liabilities"]
+
+
+def test_cross_currency_ratio_inputs_cannot_survive_one_filing(tmp_path, monkeypatch):
+    registry = reg()
+    rows = [num("Assets", 1000, uom="TWD"), num("Revenue", 500, uom="TWD", qtrs=4),
+            num("Revenue", 16, uom="USD", qtrs=4), num("ProfitLoss", 2, uom="USD", qtrs=4)]
+    path = _archive(tmp_path, rows)
+    monkeypatch.setattr(X, "read_foreign_registry", lambda *a, **k: registry)
+    _, facts, _ = X.curate_foreign_archive(path, "h" * 64, calendar=CAL, chunk_rows=2)
+    assert facts.groupby("accession")["unit"].nunique().max() == 1
+    assert set(facts["unit"]) == {"TWD"}
