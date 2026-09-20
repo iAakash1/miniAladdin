@@ -1,0 +1,95 @@
+{
+  "arms": [
+    "E0",
+    "E1",
+    "E2",
+    "E3"
+  ],
+  "best_seed_selected": false,
+  "classification": "IMPROVES_ONLY_LINEAR",
+  "completion": "COMPLETE",
+  "compute": {
+    "cpu_count": 12,
+    "platform": "macOS-27.0-arm64-arm-64bit",
+    "python": "3.12.11",
+    "wall_seconds": 1769.3,
+    "workers": 6
+  },
+  "definition_fingerprint": "d5dd80d26131641efd8d3deda3526680fc08c8578957e69e7600ee53e6f4d9aa",
+  "definition_sha256": "a0ccd588d5529a51f16c031435b0f829501057846cea1b88419e71e75b602700",
+  "dependency_versions": {
+    "numpy": "2.2.6",
+    "pandas": "2.3.3",
+    "pyarrow": "18.1.0",
+    "python": "3.12.11",
+    "scipy": "1.18.1",
+    "sklearn": "1.7.2"
+  },
+  "experiment_id": "EXP-011",
+  "git_commit": "926660dc67682c9155383d2690315ab53746f86c",
+  "git_dirty": false,
+  "holdout": {
+    "end": "2026-08-28",
+    "firewall": {
+      "breaches_prevented": 0,
+      "checks": 0,
+      "contract_armed": false,
+      "contract_path": "docs/HOLDOUT_CONTRACT.md",
+      "contract_readable": true,
+      "contract_state": "NOT_ARMED",
+      "engaged": true,
+      "holdout_access": "BLOCKED",
+      "holdout_state": "SEALED",
+      "override_reason": null,
+      "reading_note": "contract_armed=false means the holdout-evaluation contract has NOT been armed, i.e. the holdout is closed; engaged=true means the firewall is blocking it",
+      "window": {
+        "active": true,
+        "end": "2026-08-28",
+        "start": "2025-08-26"
+      }
+    },
+    "start": "2025-08-26",
+    "touched": false
+  },
+  "inputs": {
+    "panel_checks": {
+      "baseline_values_hash": true,
+      "content_hash": true,
+      "feature_hash": true,
+      "features_present": true,
+      "last_date_before_holdout": true,
+      "no_label_in_features": true,
+      "rows": true
+    },
+    "parent_artifacts_verified": true,
+    "rich_content_hash": "ff3d3f556488b7daa20bbbeab49d1f0abad9a869976b593f211cf92b6eb7c5da",
+    "rich_dataset_id": "ds-richpit-ff3d3f556488b7da",
+    "rich_feature_hash": "7212297bc55a45f66ffceb3548000e899773e1959e365b266fb477f24d8b8614"
+  },
+  "output_sha256": {
+    "config.json": "0bfb44b3da97d8720be075f18e8c2a4f38b847097162bbfa5948d7154905892b",
+    "definition.json": "1558a14ee1d0bc003a00f90c06622bb5efcfa5410ff23a3cef85ed0420bc0b80",
+    "fold_metrics.csv": "2ce90f4c2db82a0e886a11c556fd363469a13e087f53ea71b46335114568f868",
+    "metrics.json": "b3afb10c277ef16237a0d6e9b937e3bed746da42d7ed05647287e56df256d7f3",
+    "paired_differences.csv": "d42e6962eed5bf240ff9d80539f9ad8d2b96fc6635027761f4d62bbc9f4c0510",
+    "per_arm_metrics.csv": "47b0c80cef7578f8e07ae0d43c887f247a41335fb08c1e8c3350475122fab1ba",
+    "prediction_hashes.json": "a7b8117debee8fd393593d90a5df4eb0509b4b59f2b01b6020fa5abbf5b43416"
+  },
+  "preregistration_commit": "679596a8ae30e8562b851c50eccc69429533815d",
+  "preregistration_document": "docs/EXP_011_PREREGISTRATION.md",
+  "preregistration_sha256": "39acf07bd668b5f769855a6b551459e1472c18ee5c2cfe2bca4aeeb15746946a",
+  "pushed_to_origin_main": true,
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "status": "EXPERIMENTAL - DATA-VALUE STUDY - PROMOTION NOT ASSESSED"
+}

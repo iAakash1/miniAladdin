@@ -1,0 +1,279 @@
+{
+  "arms": {
+    "E0": {
+      "features": "baseline",
+      "fit": true,
+      "model": "ridge",
+      "params": {
+        "alpha": 10.0
+      },
+      "seeds": [
+        0
+      ]
+    },
+    "E1": {
+      "features": "rich",
+      "fit": true,
+      "model": "ridge",
+      "params": {
+        "alpha": 10.0
+      },
+      "seeds": [
+        0
+      ]
+    },
+    "E2": {
+      "features": "baseline",
+      "fit": false,
+      "model": "gradient_boosting",
+      "params": {
+        "learning_rate": 0.03,
+        "max_depth": 3,
+        "min_samples_leaf": 50,
+        "n_estimators": 200,
+        "subsample": 0.7
+      },
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ]
+    },
+    "E3": {
+      "features": "rich",
+      "fit": true,
+      "model": "gradient_boosting",
+      "params": {
+        "learning_rate": 0.03,
+        "max_depth": 3,
+        "min_samples_leaf": 50,
+        "n_estimators": 200,
+        "subsample": 0.7
+      },
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ]
+    }
+  },
+  "costs": [
+    1.0,
+    3.0,
+    5.0,
+    10.0,
+    20.0
+  ],
+  "features": {
+    "baseline": [
+      "acceleration_xs",
+      "dist_52w_high_xs",
+      "ma_gap_xs",
+      "mom_21_xs",
+      "mom_252_21_xs",
+      "mom_63_xs",
+      "reversal_5_xs",
+      "trend_strength_63_xs",
+      "downside_vol_63_xs",
+      "vol_21_xs",
+      "vol_63_xs",
+      "vol_ratio_xs",
+      "amihud_21_xs",
+      "log_dollar_volume_21_xs",
+      "volume_shock_xs",
+      "market_drawdown",
+      "market_mom_21",
+      "market_mom_252",
+      "market_vol_21",
+      "market_vol_63",
+      "market_vol_percentile",
+      "rates_change_63",
+      "rates_curvature",
+      "rates_level",
+      "rates_short",
+      "rates_slope"
+    ],
+    "rich": [
+      "acceleration_xs",
+      "dist_52w_high_xs",
+      "ma_gap_xs",
+      "mom_21_xs",
+      "mom_252_21_xs",
+      "mom_63_xs",
+      "reversal_5_xs",
+      "trend_strength_63_xs",
+      "downside_vol_63_xs",
+      "vol_21_xs",
+      "vol_63_xs",
+      "vol_ratio_xs",
+      "amihud_21_xs",
+      "log_dollar_volume_21_xs",
+      "volume_shock_xs",
+      "market_drawdown",
+      "market_mom_21",
+      "market_mom_252",
+      "market_vol_21",
+      "market_vol_63",
+      "market_vol_percentile",
+      "rates_change_63",
+      "rates_curvature",
+      "rates_level",
+      "rates_short",
+      "rates_slope",
+      "gross_profitability_xs",
+      "roa_xs",
+      "roe_xs",
+      "operating_profitability_xs",
+      "cash_profitability_xs",
+      "gross_margin_xs",
+      "operating_margin_xs",
+      "net_margin_xs",
+      "cash_flow_margin_xs",
+      "ebitda_margin_xs",
+      "asset_turnover_xs",
+      "asset_growth_xs",
+      "capex_to_assets_xs",
+      "capex_to_revenue_xs",
+      "capex_growth_xs",
+      "inventory_growth_xs",
+      "inventory_to_assets_change_xs",
+      "working_capital_growth_xs",
+      "receivables_growth_xs",
+      "accruals_xs",
+      "cash_flow_quality_xs",
+      "gross_margin_stability_xs",
+      "roa_stability_xs",
+      "cash_conversion_xs",
+      "debt_to_assets_xs",
+      "debt_to_equity_xs",
+      "net_debt_to_assets_xs",
+      "liabilities_to_assets_xs",
+      "current_ratio_xs",
+      "cash_to_assets_xs",
+      "revenue_growth_xs",
+      "gross_profit_growth_xs",
+      "earnings_growth_xs",
+      "operating_income_growth_xs",
+      "ocf_growth_xs",
+      "fcf_growth_xs",
+      "debt_growth_xs",
+      "equity_issuance_proxy_xs",
+      "seasonal_ni_surprise_xs",
+      "filing_lag_days_xs",
+      "book_to_market_xs",
+      "earnings_yield_xs",
+      "sales_yield_xs",
+      "fcf_yield_xs",
+      "ocf_yield_xs",
+      "operating_income_to_ev_xs",
+      "gross_profit_to_ev_xs",
+      "sales_to_ev_xs",
+      "shares_growth_xs",
+      "days_since_report_xs"
+    ]
+  },
+  "folds": [
+    {
+      "embargo_sessions": 5,
+      "gap_sessions": 26,
+      "index": 0,
+      "label_horizon_sessions": 21,
+      "purge_end": "2017-05-04",
+      "train_end": "2017-03-28",
+      "train_start": "2014-04-01",
+      "validation_end": "2018-05-04",
+      "validation_start": "2017-05-05"
+    },
+    {
+      "embargo_sessions": 5,
+      "gap_sessions": 26,
+      "index": 1,
+      "label_horizon_sessions": 21,
+      "purge_end": "2018-05-04",
+      "train_end": "2018-03-28",
+      "train_start": "2014-04-01",
+      "validation_end": "2019-05-07",
+      "validation_start": "2018-05-07"
+    },
+    {
+      "embargo_sessions": 5,
+      "gap_sessions": 26,
+      "index": 2,
+      "label_horizon_sessions": 21,
+      "purge_end": "2019-05-07",
+      "train_end": "2019-03-29",
+      "train_start": "2014-04-01",
+      "validation_end": "2020-05-05",
+      "validation_start": "2019-05-08"
+    },
+    {
+      "embargo_sessions": 5,
+      "gap_sessions": 26,
+      "index": 3,
+      "label_horizon_sessions": 21,
+      "purge_end": "2020-05-05",
+      "train_end": "2020-03-27",
+      "train_start": "2014-04-01",
+      "validation_end": "2021-05-05",
+      "validation_start": "2020-05-06"
+    },
+    {
+      "embargo_sessions": 5,
+      "gap_sessions": 26,
+      "index": 4,
+      "label_horizon_sessions": 21,
+      "purge_end": "2021-05-05",
+      "train_end": "2021-03-29",
+      "train_start": "2014-04-01",
+      "validation_end": "2022-05-04",
+      "validation_start": "2021-05-06"
+    },
+    {
+      "embargo_sessions": 5,
+      "gap_sessions": 26,
+      "index": 5,
+      "label_horizon_sessions": 21,
+      "purge_end": "2022-05-04",
+      "train_end": "2022-03-28",
+      "train_start": "2014-04-01",
+      "validation_end": "2023-05-05",
+      "validation_start": "2022-05-05"
+    },
+    {
+      "embargo_sessions": 5,
+      "gap_sessions": 26,
+      "index": 6,
+      "label_horizon_sessions": 21,
+      "purge_end": "2023-05-05",
+      "train_end": "2023-03-29",
+      "train_start": "2014-04-01",
+      "validation_end": "2024-05-07",
+      "validation_start": "2023-05-08"
+    },
+    {
+      "embargo_sessions": 5,
+      "gap_sessions": 26,
+      "index": 7,
+      "label_horizon_sessions": 21,
+      "purge_end": "2024-05-07",
+      "train_end": "2024-04-01",
+      "train_start": "2014-04-01",
+      "validation_end": "2025-05-09",
+      "validation_start": "2024-05-08"
+    }
+  ]
+}
