@@ -181,6 +181,7 @@ def run_family(
     outer_folds: Iterable[int] = range(8),
     max_configs: int | None = None,
     seed: int = 0,
+    evaluate_outer: bool = True,
 ) -> list[TrialRecord]:
     """Nested selection per outer fold; outer validation is never used to tune."""
     root = Path(root)
@@ -260,7 +261,7 @@ def run_family(
                 )
             output.append(record)
 
-        if not candidates:
+        if not candidates or not evaluate_outer:
             continue
         # Selection sees INNER metrics only. Outer validation has not been fit,
         # transformed, predicted or scored above this line.

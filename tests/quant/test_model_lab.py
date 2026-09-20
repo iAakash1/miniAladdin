@@ -81,6 +81,18 @@ def test_trial_registry_is_resume_safe_and_retains_failures(tmp_path):
     assert registry.get(complete.trial_id).metrics["mean_inner_rank_ic"] == 0.01
 
 
+def test_commit_invalidation_is_one_way_and_requires_a_reason(tmp_path):
+    registry = TrialRegistry(tmp_path / "trials.sqlite")
+    registry.put(_record("MLT-OLD"))
+    assert registry.invalidate_commit("abc", reason="outer fold consumed by smoke") == 1
+    invalid = registry.get("MLT-OLD")
+    assert invalid is not None and invalid.status is TrialStatus.INVALID
+    assert invalid.error == "outer fold consumed by smoke"
+    assert registry.invalidate_commit("abc", reason="repeat audit") == 0
+    with pytest.raises(ValueError, match="reason"):
+        registry.invalidate_commit("abc", reason="  ")
+
+
 def test_published_summary_keeps_noncomplete_trial_provenance(tmp_path):
     registry = TrialRegistry(tmp_path / "trials.sqlite")
     registry.put(_record("MLT-COMPLETE"))

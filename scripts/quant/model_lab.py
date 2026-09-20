@@ -38,6 +38,10 @@ def main() -> int:
         run_family(
             model_name, registry=registry, root=Path("."),
             outer_folds=outer_folds, max_configs=max_configs,
+            # Smoke proves data, preprocessing and inner-selection mechanics.
+            # It must not consume an outer evaluation before the complete
+            # declared search space is available.
+            evaluate_outer=args.stage != "smoke",
         )
     path = write_summary(registry)
     print(json.dumps({"summary": str(path), **registry.summary()}, indent=2))

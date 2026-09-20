@@ -43,6 +43,10 @@ For each family and outer fold:
 Outer validation never selects a hyperparameter. Imputation, scaling and
 dimension reduction are refit inside each training split.
 
+The smoke stage executes inner selection on fold 0 only. It does not score the
+outer validation window. Outer evaluation begins only after the complete
+declared family grid is available to the screening/outer-walk-forward stage.
+
 ## Stop conditions
 
 Leakage, PIT violation, corrupted/misaligned data, holdout access, broken

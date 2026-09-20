@@ -108,6 +108,25 @@ class TrialRegistry:
         record = self.get(trial_id)
         return record is not None and record.status is TrialStatus.COMPLETE
 
+    def invalidate_commit(self, git_commit: str, *, reason: str) -> int:
+        """Retain but invalidate every completed trial from one method commit.
+
+        This is deliberately one-way. A later method audit may demote evidence,
+        but it must never silently rehabilitate an invalid trial.
+        """
+        if not reason.strip():
+            raise ValueError("an invalidation reason is required")
+        affected = 0
+        for record in self.records():
+            if record.git_commit != git_commit or record.status is not TrialStatus.COMPLETE:
+                continue
+            self.put(record.model_copy(update={
+                "status": TrialStatus.INVALID,
+                "error": reason,
+            }))
+            affected += 1
+        return affected
+
     def records(self, *, campaign_id: str = "MODEL-LAB-001") -> list[TrialRecord]:
         with self._connect() as connection:
             rows = connection.execute(

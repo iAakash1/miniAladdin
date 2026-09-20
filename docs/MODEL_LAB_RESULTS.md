@@ -1,6 +1,6 @@
 # MODEL-LAB-001 results
 
-Status: **SMOKE GATE COMPLETE — EXPLORATORY — NO CANDIDATE**
+Status: **SMOKE METHOD CORRECTED — EXPLORATORY — NO CANDIDATE**
 
 Dataset: Rich PIT v2 `ds-richpit2-6368cccdb94c62d0`, using only the pinned
 `F0_UNAFFECTED_BASELINE_26` block. Revenue-affected feature sets are blocked.
@@ -10,9 +10,13 @@ Initial development smoke attempts were retained as `INVALID` because the first
 inner-window geometry produced only one split and later because method code was
 not yet committed. They are implementation evidence, not model evidence.
 
-The clean smoke gate ran from method commit `a11b5e2` with three inner temporal
-splits for every selected configuration. It produced 30 complete records and
-retained 22 invalid implementation records. There were no runtime failures.
+The initial clean smoke gate ran from method commit `a11b5e2` with three inner
+temporal splits for every selected configuration. It produced 30 records and
+retained 22 earlier invalid implementation records. There were no runtime
+failures. A subsequent governance review found that smoke had also evaluated
+fold-0 outer validation before the complete grid was available. All 30 records
+from that method commit were therefore retained but marked `INVALID`; none is
+candidate evidence. The corrected smoke path is inner-only.
 
 | Family | Fold-0 outer Rank IC | HAC t | Train − validation IC | Result |
 |---|---:|---:|---:|---|
@@ -27,11 +31,13 @@ retained 22 invalid implementation records. There were no runtime failures.
 | Extra Trees | -0.0444 | -1.46 | +0.4897 | negative; overfit warning |
 | Histogram boosting | -0.0115 | -0.45 | +0.2479 | negative; overfit warning |
 
-All ten smoke outer evaluations were negative. Histogram boosting was merely
-the least negative observation; it is not a winner, a candidate, or evidence
-of profitability. The smoke fold is pipeline evidence and cannot establish
-fold robustness, economics, stochastic stability, diversity, ablation results,
-or multiple-testing-adjusted significance.
+All ten invalidated engineering-smoke outer observations were negative.
+Histogram boosting was merely the least negative observation; it is not a
+winner, a candidate, or evidence of profitability. These values remain above
+only as transparent method-audit evidence and are excluded from campaign
+inference. They cannot establish fold robustness, economics, stochastic
+stability, diversity, ablation results, or multiple-testing-adjusted
+significance.
 
 Authoritative counts and trial metrics are generated into
 `data/manifests/model_lab_summary.json` after each resumable run and rendered in
