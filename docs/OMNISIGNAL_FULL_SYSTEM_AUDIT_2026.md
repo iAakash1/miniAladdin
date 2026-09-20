@@ -1,5 +1,18 @@
 # OmniSignal full-system audit (2026-09-20)
 
+> **Post-audit update (same date).** Rich PIT v2 is now
+> `ds-richpit2-6368cccdb94c62d0`: 139,292 name-dates, 839 securities and 94
+> features. All 76 frozen columns are byte-invariant; 18 foreign-fundamental
+> columns passed admission; `security_master_pit=true`; size/industry controls
+> remain withheld because their own every-fold gate failed. The conservative
+> EXP-011 revenue-mapping audit found 171 unambiguous corrected filings and
+> classified the impact `UNRESOLVED_MAPPING_IMPACT`. The final holdout remains
+> sealed and **not ready** pending a formal replication decision; EXP-012 has
+> not been prepared or fitted. See `docs/RICH_PIT_V2_AUDIT.md`,
+> `docs/EXP_011_REVENUE_MAPPING_IMPACT_AUDIT.md`, and
+> `docs/FINAL_HOLDOUT_READINESS.md`. Sections below retain the original audit
+> snapshot instead of rewriting its historical measurements.
+
 Scope: the point-in-time data foundation, the research record through EXP-011 (complete), and an evidence-based review of the product surface.
 Method: what was **measured** is stated with its number; what was **inspected only** (code and tests present) is labelled as such; what was **not done** is listed.
 No holdout data, licensed raw data, research PDF, secret or model promotion is involved anywhere in this pass.

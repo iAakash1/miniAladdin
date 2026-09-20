@@ -32,9 +32,11 @@ LangGraph is the orchestration layer and not an autonomous agent framework
 here — the full topology, the state reducers and the reason a graph rather than
 a loop are in [LANGGRAPH_WORKFLOW.md](LANGGRAPH_WORKFLOW.md).
 
-Without the package installed, `run()` falls back to the sequential
-orchestrator and records `langgraph_unavailable`, so a deployment that cannot
-carry the dependency still produces an analysis by a route it declares.
+LangGraph is a required runtime dependency for this path. Without it, `run()`
+returns an explicit unavailable state and the API reports
+`LANGGRAPH_UNAVAILABLE`. It does **not** invoke the retired sequential
+orchestrator: silently changing execution semantics would make two runs with
+the same graph version incomparable.
 
 ## Shared evidence context
 
@@ -46,9 +48,16 @@ would make the validator untrustworthy in exactly the cases it exists for.
 
 ## Contracts
 
-`EvidenceRecord` — one measured value with provenance, unit, currency and
+`EvidenceRecord` — one measured value with source type, stable security
+identity, observed/published/available/retrieved times, freshness, confidence,
+PIT status, citation, licence class, validation state, unit, currency and
 period. Period is not decoration: TTM revenue and fiscal-year revenue are
 different measurements, and comparing them produces a confident, wrong claim.
+
+`ReconciliationReport` — comparable evidence grouped by field, unit, currency
+and period. It preserves every value and reports `AGREED`, `SINGLE_SOURCE`,
+`CONFLICTED`, `STALE` or `UNAVAILABLE`. It never votes or averages a conflict
+away, and vendors sharing one upstream count as one independent source.
 
 `Claim` — one statement with the evidence ids supporting it. A claim with no
 evidence ids fails validation by construction, which is the mechanism that

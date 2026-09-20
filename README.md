@@ -1,10 +1,10 @@
 # OmniSignal
 
-An evidence-driven equity research terminal. Seventeen data providers are
-queried **concurrently**, their answers are **reconciled rather than
-overwritten**, their disagreements and failures are **preserved as evidence**,
-and every number on screen can be traced back to the vendor and the moment it
-came from.
+An evidence-driven equity research operating system. Capable providers are
+queried **concurrently**, their comparable answers are **reconciled rather
+than overwritten**, their disagreements and failures are **preserved as
+evidence**, and every number on screen can be traced back to the source and the
+moment it became available.
 
 **Live:** [mini-aladding.vercel.app](https://mini-aladding.vercel.app)
 
@@ -659,8 +659,8 @@ Full detail: [`docs/quant.md`](docs/quant.md) ·
 ### Point-in-time data foundation and research status
 
 * **SEC as-reported facts** (`sec-core-facts-v3`): 58 quarterly Financial Statement Data Set archives verified; 14.6M consolidated facts; every filing vintage kept; availability at EDGAR acceptance time (US Eastern, after-close next session). `python -m scripts.quant.build_pit_data validate-all` re-derives the claims from the files.
-* **Security master** (`security-master-v3`): CIK identity, evidence-graded links, SIC as of each filing, share vintages. `security_master_pit` is currently **false**, so size/industry controls are withheld. No GICS.
-* **Rich PIT panel** `ds-richpit-ff3d3f556488b7da` (76 features) and **EXP-011** (2x2: baseline vs rich features, Ridge vs boosting): complete, label `IMPROVES_ONLY_LINEAR`. The 50 PIT features improved *Ridge* ordering (Rank IC 0.0053 → 0.0149) but gave **no detectable ordering gain** for the frozen boosting model and lower validation economics; validation evidence only. See `docs/EXP_011_RESULTS.md`.
+* **Security master** (`security-master-v4`): CIK identity, evidence-graded links, SIC as of each filing, share vintages and foreign-issuer support. `security_master_pit=true`; size/industry controls are still withheld because their separate every-fold coverage gate failed. No GICS.
+* **Rich PIT v2** `ds-richpit2-6368cccdb94c62d0` (94 features): the 76-feature frozen block changed in 0 of 10,586,192 cells and 18 foreign-fundamental features passed admission. EXP-011 remains labelled `IMPROVES_ONLY_LINEAR`, but a target-firewalled revenue-mapping audit found material unresolved mapping impact. The final holdout is sealed and **not ready** pending a formal replication decision; no EXP-012 run exists. See `docs/RICH_PIT_V2_AUDIT.md`, `docs/EXP_011_REVENUE_MAPPING_IMPACT_AUDIT.md`, and `docs/FINAL_HOLDOUT_READINESS.md`.
 * Nothing is promoted and the 2025-08-26 → 2026-08-28 holdout is sealed. See `docs/OMNISIGNAL_SYSTEM_HEALTH.md`, `docs/OMNISIGNAL_FULL_SYSTEM_AUDIT_2026.md`, `docs/EXP_010B_RESULTS.md`, `docs/EXP_011_RESULTS.md`, `docs/NEXT_RESEARCH_DECISION_2026.md`.
 
 ### Local datasets
