@@ -39,7 +39,7 @@ logger = logging.getLogger("omnisignal.agents.graph")
 
 #: Bumped when the node set or their contract changes, so a stored trace can be
 #: read under the shape it was produced with.
-GRAPH_VERSION = "graph-v1"
+GRAPH_VERSION = "graph-v2"
 
 
 def _merge(left: dict, right: dict) -> dict:
@@ -70,7 +70,7 @@ class AnalysisState(TypedDict, total=False):
     #: Written concurrently by the five specialists, keyed by agent name.
     agent_results: Annotated[dict[str, Any], _merge]
 
-    reconciliation: Optional[dict[str, Any]]
+    reconciliation: Optional[Any]
     validation: Optional[Any]
     scorecard: Optional[Any]
 
@@ -144,30 +144,25 @@ def _specialist(agent_cls):
 
 
 def node_reconcile(state: AnalysisState) -> dict[str, Any]:
-    """Pool the claims and count what the specialists disagreed about.
+    """Pool comparable evidence and preserve agreement or conflict.
 
     Reconciliation here is about *independence*, not averaging. Two vendors
     that resell one upstream are one source, and counting them twice inflates
     apparent corroboration exactly where a reader would lean on it.
     """
-    from src.agents.validation_agent import independent_sources
+    from src.agents.reconciliation import reconcile
 
     results = list(state.get("agent_results", {}).values())
     evidence = [e for r in results for e in r.evidence]
     claims = [c for r in results for c in r.claims]
-    providers = [e.provider for e in evidence if e.provider]
-
-    return {
-        "reconciliation": {
-            "claims": len(claims),
-            "evidence": len(evidence),
-            "providers": len(set(providers)),
-            "independent_sources": independent_sources(providers),
-            "agents_ok": [r.agent for r in results if r.status.value == "ok"],
-            "agents_degraded": [r.agent for r in results if r.status.value != "ok"],
-            "missing_inputs": sorted({m for r in results for m in r.missing}),
-        },
-    }
+    report = reconcile(
+        evidence,
+        claims=len(claims),
+        agents_ok=[r.agent for r in results if r.status.value == "ok"],
+        agents_degraded=[r.agent for r in results if r.status.value != "ok"],
+        missing_inputs=[m for r in results for m in r.missing],
+    )
+    return {"reconciliation": report}
 
 
 def node_validate(state: AnalysisState) -> dict[str, Any]:
@@ -385,9 +380,9 @@ def available() -> bool:
 def run(ticker: str, *, experience_mode: Optional[str] = None) -> dict[str, Any]:
     """Execute one analysis run and return its final state.
 
-    Degrades rather than collapses: without LangGraph installed this falls back
-    to the sequential orchestrator and records `langgraph_unavailable`, so a
-    deployment that cannot carry the dependency still produces an analysis.
+    LangGraph is a declared runtime dependency. If it is unavailable the run
+    returns an explicit unavailable state; it never silently changes execution
+    semantics by invoking the retired sequential orchestrator.
     """
     from datetime import datetime, timezone
 
@@ -408,17 +403,10 @@ def run(ticker: str, *, experience_mode: Optional[str] = None) -> dict[str, Any]
     }
 
     if not available():
-        from src.agents.orchestrator import analyse
-
-        result = analyse(ticker)
         initial.update({
-            "model_signal": result.model_signal,
-            "confidence": result.confidence,
-            "risk_score": result.risk_score,
-            "data_completeness": result.data_completeness,
-            "validation": result.validation,
-            "agent_results": {a.agent: a for a in result.agents},
-            "fallbacks": ["langgraph_unavailable"],
+            "errors": ["langgraph: unavailable"],
+            "warnings": ["analysis did not run because LangGraph is unavailable"],
+            "fallbacks": [],
         })
         return initial
 

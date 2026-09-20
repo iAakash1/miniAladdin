@@ -35,7 +35,7 @@ from pydantic import BaseModel, Field
 #: Bumped when a field in this module changes meaning. Recorded on every
 #: pipeline result so a stored run can be read back under the contract it was
 #: produced with rather than the one in force when it is read.
-AGENT_SCHEMA_VERSION = "agents-v1"
+AGENT_SCHEMA_VERSION = "agents-v2"
 
 
 class AgentStatus(str, Enum):
@@ -55,6 +55,27 @@ class ValidationStatus(str, Enum):
     CONFLICTED = "CONFLICTED"    # sources disagree materially
     STALE = "STALE"              # supported only by evidence past its window
     UNSUPPORTED = "UNSUPPORTED"  # no evidence, or it does not say this
+
+
+class EvidenceState(str, Enum):
+    """The condition of one evidence item, independent of any claim."""
+
+    VERIFIED = "VERIFIED"
+    PARTIAL = "PARTIAL"
+    CONFLICTED = "CONFLICTED"
+    STALE = "STALE"
+    UNSUPPORTED = "UNSUPPORTED"
+    UNAVAILABLE = "UNAVAILABLE"
+
+
+class ReconciliationStatus(str, Enum):
+    """What independent, comparable evidence says about one dimension."""
+
+    AGREED = "AGREED"
+    SINGLE_SOURCE = "SINGLE_SOURCE"
+    CONFLICTED = "CONFLICTED"
+    STALE = "STALE"
+    UNAVAILABLE = "UNAVAILABLE"
 
 
 class Period(BaseModel):
@@ -81,6 +102,13 @@ class EvidenceRecord(BaseModel):
     capability: str
     field: str
 
+    #: Identity and source class are explicit because a provider name alone
+    #: cannot distinguish an exchange measurement from a filing or an analyst
+    #: estimate, and a ticker alone is not a stable security identifier.
+    source_type: str = "provider"
+    security_id: Optional[str] = None
+    symbol: Optional[str] = None
+
     value: Optional[Any] = None
     unit: Optional[str] = None          # "usd" | "fraction" | "percent" | "ratio" | "count" | "days"
     currency: Optional[str] = None
@@ -89,12 +117,55 @@ class EvidenceRecord(BaseModel):
     #: When the world was in this state, as distinct from when we asked.
     #: Conflating them is how a cached figure gets presented as current.
     observed_at: Optional[str] = None
+    published_at: Optional[str] = None
+    available_at: Optional[str] = None
     fetched_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    retrieved_at: Optional[str] = None
     stale: bool = False
 
     #: Provider-reported condition: "live" | "cached" | "stale" | "unavailable".
     quality: str = "live"
+    freshness: str = "unknown"
+    confidence: Optional[float] = None
+    pit_status: str = "unknown"
+    citation: Optional[str] = None
+    license_class: str = "unspecified"
+    validation_status: EvidenceState = EvidenceState.PARTIAL
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ReconciledDimension(BaseModel):
+    """All comparable evidence for one field, without averaging it away."""
+
+    key: str
+    field: str
+    unit: Optional[str] = None
+    currency: Optional[str] = None
+    period: Period = Field(default_factory=Period)
+    status: ReconciliationStatus
+    evidence_ids: list[str] = Field(default_factory=list)
+    providers: list[str] = Field(default_factory=list)
+    independent_sources: int = 0
+    values: list[Any] = Field(default_factory=list)
+    reason: str
+
+
+class ReconciliationReport(BaseModel):
+    """Deterministic source agreement report for one analysis run."""
+
+    claims: int = 0
+    evidence: int = 0
+    providers: int = 0
+    independent_sources: int = 0
+    agents_ok: list[str] = Field(default_factory=list)
+    agents_degraded: list[str] = Field(default_factory=list)
+    missing_inputs: list[str] = Field(default_factory=list)
+    dimensions: list[ReconciledDimension] = Field(default_factory=list)
+    agreed: int = 0
+    single_source: int = 0
+    conflicted: int = 0
+    stale: int = 0
+    unavailable: int = 0
 
 
 class Claim(BaseModel):

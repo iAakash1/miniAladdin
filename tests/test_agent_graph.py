@@ -252,8 +252,9 @@ def test_reconciliation_distinguishes_providers_from_independent_sources():
                          evidence=[ev("yahoo"), ev("yfinance"), ev("polygon")])
     update = node_reconcile({"agent_results": {"market": result}})
     rec = update["reconciliation"]
-    assert rec["providers"] == 3
-    assert rec["independent_sources"] == 2
+    assert rec.providers == 3
+    assert rec.independent_sources == 2
+    assert rec.agreed == 1
 
 
 def test_reconciliation_names_the_degraded_agents():
@@ -261,9 +262,62 @@ def test_reconciliation_names_the_degraded_agents():
     result_bad = AgentResult(agent="news", status=AgentStatus.UNAVAILABLE, missing=["headlines"])
     update = node_reconcile({"agent_results": {"market": result_ok, "news": result_bad}})
     rec = update["reconciliation"]
-    assert rec["agents_ok"] == ["market"]
-    assert rec["agents_degraded"] == ["news"]
-    assert "headlines" in rec["missing_inputs"]
+    assert rec.agents_ok == ["market"]
+    assert rec.agents_degraded == ["news"]
+    assert "headlines" in rec.missing_inputs
+
+
+def test_reconciliation_preserves_source_conflicts():
+    from src.agents.schemas import EvidenceRecord, ReconciliationStatus
+
+    rows = [
+        EvidenceRecord(
+            evidence_id="E-a", agent="market", provider="polygon",
+            capability="price_series", field="last_close", value=100.0,
+            unit="usd", currency="USD",
+        ),
+        EvidenceRecord(
+            evidence_id="E-b", agent="market", provider="alpha_vantage",
+            capability="price_series", field="last_close", value=101.0,
+            unit="usd", currency="USD",
+        ),
+    ]
+    result = AgentResult(agent="market", status=AgentStatus.OK, evidence=rows)
+    rec = node_reconcile({"agent_results": {"market": result}})["reconciliation"]
+    assert rec.conflicted == 1
+    assert rec.dimensions[0].status is ReconciliationStatus.CONFLICTED
+    assert rec.dimensions[0].values == [100.0, 101.0]
+
+
+def test_reconciliation_does_not_compare_different_periods():
+    from src.agents.schemas import EvidenceRecord, Period
+
+    rows = [
+        EvidenceRecord(
+            evidence_id="E-ttm", agent="fundamental", provider="sec",
+            capability="fundamentals", field="revenue", value=10.0,
+            unit="usd", currency="USD", period=Period(basis="ttm"),
+        ),
+        EvidenceRecord(
+            evidence_id="E-fy", agent="fundamental", provider="alpha_vantage",
+            capability="fundamentals", field="revenue", value=9.0,
+            unit="usd", currency="USD", period=Period(basis="fiscal_year"),
+        ),
+    ]
+    result = AgentResult(agent="fundamental", status=AgentStatus.OK, evidence=rows)
+    rec = node_reconcile({"agent_results": {"fundamental": result}})["reconciliation"]
+    assert len(rec.dimensions) == 2
+    assert rec.conflicted == 0
+    assert rec.single_source == 2
+
+
+def test_missing_langgraph_is_an_explicit_failure_not_a_sequential_fallback(monkeypatch):
+    monkeypatch.setattr(graph, "available", lambda: False)
+    state = graph.run("X")
+    assert state["agent_results"] == {}
+    assert state["errors"] == ["langgraph: unavailable"]
+    assert state["fallbacks"] == []
+    assert "model_signal" not in state
 
 
 # ── versioning ───────────────────────────────────────────────────────────────
@@ -271,7 +325,7 @@ def test_reconciliation_names_the_degraded_agents():
 def test_a_run_records_the_versions_that_produced_it():
     state = graph.run.__doc__
     assert state  # the function documents its degradation contract
-    assert GRAPH_VERSION == "graph-v1"
+    assert GRAPH_VERSION == "graph-v2"
 
 
 # ── the M2 guarantees, asserted on the graph path itself ─────────────────────
