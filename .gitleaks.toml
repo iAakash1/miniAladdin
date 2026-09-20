@@ -8,6 +8,8 @@ useDefault = true
 description = "Known-safe paths and placeholder values"
 paths = [
   '''dashboard/package-lock\.json''',
+  # Generated audit sampling keys are SHA-256 digests, never credentials.
+  '''data/manifests/manual_audit_v2\.json''',
   '''\.env\.example''',
   '''\.env\.vercel\.example''',
 ]
