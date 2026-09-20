@@ -14,7 +14,7 @@ from typing import Any
 
 DEFAULT_ROOT = Path("experiments")
 
-# status: COMPLETE | PREREGISTERED_NOT_RUN | PREPARED_NOT_RUN
+# status: COMPLETE | PREREGISTERED_NOT_RUN | PREPARED_NOT_RUN (no study is currently in the last state)
 HISTORY: list[dict[str, Any]] = [
     {"id": "EXP-006", "status": "COMPLETE", "result": "NEGATIVE",
      "title": "Model tournament on the frozen price/liquidity/macro dataset",
@@ -40,10 +40,12 @@ HISTORY: list[dict[str, Any]] = [
      "title": "Horizon-aligned (21-session) rebalance cadence",
      "summary": "Turnover fell about two-thirds and validation-period net Sharpe rose in all ten seeds; fold heterogeneity exists (three folds worse). Validation evidence only. Not perfectly blind: one B1 seed-0 prototype result was seen before the interpretation thresholds were registered.",
      "caveat": "one seed-0 prototype exposure disclosed in the preregistration; no claim of profitability", "docs": ["docs/EXP_010B_RESULTS.md", "docs/EXP_010B_PREREGISTRATION.md"]},
-    {"id": "EXP-011", "status": "PREPARED_NOT_RUN", "result": "NOT_RUN",
+    {"id": "EXP-011", "status": "COMPLETE", "result": "IMPROVES_ONLY_LINEAR",
      "title": "Does richer point-in-time company information improve ordering?",
-     "summary": "Preregistered 2x2 (baseline 26 vs rich PIT 76 features; Ridge vs gradient boosting). Prepared and pushed; not run. No result exists.",
-     "docs": ["docs/EXP_011_PREREGISTRATION.md"]},
+     "summary": "2x2 (baseline 26 vs rich PIT 76 features; Ridge vs gradient boosting). Ridge ordering improved (Rank IC 0.0053 to 0.0149, positive in 6 of 8 folds, concentrated in folds 0 and 2, sharply worse in fold 4). "
+                "The frozen boosted model showed no detectable ordering gain (median delta -0.0008; not fold-robust) and lower validation economics than the frozen baseline. Not generalisable to other models; nothing promoted.",
+     "caveat": "numerical RuntimeWarnings were emitted by the matrix-multiplication path on this environment; post-run audits found all stored predictions, coefficients and transformed features finite, but the warnings remain an environment caveat",
+     "docs": ["docs/EXP_011_RESULTS.md", "docs/EXP_011_PREREGISTRATION.md", "docs/NEXT_RESEARCH_DECISION_2026.md"]},
 ]
 
 
@@ -59,6 +61,7 @@ def research_history(root: Path | str = DEFAULT_ROOT) -> dict[str, Any]:
     rows = []
     for entry in HISTORY:
         row = {**entry, "promotion": "NOT_ASSESSED", "promoted": False, "negative_or_inconclusive": entry["result"] not in ("ECONOMICALLY_IMPROVED", "NOISE_FLOOR", "NOT_RUN")}
+        # A mixed or partial result (EXP-011) is shown as inconclusive rather than as a win.
         manifest = _manifest(Path(root), entry["id"])
         if entry["status"] == "COMPLETE":
             holdout = (manifest or {}).get("holdout", {}).get("touched")

@@ -660,8 +660,8 @@ Full detail: [`docs/quant.md`](docs/quant.md) ·
 
 * **SEC as-reported facts** (`sec-core-facts-v3`): 58 quarterly Financial Statement Data Set archives verified; 14.6M consolidated facts; every filing vintage kept; availability at EDGAR acceptance time (US Eastern, after-close next session). `python -m scripts.quant.build_pit_data validate-all` re-derives the claims from the files.
 * **Security master** (`security-master-v3`): CIK identity, evidence-graded links, SIC as of each filing, share vintages. `security_master_pit` is currently **false**, so size/industry controls are withheld. No GICS.
-* **Rich PIT panel** `ds-richpit-ff3d3f556488b7da` (76 features) and **EXP-011** (2x2: baseline vs rich features, Ridge vs boosting) are prepared and preregistered; EXP-011 has **not been run**.
-* Nothing is promoted and the 2025-08-26 → 2026-08-28 holdout is sealed. See `docs/OMNISIGNAL_SYSTEM_HEALTH.md`, `docs/OMNISIGNAL_FULL_SYSTEM_AUDIT_2026.md`, `docs/EXP_010B_RESULTS.md`, `docs/EXP_011_PREREGISTRATION.md`.
+* **Rich PIT panel** `ds-richpit-ff3d3f556488b7da` (76 features) and **EXP-011** (2x2: baseline vs rich features, Ridge vs boosting): complete, label `IMPROVES_ONLY_LINEAR`. The 50 PIT features improved *Ridge* ordering (Rank IC 0.0053 → 0.0149) but gave **no detectable ordering gain** for the frozen boosting model and lower validation economics; validation evidence only. See `docs/EXP_011_RESULTS.md`.
+* Nothing is promoted and the 2025-08-26 → 2026-08-28 holdout is sealed. See `docs/OMNISIGNAL_SYSTEM_HEALTH.md`, `docs/OMNISIGNAL_FULL_SYSTEM_AUDIT_2026.md`, `docs/EXP_010B_RESULTS.md`, `docs/EXP_011_RESULTS.md`, `docs/NEXT_RESEARCH_DECISION_2026.md`.
 
 ### Local datasets
 

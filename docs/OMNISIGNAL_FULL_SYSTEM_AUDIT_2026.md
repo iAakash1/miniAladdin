@@ -1,6 +1,6 @@
 # OmniSignal full-system audit (2026-09-20)
 
-Scope: the point-in-time data foundation, the research record through EXP-011 (prepared), and an evidence-based review of the product surface.
+Scope: the point-in-time data foundation, the research record through EXP-011 (complete), and an evidence-based review of the product surface.
 Method: what was **measured** is stated with its number; what was **inspected only** (code and tests present) is labelled as such; what was **not done** is listed.
 No holdout data, licensed raw data, research PDF, secret or model promotion is involved anywhere in this pass.
 
@@ -13,9 +13,9 @@ No holdout data, licensed raw data, research PDF, secret or model promotion is i
 | EXP-009B / C / D | no ordering gain / no reliable analyst value / equivalent | negative results kept |
 | EXP-010A | noise floor | Rank IC seed SD 0.00158; net Sharpe seed SD 0.0817 |
 | EXP-010B | `ECONOMICALLY_IMPROVED` (validation only) | turnover −66%, net Sharpe up in 10/10 seeds, folds 1/6/7 worse; **not perfectly blind** (seed-0 prototype seen before thresholds) |
-| EXP-011 | **prepared, not run** | fingerprint `d5dd80d2…d9aa`, commit `679596a` |
+| EXP-011 | **`IMPROVES_ONLY_LINEAR`** (validation only; nothing promoted) | Ridge ordering improved (Rank IC 0.0053 → 0.0149, 6/8 folds, concentrated in folds 0 and 2, adverse in fold 4); frozen boosting showed **no detectable ordering gain** and lower validation economics. Numerical RuntimeWarnings from the Ridge matmul path are an environment caveat; all stored predictions finite. Fingerprint `d5dd80d2…d9aa`, prereg `679596a`, results `docs/EXP_011_RESULTS.md` |
 
-The cadence question is closed for this research cycle. Summaries: `docs/EXP_010A_RESULTS.md`, `docs/EXP_010B_RESULTS.md`; the API/UI research history (`/api/quant/research-history`) shows all of the above, including negative and not-run studies.
+The cadence question is closed for this research cycle. The next-step decision (data-completion study vs final-candidate freeze) is left to the owner: `docs/NEXT_RESEARCH_DECISION_2026.md`.
 
 ## 2. Data foundation (measured)
 
