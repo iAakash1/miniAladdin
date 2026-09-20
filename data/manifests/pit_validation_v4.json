@@ -107,7 +107,7 @@
       "status": "PASS"
     },
     "rich_pit_v2_dataset": {
-      "dataset_id": "ds-richpit2-361bd5029c791444",
+      "dataset_id": "ds-richpit2-6368cccdb94c62d0",
       "features": 94,
       "problems": {
         "built_from_dirty_tree": false,

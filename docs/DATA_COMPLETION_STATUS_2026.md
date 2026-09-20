@@ -1,5 +1,7 @@
 # Data-completion cycle: status at push time (2026-09-20)
 
+> **Superseded status update.** The interruption state below is preserved as historical evidence. The currency defect has since been repaired: the foreign store has zero multi-currency filings and passes real-data chunk invariance; repaired Rich PIT v2 is `ds-richpit2-6368cccdb94c62d0` with zero changes in the frozen 76-feature block and 18 admitted foreign columns. The outcome-blind revenue audit classified the EXP-011 mapping impact as `UNRESOLVED_MAPPING_IMPACT`, so EXP-012 was not prepared. See `docs/RICH_PIT_V2_AUDIT.md`, `docs/EXP_011_REVENUE_MAPPING_IMPACT_AUDIT.md`, and `docs/FINAL_HOLDOUT_READINESS.md`.
+
 Written when the cycle was interrupted for time. It states what exists, what is known to be wrong, and what has not been done. Nothing here is a result about returns: no EXP-012 fit has been run, the sealed holdout (2025-08-26 to 2026-08-28) has not been touched, and no hyperparameter or feature selection has used an outcome.
 
 ## Built and committed
