@@ -53,6 +53,19 @@ interface Run {
     agents_ok: string[]
     agents_degraded: string[]
     missing_inputs: string[]
+    agreed: number
+    single_source: number
+    conflicted: number
+    stale: number
+    unavailable: number
+    dimensions: Array<{
+      key: string
+      field: string
+      status: string
+      providers: string[]
+      values: unknown[]
+      reason: string
+    }>
   } | null
   validation: {
     status: string
@@ -190,6 +203,9 @@ export default function AgentObservatory({ initialSymbol = '' }: { initialSymbol
                   { label: 'Evidence', value: run.reconciliation.evidence, kind: 'count' },
                   { label: 'Providers', value: run.reconciliation.providers, kind: 'count' },
                   { label: 'Independent sources', value: run.reconciliation.independent_sources, kind: 'count' },
+                  { label: 'Agreed', value: run.reconciliation.agreed, kind: 'count' },
+                  { label: 'Single source', value: run.reconciliation.single_source, kind: 'count' },
+                  { label: 'Conflicted', value: run.reconciliation.conflicted, kind: 'count' },
                 ]}
               />
               <Prose>
@@ -200,6 +216,14 @@ export default function AgentObservatory({ initialSymbol = '' }: { initialSymbol
               {run.reconciliation.agents_degraded.length ? (
                 <Prose>Degraded this run: {run.reconciliation.agents_degraded.join(', ')}.</Prose>
               ) : null}
+              {run.reconciliation.dimensions.filter((row) => row.status === 'CONFLICTED').map((row) => (
+                <StateBlock
+                  key={row.key}
+                  state="blocked"
+                  title={`${row.field}: sources conflict`}
+                  detail={`${row.providers.join(', ')} — ${row.reason}. Values: ${row.values.map(String).join(' / ')}`}
+                />
+              ))}
             </Panel>
           ) : null}
 
