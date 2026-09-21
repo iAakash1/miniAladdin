@@ -6,6 +6,7 @@ from __future__ import annotations
 import pytest
 
 from src.providers import fabric
+from src.providers.base import FailureClass, VendorError
 from src.providers.fabric import Evidence
 from src.providers.schemas import NewsHeadline, PriceQuote
 
@@ -35,6 +36,12 @@ def test_every_healthy_vendor_is_asked_not_just_the_first():
     assert all(e.ok for e in ev)
 
 
+def test_quote_fanout_stops_at_the_declared_three_source_budget():
+    vendors = [_Vendor(name, price=10.0) for name in ("a", "b", "c", "d")]
+    ev = fabric.collect("quote", "X", vendors, lambda v: v.get_price("X"))
+    assert [e.provider for e in ev] == ["a", "b", "c"]
+
+
 def test_an_unhealthy_vendor_is_skipped_without_being_called():
     called = []
 
@@ -59,6 +66,17 @@ def test_one_exploding_vendor_cannot_break_the_fan_out():
     failed = next(e for e in ev if not e.ok)
     # A failure is evidence too — it is recorded, classified, and kept.
     assert failed.status == "rate_limited"
+
+
+def test_structured_failure_class_wins_over_error_message_guessing():
+    vendors = [_Vendor(
+        "auth",
+        raises=VendorError(
+            "credential rejected", failure_class=FailureClass.AUTH_FAILURE,
+        ),
+    )]
+    ev = fabric.collect("quote", "X", vendors, lambda v: v.get_price("X"))
+    assert ev[0].status == "auth_failure"
 
 
 def test_a_capability_no_vendor_implements_returns_nothing_rather_than_erroring():

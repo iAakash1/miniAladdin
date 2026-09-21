@@ -2140,49 +2140,35 @@ def provider_capabilities():
 
 @app.get("/api/company/{ticker}/media", tags=["research"])
 def company_media(ticker: str, sector: str = "", industry: str = "", name: str = ""):
-    """Brand mark and editorial imagery for one company.
+    """Verified company identity; retained at the existing route for clients.
 
-    A separate endpoint from `/api/research` on purpose: imagery must never
-    sit on the critical path of a price. The research payload renders first,
-    and the page asks for this afterwards — a slow stock-photo API can then
-    only delay a photograph.
-
-    Identity and context are returned in separate fields and never merged: a
-    logo is a factual claim about a company, a stock photograph is a claim
-    about an industry.
+    Generic stock imagery is intentionally excluded. ``context`` remains as
+    an explicit null during the compatibility window so an older client never
+    mistakes an absent photograph for a loading or provider failure.
     """
     symbol = ticker.upper().strip()
     if not symbol or len(symbol) > 10:
         raise HTTPException(status_code=400, detail="Invalid ticker symbol")
 
     domain = ""
-    resolved_name, resolved_sector, resolved_industry = name, sector, industry
+    resolved_name = name
     try:
-        # The *union*, not the chain. `get_company` returns whichever single
-        # vendor answered first, and that vendor's industry label is often the
-        # coarser one: measured against production, the chain gave Apple
-        # `industry="Technology"` (Finnhub's own taxonomy) while the union
-        # resolves `"Consumer Electronics"` through the GICS-over-SIC rule in
-        # `merge_profile`. A visual query is only as specific as the industry
-        # it is built from, so the coarse label was producing generic stock
-        # imagery where a specific one was available for the same cost.
+        # The profile union gives Logo.dev the best recorded domain and name.
+        # No contextual image query is built from sector or industry.
         merged = fabric.merge_profile(providers.fundamentals.profile_evidence(symbol))
         if merged:
             resolved = merged["resolved"]
             domain = resolved.get("domain") or ""
             resolved_name = resolved_name or resolved.get("name", "")
-            resolved_sector = resolved_sector or resolved.get("sector", "")
-            resolved_industry = resolved_industry or resolved.get("industry", "")
     except Exception:  # noqa: BLE001 — media is never fatal
         logger.exception("profile lookup failed for %s", symbol)
 
     return {
         "ticker": symbol,
         "identity": visual_intelligence.identity(symbol, domain, resolved_name),
-        "context": visual_intelligence.hero_for_company(
-            symbol, name=resolved_name, sector=resolved_sector, industry=resolved_industry,
-        ),
+        "context": None,
         "domain": domain,
+        "visual_policy": "verified_identity_only",
     }
 
 

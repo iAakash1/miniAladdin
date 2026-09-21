@@ -30,8 +30,6 @@ roster. Production runs commit `61c732e`.
 | GNews | news | **Live — production** | 1582 ms |
 | Tavily | news | **Live — production** | 1766 ms |
 | Logo.dev | brand_mark | **Live — production** — resolved `apple.com` by ticker | — |
-| Pexels | image_search | **Live — production** — returned a real asset with photographer attribution | — |
-| Unsplash | image_search | **Live — production** — listed among contributing providers | — |
 | Tiingo *(news)* | news | **Not entitled** — 403; news is a paid add-on | 3030 ms |
 | Alpha Vantage | fundamentals, news_sentiment | **Reachable, no usable data** — answered in 243/366 ms with nothing parseable | 243–366 ms |
 | NewsAPI | news | **Reachable, no usable data** | 1072 ms |
@@ -41,10 +39,11 @@ roster. Production runs commit `61c732e`.
 
 ### What this changed
 
-Before this measurement, five providers were documented as fixture-only.
-Production shows **Tiingo, Logo.dev, Pexels and Unsplash are genuinely live**;
-Tiingo won the series chain outright and contributes to the 5/5 price
-consensus.
+Before this measurement, several providers were documented as fixture-only.
+Production showed **Tiingo and Logo.dev are genuinely live**; Tiingo won the
+series chain outright. The later provider-budget policy caps routine quote
+corroboration at three sources, and stock-photo providers were removed from
+the product.
 
 **Alpha Vantage remains unproven.** It is configured and it answers — quickly —
 but returns nothing the parser can use, on both fundamentals and

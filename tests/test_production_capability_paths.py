@@ -1,9 +1,7 @@
 """Production-only capabilities: prove the path activates when the key exists.
 
-Five providers — Alpha Vantage, Tiingo, Logo.dev, Pexels, Unsplash — are
-configured on Render and absent locally. That makes them the highest-risk
-surface in the system: the code is written, the tests are fixtures, and
-nothing has ever executed against a real payload.
+Alpha Vantage, Tiingo, and Logo.dev are configured in production and absent
+locally. These fixtures prove their wiring without spending live quota.
 
 These tests do not pretend otherwise. What they *can* prove, and what
 production depends on, is the wiring: that setting the environment variable
@@ -33,12 +31,6 @@ from src.providers import fabric
     ("TIINGO_API_KEY",
      "src.providers.vendors.tiingo_vendor.TiingoVendor",
      {"quote", "series", "news", "company", "fundamentals"}),
-    ("PEXELS_API_KEY",
-     "src.providers.vendors.visual_vendors.PexelsVendor",
-     {"image_search"}),
-    ("UNSPLASH_ACCESS_KEY",
-     "src.providers.vendors.visual_vendors.UnsplashVendor",
-     {"image_search"}),
     ("LOGO_DEV_PUBLISHABLE_KEY",
      "src.providers.vendors.visual_vendors.LogoDevVendor",
      {"brand_mark"}),
@@ -75,14 +67,12 @@ def test_setting_the_key_is_enough_to_join_the_fabric(
 
 
 def test_a_configured_provider_appears_in_the_capability_matrix(monkeypatch):
-    from src.providers.vendors.visual_vendors import PexelsVendor, UnsplashVendor
+    from src.providers.vendors.visual_vendors import LogoDevVendor
 
-    monkeypatch.setenv("PEXELS_API_KEY", "production-shaped-key-value")
-    monkeypatch.setenv("UNSPLASH_ACCESS_KEY", "production-shaped-key-value")
-    matrix = fabric.capability_matrix({"visual": [PexelsVendor(), UnsplashVendor()]})
-    live = matrix["by_capability"]["image_search"]["live"]
-    assert sorted(live) == ["pexels", "unsplash"]
-    assert matrix["by_capability"]["image_search"]["unconfigured"] == []
+    monkeypatch.setenv("LOGO_DEV_PUBLISHABLE_KEY", "production-shaped-key-value")
+    matrix = fabric.capability_matrix({"visual": [LogoDevVendor()]})
+    assert matrix["by_capability"]["brand_mark"]["live"] == ["logo_dev"]
+    assert matrix["by_capability"]["brand_mark"]["unconfigured"] == []
 
 
 # ── authentication shape, per each vendor's documented mechanism ───────────
@@ -92,23 +82,14 @@ def test_each_provider_authenticates_the_way_its_vendor_documents(monkeypatch):
     that looks identical to an outage. Asserted structurally so a refactor
     cannot silently move a token into a query string."""
     monkeypatch.setenv("TIINGO_API_KEY", "tiingo-secret-value")
-    monkeypatch.setenv("PEXELS_API_KEY", "pexels-secret-value")
-    monkeypatch.setenv("UNSPLASH_ACCESS_KEY", "unsplash-secret-value")
 
     from src.providers.vendors.tiingo_vendor import TiingoVendor
-    from src.providers.vendors.visual_vendors import UnsplashVendor
 
     # Tiingo: Authorization: Token <key>, never a query parameter — query
     # strings land in access logs and proxy caches.
     tiingo_headers = TiingoVendor()._headers()
     assert tiingo_headers["Authorization"] == "Token tiingo-secret-value"
 
-    # Unsplash: Client-ID, and the *access* key rather than the secret. The
-    # secret is only for OAuth user authorisation, which this integration
-    # does not perform.
-    unsplash_headers = UnsplashVendor()._headers()
-    assert unsplash_headers["Authorization"] == "Client-ID unsplash-secret-value"
-    assert unsplash_headers["Accept-Version"] == "v1"
 
 
 def test_the_logo_dev_secret_never_appears_in_a_browser_facing_url(monkeypatch):
@@ -187,78 +168,6 @@ def test_tiingo_fundamentals_treat_a_403_as_entitlement_not_outage(monkeypatch):
     assert TiingoVendor().get_fundamentals("AAPL") is None  # not an exception
 
 
-_PEXELS = {"photos": [{
-    "id": 1234, "width": 1920, "height": 1080,
-    "url": "https://www.pexels.com/photo/1234/",
-    "photographer": "A Photographer",
-    "photographer_url": "https://www.pexels.com/@someone",
-    "avg_color": "#3B4A5A",
-    "src": {"large2x": "https://images.pexels.com/1234-2x.jpg",
-            "medium": "https://images.pexels.com/1234-m.jpg"},
-    "alt": "semiconductor fabrication cleanroom",
-}]}
-
-_UNSPLASH = {"results": [{
-    "id": "abc123", "width": 4000, "height": 2500, "color": "#26343F",
-    "alt_description": "aerial view of a data centre",
-    "urls": {"regular": "https://images.unsplash.com/abc123?w=1080",
-             "small": "https://images.unsplash.com/abc123?w=400"},
-    "links": {"html": "https://unsplash.com/photos/abc123",
-              "download_location": "https://api.unsplash.com/photos/abc123/download"},
-    "user": {"name": "A Creator", "links": {"html": "https://unsplash.com/@creator"}},
-    "tags": [{"title": "data center"}, {"title": "technology"}],
-}]}
-
-
-def test_pexels_parses_the_documented_photo_shape(monkeypatch):
-    """DOCUMENTATION-VERIFIED."""
-    monkeypatch.setenv("PEXELS_API_KEY", "pexels-secret-value")
-    from src.providers.vendors.visual_vendors import PexelsVendor
-
-    monkeypatch.setattr(PexelsVendor, "_get_json", lambda self, *a, **k: _PEXELS)
-    assets = PexelsVendor().search_images("semiconductors")
-    asset = assets[0]
-    assert asset.provider == "pexels"
-    assert asset.provider_asset_id == "1234"
-    assert asset.image_url.endswith("1234-2x.jpg")
-    assert asset.thumbnail_url.endswith("1234-m.jpg")
-    assert asset.aspect_ratio == pytest.approx(1.778, abs=0.01)
-    assert asset.photographer == "A Photographer"
-    # Both libraries require credit with a link back; the flag travels on the
-    # asset so a renderer cannot omit it by forgetting the provider.
-    assert asset.attribution_required is True
-    assert asset.provider_metadata["avg_color"] == "#3B4A5A"
-
-
-def test_unsplash_keeps_the_download_endpoint_for_the_chosen_asset(monkeypatch):
-    """Unsplash asks that a download be registered when an image is actually
-    displayed. The endpoint has to survive parsing or that is impossible."""
-    monkeypatch.setenv("UNSPLASH_ACCESS_KEY", "unsplash-secret-value")
-    from src.providers.vendors.visual_vendors import UnsplashVendor
-
-    monkeypatch.setattr(UnsplashVendor, "_get_json", lambda self, *a, **k: _UNSPLASH)
-    asset = UnsplashVendor().search_images("data center")[0]
-    assert asset.provider_asset_id == "abc123"
-    assert asset.photographer == "A Creator"
-    assert asset.provider_metadata["download_location"].endswith("/download")
-    assert asset.provider_metadata["tags"] == ["data center", "technology"]
-
-
-def test_malformed_visual_payloads_yield_nothing_rather_than_raising(monkeypatch):
-    monkeypatch.setenv("PEXELS_API_KEY", "pexels-secret-value")
-    monkeypatch.setenv("UNSPLASH_ACCESS_KEY", "unsplash-secret-value")
-    from src.providers.vendors.visual_vendors import PexelsVendor, UnsplashVendor
-
-    for cls, junk in [
-        (PexelsVendor, {"photos": "not a list"}),
-        (PexelsVendor, {"photos": [{"id": 1}]}),          # no src -> unusable
-        (UnsplashVendor, {"results": [{"id": "x"}]}),      # no urls -> unusable
-        (UnsplashVendor, []),                              # wrong root type
-    ]:
-        monkeypatch.setattr(cls, "_get_json", lambda self, *a, _j=junk, **k: _j)
-        assert cls().search_images("q") is None
-
-
 _AV_SENTIMENT = {"feed": [{
     "title": "Apple beats estimates", "url": "https://example.com/a",
     "time_published": "20260815T130002", "source": "Benzinga",
@@ -320,8 +229,6 @@ def test_a_ticker_absent_from_the_sentiment_block_scores_nothing(monkeypatch):
 @pytest.mark.parametrize("env_var,secret", [
     ("ALPHA_VANTAGE_KEY", "alpha-secret-value"),
     ("TIINGO_API_KEY", "tiingo-secret-value"),
-    ("PEXELS_API_KEY", "pexels-secret-value"),
-    ("UNSPLASH_ACCESS_KEY", "unsplash-secret-value"),
     ("LOGO_DEV_SECRET_KEY", "sk-logo-secret-value"),
 ])
 def test_a_production_key_never_reaches_the_capability_matrix(monkeypatch, env_var, secret):

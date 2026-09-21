@@ -16,12 +16,8 @@ interface HeadlinesProps {
   stream?: NewsStream | null
 }
 
-/** A story's photograph, from the publisher that ran it.
- *
- *  Explicitly *not* a stock image: editorial context imagery lives on its own
- *  endpoint and is labelled as context, because presenting a stock library
- *  photograph as an article's own picture is a small, repeated lie. An
- *  article with no image renders without one. */
+/** A story's photograph, supplied by the publisher that ran it.
+ *  OmniSignal does not substitute generic imagery when the article has none. */
 function ArticleThumb({ src, title }: { src: string; title: string }) {
   const [failed, setFailed] = useState(false)
   // The frame stays invisible until the image has actually decoded.

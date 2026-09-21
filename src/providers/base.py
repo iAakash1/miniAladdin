@@ -23,6 +23,8 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeout
+from email.utils import parsedate_to_datetime
+from enum import Enum
 from typing import Any, Optional
 
 import requests
@@ -32,6 +34,19 @@ from src.observability import metrics as _metrics
 logger = logging.getLogger(__name__)
 
 TRANSIENT_STATUS = {429, 500, 502, 503, 504}
+
+
+class FailureClass(str, Enum):
+    """Stable operator-facing reason for a provider failure."""
+
+    RATE_LIMITED = "rate_limited"
+    AUTH_FAILURE = "auth_failure"
+    NOT_ENTITLED = "not_entitled"
+    TIMEOUT = "timeout"
+    UPSTREAM = "upstream_failure"
+    PARSE = "parse_failure"
+    LOCAL_LIMITER = "local_limiter"
+    UNAVAILABLE = "unavailable"
 
 # Query parameters that carry credentials. Several vendors only accept auth in
 # the query string, so these values reach `requests`, which then embeds the
@@ -106,20 +121,46 @@ class VendorStats:
         self.max_latency_ms = 0.0
         self.last_error: Optional[str] = None
         self.last_success_at: Optional[float] = None
+        self.last_failure_at: Optional[float] = None
+        self.last_attempt_at: Optional[float] = None
+        self.last_failure_class: Optional[str] = None
 
-    def record(self, ok: bool, latency_ms: float, error: Optional[str] = None) -> None:
+    def record(
+        self,
+        ok: bool,
+        latency_ms: float,
+        error: Optional[str] = None,
+        failure_class: Optional[str] = None,
+    ) -> None:
         with self._lock:
+            now = time.time()
             self.total += 1
+            self.last_attempt_at = now
             self.total_latency_ms += latency_ms
             self.max_latency_ms = max(self.max_latency_ms, latency_ms)
             if ok:
                 self.successes += 1
                 self.consecutive_failures = 0
-                self.last_success_at = time.time()
+                self.last_success_at = now
             else:
                 self.failures += 1
                 self.consecutive_failures += 1
                 self.last_error = (error or "unknown")[:300]
+                self.last_failure_at = now
+                self.last_failure_class = failure_class or FailureClass.UNAVAILABLE.value
+
+    def record_rate_limit(self, failure_class: FailureClass) -> None:
+        """Record a request rejected before transport under the stats lock."""
+        with self._lock:
+            self.rate_limited += 1
+            self.last_attempt_at = time.time()
+            self.last_failure_at = self.last_attempt_at
+            self.last_failure_class = failure_class.value
+            self.last_error = (
+                "local rate limit reached"
+                if failure_class is FailureClass.LOCAL_LIMITER
+                else "upstream rate limit reached"
+            )
 
     def snapshot(self) -> dict[str, Any]:
         with self._lock:
@@ -133,13 +174,30 @@ class VendorStats:
                 "avg_latency_ms": round(avg, 1),
                 "max_latency_ms": round(self.max_latency_ms, 1),
                 "last_error": self.last_error,
+                "last_success_at": self.last_success_at,
+                "last_failure_at": self.last_failure_at,
+                "last_attempt_at": self.last_attempt_at,
+                "last_failure_class": self.last_failure_class,
             }
 
 
 class VendorError(Exception):
-    def __init__(self, message: str, transient: bool = False):
+    def __init__(
+        self,
+        message: str,
+        transient: bool = False,
+        *,
+        failure_class: FailureClass | str = FailureClass.UNAVAILABLE,
+        status_code: Optional[int] = None,
+        retry_after_seconds: Optional[float] = None,
+    ):
         super().__init__(message)
         self.transient = transient
+        self.failure_class = (
+            failure_class.value if isinstance(failure_class, FailureClass) else failure_class
+        )
+        self.status_code = status_code
+        self.retry_after_seconds = retry_after_seconds
 
 
 #: Where bounded library calls run.
@@ -166,6 +224,7 @@ class VendorClient:
     BACKOFF_BASE = 0.4
     COOLDOWN_AFTER_FAILURES = 3
     COOLDOWN_SECONDS = 60.0
+    MAX_RETRY_AFTER_SECONDS = 2.0
 
     def __init__(self, session: Optional[requests.Session] = None):
         rpm_override = os.getenv(f"PROVIDER_{self.NAME.upper()}_RPM")
@@ -195,11 +254,36 @@ class VendorClient:
         return self.available and time.monotonic() >= self._cooldown_until
 
     def health_snapshot(self) -> dict[str, Any]:
+        stats = self.stats.snapshot()
+        cooldown_remaining = max(0.0, self._cooldown_until - time.monotonic())
+        if not self.available:
+            health_state = "NOT_CONFIGURED"
+        elif getattr(self, "DEV_ONLY", False):
+            health_state = "DEV_ONLY"
+        elif cooldown_remaining > 0:
+            health_state = "COOLDOWN"
+        elif (
+            stats.get("last_failure_at")
+            and (stats.get("last_success_at") or 0) < stats["last_failure_at"]
+        ):
+            health_state = {
+                FailureClass.RATE_LIMITED.value: "RATE_LIMITED",
+                FailureClass.LOCAL_LIMITER.value: "RATE_LIMITED",
+                FailureClass.AUTH_FAILURE.value: "AUTH_FAILURE",
+                FailureClass.NOT_ENTITLED.value: "NOT_ENTITLED",
+                FailureClass.TIMEOUT.value: "TIMEOUT",
+            }.get(stats.get("last_failure_class"), "UNAVAILABLE")
+        elif stats.get("failures"):
+            health_state = "DEGRADED"
+        else:
+            health_state = "HEALTHY"
         return {
             "vendor": self.NAME,
             "configured": self.available,
-            "cooling_down": time.monotonic() < self._cooldown_until,
-            **self.stats.snapshot(),
+            "cooling_down": cooldown_remaining > 0,
+            "cooldown_remaining_seconds": round(cooldown_remaining, 1),
+            "health_state": health_state,
+            **stats,
         }
 
     # ── HTTP core ────────────────────────────────────────────────────────────
@@ -237,31 +321,42 @@ class VendorClient:
         the daemon pool means a straggler cannot hold up interpreter exit.
         """
         if not self.rate_limiter.try_acquire():
-            self.stats.rate_limited += 1
+            self.stats.record_rate_limit(FailureClass.LOCAL_LIMITER)
             _metrics.registry.increment(
                 "vendor.rate_limited", vendor=self.NAME, operation=operation
             )
-            raise VendorError(f"{self.NAME}: local rate limit reached", transient=True)
+            raise VendorError(
+                f"{self.NAME}: local rate limit reached", transient=True,
+                failure_class=FailureClass.LOCAL_LIMITER,
+            )
         started = time.perf_counter()
         budget = self.CALL_TIMEOUT_SECONDS if timeout is None else timeout
         try:
             value = _CALL_POOL.submit(fn).result(timeout=budget)
         except FuturesTimeout as exc:
             latency = (time.perf_counter() - started) * 1000
-            self.stats.record(False, latency, f"timeout after {budget}s")
+            self.stats.record(
+                False, latency, f"timeout after {budget}s", FailureClass.TIMEOUT.value,
+            )
             _observe(self.NAME, operation, "error", latency)
             if self.stats.consecutive_failures >= self.COOLDOWN_AFTER_FAILURES:
                 self._cooldown_until = time.monotonic() + self.COOLDOWN_SECONDS
             raise VendorError(
                 f"{self.NAME}: {operation} exceeded {budget}s", transient=True,
+                failure_class=FailureClass.TIMEOUT,
             ) from exc
         except Exception as exc:  # noqa: BLE001 — normalized to VendorError
             latency = (time.perf_counter() - started) * 1000
-            self.stats.record(False, latency, str(exc))
+            self.stats.record(
+                False, latency, str(exc), FailureClass.UNAVAILABLE.value,
+            )
             _observe(self.NAME, operation, "error", latency)
             if self.stats.consecutive_failures >= self.COOLDOWN_AFTER_FAILURES:
                 self._cooldown_until = time.monotonic() + self.COOLDOWN_SECONDS
-            raise VendorError(f"{self.NAME}: {exc}", transient=True) from exc
+            raise VendorError(
+                f"{self.NAME}: {exc}", transient=True,
+                failure_class=FailureClass.UNAVAILABLE,
+            ) from exc
         latency = (time.perf_counter() - started) * 1000
         self.stats.record(True, latency)
         _observe(self.NAME, operation, "ok", latency)
@@ -288,12 +383,13 @@ class VendorClient:
             # moment retries make the outbound rate highest. A limiter that is
             # accurate only while everything works is not a limiter.
             if not self.rate_limiter.try_acquire():
-                self.stats.rate_limited += 1
+                self.stats.record_rate_limit(FailureClass.LOCAL_LIMITER)
                 _metrics.registry.increment(
                     "vendor.rate_limited", vendor=self.NAME, operation=operation
                 )
                 limited = VendorError(
-                    f"{self.NAME}: local rate limit reached", transient=True
+                    f"{self.NAME}: local rate limit reached", transient=True,
+                    failure_class=FailureClass.LOCAL_LIMITER,
                 )
                 if attempt == 0:
                     # Nothing was sent, so there is no partial work to report.
@@ -310,8 +406,36 @@ class VendorClient:
                     headers=headers, timeout=self.TIMEOUT_SECONDS,
                 )
                 latency = (time.perf_counter() - started) * 1000
-                if response.status_code in TRANSIENT_STATUS:
-                    raise VendorError(f"HTTP {response.status_code}", transient=True)
+                status = response.status_code
+                if status == 401:
+                    raise VendorError(
+                        "HTTP 401", failure_class=FailureClass.AUTH_FAILURE,
+                        status_code=status,
+                    )
+                if status == 403:
+                    raise VendorError(
+                        "HTTP 403", failure_class=FailureClass.NOT_ENTITLED,
+                        status_code=status,
+                    )
+                if status == 429:
+                    retry_after = self._parse_retry_after(
+                        getattr(response, "headers", {}).get("Retry-After")
+                    )
+                    raise VendorError(
+                        "HTTP 429", transient=True,
+                        failure_class=FailureClass.RATE_LIMITED,
+                        status_code=status, retry_after_seconds=retry_after,
+                    )
+                if status in TRANSIENT_STATUS:
+                    raise VendorError(
+                        f"HTTP {status}", transient=True,
+                        failure_class=FailureClass.UPSTREAM, status_code=status,
+                    )
+                if status >= 400:
+                    raise VendorError(
+                        f"HTTP {status}", transient=False,
+                        failure_class=FailureClass.UNAVAILABLE, status_code=status,
+                    )
                 response.raise_for_status()
                 payload = response.json()
                 self.stats.record(True, latency)
@@ -326,19 +450,39 @@ class VendorClient:
                 last_error = exc
             except requests.Timeout:
                 latency = (time.perf_counter() - started) * 1000
-                last_error = VendorError("timeout", transient=True)
+                last_error = VendorError(
+                    "timeout", transient=True, failure_class=FailureClass.TIMEOUT,
+                )
             except requests.RequestException as exc:
                 latency = (time.perf_counter() - started) * 1000
                 # `requests` puts the full request URL in the message, which
                 # for query-string-authenticated vendors contains the key.
-                last_error = VendorError(redact(str(exc)), transient=True)
+                last_error = VendorError(
+                    redact(str(exc)), transient=True,
+                    failure_class=FailureClass.UPSTREAM,
+                )
             except ValueError as exc:  # JSON decode
                 latency = (time.perf_counter() - started) * 1000
-                last_error = VendorError(redact(f"invalid JSON: {exc}"), transient=False)
+                last_error = VendorError(
+                    redact(f"invalid JSON: {exc}"), transient=False,
+                    failure_class=FailureClass.PARSE,
+                )
 
-            self.stats.record(False, latency, str(last_error))
+            if last_error.failure_class == FailureClass.RATE_LIMITED.value:
+                self.stats.record_rate_limit(FailureClass.RATE_LIMITED)
+            self.stats.record(
+                False, latency, str(last_error), last_error.failure_class,
+            )
             if last_error.transient and attempt < self.MAX_RETRIES:
-                time.sleep(self.BACKOFF_BASE * (2 ** attempt))
+                delay = self.BACKOFF_BASE * (2 ** attempt)
+                if last_error.retry_after_seconds is not None:
+                    if last_error.retry_after_seconds > self.MAX_RETRY_AFTER_SECONDS:
+                        self._cooldown_until = time.monotonic() + min(
+                            last_error.retry_after_seconds, self.COOLDOWN_SECONDS,
+                        )
+                        break
+                    delay = max(delay, last_error.retry_after_seconds)
+                time.sleep(delay)
                 continue
             break
 
@@ -351,3 +495,17 @@ class VendorClient:
             _metrics.registry.increment("vendor.cooldown", vendor=self.NAME)
         assert last_error is not None
         raise last_error
+
+    @staticmethod
+    def _parse_retry_after(value: Optional[str]) -> Optional[float]:
+        """Parse either Retry-After form without trusting an unbounded delay."""
+        if not value:
+            return None
+        try:
+            return max(0.0, float(value))
+        except (TypeError, ValueError):
+            try:
+                moment = parsedate_to_datetime(value)
+                return max(0.0, moment.timestamp() - time.time())
+            except (TypeError, ValueError, OverflowError):
+                return None

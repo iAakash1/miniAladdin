@@ -48,8 +48,12 @@ from typing import Iterable, Optional
 #: worth investigating rather than shrugging at.
 FAILURE_MODES = (
     "rate_limited",     # vendor answered 429
-    "not_entitled",     # vendor answered 401/403 — plan does not cover this
+    "auth_failure",     # vendor answered 401 — credential is invalid or expired
+    "not_entitled",     # vendor answered 403 — credential lacks this product/plan
     "timeout",          # vendor did not answer inside the budget
+    "upstream_failure",  # transport or upstream 5xx failure
+    "parse_failure",     # response arrived but was not valid JSON/schema input
+    "local_limiter",     # local token bucket refused the call before transport
     "unavailable",      # vendor answered, but not usefully
     "not_configured",   # no credential present; vendor was never asked
 )
@@ -90,6 +94,10 @@ class Capability:
     requires_auth: bool = True
     #: Failure modes this capability can genuinely produce.
     failure_modes: tuple[str, ...] = FAILURE_MODES
+    #: Maximum vendors consulted by one evidence request. Vendor order is the
+    #: explicit priority order; fallback chains remain independent and may
+    #: walk farther when the requested value is unavailable.
+    fanout_limit: Optional[int] = None
     #: Why a capability sits outside the fan-out, when it does. Required for
     #: any capability with `fabric=False` so no exclusion is unexplained.
     excluded_because: Optional[str] = None
@@ -109,6 +117,8 @@ class Capability:
             raise ValueError(
                 f"{self.name}: fabric=False requires excluded_because"
             )
+        if self.fabric and (self.fanout_limit is None or self.fanout_limit < 1):
+            raise ValueError(f"{self.name}: fabric capabilities require fanout_limit >= 1")
 
     def supported_by(self, vendor: object) -> bool:
         """Whether this vendor can answer, by introspection."""
@@ -119,7 +129,7 @@ _ALL: tuple[Capability, ...] = (
     Capability(
         name="quote", method="get_price", label="Real-time quote",
         description="Last price and session context from one venue's tape.",
-        reconciliation="median",
+        reconciliation="median", fanout_limit=3,
     ),
     Capability(
         name="series", method="get_series", label="Daily price history",
@@ -128,12 +138,12 @@ _ALL: tuple[Capability, ...] = (
             "held to adjusted closes; mixing a raw series into the same "
             "consensus would manufacture a conflict at every split."
         ),
-        reconciliation="median",
+        reconciliation="median", fanout_limit=2,
     ),
     Capability(
         name="news", method="get_news", label="Headlines",
         description="Articles referencing the symbol, from one vendor's index.",
-        reconciliation="dedupe",
+        reconciliation="dedupe", fanout_limit=3,
     ),
     Capability(
         name="news_sentiment", method="get_news_sentiment",
@@ -143,29 +153,29 @@ _ALL: tuple[Capability, ...] = (
             "a vendor that returns headlines without scores is never asked "
             "for something it cannot supply."
         ),
-        reconciliation="per_vendor",
+        reconciliation="per_vendor", fanout_limit=1,
     ),
     Capability(
         name="company", method="get_company", label="Company profile",
         description="Identity, sector, industry, domain, listing metadata.",
-        reconciliation="union",
+        reconciliation="union", fanout_limit=3,
     ),
     Capability(
         name="fundamentals", method="get_fundamentals",
         label="Reported fundamentals",
         description="Trailing margins, returns and per-share figures.",
-        reconciliation="union",
+        reconciliation="union", fanout_limit=3,
     ),
     Capability(
         name="street", method="get_street", label="Analyst & insider activity",
         description="Recommendation trend and insider transaction flow.",
-        reconciliation="per_vendor",
+        reconciliation="per_vendor", fanout_limit=1,
     ),
     Capability(
         name="analyst_targets", method="get_analyst_targets",
         label="Price targets",
         description="High/low/mean target prices as one vendor sees them.",
-        reconciliation="distribution",
+        reconciliation="distribution", fanout_limit=2,
     ),
     Capability(
         name="analyst_consensus", method="get_analyst_consensus",
@@ -175,7 +185,7 @@ _ALL: tuple[Capability, ...] = (
             "and never a median: the median of two vendors' consensus figures "
             "is a consensus of nothing."
         ),
-        reconciliation="distribution",
+        reconciliation="distribution", fanout_limit=2,
     ),
     Capability(
         name="ownership", method="get_ownership",
@@ -185,18 +195,20 @@ _ALL: tuple[Capability, ...] = (
             "interest. Kept apart from fundamentals so a settlement-lagged "
             "short figure is never read as being as current as a margin."
         ),
-        reconciliation="per_vendor",
+        reconciliation="per_vendor", fanout_limit=1,
         requires_auth=False,
     ),
     Capability(
         name="filings", method="get_filings", label="SEC filings",
         description="Filing index straight from EDGAR.",
         reconciliation="primary", primary_source=True, requires_auth=False,
+        fanout_limit=1,
     ),
     Capability(
         name="xbrl_facts", method="get_xbrl_facts", label="XBRL reported facts",
         description="Tagged financial facts as filed.",
         reconciliation="primary", primary_source=True, requires_auth=False,
+        fanout_limit=1,
     ),
     Capability(
         name="xbrl_timeline", method="get_xbrl_timeline",
@@ -207,15 +219,7 @@ _ALL: tuple[Capability, ...] = (
             "time rather than what the record says now."
         ),
         reconciliation="primary", primary_source=True, requires_auth=False,
-    ),
-    Capability(
-        name="image_search", method="search_images", label="Editorial imagery",
-        description=(
-            "Industry context photography, queried from the *reconciled* "
-            "company profile so the query is as specific as the evidence "
-            "allows."
-        ),
-        reconciliation="dedupe",
+        fanout_limit=1,
     ),
     Capability(
         name="brand_mark", method="get_brand", label="Company logo",
@@ -283,6 +287,7 @@ def describe(names: Optional[Iterable[str]] = None) -> list[dict[str, object]]:
             "primary_source": c.primary_source,
             "requires_auth": c.requires_auth,
             "failure_modes": list(c.failure_modes),
+            "fanout_limit": c.fanout_limit,
             "excluded_because": c.excluded_because,
         }
         for c in _ALL

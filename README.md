@@ -208,7 +208,7 @@ flowchart LR
     Q -->|"'What is the price?'"| C["FallbackChain"]
     Q -->|"'Who agrees about the price?'"| F["Evidence fabric"]
     C --> C1["vendors in order · stop at first answer<br/>cached · single-flighted"]
-    F --> F1["every capable vendor · concurrently<br/>keep all answers and all failures"]
+    F --> F1["capability-budgeted vendors · concurrently<br/>keep all selected answers and failures"]
 ```
 
 The chain serves the scoring engine, the batch quotes endpoint and the
@@ -375,33 +375,20 @@ look diversified.
 
 ## Visual intelligence
 
-Two different kinds of image, never conflated:
+Only verified company identity is rendered:
 
 ```mermaid
 flowchart TB
-    P["Reconciled company profile"] --> D{"domain?"}
+    P["Reconciled company profile"] --> D{"domain recorded?"}
     D -->|no| BS["Logo.dev brand search<br/>secret key, backend only"] --> LOGO["Brand mark<br/>publishable key, browser-safe"]
     D -->|yes| LOGO
-    P --> Q["Deterministic query<br/>from industry, then sector"]
-    Q --> PX["Pexels"] & US["Unsplash"]
-    PX & US --> RANK["rank · dedupe · stable pick"] --> C[("cache")] --> UI
+    LOGO --> C[("identity cache")] --> UI["Company identity"]
 ```
 
-**Logo.dev is identity. Pexels and Unsplash are context.** A stock photograph
-is never presented as a company's own image, and the two image providers run
-concurrently — neither is the other's fallback.
-
-The company **name is deliberately excluded** from the image query. Searching a
-stock library for a brand name returns either nothing or someone else's
-photograph of that brand's products.
-
-> **Engineering note — why reconciliation must precede enrichment.** The media
-> endpoint originally built its query from `get_company()`, the *chain*, which
-> returns whichever vendor answered first. Measured against production, that
-> gave Apple `industry="Technology"` (Finnhub's own taxonomy) and produced
-> generic imagery. The *union* resolves `"Consumer Electronics"` through the
-> GICS-over-SIC rule. Same cost, materially better query — the fix was to read
-> the reconciled profile instead of the first answer.
+Logo.dev is factual identity. Generic stock-photo context is deliberately
+absent: it is decoration, not evidence about the researched company. The
+publishable key is used only in browser-safe image URLs; name-to-domain lookup
+uses the server-only secret and never serialises it.
 
 ## Quantitative research and machine learning
 
@@ -720,7 +707,7 @@ reason. The ones that came from a measured failure rather than a preference:
 | Decision | What forced it |
 |---|---|
 | Group XBRL facts by full period, not period end | Grouping by end date compared FY revenue against Q4 revenue filed the same day — **106 false restatements** for AAPL, reduced to 9 genuine ones |
-| Reconcile the profile *before* building a visual query | The single-vendor chain returned Apple's industry as `Technology`; the union resolves `Consumer Electronics`, and a query is only as specific as the label behind it |
+| Render only verified company identity | Generic industry photography looked specific while carrying no evidence about the researched company |
 | Measure series agreement against the median of **all** vendors | Excluding the vendor under test put the reference between a correct pair, making both correct vendors read as wrong |
 | Count session gaps only inside the shared window | Twelve Data returned 92 sessions where Polygon returned 63 for the same request; differencing against the union reported Polygon as "missing 29" |
 | Hide the article thumbnail until it decodes | Six empty grey boxes in a production screenshot of an otherwise clean headline column |

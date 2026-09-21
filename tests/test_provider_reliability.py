@@ -14,7 +14,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import api.index as api
-from src.providers.base import VendorClient, VendorError
+from src.providers.base import FailureClass, VendorClient, VendorError
 from src.providers.vendors.market_vendors import PERIOD_DAYS, UnknownPeriod, _period_to_days
 
 
@@ -83,6 +83,64 @@ def test_being_rate_limited_before_the_first_request_still_raises():
         with pytest.raises(VendorError, match="rate limit"):
             vendor._request_json("GET", "https://example.invalid/x", operation="probe")
     assert send.call_count == 0, "a request was sent without a token"
+
+
+class _HTTPResponse:
+    def __init__(self, status_code, *, headers=None):
+        self.status_code = status_code
+        self.headers = headers or {}
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise requests.HTTPError(f"HTTP {self.status_code}")
+
+    def json(self):
+        return {"ok": True}
+
+
+@pytest.mark.parametrize("status,failure_class,health_state", [
+    (401, FailureClass.AUTH_FAILURE.value, "AUTH_FAILURE"),
+    (403, FailureClass.NOT_ENTITLED.value, "NOT_ENTITLED"),
+])
+def test_auth_and_entitlement_failures_are_distinct_and_never_retried(
+    status, failure_class, health_state,
+):
+    vendor = _Counting()
+    with patch.object(vendor._session, "request", return_value=_HTTPResponse(status)) as send:
+        with pytest.raises(VendorError) as raised:
+            vendor._request_json("GET", "https://example.invalid/x", operation="probe")
+    assert send.call_count == 1
+    assert raised.value.transient is False
+    assert raised.value.failure_class == failure_class
+    snapshot = vendor.health_snapshot()
+    assert snapshot["health_state"] == health_state
+    assert snapshot["last_failure_class"] == failure_class
+
+
+def test_long_retry_after_opens_a_bounded_cooldown_without_sleeping_or_retrying():
+    vendor = _Counting()
+    response = _HTTPResponse(429, headers={"Retry-After": "120"})
+    with patch.object(vendor._session, "request", return_value=response) as send, \
+         patch("src.providers.base.time.sleep") as sleep:
+        with pytest.raises(VendorError) as raised:
+            vendor._request_json("GET", "https://example.invalid/x", operation="probe")
+    assert send.call_count == 1
+    sleep.assert_not_called()
+    assert raised.value.failure_class == FailureClass.RATE_LIMITED.value
+    snapshot = vendor.health_snapshot()
+    assert snapshot["health_state"] == "COOLDOWN"
+    assert snapshot["last_failure_class"] == FailureClass.RATE_LIMITED.value
+    assert 0 < snapshot["cooldown_remaining_seconds"] <= vendor.COOLDOWN_SECONDS
+
+
+def test_other_client_errors_are_terminal_unavailable_failures():
+    vendor = _Counting()
+    with patch.object(vendor._session, "request", return_value=_HTTPResponse(404)) as send:
+        with pytest.raises(VendorError) as raised:
+            vendor._request_json("GET", "https://example.invalid/x", operation="probe")
+    assert send.call_count == 1
+    assert raised.value.transient is False
+    assert raised.value.failure_class == FailureClass.UNAVAILABLE.value
 
 
 # ── an unknown period is refused, not resolved ──────────────────────────────

@@ -191,7 +191,7 @@ them.
 | `VendorClient` | key management, token-bucket limiting, timeout, bounded retry, circuit cooldown, health stats | `RateLimiter`, `VendorStats` |
 | `Ledger` | assemble the chain of custody; classify input health; carry per-vendor rosters | `Evidence`, `ProviderResult` |
 | `portfolio_intelligence` | valuation, concentration, volatility, drawdown, correlation, contribution, benchmark | positions, stored analyses, price series |
-| `visual_intelligence` | brand identity, deterministic image query, concurrent search, rank, dedupe, cache | Logo.dev, Pexels, Unsplash |
+| `visual_intelligence` | verified brand identity, domain recovery, bounded identity cache | Logo.dev |
 
 ---
 

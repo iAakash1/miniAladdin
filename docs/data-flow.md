@@ -138,25 +138,17 @@ flowchart TB
     SEARCH["Logo.dev brand search<br/>secret key, backend only"]
     LOGO["img.logo.dev/ticker<br/>publishable key, browser-safe"]
 
-    QUERY["Deterministic query<br/>from name + industry + sector"]
-    PX["Pexels"]
-    US["Unsplash"]
-    RANK["Rank · dedupe · stable pick"]
-    CACHE[("Cache — identity 7d, context 24h")]
-    UI["Media strip, attributed"]
+    CACHE[("Identity cache — 7d")]
+    UI["Verified company mark"]
 
     ID --> DOM
     DOM -->|no| SEARCH --> LOGO
     DOM -->|yes| LOGO
-    ID --> QUERY
-    QUERY --> PX & US
-    PX & US --> RANK --> CACHE --> UI
+    LOGO --> CACHE --> UI
 ```
 
-Logo.dev is **identity**; Pexels and Unsplash are **context**. They are not
-interchangeable, and a stock photograph is never presented as a company's own
-image. The two image providers run concurrently — neither is the other's
-fallback.
+Logo.dev is factual identity. Generic stock-photo context is deliberately not
+part of the research payload or provider graph.
 
 ---
 

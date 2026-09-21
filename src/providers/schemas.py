@@ -447,15 +447,13 @@ class NewsHeadline(BaseModel):
 
 # ── Macro ─────────────────────────────────────────────────────────────────────
 
-# ── Visual identity & imagery ─────────────────────────────────────────────────
+# ── Visual identity ───────────────────────────────────────────────────────────
 
 class BrandMark(BaseModel):
     """A company's actual logo. Identity, never decoration.
 
-    Kept structurally separate from `VisualAsset` on purpose: a brand mark is
-    a claim about *who a company is*, and a stock photograph is a claim about
-    what an industry looks like. Merging them into one type is what would
-    eventually let a photo of an orchard render where Apple's logo belongs.
+    This is the only visual asset in the provider contract: a factual claim
+    about *who a company is*, never generic decorative context.
     """
     symbol: str
     domain: str = ""
@@ -465,40 +463,6 @@ class BrandMark(BaseModel):
     alternate_url: str = ""
     resolved_by: str = ""                   # "ticker" | "domain"
     provider: str = ""
-
-
-class VisualAsset(BaseModel):
-    """One editorial photograph. Context, never identity.
-
-    Carries its own attribution because both libraries require credit, and a
-    renderer that had to remember which provider needs it would eventually
-    forget. `provider_metadata` keeps whatever is vendor-specific — Unsplash's
-    download-tracking endpoint, Pexels' average colour — rather than dropping
-    fields that do not fit a shared shape.
-    """
-    provider: str
-    provider_asset_id: str = ""
-
-    image_url: str
-    thumbnail_url: str = ""
-    source_url: str = ""                    # the photo's page on the provider
-
-    width: Optional[int] = None
-    height: Optional[int] = None
-    aspect_ratio: Optional[float] = None
-
-    alt_text: str = ""
-    photographer: str = ""
-    photographer_url: str = ""
-
-    query: str = ""
-    #: Deterministic, explainable score — see visual_intelligence.rank().
-    relevance: float = 0.0
-    attribution_required: bool = True
-
-    provider_metadata: dict[str, Any] = Field(default_factory=dict)
-
-
 class MacroSnapshot(BaseModel):
     yield_spread: Optional[float] = None    # 10Y − 2Y, percent
     inflation_rate: Optional[float] = None  # YoY CPI, percent

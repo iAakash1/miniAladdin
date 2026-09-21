@@ -98,7 +98,7 @@ class MarketDataProvider:
 
     @property
     def vendors(self):
-        return [self.tiingo, self.polygon, self.finnhub, self.twelvedata,
+        return [self.massive, self.tiingo, self.polygon, self.finnhub, self.twelvedata,
                 self.fmp, self.marketstack, self.yfinance]
 
     def get_price(self, symbol: str, validate: bool = True) -> ProviderResult[PriceQuote]:
@@ -154,13 +154,12 @@ class MarketDataProvider:
     # ── multi-source ─────────────────────────────────────────────────────────
 
     def quote_evidence(self, symbol: str) -> list[Evidence]:
-        """Ask **every** quote-capable vendor, concurrently, and keep them all.
+        """Ask the policy-bounded quote corroborators and keep every answer.
 
         Distinct from `get_price`, which stops at the first answer. Here the
-        interesting output is not the price but the agreement: five vendors
-        within a cent of each other is a materially different claim from two
-        vendors 3% apart, and the chain cannot express the difference because
-        it never asks the other four.
+        interesting output is not the price but the agreement. The capability
+        registry caps this at three ordered sources: enough to identify a
+        majority without spending every provisioned vendor's quota.
         """
         symbol = symbol.upper()
         return fabric.collect(
@@ -205,7 +204,7 @@ class FundamentalsProvider:
 
     @property
     def vendors(self):
-        return [self.alpha_vantage, self.finnhub, self.fmp, self.tiingo,
+        return [self.massive, self.alpha_vantage, self.finnhub, self.fmp, self.tiingo,
                 self.polygon, self.yfinance]
 
     def ownership_evidence(self, symbol: str) -> list[Evidence]:
@@ -237,7 +236,7 @@ class FundamentalsProvider:
         )
 
     def target_evidence(self, symbol: str) -> list[Evidence]:
-        """Analyst price targets from every vendor that publishes them.
+        """Analyst price targets from the policy-selected publishers.
 
         Distinct from `analyst_evidence`, which returns a whole consensus
         object including the rating distribution; this is the bare target and
@@ -280,7 +279,7 @@ class FundamentalsProvider:
         )
 
     def statement_evidence(self, symbol: str) -> list[Evidence]:
-        """Reported statement figures from every vendor that has them.
+        """Reported statement figures from the policy-selected vendors.
 
         A union, not a choice: no single vendor here covers every line, so
         picking one discards fields only the others have. Tiingo's
@@ -416,14 +415,13 @@ class NewsProvider:
                 self.tiingo, self.alpha_vantage]
 
     def news_evidence(self, symbol: str, company_name: str = "", limit: int = 12) -> list[Evidence]:
-        """Every news vendor, concurrently — this one genuinely must not fall back.
+        """The policy-bounded news indexes, concurrently.
 
-        News is the clearest case against a fallback chain: five vendors do
-        not carry the same stories, so stopping at the first success does not
-        get you a faster answer to the same question, it gets you a *smaller*
-        answer to a different one. Fanning out and merging is what makes the
-        stream complete, and corroboration across vendors is the only
-        verification signal a headline feed offers.
+        News vendors do not carry identical stories, so evidence still fans
+        out and merges. The registry caps routine headline collection at
+        three healthy sources; lower-priority providers remain available to
+        the value-serving fallback chain and step in when a preferred source
+        is unhealthy.
         """
         symbol = symbol.upper()
 

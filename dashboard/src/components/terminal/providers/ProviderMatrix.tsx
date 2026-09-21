@@ -39,6 +39,11 @@ interface Vendor {
   avg_latency_ms: number | null
   max_latency_ms: number | null
   last_error: string | null
+  health_state?: string
+  last_failure_class?: string | null
+  last_success_at?: number | null
+  last_attempt_at?: number | null
+  cooldown_remaining_seconds?: number
   shared: boolean
 }
 
@@ -53,6 +58,7 @@ interface Capability {
   implemented_by?: string[]
   live?: string[]
   unconfigured?: string[]
+  fanout_limit?: number | null
 }
 
 interface Capabilities {
@@ -68,6 +74,13 @@ interface Capabilities {
  * been asked and never answered is unavailable; one that has answered is live.
  */
 function vendorState(v: Vendor): ResearchState {
+  const explicit: Record<string, ResearchState> = {
+    HEALTHY: 'live', DEGRADED: 'stale', RATE_LIMITED: 'blocked',
+    AUTH_FAILURE: 'blocked', NOT_ENTITLED: 'blocked', TIMEOUT: 'stale',
+    COOLDOWN: 'blocked', DEV_ONLY: 'unknown', UNAVAILABLE: 'unavailable',
+    NOT_CONFIGURED: 'unknown',
+  }
+  if (v.health_state && explicit[v.health_state]) return explicit[v.health_state]
   if (!v.configured) return 'unknown'
   if (v.cooling_down) return 'blocked'
   if (v.requests === 0) return 'waking'
@@ -77,10 +90,16 @@ function vendorState(v: Vendor): ResearchState {
 }
 
 function vendorLabel(v: Vendor): string {
+  if (v.health_state) return v.health_state.replace(/_/g, ' ').toLowerCase()
   if (!v.configured) return 'no credential'
   if (v.cooling_down) return 'cooling down'
   if (v.requests === 0) return 'not called'
   return v.success_pct === null ? 'answering' : `${Math.round(v.success_pct)}% ok`
+}
+
+function timestamp(value?: number | null): string {
+  if (!value) return '—'
+  return new Date(value * 1000).toLocaleString()
 }
 
 export default function ProviderMatrix() {
@@ -106,6 +125,7 @@ export default function ProviderMatrix() {
   const configured = all.filter((v) => v.configured)
   const answering = configured.filter((v) => v.requests > 0 && (v.success_pct ?? 0) > 0)
   const cooling = configured.filter((v) => v.cooling_down)
+  const constrained = configured.filter((v) => !['HEALTHY', undefined].includes(v.health_state))
 
   return (
     <>
@@ -129,6 +149,7 @@ export default function ProviderMatrix() {
               { label: 'With credentials', value: configured.length, kind: 'count' },
               { label: 'Answering', value: answering.length, kind: 'count' },
               { label: 'Cooling down', value: cooling.length, kind: 'count' },
+              { label: 'Constrained', value: constrained.length, kind: 'count' },
               { label: 'Deduplicated requests', value: health.d?.deduplicated_requests ?? null, kind: 'count',
                 title: 'Requests the orchestrator satisfied without a second vendor call' },
             ]} />
@@ -154,7 +175,8 @@ export default function ProviderMatrix() {
                   <th scope="col" className="num">Failures</th>
                   <th scope="col" className="num">Rate limited</th>
                   <th scope="col" className="num">Mean latency</th>
-                  <th scope="col">Last error</th>
+                  <th scope="col">Last success</th>
+                  <th scope="col">Failure class / cooldown</th>
                 </tr>
               </thead>
               <tbody>
@@ -173,7 +195,16 @@ export default function ProviderMatrix() {
                           not a measurement of speed. */}
                       <Value value={v.requests > 0 ? v.avg_latency_ms : null} kind="count" unit="ms" />
                     </td>
-                    <td><span className="sys-meta">{v.last_error ?? '—'}</span></td>
+                    <td><span className="sys-meta" title={timestamp(v.last_success_at)}>{timestamp(v.last_success_at)}</span></td>
+                    <td>
+                      <span className="sys-meta sys-meta--strong">
+                        {v.last_failure_class?.replace(/_/g, ' ') ?? '—'}
+                        {(v.cooldown_remaining_seconds ?? 0) > 0
+                          ? ` · ${Math.ceil(v.cooldown_remaining_seconds ?? 0)}s`
+                          : ''}
+                      </span>
+                      {v.last_error ? <span className="sys-meta" title={v.last_error}> · {v.last_error}</span> : null}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -196,7 +227,7 @@ export default function ProviderMatrix() {
           <div className="sys-scroll-x">
             <table className="sys-table sys-table--compact">
               <thead>
-                <tr><th scope="col">Capability</th><th scope="col">Live vendors</th><th scope="col">Unconfigured</th></tr>
+                <tr><th scope="col">Capability</th><th scope="col">Eligible vendors</th><th scope="col">Fan-out budget</th><th scope="col">Unconfigured</th></tr>
               </thead>
               <tbody>
                 {Object.entries(caps.d?.by_capability ?? {}).sort().map(([key, c]) => (
@@ -210,6 +241,7 @@ export default function ProviderMatrix() {
                         ? <span className="sys-meta sys-meta--strong">{c.live.join(', ')}</span>
                         : <Status state="unavailable" label="none live" />}
                     </td>
+                    <td><Value value={c.fanout_limit ?? null} kind="count" /></td>
                     <td>
                       <span className="sys-meta">
                         {c.unconfigured?.length ? c.unconfigured.join(', ') : '—'}

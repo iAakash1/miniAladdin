@@ -15,7 +15,6 @@
  * scan placeholders.
  */
 
-import CompanyMedia from '@/components/terminal/CompanyMedia'
 import SourceBadge from '@/components/ui/SourceBadge'
 import type { CompanyProfile } from '@/lib/types'
 
@@ -72,15 +71,6 @@ export default function CompanySnapshot({ profile }: { profile: CompanyProfile }
       {profile.description && (
         <p className="csnap__desc">{profile.description}</p>
       )}
-
-      {/* Loaded separately and after the fact — imagery never sits on the
-          critical path of a price. Renders nothing when nothing resolves. */}
-      <CompanyMedia
-        ticker={profile.symbol}
-        sector={profile.sector}
-        industry={profile.industry}
-        name={profile.name}
-      />
 
       {/* Disagreement is shown, never smoothed into an average. Two vendors
           reporting different headcounts are reporting different headcounts. */}

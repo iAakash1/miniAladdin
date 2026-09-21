@@ -1,19 +1,18 @@
 """
-Evidence fabric — every capable vendor answers, in parallel, and none is
-discarded.
+Evidence fabric — an ordered, capability-budgeted set answers in parallel,
+and none of those outcomes is discarded.
 
 ## Why this exists alongside the fallback chain
 
 `FallbackChain` walks vendors in order and stops at the first that answers.
 That is the right shape for *serving a value*: one price, fast, with a
 defined degradation path. It is the wrong shape for *building evidence*,
-because the moment Polygon answers, the four other vendors that also knew the
-price are never asked — and the fact that five independent sources agreed to
-within a cent is thrown away before anyone can see it.
+because the moment one venue answers, no independent corroborator is asked.
 
 The fabric is the other mode. Given a capability and a symbol it asks
-**every healthy vendor that can answer**, concurrently, and keeps all of the
-replies. Nothing is chosen; everything is recorded and then reconciled.
+the first healthy capable vendors within the declared capability budget,
+concurrently, and keeps all of their replies. Nothing inside that budget is
+chosen or dropped; everything is recorded and then reconciled.
 
 Both modes coexist deliberately. The chain still backs `get_price` and
 `get_series`, which the scoring engine and the quotes endpoint depend on and
@@ -23,10 +22,9 @@ does everyone who knows say, and do they agree".
 
 ## Cost
 
-Fan-out is bounded by `map_concurrent` and every vendor keeps its own token
-bucket, so a vendor at its limit fails its own item instantly rather than
-blocking the others or exceeding quota. Latency is the slowest vendor, not
-the sum — a five-vendor fan-out costs about what the one-vendor chain costs.
+Fan-out is bounded first by `Capability.fanout_limit` and then by
+`map_concurrent`; every vendor also keeps its own token bucket. Latency is the
+slowest selected vendor, not the sum.
 The fabric is used on research requests, not on the batch quote path, so the
 multiplier applies to a page a user opened and not to a background sweep.
 
@@ -50,6 +48,7 @@ from datetime import datetime, timezone
 from typing import Any, Callable, Iterable, Optional, Sequence
 
 from . import capabilities, statements
+from .base import VendorError
 
 from src.providers.parallel import map_concurrent
 
@@ -112,14 +111,17 @@ def capability_matrix(groups: dict[str, Sequence[Any]]) -> dict[str, Any]:
         contributors = [e["provider"] for e in providers if capability in e["capabilities"]]
         if not contributors:
             continue
+        live = [
+            e["provider"] for e in providers
+            if capability in e["capabilities"] and e["healthy"]
+        ]
+        policy = capabilities.get(capability)
+        limit = policy.fanout_limit if policy else None
         by_capability[capability] = {
             "label": CAPABILITY_LABELS.get(capability, capability),
+            "fanout_limit": limit,
             "implemented_by": contributors,
-            # Only these will actually be asked on the next fan-out.
-            "live": [
-                e["provider"] for e in providers
-                if capability in e["capabilities"] and e["healthy"]
-            ],
+            "live": live,
             "unconfigured": [
                 e["provider"] for e in providers
                 if capability in e["capabilities"] and not e["configured"]
@@ -166,7 +168,7 @@ class Evidence:
 
 
 def capable(vendors: Iterable[Any], capability: str) -> list[Any]:
-    """Healthy vendors that implement this capability.
+    """The ordered healthy vendors admitted by this capability's budget.
 
     `healthy` covers both "key configured" and "not cooling down after
     repeated failures", so a vendor in its circuit-breaker window is skipped
@@ -175,16 +177,26 @@ def capable(vendors: Iterable[Any], capability: str) -> list[Any]:
     method = CAPABILITY_METHODS.get(capability)
     if not method:
         return []
-    return [v for v in vendors if getattr(v, "healthy", False) and hasattr(v, method)]
+    eligible = [
+        v for v in vendors
+        if getattr(v, "healthy", False) and hasattr(v, method)
+    ]
+    policy = capabilities.get(capability)
+    limit = policy.fanout_limit if policy else None
+    return eligible[:limit] if limit else eligible
 
 
 def _classify(error: BaseException) -> str:
+    if isinstance(error, VendorError):
+        return error.failure_class
     text = str(error).lower()
     if "rate limit" in text or "429" in text:
         return "rate_limited"
     if "timeout" in text or "timed out" in text:
         return "timeout"
-    if "403" in text or "not permissioned" in text or "401" in text:
+    if "401" in text or "invalid credential" in text:
+        return "auth_failure"
+    if "403" in text or "not permissioned" in text:
         return "not_entitled"
     return "unavailable"
 
@@ -197,7 +209,7 @@ def collect(
     *,
     timeout: float = 12.0,
 ) -> list[Evidence]:
-    """Ask every capable vendor concurrently. Keep every answer.
+    """Ask the policy-selected vendors concurrently. Keep every answer.
 
     Never raises: a vendor that fails produces a failed `Evidence`, and the
     caller decides what a partial set is worth. A research request with four

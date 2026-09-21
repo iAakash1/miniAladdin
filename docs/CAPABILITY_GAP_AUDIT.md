@@ -102,7 +102,8 @@ wire-compatible, unverified beyond a 401 probe). **Filings (1)** — SEC EDGAR,
 keyless by design, four methods including `get_xbrl_timeline`. **Macro (1)** —
 FRED. **Fundamentals (1)** — AlphaVantage. **News (4)** — NewsAPI, GNews,
 Yahoo RSS, plus Tavily/Exa search. **Reference (2)** — Wikidata (keyless),
-Apify. **Visual (3)** — LogoDev, Pexels, Unsplash.
+Apify. **Visual identity (1)** — Logo.dev. Generic stock-photo providers were
+removed because they do not provide research evidence about a company.
 
 ## 5. Endpoint surface
 
