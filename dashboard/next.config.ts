@@ -1,7 +1,7 @@
 import type { NextConfig } from 'next'
 
 // Backend origin for the /api/* proxy. Deliberately NOT read from API_URL:
-// the hosting env had a stale API_URL pinned to a dead Railway backend that
+// the hosting env had a stale API_URL pinned to a retired backend that
 // silently overrode this. BACKEND_ORIGIN is a fresh name the host doesn't set,
 // so production always resolves to the live Render service below. For local
 // dev against a local backend, set BACKEND_ORIGIN in dashboard/.env.local.
@@ -20,7 +20,7 @@ const nextConfig: NextConfig = {
   experimental: {
     // The proxy below defaults to a 30-second timeout and answers anything
     // slower with a plain-text "Internal Server Error" and no content type.
-    // /api/research/:ticker fans out across every configured vendor and takes
+    // /api/research/:ticker performs bounded provider corroboration and takes
     // between roughly 25 and 65 seconds whenever the backend cache is cold,
     // so the most substantial panel on the security page — fundamentals,
     // filings, coverage — failed for any name nobody had looked at recently.
@@ -33,7 +33,8 @@ const nextConfig: NextConfig = {
     proxyTimeout: 120_000,
   },
   async rewrites() {
-    // Proxy analysis endpoints to the FastAPI backend on Railway.
+    // Proxy analysis endpoints to the configured FastAPI backend. Render is
+    // the rollback-safe default until authenticated Cloud Run proxying passes.
     // App-router routes (e.g. /api/news) take precedence over these rewrites.
     return [
       {

@@ -2,6 +2,8 @@
 .gitignore
 .github
 .agent
+.agents
+.codex
 .claude
 
 .venv
@@ -18,9 +20,21 @@ dashboard
 tests
 benchmarks
 docs
-experiments
 research_vault
 scripts
+
+# Runtime uses only committed read models. Offline raw/curated/derived data is
+# intentionally excluded from the image (more than 5 GiB in this checkout).
+data/**
+!data/manifests
+!data/manifests/**
+!data/research
+!data/research/models
+!data/research/models/**
+!data/research/reports
+!data/research/reports/**
+!data/research/universe
+!data/research/universe/**
 
 *.ipynb
 Calculations.md
