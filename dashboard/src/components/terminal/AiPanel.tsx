@@ -113,6 +113,32 @@ function impactTone(value: number): 'pos' | 'neg' | 'neutral' {
   return value > 0.005 ? 'pos' : value < -0.005 ? 'neg' : 'neutral'
 }
 
+function EvidenceRefs({ analysis, section }: { analysis: Analysis; section: string }) {
+  const refs = analysis.ai?.evidenceLinks[section]
+  if (!Array.isArray(refs) || refs.length === 0 || Array.isArray(refs[0])) return null
+  const evidence = new Map((analysis.ai?.evidence ?? []).map((item) => [item.id, item]))
+  return (
+    <span aria-label={`Evidence supporting ${section}`} style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 7 }}>
+      {(refs as string[]).slice(0, 6).map((id) => {
+        const item = evidence.get(id)
+        const detail = item
+          ? `${item.source} · ${item.field} · ${String(item.value ?? 'unavailable')} · ${item.validation ?? 'unknown'}`
+          : id
+        return (
+          <span
+            key={id}
+            className="badge badge--neutral num"
+            title={detail}
+            style={{ fontSize: '0.5938rem', textTransform: 'none', letterSpacing: 0 }}
+          >
+            {item?.source ?? id}
+          </span>
+        )
+      })}
+    </span>
+  )
+}
+
 /**
  * Full research-report explanation layer. Recommendation, confidence, risk
  * and every factor-impact subtotal are the engine's deterministic values
@@ -158,6 +184,11 @@ export default function AiPanel({ analysis }: { analysis: Analysis }) {
             Engine rationale
           </span>
         )}
+        {ai.generated && ai.provider && (
+          <span className="badge badge--neutral" title={ai.model ?? undefined}>
+            {ai.analystBriefUsed ? 'Groq → ' : ''}{ai.provider}
+          </span>
+        )}
 
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 14 }}>
           <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 6 }}>
@@ -173,7 +204,7 @@ export default function AiPanel({ analysis }: { analysis: Analysis }) {
       </div>
 
       {ai.verdictRationale && (
-        <p
+        <div
           style={{
             fontSize: '0.8125rem',
             fontWeight: 550,
@@ -185,8 +216,9 @@ export default function AiPanel({ analysis }: { analysis: Analysis }) {
             borderRadius: 'var(--r-md)',
           }}
         >
-          Why {ai.recommendation}: {ai.verdictRationale}
-        </p>
+          <p>Why {ai.recommendation}: {ai.verdictRationale}</p>
+          <EvidenceRefs analysis={analysis} section="verdict_rationale" />
+        </div>
       )}
 
       {/* Lead paragraph in serif — the report reads like research, not UI chrome. */}
@@ -202,9 +234,10 @@ export default function AiPanel({ analysis }: { analysis: Analysis }) {
       >
         {ai.executiveSummary}
       </p>
+      <EvidenceRefs analysis={analysis} section="executive_summary" />
 
       {ai.investmentThesis && (
-        <p
+        <div
           style={{
             fontFamily: 'var(--font-serif)',
             fontSize: '0.9375rem',
@@ -216,8 +249,9 @@ export default function AiPanel({ analysis }: { analysis: Analysis }) {
             borderLeft: '2px solid var(--accent)',
           }}
         >
-          {ai.investmentThesis}
-        </p>
+          <p>{ai.investmentThesis}</p>
+          <EvidenceRefs analysis={analysis} section="investment_thesis" />
+        </div>
       )}
 
       {(ai.confidenceReason || ai.riskReasoning) && (

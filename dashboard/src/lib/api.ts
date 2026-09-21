@@ -126,6 +126,11 @@ export function normalizeAi(raw: RawAiAnalysis | null | undefined): AiAnalysis |
     factorImpacts,
     generated: raw.generated ?? false,
     model: raw.model ?? null,
+    provider: raw.provider ?? null,
+    pipelineMode: raw.pipeline_mode ?? null,
+    analystBriefUsed: raw.analyst_brief_used ?? false,
+    evidenceLinks: raw.evidence_links ?? {},
+    evidence: raw.evidence ?? [],
   }
 }
 
@@ -397,4 +402,3 @@ export async function fetchMacroClient(): Promise<Macro | null> {
   })()
   return macroInflight
 }
-

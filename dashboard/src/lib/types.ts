@@ -134,6 +134,31 @@ export interface RawAiAnalysis {
   generated?: boolean
   model?: string | null
   cached?: boolean
+  provider?: string | null
+  pipeline_mode?: string | null
+  analyst_brief_used?: boolean
+  schema_version?: string
+  evidence_links?: Record<string, string[] | string[][]>
+  evidence?: AiEvidenceItem[]
+  llm_usage?: {
+    input_tokens?: number
+    output_tokens?: number
+    cache_hit_tokens?: number
+    cache_miss_tokens?: number
+    retries?: number
+  }
+}
+
+export interface AiEvidenceItem {
+  id: string
+  source: string
+  field: string
+  value: unknown
+  unit?: string | null
+  observed_at?: string | null
+  freshness?: string
+  validation?: string
+  reconciliation?: string
 }
 
 export interface ConfidenceComponent {
@@ -833,6 +858,11 @@ export interface AiAnalysis {
   factorImpacts: FactorImpacts
   generated: boolean
   model: string | null
+  provider: string | null
+  pipelineMode: string | null
+  analystBriefUsed: boolean
+  evidenceLinks: Record<string, string[] | string[][]>
+  evidence: AiEvidenceItem[]
 }
 
 export interface Analysis {

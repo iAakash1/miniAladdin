@@ -4,6 +4,30 @@ Cloud Run is the validated candidate backend for OmniSignal. Render remains
 the active rollback target until the Vercel-to-Cloud-Run authentication path
 is proven end to end.
 
+## Provisioned candidate (2026-09-22)
+
+| Resource | Value |
+|---|---|
+| Project | `omnisignal-api-aakash-2026` (`797507035809`) |
+| Region | `asia-south1` |
+| Existing service | `omnisignal-api-poc` |
+| Runtime identity | `omnisignal-api-runtime@omnisignal-api-aakash-2026.iam.gserviceaccount.com` |
+| Vercel bridge identity | `omnisignal-vercel@omnisignal-api-aakash-2026.iam.gserviceaccount.com` |
+| Workload identity pool/provider | `vercel` / `vercel` |
+| Trusted issuer | `https://oidc.vercel.com/aakash-jawales-projects` |
+| Trusted Vercel subjects | project `mini-aladding`, environments `preview` and `production` only |
+
+The bridge identity has service-level `run.invoker`; it has no project-wide
+application role and no downloaded key. The runtime identity receives
+`secretAccessor` on individual secret resources, not at project scope.
+
+Secret containers currently exist for `deepseek-api-key`, `groq-api-key`,
+`alpha-vantage-key`, `fred-api-key`, `newsapi-key`, and
+`supabase-service-role-key`. Their values are deliberately not copied from
+Render by automation. A container with no enabled version must not be attached
+to Cloud Run; add each value through Secret Manager, verify an enabled version,
+and only then add its environment mapping to the candidate revision.
+
 ## Runtime contract
 
 - Image: Linux `amd64`, Python 3.12, one non-root Uvicorn process.
@@ -47,7 +71,7 @@ line or in shell history.
 ```bash
 gcloud builds submit --tag REGION-docker.pkg.dev/PROJECT/REPOSITORY/omnisignal-api:COMMIT
 
-gcloud run deploy omnisignal-api \
+gcloud run deploy omnisignal-api-poc \
   --image REGION-docker.pkg.dev/PROJECT/REPOSITORY/omnisignal-api:COMMIT \
   --region REGION \
   --platform managed \
@@ -58,13 +82,28 @@ gcloud run deploy omnisignal-api \
   --max-instances 1 \
   --timeout 600 \
   --no-allow-unauthenticated \
-  --set-env-vars MEMORY_LIMIT_MB=2048,DEPLOYMENT_ENV=cloud_run \
+  --service-account omnisignal-api-runtime@PROJECT.iam.gserviceaccount.com \
+  --set-env-vars MEMORY_LIMIT_MB=2048,DEPLOYMENT_ENV=cloud_run,WEB_CONCURRENCY=1,PROVIDER_CONCURRENCY_LIMIT=8 \
   --set-secrets ALPHA_VANTAGE_KEY=alpha-vantage-key:latest
 ```
 
-Add other provider, Supabase, Clerk, Gemini, and Logo.dev variables through
+Add DeepSeek, Groq, provider, Supabase, Clerk, and Logo.dev variables through
 Secret Manager references or non-secret environment variables according to
 their sensitivity. Do not copy values from Render into repository files.
+
+Before adding a reference, prove that its version exists without reading it:
+
+```bash
+gcloud secrets versions list SECRET_NAME \
+  --project omnisignal-api-aakash-2026 \
+  --filter='state=ENABLED' \
+  --format='value(name)'
+```
+
+The minimum mappings for the new narrative path are
+`DEEPSEEK_API_KEY=deepseek-api-key:latest` and
+`GROQ_API_KEY=groq-api-key:latest`. Provider and persistence parity with Render
+is a separate cutover gate, not something the deploy command may silently omit.
 
 ## Validation gate
 
@@ -78,17 +117,29 @@ Before changing `BACKEND_ORIGIN` in Vercel:
    and bounded provider concurrency.
 4. Run a cold research request and record before/peak/after RSS.
 5. Run a bounded soak and confirm RSS returns to a stable band.
-6. Prove the Vercel proxy can mint or obtain a Google-signed identity token
-   without embedding a long-lived service-account key in the client bundle.
+6. Configure Vercel OIDC → Google Workload Identity Federation for a dedicated
+   least-privilege bridge service account. The App Router proxy exchanges the
+   short-lived Vercel token and sends the Google ID token in
+   `X-Serverless-Authorization`, preserving Clerk's browser `Authorization`
+   header for application auth. No service-account key is stored.
 7. Only then update Vercel's backend origin and retain Render for rollback.
 
-A private Cloud Run URL cannot replace the current public Render origin by a
-configuration-only change: Vercel must authenticate each server-side proxy
-request. Until that identity bridge exists, switching the origin would turn
-working application requests into `403` responses.
+The configured provider uses Vercel's team issuer and allowed audience
+`https://vercel.com/aakash-jawales-projects`. Its principal bindings are exact
+subjects, not an `attribute.project` wildcard:
+
+```text
+owner:aakash-jawales-projects:project:mini-aladding:environment:preview
+owner:aakash-jawales-projects:project:mini-aladding:environment:production
+```
+
+The bridge implementation is in `dashboard/src/app/api/[...path]/route.ts` and
+`dashboard/src/lib/backend-proxy.ts`. Infrastructure configuration and a
+successful preview smoke test remain mandatory before changing production.
 
 ## Rollback
 
-Revert Vercel's backend origin to the existing Render service and redeploy the
+Set Vercel `BACKEND_ORIGIN` to the existing Render service,
+`BACKEND_AUTH_MODE=none`, and redeploy the
 frontend. Cloud Run revisions are immutable; route traffic back to the last
 known-good revision if the failure is isolated to a new backend revision.
