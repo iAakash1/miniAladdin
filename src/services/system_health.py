@@ -44,6 +44,8 @@ class SystemHealth(BaseModel):
     checked_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     components: list[ComponentHealth]
     summary: dict[str, int]
+    process_memory: dict[str, Any] = Field(default_factory=dict)
+    provider_concurrency: dict[str, int] = Field(default_factory=dict)
 
 
 def overall_state(components: Iterable[ComponentHealth]) -> HealthState:
@@ -106,6 +108,8 @@ def build_health(
     inference_health: dict[str, Any],
     langgraph_available: bool,
     project_root: Path = PROJECT_ROOT,
+    process_memory: dict[str, Any] | None = None,
+    provider_concurrency: dict[str, int] | None = None,
 ) -> SystemHealth:
     """Assemble the report from explicit inputs so classification is testable."""
     components: list[ComponentHealth] = [
@@ -117,8 +121,8 @@ def build_health(
             component="persistence",
             status=(HealthState.READY if persistence_reachable else
                     HealthState.DEGRADED if persistence_configured else HealthState.NOT_CONFIGURED),
-            reason=("client initialised" if persistence_reachable else
-                    "configured but client did not initialise" if persistence_configured else
+            reason=("client initialised; no network probe performed" if persistence_reachable else
+                    "configured but not yet initialised; no network probe performed" if persistence_configured else
                     "Supabase persistence is not configured"),
         ),
         ComponentHealth(
@@ -211,6 +215,8 @@ def build_health(
         summary[component.status.value] += 1
     return SystemHealth(
         status=overall_state(components), components=components, summary=summary,
+        process_memory=process_memory or {},
+        provider_concurrency=provider_concurrency or {},
     )
 
 
@@ -218,17 +224,20 @@ def snapshot(*, build_commit: str) -> SystemHealth:
     """Read current local/runtime state. Network checks stay bounded upstream."""
     from src import providers
     from src.agents import graph
-    from src.services import clerk_auth, database, inference_client, quant_service
+    from src.providers.parallel import concurrency_snapshot
+    from src.services import clerk_auth, database, inference_client, memory_diagnostics, quant_service
 
     configured = database.is_configured()
     return build_health(
         build_commit=build_commit,
         persistence_configured=configured,
-        persistence_reachable=database.get_client() is not None if configured else False,
+        persistence_reachable=database.client_is_initialized() if configured else False,
         auth_configured=clerk_auth.is_configured(),
         provider_health=providers.providers_health(),
         quant_status=quant_service.production_status(),
         inference_configured=inference_client.configured(),
-        inference_health=inference_client.health(),
+        inference_health=inference_client.observed_health(),
         langgraph_available=graph.available(),
+        process_memory=memory_diagnostics.snapshot().as_dict(),
+        provider_concurrency=concurrency_snapshot(),
     )

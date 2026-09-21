@@ -33,6 +33,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+from functools import lru_cache
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
@@ -128,8 +129,43 @@ def model_lab(
             "remedy": "python -m scripts.quant.model_lab run --stage smoke",
         }
     campaign = _read(Path(campaign_path))
+    completed = payload.get("completed_trials") or []
+    retained = payload.get("retained_noncomplete_trials") or []
+
+    def trial_view(row: dict[str, Any], *, include_error: bool = False) -> dict[str, Any]:
+        metrics = row.get("metrics") or {}
+        runtime = row.get("runtime") or {}
+        view = {
+            key: row.get(key) for key in (
+                "trial_id", "phase", "model_family", "model_name", "outer_fold",
+                "status", "hyperparameters", "git_commit",
+            )
+        }
+        view["metrics"] = {key: metrics.get(key) for key in (
+            "mean_rank_ic", "hac_t_stat", "train_validation_ic_gap", "runtime_warnings",
+        )}
+        view["runtime"] = {"wall_seconds": runtime.get("wall_seconds")}
+        if include_error:
+            view["error"] = row.get("error")
+        return view
+
+    # The production read model needs outer evidence and retained failures,
+    # not hundreds of inner-fit payloads. The crash-safe SQLite ledger remains
+    # the complete audit source; it is never opened by this API.
+    outer = [
+        trial_view(row) for row in completed
+        if row.get("phase") == "OUTER_EVALUATION"
+    ]
+    noncomplete = [trial_view(row, include_error=True) for row in retained]
+    public = {
+        key: value for key, value in payload.items()
+        if key not in {"completed_trials", "retained_noncomplete_trials"}
+    }
     return {
-        "status": "AVAILABLE", **payload,
+        "status": "AVAILABLE", **public,
+        "completed_trials": outer,
+        "completed_inner_trial_count": len(completed) - len(outer),
+        "retained_noncomplete_trials": noncomplete,
         "campaign_results": campaign,
     }
 
@@ -515,7 +551,36 @@ def latest(root: Path | str = DEFAULT_ROOT) -> dict[str, Any]:
     return experiment(newest["experiment_id"], root)
 
 
+def _registry_signature(registry_root: Path | str | None) -> tuple[str, int, int]:
+    """Return a bounded-cache key that changes whenever the register changes."""
+    root = Path(registry_root or REGISTRY_ROOT)
+    path = root / "registry.json"
+    try:
+        stat = path.stat()
+    except OSError:
+        return str(root), -1, -1
+    return str(root), stat.st_mtime_ns, stat.st_size
+
+
+@lru_cache(maxsize=8)
+def _production_status_cached(
+    root_text: str,
+    _mtime_ns: int,
+    _size: int,
+) -> dict[str, Any]:
+    # The metadata arguments are deliberately unused by the loader: they are
+    # cache invalidators.  ModelRegistry still performs the authoritative read.
+    return _production_status_uncached(Path(root_text))
+
+
 def production_status(registry_root: Path | str | None = None) -> dict[str, Any]:
+    """Return the promotion state without reparsing the same register per request."""
+    result = _production_status_cached(*_registry_signature(registry_root))
+    # Do not let a response consumer mutate the process-wide cached value.
+    return dict(result)
+
+
+def _production_status_uncached(registry_root: Path | str | None = None) -> dict[str, Any]:
     """What the product is allowed to serve. The honest empty state.
 
     Deliberately independent of any experiment result: it reads the registry,

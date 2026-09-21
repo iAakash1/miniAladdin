@@ -15,6 +15,7 @@ all evidence-bearing.
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Optional
@@ -24,11 +25,14 @@ from src.providers.vendors.sec_vendor import SECVendor
 from src.providers.vendors.wikidata_vendor import WikidataVendor
 from src.services.knowledge_graph import merge_bundles, neighbors, timeline
 from src.services.research import engine as research_engine
+from src.services.cache_policy import put_ttl
 
 logger = logging.getLogger(__name__)
 
 CACHE_TTL_SECONDS = 21600.0  # 6h: filings and encyclopedic facts move slowly
+MAX_CACHE_ENTRIES = 128
 _cache: dict[str, tuple[float, dict[str, Any]]] = {}
+_cache_lock = threading.Lock()
 
 _sec = SECVendor()
 _wikidata = WikidataVendor()
@@ -59,7 +63,8 @@ def build(symbol: str, company_name: str = "") -> dict[str, Any]:
         return _empty()
 
     now = time.time()
-    cached = _cache.get(symbol)
+    with _cache_lock:
+        cached = _cache.get(symbol)
     if cached and cached[0] > now:
         return cached[1]
 
@@ -118,7 +123,9 @@ def build(symbol: str, company_name: str = "") -> dict[str, Any]:
             "providers": sorted({p for edge in merged.edges for p in edge.provider.split(",") if p}),
         },
     }
-    _cache[symbol] = (now + CACHE_TTL_SECONDS, result)
+    with _cache_lock:
+        put_ttl(_cache, symbol, now + CACHE_TTL_SECONDS, result,
+                max_entries=MAX_CACHE_ENTRIES, now=now)
     return result
 
 
@@ -128,4 +135,5 @@ def _empty() -> dict[str, Any]:
 
 
 def reset_for_tests() -> None:
-    _cache.clear()
+    with _cache_lock:
+        _cache.clear()

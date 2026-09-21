@@ -32,12 +32,15 @@ import threading
 import time
 from typing import Any, Optional
 
+from src.services.cache_policy import put_ttl
+
 from src import providers
 
 logger = logging.getLogger(__name__)
 
 CACHE_TTL_SECONDS = 600.0
 _cache: dict[str, tuple[float, dict[str, Any]]] = {}
+MAX_CACHE_ENTRIES = 128
 _lock = threading.Lock()
 
 MAX_RESULTS = 10
@@ -281,7 +284,8 @@ def screen(query: str) -> dict[str, Any]:
     }
     if results:
         with _lock:
-            _cache[key] = (now + CACHE_TTL_SECONDS, payload)
+            put_ttl(_cache, key, now + CACHE_TTL_SECONDS, payload,
+                    max_entries=MAX_CACHE_ENTRIES, now=now)
     return payload
 
 

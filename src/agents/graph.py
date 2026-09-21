@@ -370,10 +370,13 @@ def build_graph():
 
 
 def available() -> bool:
+    import importlib.util
+
     try:
-        import langgraph  # noqa: F401
-        return True
-    except Exception:  # noqa: BLE001
+        return importlib.util.find_spec("langgraph") is not None
+    except (ImportError, AttributeError, ValueError):
+        # A partially initialised optional module can have no usable spec.
+        # Health reporting must describe that state, not fail because of it.
         return False
 
 

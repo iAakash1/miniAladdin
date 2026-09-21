@@ -19,16 +19,6 @@ Public surface:
     Universe        which symbols a build covers
 """
 
-from src.panel.builder import PanelBuilder
-from src.panel.schema import (
-    FACTOR_COLUMNS,
-    PANEL_SCHEMA_VERSION,
-    SnapshotManifest,
-    panel_arrow_schema,
-)
-from src.panel.storage import PanelStore, SnapshotExistsError, SnapshotNotFoundError
-from src.panel.universe import Universe
-
 __all__ = [
     "FACTOR_COLUMNS",
     "PANEL_SCHEMA_VERSION",
@@ -40,3 +30,26 @@ __all__ = [
     "Universe",
     "panel_arrow_schema",
 ]
+
+
+def __getattr__(name: str):
+    """Lazy public exports keep Arrow/research storage out of the web import.
+
+    Importing ``src.panel.universe`` necessarily initialises this package.
+    Eagerly importing every export therefore loaded pandas and PyArrow merely
+    to validate a universe name on ``GET /api/factors``. Heavy components are
+    resolved only when an offline panel operation actually asks for them.
+    """
+    if name == "PanelBuilder":
+        from src.panel.builder import PanelBuilder
+        return PanelBuilder
+    if name in {"FACTOR_COLUMNS", "PANEL_SCHEMA_VERSION", "SnapshotManifest", "panel_arrow_schema"}:
+        from src.panel import schema
+        return getattr(schema, name)
+    if name in {"PanelStore", "SnapshotExistsError", "SnapshotNotFoundError"}:
+        from src.panel import storage
+        return getattr(storage, name)
+    if name == "Universe":
+        from src.panel.universe import Universe
+        return Universe
+    raise AttributeError(name)

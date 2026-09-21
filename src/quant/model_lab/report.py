@@ -29,12 +29,18 @@ def build_summary(registry: TrialRegistry) -> dict[str, Any]:
         },
         "holdout": {"start": "2025-08-26", "end": "2026-08-28", "touched": False},
         "exp012": {"status": "BLOCKED_NOT_PREPARED"},
-        "completed_trials": [record.model_dump(mode="json") for record in completed],
-        # Failure, invalidation and resource-limit records are first-class
-        # evidence. Keep their complete provenance in the published read model
-        # rather than reducing them to a counter that cannot be audited.
+        # Only outer evaluations are needed by the production UI. Inner-fit
+        # provenance remains complete in the crash-safe local SQLite ledger;
+        # serialising hundreds of full records into one API response created a
+        # 1.4 MB payload and a measured ~25 MB request RSS increase.
+        "completed_trials": [
+            _published_trial(record) for record in outer
+        ],
+        "completed_inner_trial_count": len(completed) - len(outer),
+        # Non-complete evidence stays individually inspectable because the
+        # reason a trial was refused is part of the research record.
         "retained_noncomplete_trials": [
-            record.model_dump(mode="json") for record in retained_noncomplete
+            _published_trial(record, include_error=True) for record in retained_noncomplete
         ],
         "smoke_outcome": {
             "outer_evaluations": len(outer),
@@ -49,6 +55,23 @@ def build_summary(registry: TrialRegistry) -> dict[str, Any]:
         "promotion": "NOT_ASSESSED",
         "interpretation": "Exploratory validation evidence; requires separately preregistered replication.",
     }
+
+
+def _published_trial(record, *, include_error: bool = False) -> dict[str, Any]:
+    payload = record.model_dump(mode="json")
+    metrics = payload.get("metrics") or {}
+    runtime = payload.get("runtime") or {}
+    result = {key: payload.get(key) for key in (
+        "trial_id", "phase", "model_family", "model_name", "outer_fold",
+        "status", "hyperparameters", "git_commit",
+    )}
+    result["metrics"] = {key: metrics.get(key) for key in (
+        "mean_rank_ic", "hac_t_stat", "train_validation_ic_gap", "runtime_warnings",
+    )}
+    result["runtime"] = {"wall_seconds": runtime.get("wall_seconds")}
+    if include_error:
+        result["error"] = payload.get("error")
+    return result
 
 
 def write_summary(registry: TrialRegistry, path: Path | str = "data/manifests/model_lab_summary.json") -> Path:

@@ -48,6 +48,7 @@ FETCH_WORKERS = 6
 SCORING_VERSION = "scoring-v2.1"
 
 _lock = threading.Lock()
+_condition = threading.Condition(_lock)
 _snapshot: Optional["ExploreSnapshot"] = None
 _snapshot_at: float = 0.0
 _building = False
@@ -538,8 +539,22 @@ def get_snapshot(force: bool = False) -> ExploreSnapshot:
         fresh = _snapshot is not None and (now - _snapshot_at) < SNAPSHOT_TTL_SECONDS
         if fresh and not force:
             return _snapshot
-        if _building and _snapshot is not None:
-            return _snapshot.model_copy(update={"stale": True, "stale_reason": "a refresh is in progress"})
+        if _building:
+            if _snapshot is not None:
+                return _snapshot.model_copy(update={
+                    "stale": True, "stale_reason": "a refresh is in progress",
+                })
+            # Cold-start single-flight: the first caller owns the 77-name
+            # sweep; concurrent recommendations/explore requests join it
+            # rather than starting independent provider generations.
+            deadline = time.monotonic() + 180.0
+            while _building and _snapshot is None:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise TimeoutError("the shared explore snapshot build exceeded 180 seconds")
+                _condition.wait(timeout=remaining)
+            if _snapshot is not None:
+                return _snapshot
         _building = True
 
     try:
@@ -558,8 +573,9 @@ def get_snapshot(force: bool = False) -> ExploreSnapshot:
             })
         raise
     finally:
-        with _lock:
+        with _condition:
             _building = False
+            _condition.notify_all()
 
 
 def reset_cache_for_testing() -> None:

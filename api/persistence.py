@@ -305,9 +305,25 @@ def get_preferences(user: str = Depends(require_clerk_user)):
 def patch_preferences(
     body: PreferencesPatchBody, user: str = Depends(require_clerk_user)
 ):
-    return PreferencesRepository(_client()).patch(
-        user, body.model_dump(exclude_unset=True)
-    ) or {}
+    try:
+        return PreferencesRepository(_client()).patch(
+            user, body.model_dump(exclude_unset=True)
+        ) or {}
+    except Exception as exc:  # noqa: BLE001 — translated into a stable API contract
+        code = getattr(exc, "code", None)
+        if code is None and exc.args and isinstance(exc.args[0], dict):
+            code = exc.args[0].get("code")
+        if code == "PGRST204":
+            logger.error("persistence schema drift on user_preferences (code=PGRST204)")
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "code": "PERSISTENCE_SCHEMA_DRIFT",
+                    "message": "Preferences storage is missing a required deployed migration.",
+                    "retryable": False,
+                },
+            ) from exc
+        raise
 
 
 # ── who am I ─────────────────────────────────────────────────────────────────

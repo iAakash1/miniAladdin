@@ -63,7 +63,7 @@ interface Redundancy {
 }
 
 interface Lab {
-  status?: 'ready' | 'error' | 'building' | 'busy'
+  status?: 'READY' | 'STALE' | 'BUILD_REQUIRED' | 'UNAVAILABLE'
   stage?: string
   progress_done?: number
   progress_total?: number
@@ -82,6 +82,7 @@ interface Lab {
   active_builds?: number
   max_concurrent_builds?: number
   cached?: boolean
+  message?: string
   error?: string
 }
 
@@ -110,13 +111,10 @@ export default function FactorWorkbench() {
   const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
   const [picked, setPicked] = useState<string[]>([])
-  // The endpoint answers with progress while a build runs, so this polls until
-  // the payload settles. The loop lives entirely inside the effect: a
-  // self-rescheduling callback held in a ref is the same behaviour with an
-  // extra mutable handle that nothing else needs.
+  // Factor research is built offline. A page load performs one immutable
+  // artifact read and never polls a web-process research worker.
   useEffect(() => {
     let cancelled = false
-    let timer: ReturnType<typeof setTimeout> | undefined
 
     const tick = async () => {
       try {
@@ -125,16 +123,13 @@ export default function FactorWorkbench() {
         const payload: Lab = await response.json()
         if (cancelled) return
         setLab(payload)
-        if (payload.status !== 'ready' && payload.status !== 'error') {
-          timer = setTimeout(tick, 2000)
-        }
       } catch (e) {
         if (!cancelled) setError((e as Error).message)
       }
     }
 
     void tick()
-    return () => { cancelled = true; if (timer) clearTimeout(timer) }
+    return () => { cancelled = true }
   }, [])
 
   const factors = useMemo(() => lab?.factors ?? [], [lab])
@@ -182,27 +177,12 @@ export default function FactorWorkbench() {
     )
   }
 
-  if (lab.status === 'error') {
-    return <Panel title="Factors" state="unavailable"><StateBlock state="unavailable" title="The build failed" detail={lab.error} /></Panel>
+  if (lab.status === 'BUILD_REQUIRED') {
+    return <Panel title="Factors" state="unavailable"><StateBlock state="unavailable" title="Research artifact has not been generated" detail={lab.message ?? lab.error ?? 'Run the explicit offline Factor Lab build and publish its immutable artifact.'} /></Panel>
   }
 
-  if (lab.status !== 'ready') {
-    const queued = lab.status === 'busy'
-    return (
-      <Panel title="Factors" state="waking">
-        <StateBlock
-          state="waking"
-          title={queued ? 'Build queued — capacity in use' : (lab.stage ? `Building — ${lab.stage}` : 'Building')}
-          detail={
-            queued
-              ? `${lab.active_builds ?? 'All'} of ${lab.max_concurrent_builds ?? 'available'} build slots are active. Retrying in ${lab.retry_after_seconds ?? 2}s; no extra worker was started.`
-              : lab.progress_total
-              ? `${lab.progress_done ?? 0} of ${lab.progress_total} steps, ${(lab.elapsed_seconds ?? 0).toFixed(0)}s elapsed. Nothing partial is shown while this runs.`
-              : 'Nothing partial is shown while this runs.'
-          }
-        />
-      </Panel>
-    )
+  if (lab.status === 'UNAVAILABLE') {
+    return <Panel title="Factors" state="unavailable"><StateBlock state="unavailable" title="The published artifact is unavailable" detail={lab.message ?? lab.error ?? 'The artifact could not be read or failed integrity validation.'} /></Panel>
   }
 
   const r = lab.redundancy
@@ -215,7 +195,7 @@ export default function FactorWorkbench() {
         glyph="K"
         name="Factors"
         kind={lab.universe?.name ? `universe ${lab.universe.name}` : 'factor laboratory'}
-        state={lab.degraded?.length ? 'stale' : 'recorded'}
+        state={lab.status === 'STALE' || lab.degraded?.length ? 'stale' : 'recorded'}
         detail={lab.window ? `${lab.window.start} → ${lab.window.end}` : undefined}
         facts={[
           { label: 'Factors', value: factors.length, digits: 0 , kind: 'count'},

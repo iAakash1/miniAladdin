@@ -13,44 +13,34 @@ reads one factor column across every symbol on a date. Until this service,
 nothing did that — every view in the product examined one ticker at a time,
 which cannot distinguish a factor that works from a market that rose.
 
-## Cost, and why it is cached hard
+## Production boundary
 
-A cold build is dominated by fetching prices for the whole universe, not by
-computation: ~30 provider calls through the bounded fan-out, then a
-vectorized panel build at ~13,600 cells/s. Measured end to end at roughly
-35-40 s cold for 30 names over 2.5 years, and milliseconds warm.
-
-That asymmetry is why the TTL is long. Factor evidence over a multi-year
-window does not change between two page loads; recomputing it per request
-would spend a minute of vendor budget to produce an identical answer.
+A cold build fetches large SEC companyfacts documents for an entire universe
+and constructs a wide panel. That work exceeded a 512 MB production worker's
+memory budget during the 2026-09-20 incident. The HTTP service therefore reads
+only a compact, size-bounded, hash-verified artifact. Historical construction
+is an explicit offline CLI operation; `run_background_local` remains solely as
+a legacy local/test harness and is not reachable from an API page load.
 """
 
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
 import os
 import socket
+import subprocess
 import threading
 import time
 import uuid
 from collections.abc import Iterator, MutableMapping
 from datetime import date as Date
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, Optional
 
-import pandas as pd
-
-from src import providers
-from src.observability import timer
-from src.panel import PanelBuilder, Universe
-from src.panel.factors import PRICE_FACTOR_COLUMNS
-from src.panel.schema import FACTOR_COLUMNS
-from src.providers.parallel import map_concurrent
-from src.research import (
-    analyse, analyse_redundancy, attribute, dispersion, evaluate_factor,
-    forward_returns, rank_cross_section, screen, simulate,
-)
-from src.research.cross_section import MIN_NAMES_PER_DATE
+from src.panel.universe import Universe
 from src.services import job_store
 from src.services.job_store import JobStoreUnavailable
 
@@ -59,6 +49,13 @@ logger = logging.getLogger("omnisignal.services.factor_lab")
 #: Long on purpose — see the module docstring. Evidence over years does not
 #: move between page loads.
 CACHE_TTL_SECONDS = 3600.0
+
+# Historical panel construction is research work. Production serves only a
+# compact immutable artifact built by the explicit CLI.
+ARTIFACT_SCHEMA_VERSION = 1
+ARTIFACT_ROOT = Path(os.getenv("FACTOR_LAB_ARTIFACT_ROOT", "data/manifests/factor_lab"))
+ARTIFACT_STALE_DAYS = 8
+MAX_ARTIFACT_BYTES = 8 * 1024 * 1024
 
 #: Weekly observation cadence. Daily would multiply vendor cost and panel
 #: size ~5x while adding almost no independent information: a 21-day forward
@@ -273,7 +270,140 @@ def request_supported(years: float, horizon: int) -> bool:
     return years in SUPPORTED_WINDOWS_YEARS and horizon in SUPPORTED_HORIZONS
 
 
+def _artifact_path(universe_name: str, years: float, horizon: int) -> Path:
+    return ARTIFACT_ROOT / f"{universe_name}-{str(years).replace('.', 'p')}-{horizon}.json"
+
+
+def _canonical_hash(value: dict[str, Any]) -> str:
+    raw = json.dumps(value, sort_keys=True, separators=(",", ":"), default=str)
+    return hashlib.sha256(raw.encode()).hexdigest()
+
+
 def run(
+    universe_name: str = "mega30",
+    years: float = 2.5,
+    horizon: int = DEFAULT_HORIZON,
+) -> dict[str, Any]:
+    """Read a verified published artifact; never starts a worker or panel build."""
+    if not request_supported(years, horizon):
+        return {
+            "status": "UNAVAILABLE", "reason": "UNSUPPORTED_CONFIGURATION",
+            "message": "The requested Factor Lab configuration is not declared.",
+        }
+    try:
+        Universe.named(universe_name)
+    except KeyError:
+        return {
+            "status": "UNAVAILABLE", "reason": "UNKNOWN_UNIVERSE",
+            "message": "The requested Factor Lab universe is not declared.",
+            # Retain the legacy field for API clients while `message` is the
+            # typed artifact-read contract used by the new workbench.
+            "error": "The requested Factor Lab universe is not declared.",
+            "universes": available_universes(),
+        }
+
+    path = _artifact_path(universe_name, years, horizon)
+    try:
+        if path.stat().st_size > MAX_ARTIFACT_BYTES:
+            raise ValueError("artifact exceeds the runtime size bound")
+        artifact = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return {
+            "status": "BUILD_REQUIRED", "reason": "ARTIFACT_NOT_PUBLISHED",
+            "message": "Research artifact has not been generated.",
+            "universe": {"name": universe_name},
+            "build_command": (
+                f"python -m scripts.factor_lab build --universe {universe_name} "
+                f"--years {years} --horizon {horizon}"
+            ),
+        }
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        logger.warning("factor artifact unavailable: %s", type(exc).__name__)
+        return {
+            "status": "UNAVAILABLE", "reason": "ARTIFACT_UNREADABLE",
+            "message": "The published Factor Lab artifact could not be verified.",
+            "universe": {"name": universe_name},
+        }
+
+    result = artifact.get("result")
+    valid = (
+        artifact.get("schema_version") == ARTIFACT_SCHEMA_VERSION
+        and isinstance(result, dict)
+        and artifact.get("content_hash") == _canonical_hash(result)
+        and artifact.get("universe") == universe_name
+        and artifact.get("years") == years
+        and artifact.get("horizon") == horizon
+    )
+    if not valid:
+        return {
+            "status": "UNAVAILABLE", "reason": "ARTIFACT_INTEGRITY_FAILED",
+            "message": "The published Factor Lab artifact failed integrity checks.",
+            "universe": {"name": universe_name},
+        }
+
+    try:
+        generated = datetime.fromisoformat(str(artifact["generated_at"]).replace("Z", "+00:00"))
+        stale = datetime.now(timezone.utc) - generated > timedelta(days=ARTIFACT_STALE_DAYS)
+    except (KeyError, TypeError, ValueError):
+        stale = True
+    return {
+        **result,
+        "status": "STALE" if stale else "READY",
+        "artifact": {key: artifact.get(key) for key in (
+            "artifact_id", "generated_at", "data_as_of", "git_commit",
+            "source_versions", "panel_snapshot_id", "content_hash",
+        )},
+        "cached": True,
+    }
+
+
+def _git_commit() -> str:
+    for name in ("RENDER_GIT_COMMIT", "GIT_COMMIT", "SOURCE_VERSION"):
+        if os.getenv(name):
+            return str(os.environ[name])[:40]
+    try:
+        return subprocess.run(
+            ["git", "rev-parse", "HEAD"], capture_output=True, text=True,
+            check=True, timeout=2,
+        ).stdout.strip()
+    except Exception:  # noqa: BLE001
+        return "unknown"
+
+
+def build_artifact(
+    universe_name: str = "mega30",
+    years: float = 2.5,
+    horizon: int = DEFAULT_HORIZON,
+    *,
+    destination: Path | None = None,
+) -> Path:
+    """Build and publish one immutable artifact outside the web process."""
+    if not request_supported(years, horizon):
+        raise ValueError("unsupported Factor Lab configuration")
+    result = _build(universe_name, years, horizon)
+    if result.get("error"):
+        raise RuntimeError(str(result["error"]))
+    payload = {
+        "schema_version": ARTIFACT_SCHEMA_VERSION,
+        "artifact_id": f"factor-lab-{universe_name}-{str(years).replace('.', 'p')}-{horizon}",
+        "universe": universe_name,
+        "years": years,
+        "horizon": horizon,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "data_as_of": (result.get("window") or {}).get("end"),
+        "git_commit": _git_commit(),
+        "source_versions": {"factor_engine": result.get("engine_version")},
+        "panel_snapshot_id": result.get("panel_snapshot_id"),
+        "content_hash": _canonical_hash(result),
+        "result": result,
+    }
+    path = destination or _artifact_path(universe_name, years, horizon)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    return path
+
+
+def run_background_local(
     universe_name: str = "mega30",
     years: float = 2.5,
     horizon: int = DEFAULT_HORIZON,
@@ -658,6 +788,12 @@ def _build(
     universe_name: str, years: float, horizon: int,
     progress: Optional[tuple[str, str | int]] = None,
 ) -> dict[str, Any]:
+    from src.observability import timer
+    from src.panel.builder import PanelBuilder
+    from src.panel.schema import FACTOR_COLUMNS
+    from src.research import analyse, evaluate_factor, forward_returns, rank_cross_section, simulate
+    from src.research.cross_section import MIN_NAMES_PER_DATE
+
     started = time.perf_counter()
 
     def stage(name: str) -> None:
@@ -810,6 +946,7 @@ def _build(
         "degraded": degraded,
         "caveats": _caveats(len(factors), universe),
         "engine_version": manifest.engine_version,
+        "panel_snapshot_id": manifest.snapshot_id,
         "build_seconds": round(time.perf_counter() - started, 2),
         "cached": False,
     }
@@ -864,6 +1001,8 @@ def _attribution_payload(
     evaluable: pd.DataFrame, factors: tuple[str, ...]
 ) -> Optional[dict[str, Any]]:
     """How much of the cross-section the factors actually explain."""
+    from src.research import attribute
+
     result = attribute(evaluable, factors)
     if result is None:
         return None
@@ -885,6 +1024,8 @@ def _redundancy_payload(
     panel: pd.DataFrame, factors: tuple[str, ...]
 ) -> Optional[dict[str, Any]]:
     """How many independent signals the seven factors actually represent."""
+    from src.research import analyse_redundancy
+
     result = analyse_redundancy(panel, factors)
     if result is None:
         return None
@@ -912,6 +1053,8 @@ def _screen_payload(
     rankable: pd.DataFrame, latest: Date, factors: tuple[str, ...]
 ) -> dict[str, Any]:
     """The composite cross-section: every name ranked, with factor agreement."""
+    from src.research import dispersion, screen
+
     rows = screen(rankable, factors, latest)
     return {
         "date": str(latest),
@@ -998,6 +1141,11 @@ def _caveats(factor_count: int, universe: Universe) -> list[str]:
 
 def _load_prices(symbols: list[str]) -> dict[str, pd.Series]:
     """Close series per symbol, fanned out through the bounded pool."""
+    import pandas as pd
+
+    from src import providers
+    from src.providers.parallel import map_concurrent
+
     def load(symbol: str) -> tuple[str, Optional[pd.Series]]:
         result = providers.market_data.get_series(symbol, "5y")
         if not result.ok or not result.data.bars:

@@ -22,7 +22,7 @@ from src.quant.model_lab.registry import TrialRecord, TrialRegistry, TrialStatus
 from src.quant.model_lab.robustness import distribution
 from src.quant.model_lab.runner import PREDICTION_DIR
 from src.quant.model_lab.search_space import family_for
-from src.quant.study import exp010b
+from src.quant.study import exp009b, exp010b
 from src.quant.study.firewall import FIREWALL
 from src.quant.validation.metrics import per_date_ic
 from src.quant.validation.significance import (
@@ -200,12 +200,19 @@ def build_campaign_report(
     method_commit: str,
     root: Path = Path("."),
 ) -> dict[str, Any]:
+    holdout_start, holdout_end = exp009b.arm_firewall(root)
     predictions: dict[str, pd.DataFrame] = {}
     records_by_model: dict[str, list[TrialRecord]] = {}
     for model_name in CPU_MODELS:
         records = complete_outer_records(registry, model_name, method_commit=method_commit)
         records_by_model[model_name] = records
         predictions[model_name] = load_outer_predictions(records, root=root)
+        maximum = pd.to_datetime(predictions[model_name]["date"]).dt.date.max()
+        if maximum >= holdout_start:
+            raise RuntimeError(
+                f"{model_name} outer predictions reach {maximum}, inside sealed holdout "
+                f"{holdout_start} through {holdout_end}"
+            )
 
     expected_keys = None
     for model_name, frame in predictions.items():

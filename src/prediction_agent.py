@@ -16,7 +16,6 @@ import logging
 import math
 from typing import Optional, TYPE_CHECKING
 
-import yfinance as yf
 import numpy as np
 import pandas as pd
 
@@ -67,6 +66,13 @@ class RiskAwarePredictionAgent:
     @property
     def data(self) -> pd.DataFrame:
         if self._data is None:
+            # yfinance is a comparatively heavy optional fallback.  Importing
+            # it at module load made every API worker retain the package even
+            # when the normal provider chain supplied price data.  Keep that
+            # memory out of the baseline process and pay for it only when this
+            # standalone fallback is actually exercised.
+            import yfinance as yf
+
             stock = yf.Ticker(self.ticker)
             self._data = stock.history(period=self.period)
             if self._data.empty:

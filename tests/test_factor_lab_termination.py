@@ -46,10 +46,10 @@ def _clean():
 def _drain(name: str = "mega30", limit: float = 10.0) -> dict:
     """Poll `run` the way the browser does, until it stops saying 'building'."""
     deadline = time.time() + limit
-    payload = service.run(name)
+    payload = service.run_background_local(name)
     while payload.get("status") == "building" and time.time() < deadline:
         time.sleep(0.02)
-        payload = service.run(name)
+        payload = service.run_background_local(name)
     return payload
 
 
@@ -186,7 +186,7 @@ def test_progress_is_monotonic_while_building(monkeypatch):
     monkeypatch.setattr(service, "BUILD_DEADLINE_SECONDS", 60.0)
 
     try:
-        payload = service.run("mega30")
+        payload = service.run_background_local("mega30")
         last = len(service.STAGES) - 1
         # A wall-clock budget, not an iteration count.
         #
@@ -208,7 +208,7 @@ def test_progress_is_monotonic_while_building(monkeypatch):
             if payload["stage_index"] == last:
                 break  # one build's worth of progress is the whole question
             time.sleep(0.01)
-            payload = service.run("mega30")
+            payload = service.run_background_local("mega30")
         assert seen, "never observed a building state"
         assert seen == sorted(seen), f"stage index went backwards: {seen}"
         assert seen[-1] == last, f"never reached the final stage: {seen}"
@@ -217,7 +217,7 @@ def test_progress_is_monotonic_while_building(monkeypatch):
 
 
 def test_an_unknown_universe_answers_immediately_without_a_job():
-    payload = service.run("does-not-exist")
+    payload = service.run_background_local("does-not-exist")
     assert payload["status"] == "error"
     assert "unknown universe" in payload["error"]
     # It must not have spawned a build to discover something knowable up front.
@@ -226,7 +226,7 @@ def test_an_unknown_universe_answers_immediately_without_a_job():
 
 
 def test_an_unsupported_window_answers_without_starting_a_worker():
-    payload = service.run("mega30", years=1.234, horizon=10)
+    payload = service.run_background_local("mega30", years=1.234, horizon=10)
     assert payload["status"] == "error"
     assert payload["retryable"] is False
     with service._jobs_lock:
@@ -250,11 +250,11 @@ def test_live_worker_count_is_bounded(monkeypatch):
     monkeypatch.setattr(service, "MAX_CONCURRENT_BUILDS", 1)
 
     try:
-        first = service.run("mega30", years=2.5, horizon=21)
+        first = service.run_background_local("mega30", years=2.5, horizon=21)
         assert first["status"] == "building"
         assert entered.wait(2.0)
 
-        second = service.run("mega30", years=1.0, horizon=21)
+        second = service.run_background_local("mega30", years=1.0, horizon=21)
         assert second["status"] == "busy"
         assert second["retryable"] is True
         assert second["active_builds"] == 1
@@ -375,7 +375,7 @@ def test_a_stale_owner_is_reclaimed_with_a_new_token(monkeypatch):
     }
     monkeypatch.setattr(service, "_run_job", lambda *args, **kwargs: None)
 
-    payload = service.run("mega30")
+    payload = service.run_background_local("mega30")
 
     assert payload["status"] == "building"
     current = service._jobs[key]
@@ -406,7 +406,7 @@ def test_a_fresh_foreign_heartbeat_joins_instead_of_duplicate_compute(monkeypatc
     starts: list[tuple] = []
     monkeypatch.setattr(service, "_run_job", lambda *args, **kwargs: starts.append(args))
 
-    payload = service.run("mega30")
+    payload = service.run_background_local("mega30")
 
     assert payload["status"] == "building"
     assert starts == []

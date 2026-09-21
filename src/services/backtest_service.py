@@ -26,6 +26,8 @@ import threading
 import time
 from typing import Any, Optional
 
+from src.services.cache_policy import put_ttl
+
 import numpy as np
 import pandas as pd
 
@@ -36,6 +38,7 @@ logger = logging.getLogger(__name__)
 
 CACHE_TTL_SECONDS = 3600.0
 _cache: dict[str, tuple[float, dict[str, Any]]] = {}
+MAX_CACHE_ENTRIES = 32
 _lock = threading.Lock()
 
 STEP = 5                # recompute signal weekly (5 trading days)
@@ -351,7 +354,8 @@ def run_backtest(ticker: str) -> dict[str, Any]:
         "cached": False,
     }
     with _lock:
-        _cache[ticker] = (now + CACHE_TTL_SECONDS, payload)
+        put_ttl(_cache, ticker, now + CACHE_TTL_SECONDS, payload,
+                max_entries=MAX_CACHE_ENTRIES, now=now)
     logger.info("backtest %s: %d samples, IC=%s, %.0fms",
                 ticker, len(scores), payload["ic"], payload["computed_in_ms"])
     return payload

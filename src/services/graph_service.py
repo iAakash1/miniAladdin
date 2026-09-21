@@ -15,6 +15,7 @@ needs a label re-lookup.
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from typing import Any, Optional
 
@@ -22,12 +23,16 @@ from src.providers.research_schemas import KnowledgeBundle
 from src.providers.vendors.wikidata_vendor import WikidataVendor
 from src.services import company_intelligence
 from src.services.knowledge_graph import neighbors
+from src.services.cache_policy import put_bounded, put_ttl
 
 logger = logging.getLogger(__name__)
 
 CACHE_TTL_SECONDS = 21600.0
+MAX_CACHE_ENTRIES = 256
+MAX_QID_ENTRIES = 2048
 _cache: dict[str, tuple[float, dict[str, Any]]] = {}
 _qid_index: dict[str, tuple[str, str]] = {}  # node_id → (qid, label)
+_cache_lock = threading.Lock()
 
 _wikidata = WikidataVendor()
 
@@ -37,7 +42,8 @@ def remember_qids(bundle_nodes: list) -> None:
     for node in bundle_nodes:
         qid = (node.metadata or {}).get("qid") or (node.metadata or {}).get("wikidata") or ""
         if qid.startswith("Q"):
-            _qid_index[node.id] = (qid, node.label)
+            with _cache_lock:
+                put_bounded(_qid_index, node.id, (qid, node.label), max_entries=MAX_QID_ENTRIES)
 
 
 def expand(node_id: str, label_hint: str = "") -> dict[str, Any]:
@@ -47,7 +53,8 @@ def expand(node_id: str, label_hint: str = "") -> dict[str, Any]:
         return _empty(node_id)
 
     now = time.time()
-    cached = _cache.get(node_id)
+    with _cache_lock:
+        cached = _cache.get(node_id)
     if cached and cached[0] > now:
         return cached[1]
 
@@ -58,7 +65,9 @@ def expand(node_id: str, label_hint: str = "") -> dict[str, Any]:
     else:
         result = _expand_entity(node_id, node_type, key, label_hint)
 
-    _cache[node_id] = (now + CACHE_TTL_SECONDS, result)
+    with _cache_lock:
+        put_ttl(_cache, node_id, now + CACHE_TTL_SECONDS, result,
+                max_entries=MAX_CACHE_ENTRIES, now=now)
     return result
 
 
@@ -94,7 +103,8 @@ def _expand_company(ticker: str) -> dict[str, Any]:
 
 
 def _expand_entity(node_id: str, node_type: str, key: str, label_hint: str) -> dict[str, Any]:
-    known = _qid_index.get(node_id)
+    with _cache_lock:
+        known = _qid_index.get(node_id)
     qid = known[0] if known else ""
     label = (known[1] if known else "") or label_hint or key.replace("-", " ").title()
 
@@ -182,8 +192,9 @@ def _empty(node_id: str, label: str = "", node_type: str = "concept") -> dict[st
 
 
 def reset_for_tests() -> None:
-    _cache.clear()
-    _qid_index.clear()
+    with _cache_lock:
+        _cache.clear()
+        _qid_index.clear()
 
 
 # ── V9 workspace operations ──────────────────────────────────────────────────
@@ -219,7 +230,8 @@ def workspace(symbols: list[str], hops: int = 2,
 
     cache_key = f"ws:{','.join(symbols)}:{hops}"
     now = time.time()
-    cached = _cache.get(cache_key)
+    with _cache_lock:
+        cached = _cache.get(cache_key)
     if cached and cached[0] > now and not (node_types or edge_types or min_confidence or before):
         return cached[1]
 
@@ -247,7 +259,9 @@ def workspace(symbols: list[str], hops: int = 2,
         ] if len(roots) > 1 else [],
     }
     if not (node_types or edge_types or min_confidence or before):
-        _cache[cache_key] = (now + CACHE_TTL_SECONDS, result)
+        with _cache_lock:
+            put_ttl(_cache, cache_key, now + CACHE_TTL_SECONDS, result,
+                    max_entries=MAX_CACHE_ENTRIES, now=now)
     return result
 
 

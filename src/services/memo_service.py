@@ -41,6 +41,7 @@ from typing import Any, Optional
 from pydantic import BaseModel, Field, ValidationError
 
 from src.services import llm_service
+from src.services.cache_policy import put_ttl
 from src.services.evidence import EvidenceItem, citation_ids, collect_evidence, extract_citations
 from src.services.metrics import llm_metrics
 
@@ -123,6 +124,7 @@ Style: research desk. Specific numbers over adjectives. No advice language, no d
 
 _cache: dict[str, tuple[float, dict[str, Any]]] = {}
 _cache_lock = threading.Lock()
+MAX_CACHE_ENTRIES = 64
 
 
 def reset_for_tests() -> None:
@@ -325,8 +327,10 @@ def generate_memo(research: dict[str, Any]) -> dict[str, Any]:
 
     memo = _attach(narrative.model_dump(), research, evidence, cited, generated=True)
     memo["cached"] = False
+    cache_now = time.time()
     with _cache_lock:
-        _cache[key] = (time.time() + MEMO_CACHE_TTL_SECONDS, memo)
+        put_ttl(_cache, key, cache_now + MEMO_CACHE_TTL_SECONDS, memo,
+                max_entries=MAX_CACHE_ENTRIES, now=cache_now)
     logger.info(
         "memo %s: %d evidence items, %d cited, %.0fms",
         ticker, len(evidence), len(cited), (time.time() - started) * 1000,

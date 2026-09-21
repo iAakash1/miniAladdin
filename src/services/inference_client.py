@@ -54,6 +54,7 @@ SNAPSHOT_DIR = Path(os.environ.get("MODEL_ARTIFACT_DIR", "artifacts"))
 _META_TTL_SECONDS = 300.0
 _meta_cache: dict[str, Any] = {}
 _snapshot_cache: dict[str, Any] = {}
+_health_cache: dict[str, Any] = {}
 _lock = threading.Lock()
 
 
@@ -150,9 +151,29 @@ def health() -> dict[str, Any]:
 
         response = requests.get(f"{INFERENCE_URL}/health", timeout=TIMEOUT_SECONDS)
         response.raise_for_status()
-        return {"status": "ok", **response.json()}
+        payload = {"status": "ok", **response.json()}
     except Exception as error:  # noqa: BLE001
-        return _from_exception(error)
+        payload = _from_exception(error)
+    with _lock:
+        _health_cache.clear()
+        _health_cache.update(payload=payload, at=time.time())
+    return payload
+
+
+def observed_health() -> dict[str, Any]:
+    """Last observed remote state without performing network I/O."""
+    if not configured():
+        return _unavailable("QUANT_INFERENCE_URL is not set")
+    with _lock:
+        cached = _health_cache.get("payload")
+        observed_at = _health_cache.get("at")
+    if isinstance(cached, dict):
+        return {**cached, "observed_at": observed_at, "probe": "last_observed"}
+    return _unavailable(
+        "configured; no in-process health observation has been recorded",
+        status="unknown",
+        remedy="Use the bounded inference status route to perform an explicit probe.",
+    )
 
 
 def model_card() -> dict[str, Any]:

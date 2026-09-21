@@ -56,6 +56,7 @@ from typing import Any, Optional
 from pydantic import BaseModel, Field, ValidationError
 
 from src.services.metrics import llm_metrics
+from src.services.cache_policy import put_ttl
 
 logger = logging.getLogger(__name__)
 
@@ -251,6 +252,7 @@ def reset_client_for_tests() -> None:
 
 _cache: dict[str, tuple[float, dict[str, Any]]] = {}
 _cache_lock = threading.Lock()
+MAX_CACHE_ENTRIES = 128
 
 
 def _cache_ttl() -> float:
@@ -290,8 +292,10 @@ def _cache_get(key: str) -> Optional[dict[str, Any]]:
 
 
 def _cache_put(key: str, value: dict[str, Any]) -> None:
+    now = time.time()
     with _cache_lock:
-        _cache[key] = (time.time() + _cache_ttl(), value)
+        put_ttl(_cache, key, now + _cache_ttl(), value,
+                max_entries=MAX_CACHE_ENTRIES, now=now)
 
 
 # ── Result assembly ───────────────────────────────────────────────────────────

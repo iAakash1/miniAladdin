@@ -30,6 +30,11 @@ def is_configured() -> bool:
     return bool(os.getenv("SUPABASE_URL") and os.getenv("SUPABASE_SERVICE_ROLE_KEY"))
 
 
+def client_is_initialized() -> bool:
+    """Local state only; unlike ``get_client`` this never imports or connects."""
+    return _test_client is not None or _client is not None
+
+
 def get_client() -> Optional[Any]:
     """The shared Supabase client, or None when persistence is unavailable."""
     global _client, _client_failed

@@ -71,6 +71,8 @@ from src.services.clerk_auth import optional_clerk_user, require_clerk_user
 from src.services.database.repositories import AnalysisRepository
 from src.services.provenance import Ledger
 from src.services import visual_intelligence
+from src.services import memory_diagnostics
+from src.services import log_sanitizer
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 # Railway captures stdout; structured single-line records with timestamps.
@@ -79,6 +81,7 @@ logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO").upper(),
     format="%(asctime)s %(levelname)s %(name)s — %(message)s",
 )
+log_sanitizer.install()
 logger = logging.getLogger("omnisignal.api")
 
 DISCLAIMER = "Research and education only — not investment advice."
@@ -134,7 +137,9 @@ async def request_logging(request, call_next):
     # stays on in production rather than behind a flag nobody enables before
     # the incident they needed it for.
     profile = observability.begin(f"{request.method} {request.url.path}")
+    memory_before = memory_diagnostics.snapshot()
     started = time.perf_counter()
+    response = None
     try:
         response = await call_next(request)
     except Exception:
@@ -142,23 +147,52 @@ async def request_logging(request, call_next):
             "rid=%s unhandled error %s %s", request_id, request.method, request.url.path
         )
         raise
-    duration_ms = (time.perf_counter() - started) * 1000
-    user = getattr(request.state, "clerk_user", None)
-    report = profile.report()
-    observability.registry.observe(
-        "http.request", duration_ms,
-        method=request.method, path=_metrics_path(request.url.path),
-    )
-    logger.info(
-        "rid=%s %s %s%s -> %d in %.0fms (work %.0fms, %.1fx parallel, %.0fms unattributed)",
-        request_id, request.method, request.url.path,
-        f" user={user}" if user else "",
-        response.status_code, duration_ms,
-        report["work_ms"], report["parallelism"], report["unattributed_ms"],
-    )
-    observability.clear()
+    finally:
+        duration_ms = (time.perf_counter() - started) * 1000
+        user = getattr(request.state, "clerk_user", None)
+        report = profile.report()
+        memory_after = memory_diagnostics.snapshot()
+        observability.registry.observe(
+            "http.request", duration_ms,
+            method=request.method, path=_metrics_path(request.url.path),
+        )
+        logger.info(
+            "rid=%s %s %s%s -> %s in %.0fms (work %.0fms, %.1fx parallel, "
+            "%.0fms unattributed, rss_mb=%s, rss_delta_mb=%s)",
+            request_id, request.method, request.url.path,
+            f" user={user}" if user else "",
+            response.status_code if response is not None else "exception", duration_ms,
+            report["work_ms"], report["parallelism"], report["unattributed_ms"],
+            memory_after.rss_mb,
+            (round(memory_after.rss_mb - memory_before.rss_mb, 2)
+             if memory_after.rss_mb is not None and memory_before.rss_mb is not None else None),
+        )
+        pressure = memory_diagnostics.pressure_level(memory_after.memory_utilization_percent)
+        if pressure:
+            logger.warning(
+                "event=memory_pressure level=%s rid=%s path=%s rss_mb=%s "
+                "memory_limit_mb=%s utilization_percent=%s",
+                pressure, request_id, _metrics_path(request.url.path), memory_after.rss_mb,
+                memory_after.memory_limit_mb, memory_after.memory_utilization_percent,
+            )
+        # Context-local profiles must never survive either a successful or an
+        # exceptional request.
+        observability.clear()
+    assert response is not None
     response.headers["X-Request-Id"] = request_id
     return response
+
+
+@app.on_event("startup")
+def report_startup_memory() -> None:
+    memory = memory_diagnostics.snapshot()
+    logger.info(
+        "event=startup build_sha=%s python=%s pid=%d worker_count=%s rss_mb=%s "
+        "peak_rss_mb=%s memory_limit_mb=%s environment=%s",
+        _build_commit(), sys.version.split()[0], os.getpid(),
+        memory_diagnostics.configured_worker_count(), memory.rss_mb,
+        memory.peak_rss_mb, memory.memory_limit_mb, deployment.environment_name(),
+    )
 
 
 def _metrics_path(path: str) -> str:
@@ -2042,16 +2076,16 @@ def get_factor_lab(
     years: float = Query(2.5, ge=0.5, le=10.0),
     horizon: int = Query(21, ge=5, le=126, description="forward-return horizon in trading days"),
 ):
-    """Cross-sectional evidence for every factor in the scoring engine.
+    """Published cross-sectional evidence for every factor in the scoring engine.
 
     Answers the question single-ticker views structurally cannot: does this
     factor rank names correctly? Rank IC per observation date, Newey-West
     corrected for the overlap that inflates naive t-statistics, plus the
     quantile spread and the full ranked cross-section on the latest date.
 
-    Slow and honest on a cold cache (a full point-in-time panel build);
-    milliseconds afterwards. Caveats ship inside the payload rather than in
-    documentation nobody reads.
+    This endpoint is read-only. A missing artifact returns BUILD_REQUIRED;
+    it never starts SEC downloads, panel construction, or estimator work in
+    the web process. Caveats ship inside published artifacts.
     """
     if not factor_lab_service.request_supported(years, horizon):
         raise HTTPException(

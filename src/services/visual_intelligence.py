@@ -50,6 +50,7 @@ from src.providers.vendors.visual_vendors import (
     UnsplashVendor,
     stable_pick,
 )
+from src.services.cache_policy import put_ttl
 
 logger = logging.getLogger(__name__)
 
@@ -85,9 +86,10 @@ class _Cache:
     saves.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, max_entries: int = 256) -> None:
         self._data: dict[str, tuple[float, Any]] = {}
         self._lock = threading.Lock()
+        self._max_entries = max_entries
 
     def get(self, key: str) -> Optional[Any]:
         with self._lock:
@@ -101,8 +103,10 @@ class _Cache:
             return value
 
     def put(self, key: str, value: Any, ttl: float) -> None:
+        now = time.monotonic()
         with self._lock:
-            self._data[key] = (time.monotonic() + ttl, value)
+            put_ttl(self._data, key, now + ttl, value,
+                    max_entries=self._max_entries, now=now)
 
     def stats(self) -> dict[str, int]:
         with self._lock:

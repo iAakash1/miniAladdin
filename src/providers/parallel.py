@@ -46,6 +46,8 @@ from __future__ import annotations
 import concurrent.futures
 import contextvars
 import logging
+import os
+import threading
 import time
 from dataclasses import dataclass
 from typing import Callable, Generic, Optional, Sequence, TypeVar
@@ -67,6 +69,21 @@ DEFAULT_WORKERS = 8
 #: This is the backstop for a call that hangs beyond even that, so one dead
 #: socket cannot pin a user request open indefinitely.
 DEFAULT_TIMEOUT_SECONDS = 30.0
+
+# One process-wide pool, not one pool per request. Individual fan-outs were
+# bounded before, but simultaneous dashboard/research/recommendation requests
+# could each create eight more threads. This is the aggregate budget.
+try:
+    PROCESS_WORKER_LIMIT = max(1, min(32, int(os.getenv("PROVIDER_CONCURRENCY_LIMIT", "8"))))
+except ValueError:
+    PROCESS_WORKER_LIMIT = 8
+
+_PROCESS_POOL = concurrent.futures.ThreadPoolExecutor(
+    max_workers=PROCESS_WORKER_LIMIT, thread_name_prefix="omni-provider",
+)
+_activity_lock = threading.Lock()
+_active_workers = 0
+_peak_active_workers = 0
 
 
 @dataclass(frozen=True)
@@ -111,23 +128,36 @@ def map_concurrent(
     if not items:
         return []
 
-    # One item does not justify a thread and its handoff. This is the common
-    # case for single-symbol services, so it is worth not paying for.
+    # A provider task may itself invoke a smaller fan-out. Submitting that
+    # nested work back into the same fixed pool can deadlock when every worker
+    # is waiting for a child. Run nested batches sequentially in their current
+    # worker; the outer batch already supplies the process-wide parallelism.
+    if threading.current_thread().name.startswith("omni-provider"):
+        return [_run_one(fn, item) for item in items]
+    # Preserve the no-handoff fast path for a single item. Provider network
+    # calls still pass through the vendor layer's fixed process pool.
     if len(items) == 1:
-        return [_run_one(fn, items[0])]  # caller's context, already current
+        return [_run_one(fn, items[0])]
 
     started = time.perf_counter()
     results: list[Optional[Outcome[R]]] = [None] * len(items)
 
-    # Deliberately not `with ThreadPoolExecutor(...)`: its `__exit__` calls
-    # `shutdown(wait=True)`, which blocks until every worker finishes —
-    # including the hung one the timeout exists to escape. Using the context
-    # manager would make `timeout` decorative, and a test proves it does not
-    # (`test_a_hung_item_cannot_pin_the_request_open`).
-    pool = concurrent.futures.ThreadPoolExecutor(
-        max_workers=min(workers, len(items)),
-        thread_name_prefix=f"omni-{label}",
-    )
+    local_limit = min(workers, len(items), PROCESS_WORKER_LIMIT)
+    deadline = time.monotonic() + timeout
+    pending: dict[concurrent.futures.Future, int] = {}
+    next_index = 0
+
+    def submit(index: int) -> bool:
+        try:
+            future = _PROCESS_POOL.submit(
+                contextvars.copy_context().run, _run_one, fn, items[index]
+            )
+        except RuntimeError:
+            logger.info("%s: process pool refused new work (interpreter shutting down)", label)
+            return False
+        pending[future] = index
+        return True
+
     try:
         # Copy the caller's context into every worker. `contextvars` do not
         # cross a ThreadPoolExecutor boundary on their own, so without this a
@@ -146,31 +176,40 @@ def map_concurrent(
         # submitted still resolves, and the rest are reported as failed
         # outcomes like any other. Letting it propagate turns a clean exit
         # into a stack trace in the test output.
-        futures: dict[concurrent.futures.Future, int] = {}
-        for index, item in enumerate(items):
-            try:
-                futures[pool.submit(contextvars.copy_context().run, _run_one, fn, item)] = index
-            except RuntimeError:
-                logger.info("%s: pool refused new work (interpreter shutting down)", label)
+        while next_index < local_limit:
+            if not submit(next_index):
+                next_index = len(items)
                 break
-        try:
-            for future in concurrent.futures.as_completed(futures, timeout=timeout):
-                # Already resolved, so this never blocks.
-                results[futures[future]] = future.result()
-        except concurrent.futures.TimeoutError:
-            # Whatever finished is kept; the rest are marked below. Partial
-            # results beat an exception — the sequential loop this replaced
-            # rendered every card it managed to fetch.
+            next_index += 1
+        while pending:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            done, _ = concurrent.futures.wait(
+                pending, timeout=remaining,
+                return_when=concurrent.futures.FIRST_COMPLETED,
+            )
+            if not done:
+                break
+            for future in done:
+                index = pending.pop(future)
+                results[index] = future.result()
+                if next_index < len(items):
+                    if submit(next_index):
+                        next_index += 1
+                    else:
+                        next_index = len(items)
+        if pending or next_index < len(items):
             logger.warning(
                 "%s: batch deadline of %.1fs passed with %d/%d items done",
-                label, timeout,
-                sum(1 for outcome in results if outcome is not None), len(items),
+                label, timeout, sum(1 for outcome in results if outcome is not None), len(items),
             )
     finally:
-        # `wait=False` abandons any still-running worker rather than joining
-        # it. Bounded in practice: vendor adapters carry their own 6 s socket
-        # timeout, so an abandoned thread exits on its own shortly after.
-        pool.shutdown(wait=False, cancel_futures=True)
+        # Running calls cannot be killed in Python. They remain inside the
+        # fixed process pool, so repeated timeouts cannot create overlapping
+        # generations of ever more worker threads.
+        for future in pending:
+            future.cancel()
 
     filled = [
         outcome if outcome is not None
@@ -202,9 +241,25 @@ def values(outcomes: Sequence[Outcome[R]]) -> list[R]:
 
 
 def _run_one(fn: Callable[[T], R], item: T) -> Outcome[R]:
+    global _active_workers, _peak_active_workers
     started = time.perf_counter()
+    with _activity_lock:
+        _active_workers += 1
+        _peak_active_workers = max(_peak_active_workers, _active_workers)
     try:
         return Outcome(fn(item), None, time.perf_counter() - started)
     except BaseException as exc:  # noqa: BLE001 — isolated, never propagated
         logger.warning("fanout item failed: %s", exc)
         return Outcome(None, exc, time.perf_counter() - started)
+    finally:
+        with _activity_lock:
+            _active_workers -= 1
+
+
+def concurrency_snapshot() -> dict[str, int]:
+    with _activity_lock:
+        return {
+            "limit": PROCESS_WORKER_LIMIT,
+            "active": _active_workers,
+            "peak_active": _peak_active_workers,
+        }

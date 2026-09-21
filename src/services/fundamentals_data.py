@@ -14,12 +14,15 @@ import threading
 import time
 from typing import Any, Optional
 
+from src.services.cache_policy import put_ttl
+
 from src import providers
 
 logger = logging.getLogger(__name__)
 
 CACHE_TTL_SECONDS = 6 * 3600.0
 _cache: dict[str, tuple[float, dict[str, Any]]] = {}
+MAX_CACHE_ENTRIES = 256
 _lock = threading.Lock()
 
 
@@ -135,7 +138,8 @@ def get_quality_inputs(symbol: str) -> dict[str, Any]:
         "asset_growth_yoy": None, "source": None,
     }
     with _lock:
-        _cache[key] = (now + CACHE_TTL_SECONDS, data)
+        put_ttl(_cache, key, now + CACHE_TTL_SECONDS, data,
+                max_entries=MAX_CACHE_ENTRIES, now=now)
     return data
 
 
@@ -170,7 +174,8 @@ def get_pead_inputs(symbol: str) -> dict[str, Any]:
         logger.info("earnings surprise unavailable for %s", symbol)
 
     with _lock:
-        _cache[key] = (now + CACHE_TTL_SECONDS, result)
+        put_ttl(_cache, key, now + CACHE_TTL_SECONDS, result,
+                max_entries=MAX_CACHE_ENTRIES, now=now)
     return result
 
 

@@ -10,6 +10,8 @@ import json
 import math
 import pathlib
 import re
+import threading
+import time
 
 import pytest
 from fastapi.testclient import TestClient
@@ -184,6 +186,34 @@ def test_an_unavailable_snapshot_is_a_503_not_an_empty_page(monkeypatch):
     with TestClient(api.app) as client:
         for path in ("/api/explore", "/api/recommendations"):
             assert client.get(path).status_code == 503
+
+
+def test_cold_snapshot_requests_are_single_flight(monkeypatch):
+    explore_service.reset_cache_for_testing()
+    entered = threading.Event()
+    release = threading.Event()
+    calls = 0
+
+    def build():
+        nonlocal calls
+        calls += 1
+        entered.set()
+        release.wait(2)
+        return _snapshot()
+
+    monkeypatch.setattr(explore_service, "_build_snapshot", build)
+    results = []
+    first = threading.Thread(target=lambda: results.append(explore_service.get_snapshot()))
+    second = threading.Thread(target=lambda: results.append(explore_service.get_snapshot()))
+    first.start()
+    assert entered.wait(1)
+    second.start()
+    time.sleep(0.05)
+    release.set()
+    first.join(2)
+    second.join(2)
+    assert calls == 1
+    assert len(results) == 2
 
 
 # ── the category registry and the interface that renders it ──────────────────

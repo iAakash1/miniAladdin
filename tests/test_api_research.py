@@ -9,6 +9,7 @@ GROQ_API_KEY is unset.
 from __future__ import annotations
 
 from unittest.mock import patch
+import threading
 
 import pytest
 from fastapi.testclient import TestClient
@@ -216,10 +217,8 @@ def test_factor_lab_never_blocks_the_request():
     assert response.status_code == 200
     assert elapsed < 5.0, f"endpoint blocked for {elapsed:.1f}s"
     payload = response.json()
-    assert payload["status"] in {"building", "ready"}
-    if payload["status"] == "building":
-        assert payload["stage"] in factor_lab_service.STAGES
-        assert payload["stage_index"] == 0
+    assert payload["status"] in {"BUILD_REQUIRED", "READY", "STALE"}
+    assert not any(thread.name.startswith("factor-lab-") for thread in threading.enumerate())
 
 
 def test_factor_lab_reports_stages_a_client_can_render():
