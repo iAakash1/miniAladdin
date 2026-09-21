@@ -7,7 +7,7 @@ second backend or inference service to apply these settings.
 
 | Service | Purpose | Source | Start command |
 |---|---|---|---|
-| `minialaddin-d8oe` | Primary FastAPI backend | repository root | `uvicorn api.index:app --host 0.0.0.0 --port $PORT` |
+| `miniAladdin` (`minialaddin-d8oe` URL slug) | Primary FastAPI backend | repository root | `uvicorn api.index:app --host 0.0.0.0 --port $PORT` |
 | `minialaddin-quant-inference` | Read-only EXP-006 research inference | `render.yaml` | `uvicorn services.inference.app:app --host 0.0.0.0 --port $PORT` |
 
 `render.yaml` declares only the existing inference service. The primary
@@ -56,8 +56,10 @@ Research and background work:
 | `QUANT_REGISTRY_ROOT` | Optional model-registry location override. |
 | `QUANT_ARTIFACT_ROOT` | Optional experiment-artifact location override. |
 | `QUANT_DATA_ROOT` | Optional research dataset location override. |
-| `REDIS_URL` | Shared Factor Lab job/result store. Required when the backend runs more than one worker. An unreachable configured Redis fails closed and never falls back to a process-local registry. |
-| `WEB_CONCURRENCY` | Worker count reported by diagnostics. Omit only when the platform supplies an equivalent marker. |
+| `FACTOR_LAB_ARTIFACT_ROOT` | Optional location of offline-built, immutable Factor Lab artifacts. The web process never builds them. |
+| `PROVIDER_CONCURRENCY_LIMIT` | Fixed process-wide provider worker budget. Defaults to `8`; keep bounded on the 512 MB service. |
+| `MEMORY_LIMIT_MB` | Optional explicit diagnostics override. Normally cgroups report the Render limit automatically. |
+| `WEB_CONCURRENCY` | Worker count reported by diagnostics. The current Uvicorn command has no `--workers` flag and therefore launches one process; setting this name alone does not create workers. |
 
 Paper trading is intentionally paper-only:
 
@@ -100,6 +102,12 @@ After an existing service deploys:
 3. Open `/terminal/admin` with an operator account and confirm the three SHAs.
 4. Check `/api/quant/status`, `/api/quant/inference/status`, and
    `/api/paper/status` without printing any credential values.
-5. When `REDIS_URL` is configured, start one Factor Lab request and poll it
-   through a second backend worker. Confirm one token, advancing heartbeat,
-   one result key and no duplicate build.
+5. Check `/api/factors?universe=mega30`. It must return a published artifact
+   state (`READY` or `STALE`) or an explicit `BUILD_REQUIRED`; it must never
+   start a background panel build.
+6. Check `/api/system/health` for current/peak RSS, the detected memory limit,
+   and the process-wide provider concurrency budget.
+
+The current backend is capped at 512 MB. The 2026-09-20 incident and measured
+remediation are recorded in
+[`incidents/PROD_INCIDENT_001_RENDER_MEMORY.md`](incidents/PROD_INCIDENT_001_RENDER_MEMORY.md).
