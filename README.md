@@ -791,15 +791,18 @@ reason. The ones that came from a measured failure rather than a preference:
 
 ## Environment variables
 
-**Render (backend)**
+**Backend runtime (Cloud Run candidate; Render rollback)**
 
 | Var | Required | Purpose |
 |---|---|---|
 | `FRED_API_KEY` | yes | Macro series (free: fred.stlouisfed.org) |
 | `ALPHA_VANTAGE_KEY` | optional | Fundamentals (free tier: 25 req/day) |
 | `NEWSAPI_KEY` | optional | Premium headlines (falls back to Yahoo RSS) |
-| `GROQ_API_KEY` | optional | LLM narration (free tier: console.groq.com) |
-| `LLM_MODEL` | optional | Default `openai/gpt-oss-120b` |
+| `DEEPSEEK_API_KEY` | optional | Grounded final Research writer |
+| `DEEPSEEK_MODEL` | optional | Default `deepseek-chat` |
+| `GROQ_API_KEY` | optional | Evidence analyst and bounded final-writer fallback |
+| `GROQ_MODEL` | optional | Default `openai/gpt-oss-120b`; `LLM_MODEL` remains a compatibility alias |
+| `LLM_PIPELINE_MODE` | optional | `deep` (Groq → DeepSeek) or `fast` (DeepSeek direct) |
 | `POLYGON_API_KEY` · `FINNHUB_API_KEY` · `TWELVEDATA_API_KEY` · `FMP_API_KEY` · `MARKETSTACK_API_KEY` · `GNEWS_API_KEY` · `TAVILY_API_KEY` · `EXA_API_KEY` | optional | Extra vendors in the provider chains — each self-disables when absent |
 | `SUPABASE_URL` | optional | Persistence: hosted Supabase project URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | optional | Persistence: server-only key (bypasses RLS by design — never ships to a browser) |
@@ -819,7 +822,9 @@ with persistence disabled and analysis fully functional.
 | `NEXT_PUBLIC_RAZORPAY_KEY_ID` | yes | Razorpay Checkout in the browser (key IDs are public by design — this one is *intentionally* exposed) |
 | `RAZORPAY_KEY_ID` | yes | Server-only copy of the key ID for order creation — API routes never read `NEXT_PUBLIC_*` values |
 | `RAZORPAY_KEY_SECRET` | yes | Order creation + HMAC verification — must **never** be exposed to the browser |
-| `BACKEND_ORIGIN` | optional | Backend base for the `/api/*` proxy (defaults to the Render deployment) |
+| `BACKEND_ORIGIN` | required | Backend base for the server-side `/api/*` proxy |
+| `BACKEND_AUTH_MODE` | required | `google_oidc` for private Cloud Run; `none` for Render rollback |
+| `GCP_PROJECT_NUMBER` · `GCP_WORKLOAD_IDENTITY_POOL_ID` · `GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID` · `GCP_SERVICE_ACCOUNT_EMAIL` · `CLOUD_RUN_AUDIENCE` | Cloud Run only | Non-secret identifiers for keyless Vercel OIDC federation |
 | `NEXT_PUBLIC_SITE_URL` | optional | Canonical URL for metadata |
 
 Keys live **only** in hosting dashboards and local `.env` files (gitignored).
@@ -934,16 +939,17 @@ a client that ignores the new keys behaves exactly as before.
 
 ### LLM narration layer
 
-`src/services/llm_service.py` calls Groq `openai/gpt-oss-120b` with
-deterministic parameters (`temperature=0.2, top_p=1, reasoning_effort=medium,
-max 4096 tokens, JSON-object mode`). The model receives the engine's finished
-scorecard — recommendation, itemized confidence, risk decomposition, factor
-contributions, macro, sentiment — and returns narrative fields only. Output is
-`json.loads`-parsed and Pydantic-validated (one corrective retry, then a
-deterministic fallback assembled from the engine's own rationale — never a
-failed request). The schema has no decision fields, so the model *cannot*
-alter recommendation/confidence/risk; engine values are attached verbatim.
-Responses cache 5 minutes per (ticker, day, verdict, model, prompt version).
+`src/services/narrative_pipeline.py` builds deterministic evidence ids from the
+engine snapshot. In deep mode Groq returns a compact evidence brief and
+DeepSeek writes the final narrative from the original evidence plus that
+untrusted brief; fast mode calls DeepSeek directly. Python rejects unknown
+evidence ids, unsupported numeric claims, invalid schemas and prompt/secret
+material. One corrective retry is bounded, then Groq direct-final is tried,
+then the engine's deterministic rationale is returned. Result and analyst
+caches key the complete evidence snapshot, models, mode and prompt versions;
+single-flight prevents concurrent identical requests from multiplying paid
+calls. Recommendation, confidence, risk and factor impacts are always attached
+from the deterministic engine after generation.
 
 ## License
 

@@ -38,13 +38,18 @@ Core data and explanation providers:
 | `ALPHA_VANTAGE_KEY` | Fundamentals and market-data fallback. |
 | `NEWSAPI_KEY` | News provider. |
 | `GROQ_API_KEY` | Optional generated explanation layer. |
-| `LLM_MODEL` | Optional model override used by the configured explanation adapter. |
+| `DEEPSEEK_API_KEY` | Final grounded Research writer while Render is live/rollback. |
+| `DEEPSEEK_MODEL` | Optional final-writer model; defaults to `deepseek-chat`. |
+| `GROQ_MODEL` | Optional Groq analyst/fallback model. |
+| `LLM_MODEL` | Backward-compatible Groq model alias. |
+| `LLM_PIPELINE_MODE` | `deep` for Groq → DeepSeek; `fast` for DeepSeek direct. |
 
 Additional provider credentials are optional and individually detected:
 `POLYGON_API_KEY`, `FINNHUB_API_KEY`, `TWELVEDATA_API_KEY`, `FMP_API_KEY`,
 `MARKETSTACK_API_KEY`, `MASSIVE_API_KEY`, `TIINGO_API_KEY`, `GNEWS_API_KEY`,
 `TAVILY_API_KEY`, `EXA_API_KEY`, `BRAVE_API_KEY`, `APIFY_API_TOKEN`,
-`GEMINI_API_KEY`, `LOGO_DEV_PUBLISHABLE_KEY`, and `LOGO_DEV_SECRET_KEY`.
+`LOGO_DEV_PUBLISHABLE_KEY`, and `LOGO_DEV_SECRET_KEY`. Gemini is not part of
+active research execution; any retained external credential is legacy only.
 
 Research and background work:
 

@@ -24,8 +24,8 @@ which this codebase already spent a release removing.
 
 ## Orchestration
 
-The run is a **LangGraph** `StateGraph`: one fixed topology, one conditional
-edge, and no node that asks a model what to do next. The five specialists fan
+The run is a **LangGraph** `StateGraph`: one fixed topology and no node that
+asks a model what to do next. The five specialists fan
 out in parallel over one evidence snapshot and rejoin at `reconcile`.
 
 LangGraph is the orchestration layer and not an autonomous agent framework

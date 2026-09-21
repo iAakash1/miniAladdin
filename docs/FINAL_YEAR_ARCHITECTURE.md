@@ -83,8 +83,8 @@ prompt discipline.
 | Agent contracts | `src/agents/schemas.py` |
 | Agents | `src/agents/{market,fundamental,technical,news,macro_risk}_agent.py` |
 | Validation | `src/agents/validation_agent.py` |
-| Optional critic | `src/agents/critic_agent.py` |
-| Narrative | `src/services/llm_service.py` |
+| Deterministic narrative validation | `src/services/narrative_pipeline.py` |
+| Narrative compatibility/fallback | `src/services/llm_service.py` |
 | Evaluation | `src/evaluation/` |
 
 ## Scope

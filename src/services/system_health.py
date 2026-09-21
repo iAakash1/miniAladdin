@@ -12,6 +12,7 @@ a healthy boolean.
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
@@ -110,6 +111,7 @@ def build_health(
     project_root: Path = PROJECT_ROOT,
     process_memory: dict[str, Any] | None = None,
     provider_concurrency: dict[str, int] | None = None,
+    llm_config: dict[str, Any] | None = None,
 ) -> SystemHealth:
     """Assemble the report from explicit inputs so classification is testable."""
     components: list[ComponentHealth] = [
@@ -138,6 +140,28 @@ def build_health(
                     "LangGraph is unavailable; analysis runs are refused"),
         ),
     ]
+
+    llm = llm_config or {}
+    deepseek = bool(llm.get("deepseek"))
+    groq = bool(llm.get("groq"))
+    if deepseek:
+        llm_state = HealthState.READY
+        llm_reason = "DeepSeek final writer is configured"
+    elif groq:
+        llm_state = HealthState.DEGRADED
+        llm_reason = "Groq fallback is configured; DeepSeek final writer is not configured"
+    else:
+        llm_state = HealthState.NOT_CONFIGURED
+        llm_reason = "no narrative provider is configured; deterministic explanation remains available"
+    components.append(ComponentHealth(
+        component="narrative_pipeline", status=llm_state, critical=False,
+        reason=llm_reason,
+        detail={
+            "configured": {"groq": groq, "deepseek": deepseek},
+            "mode": llm.get("mode"),
+            "metrics": llm.get("metrics") or {},
+        },
+    ))
 
     domains = provider_health.get("providers", {})
     components.extend([
@@ -225,7 +249,8 @@ def snapshot(*, build_commit: str) -> SystemHealth:
     from src import providers
     from src.agents import graph
     from src.providers.parallel import concurrency_snapshot
-    from src.services import clerk_auth, database, inference_client, memory_diagnostics, quant_service
+    from src.services import clerk_auth, database, inference_client, llm_service, memory_diagnostics, quant_service
+    from src.services.metrics import llm_metrics
 
     configured = database.is_configured()
     return build_health(
@@ -240,4 +265,9 @@ def snapshot(*, build_commit: str) -> SystemHealth:
         langgraph_available=graph.available(),
         process_memory=memory_diagnostics.snapshot().as_dict(),
         provider_concurrency=concurrency_snapshot(),
+        llm_config={
+            **llm_service.configured_providers(),
+            "mode": os.getenv("LLM_PIPELINE_MODE", "deep"),
+            "metrics": llm_metrics.snapshot(),
+        },
     )

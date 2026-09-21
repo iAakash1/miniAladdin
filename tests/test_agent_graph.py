@@ -17,8 +17,8 @@ import pytest
 
 from src.agents import graph
 from src.agents.graph import (
-    AnalysisState, GRAPH_VERSION, node_critic, node_explain, node_finalise,
-    node_reconcile, node_score, node_validate, should_run_critic,
+    AnalysisState, GRAPH_VERSION, node_explain, node_finalise,
+    node_reconcile, node_score, node_validate,
 )
 from src.agents.schemas import AgentResult, AgentStatus, EvidenceContext
 
@@ -57,7 +57,7 @@ def test_the_graph_compiles_and_declares_its_nodes():
     nodes = set(compiled.get_graph().nodes)
     for node in ("build_evidence", "market", "fundamental", "technical", "news",
                  "macro", "reconcile", "score", "validate", "explain",
-                 "critic", "finalise"):
+                 "finalise"):
         assert node in nodes, node
 
 
@@ -91,7 +91,7 @@ def test_no_node_after_score_writes_an_authoritative_value():
     import inspect
 
     authoritative = ("model_signal", "confidence", "risk_score", "data_completeness")
-    for node in (node_validate, node_explain, node_critic, node_finalise, node_reconcile):
+    for node in (node_validate, node_explain, node_finalise, node_reconcile):
         source = inspect.getsource(node)
         for field in authoritative:
             assert f'"{field}":' not in source, f"{node.__name__} writes {field}"
@@ -104,46 +104,13 @@ def test_an_unscored_security_yields_no_signal_rather_than_a_default():
     assert "no_scorecard" in update["fallbacks"]
 
 
-# ── the critic is a path, and cannot change anything ─────────────────────────
+# ── deterministic validation replaced the model critic ──────────────────────
 
-def test_the_critic_is_skipped_when_unconfigured(monkeypatch):
-    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
-    state: AnalysisState = {"explanation": {"summary": "Something."}}
-    assert should_run_critic(state) == "skip"
-
-
-def test_the_critic_is_skipped_when_there_is_no_narrative(monkeypatch):
-    monkeypatch.setenv("GEMINI_API_KEY", "configured")
-    assert should_run_critic({"explanation": {}}) == "skip"
-    assert should_run_critic({}) == "skip"
-
-
-def test_the_critic_runs_when_configured_and_there_is_prose(monkeypatch):
-    monkeypatch.setenv("GEMINI_API_KEY", "configured")
-    assert should_run_critic({"explanation": {"summary": "Something."}}) == "critic"
-
-
-def test_a_skipped_critic_is_recorded_rather_than_absent(monkeypatch):
-    """No critic entry at all is indistinguishable from a critic that ran and
-    found nothing, which is a different fact."""
-    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+def test_retired_model_critic_is_recorded():
     update = node_finalise({"critic": None, "validation": None})
     assert update["critic"]["skipped"] is True
-    assert update["critic"]["reason"]
-    assert "critic_skipped" in update["fallbacks"]
-
-
-def test_a_failing_critic_does_not_end_the_run(monkeypatch):
-    from src.agents import critic_agent
-
-    monkeypatch.setattr(critic_agent, "available", lambda: True)
-    monkeypatch.setattr(critic_agent, "_request", lambda prompt: (_ for _ in ()).throw(TimeoutError()))
-    update = node_critic({
-        "explanation": {"summary": "Something."}, "agent_results": {},
-        "model_signal": "Hold", "confidence": 61, "risk_score": 42,
-    })
-    assert update["critic"]["available"] is False
-    assert "critic_unavailable" in update["fallbacks"]
+    assert "deterministic validation" in update["critic"]["reason"]
+    assert "model_critic_retired" in update["fallbacks"]
 
 
 # ── failure isolation ────────────────────────────────────────────────────────
@@ -325,7 +292,7 @@ def test_missing_langgraph_is_an_explicit_failure_not_a_sequential_fallback(monk
 def test_a_run_records_the_versions_that_produced_it():
     state = graph.run.__doc__
     assert state  # the function documents its degradation contract
-    assert GRAPH_VERSION == "graph-v2"
+    assert GRAPH_VERSION == "graph-v3"
 
 
 # ── the M2 guarantees, asserted on the graph path itself ─────────────────────

@@ -12,9 +12,8 @@ and it made three things awkward that a research product needs:
   - the five specialists are independent and should fan out, but a sequential
     list cannot say so, and adding threads by hand reintroduces exactly the
     kind of unmanaged concurrency that leaked workers into the test suite
-  - the critic is a conditional path — it runs only when configured and only
-    when there is a narrative to review — and an `if` buried mid-function is
-    not a path anyone can see
+  - every validation and fallback step is explicit rather than hidden in a
+    provider-specific callback
   - a run needs a trace: which node ran, how long it took, what it degraded
     to. Timing scattered through a function body is not a trace
 
@@ -39,7 +38,7 @@ logger = logging.getLogger("omnisignal.agents.graph")
 
 #: Bumped when the node set or their contract changes, so a stored trace can be
 #: read under the shape it was produced with.
-GRAPH_VERSION = "graph-v2"
+GRAPH_VERSION = "graph-v3"
 
 
 def _merge(left: dict, right: dict) -> dict:
@@ -228,60 +227,20 @@ def node_explain(state: AnalysisState) -> dict[str, Any]:
     return {"explanation": summary, "narrative_source": "deterministic"}
 
 
-def node_critic(state: AnalysisState) -> dict[str, Any]:
-    """Optional second opinion on the prose. Cannot touch a number."""
-    from src.agents import critic_agent
-
-    explanation = state.get("explanation") or {}
-    narrative = explanation.get("summary") or ""
-    results = list(state.get("agent_results", {}).values())
-    evidence = [e for r in results for e in r.evidence]
-
-    report = critic_agent.review(
-        narrative=narrative,
-        evidence=evidence,
-        model_signal=state.get("model_signal"),
-        confidence=state.get("confidence"),
-        risk_score=state.get("risk_score"),
-    )
-    update: dict[str, Any] = {"critic": report.model_dump()}
-    if not report.available:
-        update["fallbacks"] = ["critic_unavailable"]
-    return update
-
-
-def should_run_critic(state: AnalysisState) -> str:
-    """The conditional path, stated as an edge rather than hidden in an `if`."""
-    from src.agents import critic_agent
-
-    explanation = state.get("explanation") or {}
-    if not explanation.get("summary"):
-        return "skip"
-    return "critic" if critic_agent.available() else "skip"
-
-
 def node_finalise(state: AnalysisState) -> dict[str, Any]:
     """Last gate: withhold a narrative the validator refused.
 
-    Also records that the critic was skipped. The conditional edge means
-    `node_critic` never runs on that path, so without this the trace would show
-    no critic entry at all — indistinguishable from a critic that ran and found
-    nothing, which is a different fact.
+    Gemini is intentionally absent from active execution.  Deterministic
+    validation is authoritative; model agreement is not fact validation.
     """
     update: dict[str, Any] = {}
     if state.get("critic") is None:
-        from src.agents import critic_agent
-
         update["critic"] = {
             "available": False,
             "skipped": True,
-            "reason": (
-                "no critic model is configured"
-                if not critic_agent.available()
-                else "there was no narrative to review"
-            ),
+            "reason": "retired: deterministic validation is authoritative",
         }
-        update["fallbacks"] = ["critic_skipped"]
+        update["fallbacks"] = ["model_critic_retired"]
 
     report = state.get("validation")
     if report is not None and not report.narrative_admissible:
@@ -346,7 +305,6 @@ def build_graph():
     graph.add_node("reconcile", lambda s: _timed("reconcile", node_reconcile, s))
     graph.add_node("validate", lambda s: _timed("validate", node_validate, s))
     graph.add_node("explain", lambda s: _timed("explain", node_explain, s))
-    graph.add_node("critic", lambda s: _timed("critic", node_critic, s))
     graph.add_node("finalise", lambda s: _timed("finalise", node_finalise, s))
 
     graph.add_edge(START, "build_evidence")
@@ -359,10 +317,7 @@ def build_graph():
     graph.add_edge("reconcile", "score")
     graph.add_edge("score", "validate")
     graph.add_edge("validate", "explain")
-    graph.add_conditional_edges(
-        "explain", should_run_critic, {"critic": "critic", "skip": "finalise"},
-    )
-    graph.add_edge("critic", "finalise")
+    graph.add_edge("explain", "finalise")
     graph.add_edge("finalise", END)
 
     _compiled = graph.compile()

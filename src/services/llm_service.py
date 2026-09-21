@@ -1,5 +1,5 @@
 """
-OmniSignal LLM Service — Groq `openai/gpt-oss-120b` explanation layer.
+OmniSignal LLM compatibility service.
 
 Architecture contract (docs/AUDIT.md §3):
 
@@ -36,9 +36,12 @@ Observability: per-call latency/retries/outcome recorded in
 ``src/services/metrics.py`` (internal only).
 
 Environment:
-    GROQ_API_KEY   — enables the service (absent → fallback mode, logged once)
-    LLM_MODEL      — default "openai/gpt-oss-120b"
-    LLM_TIMEOUT    — seconds per API call, default 8
+    DEEPSEEK_API_KEY — enables the grounded DeepSeek final-writer pipeline
+    DEEPSEEK_MODEL — default "deepseek-chat"
+    GROQ_API_KEY   — enables the evidence analyst and legacy memo/Ask flows
+    GROQ_MODEL     — preferred Groq stage model
+    LLM_MODEL      — backward-compatible Groq model alias
+    LLM_TIMEOUT    — seconds per API call, default 10 and capped at 20
     LLM_CACHE_TTL  — seconds, default 300
 """
 
@@ -211,17 +214,31 @@ _missing_key_logged = False
 
 def _timeout_seconds() -> float:
     try:
-        return float(os.getenv("LLM_TIMEOUT", "8"))
+        return max(1.0, min(20.0, float(os.getenv("LLM_TIMEOUT", "10"))))
     except ValueError:
-        return 8.0
+        return 10.0
 
 
 def _model_name() -> str:
-    return os.getenv("LLM_MODEL", DEFAULT_MODEL)
+    return os.getenv("GROQ_MODEL") or os.getenv("LLM_MODEL", DEFAULT_MODEL)
 
 
 def is_configured() -> bool:
+    """Whether legacy Groq-only helpers such as Ask and Memo can run."""
     return bool(os.getenv("GROQ_API_KEY"))
+
+
+def narrative_configured() -> bool:
+    """Whether any narrative provider is available for Research."""
+    return bool(os.getenv("DEEPSEEK_API_KEY") or os.getenv("GROQ_API_KEY"))
+
+
+def configured_providers() -> dict[str, bool]:
+    """Presence booleans only.  Never returns or logs credential values."""
+    return {
+        "groq": bool(os.getenv("GROQ_API_KEY")),
+        "deepseek": bool(os.getenv("DEEPSEEK_API_KEY")),
+    }
 
 
 def _get_client():
@@ -246,6 +263,9 @@ def reset_client_for_tests() -> None:
     _client = None
     _cache.clear()
     llm_metrics.reset()
+    from src.services import narrative_pipeline
+
+    narrative_pipeline.reset_for_tests()
 
 
 # ── Cache ─────────────────────────────────────────────────────────────────────
@@ -434,6 +454,23 @@ def explain_recommendation(payload: dict[str, Any]) -> dict[str, Any]:
     """
     global _missing_key_logged
 
+    # DeepSeek is the normal final writer when configured.  The provider-
+    # neutral pipeline adds deterministic evidence ids, an optional Groq
+    # analyst stage, Python validation, stage caches and single-flight.  The
+    # legacy Groq writer below remains a migration fallback for deployments
+    # where DeepSeek has not yet been configured.
+    if os.getenv("DEEPSEEK_API_KEY"):
+        from src.services import narrative_pipeline
+
+        try:
+            grounded = narrative_pipeline.generate(payload)
+        except Exception as exc:  # noqa: BLE001 — Research must still answer
+            logger.warning("grounded narrative pipeline failed (%s)", type(exc).__name__)
+            grounded = None
+        if grounded is not None:
+            return _attach_deterministic(grounded, payload)
+        return _fallback(payload, "grounded narrative providers unavailable or invalid")
+
     if not is_configured():
         if not _missing_key_logged:
             logger.warning("GROQ_API_KEY not set — LLM explanations disabled, serving fallbacks")
@@ -540,7 +577,11 @@ def build_payload(
     headlines = []
     if sentiment and sentiment.get("headlines"):
         headlines = [
-            {"title": h.get("title"), "score": h.get("score"), "label": h.get("label")}
+            {
+                "title": h.get("title"), "score": h.get("score"), "label": h.get("label"),
+                "source": h.get("source"), "url": h.get("url"),
+                "published_at": h.get("published_at"),
+            }
             for h in sentiment["headlines"][:8]
         ]
     factor_impacts = _group_factor_impacts((quant or {}).get("factors") or [])
