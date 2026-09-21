@@ -4,7 +4,9 @@ import { ExternalAccountClient } from 'google-auth-library'
 const HOP_BY_HOP = new Set([
   'connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization',
   'te', 'trailer', 'transfer-encoding', 'upgrade', 'host', 'content-length',
-  'x-vercel-oidc-token', 'x-serverless-authorization',
+  // Node's fetch transparently decompresses upstream bodies. Forwarding the
+  // original encoding after that would ask the browser to decode plain bytes.
+  'content-encoding', 'x-vercel-oidc-token', 'x-serverless-authorization',
 ])
 
 type CachedIdToken = { token: string; expiresAt: number }
@@ -119,7 +121,13 @@ export async function proxyBackend(request: Request, path: string[]): Promise<Re
     cache: 'no-store',
     signal: AbortSignal.timeout(120_000),
   })
-  return new Response(upstream.body, {
+  // Buffer the bounded JSON payload before returning it. A cross-origin
+  // ReadableStream was observed to lose its body when the Render rollback
+  // connection closed after Vercel had already emitted the response headers.
+  // API responses are deliberately compact (the largest registry response is
+  // currently under 100 KiB), while the 120 s abort bounds request lifetime.
+  const payload = method === 'HEAD' ? null : await upstream.arrayBuffer()
+  return new Response(payload, {
     status: upstream.status,
     statusText: upstream.statusText,
     headers: responseHeaders(upstream.headers),

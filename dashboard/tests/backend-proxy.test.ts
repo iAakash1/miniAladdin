@@ -46,4 +46,5 @@ test('public rollback mode proxies path/query and preserves application auth', a
   assert.equal(headers.get('X-Serverless-Authorization'), null)
   assert.equal(response.status, 200)
   assert.equal(response.headers.get('connection'), null)
+  assert.deepEqual(await response.json(), { ok: true })
 })
