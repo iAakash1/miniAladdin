@@ -4,10 +4,12 @@
 [extend]
 useDefault = true
 
-[allowlist]
+[[allowlists]]
 description = "Known-safe paths and placeholder values"
 paths = [
   '''dashboard/package-lock\.json''',
+  # Historical generated Next.js build trees; never source-controlled runtime inputs.
+  '''dashboard/\.next-stale-[^/]+/''',
   # Generated audit sampling keys are SHA-256 digests, never credentials.
   '''data/manifests/manual_audit_v2\.json''',
   '''\.env\.example''',
@@ -19,3 +21,38 @@ regexes = [
   '''pk_test_PASTE_YOURS_HERE''',
   '''sk_test_PASTE_YOURS_HERE''',
 ]
+
+# The default generic-api-key rule intentionally errs on recall. These four
+# allowlists require both the exact source path and a semantic line pattern,
+# so unrelated values elsewhere in the file remain scannable.
+[[allowlists]]
+description = "Typed financial metric registry entry"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+paths = ['''dashboard/src/components/terminal/compare/SecurityCompare\.tsx''']
+regexes = ['''key:\s*['"]revenue_growth_3y['"]''']
+
+[[allowlists]]
+description = "Browser local-storage key constant"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+paths = ['''dashboard/src/lib/intelligence/registry\.ts''']
+regexes = ['''const\s+RECENTS_KEY\s*=\s*['"][^'"]+['"]''']
+
+[[allowlists]]
+description = "Risk-engine documentation about dictionary keys"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+paths = ['''src/quant/risk/engine\.py''']
+regexes = ['''aggregate report keys them separately:''']
+
+[[allowlists]]
+description = "Synthetic provider label in confidence test"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+paths = ['''tests/test_confidence\.py''']
+regexes = ['''confidence\.score\(['"]newsapi['"],\s*published_at=''' ]
