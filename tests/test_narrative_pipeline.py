@@ -125,6 +125,27 @@ def test_supported_negative_numeric_claim_keeps_its_sign():
     pipeline.validate_narrative(narrative, evidence)
 
 
+def test_deterministic_display_rounding_is_allowed_for_cited_evidence():
+    payload = _payload()
+    payload["quant"]["factors"][0]["contribution"] = 0.1763
+    evidence = pipeline.build_evidence_envelope(payload)
+    narrative = pipeline.GroundedNarrative.model_validate(json.loads(
+        _narrative("factor.r12_1.contribution", "Momentum contributed 17.6%.")
+    ))
+
+    pipeline.validate_narrative(narrative, evidence)
+
+
+def test_numeric_claim_must_match_the_evidence_cited_by_its_section():
+    evidence = pipeline.build_evidence_envelope(_payload())
+    narrative = pipeline.GroundedNarrative.model_validate(json.loads(
+        _narrative("decision.confidence", "RSI is 28.4.")
+    ))
+
+    with pytest.raises(ValueError, match="unsupported numeric claims"):
+        pipeline.validate_narrative(narrative, evidence)
+
+
 def test_final_prompt_exposes_mechanical_grounding_contract(monkeypatch):
     captured: list[dict[str, str]] = []
 
@@ -140,8 +161,24 @@ def test_final_prompt_exposes_mechanical_grounding_contract(monkeypatch):
     assert pipeline.generate(_payload()) is not None
     request = json.loads(next(row["content"] for row in captured if row["role"] == "user"))
     assert "decision.confidence" in request["allowed_evidence_ids"]
-    assert request["exact_numeric_tokens_by_evidence_id"]["decision.confidence"] == ["70", "70%"]
-    assert request["exact_numeric_tokens_by_evidence_id"]["factor.r12_1.contribution"] == ["0.18", "18%"]
+    numeric = request["allowed_numeric_tokens_by_evidence_id"]
+    assert numeric["decision.confidence"] == ["70", "70%"]
+    assert {"0.18", "18%"} <= set(numeric["factor.r12_1.contribution"])
+
+
+def test_narrative_packet_is_bounded_without_losing_decision_evidence():
+    payload = _payload()
+    payload["quant"]["factors"] = [
+        {"name": f"factor_{index}", "family": "momentum", "contribution": index / 100}
+        for index in range(30)
+    ]
+    evidence = pipeline.build_evidence_envelope(payload)
+    selected = pipeline._narrative_evidence(evidence)
+
+    ids = {item.id for item in selected}
+    assert len([item for item in selected if item.id.startswith("factor.")]) == 6
+    assert "decision.confidence" in ids
+    assert "technical.current_price" in ids
 
 
 def test_corrective_retry_does_not_replay_invalid_model_content(monkeypatch):

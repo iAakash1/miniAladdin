@@ -35,7 +35,7 @@ logger = logging.getLogger("omnisignal.narrative")
 
 SCHEMA_VERSION = "grounded-narrative-v1"
 GROQ_PROMPT_VERSION = "groq-analyst-v2"
-DEEPSEEK_PROMPT_VERSION = "deepseek-final-v4"
+DEEPSEEK_PROMPT_VERSION = "deepseek-final-v5"
 DEFAULT_GROQ_MODEL = "openai/gpt-oss-120b"
 DEFAULT_DEEPSEEK_FAST_MODEL = "deepseek-flash"
 DEFAULT_DEEPSEEK_PRO_MODEL = "deepseek-v4-pro"
@@ -43,6 +43,8 @@ DEFAULT_DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 MAX_TRANSIENT_RETRIES = 1
 MAX_CACHE_ENTRIES = 128
 MAX_NEWS_EVIDENCE_ITEMS = 12
+MAX_NARRATIVE_NEWS_ITEMS = 4
+MAX_NARRATIVE_FACTOR_ITEMS = 6
 DEFAULT_MAX_OUTPUT_TOKENS = 6000
 
 
@@ -278,11 +280,11 @@ Do not browse.  Do not invent or calculate numbers, facts, catalysts or price
 targets.  Do not change recommendation, confidence, risk, factor values or
 weights.  Admit missing data and describe conflicts rather than smoothing them.
 Each non-empty section must cite one or more ids from ORIGINAL EVIDENCE.
-Copy evidence ids verbatim.  When using a number, copy its exact numeric token
-from EXACT NUMERIC TOKENS without rounding or transformation; otherwise omit
-it.  ALLOWED EVIDENCE IDS and EXACT NUMERIC TOKENS are mechanically generated
-contracts, not suggestions.  Never infer a number from an id, field name or
-analyst summary.
+Copy evidence ids verbatim.  When using a number, copy one of the deterministic
+display tokens for that section's cited evidence from ALLOWED NUMERIC TOKENS;
+otherwise omit it.  ALLOWED EVIDENCE IDS and ALLOWED NUMERIC TOKENS are
+mechanically generated contracts, not suggestions.  Never infer a number from
+an id, field name or analyst summary.
 
 OUTPUT
 Return one JSON object and nothing else.  Every prose section has exactly
@@ -351,13 +353,34 @@ def _display_number(value: int | float) -> str:
     return format(float(value), ".12g")
 
 
-def _exact_numeric_tokens(evidence: list[EvidenceItem]) -> dict[str, list[str]]:
-    """Return the only measured-number spellings the final writer may use.
+def _rounded_tokens(value: float, *, percent: bool = False) -> list[str]:
+    """Return application-rendered spellings for one authoritative value.
 
-    Percent renderings are computed here rather than delegated to the model.
-    They mirror the validator's deliberately narrow, deterministic acceptance
-    of a fractional value rendered as a percentage.
+    Models routinely turn 17.63% into 17.6%.  Treating that presentation-only
+    rounding as an invented fact made valid narratives fail closed, while
+    asking the model to preserve binary-float precision produced unreadable
+    prose.  The application therefore computes the small set of permitted
+    display spellings itself.  The model still cannot calculate or introduce a
+    value: it can only copy one of these tokens.
     """
+
+    suffix = "%" if percent else ""
+    tokens: list[str] = []
+    # A raw fractional score rounded to zero or one decimal can materially
+    # change its meaning (0.1763 -> 0.2).  Percent displays and values already
+    # above one may use normal desk-style whole/one-decimal presentation;
+    # fractional raw values retain at least two decimals.
+    decimal_places = (0, 1, 2, 3, 4) if percent or abs(value) >= 1 else (2, 3, 4)
+    for decimals in decimal_places:
+        rendered = f"{value:.{decimals}f}"
+        if "." in rendered:
+            rendered = rendered.rstrip("0").rstrip(".")
+        tokens.append(f"{rendered}{suffix}")
+    return list(dict.fromkeys(tokens))
+
+
+def _allowed_numeric_tokens(evidence: list[EvidenceItem]) -> dict[str, list[str]]:
+    """Return the only measured-number spellings the final writer may use."""
 
     allowed: dict[str, list[str]] = {}
     for item in evidence:
@@ -367,11 +390,11 @@ def _exact_numeric_tokens(evidence: list[EvidenceItem]) -> dict[str, list[str]]:
         number = float(value)
         if not math.isfinite(number):
             continue
-        tokens = [_display_number(value)]
+        tokens = [_display_number(value), *_rounded_tokens(number)]
         if item.unit == "percent":
-            tokens.append(f"{_display_number(value)}%")
-        if -1.0 <= number <= 1.0:
-            tokens.append(f"{_display_number(number * 100.0)}%")
+            tokens.extend(_rounded_tokens(number, percent=True))
+        elif -1.0 <= number <= 1.0:
+            tokens.extend(_rounded_tokens(number * 100.0, percent=True))
         allowed[item.id] = list(dict.fromkeys(tokens))
     return allowed
 
@@ -379,8 +402,54 @@ def _exact_numeric_tokens(evidence: list[EvidenceItem]) -> dict[str, list[str]]:
 def _grounding_contract(evidence: list[EvidenceItem]) -> dict[str, Any]:
     return {
         "allowed_evidence_ids": [item.id for item in evidence],
-        "exact_numeric_tokens_by_evidence_id": _exact_numeric_tokens(evidence),
+        "allowed_numeric_tokens_by_evidence_id": _allowed_numeric_tokens(evidence),
     }
+
+
+def _narrative_evidence(evidence: list[EvidenceItem]) -> list[EvidenceItem]:
+    """Select a bounded, decision-rich packet for narrative providers.
+
+    The engine still consumes the complete input.  This is a presentation
+    boundary: sending every raw/score/value duplicate to each writer raised the
+    prompt above Groq's accepted request size and diluted the evidence most
+    relevant to a reader.  Selection is deterministic and never consults a
+    model.
+    """
+
+    by_id = {item.id: item for item in evidence}
+    selected: set[str] = {
+        item.id for item in evidence
+        if item.id.startswith(("decision.", "macro.", "factor_family."))
+    }
+    selected.update({
+        evidence_id for evidence_id in (
+            "quant.raw_score", "quant.momentum_score", "quant.fundamental_score",
+            "quant.quality_score", "quant.news_score", "quant.macro_gate",
+            "quant.conflict_index", "quant.uncertainty", "quant.risk_score",
+            "quant.data_completeness", "technical.current_price",
+            "technical.return_5d", "technical.return_21d", "technical.volatility",
+            "technical.sharpe_ratio", "technical.rsi_14", "technical.max_drawdown",
+            "technical.pe_ratio", "technical.forward_pe", "technical.analyst_target",
+            "technical.beta", "technical.raw_signal", "technical.risk_adjusted_signal",
+            "sentiment.average_score", "sentiment.dominant_label",
+            "sentiment.headline_count",
+        ) if evidence_id in by_id
+    })
+
+    news = sorted(
+        (item for item in evidence if item.id.startswith("news.article.")),
+        key=lambda item: item.id,
+    )[:MAX_NARRATIVE_NEWS_ITEMS]
+    selected.update(item.id for item in news)
+
+    factors = [
+        item for item in evidence
+        if item.id.startswith("factor.") and item.id.endswith(".contribution")
+        and isinstance(item.value, (int, float)) and not isinstance(item.value, bool)
+    ]
+    factors.sort(key=lambda item: (-abs(float(item.value)), item.id))
+    selected.update(item.id for item in factors[:MAX_NARRATIVE_FACTOR_ITEMS])
+    return [item for item in evidence if item.id in selected]
 
 
 def _timeout_seconds() -> float:
@@ -494,7 +563,10 @@ def _call_stage(
         response = _get_groq_client().chat.completions.create(
             model=model, messages=messages, temperature=0.0, top_p=1,
             reasoning_effort="low",
-            max_completion_tokens=_max_output_tokens() if final else 2400,
+            # The fallback must fit providers whose account-level context
+            # allowance is smaller than DeepSeek's.  Concise schema limits
+            # keep a valid response below this ceiling in measured runs.
+            max_completion_tokens=min(_max_output_tokens(), 3500) if final else 2400,
             stream=False, response_format={"type": "json_object"},
         )
         content = response.choices[0].message.content or ""
@@ -587,23 +659,27 @@ _NUMERIC = re.compile(r"(?<![A-Za-z0-9_])([$€£₹]?)([+-]?\d[\d,]*(?:\.\d+)?)
 
 
 def _unsupported_numbers(text: str, evidence: list[EvidenceItem]) -> list[str]:
-    values: set[float] = set()
-    for item in evidence:
-        value = item.value
-        if isinstance(value, bool):
-            continue
-        if isinstance(value, (int, float)) and math.isfinite(float(value)):
-            number = float(value)
-            values.add(number)
-            if -1.0 <= number <= 1.0:
-                values.add(number * 100.0)
+    permitted: list[tuple[float, bool]] = []
+    for tokens in _allowed_numeric_tokens(evidence).values():
+        for token in tokens:
+            is_percent = token.endswith("%")
+            raw_token = token[:-1] if is_percent else token
+            try:
+                permitted.append((float(raw_token), is_percent))
+            except ValueError:
+                continue
     unsupported: list[str] = []
     for match in _NUMERIC.finditer(text):
         currency, raw, percent = match.groups()
         if not currency and not percent and "." not in raw:
             continue  # ignore ordinary counts and years; target measured claims
         number = float(raw.replace(",", ""))
-        if not any(abs(number - known) <= max(1e-6, abs(known) * 1e-4) for known in values):
+        claim_is_percent = bool(percent)
+        if not any(
+            claim_is_percent == known_is_percent
+            and abs(number - known) <= 1e-9
+            for known, known_is_percent in permitted
+        ):
             unsupported.append(match.group(0))
     return unsupported
 
@@ -624,7 +700,8 @@ def _sections(narrative: GroundedNarrative):
 
 def validate_narrative(narrative: GroundedNarrative, evidence: list[EvidenceItem]) -> None:
     known = {item.id for item in evidence}
-    all_text: list[str] = []
+    by_id = {item.id: item for item in evidence}
+    unsupported: list[str] = []
     for name, section in _sections(narrative):
         refs = set(section.evidence_ids)
         unknown = sorted(refs - known)
@@ -632,12 +709,17 @@ def validate_narrative(narrative: GroundedNarrative, evidence: list[EvidenceItem
             raise ValueError(f"{name} referenced unknown evidence ids: {unknown[:5]}")
         if section.text.strip() and not refs:
             raise ValueError(f"{name} has prose without evidence ids")
-        all_text.append(section.text)
-    joined = "\n".join(all_text)
+        # A number is grounded only when the same section cites the evidence
+        # that permits its display token.  Global matching could accidentally
+        # validate a figure against an unrelated record elsewhere in the
+        # packet.
+        unsupported.extend(_unsupported_numbers(
+            section.text, [by_id[evidence_id] for evidence_id in refs],
+        ))
+    joined = "\n".join(section.text for _, section in _sections(narrative))
     forbidden = ("GROQ_API_KEY", "DEEPSEEK_API_KEY", "Authorization: Bearer", "system prompt is")
     if any(token.lower() in joined.lower() for token in forbidden):
         raise ValueError("narrative contains forbidden secret or prompt material")
-    unsupported = _unsupported_numbers(joined, evidence)
     if unsupported:
         raise ValueError(f"unsupported numeric claims: {unsupported[:5]}")
 
@@ -856,7 +938,8 @@ def _generate_final(
                 messages = messages[:2] + [
                     {"role": "user", "content": (
                         "The prior JSON failed deterministic validation. Copy evidence ids verbatim "
-                        "from ALLOWED EVIDENCE IDS. Use only tokens listed in EXACT NUMERIC TOKENS; "
+                        "from ALLOWED EVIDENCE IDS. Use only tokens listed in ALLOWED NUMERIC TOKENS "
+                        "for the evidence ids cited by that section; "
                         "do not round, calculate or introduce other measured numbers. Omit a numeric "
                         "claim when uncertain. Return only the complete JSON object. "
                         f"Validation category: {_validation_category(exc)}."
@@ -898,7 +981,7 @@ def _generate_final(
 
 
 def _compute(payload: dict[str, Any], mode: str) -> Optional[PipelineResult]:
-    evidence = build_evidence_envelope(payload)
+    evidence = _narrative_evidence(build_evidence_envelope(payload))
     decision = payload.get("decision") or {}
     brief = _build_brief(evidence, decision) if mode == "deep" else None
 
