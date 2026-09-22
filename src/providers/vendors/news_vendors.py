@@ -13,40 +13,72 @@ from src.providers.schemas import NewsHeadline
 
 
 class NewsApiVendor(VendorClient):
-    """Thin adapter over src/news_api.NewsAPIClient."""
+    """NewsAPI adapter using the shared vendor transport and health contract."""
 
     NAME = "newsapi"
     KEY_ENV = "NEWSAPI_KEY"
     DEFAULT_RPM = 10  # 100/day free
+    BASE = "https://newsapi.org/v2/everything"
 
-    def __init__(self, session=None):
-        super().__init__(session)
-        from src.news_api import NewsAPIClient
-
-        self._client = NewsAPIClient()
-
-    def get_news(self, query: str, company_name: str = "", limit: int = 12) -> Optional[list[NewsHeadline]]:
-        rows = self.timed_call(
-            lambda: self._client.fetch_headlines(query, company_name=company_name, max_results=limit)
+    def get_news(
+        self,
+        query: str,
+        company_name: str = "",
+        limit: int = 12,
+    ) -> Optional[list[NewsHeadline]]:
+        term = (
+            f'("{query}" OR "{company_name}") stock'
+            if company_name
+            else f'"{query}" stock'
         )
-        if not rows:
-            return None
-        return [
-            NewsHeadline(
-                title=row.get("title", ""),
-                source=row.get("source", "NewsAPI"),
-                url=row.get("url", ""),
-                published_at=row.get("published", ""),
-                summary=row.get("summary", ""),
-                # The publisher's own photograph. Carried through the client's
-                # dict shape rather than dropped at the adapter boundary,
-                # which is where it was being lost.
-                image_url=row.get("image", ""),
-                author=row.get("author", ""),
+
+        data = self._get_json(
+            self.BASE,
+            params={
+                "q": term,
+                "from": (
+                    datetime.now(timezone.utc) - timedelta(days=7)
+                ).strftime("%Y-%m-%dT%H:%M:%S"),
+                "sortBy": "publishedAt",
+                "language": "en",
+                "pageSize": min(limit, 20),
+            },
+            headers={"X-Api-Key": self.api_key},
+            operation="news",
+        )
+
+        headlines: list[NewsHeadline] = []
+
+        for article in (data.get("articles") or [])[:limit]:
+            title = str(article.get("title") or "").strip()
+
+            if not title or title == "[Removed]" or len(title) < 10:
+                continue
+
+            source = str(
+                (article.get("source") or {}).get("name") or "NewsAPI"
             )
-            for row in rows
-            if row.get("title")
-        ]
+
+            if " - " in title:
+                title_part, suffix = title.rsplit(" - ", 1)
+                title = title_part.strip()
+
+                if not source or source == "NewsAPI":
+                    source = suffix.strip()
+
+            headlines.append(
+                NewsHeadline(
+                    title=title,
+                    source=source,
+                    url=str(article.get("url") or ""),
+                    published_at=str(article.get("publishedAt") or ""),
+                    summary=str(article.get("description") or "")[:280],
+                    image_url=str(article.get("urlToImage") or ""),
+                    author=str(article.get("author") or ""),
+                )
+            )
+
+        return headlines or None
 
 
 class GNewsVendor(VendorClient):

@@ -16,6 +16,7 @@ from fastapi.testclient import TestClient
 import api.index as api
 from src.providers.base import FailureClass, VendorClient, VendorError
 from src.providers.vendors.market_vendors import PERIOD_DAYS, UnknownPeriod, _period_to_days
+from src.providers.vendors.news_vendors import NewsApiVendor
 
 
 # ── one rate-limit token per physical request ───────────────────────────────
@@ -141,6 +142,34 @@ def test_other_client_errors_are_terminal_unavailable_failures():
     assert send.call_count == 1
     assert raised.value.transient is False
     assert raised.value.failure_class == FailureClass.UNAVAILABLE.value
+
+
+def test_newsapi_401_is_recorded_as_auth_failure(monkeypatch):
+    """A rejected NewsAPI credential must never be reported as a success."""
+    monkeypatch.setenv("NEWSAPI_KEY", "dummy-key-long-enough")
+    vendor = NewsApiVendor()
+
+    with patch.object(
+        vendor._session,
+        "request",
+        return_value=_HTTPResponse(401),
+    ) as send:
+        with pytest.raises(VendorError) as raised:
+            vendor.get_news("AAPL")
+
+    assert send.call_count == 1
+    assert raised.value.failure_class == FailureClass.AUTH_FAILURE.value
+
+    snapshot = vendor.health_snapshot()
+
+    assert snapshot["health_state"] == "AUTH_FAILURE"
+    assert snapshot["requests"] == 1
+    assert snapshot["success_pct"] == 0.0
+    assert snapshot["failures"] == 1
+    assert snapshot["consecutive_failures"] == 1
+    assert snapshot["last_failure_class"] == FailureClass.AUTH_FAILURE.value
+    assert snapshot["last_success_at"] is None
+    assert snapshot["last_failure_at"] is not None
 
 
 # ── an unknown period is refused, not resolved ──────────────────────────────
