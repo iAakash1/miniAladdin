@@ -187,7 +187,7 @@ def test_corrective_retry_does_not_replay_invalid_model_content(monkeypatch):
     def fake(provider, messages, *, final, model=None):
         calls.append(messages)
         content = (
-            _narrative("decision.confidence", "Confidence is 999.9%.")
+            '{"executive_summary":"not-an-object"}'
             if len(calls) == 1
             else _narrative("decision.confidence")
         )
@@ -199,8 +199,45 @@ def test_corrective_retry_does_not_replay_invalid_model_content(monkeypatch):
     assert pipeline.generate(_payload()) is not None
     assert len(calls) == 2
     assert [row["role"] for row in calls[1]] == ["system", "user", "user"]
-    assert "999.9" not in "\n".join(row["content"] for row in calls[1])
-    assert "unsupported_numeric_claims" in calls[1][-1]["content"]
+    assert "not-an-object" not in "\n".join(row["content"] for row in calls[1])
+    assert "schema_validation" in calls[1][-1]["content"]
+
+
+def test_invalid_optional_section_is_dropped_without_provider_retry(monkeypatch):
+    calls = []
+
+    def fake(provider, messages, *, final, model=None):
+        calls.append((provider, final))
+        value = json.loads(_narrative("decision.confidence"))
+        value["bear_case"] = {"text": "An uncited 999.9% claim.", "evidence_ids": []}
+        return pipeline.ProviderResponse(
+            content=json.dumps(value), provider=provider, model="model",
+        )
+
+    monkeypatch.setenv("LLM_PIPELINE_MODE", "fast")
+    monkeypatch.setattr(pipeline, "_call_stage", fake)
+    result = pipeline.generate(_payload())
+
+    assert result is not None
+    assert calls == [("deepseek", True)]
+    assert result["bear_case"] == ""
+    assert "bear_case" in result["validation"]["dropped_sections"]
+    assert result["validation"]["status"] == "PASSED"
+
+
+def test_invalid_executive_is_replaced_only_with_engine_fields():
+    evidence = pipeline._narrative_evidence(pipeline.build_evidence_envelope(_payload()))
+    narrative = pipeline.GroundedNarrative.model_validate(json.loads(
+        _narrative("decision.confidence", "Confidence is 999.9%.")
+    ))
+
+    sanitized, dropped = pipeline._sanitize_narrative(narrative, evidence)
+
+    assert sanitized.executive_summary.text == "HOLD at 70% confidence with HIGH risk."
+    assert sanitized.executive_summary.evidence_ids == [
+        "decision.recommendation", "decision.confidence", "decision.risk",
+    ]
+    assert "executive_summary.replaced_by_engine" in dropped
 
 
 def test_validation_categories_do_not_include_model_content():

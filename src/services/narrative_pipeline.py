@@ -429,6 +429,7 @@ def _narrative_evidence(evidence: list[EvidenceItem]) -> list[EvidenceItem]:
             "quant.raw_score", "quant.momentum_score", "quant.fundamental_score",
             "quant.quality_score", "quant.news_score", "quant.macro_gate",
             "quant.conflict_index", "quant.uncertainty", "quant.risk_score",
+            "factor.target_upside.value",
             "technical.current_price",
             "technical.return_5d", "technical.return_21d", "technical.volatility",
             "technical.sharpe_ratio", "technical.rsi_14", "technical.max_drawdown",
@@ -783,6 +784,81 @@ def _sections(narrative: GroundedNarrative):
             yield f"{name}.{index}", section
 
 
+def _deterministic_executive(evidence: list[EvidenceItem]) -> NarrativeSection:
+    """Build a minimal engine-authored summary when model prose is rejected."""
+
+    by_id = {item.id: item for item in evidence}
+    required = (
+        "decision.recommendation", "decision.confidence", "decision.risk",
+    )
+    if not all(evidence_id in by_id for evidence_id in required):
+        return NarrativeSection()
+    recommendation = str(by_id[required[0]].value)
+    confidence = _display_number(by_id[required[1]].value)
+    risk = str(by_id[required[2]].value)
+    return NarrativeSection(
+        text=f"{recommendation} at {confidence}% confidence with {risk} risk.",
+        evidence_ids=list(required),
+    )
+
+
+def _sanitize_narrative(
+    narrative: GroundedNarrative, evidence: list[EvidenceItem],
+) -> tuple[GroundedNarrative, list[str]]:
+    """Drop whole invalid sections; never pass partially grounded prose.
+
+    A writer can produce twenty useful cited sections and one uncited optional
+    sentence.  Rejecting the entire object forces a second paid call and, on
+    the measured Groq tier, an immediate rate limit.  Section-level fail-closed
+    handling is stricter than accepting that sentence: the complete section is
+    removed, the executive summary is engine-authored if needed, and the final
+    object still passes the unchanged validator.
+    """
+
+    known = {item.id for item in evidence}
+    by_id = {item.id: item for item in evidence}
+    payload = narrative.model_dump()
+    dropped: list[str] = []
+    invalid_array_indexes: dict[str, set[int]] = {}
+    forbidden = ("GROQ_API_KEY", "DEEPSEEK_API_KEY", "Authorization: Bearer", "system prompt is")
+
+    for name, section in _sections(narrative):
+        refs = set(section.evidence_ids)
+        invalid = bool(refs - known) or bool(section.text.strip() and not refs)
+        invalid = invalid or any(token.lower() in section.text.lower() for token in forbidden)
+        if not invalid and section.text.strip():
+            invalid = bool(_unsupported_numbers(
+                section.text, [by_id[evidence_id] for evidence_id in refs],
+            ))
+        if not invalid:
+            continue
+        dropped.append(name)
+        if "." in name:
+            root, index = name.split(".", 1)
+            invalid_array_indexes.setdefault(root, set()).add(int(index))
+        else:
+            payload[name] = NarrativeSection().model_dump()
+
+    for name, indexes in invalid_array_indexes.items():
+        payload[name] = [
+            row for index, row in enumerate(payload[name]) if index not in indexes
+        ]
+
+    if not payload["executive_summary"]["text"].strip():
+        payload["executive_summary"] = _deterministic_executive(evidence).model_dump()
+        dropped.append("executive_summary.replaced_by_engine")
+
+    sanitized = GroundedNarrative.model_validate(payload)
+    nonempty = sum(bool(section.text.strip()) for _, section in _sections(sanitized))
+    # The schema permits intentionally empty optional sections.  Require an
+    # executive summary plus at least one additional grounded section so a
+    # provider cannot be marked generated on the engine sentence alone.
+    if nonempty < 2:
+        raise ValueError(f"too few grounded narrative sections: {nonempty}")
+    validate_narrative(sanitized, evidence)
+    return sanitized, dropped
+
+
 def validate_narrative(narrative: GroundedNarrative, evidence: list[EvidenceItem]) -> None:
     known = {item.id for item in evidence}
     by_id = {item.id: item for item in evidence}
@@ -957,7 +1033,7 @@ def _build_brief(evidence: list[EvidenceItem], decision: dict[str, Any]) -> Opti
 def _generate_final(
     provider: str, evidence: list[EvidenceItem], decision: dict[str, Any],
     brief: Optional[AnalystBrief], mode: str, *, model: Optional[str] = None,
-) -> Optional[tuple[GroundedNarrative, ProviderResponse, int]]:
+) -> Optional[tuple[GroundedNarrative, ProviderResponse, int, list[str]]]:
     grounding_contract = _grounding_contract(evidence)
     messages = [
         {"role": "system", "content": FINAL_SYSTEM_PROMPT},
@@ -981,10 +1057,15 @@ def _generate_final(
             last_response = response
             total_retries += retries
             narrative = GroundedNarrative.model_validate(json.loads(response.content))
-            validate_narrative(narrative, evidence)
+            narrative, dropped = _sanitize_narrative(narrative, evidence)
+            if dropped:
+                logger.info(
+                    "%s final narrative sanitized (dropped_sections=%d)",
+                    provider, len(dropped),
+                )
             _record(response, stage="final", latency_ms=(time.perf_counter() - started) * 1000,
                     retries=total_retries, success=True)
-            return narrative, response, total_retries
+            return narrative, response, total_retries, dropped
         except (json.JSONDecodeError, ValidationError, ValueError) as exc:
             if validation_attempt == 0 and last_response is not None:
                 llm_metrics.record_validation_retry()
@@ -1061,7 +1142,7 @@ def _compute(payload: dict[str, Any], mode: str) -> Optional[PipelineResult]:
     if generated is None:
         return None
 
-    narrative, response, retries = generated
+    narrative, response, retries, dropped = generated
     value = _flatten(narrative)
     value.update({
         "generated": True,
@@ -1075,6 +1156,11 @@ def _compute(payload: dict[str, Any], mode: str) -> Optional[PipelineResult]:
         "prompt_versions": {
             "groq": GROQ_PROMPT_VERSION if brief else None,
             "deepseek": DEEPSEEK_PROMPT_VERSION if response.provider == "deepseek" else None,
+        },
+        "validation": {
+            "status": "PASSED",
+            "dropped_sections": dropped,
+            "section_level_fail_closed": True,
         },
     })
     return PipelineResult(value=value, provider=response.provider, model=response.model, mode=mode)
