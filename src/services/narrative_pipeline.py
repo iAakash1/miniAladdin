@@ -35,7 +35,7 @@ logger = logging.getLogger("omnisignal.narrative")
 
 SCHEMA_VERSION = "grounded-narrative-v1"
 GROQ_PROMPT_VERSION = "groq-analyst-v2"
-DEEPSEEK_PROMPT_VERSION = "deepseek-final-v2"
+DEEPSEEK_PROMPT_VERSION = "deepseek-final-v3"
 DEFAULT_GROQ_MODEL = "openai/gpt-oss-120b"
 DEFAULT_DEEPSEEK_FAST_MODEL = "deepseek-flash"
 DEFAULT_DEEPSEEK_PRO_MODEL = "deepseek-v4-pro"
@@ -275,6 +275,8 @@ Do not browse.  Do not invent or calculate numbers, facts, catalysts or price
 targets.  Do not change recommendation, confidence, risk, factor values or
 weights.  Admit missing data and describe conflicts rather than smoothing them.
 Each non-empty section must cite one or more ids from ORIGINAL EVIDENCE.
+Copy evidence ids verbatim.  When using a number, copy its exact numeric token
+from ORIGINAL EVIDENCE without rounding or transformation; otherwise omit it.
 
 OUTPUT
 Return one JSON object and nothing else.  Every prose section has exactly
@@ -594,6 +596,25 @@ def validate_narrative(narrative: GroundedNarrative, evidence: list[EvidenceItem
         raise ValueError(f"unsupported numeric claims: {unsupported[:5]}")
 
 
+def _validation_category(exc: Exception) -> str:
+    """Classify validation failures without logging model text or evidence."""
+
+    message = str(exc).lower()
+    if "unknown evidence ids" in message:
+        return "unknown_evidence_ids"
+    if "prose without evidence ids" in message:
+        return "missing_evidence_ids"
+    if "unsupported numeric claims" in message:
+        return "unsupported_numeric_claims"
+    if "forbidden secret or prompt material" in message:
+        return "forbidden_material"
+    if isinstance(exc, json.JSONDecodeError):
+        return "invalid_json"
+    if isinstance(exc, ValidationError):
+        return "schema_validation"
+    return "validation_error"
+
+
 def _flatten(narrative: GroundedNarrative) -> dict[str, Any]:
     value: dict[str, Any] = {"schema_version": SCHEMA_VERSION, "evidence_links": {}}
     for name, section in _sections(narrative):
@@ -701,8 +722,9 @@ def _build_brief(evidence: list[EvidenceItem], decision: dict[str, Any]) -> Opti
             if validation_attempt == 0 and response is not None:
                 llm_metrics.record_validation_retry()
                 logger.warning(
-                    "Groq analyst invalid (%s; chars=%d output_tokens=%d finish=%s); correcting once",
-                    type(exc).__name__, len(response.content), response.output_tokens,
+                    "Groq analyst invalid (%s/%s; chars=%d output_tokens=%d finish=%s); correcting once",
+                    type(exc).__name__, _validation_category(exc),
+                    len(response.content), response.output_tokens,
                     response.finish_reason or "unknown",
                 )
                 messages.extend([
@@ -714,8 +736,9 @@ def _build_brief(evidence: list[EvidenceItem], decision: dict[str, Any]) -> Opti
                 ])
                 continue
             logger.warning(
-                "Groq analyst unavailable (%s; chars=%d output_tokens=%d finish=%s)",
-                type(exc).__name__, len(response.content) if response else 0,
+                "Groq analyst unavailable (%s/%s; chars=%d output_tokens=%d finish=%s)",
+                type(exc).__name__, _validation_category(exc),
+                len(response.content) if response else 0,
                 response.output_tokens if response else 0,
                 response.finish_reason if response and response.finish_reason else "unknown",
             )
@@ -769,22 +792,25 @@ def _generate_final(
             if validation_attempt == 0 and last_response is not None:
                 llm_metrics.record_validation_retry()
                 logger.warning(
-                    "%s final narrative invalid (%s; chars=%d output_tokens=%d finish=%s); correcting once",
-                    provider, type(exc).__name__, len(last_response.content),
+                    "%s final narrative invalid (%s/%s; chars=%d output_tokens=%d finish=%s); correcting once",
+                    provider, type(exc).__name__, _validation_category(exc),
+                    len(last_response.content),
                     last_response.output_tokens, last_response.finish_reason or "unknown",
                 )
                 messages.extend([
                     {"role": "assistant", "content": last_response.content[:2000]},
                     {"role": "user", "content": (
-                        "The prior JSON failed deterministic validation. Correct it using only known "
-                        "evidence ids and supported values, then return only the complete JSON object. "
+                        "The prior JSON failed deterministic validation. Copy evidence ids verbatim "
+                        "from ORIGINAL EVIDENCE. Remove any number that is not copied exactly from an "
+                        "evidence value; do not round or calculate. Return only the complete JSON object. "
                         f"Validation class: {type(exc).__name__}."
                     )},
                 ])
                 continue
             logger.warning(
-                "%s final narrative invalid (%s; chars=%d output_tokens=%d finish=%s)",
-                provider, type(exc).__name__, len(last_response.content) if last_response else 0,
+                "%s final narrative invalid (%s/%s; chars=%d output_tokens=%d finish=%s)",
+                provider, type(exc).__name__, _validation_category(exc),
+                len(last_response.content) if last_response else 0,
                 last_response.output_tokens if last_response else 0,
                 last_response.finish_reason if last_response and last_response.finish_reason else "unknown",
             )

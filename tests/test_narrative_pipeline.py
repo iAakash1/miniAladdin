@@ -114,6 +114,16 @@ def test_unsupported_numeric_claim_is_rejected():
         pipeline.validate_narrative(narrative, evidence)
 
 
+def test_validation_categories_do_not_include_model_content():
+    assert pipeline._validation_category(
+        ValueError("section referenced unknown evidence ids: ['invented']")
+    ) == "unknown_evidence_ids"
+    assert pipeline._validation_category(
+        ValueError("unsupported numeric claims: ['999.9%']")
+    ) == "unsupported_numeric_claims"
+    assert pipeline._validation_category(json.JSONDecodeError("bad", "x", 0)) == "invalid_json"
+
+
 def test_deep_mode_runs_groq_analyst_then_deepseek(monkeypatch):
     calls: list[tuple[str, bool, str | None]] = []
 
