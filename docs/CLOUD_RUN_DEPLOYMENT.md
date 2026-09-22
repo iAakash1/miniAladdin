@@ -28,6 +28,24 @@ Render by automation. A container with no enabled version must not be attached
 to Cloud Run; add each value through Secret Manager, verify an enabled version,
 and only then add its environment mapping to the candidate revision.
 
+As of the 2026-09-22 audit, all six containers have zero enabled versions. The
+credential-parity gate is therefore **closed**. The intended mappings are:
+
+| Secret resource | Runtime variable | Cutover role |
+|---|---|---|
+| `deepseek-api-key` | `DEEPSEEK_API_KEY` | Grounded final writer |
+| `groq-api-key` | `GROQ_API_KEY` | Analyst stage and bounded fallback |
+| `alpha-vantage-key` | `ALPHA_VANTAGE_KEY` | Fundamentals and provider fallback |
+| `fred-api-key` | `FRED_API_KEY` | Macro regime inputs |
+| `newsapi-key` | `NEWSAPI_KEY` | Primary news provider |
+| `supabase-service-role-key` | `SUPABASE_SERVICE_ROLE_KEY` | Server-only persistence |
+
+`SUPABASE_URL`, `CLERK_JWKS_URL`, and `CLERK_ISSUER` are configuration rather
+than credentials, but their production values must also be present before
+parity can pass. Optional provider keys are added only when the active Render
+configuration and a tested runtime path require them; inventorying a provider
+in source is not sufficient reason to grant a new secret.
+
 ## Runtime contract
 
 - Image: Linux `amd64`, Python 3.12, one non-root Uvicorn process.
@@ -104,6 +122,10 @@ The minimum mappings for the new narrative path are
 `DEEPSEEK_API_KEY=deepseek-api-key:latest` and
 `GROQ_API_KEY=groq-api-key:latest`. Provider and persistence parity with Render
 is a separate cutover gate, not something the deploy command may silently omit.
+Set `DEEPSEEK_FAST_MODEL=deepseek-flash` and
+`DEEPSEEK_PRO_MODEL=deepseek-v4-pro`; remove the stale
+`DEEPSEEK_MODEL=deepseek-chat` setting rather than allowing the compatibility
+fallback to select a retired model.
 
 ## Validation gate
 

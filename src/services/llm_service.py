@@ -37,7 +37,9 @@ Observability: per-call latency/retries/outcome recorded in
 
 Environment:
     DEEPSEEK_API_KEY — enables the grounded DeepSeek final-writer pipeline
-    DEEPSEEK_MODEL — default "deepseek-chat"
+    DEEPSEEK_FAST_MODEL — fast-mode writer, default "deepseek-flash"
+    DEEPSEEK_PRO_MODEL — deep-mode writer, default "deepseek-v4-pro"
+    DEEPSEEK_MODEL — compatibility fallback for either mode
     GROQ_API_KEY   — enables the evidence analyst and legacy memo/Ask flows
     GROQ_MODEL     — preferred Groq stage model
     LLM_MODEL      — backward-compatible Groq model alias

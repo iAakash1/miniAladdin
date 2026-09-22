@@ -39,10 +39,12 @@ Core data and explanation providers:
 | `NEWSAPI_KEY` | News provider. |
 | `GROQ_API_KEY` | Optional generated explanation layer. |
 | `DEEPSEEK_API_KEY` | Final grounded Research writer while Render is live/rollback. |
-| `DEEPSEEK_MODEL` | Optional final-writer model; defaults to `deepseek-chat`. |
+| `DEEPSEEK_FAST_MODEL` | Fast-mode writer; defaults to `deepseek-flash`. |
+| `DEEPSEEK_PRO_MODEL` | Deep-mode writer after Groq analysis; defaults to `deepseek-v4-pro`. |
+| `DEEPSEEK_MODEL` | Compatibility fallback when a mode-specific model is absent. |
 | `GROQ_MODEL` | Optional Groq analyst/fallback model. |
 | `LLM_MODEL` | Backward-compatible Groq model alias. |
-| `LLM_PIPELINE_MODE` | `deep` for Groq → DeepSeek; `fast` for DeepSeek direct. |
+| `LLM_PIPELINE_MODE` | `deep` for Groq → DeepSeek Pro; `fast` for DeepSeek Flash direct. |
 
 Additional provider credentials are optional and individually detected:
 `POLYGON_API_KEY`, `FINNHUB_API_KEY`, `TWELVEDATA_API_KEY`, `FMP_API_KEY`,

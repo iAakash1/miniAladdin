@@ -37,7 +37,8 @@ SCHEMA_VERSION = "grounded-narrative-v1"
 GROQ_PROMPT_VERSION = "groq-analyst-v1"
 DEEPSEEK_PROMPT_VERSION = "deepseek-final-v1"
 DEFAULT_GROQ_MODEL = "openai/gpt-oss-120b"
-DEFAULT_DEEPSEEK_MODEL = "deepseek-chat"
+DEFAULT_DEEPSEEK_FAST_MODEL = "deepseek-flash"
+DEFAULT_DEEPSEEK_PRO_MODEL = "deepseek-v4-pro"
 DEFAULT_DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 MAX_TRANSIENT_RETRIES = 1
 MAX_CACHE_ENTRIES = 128
@@ -311,8 +312,18 @@ def _groq_model() -> str:
     return os.getenv("GROQ_MODEL") or os.getenv("LLM_MODEL") or DEFAULT_GROQ_MODEL
 
 
-def _deepseek_model() -> str:
-    return os.getenv("DEEPSEEK_MODEL") or DEFAULT_DEEPSEEK_MODEL
+def _deepseek_model(mode: str) -> str:
+    """Return a supported DeepSeek model for the requested pipeline mode.
+
+    ``DEEPSEEK_MODEL`` remains a compatibility fallback for existing
+    deployments, while the mode-specific variables make the cost/quality
+    choice explicit and independently configurable.
+    """
+
+    legacy = os.getenv("DEEPSEEK_MODEL")
+    if mode == "fast":
+        return os.getenv("DEEPSEEK_FAST_MODEL") or legacy or DEFAULT_DEEPSEEK_FAST_MODEL
+    return os.getenv("DEEPSEEK_PRO_MODEL") or legacy or DEFAULT_DEEPSEEK_PRO_MODEL
 
 
 def configured() -> dict[str, bool]:
@@ -368,11 +379,17 @@ def _usage_value(usage: Any, key: str) -> int:
         return 0
 
 
-def _call_stage(provider: str, messages: list[dict[str, str]], *, final: bool) -> ProviderResponse:
+def _call_stage(
+    provider: str,
+    messages: list[dict[str, str]],
+    *,
+    final: bool,
+    model: Optional[str] = None,
+) -> ProviderResponse:
     """One provider call.  Tests replace this boundary; no secret is logged."""
 
     if provider == "groq":
-        model = _groq_model()
+        model = model or _groq_model()
         response = _get_groq_client().chat.completions.create(
             model=model, messages=messages, temperature=0.0, top_p=1,
             reasoning_effort="low", max_completion_tokens=4096 if final else 1800,
@@ -388,7 +405,7 @@ def _call_stage(provider: str, messages: list[dict[str, str]], *, final: bool) -
 
     if provider != "deepseek":
         raise ValueError(f"unsupported LLM provider: {provider}")
-    model = _deepseek_model()
+    model = model or _deepseek_model("deep")
     base = os.getenv("DEEPSEEK_BASE_URL", DEFAULT_DEEPSEEK_BASE_URL).rstrip("/")
     response = _get_deepseek_client().post(
         f"{base}/chat/completions",
@@ -397,6 +414,7 @@ def _call_stage(provider: str, messages: list[dict[str, str]], *, final: bool) -
         json={
             "model": model, "messages": messages, "temperature": 0.1,
             "top_p": 1, "stream": False, "max_tokens": 4096,
+            "thinking": {"type": "disabled"},
             "response_format": {"type": "json_object"},
         },
     )
@@ -425,12 +443,16 @@ def _transient(exc: Exception) -> bool:
 
 
 def _call_with_retries(
-    provider: str, messages: list[dict[str, str]], *, final: bool,
+    provider: str,
+    messages: list[dict[str, str]],
+    *,
+    final: bool,
+    model: Optional[str] = None,
 ) -> tuple[ProviderResponse, int]:
     last: Exception = RuntimeError("no provider attempt")
     for attempt in range(MAX_TRANSIENT_RETRIES + 1):
         try:
-            return _call_stage(provider, messages, final=final), attempt
+            return _call_stage(provider, messages, final=final, model=model), attempt
         except Exception as exc:  # noqa: BLE001 - classified and bounded here
             last = exc
             if _transient(exc) and attempt < MAX_TRANSIENT_RETRIES:
@@ -567,7 +589,9 @@ def _hash(value: Any) -> str:
 def _cache_key(payload: dict[str, Any], mode: str) -> str:
     return _hash({
         "payload": payload, "mode": mode, "groq_model": _groq_model(),
-        "deepseek_model": _deepseek_model(), "groq_prompt": GROQ_PROMPT_VERSION,
+        "deepseek_fast_model": _deepseek_model("fast"),
+        "deepseek_pro_model": _deepseek_model("deep"),
+        "groq_prompt": GROQ_PROMPT_VERSION,
         "deepseek_prompt": DEEPSEEK_PROMPT_VERSION,
     })
 
@@ -626,7 +650,7 @@ def _build_brief(evidence: list[EvidenceItem], decision: dict[str, Any]) -> Opti
 
 def _generate_final(
     provider: str, evidence: list[EvidenceItem], decision: dict[str, Any],
-    brief: Optional[AnalystBrief], mode: str,
+    brief: Optional[AnalystBrief], mode: str, *, model: Optional[str] = None,
 ) -> Optional[tuple[GroundedNarrative, ProviderResponse, int]]:
     messages = [
         {"role": "system", "content": FINAL_SYSTEM_PROMPT},
@@ -643,7 +667,9 @@ def _generate_final(
     last_response: Optional[ProviderResponse] = None
     for validation_attempt in range(2):
         try:
-            response, retries = _call_with_retries(provider, messages, final=True)
+            response, retries = _call_with_retries(
+                provider, messages, final=True, model=model,
+            )
             last_response = response
             total_retries += retries
             narrative = GroundedNarrative.model_validate(json.loads(response.content))
@@ -665,7 +691,8 @@ def _generate_final(
             logger.warning("%s final narrative invalid (%s)", provider, type(exc).__name__)
             _record(
                 last_response or ProviderResponse(
-                    "", provider, _deepseek_model() if provider == "deepseek" else _groq_model(),
+                    "", provider,
+                    model or (_deepseek_model(mode) if provider == "deepseek" else _groq_model()),
                 ),
                 stage="final", latency_ms=(time.perf_counter() - started) * 1000,
                 retries=total_retries, success=False,
@@ -675,7 +702,8 @@ def _generate_final(
             logger.warning("%s final narrative unavailable (%s)", provider, type(exc).__name__)
             _record(
                 last_response or ProviderResponse(
-                    "", provider, _deepseek_model() if provider == "deepseek" else _groq_model(),
+                    "", provider,
+                    model or (_deepseek_model(mode) if provider == "deepseek" else _groq_model()),
                 ),
                 stage="final", latency_ms=(time.perf_counter() - started) * 1000,
                 retries=total_retries, success=False,
@@ -689,7 +717,10 @@ def _compute(payload: dict[str, Any], mode: str) -> Optional[PipelineResult]:
     decision = payload.get("decision") or {}
     brief = _build_brief(evidence, decision) if mode == "deep" else None
 
-    generated = _generate_final("deepseek", evidence, decision, brief, mode)
+    generated = _generate_final(
+        "deepseek", evidence, decision, brief, mode,
+        model=_deepseek_model(mode),
+    )
     if generated is None and configured()["groq"]:
         generated = _generate_final("groq", evidence, decision, None, "groq_fallback")
     if generated is None:

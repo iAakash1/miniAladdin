@@ -799,10 +799,12 @@ reason. The ones that came from a measured failure rather than a preference:
 | `ALPHA_VANTAGE_KEY` | optional | Fundamentals (free tier: 25 req/day) |
 | `NEWSAPI_KEY` | optional | Premium headlines (falls back to Yahoo RSS) |
 | `DEEPSEEK_API_KEY` | optional | Grounded final Research writer |
-| `DEEPSEEK_MODEL` | optional | Default `deepseek-chat` |
+| `DEEPSEEK_FAST_MODEL` | optional | Fast-mode writer; default `deepseek-flash` |
+| `DEEPSEEK_PRO_MODEL` | optional | Deep-mode writer after Groq analysis; default `deepseek-v4-pro` |
+| `DEEPSEEK_MODEL` | optional | Compatibility fallback when a mode-specific model is not set |
 | `GROQ_API_KEY` | optional | Evidence analyst and bounded final-writer fallback |
 | `GROQ_MODEL` | optional | Default `openai/gpt-oss-120b`; `LLM_MODEL` remains a compatibility alias |
-| `LLM_PIPELINE_MODE` | optional | `deep` (Groq → DeepSeek) or `fast` (DeepSeek direct) |
+| `LLM_PIPELINE_MODE` | optional | `deep` (Groq → DeepSeek Pro) or `fast` (DeepSeek Flash direct) |
 | `POLYGON_API_KEY` · `FINNHUB_API_KEY` · `TWELVEDATA_API_KEY` · `FMP_API_KEY` · `MARKETSTACK_API_KEY` · `GNEWS_API_KEY` · `TAVILY_API_KEY` · `EXA_API_KEY` | optional | Extra vendors in the provider chains — each self-disables when absent |
 | `SUPABASE_URL` | optional | Persistence: hosted Supabase project URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | optional | Persistence: server-only key (bypasses RLS by design — never ships to a browser) |

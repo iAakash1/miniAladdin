@@ -63,6 +63,9 @@ def _clean(monkeypatch):
     monkeypatch.setenv("DEEPSEEK_API_KEY", "test-placeholder")
     monkeypatch.setenv("GROQ_API_KEY", "test-placeholder")
     monkeypatch.setenv("LLM_PIPELINE_MODE", "deep")
+    monkeypatch.delenv("DEEPSEEK_MODEL", raising=False)
+    monkeypatch.delenv("DEEPSEEK_FAST_MODEL", raising=False)
+    monkeypatch.delenv("DEEPSEEK_PRO_MODEL", raising=False)
     pipeline.reset_for_tests()
     yield
     pipeline.reset_for_tests()
@@ -95,17 +98,20 @@ def test_unsupported_numeric_claim_is_rejected():
 
 
 def test_deep_mode_runs_groq_analyst_then_deepseek(monkeypatch):
-    calls: list[tuple[str, bool]] = []
+    calls: list[tuple[str, bool, str | None]] = []
 
-    def fake(provider, messages, *, final):
-        calls.append((provider, final))
+    def fake(provider, messages, *, final, model=None):
+        calls.append((provider, final, model))
         content = _brief("factor.r12_1.contribution") if not final else _narrative("decision.confidence")
         return pipeline.ProviderResponse(content=content, provider=provider, model=f"{provider}-model")
 
     monkeypatch.setattr(pipeline, "_call_stage", fake)
     result = pipeline.generate(_payload())
 
-    assert calls == [("groq", False), ("deepseek", True)]
+    assert calls == [
+        ("groq", False, None),
+        ("deepseek", True, "deepseek-v4-pro"),
+    ]
     assert result is not None
     assert result["provider"] == "deepseek"
     assert result["analyst_brief_used"] is True
@@ -115,7 +121,7 @@ def test_deep_mode_runs_groq_analyst_then_deepseek(monkeypatch):
 def test_deepseek_failure_uses_groq_direct_final(monkeypatch):
     calls: list[tuple[str, bool]] = []
 
-    def fake(provider, messages, *, final):
+    def fake(provider, messages, *, final, model=None):
         calls.append((provider, final))
         if provider == "deepseek":
             raise TimeoutError("bounded failure")
@@ -134,7 +140,7 @@ def test_deepseek_failure_uses_groq_direct_final(monkeypatch):
 def test_prompt_injection_is_passed_as_quoted_data_not_instruction(monkeypatch):
     captured = []
 
-    def fake(provider, messages, *, final):
+    def fake(provider, messages, *, final, model=None):
         captured.extend(messages)
         content = _brief("factor.r12_1.contribution") if not final else _narrative("decision.confidence")
         return pipeline.ProviderResponse(content=content, provider=provider, model="model")
@@ -154,10 +160,13 @@ def test_singleflight_shares_one_paid_generation(monkeypatch):
     calls = 0
     lock = threading.Lock()
 
-    def fake(provider, messages, *, final):
+    models: list[str | None] = []
+
+    def fake(provider, messages, *, final, model=None):
         nonlocal calls
         with lock:
             calls += 1
+            models.append(model)
         time.sleep(0.05)
         return pipeline.ProviderResponse(
             content=_narrative("decision.confidence"), provider=provider, model="model",
@@ -172,6 +181,54 @@ def test_singleflight_shares_one_paid_generation(monkeypatch):
         thread.join()
 
     assert calls == 1
+    assert models == ["deepseek-flash"]
     assert len(results) == 12
     assert all(result and result["generated"] for result in results)
     assert sum(bool(result and result.get("shared")) for result in results) >= 1
+
+
+def test_mode_specific_models_override_legacy_model(monkeypatch):
+    monkeypatch.setenv("DEEPSEEK_MODEL", "legacy-model")
+    monkeypatch.setenv("DEEPSEEK_FAST_MODEL", "fast-model")
+    monkeypatch.setenv("DEEPSEEK_PRO_MODEL", "pro-model")
+
+    assert pipeline._deepseek_model("fast") == "fast-model"
+    assert pipeline._deepseek_model("deep") == "pro-model"
+
+
+def test_legacy_model_remains_a_compatibility_fallback(monkeypatch):
+    monkeypatch.setenv("DEEPSEEK_MODEL", "legacy-model")
+
+    assert pipeline._deepseek_model("fast") == "legacy-model"
+    assert pipeline._deepseek_model("deep") == "legacy-model"
+
+
+def test_deepseek_request_disables_thinking_for_schema_writer(monkeypatch):
+    captured: dict = {}
+
+    class Response:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {
+                "choices": [{"message": {"content": "{}"}}],
+                "usage": {},
+            }
+
+    class Client:
+        def post(self, url, *, headers, json):
+            captured.update({"url": url, "headers": headers, "json": json})
+            return Response()
+
+    monkeypatch.setattr(pipeline, "_get_deepseek_client", lambda: Client())
+
+    response = pipeline._call_stage(
+        "deepseek", [{"role": "user", "content": "test"}],
+        final=True, model="deepseek-flash",
+    )
+
+    assert response.model == "deepseek-flash"
+    assert captured["json"]["model"] == "deepseek-flash"
+    assert captured["json"]["thinking"] == {"type": "disabled"}
+    assert captured["json"]["response_format"] == {"type": "json_object"}
