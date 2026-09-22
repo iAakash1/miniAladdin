@@ -805,6 +805,8 @@ reason. The ones that came from a measured failure rather than a preference:
 | `GROQ_API_KEY` | optional | Evidence analyst and bounded final-writer fallback |
 | `GROQ_MODEL` | optional | Default `openai/gpt-oss-120b`; `LLM_MODEL` remains a compatibility alias |
 | `LLM_PIPELINE_MODE` | optional | `deep` (Groq → DeepSeek Pro) or `fast` (DeepSeek Flash direct) |
+| `LLM_MAX_OUTPUT_TOKENS` | optional | Final-writer ceiling; default `6000`, bounded to `1000–8192` |
+| `ANALYST_SNAPSHOT_DIR` | optional | Best-effort analyst snapshot path; defaults to writable `/tmp` on Cloud Run |
 | `POLYGON_API_KEY` · `FINNHUB_API_KEY` · `TWELVEDATA_API_KEY` · `FMP_API_KEY` · `MARKETSTACK_API_KEY` · `GNEWS_API_KEY` · `TAVILY_API_KEY` · `EXA_API_KEY` | optional | Extra vendors in the provider chains — each self-disables when absent |
 | `SUPABASE_URL` | optional | Persistence: hosted Supabase project URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | optional | Persistence: server-only key (bypasses RLS by design — never ships to a browser) |

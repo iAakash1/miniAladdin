@@ -1,3 +1,5 @@
+# Cloud Build source allowlist. Keep this in sync with Dockerfile COPY paths.
+.gcloudignore
 .git
 .gitignore
 .github
@@ -5,7 +7,11 @@
 .agents
 .codex
 .claude
+.vercel
 
+.env
+.env.*
+!.env.example
 .venv
 venv
 __pycache__
@@ -25,9 +31,8 @@ research_papers
 scripts
 datasets
 supabase
+logs
 
-# Runtime uses only committed read models. Offline raw/curated/derived data is
-# intentionally excluded from the image (more than 5 GiB in this checkout).
 data/*
 !data/manifests/
 !data/research/
@@ -39,11 +44,6 @@ data/research/*
 *.ipynb
 Calculations.md
 CHANGELOG.md
-
-.env
-.env.*
-!.env.example
-
 node_modules
 *.log
 .DS_Store

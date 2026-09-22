@@ -45,6 +45,8 @@ Core data and explanation providers:
 | `GROQ_MODEL` | Optional Groq analyst/fallback model. |
 | `LLM_MODEL` | Backward-compatible Groq model alias. |
 | `LLM_PIPELINE_MODE` | `deep` for Groq → DeepSeek Pro; `fast` for DeepSeek Flash direct. |
+| `LLM_MAX_OUTPUT_TOKENS` | Final-writer ceiling; defaults to `6000` and is bounded to `1000–8192`. |
+| `ANALYST_SNAPSHOT_DIR` | Optional best-effort snapshot path; Cloud Run defaults to writable ephemeral `/tmp`. |
 
 Additional provider credentials are optional and individually detected:
 `POLYGON_API_KEY`, `FINNHUB_API_KEY`, `TWELVEDATA_API_KEY`, `FMP_API_KEY`,

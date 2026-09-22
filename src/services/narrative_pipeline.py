@@ -34,14 +34,16 @@ from src.services.metrics import llm_metrics
 logger = logging.getLogger("omnisignal.narrative")
 
 SCHEMA_VERSION = "grounded-narrative-v1"
-GROQ_PROMPT_VERSION = "groq-analyst-v1"
-DEEPSEEK_PROMPT_VERSION = "deepseek-final-v1"
+GROQ_PROMPT_VERSION = "groq-analyst-v2"
+DEEPSEEK_PROMPT_VERSION = "deepseek-final-v2"
 DEFAULT_GROQ_MODEL = "openai/gpt-oss-120b"
 DEFAULT_DEEPSEEK_FAST_MODEL = "deepseek-flash"
 DEFAULT_DEEPSEEK_PRO_MODEL = "deepseek-v4-pro"
 DEFAULT_DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 MAX_TRANSIENT_RETRIES = 1
 MAX_CACHE_ENTRIES = 128
+MAX_NEWS_EVIDENCE_ITEMS = 12
+DEFAULT_MAX_OUTPUT_TOKENS = 6000
 
 
 class EvidenceItem(BaseModel):
@@ -126,6 +128,7 @@ class ProviderResponse:
     output_tokens: int = 0
     cache_hit_tokens: int = 0
     cache_miss_tokens: int = 0
+    finish_reason: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -231,7 +234,9 @@ def build_evidence_envelope(payload: dict[str, Any]) -> list[EvidenceItem]:
     sentiment = payload.get("sentiment") or {}
     for key in ("average_score", "dominant_label", "headline_count"):
         add(f"sentiment.{key}", sentiment.get(key), source="news_reconciliation", field=key)
-    for index, headline in enumerate(sentiment.get("headlines") or []):
+    for index, headline in enumerate(
+        (sentiment.get("headlines") or [])[:MAX_NEWS_EVIDENCE_ITEMS]
+    ):
         if not isinstance(headline, dict):
             continue
         stable = hashlib.sha256(
@@ -280,15 +285,54 @@ macro_reasoning, news_reasoning, risk_reasoning, confidence_reason,
 top_positive_narrative, top_negative_narrative, investment_horizon,
 market_outlook, conclusion.  key_catalysts, key_risks and things_to_watch are
 arrays of the same section objects.  Use empty text and [] when evidence is
-unavailable.  Write concise institutional prose without advice or hype."""
+unavailable.  Write concise institutional prose without advice or hype.
+Executive summary is at most 90 words.  Every other prose section is at most
+60 words.  Return at most three catalysts, three risks and three things to
+watch.  Prefer an empty section over repetition.  The complete response must
+fit comfortably within the output limit."""
 
 
-def _analyst_schema() -> dict[str, Any]:
-    return AnalystBrief.model_json_schema()
+def _analyst_contract() -> dict[str, Any]:
+    return {
+        "point": {
+            "evidence_ids": ["known.id"],
+            "summary": "35 words maximum",
+            "importance": "high | medium | low",
+        },
+        "point_arrays": {
+            "positive_evidence": 4,
+            "negative_evidence": 4,
+            "macro_context": 2,
+            "news_context": 2,
+            "conflicts": 3,
+        },
+        "string_array_max_items": {
+            "missing_data": 8,
+            "bull_case_evidence_ids": 8,
+            "bear_case_evidence_ids": 8,
+            "risk_evidence_ids": 8,
+            "suggested_emphasis": 5,
+        },
+    }
 
 
-def _narrative_schema() -> dict[str, Any]:
-    return GroundedNarrative.model_json_schema()
+def _narrative_contract() -> dict[str, Any]:
+    return {
+        "section": {
+            "text": "string; 60 words maximum (90 for executive_summary)",
+            "evidence_ids": ["known.id"],
+        },
+        "required_section_keys": [
+            "executive_summary", "investment_thesis", "verdict_rationale",
+            "bull_case", "bear_case", "technical_reasoning", "momentum_impact",
+            "quality_impact", "value_impact", "pead_impact", "macro_reasoning",
+            "news_reasoning", "risk_reasoning", "confidence_reason",
+            "top_positive_narrative", "top_negative_narrative",
+            "investment_horizon", "market_outlook", "conclusion",
+        ],
+        "section_array_keys": ["key_catalysts", "key_risks", "things_to_watch"],
+        "section_array_max_items": 3,
+    }
 
 
 def _timeout_seconds() -> float:
@@ -306,6 +350,15 @@ def _cache_ttl() -> float:
         return max(0.0, float(os.getenv("LLM_CACHE_TTL", "300")))
     except ValueError:
         return 300.0
+
+
+def _max_output_tokens() -> int:
+    try:
+        return max(1000, min(8192, int(os.getenv(
+            "LLM_MAX_OUTPUT_TOKENS", str(DEFAULT_MAX_OUTPUT_TOKENS)
+        ))))
+    except ValueError:
+        return DEFAULT_MAX_OUTPUT_TOKENS
 
 
 def _groq_model() -> str:
@@ -392,7 +445,8 @@ def _call_stage(
         model = model or _groq_model()
         response = _get_groq_client().chat.completions.create(
             model=model, messages=messages, temperature=0.0, top_p=1,
-            reasoning_effort="low", max_completion_tokens=4096 if final else 1800,
+            reasoning_effort="low",
+            max_completion_tokens=_max_output_tokens() if final else 2400,
             stream=False, response_format={"type": "json_object"},
         )
         content = response.choices[0].message.content or ""
@@ -401,6 +455,7 @@ def _call_stage(
             content=content, provider="groq", model=model,
             input_tokens=_usage_value(usage, "prompt_tokens"),
             output_tokens=_usage_value(usage, "completion_tokens"),
+            finish_reason=getattr(response.choices[0], "finish_reason", None),
         )
 
     if provider != "deepseek":
@@ -413,7 +468,7 @@ def _call_stage(
                  "Content-Type": "application/json"},
         json={
             "model": model, "messages": messages, "temperature": 0.1,
-            "top_p": 1, "stream": False, "max_tokens": 4096,
+            "top_p": 1, "stream": False, "max_tokens": _max_output_tokens(),
             "thinking": {"type": "disabled"},
             "response_format": {"type": "json_object"},
         },
@@ -428,6 +483,7 @@ def _call_stage(
         output_tokens=_usage_value(usage, "completion_tokens"),
         cache_hit_tokens=_usage_value(usage, "prompt_cache_hit_tokens"),
         cache_miss_tokens=_usage_value(usage, "prompt_cache_miss_tokens"),
+        finish_reason=(body.get("choices") or [{}])[0].get("finish_reason"),
     )
 
 
@@ -560,6 +616,7 @@ def _usage_dict(response: ProviderResponse, retries: int) -> dict[str, Any]:
         "output_tokens": response.output_tokens,
         "cache_hit_tokens": response.cache_hit_tokens,
         "cache_miss_tokens": response.cache_miss_tokens,
+        "finish_reason": response.finish_reason,
         "retries": retries,
     }
 
@@ -591,6 +648,7 @@ def _cache_key(payload: dict[str, Any], mode: str) -> str:
         "payload": payload, "mode": mode, "groq_model": _groq_model(),
         "deepseek_fast_model": _deepseek_model("fast"),
         "deepseek_pro_model": _deepseek_model("deep"),
+        "max_output_tokens": _max_output_tokens(),
         "groq_prompt": GROQ_PROMPT_VERSION,
         "deepseek_prompt": DEEPSEEK_PROMPT_VERSION,
     })
@@ -625,25 +683,55 @@ def _build_brief(evidence: list[EvidenceItem], decision: dict[str, Any]) -> Opti
         {"role": "system", "content": ANALYST_SYSTEM_PROMPT},
         {"role": "user", "content": json.dumps({
             "decision": decision, "original_evidence": [row.model_dump() for row in evidence],
-            "schema": _analyst_schema(),
+            "schema_contract": _analyst_contract(),
         }, ensure_ascii=False, default=str)},
     ]
     started = time.perf_counter()
     response: Optional[ProviderResponse] = None
-    try:
-        response, retries = _call_with_retries("groq", messages, final=False)
-        brief = AnalystBrief.model_validate(json.loads(response.content))
-        _validate_brief(brief, {row.id for row in evidence})
-    except Exception as exc:  # noqa: BLE001 - analyst is optional
+    total_retries = 0
+    brief: Optional[AnalystBrief] = None
+    for validation_attempt in range(2):
+        try:
+            response, retries = _call_with_retries("groq", messages, final=False)
+            total_retries += retries
+            brief = AnalystBrief.model_validate(json.loads(response.content))
+            _validate_brief(brief, {row.id for row in evidence})
+            break
+        except (json.JSONDecodeError, ValidationError, ValueError) as exc:
+            if validation_attempt == 0 and response is not None:
+                llm_metrics.record_validation_retry()
+                logger.warning(
+                    "Groq analyst invalid (%s; chars=%d output_tokens=%d finish=%s); correcting once",
+                    type(exc).__name__, len(response.content), response.output_tokens,
+                    response.finish_reason or "unknown",
+                )
+                messages.extend([
+                    {"role": "assistant", "content": response.content[:2000]},
+                    {"role": "user", "content": (
+                        "Return a smaller corrected JSON object matching SCHEMA CONTRACT. "
+                        "Use only known evidence ids and no additional keys."
+                    )},
+                ])
+                continue
+            logger.warning(
+                "Groq analyst unavailable (%s; chars=%d output_tokens=%d finish=%s)",
+                type(exc).__name__, len(response.content) if response else 0,
+                response.output_tokens if response else 0,
+                response.finish_reason if response and response.finish_reason else "unknown",
+            )
+            break
+        except Exception as exc:  # noqa: BLE001 - analyst is optional
+            logger.warning("Groq analyst unavailable (%s)", type(exc).__name__)
+            break
+    if brief is None:
         _record(
             response or ProviderResponse("", "groq", _groq_model()),
             stage="analyst", latency_ms=(time.perf_counter() - started) * 1000,
-            retries=0, success=False,
+            retries=total_retries, success=False,
         )
-        logger.warning("Groq analyst unavailable (%s)", type(exc).__name__)
         return None
     _record(response, stage="analyst", latency_ms=(time.perf_counter() - started) * 1000,
-            retries=retries, success=True)
+            retries=total_retries, success=True)
     _cache_put(_brief_cache, key, brief)
     return brief
 
@@ -655,7 +743,7 @@ def _generate_final(
     messages = [
         {"role": "system", "content": FINAL_SYSTEM_PROMPT},
         {"role": "user", "content": json.dumps({
-            "schema": _narrative_schema(),
+            "schema_contract": _narrative_contract(),
             "decision": decision,
             "original_evidence": [row.model_dump() for row in evidence],
             "groq_analyst_brief": brief.model_dump() if brief else None,
@@ -679,6 +767,12 @@ def _generate_final(
             return narrative, response, total_retries
         except (json.JSONDecodeError, ValidationError, ValueError) as exc:
             if validation_attempt == 0 and last_response is not None:
+                llm_metrics.record_validation_retry()
+                logger.warning(
+                    "%s final narrative invalid (%s; chars=%d output_tokens=%d finish=%s); correcting once",
+                    provider, type(exc).__name__, len(last_response.content),
+                    last_response.output_tokens, last_response.finish_reason or "unknown",
+                )
                 messages.extend([
                     {"role": "assistant", "content": last_response.content[:2000]},
                     {"role": "user", "content": (
@@ -688,7 +782,12 @@ def _generate_final(
                     )},
                 ])
                 continue
-            logger.warning("%s final narrative invalid (%s)", provider, type(exc).__name__)
+            logger.warning(
+                "%s final narrative invalid (%s; chars=%d output_tokens=%d finish=%s)",
+                provider, type(exc).__name__, len(last_response.content) if last_response else 0,
+                last_response.output_tokens if last_response else 0,
+                last_response.finish_reason if last_response and last_response.finish_reason else "unknown",
+            )
             _record(
                 last_response or ProviderResponse(
                     "", provider,

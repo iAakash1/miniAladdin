@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -42,6 +43,13 @@ class TestAnalystStore:
         analyst_store.reset_for_tests(tmp_path / "not" / "writable")
         with patch.object(analyst_store.Path, "mkdir", side_effect=OSError("denied")):
             assert analyst_store.record_snapshot("X", 1.0, None, None, None, None) is False
+
+    def test_cloud_run_uses_a_writable_ephemeral_store_by_default(self, monkeypatch):
+        monkeypatch.setenv("DEPLOYMENT_ENV", "cloud_run")
+        monkeypatch.delenv("ANALYST_SNAPSHOT_DIR", raising=False)
+        analyst_store.reset_for_tests()
+
+        assert analyst_store.STORE_DIR == Path("/tmp/omnisignal/analyst_snapshots")
 
 
 class TestFundamentalsDataGuards:

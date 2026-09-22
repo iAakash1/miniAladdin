@@ -126,6 +126,10 @@ Set `DEEPSEEK_FAST_MODEL=deepseek-flash` and
 `DEEPSEEK_PRO_MODEL=deepseek-v4-pro`; remove the stale
 `DEEPSEEK_MODEL=deepseek-chat` setting rather than allowing the compatibility
 fallback to select a retired model.
+The measured first real calls also require `LLM_TIMEOUT=20` and use the bounded
+`LLM_MAX_OUTPUT_TOKENS=6000`; the compact v2 prompt contracts keep typical
+responses below that ceiling. Cloud Run writes best-effort analyst snapshots
+and third-party caches only under ephemeral `/tmp`, never under `/app`.
 
 ## Validation gate
 

@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
@@ -22,7 +23,21 @@ from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
-STORE_DIR = Path(__file__).parent.parent.parent / "research_vault" / "analyst_snapshots"
+_REPOSITORY_STORE_DIR = (
+    Path(__file__).parent.parent.parent / "research_vault" / "analyst_snapshots"
+)
+
+
+def _default_store_dir() -> Path:
+    configured = os.getenv("ANALYST_SNAPSHOT_DIR", "").strip()
+    if configured:
+        return Path(configured)
+    if os.getenv("DEPLOYMENT_ENV", "").strip().lower() == "cloud_run":
+        return Path("/tmp/omnisignal/analyst_snapshots")
+    return _REPOSITORY_STORE_DIR
+
+
+STORE_DIR = _default_store_dir()
 _lock = threading.Lock()
 _recorded_today: set[str] = set()  # process-local fast path
 
@@ -102,6 +117,5 @@ def load_snapshots(ticker: str, limit: int = 400) -> list[dict[str, Any]]:
 
 def reset_for_tests(directory: Optional[Path] = None) -> None:
     global STORE_DIR
-    if directory is not None:
-        STORE_DIR = directory
+    STORE_DIR = directory if directory is not None else _default_store_dir()
     _recorded_today.clear()

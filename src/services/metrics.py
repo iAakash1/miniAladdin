@@ -55,6 +55,11 @@ class LLMMetrics:
         with self._lock:
             self.singleflight_waits += 1
 
+    def record_validation_retry(self) -> None:
+        """Count a schema correction without retaining model output."""
+        with self._lock:
+            self.validation_retries += 1
+
     def record_stage(
         self,
         *,

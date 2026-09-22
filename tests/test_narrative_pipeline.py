@@ -66,9 +66,12 @@ def _clean(monkeypatch):
     monkeypatch.delenv("DEEPSEEK_MODEL", raising=False)
     monkeypatch.delenv("DEEPSEEK_FAST_MODEL", raising=False)
     monkeypatch.delenv("DEEPSEEK_PRO_MODEL", raising=False)
+    monkeypatch.delenv("LLM_MAX_OUTPUT_TOKENS", raising=False)
+    pipeline.llm_metrics.reset()
     pipeline.reset_for_tests()
     yield
     pipeline.reset_for_tests()
+    pipeline.llm_metrics.reset()
 
 
 def test_evidence_ids_are_stable_and_semantic():
@@ -79,6 +82,20 @@ def test_evidence_ids_are_stable_and_semantic():
     assert "technical.rsi_14" in {row.id for row in first}
     assert "factor.r12_1.contribution" in {row.id for row in first}
     assert any(row.id.startswith("news.article.") for row in first)
+
+
+def test_news_evidence_is_deterministically_bounded():
+    payload = _payload()
+    payload["sentiment"]["headlines"] = [
+        {"title": f"Headline {index}", "source": "publisher"}
+        for index in range(30)
+    ]
+
+    evidence = pipeline.build_evidence_envelope(payload)
+    news = [row for row in evidence if row.id.startswith("news.article.")]
+
+    assert len(news) == pipeline.MAX_NEWS_EVIDENCE_ITEMS == 12
+    assert {row.value for row in news} == {f"Headline {index}" for index in range(12)}
 
 
 def test_unknown_evidence_id_is_rejected():
@@ -116,6 +133,34 @@ def test_deep_mode_runs_groq_analyst_then_deepseek(monkeypatch):
     assert result["provider"] == "deepseek"
     assert result["analyst_brief_used"] is True
     assert result["evidence_links"]["executive_summary"] == ["decision.confidence"]
+
+
+def test_invalid_analyst_brief_gets_one_bounded_correction(monkeypatch):
+    analyst_calls = 0
+
+    def fake(provider, messages, *, final, model=None):
+        nonlocal analyst_calls
+        if provider == "groq" and not final:
+            analyst_calls += 1
+            content = (
+                '{"positive_evidence":[{"evidence_ids":"not-a-list"}]}'
+                if analyst_calls == 1
+                else _brief("factor.r12_1.contribution")
+            )
+        else:
+            content = _narrative("decision.confidence")
+        return pipeline.ProviderResponse(
+            content=content, provider=provider, model=f"{provider}-model",
+            finish_reason="stop",
+        )
+
+    monkeypatch.setattr(pipeline, "_call_stage", fake)
+    result = pipeline.generate(_payload())
+
+    assert result is not None
+    assert analyst_calls == 2
+    assert result["analyst_brief_used"] is True
+    assert pipeline.llm_metrics.snapshot()["validation_retries"] == 1
 
 
 def test_deepseek_failure_uses_groq_direct_final(monkeypatch):
@@ -230,5 +275,6 @@ def test_deepseek_request_disables_thinking_for_schema_writer(monkeypatch):
 
     assert response.model == "deepseek-flash"
     assert captured["json"]["model"] == "deepseek-flash"
+    assert captured["json"]["max_tokens"] == pipeline.DEFAULT_MAX_OUTPUT_TOKENS
     assert captured["json"]["thinking"] == {"type": "disabled"}
     assert captured["json"]["response_format"] == {"type": "json_object"}
