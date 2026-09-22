@@ -1,0 +1,67 @@
+{
+  "comparisons": 4,
+  "clean": true,
+  "failed": [],
+  "rows_compared": 1389077,
+  "columns_compared": 67,
+  "dataset_version": "ds-e691b48ca49deb16",
+  "content_hash": "fffb3fde0afc36b95fc93d5b5e54f226",
+  "rows": 506374,
+  "symbols": 977,
+  "dates": 625,
+  "features": 67,
+  "start": "2014-04-01",
+  "end": "2026-08-30",
+  "step_sessions": 5,
+  "cutoffs": [
+    "2019-11-01",
+    "2021-12-11",
+    "2024-01-20",
+    "2025-10-16"
+  ],
+  "guard_report": {
+    "passed": true,
+    "checks": [
+      {
+        "check": "features_registered",
+        "passed": true,
+        "detail": "16 features declared"
+      },
+      {
+        "check": "features_pit_safe",
+        "passed": true,
+        "detail": "every feature declares point-in-time safety"
+      },
+      {
+        "check": "universe_declares_pit",
+        "passed": true,
+        "detail": "universe does not declare point-in-time membership \u2014 any study over it is survivorship-biased and must be labelled so"
+      },
+      {
+        "check": "universe_dates_monotone",
+        "passed": true,
+        "detail": "184 rebalance dates strictly increasing"
+      },
+      {
+        "check": "universe_has_exits",
+        "passed": true,
+        "detail": "4449 membership exits recorded across 184 rebalances",
+        "exits": 4449
+      },
+      {
+        "check": "no_label_in_features",
+        "passed": true,
+        "detail": "no shared column names"
+      },
+      {
+        "check": "no_target_correlation",
+        "passed": true,
+        "detail": "no feature correlates with any label above 0.999",
+        "pairs": []
+      }
+    ],
+    "failed": 0,
+    "total": 7
+  },
+  "elapsed_seconds": 233.9
+}

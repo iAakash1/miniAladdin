@@ -78,7 +78,7 @@ data/panel/
 /data/cache/
 /data/tmp/
 
-# ...except the model register, which is not data.
+# ...except the small, immutable read models required by the production API.
 #
 # `/data/research/` exists to exclude derived partitions measured in gigabytes.
 # The register is a 1.5 MB evidence ledger that records every model, its
@@ -90,12 +90,22 @@ data/panel/
 #
 # Git cannot re-include a file beneath an excluded directory, so the whole path
 # chain is re-admitted one level at a time. The `*` lines keep everything else
-# in those directories excluded.
+# in those directories excluded. The study/integrity snapshots and liquid
+# universe are also versioned because the Docker runtime copies them directly;
+# without these exceptions an image built from the Git SHA alone silently
+# depends on ignored files in one developer checkout.
 !/data/research/
 /data/research/*
 !/data/research/models/
 /data/research/models/*
 !/data/research/models/registry.json
+!/data/research/reports/
+/data/research/reports/*
+!/data/research/reports/study.json
+!/data/research/reports/integrity.json
+!/data/research/universe/
+/data/research/universe/*
+!/data/research/universe/liquid.json
 /data/panel/
 
 # Training and ingestion logs — reproducible output, often large.
