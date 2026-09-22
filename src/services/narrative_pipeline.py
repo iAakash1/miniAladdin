@@ -34,7 +34,7 @@ from src.services.metrics import llm_metrics
 logger = logging.getLogger("omnisignal.narrative")
 
 SCHEMA_VERSION = "grounded-narrative-v1"
-GROQ_PROMPT_VERSION = "groq-analyst-v2"
+GROQ_PROMPT_VERSION = "groq-analyst-v3"
 DEEPSEEK_PROMPT_VERSION = "deepseek-final-v5"
 DEFAULT_GROQ_MODEL = "openai/gpt-oss-120b"
 DEFAULT_DEEPSEEK_FAST_MODEL = "deepseek-flash"
@@ -43,8 +43,8 @@ DEFAULT_DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 MAX_TRANSIENT_RETRIES = 1
 MAX_CACHE_ENTRIES = 128
 MAX_NEWS_EVIDENCE_ITEMS = 12
-MAX_NARRATIVE_NEWS_ITEMS = 4
-MAX_NARRATIVE_FACTOR_ITEMS = 6
+MAX_NARRATIVE_NEWS_ITEMS = 3
+MAX_NARRATIVE_FACTOR_ITEMS = 4
 DEFAULT_MAX_OUTPUT_TOKENS = 6000
 
 
@@ -370,7 +370,7 @@ def _rounded_tokens(value: float, *, percent: bool = False) -> list[str]:
     # change its meaning (0.1763 -> 0.2).  Percent displays and values already
     # above one may use normal desk-style whole/one-decimal presentation;
     # fractional raw values retain at least two decimals.
-    decimal_places = (0, 1, 2, 3, 4) if percent or abs(value) >= 1 else (2, 3, 4)
+    decimal_places = (0, 1, 2) if percent or abs(value) >= 1 else (2, 3, 4)
     for decimals in decimal_places:
         rendered = f"{value:.{decimals}f}"
         if "." in rendered:
@@ -419,18 +419,21 @@ def _narrative_evidence(evidence: list[EvidenceItem]) -> list[EvidenceItem]:
     by_id = {item.id: item for item in evidence}
     selected: set[str] = {
         item.id for item in evidence
-        if item.id.startswith(("decision.", "macro.", "factor_family."))
+        if item.id.startswith(("decision.", "factor_family."))
     }
     selected.update({
         evidence_id for evidence_id in (
+            "macro.risk_multiplier", "macro.fed_funds_rate",
+            "macro.inflation_rate", "macro.yield_spread",
+            "macro.yield_curve_inverted", "macro.recession_warning", "macro.status",
             "quant.raw_score", "quant.momentum_score", "quant.fundamental_score",
             "quant.quality_score", "quant.news_score", "quant.macro_gate",
             "quant.conflict_index", "quant.uncertainty", "quant.risk_score",
-            "quant.data_completeness", "technical.current_price",
+            "technical.current_price",
             "technical.return_5d", "technical.return_21d", "technical.volatility",
             "technical.sharpe_ratio", "technical.rsi_14", "technical.max_drawdown",
             "technical.pe_ratio", "technical.forward_pe", "technical.analyst_target",
-            "technical.beta", "technical.raw_signal", "technical.risk_adjusted_signal",
+            "technical.raw_signal", "technical.risk_adjusted_signal",
             "sentiment.average_score", "sentiment.dominant_label",
             "sentiment.headline_count",
         ) if evidence_id in by_id
@@ -460,6 +463,23 @@ def _timeout_seconds() -> float:
         return max(1.0, min(20.0, float(os.getenv("LLM_TIMEOUT", "10"))))
     except ValueError:
         return 10.0
+
+
+def _deepseek_timeout_seconds(model: str) -> float:
+    """Give the measured Pro writer more time without slowing Fast mode.
+
+    Flash completed well inside the shared 20-second ceiling.  Pro returned at
+    that boundary and then raised ``ReadTimeout``.  Thirty-five seconds leaves
+    room for one validation correction and the server proxy's 120-second
+    budget while keeping every attempt bounded.
+    """
+
+    if model != _deepseek_model("deep"):
+        return _timeout_seconds()
+    try:
+        return max(20.0, min(45.0, float(os.getenv("LLM_DEEP_TIMEOUT", "35"))))
+    except ValueError:
+        return 35.0
 
 
 def _cache_ttl() -> float:
@@ -566,7 +586,7 @@ def _call_stage(
             # The fallback must fit providers whose account-level context
             # allowance is smaller than DeepSeek's.  Concise schema limits
             # keep a valid response below this ceiling in measured runs.
-            max_completion_tokens=min(_max_output_tokens(), 3500) if final else 2400,
+            max_completion_tokens=min(_max_output_tokens(), 2200) if final else 1800,
             stream=False, response_format={"type": "json_object"},
         )
         content = response.choices[0].message.content or ""
@@ -592,6 +612,7 @@ def _call_stage(
             "thinking": {"type": "disabled"},
             "response_format": {"type": "json_object"},
         },
+        timeout=_deepseek_timeout_seconds(model),
     )
     response.raise_for_status()
     body = response.json()
@@ -626,12 +647,19 @@ def _call_with_retries(
     model: Optional[str] = None,
 ) -> tuple[ProviderResponse, int]:
     last: Exception = RuntimeError("no provider attempt")
-    for attempt in range(MAX_TRANSIENT_RETRIES + 1):
+    # A Pro validation retry already gives the writer a second bounded chance.
+    # Layering transport retries beneath it could consume 4 x 35 seconds and
+    # overrun the Vercel proxy before the deterministic fallback can answer.
+    max_transient_retries = (
+        0 if provider == "deepseek" and model == _deepseek_model("deep")
+        else MAX_TRANSIENT_RETRIES
+    )
+    for attempt in range(max_transient_retries + 1):
         try:
             return _call_stage(provider, messages, final=final, model=model), attempt
         except Exception as exc:  # noqa: BLE001 - classified and bounded here
             last = exc
-            if _transient(exc) and attempt < MAX_TRANSIENT_RETRIES:
+            if _transient(exc) and attempt < max_transient_retries:
                 time.sleep(0.4 * (2**attempt))
                 continue
             raise
@@ -653,6 +681,63 @@ def _validate_brief(brief: AnalystBrief, known: set[str]) -> None:
     unknown = sorted(_all_refs(brief) - known)
     if unknown:
         raise ValueError(f"analyst brief referenced unknown evidence ids: {unknown[:5]}")
+
+
+def _normalize_brief(value: Any, known: set[str]) -> Optional[AnalystBrief]:
+    """Reduce a loose analyst response to the grounded contract.
+
+    The analyst is explicitly secondary and untrusted.  Unknown fields are
+    discarded, invented evidence ids are removed, and any point left without a
+    known citation disappears.  This is safer and cheaper than sending model
+    output back to Groq for a schema-only repair, which measured as an
+    immediate rate-limit failure on the production key.
+    """
+
+    if not isinstance(value, dict):
+        return None
+    clean: dict[str, Any] = {}
+    for name in (
+        "positive_evidence", "negative_evidence", "macro_context",
+        "news_context", "conflicts",
+    ):
+        points: list[dict[str, Any]] = []
+        rows = value.get(name)
+        if not isinstance(rows, list):
+            rows = []
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            raw_ids = row.get("evidence_ids")
+            if not isinstance(raw_ids, list):
+                continue
+            ids = [item for item in raw_ids if isinstance(item, str) and item in known][:12]
+            if not ids:
+                continue
+            summary = row.get("summary")
+            importance = row.get("importance")
+            points.append({
+                "evidence_ids": ids,
+                "summary": summary[:500] if isinstance(summary, str) else "",
+                "importance": importance if importance in {"high", "medium", "low"} else "medium",
+            })
+        clean[name] = points[:8]
+
+    for name in ("bull_case_evidence_ids", "bear_case_evidence_ids", "risk_evidence_ids"):
+        rows = value.get(name)
+        clean[name] = [
+            item for item in rows if isinstance(item, str) and item in known
+        ][:12] if isinstance(rows, list) else []
+
+    for name, maximum in (("missing_data", 12), ("suggested_emphasis", 8)):
+        rows = value.get(name)
+        clean[name] = (
+            [item[:500] for item in rows if isinstance(item, str)][:maximum]
+            if isinstance(rows, list) else []
+        )
+
+    brief = AnalystBrief.model_validate(clean)
+    _validate_brief(brief, known)
+    return brief if _all_refs(brief) else None
 
 
 _NUMERIC = re.compile(r"(?<![A-Za-z0-9_])([$€£₹]?)([+-]?\d[\d,]*(?:\.\d+)?)(%?)(?![A-Za-z0-9_])")
@@ -839,41 +924,23 @@ def _build_brief(evidence: list[EvidenceItem], decision: dict[str, Any]) -> Opti
     response: Optional[ProviderResponse] = None
     total_retries = 0
     brief: Optional[AnalystBrief] = None
-    for validation_attempt in range(2):
-        try:
-            response, retries = _call_with_retries("groq", messages, final=False)
-            total_retries += retries
-            brief = AnalystBrief.model_validate(json.loads(response.content))
-            _validate_brief(brief, {row.id for row in evidence})
-            break
-        except (json.JSONDecodeError, ValidationError, ValueError) as exc:
-            if validation_attempt == 0 and response is not None:
-                llm_metrics.record_validation_retry()
-                logger.warning(
-                    "Groq analyst invalid (%s/%s; chars=%d output_tokens=%d finish=%s); correcting once",
-                    type(exc).__name__, _validation_category(exc),
-                    len(response.content), response.output_tokens,
-                    response.finish_reason or "unknown",
-                )
-                messages.extend([
-                    {"role": "assistant", "content": response.content[:2000]},
-                    {"role": "user", "content": (
-                        "Return a smaller corrected JSON object matching SCHEMA CONTRACT. "
-                        "Use only known evidence ids and no additional keys."
-                    )},
-                ])
-                continue
-            logger.warning(
-                "Groq analyst unavailable (%s/%s; chars=%d output_tokens=%d finish=%s)",
-                type(exc).__name__, _validation_category(exc),
-                len(response.content) if response else 0,
-                response.output_tokens if response else 0,
-                response.finish_reason if response and response.finish_reason else "unknown",
-            )
-            break
-        except Exception as exc:  # noqa: BLE001 - analyst is optional
-            logger.warning("Groq analyst unavailable (%s)", type(exc).__name__)
-            break
+    try:
+        response, total_retries = _call_with_retries("groq", messages, final=False)
+        brief = _normalize_brief(
+            json.loads(response.content), {row.id for row in evidence},
+        )
+        if brief is None:
+            raise ValueError("analyst brief contained no grounded evidence")
+    except (json.JSONDecodeError, ValidationError, ValueError) as exc:
+        logger.warning(
+            "Groq analyst unavailable (%s/%s; chars=%d output_tokens=%d finish=%s)",
+            type(exc).__name__, _validation_category(exc),
+            len(response.content) if response else 0,
+            response.output_tokens if response else 0,
+            response.finish_reason if response and response.finish_reason else "unknown",
+        )
+    except Exception as exc:  # noqa: BLE001 - analyst is optional
+        logger.warning("Groq analyst unavailable (%s)", type(exc).__name__)
     if brief is None:
         _record(
             response or ProviderResponse("", "groq", _groq_model()),

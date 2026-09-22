@@ -176,7 +176,7 @@ def test_narrative_packet_is_bounded_without_losing_decision_evidence():
     selected = pipeline._narrative_evidence(evidence)
 
     ids = {item.id for item in selected}
-    assert len([item for item in selected if item.id.startswith("factor.")]) == 6
+    assert len([item for item in selected if item.id.startswith("factor.")]) == 4
     assert "decision.confidence" in ids
     assert "technical.current_price" in ids
 
@@ -234,18 +234,22 @@ def test_deep_mode_runs_groq_analyst_then_deepseek(monkeypatch):
     assert result["evidence_links"]["executive_summary"] == ["decision.confidence"]
 
 
-def test_invalid_analyst_brief_gets_one_bounded_correction(monkeypatch):
+def test_analyst_schema_drift_is_normalized_without_second_call(monkeypatch):
     analyst_calls = 0
 
     def fake(provider, messages, *, final, model=None):
         nonlocal analyst_calls
         if provider == "groq" and not final:
             analyst_calls += 1
-            content = (
-                '{"positive_evidence":[{"evidence_ids":"not-a-list"}]}'
-                if analyst_calls == 1
-                else _brief("factor.r12_1.contribution")
-            )
+            content = json.dumps({
+                "positive_evidence": [{
+                    "evidence_ids": ["factor.r12_1.contribution", "invented.id"],
+                    "summary": "Momentum contributes positively.",
+                    "importance": "high",
+                    "unexpected": "discard me",
+                }],
+                "unexpected_top_level": "discard me too",
+            })
         else:
             content = _narrative("decision.confidence")
         return pipeline.ProviderResponse(
@@ -257,9 +261,29 @@ def test_invalid_analyst_brief_gets_one_bounded_correction(monkeypatch):
     result = pipeline.generate(_payload())
 
     assert result is not None
-    assert analyst_calls == 2
+    assert analyst_calls == 1
     assert result["analyst_brief_used"] is True
-    assert pipeline.llm_metrics.snapshot()["validation_retries"] == 1
+    assert pipeline.llm_metrics.snapshot()["validation_retries"] == 0
+
+
+def test_ungrounded_analyst_brief_degrades_without_paid_schema_retry(monkeypatch):
+    calls = []
+
+    def fake(provider, messages, *, final, model=None):
+        calls.append((provider, final))
+        content = (
+            '{"positive_evidence":[{"evidence_ids":"not-a-list"}]}'
+            if provider == "groq" and not final
+            else _narrative("decision.confidence")
+        )
+        return pipeline.ProviderResponse(content=content, provider=provider, model="model")
+
+    monkeypatch.setattr(pipeline, "_call_stage", fake)
+    result = pipeline.generate(_payload())
+
+    assert result is not None
+    assert calls.count(("groq", False)) == 1
+    assert result["analyst_brief_used"] is False
 
 
 def test_deepseek_failure_uses_groq_direct_final(monkeypatch):
@@ -361,8 +385,8 @@ def test_deepseek_request_disables_thinking_for_schema_writer(monkeypatch):
             }
 
     class Client:
-        def post(self, url, *, headers, json):
-            captured.update({"url": url, "headers": headers, "json": json})
+        def post(self, url, *, headers, json, timeout):
+            captured.update({"url": url, "headers": headers, "json": json, "timeout": timeout})
             return Response()
 
     monkeypatch.setattr(pipeline, "_get_deepseek_client", lambda: Client())
@@ -377,3 +401,12 @@ def test_deepseek_request_disables_thinking_for_schema_writer(monkeypatch):
     assert captured["json"]["max_tokens"] == pipeline.DEFAULT_MAX_OUTPUT_TOKENS
     assert captured["json"]["thinking"] == {"type": "disabled"}
     assert captured["json"]["response_format"] == {"type": "json_object"}
+    assert captured["timeout"] == pipeline._timeout_seconds()
+
+
+def test_deepseek_pro_has_a_bounded_stage_specific_timeout(monkeypatch):
+    monkeypatch.setenv("LLM_TIMEOUT", "20")
+    monkeypatch.delenv("LLM_DEEP_TIMEOUT", raising=False)
+
+    assert pipeline._deepseek_timeout_seconds("deepseek-flash") == 20.0
+    assert pipeline._deepseek_timeout_seconds("deepseek-v4-pro") == 35.0
