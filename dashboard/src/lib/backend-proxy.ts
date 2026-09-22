@@ -1,13 +1,25 @@
 import { getVercelOidcToken } from '@vercel/oidc'
 import { ExternalAccountClient } from 'google-auth-library'
 
-const HOP_BY_HOP = new Set([
+const TRANSPORT_HEADERS = new Set([
   'connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization',
-  'te', 'trailer', 'transfer-encoding', 'upgrade', 'host', 'content-length',
+  'te', 'trailer', 'transfer-encoding', 'upgrade',
+])
+const REQUEST_BLOCKED_HEADERS = new Set([
+  ...TRANSPORT_HEADERS, 'host', 'content-length',
+  'x-vercel-oidc-token', 'x-serverless-authorization',
+])
+const RESPONSE_BLOCKED_HEADERS = new Set([
+  ...TRANSPORT_HEADERS, 'content-length',
   // Node's fetch transparently decompresses upstream bodies. Forwarding the
   // original encoding after that would ask the browser to decode plain bytes.
-  'content-encoding', 'x-vercel-oidc-token', 'x-serverless-authorization',
+  'content-encoding',
+  // Infrastructure and application credentials are request-only. A broken
+  // upstream must never reflect them into the browser response.
+  'authorization', 'set-cookie', 'x-vercel-oidc-token',
+  'x-serverless-authorization',
 ])
+const MAX_BACKEND_RESPONSE_BYTES = 8 * 1024 * 1024
 
 type CachedIdToken = { token: string; expiresAt: number }
 let cachedIdToken: CachedIdToken | null = null
@@ -84,18 +96,29 @@ export async function cloudRunIdToken(): Promise<string> {
 
 function outboundHeaders(request: Request): Headers {
   const headers = new Headers()
+  const blocked = connectionScopedHeaders(request.headers, REQUEST_BLOCKED_HEADERS)
   request.headers.forEach((value, key) => {
-    if (!HOP_BY_HOP.has(key.toLowerCase())) headers.set(key, value)
+    if (!blocked.has(key.toLowerCase())) headers.set(key, value)
   })
   return headers
 }
 
 function responseHeaders(upstream: Headers): Headers {
   const headers = new Headers()
+  const blocked = connectionScopedHeaders(upstream, RESPONSE_BLOCKED_HEADERS)
   upstream.forEach((value, key) => {
-    if (!HOP_BY_HOP.has(key.toLowerCase())) headers.set(key, value)
+    if (!blocked.has(key.toLowerCase())) headers.set(key, value)
   })
   return headers
+}
+
+function connectionScopedHeaders(headers: Headers, base: Set<string>): Set<string> {
+  const blocked = new Set(base)
+  for (const token of (headers.get('connection') || '').split(',')) {
+    const name = token.trim().toLowerCase()
+    if (name) blocked.add(name)
+  }
+  return blocked
 }
 
 export async function proxyBackend(request: Request, path: string[]): Promise<Response> {
@@ -126,7 +149,15 @@ export async function proxyBackend(request: Request, path: string[]): Promise<Re
   // connection closed after Vercel had already emitted the response headers.
   // API responses are deliberately compact (the largest registry response is
   // currently under 100 KiB), while the 120 s abort bounds request lifetime.
-  const payload = method === 'HEAD' ? null : await upstream.arrayBuffer()
+  const declaredLength = Number(upstream.headers.get('content-length'))
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_BACKEND_RESPONSE_BYTES) {
+    throw new Error('Backend response exceeded the proxy size limit')
+  }
+  const statusHasNoBody = upstream.status === 204 || upstream.status === 205 || upstream.status === 304
+  const payload = method === 'HEAD' || statusHasNoBody ? null : await upstream.arrayBuffer()
+  if (payload && payload.byteLength > MAX_BACKEND_RESPONSE_BYTES) {
+    throw new Error('Backend response exceeded the proxy size limit')
+  }
   return new Response(payload, {
     status: upstream.status,
     statusText: upstream.statusText,
@@ -136,5 +167,10 @@ export async function proxyBackend(request: Request, path: string[]): Promise<Re
 
 export function resetBackendTokenForTests(): void {
   cachedIdToken = null
+  tokenFlight = null
+}
+
+export function setBackendIdTokenForTests(token: string): void {
+  cachedIdToken = { token, expiresAt: Date.now() + 60 * 60_000 }
   tokenFlight = null
 }
