@@ -447,3 +447,361 @@ def test_deepseek_pro_has_a_bounded_stage_specific_timeout(monkeypatch):
 
     assert pipeline._deepseek_timeout_seconds("deepseek-flash") == 20.0
     assert pipeline._deepseek_timeout_seconds("deepseek-v4-pro") == 35.0
+
+
+# ── Groq ID-only analyst contract tests ────────────────────────────────────
+
+
+def _known_ids():
+    """Return the set of known evidence IDs from a standard test payload."""
+    evidence = pipeline._narrative_evidence(pipeline.build_evidence_envelope(_payload()))
+    return {item.id for item in evidence}
+
+
+def test_id_only_analyst_valid_response():
+    """v4 contract: Groq returns flat arrays of IDs, normalized correctly."""
+    evidence = pipeline._narrative_evidence(pipeline.build_evidence_envelope(_payload()))
+    known = {item.id for item in evidence}
+    raw = {
+        "positive_evidence_ids": ["factor.r12_1.contribution"],
+        "negative_evidence_ids": ["macro.risk_multiplier"],
+        "macro_evidence_ids": ["macro.risk_multiplier"],
+        "news_evidence_ids": [],
+        "conflict_evidence_ids": [],
+        "bull_case_evidence_ids": ["factor.r12_1.contribution"],
+        "bear_case_evidence_ids": ["macro.risk_multiplier"],
+        "risk_evidence_ids": [],
+    }
+    brief = pipeline._normalize_brief(raw, known)
+    assert brief is not None
+    all_refs = pipeline._all_refs(brief)
+    assert "factor.r12_1.contribution" in all_refs
+    assert "macro.risk_multiplier" in all_refs
+
+
+def test_id_only_analyst_unknown_ids_dropped():
+    """Unknown IDs from Groq are silently dropped."""
+    evidence = pipeline._narrative_evidence(pipeline.build_evidence_envelope(_payload()))
+    known = {item.id for item in evidence}
+    raw = {
+        "positive_evidence_ids": ["factor.r12_1.contribution", "invented.id", "fake.metric"],
+        "negative_evidence_ids": ["unknown.thing"],
+        "bull_case_evidence_ids": ["factor.r12_1.contribution", "bogus.id"],
+        "bear_case_evidence_ids": [],
+        "risk_evidence_ids": [],
+    }
+    brief = pipeline._normalize_brief(raw, known)
+    assert brief is not None
+    all_refs = pipeline._all_refs(brief)
+    assert "factor.r12_1.contribution" in all_refs
+    assert "invented.id" not in all_refs
+    assert "fake.metric" not in all_refs
+    assert "unknown.thing" not in all_refs
+    assert "bogus.id" not in all_refs
+
+
+def test_id_only_analyst_duplicate_ids_deduplicated():
+    """Duplicate IDs in a single category are deduplicated."""
+    evidence = pipeline._narrative_evidence(pipeline.build_evidence_envelope(_payload()))
+    known = {item.id for item in evidence}
+    raw = {
+        "positive_evidence_ids": [
+            "factor.r12_1.contribution", "factor.r12_1.contribution",
+            "factor.r12_1.contribution",
+        ],
+        "bull_case_evidence_ids": [
+            "factor.r12_1.contribution", "factor.r12_1.contribution",
+        ],
+        "bear_case_evidence_ids": [],
+        "risk_evidence_ids": [],
+    }
+    brief = pipeline._normalize_brief(raw, known)
+    assert brief is not None
+    # bull_case_evidence_ids is a flat list, check no duplicates
+    assert len(brief.bull_case_evidence_ids) == len(set(brief.bull_case_evidence_ids))
+
+
+def test_id_only_analyst_empty_response():
+    """Completely empty Groq response normalizes to None."""
+    evidence = pipeline._narrative_evidence(pipeline.build_evidence_envelope(_payload()))
+    known = {item.id for item in evidence}
+    brief = pipeline._normalize_brief({}, known)
+    assert brief is None
+
+
+def test_id_only_analyst_partial_categories():
+    """Only some categories populated — others remain empty."""
+    evidence = pipeline._narrative_evidence(pipeline.build_evidence_envelope(_payload()))
+    known = {item.id for item in evidence}
+    raw = {
+        "positive_evidence_ids": ["factor.r12_1.contribution"],
+    }
+    brief = pipeline._normalize_brief(raw, known)
+    assert brief is not None
+    assert len(brief.positive_evidence) >= 1
+    assert brief.negative_evidence == []
+    assert brief.macro_context == []
+
+
+def test_id_only_analyst_malformed_optional_categories():
+    """Malformed optional categories (missing_data, suggested_emphasis) are ignored."""
+    evidence = pipeline._narrative_evidence(pipeline.build_evidence_envelope(_payload()))
+    known = {item.id for item in evidence}
+    raw = {
+        "positive_evidence_ids": ["factor.r12_1.contribution"],
+        "missing_data": 42,  # wrong type
+        "suggested_emphasis": {"not": "a list"},  # wrong type
+    }
+    brief = pipeline._normalize_brief(raw, known)
+    assert brief is not None
+    assert brief.missing_data == []
+    assert brief.suggested_emphasis == []
+
+
+def test_id_only_analyst_legacy_schema_normalization():
+    """Legacy v3 analyst schema (objects with evidence_ids/summary/importance) still normalizes."""
+    evidence = pipeline._narrative_evidence(pipeline.build_evidence_envelope(_payload()))
+    known = {item.id for item in evidence}
+    raw = {
+        "positive_evidence": [{
+            "evidence_ids": ["factor.r12_1.contribution"],
+            "summary": "Momentum helps.",
+            "importance": "high",
+        }],
+    }
+    brief = pipeline._normalize_brief(raw, known)
+    assert brief is not None
+    assert len(brief.positive_evidence) == 1
+    assert brief.positive_evidence[0].evidence_ids == ["factor.r12_1.contribution"]
+
+
+def test_id_only_analyst_all_invalid_ids():
+    """When every Groq ID is unknown, brief is None (zero valid references)."""
+    evidence = pipeline._narrative_evidence(pipeline.build_evidence_envelope(_payload()))
+    known = {item.id for item in evidence}
+    raw = {
+        "positive_evidence_ids": ["invented.a", "invented.b"],
+        "negative_evidence_ids": ["invented.c"],
+        "bull_case_evidence_ids": ["invented.d"],
+        "bear_case_evidence_ids": ["invented.e"],
+        "risk_evidence_ids": ["invented.f"],
+    }
+    brief = pipeline._normalize_brief(raw, known)
+    assert brief is None
+
+
+def test_groq_malformed_json_degrades_gracefully(monkeypatch):
+    """Groq returns malformed JSON — Deep Research still proceeds."""
+    calls: list[tuple[str, bool]] = []
+
+    def fake(provider, messages, *, final, model=None):
+        calls.append((provider, final))
+        if provider == "groq" and not final:
+            return pipeline.ProviderResponse(
+                content="not valid json {{{", provider="groq", model="model",
+            )
+        return pipeline.ProviderResponse(
+            content=_narrative("decision.confidence"), provider=provider, model="model",
+        )
+
+    monkeypatch.setattr(pipeline, "_call_stage", fake)
+    result = pipeline.generate(_payload())
+
+    assert result is not None
+    assert result["generated"] is True
+    assert result["analyst_brief_used"] is False
+    # DeepSeek was still called for the final narrative
+    assert ("deepseek", True) in calls
+
+
+def test_groq_429_degrades_gracefully(monkeypatch):
+    """Groq rate-limit (429) — Deep Research still proceeds without analyst."""
+    class RateLimitError(Exception):
+        status_code = 429
+
+    calls: list[tuple[str, bool]] = []
+
+    def fake(provider, messages, *, final, model=None):
+        calls.append((provider, final))
+        if provider == "groq" and not final:
+            raise RateLimitError("rate limited")
+        return pipeline.ProviderResponse(
+            content=_narrative("decision.confidence"), provider=provider, model="model",
+        )
+
+    monkeypatch.setattr(pipeline, "_call_stage", fake)
+    result = pipeline.generate(_payload())
+
+    assert result is not None
+    assert result["generated"] is True
+    assert result["analyst_brief_used"] is False
+
+
+def test_groq_unavailable_deep_still_proceeds(monkeypatch):
+    """Groq completely unavailable — Deep Research still produces a grounded result."""
+    calls: list[tuple[str, bool]] = []
+
+    def fake(provider, messages, *, final, model=None):
+        calls.append((provider, final))
+        if provider == "groq" and not final:
+            raise ConnectionError("cannot reach Groq")
+        return pipeline.ProviderResponse(
+            content=_narrative("decision.confidence"), provider=provider, model="model",
+        )
+
+    monkeypatch.setattr(pipeline, "_call_stage", fake)
+    result = pipeline.generate(_payload())
+
+    assert result is not None
+    assert result["generated"] is True
+    assert result["analyst_brief_used"] is False
+    assert result["provider"] == "deepseek"
+
+
+def test_groq_zero_valid_ids_deep_still_proceeds(monkeypatch):
+    """Groq returns 200 but all IDs are invalid — Deep still works."""
+    calls: list[tuple[str, bool]] = []
+
+    def fake(provider, messages, *, final, model=None):
+        calls.append((provider, final))
+        if provider == "groq" and not final:
+            content = json.dumps({
+                "positive_evidence_ids": ["invented.a", "invented.b"],
+                "negative_evidence_ids": ["invented.c"],
+                "bull_case_evidence_ids": ["invented.d"],
+                "bear_case_evidence_ids": [],
+                "risk_evidence_ids": [],
+            })
+            return pipeline.ProviderResponse(
+                content=content, provider="groq", model="model",
+            )
+        return pipeline.ProviderResponse(
+            content=_narrative("decision.confidence"), provider=provider, model="model",
+        )
+
+    monkeypatch.setattr(pipeline, "_call_stage", fake)
+    result = pipeline.generate(_payload())
+
+    assert result is not None
+    assert result["generated"] is True
+    assert result["analyst_brief_used"] is False
+    assert result["provider"] == "deepseek"
+
+
+def test_fast_mode_unaffected_by_groq_changes(monkeypatch):
+    """Fast mode never calls Groq analyst — unaffected by v4 contract changes."""
+    calls: list[tuple[str, bool]] = []
+
+    def fake(provider, messages, *, final, model=None):
+        calls.append((provider, final))
+        return pipeline.ProviderResponse(
+            content=_narrative("decision.confidence"), provider=provider, model="model",
+        )
+
+    monkeypatch.setenv("LLM_PIPELINE_MODE", "fast")
+    monkeypatch.setattr(pipeline, "_call_stage", fake)
+    result = pipeline.generate(_payload())
+
+    assert result is not None
+    assert result["generated"] is True
+    assert result["pipeline_mode"] == "fast"
+    # Groq analyst is never called in fast mode
+    assert not any(p == "groq" and not f for p, f in calls)
+
+
+def test_id_only_analyst_nested_wrapper_unwrapped():
+    """Groq wraps the real payload in an outer key — normalizer unwraps it."""
+    evidence = pipeline._narrative_evidence(pipeline.build_evidence_envelope(_payload()))
+    known = {item.id for item in evidence}
+    raw = {
+        "analysis": {
+            "positive_evidence_ids": ["factor.r12_1.contribution"],
+            "bull_case_evidence_ids": ["factor.r12_1.contribution"],
+            "bear_case_evidence_ids": [],
+            "risk_evidence_ids": [],
+        }
+    }
+    brief = pipeline._normalize_brief(raw, known)
+    assert brief is not None
+    assert "factor.r12_1.contribution" in pipeline._all_refs(brief)
+
+
+def test_id_only_analyst_string_id_coerced_to_list():
+    """Groq returns a single string instead of an array — coerced to list."""
+    evidence = pipeline._narrative_evidence(pipeline.build_evidence_envelope(_payload()))
+    known = {item.id for item in evidence}
+    raw = {
+        "positive_evidence_ids": "factor.r12_1.contribution",
+        "bull_case_evidence_ids": [],
+        "bear_case_evidence_ids": [],
+        "risk_evidence_ids": [],
+    }
+    brief = pipeline._normalize_brief(raw, known)
+    assert brief is not None
+    assert "factor.r12_1.contribution" in pipeline._all_refs(brief)
+
+
+def test_analyst_prompt_version_is_v4():
+    """Cache isolation: the prompt version reflects the v4 ID-only contract."""
+    assert pipeline.GROQ_PROMPT_VERSION == "groq-analyst-v4"
+
+
+def test_analyst_contract_is_id_only():
+    """The analyst contract schema contains only ID array fields, not prose fields."""
+    contract = pipeline._analyst_contract()
+    assert "required_id_arrays" in contract
+    for key in contract["required_id_arrays"]:
+        assert key.endswith("_ids"), f"expected ID array key, got {key}"
+    # No prose fields like summary, importance, etc. in the contract
+    assert "point" not in contract
+    assert "point_arrays" not in contract
+
+
+def test_deep_generates_with_id_only_brief(monkeypatch):
+    """Deep mode: Groq returns v4 ID-only format, DeepSeek produces valid narrative."""
+    calls: list[tuple[str, bool]] = []
+
+    def fake(provider, messages, *, final, model=None):
+        calls.append((provider, final))
+        if provider == "groq" and not final:
+            content = json.dumps({
+                "positive_evidence_ids": ["factor.r12_1.contribution"],
+                "negative_evidence_ids": ["macro.risk_multiplier"],
+                "macro_evidence_ids": ["macro.risk_multiplier"],
+                "news_evidence_ids": [],
+                "conflict_evidence_ids": [],
+                "bull_case_evidence_ids": ["factor.r12_1.contribution"],
+                "bear_case_evidence_ids": ["macro.risk_multiplier"],
+                "risk_evidence_ids": [],
+            })
+            return pipeline.ProviderResponse(
+                content=content, provider="groq", model="groq-model",
+            )
+        return pipeline.ProviderResponse(
+            content=_narrative("decision.confidence"), provider=provider, model="deepseek-model",
+        )
+
+    monkeypatch.setattr(pipeline, "_call_stage", fake)
+    result = pipeline.generate(_payload())
+
+    assert result is not None
+    assert result["generated"] is True
+    assert result["analyst_brief_used"] is True
+    assert calls == [("groq", False), ("deepseek", True)]
+
+
+def test_groq_not_configured_deep_still_proceeds(monkeypatch):
+    """Groq API key not configured — Deep still proceeds without analyst."""
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+
+    def fake(provider, messages, *, final, model=None):
+        return pipeline.ProviderResponse(
+            content=_narrative("decision.confidence"), provider=provider, model="model",
+        )
+
+    monkeypatch.setattr(pipeline, "_call_stage", fake)
+    result = pipeline.generate(_payload())
+
+    assert result is not None
+    assert result["generated"] is True
+    assert result["analyst_brief_used"] is False
