@@ -114,6 +114,58 @@ def test_unsupported_numeric_claim_is_rejected():
         pipeline.validate_narrative(narrative, evidence)
 
 
+def test_supported_negative_numeric_claim_keeps_its_sign():
+    payload = _payload()
+    payload["quant"]["factors"][0]["contribution"] = -0.18
+    evidence = pipeline.build_evidence_envelope(payload)
+    narrative = pipeline.GroundedNarrative.model_validate(json.loads(
+        _narrative("factor.r12_1.contribution", "Momentum contributed -0.18 to the score.")
+    ))
+
+    pipeline.validate_narrative(narrative, evidence)
+
+
+def test_final_prompt_exposes_mechanical_grounding_contract(monkeypatch):
+    captured: list[dict[str, str]] = []
+
+    def fake(provider, messages, *, final, model=None):
+        captured.extend(messages)
+        return pipeline.ProviderResponse(
+            content=_narrative("decision.confidence"), provider=provider, model="model",
+        )
+
+    monkeypatch.setenv("LLM_PIPELINE_MODE", "fast")
+    monkeypatch.setattr(pipeline, "_call_stage", fake)
+
+    assert pipeline.generate(_payload()) is not None
+    request = json.loads(next(row["content"] for row in captured if row["role"] == "user"))
+    assert "decision.confidence" in request["allowed_evidence_ids"]
+    assert request["exact_numeric_tokens_by_evidence_id"]["decision.confidence"] == ["70", "70%"]
+    assert request["exact_numeric_tokens_by_evidence_id"]["factor.r12_1.contribution"] == ["0.18", "18%"]
+
+
+def test_corrective_retry_does_not_replay_invalid_model_content(monkeypatch):
+    calls: list[list[dict[str, str]]] = []
+
+    def fake(provider, messages, *, final, model=None):
+        calls.append(messages)
+        content = (
+            _narrative("decision.confidence", "Confidence is 999.9%.")
+            if len(calls) == 1
+            else _narrative("decision.confidence")
+        )
+        return pipeline.ProviderResponse(content=content, provider=provider, model="model")
+
+    monkeypatch.setenv("LLM_PIPELINE_MODE", "fast")
+    monkeypatch.setattr(pipeline, "_call_stage", fake)
+
+    assert pipeline.generate(_payload()) is not None
+    assert len(calls) == 2
+    assert [row["role"] for row in calls[1]] == ["system", "user", "user"]
+    assert "999.9" not in "\n".join(row["content"] for row in calls[1])
+    assert "unsupported_numeric_claims" in calls[1][-1]["content"]
+
+
 def test_validation_categories_do_not_include_model_content():
     assert pipeline._validation_category(
         ValueError("section referenced unknown evidence ids: ['invented']")

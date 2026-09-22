@@ -35,7 +35,7 @@ logger = logging.getLogger("omnisignal.narrative")
 
 SCHEMA_VERSION = "grounded-narrative-v1"
 GROQ_PROMPT_VERSION = "groq-analyst-v2"
-DEEPSEEK_PROMPT_VERSION = "deepseek-final-v3"
+DEEPSEEK_PROMPT_VERSION = "deepseek-final-v4"
 DEFAULT_GROQ_MODEL = "openai/gpt-oss-120b"
 DEFAULT_DEEPSEEK_FAST_MODEL = "deepseek-flash"
 DEFAULT_DEEPSEEK_PRO_MODEL = "deepseek-v4-pro"
@@ -181,7 +181,10 @@ def build_evidence_envelope(payload: dict[str, Any]) -> list[EvidenceItem]:
 
     decision = payload.get("decision") or {}
     for key in ("recommendation", "confidence", "risk", "verdict", "rationale"):
-        add(f"decision.{key}", decision.get(key), source="deterministic_engine")
+        add(
+            f"decision.{key}", decision.get(key), source="deterministic_engine",
+            unit="percent" if key == "confidence" else None,
+        )
     for index, item in enumerate(decision.get("confidence_breakdown") or []):
         label = _safe_token(item.get("component") or index)
         add(
@@ -276,7 +279,10 @@ targets.  Do not change recommendation, confidence, risk, factor values or
 weights.  Admit missing data and describe conflicts rather than smoothing them.
 Each non-empty section must cite one or more ids from ORIGINAL EVIDENCE.
 Copy evidence ids verbatim.  When using a number, copy its exact numeric token
-from ORIGINAL EVIDENCE without rounding or transformation; otherwise omit it.
+from EXACT NUMERIC TOKENS without rounding or transformation; otherwise omit
+it.  ALLOWED EVIDENCE IDS and EXACT NUMERIC TOKENS are mechanically generated
+contracts, not suggestions.  Never infer a number from an id, field name or
+analyst summary.
 
 OUTPUT
 Return one JSON object and nothing else.  Every prose section has exactly
@@ -334,6 +340,46 @@ def _narrative_contract() -> dict[str, Any]:
         ],
         "section_array_keys": ["key_catalysts", "key_risks", "things_to_watch"],
         "section_array_max_items": 3,
+    }
+
+
+def _display_number(value: int | float) -> str:
+    """A compact, deterministic token models may copy without doing arithmetic."""
+
+    if isinstance(value, int):
+        return str(value)
+    return format(float(value), ".12g")
+
+
+def _exact_numeric_tokens(evidence: list[EvidenceItem]) -> dict[str, list[str]]:
+    """Return the only measured-number spellings the final writer may use.
+
+    Percent renderings are computed here rather than delegated to the model.
+    They mirror the validator's deliberately narrow, deterministic acceptance
+    of a fractional value rendered as a percentage.
+    """
+
+    allowed: dict[str, list[str]] = {}
+    for item in evidence:
+        value = item.value
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            continue
+        number = float(value)
+        if not math.isfinite(number):
+            continue
+        tokens = [_display_number(value)]
+        if item.unit == "percent":
+            tokens.append(f"{_display_number(value)}%")
+        if -1.0 <= number <= 1.0:
+            tokens.append(f"{_display_number(number * 100.0)}%")
+        allowed[item.id] = list(dict.fromkeys(tokens))
+    return allowed
+
+
+def _grounding_contract(evidence: list[EvidenceItem]) -> dict[str, Any]:
+    return {
+        "allowed_evidence_ids": [item.id for item in evidence],
+        "exact_numeric_tokens_by_evidence_id": _exact_numeric_tokens(evidence),
     }
 
 
@@ -537,7 +583,7 @@ def _validate_brief(brief: AnalystBrief, known: set[str]) -> None:
         raise ValueError(f"analyst brief referenced unknown evidence ids: {unknown[:5]}")
 
 
-_NUMERIC = re.compile(r"(?<![A-Za-z0-9_])([$€£₹]?)[+-]?(\d[\d,]*(?:\.\d+)?)(%?)(?![A-Za-z0-9_])")
+_NUMERIC = re.compile(r"(?<![A-Za-z0-9_])([$€£₹]?)([+-]?\d[\d,]*(?:\.\d+)?)(%?)(?![A-Za-z0-9_])")
 
 
 def _unsupported_numbers(text: str, evidence: list[EvidenceItem]) -> list[str]:
@@ -763,10 +809,12 @@ def _generate_final(
     provider: str, evidence: list[EvidenceItem], decision: dict[str, Any],
     brief: Optional[AnalystBrief], mode: str, *, model: Optional[str] = None,
 ) -> Optional[tuple[GroundedNarrative, ProviderResponse, int]]:
+    grounding_contract = _grounding_contract(evidence)
     messages = [
         {"role": "system", "content": FINAL_SYSTEM_PROMPT},
         {"role": "user", "content": json.dumps({
             "schema_contract": _narrative_contract(),
+            **grounding_contract,
             "decision": decision,
             "original_evidence": [row.model_dump() for row in evidence],
             "groq_analyst_brief": brief.model_dump() if brief else None,
@@ -792,26 +840,38 @@ def _generate_final(
             if validation_attempt == 0 and last_response is not None:
                 llm_metrics.record_validation_retry()
                 logger.warning(
-                    "%s final narrative invalid (%s/%s; chars=%d output_tokens=%d finish=%s); correcting once",
+                    "%s final narrative invalid (%s/%s; chars=%d input_tokens=%d "
+                    "output_tokens=%d cache_hit_tokens=%d cache_miss_tokens=%d finish=%s); "
+                    "correcting once",
                     provider, type(exc).__name__, _validation_category(exc),
-                    len(last_response.content),
-                    last_response.output_tokens, last_response.finish_reason or "unknown",
+                    len(last_response.content), last_response.input_tokens,
+                    last_response.output_tokens, last_response.cache_hit_tokens,
+                    last_response.cache_miss_tokens,
+                    last_response.finish_reason or "unknown",
                 )
-                messages.extend([
-                    {"role": "assistant", "content": last_response.content[:2000]},
+                # Start the repair from the authoritative request rather than
+                # replaying invalid model prose.  This keeps the fallback under
+                # provider context limits and prevents unsupported claims from
+                # becoming conversational context the model may repeat.
+                messages = messages[:2] + [
                     {"role": "user", "content": (
                         "The prior JSON failed deterministic validation. Copy evidence ids verbatim "
-                        "from ORIGINAL EVIDENCE. Remove any number that is not copied exactly from an "
-                        "evidence value; do not round or calculate. Return only the complete JSON object. "
-                        f"Validation class: {type(exc).__name__}."
+                        "from ALLOWED EVIDENCE IDS. Use only tokens listed in EXACT NUMERIC TOKENS; "
+                        "do not round, calculate or introduce other measured numbers. Omit a numeric "
+                        "claim when uncertain. Return only the complete JSON object. "
+                        f"Validation category: {_validation_category(exc)}."
                     )},
-                ])
+                ]
                 continue
             logger.warning(
-                "%s final narrative invalid (%s/%s; chars=%d output_tokens=%d finish=%s)",
+                "%s final narrative invalid (%s/%s; chars=%d input_tokens=%d "
+                "output_tokens=%d cache_hit_tokens=%d cache_miss_tokens=%d finish=%s)",
                 provider, type(exc).__name__, _validation_category(exc),
                 len(last_response.content) if last_response else 0,
+                last_response.input_tokens if last_response else 0,
                 last_response.output_tokens if last_response else 0,
+                last_response.cache_hit_tokens if last_response else 0,
+                last_response.cache_miss_tokens if last_response else 0,
                 last_response.finish_reason if last_response and last_response.finish_reason else "unknown",
             )
             _record(
