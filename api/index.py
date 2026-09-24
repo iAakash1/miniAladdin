@@ -21,7 +21,7 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi import Path as FastPath
@@ -900,6 +900,11 @@ def _as_result(headlines: list, providers_used: list[str]):
 def research_ticker(
     ticker: str,
     fast: bool = Query(False, description="Skip sentiment and LLM analysis for speed"),
+    depth: str = Query(
+        "intermediate",
+        description="Explanation depth of the narrative: beginner, intermediate or advanced. "
+                    "Changes how much is explained, never the evidence or the decision.",
+    ),
     clerk_user: Optional[str] = Depends(optional_clerk_user),
 ):
     """
@@ -1724,7 +1729,8 @@ def research_ticker(
     if not fast and prediction is not None:
         try:
             ai = llm_service.explain_recommendation(
-                llm_service.build_payload(
+                depth=depth,
+                payload=llm_service.build_payload(
                     ticker=ticker,
                     recommendation=verdict_to_recommendation(SignalVerdict(verdict)),
                     confidence=confidence_pct,
@@ -2014,6 +2020,40 @@ def knowledge(ticker: str):
     if not symbol or len(symbol) > 10:
         raise HTTPException(status_code=400, detail="Invalid ticker symbol")
     return company_intelligence.build(symbol)
+
+
+class NarrativeRequest(BaseModel):
+    snapshot_id: str = Field(min_length=32, max_length=32, pattern=r"^[0-9a-f]{32}$")
+    depth: Literal["beginner", "intermediate", "advanced"] = "intermediate"
+
+
+@app.post("/api/research/{ticker}/narrative")
+def research_narrative(
+    ticker: str,
+    body: NarrativeRequest,
+    _user: str = Depends(require_clerk_user),
+):
+    """
+    Explain an earlier research run at another depth.
+
+    The narrative is rewritten from the exact evidence envelope the run
+    produced, which the server holds for the narrative cache lifetime — no
+    market-data, filings, news or macro provider is called again, and every
+    depth cites the same evidence ids with the same values.  The decision is
+    the engine's and is attached verbatim; depth never changes it.
+    """
+    ticker = ticker.upper().strip()
+    if not ticker or len(ticker) > 10:
+        raise HTTPException(status_code=400, detail="Invalid ticker symbol")
+    try:
+        ai = llm_service.explain_snapshot(body.snapshot_id, body.depth, ticker)
+    except llm_service.SnapshotExpired:
+        raise HTTPException(
+            status_code=410,
+            detail="The evidence behind this research run is no longer held on the server. "
+                   "Run the research again to explain it at another depth.",
+        )
+    return {"ticker": ticker, "depth": body.depth, "ai": ai}
 
 
 @app.get("/api/research/providers/health")

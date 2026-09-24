@@ -447,12 +447,15 @@ def _parse_and_validate(content: str) -> LLMAnalysis:
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
-def explain_recommendation(payload: dict[str, Any]) -> dict[str, Any]:
+def explain_recommendation(payload: dict[str, Any], depth: str = "intermediate") -> dict[str, Any]:
     """
     Generate (or retrieve from cache) a validated narrative explanation for an
     already-computed decision. Never raises; always returns a serializable
     dict with a ``generated`` flag and the engine's deterministic values
     attached verbatim.
+
+    ``depth`` selects how much the narrative explains — beginner,
+    intermediate or advanced.  It never changes the evidence or the decision.
     """
     global _missing_key_logged
 
@@ -465,7 +468,7 @@ def explain_recommendation(payload: dict[str, Any]) -> dict[str, Any]:
         from src.services import narrative_pipeline
 
         try:
-            grounded = narrative_pipeline.generate(payload)
+            grounded = narrative_pipeline.generate(payload, depth)
         except Exception as exc:  # noqa: BLE001 — Research must still answer
             logger.warning("grounded narrative pipeline failed (%s)", type(exc).__name__)
             grounded = None
@@ -560,6 +563,28 @@ def explain_recommendation(payload: dict[str, Any]) -> dict[str, Any]:
     )
     _cache_put(key, result)
     return result
+
+
+class SnapshotExpired(LookupError):
+    """The evidence behind a research run is no longer held by this server."""
+
+
+def explain_snapshot(snapshot: str, depth: str, ticker: str) -> dict[str, Any]:
+    """
+    Explain an earlier research run's evidence at another depth.
+
+    Reuses the exact payload the run's narrative was written from, so nothing
+    upstream is called again and every depth cites the same evidence ids.
+    Raises ``SnapshotExpired`` when the payload is no longer held, or belongs
+    to another ticker; otherwise never raises and returns the same shape as
+    ``explain_recommendation``.
+    """
+    from src.services import narrative_pipeline
+
+    payload = narrative_pipeline.snapshot_payload(snapshot)
+    if payload is None or str(payload.get("ticker", "")).upper() != ticker.upper():
+        raise SnapshotExpired(snapshot)
+    return explain_recommendation(payload, depth)
 
 
 def build_payload(

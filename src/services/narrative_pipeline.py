@@ -35,7 +35,7 @@ logger = logging.getLogger("omnisignal.narrative")
 
 SCHEMA_VERSION = "grounded-narrative-v1"
 GROQ_PROMPT_VERSION = "groq-analyst-v4"
-DEEPSEEK_PROMPT_VERSION = "deepseek-final-v5"
+DEEPSEEK_PROMPT_VERSION = "deepseek-final-v6"
 DEFAULT_GROQ_MODEL = "openai/gpt-oss-120b"
 DEFAULT_DEEPSEEK_FAST_MODEL = "deepseek-flash"
 DEFAULT_DEEPSEEK_PRO_MODEL = "deepseek-v4-pro"
@@ -46,6 +46,53 @@ MAX_NEWS_EVIDENCE_ITEMS = 12
 MAX_NARRATIVE_NEWS_ITEMS = 3
 MAX_NARRATIVE_FACTOR_ITEMS = 4
 DEFAULT_MAX_OUTPUT_TOKENS = 6000
+
+#: Explanation depths.  Depth changes how much is explained and which terms
+#: are defined — never the evidence, the numbers or the decision.  Every depth
+#: is written from the same evidence envelope and passes the same validator.
+DEPTHS = ("beginner", "intermediate", "advanced")
+DEFAULT_DEPTH = "intermediate"
+
+DEPTH_GUIDANCE: dict[str, dict[str, Any]] = {
+    "beginner": {
+        "audience": "A reader who knows what a stock is but not institutional finance terms.",
+        "instructions": [
+            "Use plain language and short sentences.",
+            "Define each financial term the first time it appears, in the same sentence, in words.",
+            "Say what a figure means for the company, not only what it is.",
+            "Prefer fewer, clearer points over completeness.",
+        ],
+        "executive_summary_words": 110,
+        "section_words": 70,
+    },
+    "intermediate": {
+        "audience": "An investor or professional comfortable with standard financial concepts.",
+        "instructions": [
+            "Write balanced professional prose.",
+            "Explain why the important figures matter; do not define basic terms.",
+            "Connect each piece of evidence to its implication for the decision.",
+        ],
+        "executive_summary_words": 90,
+        "section_words": 60,
+    },
+    "advanced": {
+        "audience": "An experienced analyst reviewing the full evidence.",
+        "instructions": [
+            "Write dense analytical prose.",
+            "Name factor families and their contributions explicitly where the evidence carries them.",
+            "State single-source, conflicting, stale and missing evidence plainly.",
+            "Include the quantitative detail the evidence supports, and nothing beyond it.",
+        ],
+        "executive_summary_words": 120,
+        "section_words": 80,
+    },
+}
+
+
+def normalize_depth(value: Any) -> str:
+    """A known depth, or the default for anything else."""
+    depth = str(value or "").strip().lower()
+    return depth if depth in DEPTHS else DEFAULT_DEPTH
 
 
 class EvidenceItem(BaseModel):
@@ -297,11 +344,26 @@ macro_reasoning, news_reasoning, risk_reasoning, confidence_reason,
 top_positive_narrative, top_negative_narrative, investment_horizon,
 market_outlook, conclusion.  key_catalysts, key_risks and things_to_watch are
 arrays of the same section objects.  Use empty text and [] when evidence is
-unavailable.  Write concise institutional prose without advice or hype.
-Executive summary is at most 90 words.  Every other prose section is at most
-60 words.  Return at most three catalysts, three risks and three things to
-watch.  Prefer an empty section over repetition.  The complete response must
-fit comfortably within the output limit."""
+unavailable.  Write institutional prose without advice or hype.  Respect the
+WORD LIMITS in the request.  Return at most three catalysts, three risks and
+three things to watch.  Prefer an empty section over repetition.  The complete
+response must fit comfortably within the output limit.
+
+DEPTH
+The request names one explanation DEPTH with its audience and instructions.
+Depth changes how much is explained and which terms are defined.  It never
+changes which evidence, numbers, evidence ids or decision are used: every depth
+is written from the same ORIGINAL EVIDENCE.  Explaining a term never licenses a
+new number — use the allowed tokens exactly as listed, never converted,
+rounded or restated in other units, and explain meaning in words.
+
+STYLE
+Connect evidence to its implication with measured verbs such as supports,
+suggests, weighs on and is consistent with; never caused, proves or
+guarantees.  Every sentence must add information: no preamble, no restating
+the decision in every section, no generic filler.  When evidence is missing,
+say it is missing and draw no conclusion from it.  When sources disagree, say
+which disagree rather than choosing one."""
 
 
 def _analyst_contract() -> dict[str, Any]:
@@ -324,10 +386,14 @@ def _analyst_contract() -> dict[str, Any]:
     }
 
 
-def _narrative_contract() -> dict[str, Any]:
+def _narrative_contract(depth: str = DEFAULT_DEPTH) -> dict[str, Any]:
+    guide = DEPTH_GUIDANCE[normalize_depth(depth)]
     return {
         "section": {
-            "text": "string; 60 words maximum (90 for executive_summary)",
+            "text": (
+                f"string; {guide['section_words']} words maximum "
+                f"({guide['executive_summary_words']} for executive_summary)"
+            ),
             "evidence_ids": ["known.id"],
         },
         "required_section_keys": [
@@ -988,6 +1054,10 @@ def _record(response: ProviderResponse, *, stage: str, latency_ms: float, retrie
 
 _brief_cache: dict[str, tuple[float, AnalystBrief]] = {}
 _result_cache: dict[str, tuple[float, dict[str, Any]]] = {}
+#: The exact payload behind each narrative, so a reader can ask for another
+#: explanation depth of the same evidence without the research run — and every
+#: provider behind it — being repeated.  Held for the narrative cache TTL.
+_snapshot_cache: dict[str, tuple[float, dict[str, Any]]] = {}
 _cache_lock = threading.Lock()
 _flights: dict[str, threading.Event] = {}
 
@@ -998,9 +1068,9 @@ def _hash(value: Any) -> str:
     ).hexdigest()
 
 
-def _cache_key(payload: dict[str, Any], mode: str) -> str:
+def _cache_key(payload: dict[str, Any], mode: str, depth: str = DEFAULT_DEPTH) -> str:
     return _hash({
-        "payload": payload, "mode": mode, "groq_model": _groq_model(),
+        "payload": payload, "mode": mode, "depth": normalize_depth(depth), "groq_model": _groq_model(),
         "deepseek_fast_model": _deepseek_model("fast"),
         "deepseek_pro_model": _deepseek_model("deep"),
         "max_output_tokens": _max_output_tokens(),
@@ -1078,12 +1148,24 @@ def _build_brief(evidence: list[EvidenceItem], decision: dict[str, Any]) -> Opti
 def _generate_final(
     provider: str, evidence: list[EvidenceItem], decision: dict[str, Any],
     brief: Optional[AnalystBrief], mode: str, *, model: Optional[str] = None,
+    depth: str = DEFAULT_DEPTH,
 ) -> Optional[tuple[GroundedNarrative, ProviderResponse, int, list[str]]]:
     grounding_contract = _grounding_contract(evidence)
+    depth = normalize_depth(depth)
+    guide = DEPTH_GUIDANCE[depth]
     messages = [
         {"role": "system", "content": FINAL_SYSTEM_PROMPT},
         {"role": "user", "content": json.dumps({
-            "schema_contract": _narrative_contract(),
+            "schema_contract": _narrative_contract(depth),
+            "depth": {
+                "name": depth,
+                "audience": guide["audience"],
+                "instructions": guide["instructions"],
+            },
+            "word_limits": {
+                "executive_summary": guide["executive_summary_words"],
+                "other_sections": guide["section_words"],
+            },
             **grounding_contract,
             "decision": decision,
             "original_evidence": [row.model_dump() for row in evidence],
@@ -1173,17 +1255,17 @@ def _generate_final(
     return None
 
 
-def _compute(payload: dict[str, Any], mode: str) -> Optional[PipelineResult]:
+def _compute(payload: dict[str, Any], mode: str, depth: str = DEFAULT_DEPTH) -> Optional[PipelineResult]:
     evidence = _narrative_evidence(build_evidence_envelope(payload))
     decision = payload.get("decision") or {}
     brief = _build_brief(evidence, decision) if mode == "deep" else None
 
     generated = _generate_final(
         "deepseek", evidence, decision, brief, mode,
-        model=_deepseek_model(mode),
+        model=_deepseek_model(mode), depth=depth,
     )
     if generated is None and configured()["groq"]:
-        generated = _generate_final("groq", evidence, decision, None, "groq_fallback")
+        generated = _generate_final("groq", evidence, decision, None, "groq_fallback", depth=depth)
     if generated is None:
         return None
 
@@ -1207,21 +1289,42 @@ def _compute(payload: dict[str, Any], mode: str) -> Optional[PipelineResult]:
             "dropped_sections": dropped,
             "section_level_fail_closed": True,
         },
+        "depth": normalize_depth(depth),
     })
     return PipelineResult(value=value, provider=response.provider, model=response.model, mode=mode)
 
 
-def generate(payload: dict[str, Any]) -> Optional[dict[str, Any]]:
-    """Generate once per snapshot; concurrent callers share the same result."""
+def snapshot_id(payload: dict[str, Any]) -> str:
+    """A stable id for the evidence behind one research run."""
+    return _hash({"payload": payload})[:32]
+
+
+def _remember_snapshot(payload: dict[str, Any]) -> str:
+    sid = snapshot_id(payload)
+    _cache_put(_snapshot_cache, sid, payload)
+    return sid
+
+
+def snapshot_payload(sid: str) -> Optional[dict[str, Any]]:
+    """The payload a snapshot id was issued for, while it is still held."""
+    if not re.fullmatch(r"[0-9a-f]{32}", sid or ""):
+        return None
+    return _cache_get(_snapshot_cache, sid)
+
+
+def generate(payload: dict[str, Any], depth: str = DEFAULT_DEPTH) -> Optional[dict[str, Any]]:
+    """Generate once per snapshot and depth; concurrent callers share the result."""
 
     if not configured()["deepseek"]:
         return None
+    depth = normalize_depth(depth)
+    sid = _remember_snapshot(payload)
     mode = _mode()
-    key = _cache_key(payload, mode)
+    key = _cache_key(payload, mode, depth)
     cached = _cache_get(_result_cache, key)
     if cached is not None:
         llm_metrics.record_cache_hit()
-        return {**cached, "cached": True}
+        return {**cached, "cached": True, "snapshot_id": sid}
 
     with _cache_lock:
         flight = _flights.get(key)
@@ -1234,14 +1337,14 @@ def generate(payload: dict[str, Any]) -> Optional[dict[str, Any]]:
         llm_metrics.record_singleflight_wait()
         flight.wait(timeout=max(5.0, _timeout_seconds() * 4))
         cached = _cache_get(_result_cache, key)
-        return {**cached, "cached": True, "shared": True} if cached is not None else None
+        return {**cached, "cached": True, "shared": True, "snapshot_id": sid} if cached is not None else None
 
     try:
-        result = _compute(payload, mode)
+        result = _compute(payload, mode, depth)
         if result is None:
             return None
         _cache_put(_result_cache, key, result.value)
-        return result.value
+        return {**result.value, "snapshot_id": sid}
     finally:
         with _cache_lock:
             current = _flights.pop(key, None)
@@ -1261,6 +1364,7 @@ def reset_for_tests() -> None:
     with _cache_lock:
         _brief_cache.clear()
         _result_cache.clear()
+        _snapshot_cache.clear()
         for flight in _flights.values():
             flight.set()
         _flights.clear()

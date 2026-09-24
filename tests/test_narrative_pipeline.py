@@ -805,3 +805,89 @@ def test_groq_not_configured_deep_still_proceeds(monkeypatch):
     assert result is not None
     assert result["generated"] is True
     assert result["analyst_brief_used"] is False
+
+
+# ── explanation depth ──────────────────────────────────────────────────────
+
+
+def _requests(captured):
+    return [json.loads(row["content"]) for row in captured if row["role"] == "user"]
+
+
+def test_depths_share_evidence_numbers_and_decision(monkeypatch):
+    """Depth changes explanation only: every depth gets the same evidence ids,
+    the same numeric allowances and the same decision."""
+    monkeypatch.setenv("LLM_PIPELINE_MODE", "fast")
+    captured: list[dict[str, str]] = []
+
+    def fake(provider, messages, *, final, model=None):
+        captured.extend(messages)
+        return pipeline.ProviderResponse(content=_narrative("decision.confidence"), provider=provider, model="m")
+
+    monkeypatch.setattr(pipeline, "_call_stage", fake)
+    for depth in pipeline.DEPTHS:
+        assert pipeline.generate(_payload(), depth)["depth"] == depth
+    requests = _requests(captured)
+    assert [r["depth"]["name"] for r in requests] == list(pipeline.DEPTHS)
+    for key in ("allowed_evidence_ids", "allowed_numeric_tokens_by_evidence_id", "decision", "original_evidence"):
+        assert all(r[key] == requests[0][key] for r in requests), key
+    limits = [r["word_limits"]["other_sections"] for r in requests]
+    assert limits == [pipeline.DEPTH_GUIDANCE[d]["section_words"] for d in pipeline.DEPTHS]
+
+
+def test_each_depth_is_cached_separately(monkeypatch):
+    monkeypatch.setenv("LLM_PIPELINE_MODE", "fast")
+    calls = 0
+
+    def fake(provider, messages, *, final, model=None):
+        nonlocal calls
+        calls += 1
+        return pipeline.ProviderResponse(content=_narrative("decision.confidence"), provider=provider, model="m")
+
+    monkeypatch.setattr(pipeline, "_call_stage", fake)
+    pipeline.generate(_payload(), "beginner")
+    pipeline.generate(_payload(), "advanced")
+    again = pipeline.generate(_payload(), "beginner")
+    assert calls == 2
+    assert again["cached"] is True and again["depth"] == "beginner"
+
+
+def test_unknown_depth_falls_back_to_the_default():
+    assert pipeline.normalize_depth("expert") == pipeline.DEFAULT_DEPTH
+    assert pipeline.normalize_depth(None) == pipeline.DEFAULT_DEPTH
+    assert pipeline.normalize_depth(" Advanced ") == "advanced"
+
+
+def test_a_snapshot_is_re_explained_without_new_evidence(monkeypatch):
+    """Switching depth reuses the run's exact payload: the returned snapshot id
+    resolves to it, and the rewrite cites the same evidence."""
+    monkeypatch.setenv("LLM_PIPELINE_MODE", "fast")
+    captured: list[dict[str, str]] = []
+
+    def fake(provider, messages, *, final, model=None):
+        captured.extend(messages)
+        return pipeline.ProviderResponse(content=_narrative("decision.confidence"), provider=provider, model="m")
+
+    monkeypatch.setattr(pipeline, "_call_stage", fake)
+    first = pipeline.generate(_payload())
+    sid = first["snapshot_id"]
+    assert pipeline.snapshot_payload(sid) == _payload()
+    from src.services import llm_service
+
+    rewritten = llm_service.explain_snapshot(sid, "beginner", "NVDA")
+    assert rewritten["depth"] == "beginner"
+    assert rewritten["recommendation"] == "HOLD" and rewritten["confidence"] == 70
+    requests = _requests(captured)
+    assert requests[0]["original_evidence"] == requests[1]["original_evidence"]
+
+
+def test_an_unknown_or_foreign_snapshot_is_refused():
+    from src.services import llm_service
+
+    with pytest.raises(llm_service.SnapshotExpired):
+        llm_service.explain_snapshot("0" * 32, "beginner", "NVDA")
+    with pytest.raises(llm_service.SnapshotExpired):
+        llm_service.explain_snapshot("not-a-snapshot", "beginner", "NVDA")
+    sid = pipeline._remember_snapshot(_payload())
+    with pytest.raises(llm_service.SnapshotExpired):
+        llm_service.explain_snapshot(sid, "beginner", "AAPL")
