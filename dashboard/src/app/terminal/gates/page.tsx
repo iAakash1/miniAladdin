@@ -7,14 +7,14 @@ import HoldoutPreflight from '@/components/terminal/models/HoldoutPreflight'
 import { Panel } from '@/components/system'
 
 export const metadata: Metadata = {
-  title: 'Gates — miniAladdin',
+  title: 'Promotion gates',
   description: 'Every registered model against every promotion threshold, and which gates nothing has cleared.',
 }
 
 export default function GatesPage() {
   return (
     <Workbench
-      title="Gates"
+      title="Promotion gates"
       subtitle="what blocks everything"
       context={
         <>

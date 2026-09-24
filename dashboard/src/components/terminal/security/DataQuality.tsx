@@ -42,6 +42,7 @@
 import { useEffect, useState } from 'react'
 
 import { EmptyLine, Inspectable, Panel, Prose, StateBlock, Value } from '@/components/system'
+import { readerError } from '@/lib/failure'
 import { comparable } from '@/lib/semantics'
 import { fetchResearch } from '@/lib/research-cache'
 import { format } from '@/lib/quantity'
@@ -239,7 +240,7 @@ export default function DataQuality({ symbol }: { symbol: string }) {
         <StateBlock
           state="unavailable"
           title="The cross-provider audit could not be read"
-          detail={`${settled.error}. The price and chart above come from a single provider path and are unaffected — but nothing has checked them against a second vendor.`}
+          detail={`${readerError(settled.error)}. The price and chart above come from a single provider path and are unaffected — but nothing has checked them against a second vendor.`}
         />
       </Panel>
     )

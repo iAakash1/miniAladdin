@@ -17,10 +17,12 @@ import { join } from 'node:path'
 import test from 'node:test'
 
 const ROOT = new URL('../src/', import.meta.url).pathname
-const PAGE = readFileSync(join(ROOT, 'app/terminal/security/page.tsx'), 'utf8')
+/* The company workspace mounts these panels from its tabs. */
+const PAGE = ['company/tabs/Detail.tsx', 'company/tabs/Evidence.tsx', 'company/tabs/Overview.tsx', 'company/CompanyWorkspace.tsx']
+  .map((f) => readFileSync(join(ROOT, 'components', f), 'utf8')).join('\n')
 const DIR = join(ROOT, 'components/terminal/security')
 
-/** Panels the security route actually mounts, read from the route itself. */
+/** Panels the company workspace actually mounts, read from its own imports. */
 const mounted = readdirSync(DIR)
   .filter((f) => f.endsWith('.tsx'))
   .filter((f) => new RegExp(`from '@/components/terminal/security/${f.replace(/\.tsx$/, '')}'`).test(PAGE))
@@ -48,10 +50,20 @@ for (const file of mounted) {
   })
 }
 
+test('the workspace’s own fetching panels tag their answers too', () => {
+  // The Model Lab status and the identity read fetch per symbol inside the
+  // workspace itself, so the same guard applies to them.
+  const evidence = readFileSync(join(ROOT, 'components/company/tabs/Evidence.tsx'), 'utf8')
+  assert.match(evidence, /for: symbol, data:/, 'the Model Lab status stores an untagged answer')
+  assert.match(evidence, /view\?\.for === symbol/, 'the Model Lab status renders an answer for another symbol')
+  const hooks = readFileSync(join(ROOT, 'components/company/useCompany.ts'), 'utf8')
+  assert.match(hooks, /identity\?\.for === ticker/, 'the identity read renders an answer for another symbol')
+})
+
 test('a panel that fetches nothing needs no tag', () => {
-  /* SecurityResearch is a set of links derived from the symbol prop. It has
-     no state and no request, so there is nothing to go stale — asserted so
-     the guard above is not read as covering it by omission. */
-  const src = readFileSync(join(DIR, 'SecurityResearch.tsx'), 'utf8')
-  assert.doesNotMatch(src, /useEffect|useState/, 'SecurityResearch now holds state and is unguarded')
+  /* Ownership is drawn from the research run it is handed. It has no state
+     and no request, so there is nothing to go stale — asserted so the guard
+     above is not read as covering it by omission. */
+  const src = readFileSync(join(ROOT, 'components/company/Ownership.tsx'), 'utf8')
+  assert.doesNotMatch(src, /useEffect|useState/, 'Ownership now holds state and is unguarded')
 })

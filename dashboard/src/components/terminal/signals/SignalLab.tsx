@@ -18,6 +18,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { Grid, Panel, Section, StateBlock, Status, Strip, Value } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
+import { readerError } from '@/lib/failure'
 import { recordVisit } from '@/lib/research/history'
 import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
 import { EnvelopeGrid, type Envelope } from '@/components/system/EnvelopeMetric'
@@ -114,7 +115,7 @@ export default function SignalLab() {
   ], [data])
 
   if (error) {
-    return <Panel title="Signal lab" state="unavailable"><StateBlock state="unavailable" title="The search record could not be read" detail={`Request failed: ${error}.`} /></Panel>
+    return <Panel title="Signal lab" state="unavailable"><StateBlock state="unavailable" title="The search record could not be read" detail={`${readerError(error)}.`} /></Panel>
   }
   if (!data) {
     return (

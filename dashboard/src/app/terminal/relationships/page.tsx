@@ -5,7 +5,7 @@ import Relationships from '@/components/terminal/relationships/Relationships'
 import { Panel } from '@/components/system'
 
 export const metadata: Metadata = {
-  title: 'Relationships — miniAladdin',
+  title: 'Research links',
   description: 'Typed relationships between companies, industries and entities, with provider and confidence on every edge.',
 }
 
@@ -17,7 +17,7 @@ export default async function RelationshipsPage({
   const p = await searchParams
   return (
     <Workbench
-      title="Relationships"
+      title="Research links"
       subtitle="what connects to what"
       rail={[
         { label: 'Edges', state: 'recorded', detail: 'provider assertions' },

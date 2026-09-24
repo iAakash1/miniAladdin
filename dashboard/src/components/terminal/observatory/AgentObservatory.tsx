@@ -19,6 +19,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { AvailabilityNote, isAvailable } from '@/components/system/Availability'
 import { EmptyLine, Panel, Prose, StateBlock, Status, Strip } from '@/components/system'
+import { readerError } from '@/lib/failure'
 import { authFetch } from '@/lib/persistence'
 
 const dash = '—'
@@ -152,7 +153,7 @@ export default function AgentObservatory({ initialSymbol = '' }: { initialSymbol
         {busy ? (
           <StateBlock state="waking" title="Executing the graph" detail="providers, agents, validation" />
         ) : null}
-        {error ? <StateBlock state="unavailable" title="Pipeline unavailable" detail={error} /> : null}
+        {error ? <StateBlock state="unavailable" title="Pipeline unavailable" detail={`${readerError(error)}.`} /> : null}
         {run && !isAvailable(run) ? <AvailabilityNote payload={run} /> : null}
       </Panel>
 

@@ -19,6 +19,7 @@ import { useEffect, useState } from 'react'
 
 import { Grid, Panel, Prose, Section, StateBlock, Status, Strip, Table, Value, type Column } from '@/components/system'
 import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
+import { readerError } from '@/lib/failure'
 import { readResource } from '@/lib/resource'
 
 interface LabelRow {
@@ -99,7 +100,7 @@ export default function ModelWorkbench() {
   ]
 
   if (error) {
-    return <Panel title="Models" state="unavailable"><StateBlock state="unavailable" title="The study could not be read" detail={`Request failed: ${error}.`} /></Panel>
+    return <Panel title="Models" state="unavailable"><StateBlock state="unavailable" title="The study could not be read" detail={`${readerError(error)}.`} /></Panel>
   }
   if (!data) {
     return (

@@ -16,15 +16,19 @@ import { format } from '../src/lib/quantity'
 import { ownershipConflict, windowShortfall } from '../src/lib/security'
 import { titleCase, venueLabel } from '../src/lib/text'
 
-const VIEW = readFileSync(
-  new URL('../src/components/terminal/security/SecurityView.tsx', import.meta.url), 'utf8',
+const HEADER = readFileSync(
+  new URL('../src/components/company/CompanyHeader.tsx', import.meta.url), 'utf8',
+)
+const REPORT = readFileSync(
+  new URL('../src/components/company/tabs/Report.tsx', import.meta.url), 'utf8',
 )
 
 test('a ratio is scaled before it is called a percentage', () => {
+  // The report's price figure states the change over its window.
   assert.match(
-    VIEW,
-    /\(\(last\.close - first\.close\) \/ first\.close\) \* 100/,
-    'window change is passed to the percent kind without being scaled',
+    REPORT,
+    /\(\(last - first\) \/ first\) \* 100/,
+    'window change is stated without being scaled to a percentage',
   )
 })
 
@@ -43,17 +47,19 @@ test('session changes keep two decimals', () => {
   // and is the precision every quote screen gets right.
   assert.equal(format(-0.05, 'percent', { digits: 2 }).text, '-0.05')
   assert.equal(format(-0.05, 'percent', { digits: 1 }).text, '-0.1')
-  // The instrument field renders both moves. The precision is the point, not
-  // the markup — these pin the digits wherever the field puts them.
-  assert.match(VIEW, /change_1d[^/]*digits=\{2\}/, 'the daily change is not at two decimals')
-  assert.match(VIEW, /change_1w[^/]*digits=\{2\}/, 'the weekly change is not at two decimals')
+  // The company header renders both moves. The precision is the point, not
+  // the markup — these pin the digits wherever the header puts them.
+  assert.match(HEADER, /change_1d, 2\)/, 'the daily change is not at two decimals')
+  assert.match(HEADER, /change_1w, 2\)/, 'the weekly change is not at two decimals')
+  assert.match(HEADER, /format\(v \?\? null, 'percent', \{ digits, signed: true \}\)/,
+    'session changes bypass the quantity formatter')
 })
 
 test('price is currency, not a bare ratio', () => {
   // The last price is the largest figure on the page and the one most likely
   // to be read as a bare number. It goes through the currency kind so it
   // carries its unit and its precision rather than the ratio default.
-  assert.match(VIEW, /format\(price\.price, 'currency'\)/)
+  assert.match(HEADER, /format\(quote\.price, 'currency'\)/)
 })
 
 /* Ownership blocks that cannot be true as stated.

@@ -28,7 +28,7 @@ const STATE_TITLE: Record<ResearchState, string> = {
   live:         'Observed now, inside its freshness window',
   recorded:     'A fact read from a stored artifact — it cannot go stale',
   stale:        'Real, but past its freshness window',
-  waking:       'A cold service is starting; no value yet',
+  waking:       'Being retrieved; no value yet',
   unavailable:  'Refused or absent. No value is being shown in its place',
   blocked:      'A research constraint prevents this, not an error',
   experimental: 'Exists and is measured, but is not promotable',
@@ -37,10 +37,23 @@ const STATE_TITLE: Record<ResearchState, string> = {
   unknown:      'State could not be determined',
 }
 
+const STATE_LABEL: Record<ResearchState, string> = {
+  live: 'live',
+  recorded: 'recorded',
+  stale: 'stale',
+  waking: 'loading',
+  unavailable: 'unavailable',
+  blocked: 'blocked',
+  experimental: 'experimental',
+  candidate: 'candidate',
+  production: 'production',
+  unknown: 'unknown',
+}
+
 export function Status({ state, label }: { state: ResearchState; label?: string }) {
   return (
     <span className="sys-status" data-state={state} title={STATE_TITLE[state]}>
-      {label ?? state}
+      {label ?? STATE_LABEL[state]}
     </span>
   )
 }
@@ -199,13 +212,15 @@ export function Panel({
   return (
     <section className={`sys-panel${seam ? ' sys-panel--seam' : ''}`} data-state={state}>
       <header className="sys-panel-head">
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--d-2)', minWidth: 0 }}>
-          <h2 className="sys-label" style={{ margin: 0 }}>{title}</h2>
-          {subtitle ? <span className="sys-meta">{subtitle}</span> : null}
+        <div className="sys-panel-head__title">
+          <h2 className="sys-panel-title">{title}</h2>
+          {subtitle ? <span className="sys-panel-sub">{subtitle}</span> : null}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--d-2)', flex: 'none', marginLeft: 'auto' }}>
+        <div className="sys-panel-head__end">
           {badge ? <span className="sys-badge" data-tone={badgeTone}>{badge}</span> : null}
-          {state ? <Status state={state} /> : null}
+          {/* The expected case says nothing; only a state that changes how
+              the panel should be read is shown. */}
+          {state && state !== 'live' && state !== 'waking' ? <Status state={state} /> : null}
           {actions}
         </div>
       </header>
@@ -328,36 +343,38 @@ export function StateBlock({
   /** Further explanation. A blocked state usually needs more than one line. */
   children?: ReactNode
 }) {
-  return (
-    <div style={{ padding: 'var(--d-5) var(--d-4)', textAlign: 'left' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--d-2)', marginBottom: 'var(--d-2)' }}>
-        <Status state={state} />
-        <span className="sys-lead">{title}</span>
+  // Loading is one quiet line over the shape of what is coming.
+  if (state === 'waking') {
+    return (
+      <div className="sys-loading" role="status" aria-live="polite">
+        <span className="sys-loading__line">{title}</span>
+        <span className="sys-skeleton" style={{ height: 8, width: '64%' }} />
+        <span className="sys-skeleton" style={{ height: 8, width: '41%' }} />
       </div>
-      {detail ? (
-        <p style={{ margin: '0 0 var(--d-3)', fontSize: 'var(--t-body)', color: 'var(--ink-muted)', maxWidth: '60ch', lineHeight: 'var(--lh-body)' }}>
-          {detail}
-        </p>
-      ) : null}
+    )
+  }
+  return (
+    <div className="sys-state" data-state={state}>
+      <div className="sys-state__head">
+        <Status state={state} />
+        <span className="sys-state__title">{title}</span>
+      </div>
+      {detail ? <p className="sys-state__detail">{detail}</p> : null}
       {requires?.length ? (
-        <div style={{ marginTop: 'var(--d-3)' }}>
-          <div className="sys-label" style={{ marginBottom: 'var(--d-1)' }}>Required</div>
-          <ul style={{ margin: 0, paddingLeft: 'var(--d-4)', fontSize: 'var(--t-body)', color: 'var(--ink-muted)' }}>
-            {requires.map((r) => <li key={r}>{r}</li>)}
-          </ul>
+        <div className="sys-state__block">
+          <div className="sys-label">Required</div>
+          <ul>{requires.map((r) => <li key={r}>{r}</li>)}</ul>
         </div>
       ) : null}
       {coverage ? (
-        <div style={{ marginTop: 'var(--d-3)' }}>
-          <div className="sys-label" style={{ marginBottom: 'var(--d-1)' }}>Current coverage</div>
+        <div className="sys-state__block">
+          <div className="sys-label">Current coverage</div>
           <div className="sys-meta">{coverage}</div>
         </div>
       ) : null}
-      {children ? <div style={{ marginTop: 'var(--d-3)' }}>{children}</div> : null}
+      {children ? <div className="sys-state__block">{children}</div> : null}
       {requires?.length ? (
-        <p style={{ marginTop: 'var(--d-3)', marginBottom: 0, fontSize: 'var(--t-meta)', color: 'var(--ink-faint)' }}>
-          No synthetic values are shown in place of the missing data.
-        </p>
+        <p className="sys-state__foot">No synthetic values are shown in place of the missing data.</p>
       ) : null}
     </div>
   )

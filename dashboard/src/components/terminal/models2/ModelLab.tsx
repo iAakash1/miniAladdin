@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { Panel, Prose, StateBlock, Status, Strip } from '@/components/system'
 import { TableSkeleton } from '@/components/system/composition'
+import { readerError } from '@/lib/failure'
 import { readResource } from '@/lib/resource'
 
 interface FamilyRow {
@@ -179,7 +180,7 @@ export default function ModelLab() {
     })),
   ]
 
-  if (error) return <StateBlock state="unavailable" title="Model Lab unavailable" detail={error} />
+  if (error) return <StateBlock state="unavailable" title="Model Lab unavailable" detail={`${readerError(error)}.`} />
   if (!data) return <Panel title="Model Lab" state="waking" flush><TableSkeleton rows={8} columns={6} /></Panel>
   if (data.status !== 'AVAILABLE') return <StateBlock state="unknown" title="Model Lab not configured" detail={data.message} />
 

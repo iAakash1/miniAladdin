@@ -147,6 +147,20 @@ export interface RawAiAnalysis {
     cache_miss_tokens?: number
     retries?: number
   }
+  /** Deterministic validation of the generated narrative. Sections that fail
+   *  it are dropped rather than shown with a caveat. */
+  validation?: {
+    status?: string
+    dropped_sections?: string[]
+    section_level_fail_closed?: boolean
+  } | null
+  /** True when another request for the same evidence snapshot produced it. */
+  shared?: boolean
+  /** The server-held evidence snapshot this narrative was written from; lets
+   *  the same evidence be explained at another depth without a new run. */
+  snapshot_id?: string | null
+  /** The explanation depth it was written at. */
+  depth?: string | null
 }
 
 export interface AiEvidenceItem {
@@ -863,7 +877,16 @@ export interface AiAnalysis {
   analystBriefUsed: boolean
   evidenceLinks: Record<string, string[] | string[][]>
   evidence: AiEvidenceItem[]
+  /** Served from the narrative cache for this evidence snapshot. */
+  cached: boolean
+  validation: { status: string | null; droppedSections: string[] } | null
+  snapshotId: string | null
+  /** Null from a backend that predates depth — which wrote at intermediate. */
+  depth: ReportDepth | null
 }
+
+/** How much a narrative explains. Never changes the evidence or the decision. */
+export type ReportDepth = 'beginner' | 'intermediate' | 'advanced'
 
 export interface Analysis {
   ticker: string
@@ -879,6 +902,11 @@ export interface Analysis {
 
   /** v1.1 additive: deterministic engine synthesis */
   engineConfidence: number | null // 0–100
+  /** The engine's own itemisation of how confidence was reached. */
+  confidenceBreakdown: ConfidenceComponent[]
+  /** Wall time of the research run, as the backend measured it. */
+  elapsedSeconds: number | null
+  disclaimer: string | null
   riskLevel: RiskLevel | null
   rationale: string | null
   quant: QuantCard | null

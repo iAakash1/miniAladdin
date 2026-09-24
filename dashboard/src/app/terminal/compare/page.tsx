@@ -8,7 +8,7 @@ import FiledComparison from '@/components/terminal/compare/FiledComparison'
 import { Panel, Prose } from '@/components/system'
 
 export const metadata: Metadata = {
-  title: 'Compare — miniAladdin',
+  title: 'Compare',
   description: 'Two securities side by side, or two models from the research archive.',
 }
 

@@ -3,54 +3,30 @@
 /**
  * Who supplies what, and whether they are answering.
  *
- * This workspace was reading a payload that does not exist. `/api/providers/health`
- * nests vendors by capability — `{ market_data: [...], news: [...] }` — and the
- * component treated it as a flat map of vendor to status, spreading arrays into
- * objects. The result was a table whose column headers were the payload's own
- * top-level keys (BY_CAPABILITY, RECONCILIATION_STRATEGIES, TOTALS), whose rows
- * were array indices, and whose every cell was an em dash.
+ * `/api/providers/health` nests vendor snapshots by capability — market data,
+ * fundamentals, news, macro, search, filings — and one vendor can appear under
+ * several. This page folds them into one card per vendor, keeps each
+ * capability's own state on the card, and draws the coverage as a matrix.
  *
- * It reads the recorded shape now: seven market-data vendors, six for
- * fundamentals, six for news, and one each for macro and filings, with the
- * request counts, failure counts, success rate and latency each one actually
- * reports.
- *
- * A vendor's state is derived from what it reports rather than from a flag it
- * does not have. Cooling down is a real field and means the orchestrator has
- * stopped calling it after consecutive failures; unconfigured means no
- * credential, which is a different thing from failing and must not be coloured
- * the same.
+ * States come from `classifyVendor`, never from a flag read at face value: a
+ * vendor reporting HEALTHY with no requests is idle, not proven healthy; a
+ * missing credential is not a failure; and an upstream error is shown as a
+ * sanitised reason, never as the raw string with its URL.
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
-import { Panel, Prose, StateBlock, Status, Strip, Value } from '@/components/system'
-import type { ResearchState } from '@/components/system'
-
-interface Vendor {
-  vendor: string
-  configured: boolean
-  cooling_down: boolean
-  requests: number
-  success_pct: number | null
-  failures: number
-  rate_limited: number
-  consecutive_failures: number
-  avg_latency_ms: number | null
-  max_latency_ms: number | null
-  last_error: string | null
-  health_state?: string
-  last_failure_class?: string | null
-  last_success_at?: number | null
-  last_attempt_at?: number | null
-  cooldown_remaining_seconds?: number
-  shared: boolean
-}
+import RoutingFigure from './RoutingFigure'
+import { Panel, StateBlock } from '@/components/system'
+import EntityMark from '@/components/visual/EntityMark'
+import { providerDomain } from '@/lib/identity'
+import {
+  type HealthTone, type VendorHealth, type VendorSnapshot, classifyVendor, failureLabel, sanitizeError, summarize,
+} from '@/lib/providerHealth'
 
 interface Health {
-  providers?: Record<string, Vendor[]>
+  providers?: Record<string, VendorSnapshot[]>
   deduplicated_requests?: number
-  cache?: Record<string, unknown>
 }
 
 interface Capability {
@@ -63,43 +39,110 @@ interface Capability {
 
 interface Capabilities {
   by_capability?: Record<string, Capability>
-  totals?: Record<string, unknown>
 }
 
-/**
- * What a vendor's own numbers say about it.
- *
- * Unconfigured is not failing — there is no credential, so it was never asked.
- * Cooling down is the orchestrator having stopped calling it. A vendor that has
- * been asked and never answered is unavailable; one that has answered is live.
- */
-function vendorState(v: Vendor): ResearchState {
-  const explicit: Record<string, ResearchState> = {
-    HEALTHY: 'live', DEGRADED: 'stale', RATE_LIMITED: 'blocked',
-    AUTH_FAILURE: 'blocked', NOT_ENTITLED: 'blocked', TIMEOUT: 'stale',
-    COOLDOWN: 'blocked', DEV_ONLY: 'unknown', UNAVAILABLE: 'unavailable',
-    NOT_CONFIGURED: 'unknown',
+const VENDOR_LABEL: Record<string, string> = {
+  polygon: 'Polygon', massive: 'Massive', finnhub: 'Finnhub', twelvedata: 'Twelve Data',
+  fmp: 'Financial Modeling Prep', marketstack: 'Marketstack', tiingo: 'Tiingo',
+  alpha_vantage: 'Alpha Vantage', yfinance: 'Yahoo Finance', yahoo_rss: 'Yahoo Finance RSS',
+  newsapi: 'NewsAPI', gnews: 'GNews', tavily: 'Tavily', exa: 'Exa', fred: 'FRED', sec: 'SEC EDGAR',
+}
+
+const TONE_RANK: Record<HealthTone, number> = { neg: 4, warn: 3, pos: 2, info: 1, muted: 0 }
+
+interface VendorCard {
+  id: string
+  worst: VendorHealth
+  capabilities: Array<{ key: string; health: VendorHealth; snap: VendorSnapshot }>
+  requests: number
+  failures: number
+  latency: number | null
+  lastSuccess: number | null
+  error: string | null
+  shared: boolean
+}
+
+function ago(epochSeconds: number | null): string | null {
+  if (!epochSeconds) return null
+  const m = Math.round((Date.now() / 1000 - epochSeconds) / 60)
+  if (m < 1) return 'just now'
+  if (m < 60) return `${m}m ago`
+  const h = Math.round(m / 60)
+  return h < 48 ? `${h}h ago` : `${Math.round(h / 24)}d ago`
+}
+
+function cards(byCapability: Record<string, VendorSnapshot[]>): VendorCard[] {
+  const map = new Map<string, VendorCard>()
+  for (const [key, list] of Object.entries(byCapability)) {
+    for (const snap of list) {
+      const health = classifyVendor(snap)
+      const card = map.get(snap.vendor) ?? {
+        id: snap.vendor, worst: health, capabilities: [], requests: 0, failures: 0,
+        latency: null, lastSuccess: null, error: null, shared: false,
+      }
+      card.capabilities.push({ key, health, snap })
+      if (TONE_RANK[health.tone] > TONE_RANK[card.worst.tone]) card.worst = health
+      // A shared client reports the same counters under each capability;
+      // counting them twice would double its traffic.
+      if (!snap.shared || !card.shared) {
+        card.requests += snap.requests
+        card.failures += snap.failures
+      }
+      card.shared = card.shared || Boolean(snap.shared)
+      if (snap.requests > 0 && snap.avg_latency_ms) card.latency = Math.max(card.latency ?? 0, snap.avg_latency_ms)
+      if (snap.last_success_at) card.lastSuccess = Math.max(card.lastSuccess ?? 0, snap.last_success_at)
+      card.error = card.error ?? sanitizeError(snap.last_error)
+      map.set(snap.vendor, card)
+    }
   }
-  if (v.health_state && explicit[v.health_state]) return explicit[v.health_state]
-  if (!v.configured) return 'unknown'
-  if (v.cooling_down) return 'blocked'
-  if (v.requests === 0) return 'waking'
-  if (v.success_pct !== null && v.success_pct === 0) return 'unavailable'
-  if (v.success_pct !== null && v.success_pct < 100) return 'stale'
-  return 'live'
+  return [...map.values()].sort((a, b) =>
+    Number(b.worst.state !== 'NOT_CONFIGURED') - Number(a.worst.state !== 'NOT_CONFIGURED')
+    || TONE_RANK[b.worst.tone] - TONE_RANK[a.worst.tone]
+    || b.requests - a.requests
+    || a.id.localeCompare(b.id))
 }
 
-function vendorLabel(v: Vendor): string {
-  if (v.health_state) return v.health_state.replace(/_/g, ' ').toLowerCase()
-  if (!v.configured) return 'no credential'
-  if (v.cooling_down) return 'cooling down'
-  if (v.requests === 0) return 'not called'
-  return v.success_pct === null ? 'answering' : `${Math.round(v.success_pct)}% ok`
-}
-
-function timestamp(value?: number | null): string {
-  if (!value) return '—'
-  return new Date(value * 1000).toLocaleString()
+function Card({ c }: { c: VendorCard }) {
+  const label = VENDOR_LABEL[c.id] ?? c.id
+  const configured = c.worst.state !== 'NOT_CONFIGURED'
+  const ok = c.requests - c.failures
+  return (
+    <article className="pv-card" data-tone={c.worst.tone} data-configured={configured ? '' : undefined}>
+      <header className="pv-card__head">
+        <EntityMark domain={providerDomain(c.id)} label={label} size={28} />
+        <div className="pv-card__id">
+          <h3>{label}</h3>
+          <span className="pv-card__vid">{c.id}{c.shared ? ' · shared client' : ''}</span>
+        </div>
+        <span className="pv-state" data-tone={c.worst.tone}>
+          <span className="dot" data-tone={c.worst.tone} aria-hidden />{c.worst.label}
+        </span>
+      </header>
+      {c.worst.note ? <p className="pv-card__note">{c.worst.note}</p> : null}
+      <ul className="pv-caps" aria-label={`${label} capabilities`}>
+        {c.capabilities.map((cap) => (
+          <li key={cap.key} title={cap.health.note ?? cap.health.label}>
+            <span className="dot" data-tone={cap.health.tone} aria-hidden />
+            {cap.key.replace(/_/g, ' ')}
+            <span className="visually-hidden"> — {cap.health.label}</span>
+          </li>
+        ))}
+      </ul>
+      {configured ? (
+        <dl className="pv-stats">
+          <div><dt>Requests</dt><dd className="sys-num">{c.requests.toLocaleString('en-US')}</dd></div>
+          <div><dt>Succeeded</dt><dd className="sys-num">{c.requests ? `${Math.round((ok / c.requests) * 100)}%` : '—'}</dd></div>
+          <div><dt>Latency</dt><dd className="sys-num">{c.latency ? `${Math.round(c.latency)} ms` : '—'}</dd></div>
+          <div><dt>Last success</dt><dd>{ago(c.lastSuccess) ?? '—'}</dd></div>
+        </dl>
+      ) : null}
+      {c.error && c.worst.tone !== 'pos' && c.worst.tone !== 'info' ? (
+        <p className="pv-card__err">
+          {failureLabel(c.capabilities.find((x) => x.snap.last_failure_class)?.snap.last_failure_class) ?? 'Last error'}: {c.error}
+        </p>
+      ) : null}
+    </article>
+  )
 }
 
 export default function ProviderMatrix() {
@@ -119,141 +162,125 @@ export default function ProviderMatrix() {
     return () => c.abort()
   }, [])
 
-  const byCategory = health?.d?.providers ?? {}
-  const categories = Object.keys(byCategory).sort()
-  const all = categories.flatMap((k) => byCategory[k])
-  const configured = all.filter((v) => v.configured)
-  const answering = configured.filter((v) => v.requests > 0 && (v.success_pct ?? 0) > 0)
-  const cooling = configured.filter((v) => v.cooling_down)
-  const constrained = configured.filter((v) => !['HEALTHY', undefined].includes(v.health_state))
+  const byCapability = useMemo(() => health?.d?.providers ?? {}, [health])
+  const list = useMemo(() => cards(byCapability), [byCapability])
+  const summary = useMemo(() => summarize(byCapability), [byCapability])
+  const live = list.filter((c) => c.worst.state !== 'NOT_CONFIGURED')
+  const dormant = list.filter((c) => c.worst.state === 'NOT_CONFIGURED')
+
+  if (health?.error) {
+    return (
+      <Panel title="Providers" state="unavailable">
+        <StateBlock
+          state="unavailable"
+          title="Provider health could not be read"
+          detail="The health endpoint did not answer. No vendor is described as healthy on the strength of a failed request."
+        />
+      </Panel>
+    )
+  }
+  if (!health) return <Panel title="Providers" state="waking"><StateBlock state="waking" title="Reading provider health" /></Panel>
+
+  const capKeys = Object.keys(caps?.d?.by_capability ?? {}).sort()
+  const vendorsForMatrix = list.map((c) => c.id)
 
   return (
-    <>
-      <Panel
-        title="Providers"
-        subtitle={categories.length ? `${all.length} vendors across ${categories.length} capabilities` : undefined}
-        state={health?.error ? 'unavailable' : health ? 'live' : 'waking'}
-      >
-        {health?.error ? (
-          <StateBlock
-            state="unavailable"
-            title="Provider health could not be read"
-            detail={`${health.error}. No vendor is described as healthy on the strength of a failed request.`}
-          />
-        ) : !health ? (
-          <StateBlock state="waking" title="Reading provider health" />
-        ) : (
-          <>
-            <Strip metrics={[
-              { label: 'Vendors', value: all.length, kind: 'count' },
-              { label: 'With credentials', value: configured.length, kind: 'count' },
-              { label: 'Answering', value: answering.length, kind: 'count' },
-              { label: 'Cooling down', value: cooling.length, kind: 'count' },
-              { label: 'Constrained', value: constrained.length, kind: 'count' },
-              { label: 'Deduplicated requests', value: health.d?.deduplicated_requests ?? null, kind: 'count',
-                title: 'Requests the orchestrator satisfied without a second vendor call' },
-            ]} />
-            <Prose size="tight">
-              A vendor with no credential was never called, which is a different
-              state from one that was called and failed. Cooling down means the
-              orchestrator has stopped calling it after consecutive failures and
-              will retry.
-            </Prose>
-          </>
-        )}
-      </Panel>
-
-      {categories.map((cat) => (
-        <Panel key={cat} title={cat.replace(/_/g, ' ')} subtitle={`${byCategory[cat].length} vendors`} state="live" flush>
-          <div className="sys-scroll-x">
-            <table className="sys-table sys-table--compact">
-              <thead>
-                <tr>
-                  <th scope="col">Vendor</th>
-                  <th scope="col">State</th>
-                  <th scope="col" className="num">Requests</th>
-                  <th scope="col" className="num">Failures</th>
-                  <th scope="col" className="num">Rate limited</th>
-                  <th scope="col" className="num">Mean latency</th>
-                  <th scope="col">Last success</th>
-                  <th scope="col">Failure class / cooldown</th>
-                </tr>
-              </thead>
-              <tbody>
-                {byCategory[cat].map((v) => (
-                  <tr key={`${cat}:${v.vendor}`}>
-                    <td className="sys-mono">
-                      {v.vendor}
-                      {v.shared ? <span className="sys-meta"> · shared</span> : null}
-                    </td>
-                    <td><Status state={vendorState(v)} label={vendorLabel(v)} /></td>
-                    <td className="num"><Value value={v.requests} kind="count" /></td>
-                    <td className="num"><Value value={v.failures} kind="count" /></td>
-                    <td className="num"><Value value={v.rate_limited} kind="count" /></td>
-                    <td className="num">
-                      {/* Latency reported as zero on a vendor never called is
-                          not a measurement of speed. */}
-                      <Value value={v.requests > 0 ? v.avg_latency_ms : null} kind="count" unit="ms" />
-                    </td>
-                    <td><span className="sys-meta" title={timestamp(v.last_success_at)}>{timestamp(v.last_success_at)}</span></td>
-                    <td>
-                      <span className="sys-meta sys-meta--strong">
-                        {v.last_failure_class?.replace(/_/g, ' ') ?? '—'}
-                        {(v.cooldown_remaining_seconds ?? 0) > 0
-                          ? ` · ${Math.ceil(v.cooldown_remaining_seconds ?? 0)}s`
-                          : ''}
-                      </span>
-                      {v.last_error ? <span className="sys-meta" title={v.last_error}> · {v.last_error}</span> : null}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+    <div className="pv">
+      <dl className="pv-summary">
+        {([
+          ['Vendors', summary.vendors, 'muted'],
+          ['Healthy', summary.healthy, 'pos'],
+          ['Idle', summary.idle, 'info'],
+          ['Constrained', summary.constrained, 'warn'],
+          ['Failing', summary.failing, 'neg'],
+          ['Not configured', summary.notConfigured, 'muted'],
+        ] as const).map(([k, v, tone]) => (
+          <div key={k} data-tone={tone}>
+            <dt><span className="dot" data-tone={tone} aria-hidden />{k}</dt>
+            <dd className="sys-num">{v}</dd>
           </div>
-        </Panel>
-      ))}
+        ))}
+        {typeof health.d?.deduplicated_requests === 'number' ? (
+          <div title="Requests the orchestrator satisfied without a second vendor call">
+            <dt>Deduplicated</dt>
+            <dd className="sys-num">{health.d.deduplicated_requests.toLocaleString('en-US')}</dd>
+          </div>
+        ) : null}
+      </dl>
+      <p className="pv-lede">
+        Counters are since this server started. Idle means configured but not yet called — not proven healthy.
+        A vendor with no credential was never asked, which is a different state from one that was asked and failed.
+      </p>
+
+      <RoutingFigure />
+
+      <section aria-label="Configured providers">
+        <h2 className="pv-h">Configured in this deployment</h2>
+        <div className="pv-grid">{live.map((c) => <Card key={c.id} c={c} />)}</div>
+      </section>
+
+      {dormant.length ? (
+        <section aria-label="Providers without credentials">
+          <h2 className="pv-h">Not configured</h2>
+          <div className="pv-grid pv-grid--dormant">{dormant.map((c) => <Card key={c.id} c={c} />)}</div>
+        </section>
+      ) : null}
 
       <Panel
-        title="Capabilities"
-        subtitle="what each capability has behind it"
+        title="Coverage"
+        subtitle="which vendor can answer which capability, and its state for it now"
         state={caps?.error ? 'unavailable' : caps ? 'recorded' : 'waking'}
         flush
       >
         {caps?.error ? (
-          <StateBlock state="unavailable" title="The capability registry could not be read" detail={caps.error} />
+          <StateBlock state="unavailable" title="The capability registry could not be read" detail="The coverage map needs the registry; the cards above are unaffected." />
         ) : !caps ? (
           <StateBlock state="waking" title="Reading the capability registry" />
         ) : (
           <div className="sys-scroll-x">
-            <table className="sys-table sys-table--compact">
+            <table className="sys-table sys-table--compact pv-matrix">
               <thead>
-                <tr><th scope="col">Capability</th><th scope="col">Eligible vendors</th><th scope="col">Fan-out budget</th><th scope="col">Unconfigured</th></tr>
+                <tr>
+                  <th scope="col">Capability</th>
+                  {vendorsForMatrix.map((v) => (
+                    <th key={v} scope="col" className="pv-matrix__v" title={VENDOR_LABEL[v] ?? v}>
+                      <span>{v.replace(/_/g, ' ')}</span>
+                    </th>
+                  ))}
+                  <th scope="col" className="num">Fan-out</th>
+                </tr>
               </thead>
               <tbody>
-                {Object.entries(caps.d?.by_capability ?? {}).sort().map(([key, c]) => (
-                  <tr key={key}>
-                    <td>
-                      <span className="sys-mono">{key}</span>
-                      {c.label ? <span className="sys-meta"> · {c.label}</span> : null}
-                    </td>
-                    <td>
-                      {c.live?.length
-                        ? <span className="sys-meta sys-meta--strong">{c.live.join(', ')}</span>
-                        : <Status state="unavailable" label="none live" />}
-                    </td>
-                    <td><Value value={c.fanout_limit ?? null} kind="count" /></td>
-                    <td>
-                      <span className="sys-meta">
-                        {c.unconfigured?.length ? c.unconfigured.join(', ') : '—'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {capKeys.map((key) => {
+                  const cap = caps.d?.by_capability?.[key] ?? {}
+                  return (
+                    <tr key={key}>
+                      <th scope="row">
+                        <span className="pv-matrix__cap">{cap.label ?? key.replace(/_/g, ' ')}</span>
+                        <span className="pv-matrix__key">{key}</span>
+                      </th>
+                      {vendorsForMatrix.map((v) => {
+                        const offers = cap.implemented_by?.includes(v)
+                        const tone: HealthTone | null = !offers ? null
+                          : cap.live?.includes(v) ? (list.find((c) => c.id === v)?.worst.tone ?? 'pos')
+                            : 'muted'
+                        const text = !offers ? 'not offered' : cap.live?.includes(v) ? 'available' : 'no credential'
+                        return (
+                          <td key={v} className="pv-matrix__cell" title={`${VENDOR_LABEL[v] ?? v}: ${text}`}>
+                            {tone ? <span className="pv-matrix__mark" data-tone={tone} data-live={cap.live?.includes(v) ? '' : undefined} /> : <span className="pv-matrix__none" aria-hidden>·</span>}
+                            <span className="visually-hidden">{text}</span>
+                          </td>
+                        )
+                      })}
+                      <td className="num">{cap.fanout_limit ?? '—'}</td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
         )}
       </Panel>
-    </>
+    </div>
   )
 }

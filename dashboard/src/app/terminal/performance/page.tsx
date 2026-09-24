@@ -5,7 +5,7 @@ import SpreadCurve from '@/components/terminal/performance/SpreadCurve'
 import { Panel } from '@/components/system'
 
 export const metadata: Metadata = {
-  title: 'Performance — miniAladdin',
+  title: 'Performance',
   description: 'The quantile spread curve in rank points, with its drawdown, turnover and cost.',
 }
 

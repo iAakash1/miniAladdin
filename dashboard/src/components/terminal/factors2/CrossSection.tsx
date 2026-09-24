@@ -84,7 +84,7 @@ export default function CrossSection({
       key: 'sym', header: 'Symbol', width: '16%', sort: (r) => r.symbol, text: (r) => r.symbol,
       render: (r) => (
         <Link
-          href={`/terminal/security?symbol=${encodeURIComponent(r.symbol)}`}
+          href={`/company/${encodeURIComponent(r.symbol)}`}
           style={{ color: 'inherit', fontFamily: 'var(--font-mono)' }}
           onClick={() => recordVisit({ kind: 'security', id: r.symbol, label: r.symbol })}
         >{r.symbol}</Link>
@@ -110,7 +110,7 @@ export default function CrossSection({
       key: 'sym', header: 'Symbol', width: '14%', sort: (r) => r.symbol, text: (r) => r.symbol,
       render: (r) => (
         <Link
-          href={`/terminal/security?symbol=${encodeURIComponent(r.symbol)}`}
+          href={`/company/${encodeURIComponent(r.symbol)}`}
           style={{ color: 'inherit', fontFamily: 'var(--font-mono)' }}
           onClick={() => recordVisit({ kind: 'security', id: r.symbol, label: r.symbol })}
         >{r.symbol}</Link>

@@ -5,7 +5,7 @@ import ProviderMatrix from '@/components/terminal/providers/ProviderMatrix'
 import { Panel } from '@/components/system'
 
 export const metadata: Metadata = {
-  title: 'Providers — miniAladdin',
+  title: 'Providers',
   description: 'Which vendor supplies which capability, and what each one is currently doing.',
 }
 

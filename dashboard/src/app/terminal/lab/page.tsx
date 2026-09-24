@@ -7,14 +7,14 @@ import ModelLab from '@/components/terminal/models2/ModelLab'
 import { Panel } from '@/components/system'
 
 export const metadata: Metadata = {
-  title: 'Quant Lab — OmniSignal',
+  title: 'Model Lab',
   description: 'What each model is, what it learned, and how much of the training fit survived out of sample.',
 }
 
 export default function LabPage() {
   return (
     <Workbench
-      title="Quant Lab"
+      title="Model Lab"
       subtitle="declared search → nested selection → outer evidence"
       rail={[
         { label: 'Study', state: 'recorded', detail: 'recorded artifact' },

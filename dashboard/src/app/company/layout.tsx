@@ -4,7 +4,7 @@ import type { Metadata } from 'next'
 import { EntitlementProvider } from '@/components/system/Entitlement'
 
 export const metadata: Metadata = {
-  title: 'Company research',
+  title: { default: 'Company research', template: '%s · OmniSignal' },
   robots: { index: false, follow: false },
 }
 

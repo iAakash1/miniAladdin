@@ -5,7 +5,7 @@ import Handbook from '@/components/terminal/methodology/Handbook'
 import { Panel } from '@/components/system'
 
 export const metadata: Metadata = {
-  title: 'Handbook — miniAladdin',
+  title: 'Handbook',
   description: 'Every reported measure with its unit, annualisation, inputs and failure conditions, generated from the engine.',
 }
 

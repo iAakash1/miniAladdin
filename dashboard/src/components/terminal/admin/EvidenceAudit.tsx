@@ -15,6 +15,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { DataTable } from '@/components/system/DataTable'
 import { EmptyLine, Panel, Prose, StateBlock, Status, Strip } from '@/components/system'
+import { readerError } from '@/lib/failure'
 import { authFetch } from '@/lib/persistence'
 import ClaimInspector, { type Claim, type EvidenceRecord } from '@/components/terminal/evidence/ClaimInspector'
 
@@ -142,7 +143,7 @@ export default function EvidenceAudit({
         <button type="submit" disabled={busy}>{busy ? 'Running…' : 'Audit'}</button>
       </form>
 
-      {error ? <StateBlock state="unavailable" title="Pipeline unavailable" detail={error} /> : null}
+      {error ? <StateBlock state="unavailable" title="Pipeline unavailable" detail={`${readerError(error)}.`} /> : null}
 
       {data && data.status !== 'ok' ? (
         <StateBlock

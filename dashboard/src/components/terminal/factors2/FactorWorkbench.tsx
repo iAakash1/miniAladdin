@@ -23,6 +23,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Panel, Prose, Section, StateBlock, Status, Strip, Value } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { BarRows } from '@/components/system/charts'
+import { readerError } from '@/lib/failure'
 import { recordVisit } from '@/lib/research/history'
 import { ObjectHeader, StripSkeleton, TableSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
 import CrossSection, { type Attribution, type RankRow, type ScreenRow } from './CrossSection'
@@ -166,7 +167,7 @@ export default function FactorWorkbench() {
   ], [picked])
 
   if (error) {
-    return <Panel title="Factors" state="unavailable"><StateBlock state="unavailable" title="The factor lab could not be reached" detail={`Request failed: ${error}.`} /></Panel>
+    return <Panel title="Factors" state="unavailable"><StateBlock state="unavailable" title="The factor lab could not be reached" detail={`${readerError(error)}.`} /></Panel>
   }
   if (!lab) {
     return (

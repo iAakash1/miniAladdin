@@ -91,6 +91,25 @@ export function fetchResearch(symbol: string): Promise<ResearchPayload> {
   return promise
 }
 
+/**
+ * Share a request that is already in flight.
+ *
+ * The company workspace starts one authenticated research run per visit.
+ * Registering it here means every panel that reads research through
+ * `fetchResearch` joins that run instead of starting another.
+ */
+export function shareResearch(symbol: string, request: Promise<ResearchPayload>): void {
+  const key = symbol.trim().toUpperCase()
+  const promise = request.catch((e: unknown) => {
+    cache.delete(key)
+    throw e
+  })
+  // Consumers still see the rejection; an unobserved one is not unhandled.
+  promise.catch(() => {})
+  cache.set(key, { promise, at: Date.now() })
+  evict()
+}
+
 /** Drop everything. Used by tests; there is no UI affordance for it. */
 export function clearResearchCache(): void {
   cache.clear()

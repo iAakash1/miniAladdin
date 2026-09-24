@@ -18,6 +18,7 @@ import Link from 'next/link'
 
 import { Panel, StateBlock, Status, Value, type ResearchState } from '@/components/system'
 import { ObjectHeader, TableSkeleton } from '@/components/system/composition'
+import { readerError } from '@/lib/failure'
 import { readResource } from '@/lib/resource'
 
 interface SourceRow {
@@ -78,7 +79,7 @@ export default function Lineage({ label, model }: { label: string; model: string
   if (error) {
     return (
       <Panel title="Lineage" state="unavailable">
-        <StateBlock state="unavailable" title="The chain could not be read" detail={`Request failed: ${error}. No lineage is shown in its place.`} />
+        <StateBlock state="unavailable" title="The chain could not be read" detail={`${readerError(error)}. No lineage is shown in its place.`} />
       </Panel>
     )
   }

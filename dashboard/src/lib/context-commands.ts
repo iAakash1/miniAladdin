@@ -1,16 +1,11 @@
 /**
  * The commands that only make sense where the reader currently is.
  *
- * The palette offered twenty-four variations of "Go to X" and nothing else,
- * which makes it a menu with a text box. A palette earns its shortcut by
- * acting on the thing being investigated: standing on AAPL, the useful
- * commands are about AAPL, and standing on a comparison they are about the
- * pair.
- *
- * This is a pure function of the route so it can be tested without a browser,
- * and so the palette cannot offer an action for an object that is not open.
- * Nothing here invents a destination: every href is a route the product
- * already serves, and every anchor is an id the target page actually renders.
+ * A palette earns its shortcut by acting on the thing being investigated:
+ * standing on AAPL, the useful commands are about AAPL. This is a pure
+ * function of the route so it can be tested without a browser, and so the
+ * palette cannot offer an action for an object that is not open. Every href
+ * is a route the product serves.
  */
 
 export interface ContextCommand {
@@ -32,49 +27,53 @@ export interface RouteContext {
   params: Record<string, string | undefined>
   /** Symbols this browser has opened, most recent first. */
   recent?: string[]
-  /** Whether the current symbol is on the watchlist. */
+  /** Whether the current symbol is on one of the account's lists. */
   watched?: boolean
 }
 
-const sec = (s: string) => `/terminal/security?symbol=${encodeURIComponent(s)}`
+export const companyHref = (symbol: string, tab?: string): string =>
+  `/company/${encodeURIComponent(symbol)}${tab && tab !== 'overview' ? `?tab=${tab}` : ''}`
+
+/** The symbol a company route names, or null. */
+export function companyFromPath(pathname: string): string | null {
+  const m = pathname.match(/^\/company\/([^/?#]+)/)
+  return m ? decodeURIComponent(m[1]).toUpperCase() : null
+}
+
+const TABS: Array<{ tab: string; label: string; note: string }> = [
+  { tab: 'evidence', label: 'evidence and provenance', note: 'inputs, provider agreement, validation' },
+  { tab: 'report', label: 'research report', note: 'the full grounded report' },
+  { tab: 'financials', label: 'financials', note: 'SEC filed facts, statements, ratios' },
+  { tab: 'filings', label: 'SEC filings', note: 'primary-source documents' },
+  { tab: 'technicals', label: 'technicals', note: 'price structure and indicators' },
+  { tab: 'relationships', label: 'relationships', note: 'knowledge graph around the company' },
+]
 
 /**
- * Commands for the object currently open, most useful first.
- *
- * Returns an empty list where the route carries no object — the palette then
- * shows navigation alone, which is the honest answer rather than a set of
- * actions pointing at nothing.
+ * Commands for the object currently open, most useful first. Empty where the
+ * route carries no object.
  */
 export function contextCommands(ctx: RouteContext): ContextCommand[] {
   const { pathname, params } = ctx
 
-  if (pathname.startsWith('/terminal/security')) {
-    const symbol = (params.symbol ?? '').toUpperCase()
-    if (!symbol) return []
-
-    // The last other name this browser opened. Comparison needs a second
-    // security and the one just looked at is the one usually meant; with no
-    // second name the command is omitted rather than offered against nothing.
+  const symbol = companyFromPath(pathname)
+  if (symbol) {
+    // Comparison needs a second security; the last other name opened is the
+    // one usually meant. With none, the command is omitted.
     const against = (ctx.recent ?? []).find((s) => s.toUpperCase() !== symbol)
-
     return [
       ctx.watched
-        ? { id: 'unwatch', label: `Remove ${symbol} from watchlist`, act: 'unwatch', symbol }
+        ? { id: 'unwatch', label: `Remove ${symbol} from watchlists`, act: 'unwatch', symbol }
         : { id: 'watch', label: `Add ${symbol} to watchlist`, act: 'watch', symbol },
+      ...TABS.map((t) => ({ id: t.tab, label: `${symbol} ${t.label}`, note: t.note, href: companyHref(symbol, t.tab) })),
       ...(against ? [{
         id: 'compare',
         label: `Compare ${symbol} with ${against}`,
         note: 'the last other name opened here',
         href: `/terminal/compare?a=${encodeURIComponent(symbol)}&b=${encodeURIComponent(against)}`,
       }] : []),
-      // Anchors the security page actually renders. See app/terminal/security.
-      { id: 'fundamentals', label: `${symbol} fundamentals`, note: 'valuation, margins, growth, ownership', href: `${sec(symbol)}#sec-fundamentals` },
-      { id: 'filings', label: `${symbol} filings and coverage`, note: 'primary source documents', href: `${sec(symbol)}#sec-company` },
-      { id: 'price', label: `${symbol} price history`, href: `${sec(symbol)}#sec-price` },
-      /* Reaches the security page, where the ticket lives — not a separate
-         trading screen. An order is something done to the object in front of
-         you, and the label says paper wherever it appears. */
-      { id: 'paper', label: `Paper trade ${symbol}`, note: 'simulated account — no real money', href: sec(symbol) },
+      { id: 'agents', label: `Run the agent pipeline for ${symbol}`, note: 'claim-by-claim trace and validation', href: `/terminal/agents/${encodeURIComponent(symbol)}` },
+      { id: 'paper', label: `Paper trade ${symbol}`, note: 'simulated account — no real money', href: `${companyHref(symbol)}?paper=1` },
     ]
   }
 
@@ -84,8 +83,8 @@ export function contextCommands(ctx: RouteContext): ContextCommand[] {
     if (!a || !b) return []
     return [
       { id: 'swap', label: `Swap — ${b} against ${a}`, note: 'reverses which side is the baseline', href: `/terminal/compare?a=${encodeURIComponent(b)}&b=${encodeURIComponent(a)}` },
-      { id: 'open-a', label: `Open ${a}`, href: sec(a) },
-      { id: 'open-b', label: `Open ${b}`, href: sec(b) },
+      { id: 'open-a', label: `Open ${a}`, href: companyHref(a) },
+      { id: 'open-b', label: `Open ${b}`, href: companyHref(b) },
     ]
   }
 

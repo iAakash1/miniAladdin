@@ -26,6 +26,7 @@ import Link from 'next/link'
 import { Grid, Panel, Prose, StateBlock, Status, Strip, Value } from '@/components/system'
 import { BarRows } from '@/components/system/charts'
 import { ObjectHeader, StripSkeleton, TableSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
+import { readerError } from '@/lib/failure'
 import { readResource } from '@/lib/resource'
 
 interface Metric {
@@ -258,7 +259,7 @@ export default function RiskWorkbench() {
         <StateBlock
           state="unavailable"
           title="No risk report is available"
-          detail={`The request failed with: ${error}. Nothing is shown in its place — a report that could not be computed is not a report of zero risk.`}
+          detail={`${readerError(error)}. Nothing is shown in its place — a report that could not be computed is not a report of zero risk.`}
         />
       </Panel>
     )

@@ -6,14 +6,14 @@ import Ablation from '@/components/terminal/factors2/Ablation'
 import { Panel } from '@/components/system'
 
 export const metadata: Metadata = {
-  title: 'Factors — miniAladdin',
+  title: 'Factor Lab',
   description: 'Factor evaluations with the overlap correction made visible, and redundancy reported with its pair coverage.',
 }
 
 export default function FactorLabPage() {
   return (
     <Workbench
-      title="Factors"
+      title="Factor Lab"
       subtitle="what explains returns"
       rail={[
         { label: 'Lab', state: 'recorded', detail: 'built on request' },

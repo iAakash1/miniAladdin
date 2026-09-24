@@ -12,6 +12,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Panel, StateBlock, Status } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { TableSkeleton } from '@/components/system/composition'
+import { readerError } from '@/lib/failure'
 import { readResource } from '@/lib/resource'
 
 export interface HistoryRow {
@@ -70,7 +71,7 @@ export default function ResearchHistory() {
   if (error) {
     return (
       <Panel title="Research history" state="unavailable">
-        <StateBlock state="unavailable" title="The research history could not be read" detail={`Request failed: ${error}. No list is shown in its place.`} />
+        <StateBlock state="unavailable" title="The research history could not be read" detail={`${readerError(error)}. No list is shown in its place.`} />
       </Panel>
     )
   }

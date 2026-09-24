@@ -1,109 +1,82 @@
 'use client'
 
-/**
- * The names you are following, priced.
- *
- * A table, not a grid of cards. Watching a list is a scanning task: the eye
- * runs down one column looking for the row that moved, and that only works
- * when the numbers share an edge. Sixteen cards is sixteen separate reads.
- *
- * Quotes are fetched for the whole list in one request and refreshed on an
- * interval. A quote the provider itself flags as stale says so rather than
- * sitting in the same column as a live one.
- *
- * The list is keyed on ticker alone and lives in this browser. AAPL is AAPL
- * whether or not any research dataset knows about it, which is the entire
- * reason this is not built on the research object store.
- */
-
 import Link from 'next/link'
-import { useSyncExternalStore } from 'react'
 
-import { EmptyLine, Panel, Prose, StateBlock, Status, Value } from '@/components/system'
+import { EmptyLine, StateBlock, Value } from '@/components/system'
+import CompanyIdentity from '@/components/visual/CompanyIdentity'
+import SymbolSpark from '@/components/visual/SymbolSpark'
+import { age } from '@/components/company/derive'
 import { useQuotes } from '@/lib/use-quotes'
-import { quoteState } from '@/lib/security'
-import {
-  emptySnapshot, subscribeSymbols, toggleWatch, watchSnapshot,
-} from '@/lib/symbols'
+import { useResearchHistory, verdictTone } from '@/lib/use-research-history'
+import { useWatchedSymbols, useWatchlists, useWatchlistsStatus } from '@/lib/watchlists'
 
-export default function Watchlist() {
-  const symbols = useSyncExternalStore(subscribeSymbols, watchSnapshot, emptySnapshot)
-  // The hub unions this panel's symbols with every other panel's, issues one
-  // request, and refreshes on one timer. Two panels showing AAPL cannot show
-  // two different prices for it.
-  const { quotes, error, at } = useQuotes(symbols)
+/** The names the account follows, with price, trend and last research state. */
+export default function Watchlist({ limit = 10 }: { limit?: number }) {
+  const lists = useWatchlists()
+  const status = useWatchlistsStatus()
+  const symbols = useWatchedSymbols().slice(0, limit)
+  const { quotes, error } = useQuotes(symbols)
+  const research = useResearchHistory()
 
+  if (status === 'idle' || status === 'loading') {
+    return <section className="sys-panel"><StateBlock state="waking" title="Loading your watchlists" /></section>
+  }
+  if (status === 'error' || status === 'unauthenticated') {
+    return (
+      <section className="sys-panel">
+        <StateBlock state="unavailable" title="Watchlists are unavailable right now" detail="The persistence service did not answer. Your lists are stored on the server and are unaffected." />
+      </section>
+    )
+  }
   if (!symbols.length) {
     return (
       <EmptyLine label="Watchlist">
-        Nothing tracked yet. Open a security and press <kbd className="sys-kbd">watch</kbd> to
-        add it — the list lives in this browser, not in an account.
+        No names yet. Open any company and press <kbd className="sys-kbd">Watch</kbd> — lists sync to your account.
       </EmptyLine>
     )
   }
 
   return (
-    <Panel
-      title="Watchlist"
-      subtitle={`${symbols.length} ${symbols.length === 1 ? 'security' : 'securities'}`}
-      state={error ? 'stale' : at ? (Object.keys(quotes).length ? 'unknown' : 'unavailable') : 'waking'}
-      flush
-    >
-      {error ? (
-        <StateBlock
-          state="stale"
-          title="The last quote refresh failed"
-          detail={`${error}. Any prices below are from the previous successful read${at ? ` at ${at.slice(11, 19)}` : ''}, not from now.`}
-        />
-      ) : null}
-
+    <section className="sys-panel home-wl" aria-label="Watchlist">
+      <header className="sys-panel-head">
+        <div className="sys-panel-head__title">
+          <h2 className="sys-panel-title">Watchlist</h2>
+          <span className="sys-panel-sub">{lists.length} list{lists.length === 1 ? '' : 's'} · {watchedCount(lists)} names</span>
+        </div>
+        <Link className="cw-more" href="/terminal/portfolio">Manage lists</Link>
+      </header>
+      {error ? <p className="home-warn">Quote refresh failed; prices shown are from the last successful read.</p> : null}
       <div className="sys-scroll-x">
-        <table className="sys-table sys-table--compact wl">
+        <table className="sys-table home-wl__t">
           <thead>
             <tr>
-              <th scope="col">Symbol</th>
+              <th scope="col">Company</th>
               <th scope="col" className="num">Last</th>
-              <th scope="col" className="num">1 day</th>
-              <th scope="col" className="num">1 week</th>
-              <th scope="col">Source</th>
-              <th scope="col"><span className="sys-sr-only">Remove</span></th>
+              <th scope="col" className="num">1D</th>
+              <th scope="col" className="num">1W</th>
+              <th scope="col" className="home-wl__trend">3 months</th>
+              <th scope="col">Last research</th>
             </tr>
           </thead>
           <tbody>
             {symbols.map((s) => {
               const q = quotes[s]
+              const run = research.latest(s)
               return (
                 <tr key={s}>
-                  <td>
-                    <Link href={`/terminal/security?symbol=${encodeURIComponent(s)}`} className="wl__sym">
-                      {s}
-                    </Link>
-                  </td>
+                  <td><CompanyIdentity symbol={s} name={run?.company_name} size="sm" href={`/company/${encodeURIComponent(s)}`} /></td>
                   <td className="num"><Value value={q?.price ?? null} kind="currency" /></td>
-                  <td className="num">
-                    <Value value={q?.change_1d ?? null} kind="percent" digits={2} signed tone />
-                  </td>
-                  <td className="num">
-                    <Value value={q?.change_1w ?? null} kind="percent" digits={2} signed tone />
-                  </td>
+                  <td className="num"><Value value={q?.change_1d ?? null} kind="percent" digits={2} signed tone /></td>
+                  <td className="num"><Value value={q?.change_1w ?? null} kind="percent" digits={2} signed tone /></td>
+                  <td className="home-wl__trend"><SymbolSpark symbol={s} width={84} height={20} /></td>
                   <td>
-                    {q ? (
-                      <Status state={error ? 'stale' : quoteState(q)} label={`${q.source ?? 'unknown'} · ${q.price_basis ?? 'price'} · ${q.as_of ?? 'date unknown'}`} />
-                    ) : at ? (
-                      <Status state="unavailable" label="no quote" />
-                    ) : (
-                      <Status state="waking" label="reading" />
-                    )}
-                  </td>
-                  <td className="num">
-                    <button
-                      type="button"
-                      className="sys-btn sys-btn--micro"
-                      onClick={() => toggleWatch(s)}
-                      aria-label={`Remove ${s} from the watchlist`}
-                    >
-                      remove
-                    </button>
+                    {run ? (
+                      <span className="home-run">
+                        <span className="sig-verdict sig-verdict--sm" data-tone={verdictTone(run.verdict)}>{run.verdict}</span>
+                        {run.confidence !== null ? <span className="home-run__c sys-num">{run.confidence}</span> : null}
+                        <span className="home-run__t">{age(run.created_at)}</span>
+                      </span>
+                    ) : <span className="home-dim">not researched</span>}
                   </td>
                 </tr>
               )
@@ -111,11 +84,10 @@ export default function Watchlist() {
           </tbody>
         </table>
       </div>
-
-      <Prose size="fine">
-        Kept in this browser, keyed on the ticker. It does not follow you to
-        another machine, and it survives the research dataset entirely.
-      </Prose>
-    </Panel>
+    </section>
   )
+}
+
+function watchedCount(lists: Array<{ tickers: string[] }>): number {
+  return new Set(lists.flatMap((l) => l.tickers)).size
 }

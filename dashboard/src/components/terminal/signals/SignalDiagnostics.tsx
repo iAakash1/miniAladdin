@@ -24,6 +24,7 @@ import { BarRows, Histogram, TimeSeries } from '@/components/system/charts'
 import { Grid, Panel, Prose, Section, StateBlock, Status, Strip, Value } from '@/components/system'
 import { ChartSkeleton, StripSkeleton } from '@/components/system/composition'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
+import { readerError } from '@/lib/failure'
 import { readResource } from '@/lib/resource'
 
 interface Fold {
@@ -114,7 +115,7 @@ export default function SignalDiagnostics({ experiment, model }: { experiment: s
     { key: 'obs', header: 'Observations', numeric: true, optional: true, sort: (f) => f.observations, render: (f) => <Value value={f.observations} kind="count" /> },
   ]
 
-  if (error) return <Panel title="Diagnostics" state="unavailable"><StateBlock state="unavailable" title="The fold series could not be read" detail={error} /></Panel>
+  if (error) return <Panel title="Diagnostics" state="unavailable"><StateBlock state="unavailable" title="The fold series could not be read" detail={`${readerError(error)}.`} /></Panel>
   if (!data) {
     return (
       <>

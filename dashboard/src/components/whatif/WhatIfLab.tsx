@@ -28,6 +28,7 @@ import {
   type AvailabilityPayload,
   isAvailable,
 } from '@/components/system/Availability'
+import { readerError } from '@/lib/failure'
 import { EmptyLine, Panel, Prose, StateBlock, signed } from '@/components/system'
 
 interface Scenario {
@@ -167,7 +168,7 @@ export default function WhatIfLab({ ticker }: { ticker: string }) {
       {busy ? (
         <StateBlock state="waking" title="Re-scoring" detail="the same engine, one input moved" />
       ) : null}
-      {error ? <StateBlock state="unavailable" title="Not simulated" detail={error} /> : null}
+      {error ? <StateBlock state="unavailable" title="Not simulated" detail={`${readerError(error)}.`} /> : null}
 
       {result && !isAvailable(result) ? <AvailabilityNote payload={result} /> : null}
 

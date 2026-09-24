@@ -6,14 +6,14 @@ import DataWorkbench from '@/components/terminal/data/DataWorkbench'
 import { Panel, Provenance, Section } from '@/components/system'
 
 export const metadata: Metadata = {
-  title: 'Data — miniAladdin',
+  title: 'Datasets',
   description: 'Dataset and feature contracts: point-in-time classification, survivorship, lookback and availability lag.',
 }
 
 export default function DataPage() {
   return (
     <Workbench
-      title="Data"
+      title="Datasets"
       subtitle="dataset and feature contracts"
       rail={[
         { label: 'Catalogue', state: 'recorded', detail: 'published contract' },

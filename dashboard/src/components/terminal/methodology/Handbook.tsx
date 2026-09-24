@@ -16,6 +16,7 @@ import Link from 'next/link'
 import { Panel, Prose, Section, StateBlock, Status, Value } from '@/components/system'
 import { ObjectHeader, StripSkeleton, TableSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
+import { readerError } from '@/lib/failure'
 import { recordVisit } from '@/lib/research/history'
 import { readResource } from '@/lib/resource'
 
@@ -83,7 +84,7 @@ export default function Handbook({ initialMeasure }: { initialMeasure?: string }
   if (error) {
     return (
       <Panel title="Handbook" state="unavailable">
-        <StateBlock state="unavailable" title="The handbook could not be read" detail={`Request failed: ${error}.`} />
+        <StateBlock state="unavailable" title="The handbook could not be read" detail={`${readerError(error)}.`} />
       </Panel>
     )
   }

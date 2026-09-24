@@ -5,13 +5,13 @@ import GraphWorkspace from '@/components/terminal/GraphWorkspace'
 import { Panel } from '@/components/system'
 
 export const metadata: Metadata = {
-  title: 'Graph — miniAladdin',
+  title: 'Knowledge graph',
   description: 'The relationship graph: what connects to what, and on whose authority.',
 }
 
 export default function Page() {
   return (
-    <Workbench title="Graph" subtitle="how things connect"
+    <Workbench title="Knowledge graph" subtitle="how things connect"
       context={
         <>
           <Panel title="What this answers">

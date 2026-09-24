@@ -17,6 +17,7 @@ import Link from 'next/link'
 
 import { Panel, Prose, StateBlock, Status, Strip, type ResearchState } from '@/components/system'
 import { ObjectHeader, StripSkeleton, TableSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
+import { readerError } from '@/lib/failure'
 import { useMemos } from '@/lib/research/memos'
 import { KINDS, href as objectHref, type ObjectKind } from '@/lib/research/objects'
 import { readResource } from '@/lib/resource'
@@ -135,7 +136,7 @@ export default function ResearchTimeline() {
 
   const present = useMemo(() => [...new Set(events.map((e) => e.kind))], [events])
 
-  if (error) return <Panel title="Timeline" state="unavailable"><StateBlock state="unavailable" title="The registry could not be read" detail={error} /></Panel>
+  if (error) return <Panel title="Timeline" state="unavailable"><StateBlock state="unavailable" title="The registry could not be read" detail={`${readerError(error)}.`} /></Panel>
   if (!entries) {
     return (
       <>

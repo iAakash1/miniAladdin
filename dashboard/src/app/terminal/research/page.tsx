@@ -2,12 +2,14 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 import Workbench from '@/components/system/Workbench'
+import PipelineFigure from '@/components/marketing/PipelineFigure'
 import AgentObservatory from '@/components/terminal/observatory/AgentObservatory'
+import ArchitectureFigure from '@/components/terminal/system/ArchitectureFigure'
 import SystemHealthBoard from '@/components/terminal/system/SystemHealthBoard'
 import { Grid, Panel, Prose, Status } from '@/components/system'
 
 export const metadata: Metadata = {
-  title: 'Research OS — OmniSignal',
+  title: 'Architecture',
   description: 'Evidence, quantitative authority and governed research in one inspectable workspace.',
 }
 
@@ -32,7 +34,7 @@ const pillars = [
 export default function ResearchOSPage() {
   return (
     <Workbench
-      title="Research OS"
+      title="Architecture"
       subtitle="inspect → understand → audit"
       rail={[
         { label: 'Evidence', state: 'recorded', detail: 'provenance first' },
@@ -51,6 +53,12 @@ export default function ResearchOSPage() {
         </>
       )}
     >
+      <Panel title="Request path" subtitle="how a research request reaches the private API">
+        <ArchitectureFigure />
+      </Panel>
+      <Panel title="Authority boundary" subtitle="the signal is fixed before the narrative is written">
+        <PipelineFigure />
+      </Panel>
       <Panel title="OmniSignal" subtitle="three accountable layers">
         <Grid variant="halves">
           {pillars.map((pillar) => (

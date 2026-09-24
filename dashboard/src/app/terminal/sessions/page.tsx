@@ -5,7 +5,7 @@ import SessionsView from '@/components/terminal/SessionsView'
 import { Panel } from '@/components/system'
 
 export const metadata: Metadata = {
-  title: 'Sessions — miniAladdin',
+  title: 'Sessions',
   description: 'Previous research sessions and what was looked at in each.',
 }
 

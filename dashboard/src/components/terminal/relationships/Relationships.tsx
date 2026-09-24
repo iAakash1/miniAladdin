@@ -19,6 +19,7 @@ import { GraphView, typeTone, type GraphEdge, type GraphNode } from '@/component
 import { Grid, Panel, Prose, Section, StateBlock, Strip, Value } from '@/components/system'
 import { ChartSkeleton, ObjectHeader, StripSkeleton } from '@/components/system/composition'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
+import { readerError } from '@/lib/failure'
 import { recordVisit } from '@/lib/research/history'
 import { readResource } from '@/lib/resource'
 
@@ -178,7 +179,7 @@ export default function Relationships({ initialSymbol = 'AAPL' }: { initialSymbo
 
       {error ? (
         <Panel title="Graph" state="unavailable">
-          <StateBlock state="unavailable" title={`No graph for ${symbol}`} detail={`Request failed: ${error}. Nothing is drawn in its place.`} />
+          <StateBlock state="unavailable" title={`No graph for ${symbol}`} detail={`${readerError(error)}. Nothing is drawn in its place.`} />
         </Panel>
       ) : !data ? (
         <>
@@ -206,7 +207,7 @@ export default function Relationships({ initialSymbol = 'AAPL' }: { initialSymbo
               { label: 'Node types', value: nodeTypes.length, kind: 'count' },
             ]}
             actions={
-              <Link href={`/terminal/security?symbol=${encodeURIComponent(symbol)}`} className="sys-btn">
+              <Link href={`/company/${encodeURIComponent(symbol)}`} className="sys-btn">
                 open security
               </Link>
             }
@@ -263,7 +264,7 @@ export default function Relationships({ initialSymbol = 'AAPL' }: { initialSymbo
               actions={
                 selected.type === 'company' ? (
                   <Link
-                    href={`/terminal/security?symbol=${encodeURIComponent(selected.id.split(':')[1] ?? '')}`}
+                    href={`/company/${encodeURIComponent(selected.id.split(':')[1] ?? '')}`}
                     className="sys-btn"
                   >
                     open security

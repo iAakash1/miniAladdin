@@ -85,7 +85,7 @@ export default function StockActions({
           </button>
         ) : null}
 
-        <Link href={`/terminal/security?symbol=${encodeURIComponent(symbol)}`} className="bg__switch">
+        <Link href={`/company/${encodeURIComponent(symbol)}`} className="bg__switch">
           Open Advanced mode →
         </Link>
       </div>

@@ -12,5 +12,5 @@ import { redirect } from 'next/navigation'
  * implementation is not.
  */
 export default function LegacyValidationPage() {
-  redirect('/terminal/security')
+  redirect('/terminal/command')
 }

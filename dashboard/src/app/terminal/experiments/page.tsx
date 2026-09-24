@@ -8,7 +8,7 @@ import ExperimentRelations from '@/components/terminal/experiments/ExperimentRel
 import { Panel } from '@/components/system'
 
 export const metadata: Metadata = {
-  title: 'Experiments — miniAladdin',
+  title: 'Experiments',
   description: 'The research record: every experiment, its dataset sources and their point-in-time classification.',
 }
 

@@ -133,6 +133,58 @@ export async function searchSecurities(
   return [...best.values()]
 }
 
+/** A screen query as the backend interpreted it. */
+export interface ScreenAnswer {
+  query: string
+  /** `lookup` resolved a symbol or name; `thematic` searched ranked web
+   *  sources for tickers and validated them against symbol databases. */
+  mode: 'lookup' | 'thematic'
+  results: Array<SecurityIdentity & { snippet: string | null; url: string | null }>
+  suggestions: SecurityIdentity[]
+  note: string | null
+}
+
+/**
+ * The full screen answer — interpretation, attribution and the backend's own
+ * note — for surfaces that show how a query was understood.
+ */
+export async function screenQuery(query: string, signal: AbortSignal): Promise<ScreenAnswer> {
+  const q = query.trim()
+  const r = await fetch(`/api/screen?q=${encodeURIComponent(q)}`, { signal })
+  if (!r.ok) throw new Error(`the screen request returned ${r.status}`)
+  const d: {
+    mode?: string
+    results?: Array<ScreenResult & { snippet?: string | null; url?: string | null }>
+    suggestions?: ScreenResult[]
+    note?: string | null
+  } = await r.json()
+  const identity = (x: ScreenResult) => ({
+    symbol: (x.symbol ?? '').toUpperCase(),
+    name: x.name ? titleCase(x.name) : null,
+    via: x.via ?? null,
+  })
+  const byId = new Map<string, ScreenAnswer['results'][number]>()
+  for (const x of d.results ?? []) {
+    if (!x.symbol) continue
+    const row = { ...identity(x), snippet: x.snippet ?? null, url: x.url ?? null }
+    const held = byId.get(row.symbol)
+    if (!held || (!held.name && row.name)) byId.set(row.symbol, row)
+  }
+  const results = [...byId.values()]
+  const mode = d.mode === 'thematic' ? 'thematic' : 'lookup'
+  return {
+    query: q,
+    mode,
+    // Lookup rows are ranked for the query; thematic rows keep the order of
+    // the sources that mentioned them.
+    results: mode === 'lookup'
+      ? rankSecurities(q, results) as ScreenAnswer['results']
+      : results,
+    suggestions: (d.suggestions ?? []).filter((x) => Boolean(x.symbol)).map(identity),
+    note: d.note ?? null,
+  }
+}
+
 /** Last price for one or more symbols. */
 export async function fetchQuotes(
   symbols: string[],

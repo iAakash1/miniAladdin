@@ -16,6 +16,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { Panel, Prose, StateBlock, Status, type ResearchState } from '@/components/system'
 import { TableSkeleton } from '@/components/system/composition'
+import { readerError } from '@/lib/failure'
 import { readResource } from '@/lib/resource'
 
 interface Entry {
@@ -64,7 +65,7 @@ export default function ValidationLadder() {
   const retired = entries.filter((e) => e.status === 'retired').length
   const highest = [...rungs].reverse().find((r) => r.at.length)
 
-  if (error) return <Panel title="Ladder" state="unavailable"><StateBlock state="unavailable" title="The registry could not be read" detail={error} /></Panel>
+  if (error) return <Panel title="Ladder" state="unavailable"><StateBlock state="unavailable" title="The registry could not be read" detail={`${readerError(error)}.`} /></Panel>
   if (!registry) {
     return <Panel title="Validation ladder" state="waking" flush><TableSkeleton rows={4} columns={3} /></Panel>
   }

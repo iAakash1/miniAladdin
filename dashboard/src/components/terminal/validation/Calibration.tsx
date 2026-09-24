@@ -24,6 +24,7 @@ import Link from 'next/link'
 
 import { BarRows, Histogram, Scatter, TimeSeries } from '@/components/system/charts'
 import { Grid, Panel, Prose, Section, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
+import { readerError } from '@/lib/failure'
 import { recordVisit } from '@/lib/research/history'
 import { ChartSkeleton, ObjectHeader, StripSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
 
@@ -99,7 +100,7 @@ export default function Calibration({ symbol }: { symbol: string }) {
   const psi = n(data?.prediction_drift_psi)
 
   if (error) {
-    return <Panel title="Validation" state="unavailable"><StateBlock state="unavailable" title={`No backtest for ${symbol}`} detail={`Request failed: ${error}.`} /></Panel>
+    return <Panel title="Validation" state="unavailable"><StateBlock state="unavailable" title={`No backtest for ${symbol}`} detail={`${readerError(error)}.`} /></Panel>
   }
   if (!data) {
     return (
@@ -110,7 +111,7 @@ export default function Calibration({ symbol }: { symbol: string }) {
     )
   }
   if (data.error) {
-    return <Panel title="Validation" state="unavailable"><StateBlock state="unavailable" title={`Validation refused for ${symbol}`} detail={data.error} /></Panel>
+    return <Panel title="Validation" state="unavailable"><StateBlock state="unavailable" title={`Validation refused for ${symbol}`} detail={`${readerError(data.error)}.`} /></Panel>
   }
 
   const confusion = data.confusion_matrix ?? {}
@@ -142,7 +143,7 @@ export default function Calibration({ symbol }: { symbol: string }) {
 
       <Toolbar>
         <ToolbarGroup label="trace">
-          <Link href={`/terminal/security?symbol=${encodeURIComponent(symbol)}`} className="sys-btn">security</Link>
+          <Link href={`/company/${encodeURIComponent(symbol)}`} className="sys-btn">security</Link>
           <Link href={`/terminal/relationships?symbol=${encodeURIComponent(symbol)}`} className="sys-btn">relationships</Link>
           <Link href="/terminal/evidence" className="sys-btn">model evidence</Link>
           <Link href="/terminal/handbook" className="sys-btn">handbook</Link>

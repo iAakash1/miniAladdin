@@ -8,14 +8,14 @@ import SelectionPopulation from '@/components/terminal/models/SelectionPopulatio
 import { Panel, Provenance, Section } from '@/components/system'
 
 export const metadata: Metadata = {
-  title: 'Evidence — miniAladdin',
+  title: 'Governance',
   description: 'The model registry as an evidence chain: validation geometry, costs, multiple-testing correction and the gates standing between a model and promotion.',
 }
 
 export default function EvidencePage() {
   return (
     <Workbench
-      title="Evidence"
+      title="Governance"
       subtitle="model registry and promotion gates"
       context={
         <>

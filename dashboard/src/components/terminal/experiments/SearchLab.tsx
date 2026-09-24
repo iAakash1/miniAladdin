@@ -26,6 +26,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 
+import { readerError } from '@/lib/failure'
 import { Grid, Panel, Prose, StateBlock, Status, Strip, Value } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { BarRows } from '@/components/system/charts'
@@ -161,7 +162,7 @@ export default function SearchLab({ experimentId = 'EXP-007' }: { experimentId?:
   if (error) {
     return (
       <Panel title="Search" state="unavailable">
-        <StateBlock state="unavailable" title="The search could not be read" detail={`Request failed: ${error}. Nothing is shown in its place.`} />
+        <StateBlock state="unavailable" title="The search could not be read" detail={`${readerError(error)}. Nothing is shown in its place.`} />
       </Panel>
     )
   }

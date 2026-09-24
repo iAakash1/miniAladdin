@@ -11,7 +11,7 @@ import test from 'node:test'
 
 const ROOT = new URL('../src/', import.meta.url).pathname
 const REP = readFileSync(ROOT + 'components/terminal/security/Reported.tsx', 'utf8')
-const PAGE = readFileSync(ROOT + 'app/terminal/security/page.tsx', 'utf8')
+const TABS = readFileSync(ROOT + 'components/company/tabs/Detail.tsx', 'utf8')
 const FIN = readFileSync(ROOT + 'components/terminal/security/Financials.tsx', 'utf8')
 
 const CODE = REP
@@ -63,8 +63,9 @@ test('agreement is never claimed for a single observation', () => {
 test('filed facts and vendor figures stay in separate panels', () => {
   // One is what the company told the SEC; the other is a vendor's own
   // computation. In one grid a reader cannot say which a number is.
-  assert.ok(PAGE.includes('sec-financials') && PAGE.includes('sec-reported'),
-    'the two surfaces are not separately anchored')
+  const financials = TABS.slice(TABS.indexOf('export function FinancialsTab'), TABS.indexOf('export function TechnicalsTab'))
+  assert.ok(/<Financials symbol/.test(financials) && /<Reported symbol/.test(financials),
+    'the filed and the vendor-reported panels are not rendered separately')
   assert.match(FIN, /SEC XBRL/, 'the filed panel no longer names its source')
   assert.match(REP, /published, not filed|not filed ones/,
     'the vendor panel does not distinguish itself from the filed one')
@@ -81,23 +82,19 @@ test('the panel reads the grouped structure, not the dead fields map', () => {
 })
 
 
-/* ── the object index stays bidirectional ────────────────────────────────── */
+/* ── every workspace section has a tab, and every tab a section ─────────── */
 
-test('every security anchor has an index entry and every entry a real anchor', () => {
-  /* This invariant previously caught financials and options being absent
-     from the index. Two panels have been added since; the check is only
-     worth having if it is run when that happens. */
-  const CTX = readFileSync(ROOT + 'components/terminal/security/SecurityContext.tsx', 'utf8')
-
-  const anchors = new Set([...PAGE.matchAll(/id="(sec-[a-z]+)"/g)].map((m) => m[1]))
-  const indexed = new Set([...CTX.matchAll(/id:\s*'(sec-[a-z]+)'/g)].map((m) => m[1]))
-  // Price is listed in the index as a static row rather than a data section.
-  for (const m of CTX.matchAll(/href="#(sec-[a-z]+)"/g)) indexed.add(m[1])
-
-  const missing = [...anchors].filter((a) => !indexed.has(a))
-  const dangling = [...indexed].filter((i) => !anchors.has(i))
-
-  assert.deepEqual(missing, [], `anchors with no index entry: ${missing.join(', ')}`)
-  assert.deepEqual(dangling, [], `index entries pointing nowhere: ${dangling.join(', ')}`)
-  assert.ok(anchors.has('sec-reported'), 'the new panel has no anchor')
+test('every company tab renders something and every rendered section has a tab', () => {
+  /* The workspace's tab list is its map. A tab with no panel scrolls nowhere,
+     and a panel with no tab is unreachable — the drift the old security
+     page's index had. */
+  const WS = readFileSync(ROOT + 'components/company/CompanyWorkspace.tsx', 'utf8')
+  const tabs = new Set([...WS.matchAll(/\{ key: '([a-z]+)', label: /g)].map((m) => m[1]))
+  const renders = new Set([...WS.matchAll(/tab === '([a-z]+)'/g)].map((m) => m[1]))
+  const missing = [...tabs].filter((t) => !renders.has(t))
+  const dangling = [...renders].filter((r) => !tabs.has(r))
+  assert.ok(tabs.size >= 8, 'the workspace appears to have no tabs')
+  assert.deepEqual(missing, [], `tabs with nothing rendered: ${missing.join(', ')}`)
+  assert.deepEqual(dangling, [], `sections with no tab: ${dangling.join(', ')}`)
+  assert.ok(tabs.has('financials'), 'the filed and vendor panels have no tab')
 })

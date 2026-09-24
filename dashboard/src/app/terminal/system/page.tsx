@@ -5,14 +5,14 @@ import SystemHealthBoard from '@/components/terminal/system/SystemHealthBoard'
 import { Panel, Prose } from '@/components/system'
 
 export const metadata: Metadata = {
-  title: 'System — OmniSignal',
+  title: 'System health',
   description: 'Canonical readiness across providers, agents, data, models and governance.',
 }
 
 export default function SystemPage() {
   return (
     <Workbench
-      title="System"
+      title="System health"
       subtitle="what is ready, blocked, degraded or absent"
       context={(
         <>

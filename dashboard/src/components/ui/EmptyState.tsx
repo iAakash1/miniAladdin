@@ -31,7 +31,7 @@ export default function EmptyState({ title, titleAs: TitleTag = 'p', description
        mask that dissolves it. An empty surface with nothing at all in it
        reads as a rendering failure; ruled space reads as space, which is
        what an empty state is actually reporting. */
-    <div className="empty-state gridfield">
+    <div className="empty-state">
       {/* A quiet grid glyph when the caller supplies no icon. An empty
           surface with nothing in it reads as unfinished; a small mark reads
           as "this is a place that holds things, and it is empty". */}

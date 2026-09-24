@@ -16,11 +16,12 @@
  * they are in.
  */
 
-import Link from 'next/link'
-import { AvailabilityNote } from '@/components/system/Availability'
 import { useEffect, useState } from 'react'
 
-import { EmptyLine, Panel, Prose, StateBlock, Status, Value } from '@/components/system'
+import PaperGates from './PaperGates'
+import CompanyIdentity from '@/components/visual/CompanyIdentity'
+
+import { EmptyLine, Panel, StateBlock, Status, Value } from '@/components/system'
 import {
   fetchPaperAccess, fetchPaperAccount, fetchPaperOrders, fetchPaperPositions, fetchPaperStatus,
   money, type PaperAccount, type PaperOrder, type PaperPosition, type PaperStatus,
@@ -39,6 +40,16 @@ type WorkspaceState =
       positions: PaperPosition[]
       orders: PaperOrder[]
     }
+
+/** On every state of this screen, so no arrangement leaves the environment in doubt. */
+function Ribbon({ detail }: { detail?: string }) {
+  return (
+    <p className="paper-ribbon" role="note">
+      <span className="paper-ribbon__tag">Paper</span>
+      Simulated trading on Alpaca&apos;s paper environment · no real funds{detail ? ` · ${detail}` : ''}
+    </p>
+  )
+}
 
 export default function PaperWorkspace() {
   const [state, setState] = useState<WorkspaceState>({ at: 'loading' })
@@ -97,83 +108,85 @@ export default function PaperWorkspace() {
   }, [])
 
   if (state.at === 'loading') {
-    return <StateBlock state="waking" title="Reading the paper account" />
+    return <><Ribbon /><StateBlock state="waking" title="Reading the paper account" /></>
   }
 
   if (state.at === 'signed-out') {
     return (
-      <StateBlock
-        state="blocked"
-        title="Sign in required"
-        detail={state.detail}
-      />
+      <>
+        <Ribbon />
+        <StateBlock state="blocked" title="Sign in required" detail={state.detail} />
+        <PaperGates state="owners" />
+      </>
     )
   }
 
   if (state.at === 'forbidden') {
     return (
-      <StateBlock
-        state="blocked"
-        title="Paper account access denied"
-        detail={state.detail}
-      />
+      <>
+        <Ribbon />
+        <section className="paper-closed">
+          <div className="paper-closed__head">
+            <h2 className="paper__title">Paper trading</h2>
+            <Status state="blocked" label="NOT AN OPERATOR" />
+          </div>
+          <p className="paper-closed__lede">
+            The paper account is one shared demonstration account, so being signed in is not enough:
+            only named operators may use it. {state.detail}
+          </p>
+          <PaperGates state="owners" />
+        </section>
+      </>
     )
   }
 
   if (state.at === 'unavailable') {
     return (
-      <StateBlock
-        state="unavailable"
-        title="Alpaca paper is temporarily unavailable"
-        detail={`${state.detail} Your watchlist, market data and research are unaffected.`}
-      />
+      <>
+        <Ribbon />
+        <StateBlock
+          state="unavailable"
+          title="Alpaca paper is temporarily unavailable"
+          detail="The paper broker did not answer. Your watchlists, market data and research are unaffected."
+        />
+      </>
     )
   }
 
   if (state.at === 'unconfigured') {
     // Not a defect. A deployment without broker credentials is a deployment
-    // that has not been given a paper account, which is the default state and
-    // reads as breakage only because it used to be styled like one.
+    // that has not been given a paper account, which is the default state.
     return (
       <>
-        <section className="paper__head">
-          <h2 className="paper__title">Paper trading</h2>
-          <Status state="recorded" label="NOT CONFIGURED" />
+        <Ribbon />
+        <section className="paper-closed">
+          <div className="paper-closed__head">
+            <h2 className="paper__title">Paper trading</h2>
+            <Status state="recorded" label="NOT CONFIGURED" />
+          </div>
+          <p className="paper-closed__lede">
+            A simulation environment for trying out ideas from the research. It needs an Alpaca paper
+            account on the server and a named operator; neither is set on this deployment, so no account
+            is connected. Market data, research, rankings and watchlists all work without it.
+          </p>
+          <PaperGates state="credentials" />
+          <dl className="paper-closed__needs">
+            <div><dt>Broker credentials</dt><dd>APCA_API_KEY_ID and APCA_API_SECRET_KEY, server-side only</dd></div>
+            <div><dt>Operators</dt><dd>PAPER_TRADING_OWNERS — the Clerk user ids allowed to use the account</dd></div>
+            <div><dt>Endpoint</dt><dd className="sys-mono">{state.status.endpoint ?? 'https://paper-api.alpaca.markets'}</dd></div>
+          </dl>
         </section>
-        <AvailabilityNote
-          payload={{
-            status: 'NOT_CONFIGURED',
-            reason: 'NO_BROKER_CREDENTIAL',
-            message:
-              'Connect an Alpaca paper account to simulate orders. Nothing else '
-              + 'is affected — market data, research, rankings and watchlists all '
-              + 'work without it.',
-            remedy:
-              'Set APCA_API_KEY_ID and APCA_API_SECRET_KEY on the backend, and '
-              + 'name the permitted operators in PAPER_TRADING_OWNERS. A shared '
-              + 'paper account cannot be handed to every signed-in user, so it '
-              + 'stays closed until someone is named.',
-            detail: {
-              endpoint: state.status.endpoint,
-              live_trading: 'disabled by construction',
-            },
-          }}
-        />
-        <Prose>
-          Simulation only. The endpoint above is hardcoded to Alpaca&apos;s paper
-          environment and the client refuses to start against any other host, so
-          a misconfigured deployment fails closed rather than reaching a live
-          account.
-        </Prose>
       </>
     )
   }
 
   return (
     <>
+      <Ribbon detail="orders are placed by hand from a company workspace" />
       <AccountBand account={state.account} />
       <Positions positions={state.positions} />
       <Orders orders={state.orders} />
+      <PaperGates state="open" />
     </>
   )
 }
@@ -238,13 +251,19 @@ function Positions({ positions }: { positions: PaperPosition[] }) {
     )
   }
 
+  // Shares of the book by the broker's own market values; nothing re-priced here.
+  const values = positions.map((p) => Math.abs(money(p.market_value) ?? 0))
+  const total = values.reduce((sum, v) => sum + v, 0)
+  const maxPl = Math.max(0, ...positions.map((p) => Math.abs(money(p.unrealized_plpc) ?? 0)))
+
   return (
     <Panel title="Paper positions" subtitle={`${positions.length} held`} flush>
       <div className="sys-scroll-x">
-        <table className="sys-table sys-table--compact">
+        <table className="sys-table sys-table--compact paper-pos">
           <thead>
             <tr>
-              <th scope="col">Symbol</th>
+              <th scope="col">Company</th>
+              <th scope="col">Share of book</th>
               <th scope="col" className="num">Qty</th>
               <th scope="col" className="num">Avg entry</th>
               <th scope="col" className="num">Last</th>
@@ -254,12 +273,18 @@ function Positions({ positions }: { positions: PaperPosition[] }) {
             </tr>
           </thead>
           <tbody>
-            {positions.map((p) => (
+            {positions.map((p, i) => (
               <tr key={p.symbol}>
                 <td>
-                  <Link href={`/terminal/security?symbol=${encodeURIComponent(p.symbol)}`} className="wl__sym">
-                    {p.symbol}
-                  </Link>
+                  <CompanyIdentity symbol={p.symbol} size="sm" href={`/company/${encodeURIComponent(p.symbol)}`} />
+                </td>
+                <td>
+                  {total > 0 ? (
+                    <span className="paper-share">
+                      <span className="paper-share__bar" aria-hidden><span style={{ width: `${(values[i] / total) * 100}%` }} /></span>
+                      <span className="sys-num">{((values[i] / total) * 100).toFixed(1)}%</span>
+                    </span>
+                  ) : <span className="sys-null">—</span>}
                 </td>
                 <td className="num"><Value value={money(p.qty)} kind="count" digits={0} /></td>
                 <td className="num"><Value value={money(p.avg_entry_price)} kind="currency" /></td>
@@ -269,10 +294,20 @@ function Positions({ positions }: { positions: PaperPosition[] }) {
                 <td className="num">
                   {/* Alpaca reports this as a fraction. Scaled once, here, at
                       the one place that knows it is a fraction. */}
-                  <Value
-                    value={money(p.unrealized_plpc) !== null ? (money(p.unrealized_plpc) as number) * 100 : null}
-                    kind="percent" digits={2} signed tone
-                  />
+                  <span className="paper-pl">
+                    {money(p.unrealized_plpc) !== null && maxPl > 0 ? (
+                      <span className="paper-pl__bar" aria-hidden>
+                        <span
+                          data-tone={(money(p.unrealized_plpc) as number) >= 0 ? 'pos' : 'neg'}
+                          style={{ width: `${(Math.abs(money(p.unrealized_plpc) as number) / maxPl) * 100}%` }}
+                        />
+                      </span>
+                    ) : null}
+                    <Value
+                      value={money(p.unrealized_plpc) !== null ? (money(p.unrealized_plpc) as number) * 100 : null}
+                      kind="percent" digits={2} signed tone
+                    />
+                  </span>
                 </td>
               </tr>
             ))}
@@ -310,11 +345,9 @@ function Orders({ orders }: { orders: PaperOrder[] }) {
               <tr key={o.id}>
                 <td className="sys-meta">{(o.submitted_at ?? o.created_at ?? '').slice(0, 19).replace('T', ' ')}</td>
                 <td>
-                  <Link href={`/terminal/security?symbol=${encodeURIComponent(o.symbol)}`} className="wl__sym">
-                    {o.symbol}
-                  </Link>
+                  <CompanyIdentity symbol={o.symbol} size="sm" href={`/company/${encodeURIComponent(o.symbol)}`} />
                 </td>
-                <td>{o.side ? o.side.toUpperCase() : '—'}</td>
+                <td>{o.side ? <span className="paper-side" data-side={o.side.toLowerCase()}>{o.side.toUpperCase()}</span> : '—'}</td>
                 <td className="num"><Value value={money(o.qty)} kind="count" digits={0} /></td>
                 <td className="num"><Value value={money(o.filled_qty)} kind="count" digits={0} /></td>
                 <td className="num">

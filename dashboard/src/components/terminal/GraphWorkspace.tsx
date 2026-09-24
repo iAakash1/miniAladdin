@@ -4,7 +4,7 @@ import CompanyMark from '@/components/ui/CompanyMark'
 import WorkBoot from '@/components/ui/WorkBoot'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 
 import PageHeader from '@/components/ui/PageHeader'
 import EmptyState from '@/components/ui/EmptyState'
@@ -12,6 +12,7 @@ import { Segmented } from '@/components/ui/Controls'
 import { computeLayout, viewBoxFor, type LayoutNode } from '@/lib/graph/layout'
 import { logoSources } from '@/lib/identity'
 import { EDGE_LABELS } from '@/lib/knowledge'
+import { emptySnapshot, recentSnapshot, subscribeSymbols } from '@/lib/symbols'
 import {
   addNote,
   captureSnapshot,
@@ -46,6 +47,33 @@ const TYPE_COLOR: Record<string, string> = {
 }
 const color = (type: string) => TYPE_COLOR[type] ?? 'var(--muted)'
 
+/** Entity type is carried by shape as well as colour, so it survives a
+ *  colour-blind reader and a monochrome print: companies are circles,
+ *  people rings, products and technologies squares, places and categories
+ *  diamonds. */
+function NodeShape({ type, r, fill, selected }: { type: string; r: number; fill: string; selected: boolean }) {
+  const stroke = selected ? 'var(--text)' : 'none'
+  const opacity = selected ? 1 : 0.85
+  if (type === 'person') {
+    return <circle r={r} fill="var(--bg)" stroke={fill} strokeWidth={Math.max(1.5, r * 0.45)} opacity={opacity} />
+  }
+  if (type === 'product' || type === 'technology') {
+    return <rect x={-r} y={-r} width={r * 2} height={r * 2} rx={r * 0.3} fill={fill} opacity={opacity} stroke={stroke} strokeWidth={1.5} />
+  }
+  if (type === 'industry' || type === 'country' || type === 'exchange') {
+    return <rect x={-r * 0.85} y={-r * 0.85} width={r * 1.7} height={r * 1.7} fill={fill} opacity={opacity} transform="rotate(45)" stroke={stroke} strokeWidth={1.5} />
+  }
+  if (type === 'subsidiary') {
+    return <circle r={r} fill="var(--bg)" stroke={fill} strokeWidth={1.4} strokeDasharray="2 1.5" opacity={opacity} />
+  }
+  return <circle r={r} fill={fill} opacity={opacity} stroke={stroke} strokeWidth={1.5} />
+}
+
+const TYPE_NAME: Record<string, string> = {
+  company: 'Company', person: 'Person', product: 'Product', technology: 'Technology',
+  subsidiary: 'Subsidiary', industry: 'Industry', country: 'Country', exchange: 'Exchange',
+}
+
 /** The logo for a company node, or '' for everything a logo would be a lie
  *  about. Node ids are `type:key`, and for companies the key is the ticker —
  *  so this reads an identity the graph already carries rather than joining
@@ -74,7 +102,9 @@ export default function GraphWorkspace() {
   const router = useRouter()
   const params = useSearchParams()
 
-  const symbols = (params.get('symbols') || 'NVDA').toUpperCase()
+  // Without an explicit symbol, open on the company the reader last researched.
+  const recent = useSyncExternalStore(subscribeSymbols, recentSnapshot, emptySnapshot)
+  const symbols = (params.get('symbols') || recent[0] || 'AAPL').toUpperCase()
   const hops = Number(params.get('hops') || '2')
   const typeFilter = params.get('types') || ''
   const minConfidence = params.get('minconf') || ''
@@ -354,17 +384,17 @@ export default function GraphWorkspace() {
               title={`No relationships recorded for ${symbols}`}
               description="The graph is assembled from SEC filings and Wikidata, which cover large US issuers best. Nothing is inferred, so a company with no filed or catalogued relationships shows an empty graph rather than a guessed one."
               action={
-                symbols !== 'NVDA' ? (
+                symbols !== 'AAPL' ? (
                   <button
                     type="button"
                     className="btn btn--secondary btn--sm"
                     onClick={() => {
                       const next = new URLSearchParams(params.toString())
-                      next.set('symbols', 'NVDA')
+                      next.set('symbols', 'AAPL')
                       router.replace(`/terminal/graph?${next}`)
                     }}
                   >
-                    Open a populated example
+                    Try AAPL
                   </button>
                 ) : undefined
               }
@@ -380,8 +410,8 @@ export default function GraphWorkspace() {
               {layout.edges.map((edge, i) => {
                 const active = edge.source === selected || edge.target === selected
                 return (
+                  <g key={`${edge.source}-${edge.target}-${i}`}>
                   <line
-                    key={`${edge.source}-${edge.target}-${i}`}
                     className={`gfocus__edge${active ? ' is-related' : ''}`}
                     x1={edge.x1} y1={edge.y1} x2={edge.x2} y2={edge.y2}
                     // `--line` is the hairline token for dividers sitting
@@ -395,6 +425,19 @@ export default function GraphWorkspace() {
                     strokeWidth={active ? 1.8 : 1}
                     opacity={active ? 1 : 0.75}
                   />
+                  {/* The relationship is named on the selected node's edges
+                      only; naming every edge at once is unreadable. */}
+                  {active && EDGE_LABELS[edge.type] ? (
+                    <text
+                      className="gfocus__edge-label"
+                      x={(edge.x1 + edge.x2) / 2}
+                      y={(edge.y1 + edge.y2) / 2 - 3}
+                      textAnchor="middle"
+                    >
+                      {EDGE_LABELS[edge.type]}
+                    </text>
+                  ) : null}
+                  </g>
                 )
               })}
               {layout.nodes.map((node: LayoutNode) => {
@@ -421,9 +464,7 @@ export default function GraphWorkspace() {
                      }}
                      style={{ cursor: 'pointer' }}>
                     {isPinned && <circle r={radius + 4} fill="none" stroke="var(--warn)" strokeWidth={1.2} />}
-                    <circle r={radius} fill={color(node.type)}
-                            opacity={isSelected ? 1 : 0.85}
-                            stroke={isSelected ? 'var(--text)' : 'none'} strokeWidth={1.5} />
+                    <NodeShape type={node.type} r={radius} fill={color(node.type)} selected={isSelected} />
                     {/* Company nodes carry their real logo, clipped to the
                         node circle. Deliberately restricted to the nodes big
                         enough to resolve one — roots, the selection, and the
@@ -497,6 +538,19 @@ export default function GraphWorkspace() {
               </div>
             )
           })()}
+          {data && Object.keys(data.analytics.node_types ?? {}).length ? (
+            <ul className="glegend" aria-label="Entity types in this graph">
+              {Object.entries(data.analytics.node_types).sort((x, y) => y[1] - x[1]).map(([type, n]) => (
+                <li key={type}>
+                  <svg width="14" height="14" viewBox="-8 -8 16 16" aria-hidden>
+                    <NodeShape type={type} r={5} fill={color(type)} selected={false} />
+                  </svg>
+                  {TYPE_NAME[type] ?? type}
+                  <b className="num">{n}</b>
+                </li>
+              ))}
+            </ul>
+          ) : null}
           {data && (
             <p className="u-note kbd-hint" style={{ marginTop: 8 }}>
               Click a node to focus its relationships · <kbd>right-click</kbd> for actions ·
@@ -545,7 +599,7 @@ export default function GraphWorkspace() {
                 {selectedNode.route?.startsWith('/company/') && (
                   <Link href={selectedNode.route} className="btn btn--ghost btn--xs"
                         style={{ border: '1px solid var(--line)' }}>
-                    Open report
+                    Open company research
                   </Link>
                 )}
               </div>

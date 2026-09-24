@@ -3,11 +3,12 @@
 import WorkBoot from '@/components/ui/WorkBoot'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 
 import PageHeader from '@/components/ui/PageHeader'
 import EmptyState from '@/components/ui/EmptyState'
 import { EDGE_LABELS } from '@/lib/knowledge'
+import { emptySnapshot, recentSnapshot, subscribeSymbols } from '@/lib/symbols'
 
 interface GraphNodeRef {
   id: string
@@ -64,7 +65,8 @@ function nodeColor(type: string): string {
 export default function GraphExplorer() {
   const router = useRouter()
   const params = useSearchParams()
-  const nodeId = params.get('node') || 'company:NVDA'
+  const recent = useSyncExternalStore(subscribeSymbols, recentSnapshot, emptySnapshot)
+  const nodeId = params.get('node') || `company:${recent[0] ?? 'AAPL'}`
   const label = params.get('label') || ''
 
   // Tagged with the node it describes, so `loading` is derived rather than

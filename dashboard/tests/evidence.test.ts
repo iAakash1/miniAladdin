@@ -15,7 +15,7 @@ const ROOT = new URL('../src/', import.meta.url).pathname
 const CONTEXT = readFileSync(join(ROOT, 'components/system/MetricContext.tsx'), 'utf8')
 const INSPECTOR = readFileSync(join(ROOT, 'components/system/MetricInspector.tsx'), 'utf8')
 const FIN = readFileSync(join(ROOT, 'components/terminal/security/Financials.tsx'), 'utf8')
-const PROFILE = readFileSync(join(ROOT, 'components/terminal/security/SecurityProfile.tsx'), 'utf8')
+const PROFILE = readFileSync(join(ROOT, 'components/company/profileRef.ts'), 'utf8')
 
 test('every stage of the chain exists on the reference', () => {
   for (const stage of ['claim?:', 'observation?:', 'assumptions?:', 'failsWhen?:',

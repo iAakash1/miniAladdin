@@ -5,7 +5,7 @@ import PortfolioWorkbench from '@/components/terminal/portfolio2/PortfolioWorkbe
 import { Panel } from '@/components/system'
 
 export const metadata: Metadata = {
-  title: 'Book — miniAladdin',
+  title: 'Book',
   description: 'Holdings, exposure, cost assumptions and risk share for the research allocation.',
 }
 

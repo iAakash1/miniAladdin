@@ -39,6 +39,7 @@
 import { useEffect, useState } from 'react'
 
 import { EmptyLine, Inspectable, Panel, Prose, StateBlock, Value } from '@/components/system'
+import { readerError } from '@/lib/failure'
 import { fetchResearch } from '@/lib/research-cache'
 import { format } from '@/lib/quantity'
 
@@ -154,7 +155,7 @@ export default function MarketStats({ symbol }: { symbol: string }) {
         <StateBlock
           state="unavailable"
           title="The price statistics could not be read"
-          detail={`${settled.error}. The price and chart above come from a different provider path and are unaffected.`}
+          detail={`${readerError(settled.error)}. The price and chart above come from a different provider path and are unaffected.`}
         />
       </Panel>
     )

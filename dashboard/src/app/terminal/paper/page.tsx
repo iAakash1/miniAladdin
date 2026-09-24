@@ -5,14 +5,14 @@ import PaperWorkspace from '@/components/terminal/paper/PaperWorkspace'
 import { Panel, Prose } from '@/components/system'
 
 export const metadata: Metadata = {
-  title: 'Paper — miniAladdin',
+  title: 'Paper trading',
   description: 'A simulated account at Alpaca’s paper endpoint. No real money, no live execution.',
 }
 
 export default function PaperPage() {
   return (
     <Workbench
-      title="Paper"
+      title="Paper trading"
       subtitle="simulated account · alpaca paper"
       context={
         <>

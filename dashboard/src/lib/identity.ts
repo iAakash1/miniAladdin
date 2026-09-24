@@ -117,6 +117,35 @@ export function sourceDomain(name?: string | null, url?: string | null): string 
   return hit ? VENDOR_DOMAINS[hit] : ''
 }
 
+/* Data providers by their internal identifier. Exact lookup only: these ids
+   are our own strings, and fuzzy matching short ids like `exa` would
+   attribute unrelated publishers to them. */
+const PROVIDER_DOMAINS: Record<string, string> = {
+  polygon: 'polygon.io',
+  massive: 'massive.com',
+  finnhub: 'finnhub.io',
+  twelvedata: 'twelvedata.com',
+  fmp: 'financialmodelingprep.com',
+  marketstack: 'marketstack.com',
+  tiingo: 'tiingo.com',
+  alpha_vantage: 'alphavantage.co',
+  yfinance: 'finance.yahoo.com',
+  yahoo_rss: 'finance.yahoo.com',
+  newsapi: 'newsapi.org',
+  gnews: 'gnews.io',
+  tavily: 'tavily.com',
+  exa: 'exa.ai',
+  fred: 'fred.stlouisfed.org',
+  sec: 'sec.gov',
+  logo_dev: 'logo.dev',
+  wikidata: 'wikidata.org',
+}
+
+/** The domain of a data provider by id, or '' when it is not one we know. */
+export function providerDomain(id?: string | null): string {
+  return id ? PROVIDER_DOMAINS[id.trim().toLowerCase()] ?? '' : ''
+}
+
 /** Favicon for a domain, at a size that stays sharp on a 16-20px plate. */
 export function faviconFor(domain: string, size = 64): string {
   return `https://www.google.com/s2/favicons?sz=${size}&domain=${encodeURIComponent(domain)}`

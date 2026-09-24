@@ -10,7 +10,7 @@
  * failure triggers a refetch so the store converges on the server's truth.
  */
 
-import { useSyncExternalStore } from 'react'
+import { useMemo, useSyncExternalStore } from 'react'
 import { authFetch } from './persistence'
 
 export interface Watchlist {
@@ -181,4 +181,49 @@ export function removeTicker(id: string, ticker: string) {
   ).then((res) => {
     if (!res.ok) void refreshWatchlists()
   }).catch(() => refreshWatchlists())
+}
+
+/* ── one watch concept across the product ────────────────────────────────
+   "Watch" anywhere (company header, palette, idea lists) means membership in
+   the account's lists. With no list yet, the first watch creates one. */
+
+export const DEFAULT_LIST_NAME = 'Watchlist'
+
+/** Every symbol on any list, in list order, without duplicates. */
+export function watchedSymbols(from: Watchlist[] = lists): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const l of from) {
+    for (const t of l.tickers) {
+      if (!seen.has(t)) { seen.add(t); out.push(t) }
+    }
+  }
+  return out
+}
+
+export function listsContaining(symbol: string, from: Watchlist[] = lists): Watchlist[] {
+  const s = normalizeTicker(symbol)
+  return from.filter((l) => l.tickers.includes(s))
+}
+
+/** Add to a list — the named one, or the first, creating it if none exists. */
+export async function watchSymbol(symbol: string, listId?: string): Promise<boolean> {
+  const s = normalizeTicker(symbol)
+  if (!s) return false
+  const target = listId ? lists.find((l) => l.id === listId) : lists[0]
+  if (target) {
+    addTicker(target.id, s)
+    return true
+  }
+  return (await createWatchlist(DEFAULT_LIST_NAME, [s])) !== null
+}
+
+/** Remove from every list that holds it. */
+export function unwatchSymbol(symbol: string): void {
+  for (const l of listsContaining(symbol)) removeTicker(l.id, symbol)
+}
+
+export function useWatchedSymbols(): string[] {
+  const current = useWatchlists()
+  return useMemo(() => watchedSymbols(current), [current])
 }

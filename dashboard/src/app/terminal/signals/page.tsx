@@ -6,7 +6,7 @@ import SignalLab from '@/components/terminal/signals/SignalLab'
 import { Panel } from '@/components/system'
 
 export const metadata: Metadata = {
-  title: 'Signals — miniAladdin',
+  title: 'Signals',
   description: 'Does the idea work: the multiple-testing account, the finalists that survived the search, and their deflated Sharpe.',
 }
 

@@ -26,7 +26,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PAGES = ROOT / "dashboard" / "src" / "app" / "terminal"
-RAIL = ROOT / "dashboard" / "src" / "components" / "system" / "SystemRail.tsx"
+#: The always-visible strip that now carries the live facts.
+RAIL = ROOT / "dashboard" / "src" / "components" / "shell" / "StatusBar.tsx"
 
 #: Text in a rail entry that can only be true if the backend answered.
 LIVE = re.compile(
@@ -47,45 +48,44 @@ def test_no_page_hardcodes_a_live_research_fact() -> None:
     )
 
 
+def _not_current(source: str) -> str:
+    """The one function every live fact passes through before it is shown."""
+    start = source.index("function notCurrent")
+    return source[start: source.index("\n}\n", start)]
+
+
 def test_the_live_rail_reports_an_unreachable_backend_as_unreadable() -> None:
     """Nothing ever read means no value at all — not a reassuring one."""
     source = RAIL.read_text()
-    assert "cannot be read" in source, "the rail has no unreachable state"
-
-    # The branch taken when nothing was ever successfully read. Bounded by its
-    # own `return [ ... ]`: the branches around it legitimately say "sealed"
-    # and "entries", one because it has just read them and one because it is
-    # explicitly reporting what was last seen.
-    start = source.index("if (obs.state === 'unavailable')")
-    tail = source[start:]
-    body = tail[tail.index("return ["): tail.index("]", tail.index("return [")) + 1]
-    code = re.sub(r"//[^\n]*", "", body)
-
-    for lie in ("none armed", "sealed", "entries"):
-        assert lie not in code, (
+    body = _not_current(source)
+    assert "'status unavailable'" in body, "the strip has no unreachable state"
+    # The never-read branch is the function's last return; it names no fact.
+    tail = body[body.rindex("return"):]
+    for lie in ("none armed", "sealed", "entries", "promoted"):
+        assert lie not in tail, (
             f"the unreachable branch still claims {lie!r}; an unread fact is "
             f"not a reassuring one"
         )
+    # Every live fact on the strip — providers, macro, governance — goes through it.
+    assert source.count("notCurrent(") == 3, "a live fact bypasses the unreadable check"
 
 
 def test_a_remembered_reading_is_labelled_and_timed() -> None:
     """A stale value may be shown. It may not be shown as a current one."""
     source = RAIL.read_text()
-
-    assert "last-observed" in source, "the rail cannot report a remembered reading"
-
-    start = source.index("if (obs.state === 'last-observed'")
-    tail = source[start:]
-    body = tail[tail.index("return ["): tail.index("]", tail.index("return [")) + 1]
-
-    # Every remembered entry carries the caveat, and none of them renders in a
-    # state that would let it sit where a current reading goes.
-    assert body.count("note(") == 3, "each remembered fact must carry the last-seen note"
-    assert "'stale'" in body, "a remembered reading must not render as current"
-    for current in ("'recorded'", "'production'", "'live'"):
-        assert current not in body, (
-            f"a remembered reading renders as {current}, which is a state that "
-            f"claims the value describes now"
+    assert "failed(prev" in source, "a failed refresh overwrites or keeps the old value unlabelled"
+    body = _not_current(source)
+    start = body.index("read.state === 'last-observed'")
+    branch = body[start: body.index("\n  }", start)]
+    # The remembered value is introduced as such, with the time it was read,
+    # and in the muted tone rather than a tone that claims the present.
+    assert "last seen" in branch and "clock(read.at)" in branch, (
+        "a remembered reading is not labelled with when it was seen"
+    )
+    assert "tone: 'muted'" in branch, "a remembered reading renders in a current tone"
+    for current in ("'pos'", "'info'", "'live'"):
+        assert current not in branch, (
+            f"a remembered reading renders as {current}, which claims the value describes now"
         )
 
 

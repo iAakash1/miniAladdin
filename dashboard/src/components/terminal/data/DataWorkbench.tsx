@@ -23,6 +23,7 @@ import { Panel, Prose, Provenance, Section, StateBlock, Status, Strip, Value, ty
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { ObjectHeader, StripSkeleton, TableSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
 import { Histogram } from '@/components/system/charts'
+import { readerError } from '@/lib/failure'
 import { recordVisit } from '@/lib/research/history'
 import Inspector, { type InspectorSection } from '@/components/system/Inspector'
 import type { ResearchObject } from '@/lib/research/objects'
@@ -149,7 +150,7 @@ export default function DataWorkbench() {
         <StateBlock
           state="unavailable"
           title="The catalogue could not be read"
-          detail={`The request failed with: ${error}. No values are shown in its place, because a data contract that cannot be read is not a data contract that is empty.`}
+          detail={`${readerError(error)}. No values are shown in its place, because a data contract that cannot be read is not a data contract that is empty.`}
         />
       </Panel>
     )

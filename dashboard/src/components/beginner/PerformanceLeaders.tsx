@@ -18,6 +18,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
 import { EmptyLine, Panel, Prose, StateBlock } from '@/components/system'
+import { readerError } from '@/lib/failure'
 import { type ExploreRow, fetchRecommendations, signalTone } from '@/lib/explore'
 
 const dash = '—'
@@ -63,7 +64,7 @@ export default function PerformanceLeaders({
       {loading ? (
         <StateBlock state="waking" title="Reading performance history" detail="cached snapshot" />
       ) : error ? (
-        <StateBlock state="unavailable" title="Performance unavailable" detail={error} />
+        <StateBlock state="unavailable" title="Performance unavailable" detail={`${readerError(error)}.`} />
       ) : !rows || rows.length === 0 ? (
         <EmptyLine label="No leaders">
           No security had enough history to be scored on performance.
@@ -74,7 +75,7 @@ export default function PerformanceLeaders({
             <li key={row.symbol} className="bg__trend-row">
               <Link
                 href={mode === 'advanced'
-                  ? `/terminal/security?symbol=${encodeURIComponent(row.symbol)}`
+                  ? `/company/${encodeURIComponent(row.symbol)}`
                   : `/${mode}/company/${encodeURIComponent(row.symbol)}`}
                 className="bg__sym"
               >

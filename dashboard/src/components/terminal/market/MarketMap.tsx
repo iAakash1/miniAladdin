@@ -324,7 +324,7 @@ function SectorMap({ sectors, active, onActive }: {
               <span className="mm-map__verdict">
                 Engine verdict on {s.symbol}: <strong>{s.verdict}</strong>
               </span>
-              <Link href={`/company/${s.symbol}`} className="btn btn--secondary btn--xs btn--go">
+              <Link href={`/company/${encodeURIComponent(s.symbol)}`} className="btn btn--secondary btn--xs btn--go">
                 Research {s.symbol}
                 <span className="go-arrow" aria-hidden />
               </Link>

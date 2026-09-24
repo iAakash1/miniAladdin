@@ -23,6 +23,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 
+import { readerError } from '@/lib/failure'
 import { Panel, Prose, StateBlock, Status, Strip, Value } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 
@@ -120,7 +121,7 @@ export default function SelectionPopulation({ label = 'fwd_rank_21' }: { label?:
         <StateBlock
           state="unavailable"
           title="The label report could not be read"
-          detail={`Request failed: ${error}. Nothing is shown in its place.`}
+          detail={`${readerError(error)}. Nothing is shown in its place.`}
         />
       </Panel>
     )

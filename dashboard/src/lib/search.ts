@@ -19,8 +19,6 @@
  * actually holds.
  */
 
-import { watchSnapshot } from './symbols'
-
 export interface LocalMatch {
   symbol: string
   /** Why this row is here — "Watchlist", "Recent". Never invented. */
@@ -40,7 +38,7 @@ const MAX_LOCAL_MATCHES = 5
 export function localMatches(
   value: string,
   recent: readonly string[],
-  watched: readonly string[] = watchSnapshot(),
+  watched: readonly string[],
 ): LocalMatch[] {
   const needle = value.trim().toUpperCase()
   if (!needle) return []

@@ -21,6 +21,7 @@ import { useEffect, useState } from 'react'
 
 import { BarRows } from '@/components/system/charts'
 import { Grid, Panel, Section, StateBlock, Status, Value } from '@/components/system'
+import { readerError } from '@/lib/failure'
 import { readResource } from '@/lib/resource'
 
 interface Regimes {
@@ -57,7 +58,7 @@ export default function ResearchContext({ experiment = 'EXP-006' }: { experiment
   }, [experiment])
 
   if (error) {
-    return <Panel title="Research context" state="unavailable"><StateBlock state="unavailable" title="Context could not be read" detail={error} /></Panel>
+    return <Panel title="Research context" state="unavailable"><StateBlock state="unavailable" title="Context could not be read" detail={`${readerError(error)}.`} /></Panel>
   }
   if (!regimes && !universe) {
     return <Panel title="Research context" state="waking"><StateBlock state="waking" title="Reading experiment context" /></Panel>

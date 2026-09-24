@@ -54,17 +54,17 @@ export interface KindMeta {
 
 export const KINDS: Record<ObjectKind, KindMeta> = {
   dataset: {
-    kind: 'dataset', plural: 'Datasets', glyph: 'D', workspace: 'Data',
+    kind: 'dataset', plural: 'Datasets', glyph: 'D', workspace: 'Datasets',
     href: (id) => `/terminal/data?dataset=${encodeURIComponent(id)}`,
     neighbours: ['feature', 'provider'],
   },
   feature: {
-    kind: 'feature', plural: 'Features', glyph: 'F', workspace: 'Data',
+    kind: 'feature', plural: 'Features', glyph: 'F', workspace: 'Datasets',
     href: (id) => `/terminal/data?feature=${encodeURIComponent(id)}`,
     neighbours: ['dataset', 'signal', 'model'],
   },
   factor: {
-    kind: 'factor', plural: 'Factors', glyph: 'K', workspace: 'Factors',
+    kind: 'factor', plural: 'Factors', glyph: 'K', workspace: 'Factor Lab',
     href: (id) => `/terminal/factorlab?factor=${encodeURIComponent(id)}`,
     neighbours: ['feature', 'signal'],
   },
@@ -74,17 +74,17 @@ export const KINDS: Record<ObjectKind, KindMeta> = {
     neighbours: ['feature', 'model', 'experiment'],
   },
   model: {
-    kind: 'model', plural: 'Models', glyph: 'M', workspace: 'Models',
+    kind: 'model', plural: 'Models', glyph: 'M', workspace: 'Model Lab',
     href: (id) => `/terminal/lab?model=${encodeURIComponent(id)}`,
     neighbours: ['feature', 'experiment', 'evidence', 'dataset'],
   },
   experiment: {
-    kind: 'experiment', plural: 'Experiments', glyph: 'X', workspace: 'Experiments',
+    kind: 'experiment', plural: 'Experiments', glyph: 'X', workspace: 'Quant Lab',
     href: (id) => `/terminal/experiments?id=${encodeURIComponent(id)}`,
     neighbours: ['model', 'dataset', 'evidence'],
   },
   evidence: {
-    kind: 'evidence', plural: 'Evidence', glyph: 'E', workspace: 'Evidence',
+    kind: 'evidence', plural: 'Governance records', glyph: 'E', workspace: 'Governance',
     href: (id) => `/terminal/evidence?entry=${encodeURIComponent(id)}`,
     neighbours: ['model', 'experiment', 'method'],
   },
@@ -99,12 +99,12 @@ export const KINDS: Record<ObjectKind, KindMeta> = {
     neighbours: ['method', 'portfolio'],
   },
   security: {
-    kind: 'security', plural: 'Securities', glyph: 'T', workspace: 'Securities',
-    href: (id) => `/terminal/security?symbol=${encodeURIComponent(id)}`,
+    kind: 'security', plural: 'Companies', glyph: 'T', workspace: 'Company',
+    href: (id) => `/company/${encodeURIComponent(id)}`,
     neighbours: ['factor', 'portfolio'],
   },
   provider: {
-    kind: 'provider', plural: 'Providers', glyph: 'V', workspace: 'Data',
+    kind: 'provider', plural: 'Providers', glyph: 'V', workspace: 'Providers',
     href: (id) => `/terminal/providers?provider=${encodeURIComponent(id)}`,
     neighbours: ['dataset'],
   },

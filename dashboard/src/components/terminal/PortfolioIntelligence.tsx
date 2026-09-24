@@ -42,6 +42,7 @@ import PortfolioPerformanceChart from '@/components/terminal/PortfolioPerformanc
 import { POSITIONS_CHANGED } from '@/components/terminal/PositionsPanel'
 import { Segmented } from '@/components/ui/Controls'
 import Skeleton from '@/components/ui/Skeleton'
+import SectorMark from '@/components/visual/SectorMark'
 import { StatusPill, TrendMark, type StatusTone } from '@/components/ui/DataMarks'
 import {
   fetchPortfolioIntel,
@@ -639,7 +640,10 @@ export default function PortfolioIntelligence() {
             <ul className="pf__rows pf__rows--tall">
               {sectors.rows.slice(0, 6).map((row) => (
                 <li key={row.sector} className="pf__row">
-                  <span className="pf__row-name pf__row-name--wide">{row.sector}</span>
+                  <span className="pf__row-name pf__row-name--wide pf__row-name--sector">
+                    <SectorMark sector={row.sector} size={16} />
+                    {row.sector}
+                  </span>
                   <WeightBar pct={row.weight_pct} max={sectors.rows[0].weight_pct} />
                   <span className="num pf__row-val">{row.weight_pct.toFixed(1)}%</span>
                 </li>

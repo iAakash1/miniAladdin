@@ -52,49 +52,6 @@ export function SourceMark({ url, name }: { url?: string | null; name?: string |
   )
 }
 
-/* ── Sparkline ──────────────────────────────────────────────────────────── */
-
-/** A path through real values. Returns null below two points, because one
- *  point is not a trend and drawing it flat would imply one. */
-export function Sparkline({
-  points,
-  width = 56,
-  height = 16,
-}: {
-  points: number[]
-  width?: number
-  height?: number
-}) {
-  if (!points || points.length < 2) return null
-  const min = Math.min(...points)
-  const max = Math.max(...points)
-  const span = max - min || 1
-  const step = width / (points.length - 1)
-  // Inset by the stroke so the extremes are not clipped at the box edge.
-  const pad = 1.5
-  const usable = height - pad * 2
-  const d = points
-    .map((value, i) => {
-      const x = i * step
-      const y = pad + usable - ((value - min) / span) * usable
-      return `${i === 0 ? 'M' : 'L'}${x.toFixed(2)},${y.toFixed(2)}`
-    })
-    .join(' ')
-  const rising = points[points.length - 1] >= points[0]
-
-  return (
-    <svg
-      className="spark-inline"
-      width={width}
-      height={height}
-      viewBox={`0 0 ${width} ${height}`}
-      aria-hidden
-    >
-      <path className={`spark-inline__line spark-inline__line--${rising ? 'pos' : 'neg'}`} d={d} />
-    </svg>
-  )
-}
-
 /* ── Confidence ─────────────────────────────────────────────────────────── */
 
 /** Confidence as a length as well as a number.

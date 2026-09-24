@@ -43,6 +43,7 @@
 import { useEffect, useState } from 'react'
 
 import { EmptyLine, Inspectable, Panel, Prose, StateBlock, Value } from '@/components/system'
+import { readerError } from '@/lib/failure'
 import { fetchResearch } from '@/lib/research-cache'
 import { format } from '@/lib/quantity'
 
@@ -108,7 +109,7 @@ export default function Financials({ symbol }: { symbol: string }) {
         <StateBlock
           state="unavailable"
           title="Filings could not be read"
-          detail={`${settled.error}. Nothing is shown in their place.`}
+          detail={`${readerError(settled.error)}. Nothing is shown in their place.`}
         />
       </Panel>
     )

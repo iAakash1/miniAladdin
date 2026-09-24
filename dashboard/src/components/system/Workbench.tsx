@@ -1,52 +1,35 @@
-/**
- * The shell every workspace sits in.
- *
- * Replaces the centred 1200px content column, which is a reading layout. A
- * research terminal is not read top to bottom — it is navigated, and the thing
- * being navigated needs to stay on screen while its context changes. Hence
- * three regions that scroll independently:
- *
- *   LEFT     where you are in the research loop
- *   CENTRE   the analytical workspace
- *   RIGHT    context for whatever is selected — provenance, method, assumptions
- *   BOTTOM   research state, always visible, never a banner
- *
- * The bottom rail is the piece that matters most. Research state is this
- * product's differentiator, and a state that appears only when something is
- * wrong teaches people that its absence means everything is fine. It is
- * present on every screen instead, reading the same way whether the news is
- * good or not.
- */
 'use client'
 
-import { useEffect, useState, type ReactNode } from 'react'
+/**
+ * The application shell every workspace sits in.
+ *
+ *   top bar     brand · location · search · account
+ *   rail        destinations, grouped; recent companies
+ *   workspace   the one scroll container (#workspace)
+ *   status bar  live system facts, read from the backend
+ *
+ * Page-specific explanation ("what this answers") lives in an About drawer
+ * opened on request, so the workspace keeps its full width.
+ */
+
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { useEffect, useState, type ReactNode } from 'react'
 
-import { Status, type ResearchState } from './index'
-import Palette, { applyStoredDensity } from './Palette'
+import { type ResearchState } from './index'
+import Palette, { applyStoredDensity, openPalette } from './Palette'
 import Shortcuts from './Shortcuts'
-import Breadcrumb from './Breadcrumb'
 import { ChartCursorProvider } from './ChartCursor'
 import { MetricProvider } from './MetricContext'
 import MetricInspector from './MetricInspector'
-import { usePinnedObjects, useRecentObjects } from '@/lib/research/history'
-import { KINDS, href as objectHref } from '@/lib/research/objects'
-import SystemRail from './SystemRail'
-import SecuritySearch from './SecuritySearch'
-import SimpleModeSwitch from '@/components/beginner/SimpleModeSwitch'
-import { DESTINATIONS, GOTO } from '@/lib/destinations'
-import { useRailGroups } from '@/lib/rail-groups'
-
-
-/* Navigation follows the research loop, not the backend modules. The groups
-   are the questions a researcher actually moves between.
-
-   Both the list and the chord map come from lib/destinations, which is the one
-   place either is declared. Four hand-maintained copies of the same
-   destinations is how the palette and the sidebar ended up disagreeing about
-   where Securities lives. */
-export const WORKBENCH = DESTINATIONS
+import Rail from '@/components/shell/Rail'
+import TopBar from '@/components/shell/TopBar'
+import StatusBar from '@/components/shell/StatusBar'
+import Drawer from '@/components/shell/Drawer'
+import Icon from '@/components/shell/Icon'
+import { GOTO, destinationAt, viewAt } from '@/lib/destinations'
+import { NAVIGATION, type NavigationSet } from '@/lib/navigation'
+import { recentSnapshot } from '@/lib/symbols'
 
 export interface RailState {
   label: string
@@ -55,43 +38,75 @@ export interface RailState {
 }
 
 export default function Workbench({
-  title, subtitle, actions, context, rail, children,
+  title,
+  subtitle,
+  actions,
+  context,
+  rail,
+  children,
+  navigation = 'terminal',
+  header = true,
+  flush = false,
+  width = 'default',
 }: {
   title: string
   subtitle?: ReactNode
   actions?: ReactNode
-  /** Right column. Omit and the workspace takes the full width. */
+  /** Explanatory content for this view, shown in the About drawer. */
   context?: ReactNode
-  /** Bottom research-state rail. */
+  /** Page-specific facts for the status bar. */
   rail?: RailState[]
   children: ReactNode
+  navigation?: NavigationSet
+  /** False when the page renders its own header (the company workspace). */
+  header?: boolean
+  /** No workspace padding — the page manages its own layout. */
+  flush?: boolean
+  width?: 'default' | 'reading' | 'full'
 }) {
   const pathname = usePathname()
   const router = useRouter()
-  const [navOpen, setNavOpen] = useState(false)
-  const [ctxOpen, setCtxOpen] = useState(false)
-  const recent = useRecentObjects()
-  const pinned = usePinnedObjects()
-  // Which rail groups are folded away. A wide-rail affordance only — see
-  // lib/rail-groups for why the narrow rail ignores it entirely.
-  const { isOpen, toggle, collapsible } = useRailGroups(pathname)
+  // Each overlay remembers the page it was opened on, so navigating away
+  // closes it without an effect writing state.
+  const [navOn, setNavOn] = useState<string | null>(null)
+  const [aboutOn, setAboutOn] = useState<string | null>(null)
+  const navOpen = navOn === pathname
+  const aboutOpen = aboutOn === pathname
+  const setNavOpen = (next: boolean | ((open: boolean) => boolean)) =>
+    setNavOn((on) => ((typeof next === 'function' ? next(on === pathname) : next) ? pathname : null))
+  const setAboutOpen = (next: boolean | ((open: boolean) => boolean)) =>
+    setAboutOn((on) => ((typeof next === 'function' ? next(on === pathname) : next) ? pathname : null))
+
+  const destination = navigation === 'terminal' ? destinationAt(pathname) : undefined
+  const view = navigation === 'terminal' ? viewAt(pathname) : undefined
+  const views = destination?.views
+  // A destination with several views keeps its own name as the heading; the
+  // tab row says which view is open.
+  const heading = views && views.length > 1 && destination ? destination.label : title
 
   useEffect(() => { applyStoredDensity() }, [])
 
-  // Two-key navigation. A leading `g` arms the next letter for one second,
-  // which is short enough that it never swallows a keystroke the user meant
-  // for something else.
+  // `g` then a letter: go to a destination. `g c` reopens the last company.
   useEffect(() => {
+    if (navigation !== 'terminal') return undefined
     let armed = false
     let timer: ReturnType<typeof setTimeout> | undefined
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null
-      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return
       if (e.metaKey || e.ctrlKey || e.altKey) return
       if (armed) {
         armed = false
         if (timer) clearTimeout(timer)
-        const dest = GOTO[e.key.toLowerCase()]
+        const key = e.key.toLowerCase()
+        if (key === 'c') {
+          const last = recentSnapshot()[0]
+          e.preventDefault()
+          if (last) router.push(`/company/${encodeURIComponent(last)}`)
+          else openPalette()
+          return
+        }
+        const dest = GOTO[key]
         if (dest) { e.preventDefault(); router.push(dest) }
         return
       }
@@ -102,198 +117,93 @@ export default function Workbench({
     }
     window.addEventListener('keydown', onKey)
     return () => { window.removeEventListener('keydown', onKey); if (timer) clearTimeout(timer) }
-  }, [router])
+  }, [navigation, router])
+
+  const set = NAVIGATION[navigation]
 
   return (
-    // Mounted once. There is no second path for inspecting a number.
     <MetricProvider>
-    <ChartCursorProvider>
-    <div className="wb">
-      <Palette />
-      <Shortcuts />
-      <MetricInspector />
-      <nav className={`wb-rail${navOpen ? ' is-open' : ''}`} aria-label="Workbench">
-        {WORKBENCH.map((section) => {
-          const open = isOpen(section.group)
-          const region = `wb-group-${section.group.toLowerCase()}`
-          // A folded group keeps whichever entry is current and drops the rest,
-          // so the rail can always answer "where am I". Folded items are not
-          // rendered at all rather than hidden with an attribute: an element
-          // that is not in the DOM cannot collect a focus stop a reader cannot
-          // see, and there is nothing for a screen reader to announce.
-          const items = open
-            ? section.items
-            : section.items.filter((i) => pathname === i.href || pathname.startsWith(`${i.href}/`))
-          return (
-            <div
-              className="wb-group"
-              key={section.group}
-              /* The first group is where a session starts and returns. Marking it
-                 is the difference between a terminal and a list of twenty-four
-                 equally weighted admin links. */
-              data-primary={section.group === 'Terminal' ? '' : undefined}
-            >
-              {/* A heading that folds its section is a button, not a div with a
-                  click handler: it has to be reachable by keyboard and announce
-                  its state. When the rail is too narrow to show labels there is
-                  nothing to fold and no control to offer, so it renders as the
-                  plain label it was. */}
-              {collapsible ? (
-                <button
-                  type="button"
-                  className="sys-label wb-group-label wb-group-toggle"
-                  aria-expanded={open}
-                  aria-controls={region}
-                  onClick={() => toggle(section.group)}
-                >
-                  <span className="wb-group-caret" aria-hidden>{open ? '\u2212' : '+'}</span>
-                  <span>{section.group}</span>
-                </button>
-              ) : (
-                <div className="sys-label wb-group-label">{section.group}</div>
-              )}
-              {/* Folding hides a link, never a destination: the `g`-chords and
-                  the command palette read the registry rather than the DOM, so
-                  every route stays reachable whatever the rail is showing. */}
-              <div className="wb-group-items" id={region}>
-                {items.map((item) => {
-                  const active = pathname === item.href
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={`wb-link${active ? ' is-active' : ''}`}
-                      aria-current={active ? 'page' : undefined}
-                      onClick={() => setNavOpen(false)}
-                      title={item.label}
-                    >
-                      <span className="wb-glyph" aria-hidden>{item.glyph}</span>
-                      <span className="wb-label">{item.label}</span>
-                      <kbd className="wb-key">g {item.key}</kbd>
-                    </Link>
-                  )
-                })}
-              </div>
+      <ChartCursorProvider>
+        <div className="shell" data-nav-open={navOpen ? '' : undefined}>
+          <TopBar
+            navigation={navigation}
+            section={set.sectionFor(pathname)}
+            location={view && view.label !== destination?.label ? `${destination?.label} · ${view.label}` : heading}
+            onMenu={() => setNavOpen((v) => !v)}
+            navOpen={navOpen}
+          />
+
+          <Rail set={set} pathname={pathname} open={navOpen} onNavigate={() => setNavOpen(false)} />
+          {navOpen ? (
+            <button type="button" className="shell-scrim" aria-label="Close navigation" onClick={() => setNavOpen(false)} />
+          ) : null}
+
+          <div className="shell-main">
+            <div className="ws" id="workspace" data-scroll-root="">
+              {header ? (
+                <header className="ws-head" data-width={width}>
+                  <div className="ws-head__title">
+                    <h1 className="ws-head__h1">{heading}</h1>
+                    {subtitle ? <p className="ws-head__sub">{subtitle}</p> : null}
+                  </div>
+                  {actions || context ? (
+                    <div className="ws-head__actions">
+                      {actions}
+                      {context ? (
+                        <button
+                          type="button"
+                          className="sys-btn sys-btn--ghost"
+                          aria-expanded={aboutOpen}
+                          aria-controls="about-drawer"
+                          onClick={() => setAboutOpen((v) => !v)}
+                        >
+                          <Icon name="info" size={14} />
+                          About this view
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </header>
+              ) : null}
+
+              {header && views && views.length > 1 ? (
+                <nav className="ws-tabs" aria-label={`${destination?.label} views`} data-width={width}>
+                  {views.map((v) => {
+                    const active = view?.href === v.href
+                    return (
+                      <Link
+                        key={v.href}
+                        href={v.href}
+                        className="ws-tab"
+                        aria-current={active ? 'page' : undefined}
+                        title={v.answers}
+                      >
+                        {v.label}
+                      </Link>
+                    )
+                  })}
+                </nav>
+              ) : null}
+
+              <main id="main" className={`ws-body${flush ? ' ws-body--flush' : ''}`} data-width={width}>
+                {children}
+              </main>
             </div>
-          )
-        })}
-
-        {pinned.length ? (
-          <div className="wb-group">
-            <div className="sys-label wb-group-label">Pinned</div>
-            {pinned.slice(0, 6).map((o) => (
-              <Link key={`p-${o.kind}-${o.id}`} href={objectHref(o)} className="wb-link" title={`${KINDS[o.kind].plural} · ${o.detail ?? ''}`}>
-                <span className="wb-glyph" aria-hidden>{KINDS[o.kind].glyph}</span>
-                <span className="wb-label" style={{ fontFamily: 'var(--font-mono)' }}>{o.label}</span>
-              </Link>
-            ))}
           </div>
-        ) : null}
 
-        {recent.length ? (
-          <div className="wb-group">
-            <div className="sys-label wb-group-label">Recent</div>
-            {recent.slice(0, 6).map((o) => (
-              <Link key={`r-${o.kind}-${o.id}`} href={objectHref(o)} className="wb-link" title={`${KINDS[o.kind].plural} · ${o.detail ?? ''}`}>
-                <span className="wb-glyph" aria-hidden>{KINDS[o.kind].glyph}</span>
-                <span className="wb-label" style={{ fontFamily: 'var(--font-mono)' }}>{o.label}</span>
-              </Link>
-            ))}
-          </div>
-        ) : null}
-      </nav>
+          <StatusBar pageFacts={rail} />
 
-      <div className="wb-main">
-        <header className="wb-head">
-          <button
-            className="wb-toggle sys-focusable"
-            onClick={() => setNavOpen((v) => !v)}
-            aria-expanded={navOpen}
-            aria-label="Toggle navigation"
-          >☰</button>
-          <div className="wb-head-title">
-            <h1 className="sys-title">{title}</h1>
-            {subtitle ? <span className="sys-meta">{subtitle}</span> : null}
-          </div>
-          {/* Typing a ticker is the most common thing anyone does here, so it
-              gets the widest control in the chrome and sits in the shell rather
-              than inside a workspace — the workflow it serves is the first
-              thing a user does, and should not require arriving somewhere
-              first. */}
-          <SecuritySearch />
-          {/* How the reader got here, which the title cannot say. */}
-          <Breadcrumb />
-          <div className="wb-head-actions">
-            <button
-              className="sys-btn"
-              onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
-              title="Search objects and commands"
-            >
-              search <kbd style={{ font: '400 var(--t-micro)/1 var(--font-mono)', opacity: 0.7 }}>⌘K</kbd>
-            </button>
-            <button
-              className="sys-btn"
-              onClick={() => {
-                const order = ['compact', 'default', 'comfortable']
-                const el = document.documentElement
-                const next = order[(order.indexOf(el.getAttribute('data-density') ?? 'default') + 1) % order.length]
-                el.setAttribute('data-density', next)
-                try { window.localStorage.setItem('ma.density', next) } catch { /* ignore */ }
-              }}
-              title="Cycle information density"
-            >
-              density
-            </button>
-            <button
-              className="sys-btn"
-              onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: '?' }))}
-              title="Keyboard shortcuts"
-            >
-              ?
-            </button>
-            {/* The way back. Without it Simple mode is a one-way door: a
-                reader who switches to Advanced to see one number has no
-                visible route home. */}
-            <SimpleModeSwitch />
-            {actions}
-            {context ? (
-              <button
-                className="wb-toggle wb-toggle--ctx sys-focusable"
-                onClick={() => setCtxOpen((v) => !v)}
-                aria-expanded={ctxOpen}
-                aria-label="Toggle context"
-              >Context</button>
-            ) : null}
-          </div>
-        </header>
-
-        <div className="wb-body">
-          <main className="wb-workspace">{children}</main>
           {context ? (
-            <aside className={`wb-context${ctxOpen ? ' is-open' : ''}`} aria-label="Context">
+            <Drawer id="about-drawer" open={aboutOpen} onClose={() => setAboutOpen(false)} title={`About ${view?.label ?? heading}`}>
               {context}
-            </aside>
+            </Drawer>
           ) : null}
-        </div>
 
-        {/* Production, holdout and registry are global and live, so they are
-            rendered here rather than restated by each page. What a page passes
-            in `rail` is its own policy — the cost assumption in force, what a
-            confidence figure is not — which is genuinely static. */}
-        <footer className="wb-status" aria-label="Research state">
-          <SystemRail />
-          {rail?.length ? (
-            rail.map((r) => (
-              <div className="wb-status-item" key={r.label} title={r.detail}>
-                <span className="sys-label wb-status-key">{r.label}</span>
-                <Status state={r.state} label={r.detail ?? r.state} />
-              </div>
-            ))
-          ) : null}
-        </footer>
-      </div>
-    </div>
-    </ChartCursorProvider>
+          <Palette />
+          <Shortcuts />
+          <MetricInspector />
+        </div>
+      </ChartCursorProvider>
     </MetricProvider>
   )
 }

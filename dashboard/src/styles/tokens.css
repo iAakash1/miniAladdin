@@ -1,0 +1,204 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   OmniSignal design tokens — the single source of truth.
+
+   Dark graphite is the product default. Light is an explicit choice made
+   with the theme toggle (html[data-theme='light']).
+
+   Colour is semantic and restrained:
+     green  positive · verified · healthy
+     red    negative · failure · high risk
+     amber  partial · degraded · uncertain · warning
+     blue   interactive · informational · selected
+     grey   unavailable · secondary · metadata
+
+   Older components still reference the legacy names (--bg, --text, --muted,
+   --line, --surface…). They are aliases at the bottom of each block, so every
+   surface in the product resolves to the same values.
+   ───────────────────────────────────────────────────────────────────────── */
+
+:root {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --p-base: #0a0b0d;
+  --p-chrome: #0d0f12;
+  --p-panel: #111318;
+  --p-raised: #15181d;
+  --p-sunken: #0c0e11;
+  --p-hover: #181b21;
+  --p-overlay: #16191f;
+  --p-inverse: #e8eaed;
+
+  /* Rules */
+  --rule: #1e2228;
+  --rule-strong: #2b3038;
+  --rule-focus: #5b8fd0;
+
+  /* Ink */
+  --ink: #e6e8eb;
+  --ink-muted: #a3abb6;
+  --ink-faint: #7c848f;
+  --ink-disabled: #555c66;
+
+  /* Interaction */
+  --accent: #5b9ae0;
+  --accent-strong: #7cb0ea;
+  --accent-wash: rgb(91 154 224 / 0.12);
+  --accent-line: rgb(91 154 224 / 0.45);
+
+  /* Semantic */
+  --e-pos: #3db383;
+  --e-neg: #e5625b;
+  --e-warn: #d9a441;
+  --e-null: #7c848f;
+  --e-info: var(--accent);
+  --e-pos-wash: rgb(61 179 131 / 0.11);
+  --e-neg-wash: rgb(229 98 91 / 0.11);
+  --e-warn-wash: rgb(217 164 65 / 0.12);
+
+  /* Research state → colour. Governance "blocked" is a constraint, not a
+     failure, so it is amber; only failures are red. */
+  --s-live: var(--e-pos);
+  --s-production: var(--e-pos);
+  --s-recorded: var(--ink-muted);
+  --s-stale: var(--e-warn);
+  --s-waking: var(--accent);
+  --s-unavailable: var(--e-null);
+  --s-blocked: var(--e-warn);
+  --s-experimental: var(--accent);
+  --s-candidate: var(--accent);
+
+  /* Type */
+  --font-sans: 'Inter Variable', -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --font-serif: 'Newsreader Variable', Georgia, 'Times New Roman', serif;
+
+  --t-micro: 10px;
+  --t-meta: 11px;
+  --t-label: 11px;
+  --t-small: 12px;
+  --t-body: 13px;
+  --t-body-lg: 14px;
+  --t-value: 15px;
+  --t-lead: 17px;
+  --t-title: 20px;
+  --t-display: 24px;
+  --t-figure: 28px;
+
+  --lh-tight: 1.2;
+  --lh-body: 1.5;
+  --lh-read: 1.65;
+
+  --tracking-label: 0.06em;
+  --tracking-display: -0.018em;
+  --tracking-figure: -0.02em;
+
+  /* Space — a 4px base */
+  --d-0: 0px;
+  --d-1: 4px;
+  --d-2: 8px;
+  --d-3: 12px;
+  --d-4: 16px;
+  --d-5: 24px;
+  --d-6: 32px;
+  --d-7: 48px;
+
+  --row-compact: 24px;
+  --row-normal: 30px;
+  --row-relaxed: 36px;
+
+  /* Radius — small and consistent */
+  --r-xs: 2px;
+  --r-sm: 3px;
+  --r-md: 4px;
+  --r-lg: 6px;
+
+  /* Shell geometry */
+  --topbar-h: 44px;
+  --rail-w: 212px;
+  --status-h: 26px;
+  --inspector-w: 420px;
+  --workspace-pad: 20px;
+
+  /* Elevation — overlays only */
+  --shadow-overlay: 0 0 0 1px var(--rule-strong), 0 16px 40px -12px rgb(0 0 0 / 0.7);
+  --shadow-drawer: -1px 0 0 var(--rule-strong), -24px 0 48px -24px rgb(0 0 0 / 0.75);
+
+  /* Motion */
+  --t-fast: 100ms;
+  --t-med: 160ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+
+  /* ── legacy aliases (older components) ─────────────────────────────── */
+  --bg: var(--p-base);
+  --paper: var(--p-base);
+  --surface: var(--p-panel);
+  --surface-2: var(--p-raised);
+  --surface-3: var(--p-overlay);
+  --text: var(--ink);
+  --muted: var(--ink-muted);
+  --faint: var(--ink-faint);
+  --ink-2: var(--ink-muted);
+  --ink-3: var(--ink-faint);
+  --line: var(--rule);
+  --line-strong: var(--rule-strong);
+  --pos: var(--e-pos);
+  --neg: var(--e-neg);
+  --warn: var(--e-warn);
+  --pos-wash: var(--e-pos-wash);
+  --neg-wash: var(--e-neg-wash);
+  --warn-wash: var(--e-warn-wash);
+  --backdrop: rgb(4 5 6 / 0.62);
+  --ring: 0 0 0 2px var(--accent-line);
+  --edge-hi: none;
+  --edge-lo: none;
+  --lift-1: none;
+  --lift-2: var(--shadow-overlay);
+  --lift-drawer: var(--shadow-drawer);
+  --lift-overlay: var(--shadow-overlay);
+  --shadow-1: none;
+  --shadow-2: var(--shadow-overlay);
+  --shadow-dialog: var(--shadow-overlay);
+  --ease-out: var(--ease);
+  --context-w: var(--inspector-w);
+  --header-h: var(--topbar-h);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --p-base: #f3f4f6;
+  --p-chrome: #f8f9fa;
+  --p-panel: #ffffff;
+  --p-raised: #fafbfc;
+  --p-sunken: #eef0f3;
+  --p-hover: #f1f3f5;
+  --p-overlay: #ffffff;
+  --p-inverse: #15181c;
+
+  --rule: #e2e5e9;
+  --rule-strong: #cdd2d9;
+  --rule-focus: #2f6db5;
+
+  --ink: #14171b;
+  --ink-muted: #4d5561;
+  --ink-faint: #69717d;
+  --ink-disabled: #a2a9b2;
+
+  --accent: #2566b0;
+  --accent-strong: #1c5294;
+  --accent-wash: rgb(37 102 176 / 0.09);
+  --accent-line: rgb(37 102 176 / 0.4);
+
+  --e-pos: #16784f;
+  --e-neg: #bf3a2f;
+  --e-warn: #93650c;
+  --e-null: #69717d;
+  --e-pos-wash: rgb(22 120 79 / 0.08);
+  --e-neg-wash: rgb(191 58 47 / 0.08);
+  --e-warn-wash: rgb(147 101 12 / 0.09);
+
+  --backdrop: rgb(20 23 27 / 0.32);
+  --shadow-overlay: 0 0 0 1px var(--rule-strong), 0 16px 40px -16px rgb(15 20 30 / 0.28);
+  --shadow-drawer: -1px 0 0 var(--rule-strong), -24px 0 48px -28px rgb(15 20 30 / 0.3);
+}

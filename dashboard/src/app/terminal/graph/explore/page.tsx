@@ -5,7 +5,7 @@ import GraphExplorer from '@/components/terminal/GraphExplorer'
 import { Panel } from '@/components/system'
 
 export const metadata: Metadata = {
-  title: 'Explore — miniAladdin',
+  title: 'Explore',
   description: 'Walk the relationship graph outward from a starting entity.',
 }
 

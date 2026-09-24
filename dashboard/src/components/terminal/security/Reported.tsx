@@ -37,6 +37,7 @@
 import { useEffect, useState } from 'react'
 
 import { EmptyLine, Inspectable, Panel, Prose, StateBlock, Value } from '@/components/system'
+import { readerError } from '@/lib/failure'
 import { fetchResearch } from '@/lib/research-cache'
 import { format } from '@/lib/quantity'
 
@@ -101,7 +102,7 @@ export default function Reported({ symbol }: { symbol: string }) {
         <StateBlock
           state="unavailable"
           title="Vendor statement figures could not be read"
-          detail={`${settled.error}. The filed facts above come from the SEC directly and are unaffected.`}
+          detail={`${readerError(settled.error)}. The filed facts above come from the SEC directly and are unaffected.`}
         />
       </Panel>
     )

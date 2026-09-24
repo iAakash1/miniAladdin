@@ -11,7 +11,7 @@ import test from 'node:test'
 const ROOT = new URL('../src/', import.meta.url).pathname
 const THESIS = readFileSync(join(ROOT, 'lib/thesis.ts'), 'utf8')
 const TICKET = readFileSync(join(ROOT, 'components/terminal/paper/OrderTicket.tsx'), 'utf8')
-const VIEW = readFileSync(join(ROOT, 'components/terminal/security/SecurityView.tsx'), 'utf8')
+const VIEW = readFileSync(join(ROOT, 'components/company/CompanyWorkspace.tsx'), 'utf8')
 
 test('a thesis is never generated', () => {
   // A fabricated intent is worse than an absent one, because an absent one is
@@ -27,7 +27,7 @@ test('the research state on a thesis is read, never inferred', () => {
   // A recorded "blocked" that came from a failed request would be a claim
   // about research nobody made.
   assert.match(VIEW, /selection\/EXP-007/)
-  assert.match(VIEW, /typeof passed !== 'boolean'/,
+  assert.match(VIEW, /typeof d\.verdict\?\.passed !== 'boolean'/,
     'the verdict is derived from something other than the artifact’s own boolean')
   assert.match(VIEW, /no verdict read means no verdict recorded|Absent stays absent/)
 })

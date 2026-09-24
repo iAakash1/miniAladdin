@@ -15,6 +15,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { Panel, StateBlock, Status, Value } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
+import { readerError } from '@/lib/failure'
 import { recordVisit } from '@/lib/research/history'
 import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
 import ExperimentEvidence from './ExperimentEvidence'
@@ -114,7 +115,7 @@ export default function ExperimentRegistry() {
   if (error) {
     return (
       <Panel title="Experiments" state="unavailable">
-        <StateBlock state="unavailable" title="The registry could not be read" detail={`Request failed: ${error}. No list is shown in its place.`} />
+        <StateBlock state="unavailable" title="The registry could not be read" detail={`${readerError(error)}. No list is shown in its place.`} />
       </Panel>
     )
   }

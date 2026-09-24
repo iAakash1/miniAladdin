@@ -258,6 +258,11 @@ function Review({
         </p>
       )}
 
+      <p className="ticket__confirm" role="note">
+        <span className="paper-ribbon__tag">Paper</span>
+        This order is simulated and goes to the Alpaca Paper environment. No real money moves.
+      </p>
+
       <div className="ticket__acts">
         <button type="button" className="sys-btn" onClick={onBack} disabled={placing}>
           back
@@ -266,7 +271,7 @@ function Review({
           type="button" className="sys-btn sys-btn--primary"
           onClick={onPlace} disabled={!preview.ok || placing}
         >
-          {placing ? 'placing…' : 'place paper order'}
+          {placing ? 'placing…' : 'Confirm paper order'}
         </button>
       </div>
     </div>

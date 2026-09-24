@@ -4,7 +4,7 @@ import type { Metadata } from 'next'
 import { EntitlementProvider } from '@/components/system/Entitlement'
 
 export const metadata: Metadata = {
-  title: 'Explore — miniAladdin',
+  title: { default: 'Screener', template: '%s · OmniSignal' },
   description: 'Securities ranked across momentum, quality, value, risk and attention.',
 }
 

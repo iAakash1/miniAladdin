@@ -14,6 +14,7 @@ const COLUMNS = [
   {
     heading: 'Data sources',
     links: [
+      { href: 'https://www.sec.gov/edgar/search/', label: 'SEC EDGAR', external: true },
       { href: 'https://fred.stlouisfed.org', label: 'FRED — St. Louis Fed', external: true },
       { href: 'https://finance.yahoo.com', label: 'Yahoo Finance', external: true },
       { href: 'https://www.alphavantage.co', label: 'Alpha Vantage', external: true },
@@ -44,8 +45,8 @@ export default function SiteFooter() {
           <div style={{ gridColumn: 'span 1', maxWidth: 280 }}>
             <Logo size={20} />
             <p style={{ fontSize: '0.875rem', color: 'var(--muted)', lineHeight: 1.65, marginTop: 14 }}>
-              Five weighted signals, one risk-adjusted verdict. Built on public
-              macro and market data.
+              Evidence-grounded equity research. A deterministic engine sets
+              the signal; every input is traced to the provider that supplied it.
             </p>
           </div>
 

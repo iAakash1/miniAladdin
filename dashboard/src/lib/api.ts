@@ -9,6 +9,7 @@ import { parsePercentString } from './format'
 import type {
   AiAnalysis,
   Analysis,
+  ReportDepth,
   FactorImpact,
   FactorImpacts,
   Headline,
@@ -131,6 +132,12 @@ export function normalizeAi(raw: RawAiAnalysis | null | undefined): AiAnalysis |
     analystBriefUsed: raw.analyst_brief_used ?? false,
     evidenceLinks: raw.evidence_links ?? {},
     evidence: raw.evidence ?? [],
+    cached: Boolean(raw.cached || raw.shared),
+    validation: raw.validation
+      ? { status: raw.validation.status ?? null, droppedSections: raw.validation.dropped_sections ?? [] }
+      : null,
+    snapshotId: raw.snapshot_id ?? null,
+    depth: raw.depth === 'beginner' || raw.depth === 'intermediate' || raw.depth === 'advanced' ? raw.depth : null,
   }
 }
 
@@ -188,6 +195,9 @@ export function normalizeAnalysis(raw: RawResearchResponse): Analysis {
     signalScore: VERDICT_SCORE[riskAdjusted],
 
     engineConfidence: typeof raw.confidence === 'number' ? raw.confidence : null,
+    confidenceBreakdown: raw.confidence_breakdown ?? [],
+    elapsedSeconds: typeof raw.elapsed_seconds === 'number' ? raw.elapsed_seconds : null,
+    disclaimer: raw.disclaimer ?? null,
     riskLevel: asRiskLevel(raw.risk_level),
     rationale: raw.rationale ?? null,
     quant: normalizeQuant(raw.quant),
@@ -345,12 +355,16 @@ export async function coalesce<T>(
   }
 }
 
-export async function fetchAnalysis(ticker: string, fast: boolean): Promise<RawResearchResponse> {
-  return coalesce(inFlightAnalyses, `${ticker}:${fast}`, async () => {
+export async function fetchAnalysis(ticker: string, fast: boolean, depth: ReportDepth = 'intermediate'): Promise<RawResearchResponse> {
+  return coalesce(inFlightAnalyses, `${ticker}:${fast}:${depth}`, async () => {
     // The Clerk token lets the backend persist this run to the user's history
     // automatically; without it the analysis still works, just unrecorded.
     const { authFetch } = await import('./persistence')
-    const res = await authFetch(`/api/research/${encodeURIComponent(ticker)}${fast ? '?fast=true' : ''}`)
+    const params = new URLSearchParams()
+    if (fast) params.set('fast', 'true')
+    if (depth !== 'intermediate') params.set('depth', depth)
+    const query = params.toString()
+    const res = await authFetch(`/api/research/${encodeURIComponent(ticker)}${query ? `?${query}` : ''}`)
     if (!res.ok) {
       const body = await res.json().catch(() => ({}))
       throw new ApiError(body?.detail || `The analysis service returned an error (${res.status}).`, res.status)

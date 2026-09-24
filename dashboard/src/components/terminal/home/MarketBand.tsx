@@ -24,6 +24,8 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
 import { Value } from '@/components/system'
+import CompanyMark from '@/components/ui/CompanyMark'
+import { readerError } from '@/lib/failure'
 import { readResource } from '@/lib/resource'
 
 interface Index {
@@ -87,7 +89,7 @@ export default function MarketBand() {
         /* An outage is a sentence, not a box. The rest of home still works and
            putting a bordered rectangle here would suggest otherwise. */
         <p className="band__absent">
-          The market snapshot could not be read — {failed}. Nothing is shown in
+          The market snapshot could not be read — {readerError(failed).toLowerCase()}. Nothing is shown in
           its place; your names below are unaffected.
         </p>
       ) : (
@@ -98,11 +100,11 @@ export default function MarketBand() {
                 <Link
                   role="listitem"
                   key={i.symbol}
-                  href={`/terminal/security?symbol=${encodeURIComponent(i.symbol)}`}
+                  href={`/company/${encodeURIComponent(i.symbol)}`}
                   className="tape"
                   title={i.source ? `via ${i.source}` : undefined}
                 >
-                  <span className="tape__sym">{i.symbol}</span>
+                  <span className="tape__sym"><CompanyMark ticker={i.symbol} size={16} />{i.symbol}</span>
                   <span className="tape__px"><Value value={i.price ?? null} kind="currency" /></span>
                   <span className="tape__chg">
                     <Value value={i.change_1d ?? null} kind="percent" digits={2} signed tone />

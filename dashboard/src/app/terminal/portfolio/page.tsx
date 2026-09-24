@@ -5,7 +5,7 @@ import PortfolioView from '@/components/terminal/PortfolioView'
 import { Panel } from '@/components/system'
 
 export const metadata: Metadata = {
-  title: 'Watchlists — miniAladdin',
+  title: 'Watchlists',
   description: 'Named sets of securities to follow, and what has changed across them since you last looked.',
 }
 
@@ -15,7 +15,7 @@ export default function PortfolioPage() {
       title="Watchlists"
       subtitle="what you are following"
       rail={[
-        { label: 'Lists', state: 'live', detail: 'stored in this browser' },
+        { label: 'Lists', state: 'live', detail: 'saved to your account' },
         { label: 'Quotes', state: 'live', detail: 'vendor snapshot' },
       ]}
       context={
@@ -28,9 +28,10 @@ export default function PortfolioPage() {
           </Panel>
           <Panel title="Where these live">
             <p style={{ margin: 0, fontSize: 'var(--t-meta)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
-              Watchlists are stored in this browser, not on a server. They do not
-              follow you to another machine, and clearing site data clears them.
-              Nothing here is a position or an order.
+              Watchlists are saved to your account and follow you to another
+              device. The verdicts shown beside each name come from research runs
+              recorded in this browser, and positions stay on this device.
+              Nothing here is an order.
             </p>
           </Panel>
           <Panel title="A list is not a portfolio">

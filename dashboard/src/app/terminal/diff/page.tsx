@@ -5,14 +5,14 @@ import ExperimentDiff from '@/components/terminal/compare/ExperimentDiff'
 import { Panel } from '@/components/system'
 
 export const metadata: Metadata = {
-  title: 'Difference — miniAladdin',
+  title: 'Run diff',
   description: 'What changed between two experiments, and what a difference does not license you to conclude.',
 }
 
 export default function DiffPage() {
   return (
     <Workbench
-      title="Difference"
+      title="Run diff"
       subtitle="what changed between two experiments"
       rail={[{ label: 'Record', state: 'recorded', detail: 'immutable artifacts' }]}
       context={

@@ -22,8 +22,9 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
 import { Value } from '@/components/system'
-import { Sparkline } from '@/components/system/charts'
+import Sparkline from '@/components/ui/Sparkline'
 import { readResource } from '@/lib/resource'
+import SectorMark from '@/components/visual/SectorMark'
 
 interface Sector {
   symbol: string
@@ -84,13 +85,11 @@ export default function SectorMovers() {
             {rows.map((s) => (
               <tr key={s.symbol}>
                 <td>
-                  <Link
-                    href={`/terminal/security?symbol=${encodeURIComponent(s.symbol)}`}
-                    className="wl__sym"
-                  >
-                    {s.symbol}
-                  </Link>
-                  <span className="movers__name">{s.name ?? ''}</span>
+                  <span className="movers__id">
+                    <SectorMark sector={s.name} size={20} />
+                    <Link href={`/company/${encodeURIComponent(s.symbol)}`} className="wl__sym">{s.symbol}</Link>
+                    <span className="movers__name">{s.name ?? ''}</span>
+                  </span>
                 </td>
                 <td className="num">
                   <Value value={s.strength_21d ?? null} kind="percent" digits={1} signed tone />
@@ -99,7 +98,9 @@ export default function SectorMovers() {
                   <Value value={s.momentum_63d ?? null} kind="percent" digits={1} signed tone />
                 </td>
                 <td className="movers__spark">
-                  <Sparkline values={s.history ?? []} width={132} height={20} />
+                  {(s.history?.length ?? 0) > 1
+                    ? <Sparkline points={s.history ?? []} width={132} height={20} />
+                    : <span className="sys-null">—</span>}
                 </td>
                 <td className="num">
                   {/* Above or below, never a tick and a cross: the words say

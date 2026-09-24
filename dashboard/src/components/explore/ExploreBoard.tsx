@@ -16,11 +16,14 @@
  * only one of them is ours to make.
  */
 
-import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 
+import ThemeSearch from './ThemeSearch'
+import { readerError } from '@/lib/failure'
 import { DataTable } from '@/components/system/DataTable'
+import CompanyIdentity from '@/components/visual/CompanyIdentity'
+import SectorMark from '@/components/visual/SectorMark'
 import { EmptyLine, Panel, Prose, StateBlock, Strip } from '@/components/system'
 import {
   type CategoryKey, type ExploreCategory, type ExploreResponse, type ExploreRow,
@@ -99,7 +102,7 @@ export default function ExploreBoard({
   // Beginner and advanced open different depths of the *same* analysis. The
   // link differs; the security behind it, and its verdict, do not.
   const securityHref = (symbol: string) => mode === 'advanced'
-    ? `/terminal/security?symbol=${encodeURIComponent(symbol)}`
+    ? `/company/${encodeURIComponent(symbol)}`
     : `/${mode}/company/${encodeURIComponent(symbol)}`
 
   const searchParams = useSearchParams()
@@ -170,6 +173,8 @@ export default function ExploreBoard({
 
   return (
     <>
+      <ThemeSearch companyHref={securityHref} />
+
       <nav aria-label="Ranking dimension" className="xp__tabs">
         {(categories.length ? categories : [{ key: 'overall', label: 'Overall' } as ExploreCategory]).map((c) => (
           <button
@@ -255,7 +260,7 @@ export default function ExploreBoard({
       {loading ? (
         <StateBlock state="waking" title="Ranking the universe" detail="one cached sweep" />
       ) : error ? (
-        <StateBlock state="unavailable" title="Rankings unavailable" detail={error} />
+        <StateBlock state="unavailable" title="Rankings unavailable" detail={`${readerError(error)}.`} />
       ) : !data || data.results.length === 0 ? (
         <EmptyLine label="No securities">
           Nothing in the universe met both the eligibility policy and these
@@ -285,16 +290,21 @@ export default function ExploreBoard({
                 text: (r) => `${r.symbol} ${r.company_name}`,
                 sort: (r) => r.symbol,
                 render: (r) => (
-                  <>
-                    <Link href={securityHref(r.symbol)} className="wl__sym">{r.symbol}</Link>
-                    <span className="xp__company">{r.company_name}</span>
+                  <span className="xp__id">
+                    <CompanyIdentity symbol={r.symbol} name={r.company_name} size="sm" href={securityHref(r.symbol)} />
                     {active === 'trending' && r.trend_direction ? (
                       <span className="xp__trend">
                         {TREND_LABEL[r.trend_direction] ?? r.trend_direction}
                       </span>
                     ) : null}
-                  </>
+                  </span>
                 ),
+              },
+              {
+                key: 'sector', header: 'Sector', optional: true,
+                text: (r) => r.sector ?? '',
+                sort: (r) => r.sector,
+                render: (r) => (r.sector ? <SectorMark sector={r.sector} size={18} label /> : dash),
               },
               {
                 key: 'price', header: 'Price', numeric: true,

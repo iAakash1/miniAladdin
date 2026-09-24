@@ -7,7 +7,7 @@ import { Panel } from '@/components/system'
 import { Trace } from '@/components/system/Trace'
 
 export const metadata: Metadata = {
-  title: 'Provenance — miniAladdin',
+  title: 'Provenance',
   description: 'The chain from vendor observation to prediction, with each stage marked as observed, derived or model-predicted.',
 }
 

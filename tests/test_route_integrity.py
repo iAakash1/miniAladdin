@@ -26,9 +26,14 @@ WORKBENCH = SRC / "components" / "system" / "Workbench.tsx"
 PALETTE = SRC / "components" / "system" / "Palette.tsx"
 SHEET = SRC / "components" / "system" / "Shortcuts.tsx"
 
+RAIL = SRC / "components" / "shell" / "Rail.tsx"
+NAVIGATION = SRC / "lib" / "navigation.ts"
+
+#: A destination: route, label, icon, chord letter and what it answers. Views
+#: inside a destination carry no chord, so they do not match.
 ITEM = re.compile(
-    r"\{ href: '([^']+)', label: '([^']+)', glyph: '([^']*)', "
-    r"key: '([a-z])', answers: '([^']*)' \}"
+    r"href: '([^']+)', label: '([^']+)', icon: '([^']*)', key: '([a-z])',\s*answers: '([^']*)'",
+    re.S,
 )
 
 
@@ -37,8 +42,10 @@ def _destinations() -> list[tuple[str, str, str, str, str]]:
 
 
 def test_the_registry_parses() -> None:
+    # Fourteen destinations since related workspaces became views inside one
+    # destination (Model Lab holds governance, gates and calibration).
     found = _destinations()
-    assert len(found) >= 20, f"only {len(found)} destinations parsed; the shape changed"
+    assert len(found) >= 12, f"only {len(found)} destinations parsed; the shape changed"
 
 
 def test_every_route_in_the_registry_exists() -> None:
@@ -70,15 +77,19 @@ def test_labels_are_unique() -> None:
 
 def test_the_navigation_derives_from_the_registry() -> None:
     """Not a copy of it, and not a second list beside it."""
-    source = WORKBENCH.read_text()
-    assert "from '@/lib/destinations'" in source, "the workbench does not read the registry"
-    assert "export const WORKBENCH = DESTINATIONS" in source, (
-        "the workbench builds its own navigation list instead of using the registry"
+    navigation = NAVIGATION.read_text()
+    assert "from '@/lib/destinations'" in navigation, "the navigation does not read the registry"
+    assert "DESTINATIONS.map(" in navigation, (
+        "the rail's groups are built by hand instead of from the registry"
     )
-    # A literal destination here is a copy waiting to drift.
-    assert not re.search(r"\{ href: '/terminal/[^']+', label:", source), (
-        "the workbench declares a destination inline; it must come from the registry"
+    assert "from '@/lib/destinations'" in WORKBENCH.read_text(), (
+        "the workbench's chords do not come from the registry"
     )
+    # A literal destination in any navigation surface is a copy waiting to drift.
+    for path in (WORKBENCH, RAIL, NAVIGATION):
+        assert not re.search(r"\{ href: '/terminal/[^']+', label:", path.read_text()), (
+            f"{path.name} declares a destination inline; it must come from the registry"
+        )
 
 
 def test_the_palette_derives_from_the_registry() -> None:
@@ -92,11 +103,23 @@ def test_the_palette_derives_from_the_registry() -> None:
 
 
 def test_the_shortcut_sheet_documents_exactly_the_wired_chords() -> None:
-    """A sheet naming a key nothing handles teaches the wrong key."""
-    documented = set(re.findall(r"combo:\s*'g ([a-z])'", SHEET.read_text()))
-    wired = {key for _h, _l, _g, key, _a in _destinations()}
-    assert documented - wired == set(), f"documented but not wired: {sorted(documented - wired)}"
-    assert wired - documented == set(), f"wired but undocumented: {sorted(wired - documented)}"
+    """A sheet naming a key nothing handles teaches the wrong key.
+
+    Every destination chord is documented by deriving the sheet from the
+    registry, so the two cannot drift. The only chord written by hand is
+    `g c` (reopen the last company), which the workbench handles itself and
+    which no destination may therefore claim.
+    """
+    sheet = SHEET.read_text()
+    assert "combo: `g ${d.key}`" in sheet, "the sheet no longer derives chords from the registry"
+    literal = set(re.findall(r"combo:\s*'g ([a-z])'", sheet))
+    workbench = WORKBENCH.read_text()
+    unhandled = sorted(k for k in literal if f"key === '{k}'" not in workbench)
+    assert unhandled == [], f"documented but not wired: {unhandled}"
+    registry = {key for _h, _l, _g, key, _a in _destinations()}
+    assert literal & registry == set(), (
+        f"a hand-documented chord is also a destination chord: {sorted(literal & registry)}"
+    )
 
 
 def test_a_workspace_does_not_print_the_same_number_twice() -> None:

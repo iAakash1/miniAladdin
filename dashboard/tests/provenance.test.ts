@@ -16,7 +16,7 @@ import test from 'node:test'
 const ROOT = new URL('../src/', import.meta.url).pathname
 const SYSTEM = readFileSync(join(ROOT, 'components/system/index.tsx'), 'utf8')
 const INSPECTOR = readFileSync(join(ROOT, 'components/system/MetricInspector.tsx'), 'utf8')
-const PROFILE = readFileSync(join(ROOT, 'components/terminal/security/SecurityProfile.tsx'), 'utf8')
+const PROFILE = readFileSync(join(ROOT, 'components/company/profileRef.ts'), 'utf8')
 const CONTEXT = readFileSync(join(ROOT, 'components/system/MetricContext.tsx'), 'utf8')
 
 test('a contested figure is marked on the surface, not only in the drawer', () => {
@@ -60,28 +60,22 @@ test('provenance is one interaction, not a panel per surface', () => {
   assert.match(SYSTEM, /metrics\.inspect\(refValue\)/)
 })
 
-/* The object index is a map of the page. A section on the page with no entry
-   in the index is a map that has stopped matching its territory — which is
-   how this one drifted: filed financials and options were added to the
-   security page and the index still listed six sections. */
-test('every anchor on the security page is reachable from the index', () => {
-  const page = readFileSync(join(ROOT, 'app/terminal/security/page.tsx'), 'utf8')
-  const index = readFileSync(join(ROOT, 'components/terminal/security/SecurityContext.tsx'), 'utf8')
+/* The report's outline is a map of the document. A section with no entry in
+   the outline is a map that has stopped matching its territory — which is how
+   the old security page's index drifted: filed financials and options were
+   added and the index still listed six sections. */
+const REPORT = readFileSync(join(ROOT, 'components/company/tabs/Report.tsx'), 'utf8')
+const outlined = new Set([...REPORT.matchAll(/\{ id: '([a-z]+)', label: /g)].map((m) => m[1]))
+const rendered = new Set([...REPORT.matchAll(/<Section id="([a-z]+)"/g)].map((m) => m[1]))
 
-  const anchors = [...new Set([...page.matchAll(/id="(sec-[a-z]+)"/g)].map((m) => m[1]))]
-  assert.ok(anchors.length >= 4, 'the page appears to have no anchors')
-
-  const unreachable = anchors.filter((a) => !index.includes(`'${a}'`) && !index.includes(`#${a}`))
-  assert.deepEqual(unreachable, [],
-    `sections on the page with no index entry: ${unreachable.join(', ')}`)
+test('every section of the report is reachable from its outline', () => {
+  assert.ok(rendered.size >= 8, 'the report appears to have no sections')
+  const unreachable = [...rendered].filter((id) => !outlined.has(id))
+  assert.deepEqual(unreachable, [], `sections with no outline entry: ${unreachable.join(', ')}`)
 })
 
-test('the index never points at an anchor the page does not render', () => {
+test('the outline never points at a section the report does not render', () => {
   // The opposite failure: a destination that scrolls nowhere.
-  const page = readFileSync(join(ROOT, 'app/terminal/security/page.tsx'), 'utf8')
-  const index = readFileSync(join(ROOT, 'components/terminal/security/SecurityContext.tsx'), 'utf8')
-
-  const targets = [...new Set([...index.matchAll(/'(sec-[a-z]+)'/g)].map((m) => m[1]))]
-  const missing = targets.filter((t) => !page.includes(`id="${t}"`))
-  assert.deepEqual(missing, [], `index entries pointing at nothing: ${missing.join(', ')}`)
+  const missing = [...outlined].filter((id) => !rendered.has(id))
+  assert.deepEqual(missing, [], `outline entries pointing at nothing: ${missing.join(', ')}`)
 })

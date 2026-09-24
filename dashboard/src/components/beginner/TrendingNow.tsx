@@ -15,6 +15,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
 import { EmptyLine, Panel, Prose, StateBlock } from '@/components/system'
+import { readerError } from '@/lib/failure'
 import { type ExploreRow, fetchExplore, signalTone } from '@/lib/explore'
 
 const dash = '—'
@@ -61,7 +62,7 @@ export default function TrendingNow({
       {loading ? (
         <StateBlock state="waking" title="Reading recent activity" detail="cached snapshot" />
       ) : error ? (
-        <StateBlock state="unavailable" title="Trending unavailable" detail={error} />
+        <StateBlock state="unavailable" title="Trending unavailable" detail={`${readerError(error)}.`} />
       ) : !rows || rows.length === 0 ? (
         <EmptyLine label="Nothing trending">
           No security cleared the eligibility policy for a trend reading.
@@ -72,7 +73,7 @@ export default function TrendingNow({
             <li key={row.symbol} className="bg__trend-row">
               <Link
                 href={mode === 'advanced'
-                  ? `/terminal/security?symbol=${encodeURIComponent(row.symbol)}`
+                  ? `/company/${encodeURIComponent(row.symbol)}`
                   : `/${mode}/company/${encodeURIComponent(row.symbol)}`}
                 className="bg__sym"
               >

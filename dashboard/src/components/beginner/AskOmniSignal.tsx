@@ -17,6 +17,7 @@
 
 import { useEffect, useState } from 'react'
 
+import { readerError } from '@/lib/failure'
 import { EmptyLine, Panel, Prose, StateBlock } from '@/components/system'
 import Link from 'next/link'
 
@@ -119,7 +120,7 @@ export default function AskOmniSignal({ ticker }: { ticker: string }) {
       </form>
 
       {busy ? <StateBlock state="waking" title="Reading the evidence" detail="one analysis run" /> : null}
-      {error ? <StateBlock state="unavailable" title="No answer" detail={error} /> : null}
+      {error ? <StateBlock state="unavailable" title="No answer" detail={`${readerError(error)}.`} /> : null}
 
       {answer ? (
         <div className="ask__answer">

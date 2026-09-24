@@ -18,34 +18,38 @@ const walk = (dir: string): string[] =>
 
 const SOURCES = [...walk(join(ROOT, 'components')), ...walk(join(ROOT, 'lib'))]
 
-test('every link to a security uses the one canonical route shape', () => {
-  // A second shape — /security/AAPL, or ?ticker=, or ?id= — is a second
-  // identity model arriving by the back door.
+test('every link to a company uses the one canonical route shape', () => {
+  // A second shape — /security/AAPL, ?ticker=, ?id=, or the retired
+  // /terminal/security?symbol= — is a second identity model arriving by the
+  // back door. The one shape is /company/{encoded ticker}.
   const offenders: string[] = []
   for (const f of SOURCES) {
-    // Comments discuss routes in prose — "pointed at /terminal/security." —
-    // and a sentence-ending period is not a route segment. Strip comments
-    // rather than loosening the pattern, so a real offender inside code is
-    // still caught.
+    // Comments discuss routes in prose, and import paths name folders rather
+    // than routes. Strip both rather than loosening the pattern, so a real
+    // offender inside code is still caught.
     const src = readFileSync(f, 'utf8')
       .replace(/\/\*[\s\S]*?\*\//g, '')
       .replace(/\/\/[^\n]*/g, '')
+      .replace(/^import[^\n]*$/gm, '')
     for (const m of src.matchAll(/terminal\/security[^`'"\s]*/g)) {
-      const href = m[0]
-      if (href === 'terminal/security' || href.startsWith('terminal/security?symbol=')) continue
-      // An anchor onto the same page is not a different identity.
-      if (href.startsWith('terminal/security?symbol=') || href.includes('#sec-')) continue
-      offenders.push(`${f.replace(ROOT, '')}: ${href}`)
+      offenders.push(`${f.replace(ROOT, '')}: ${m[0]} — link to /company/{ticker} instead`)
+    }
+    for (const m of src.matchAll(/\/company\/(\$\{[^}]*\}?|[A-Za-z0-9.^-]+)/g)) {
+      if (m[1].startsWith('${encodeURIComponent(')) continue
+      offenders.push(`${f.replace(ROOT, '')}: /company/${m[1]}`)
     }
   }
-  assert.deepEqual(offenders, [], `non-canonical security routes:\n  ${offenders.join('\n  ')}`)
+  assert.deepEqual(offenders, [], `non-canonical company routes:\n  ${offenders.join('\n  ')}`)
 })
 
-test('the security route canonicalises the symbol it is given', () => {
+test('the company route canonicalises the symbol it is given', () => {
   // Lowercase "aapl" from a hand-typed URL must resolve to the same object as
-  // "AAPL" from the watchlist.
-  const page = readFileSync(join(ROOT, 'app/terminal/security/page.tsx'), 'utf8')
-  assert.match(page, /params\.symbol \?\? ''\)\.toUpperCase\(\)/)
+  // "AAPL" from the watchlist — and the retired security route must land on it.
+  const page = readFileSync(join(ROOT, 'app/company/[ticker]/page.tsx'), 'utf8')
+  assert.match(page, /params\.ticker \?\? ''\)\.toUpperCase\(\)/)
+  const retired = readFileSync(join(ROOT, 'app/terminal/security/page.tsx'), 'utf8')
+  assert.match(retired, /\.trim\(\)\.toUpperCase\(\)/)
+  assert.match(retired, /redirect\(`\/company\/\$\{encodeURIComponent\(symbol\)\}/)
 })
 
 test('the local stores key on the canonical ticker', () => {
@@ -57,14 +61,13 @@ test('the local stores key on the canonical ticker', () => {
 })
 
 test('a vendor identifier is never rendered as identity', () => {
-  // `via` names which provider resolved the ticker. It was briefly rendered
+  // `via` names which provider resolved the ticker. It was once rendered
   // beside the ticker as though it were the listing venue — "AAPL / finnhub
   // symbol search" — which is a claim about where Apple lists that nothing
-  // in the payload supports.
-  const view = readFileSync(join(ROOT, 'components/terminal/security/SecurityView.tsx'), 'utf8')
-  assert.match(view, /identitySource/, 'the identity provider is not named as provenance')
-  // The listing line may show the venue; it must not show the provider.
-  const listing = view.slice(view.indexOf('inst__listing'), view.indexOf('inst__quote'))
-  assert.doesNotMatch(listing, /identitySource/,
-    'the resolving provider is rendered inside the listing line')
+  // in the payload supports. The header takes the venue, never the resolver.
+  const header = readFileSync(join(ROOT, 'components/company/CompanyHeader.tsx'), 'utf8')
+  const workspace = readFileSync(join(ROOT, 'components/company/CompanyWorkspace.tsx'), 'utf8')
+  assert.doesNotMatch(header, /\.via\b/, 'the header renders the resolving provider')
+  assert.doesNotMatch(workspace, /identity\??\.via/, 'the resolving provider is passed into the header')
+  assert.match(header, /venueLabel\(exchange\)/, 'the listing line no longer derives from the venue')
 })

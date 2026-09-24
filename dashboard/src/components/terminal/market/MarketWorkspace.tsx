@@ -22,6 +22,7 @@ import Link from 'next/link'
 import { BarRows, TimeSeries } from '@/components/system/charts'
 import { Grid, Panel, Prose, StateBlock, Status, Value, type ResearchState } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
+import { readerError } from '@/lib/failure'
 import { recordVisit } from '@/lib/research/history'
 import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
 import WhatChanged from './WhatChanged'
@@ -116,7 +117,7 @@ export default function MarketWorkspace() {
       key: 'sym', header: 'Sector', width: '22%', sort: (s) => s.name, text: (s) => `${s.symbol} ${s.name}`,
       render: (s) => (
         <Link
-          href={`/terminal/security?symbol=${encodeURIComponent(s.symbol)}`}
+          href={`/company/${encodeURIComponent(s.symbol)}`}
           style={{ color: 'inherit' }}
           onClick={() => recordVisit({ kind: 'security', id: s.symbol, label: s.symbol, detail: s.name })}
         >
@@ -156,7 +157,7 @@ export default function MarketWorkspace() {
         <StateBlock
           state="unavailable"
           title="Market data could not be read"
-          detail={`Request failed: ${error}. Nothing is shown in its place — an unreachable feed is not a flat market.`}
+          detail={`${readerError(error)}. Nothing is shown in its place — an unreachable feed is not a flat market.`}
         />
       </Panel>
     )

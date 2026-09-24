@@ -5,7 +5,7 @@ import CovarianceLab from '@/components/terminal/risk/CovarianceLab'
 import { Panel } from '@/components/system'
 
 export const metadata: Metadata = {
-  title: 'Covariance — miniAladdin',
+  title: 'Covariance',
   description: 'Four covariance estimators on one panel: conditioning, positive semi-definiteness, and the risk each implies.',
 }
 

@@ -16,6 +16,7 @@
 import Link from 'next/link'
 import { useEffect, useState, useSyncExternalStore } from 'react'
 
+import { readerError } from '@/lib/failure'
 import { emptySnapshot, subscribeSymbols, toggleWatch, watchSnapshot } from '@/lib/symbols'
 
 import { EmptyLine, Panel, Prose, StateBlock } from '@/components/system'
@@ -52,7 +53,7 @@ type Experience = 'beginner' | 'intermediate' | 'advanced'
 
 function companyHref(mode: Experience, symbol: string, paper = false): string {
   if (mode === 'advanced') {
-    return `/terminal/security?symbol=${encodeURIComponent(symbol)}${paper ? '&paper=1' : ''}`
+    return `/company/${encodeURIComponent(symbol)}${paper ? '?paper=1' : ''}`
   }
   return `/${mode}/company/${encodeURIComponent(symbol)}${paper ? '?paper=1' : ''}`
 }
@@ -152,7 +153,7 @@ export default function TopIdeas({
       {loading ? (
         <StateBlock state="waking" title="Ranking the universe" detail="cached snapshot" />
       ) : error ? (
-        <StateBlock state="unavailable" title="Rankings unavailable" detail={error} />
+        <StateBlock state="unavailable" title="Rankings unavailable" detail={`${readerError(error)}.`} />
       ) : !data || data.results.length === 0 ? (
         <EmptyLine label="No ideas today">
           No security in the universe met the eligibility policy. That is the

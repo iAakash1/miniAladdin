@@ -17,7 +17,7 @@ export function applyTheme(theme: Theme, persist: boolean) {
 
 /* The <html data-theme> attribute is the single source of truth (set
    pre-paint by the root layout script). Subscribe via MutationObserver so
-   every toggle instance — and ThemeSync — stays in agreement. */
+   every toggle instance stays in agreement. */
 function subscribeToTheme(onChange: () => void) {
   const observer = new MutationObserver(onChange)
   observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
@@ -27,8 +27,8 @@ function subscribeToTheme(onChange: () => void) {
 function useTheme(): Theme {
   return useSyncExternalStore(
     subscribeToTheme,
-    () => (document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light'),
-    () => 'light',
+    () => (document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'),
+    () => 'dark',
   )
 }
 
@@ -71,11 +71,10 @@ export default function ThemeToggle() {
   return (
     <button
       type="button"
-      className="btn btn--ghost btn--sm"
+      className="sys-btn sys-btn--icon"
       onClick={() => applyTheme(theme === 'dark' ? 'light' : 'dark', true)}
       aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
       title={theme === 'dark' ? 'Light theme' : 'Dark theme'}
-      style={{ width: 32, padding: 0 }}
     >
       {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
     </button>

@@ -71,10 +71,14 @@ def test_provider_health_is_nested_by_capability(client: TestClient) -> None:
 
 
 def test_the_providers_workspace_reads_those_fields() -> None:
-    source = (UI / "providers" / "ProviderMatrix.tsx").read_text()
+    # The workspace reads the snapshot itself; its states come from the shared
+    # classifier, which is where the cooldown and rate-limit fields are read.
+    source = (UI / "providers" / "ProviderMatrix.tsx").read_text() + (
+        UI.parents[1] / "lib" / "providerHealth.ts"
+    ).read_text()
     for field in ("vendor", "configured", "cooling_down", "requests", "failures",
                   "rate_limited", "avg_latency_ms", "last_error"):
-        assert f"v.{field}" in source or f"{field}:" in source, (
+        assert any(f"{prefix}.{field}" in source for prefix in ("v", "snap")) or f"{field}:" in source, (
             f"the providers workspace no longer reads {field!r}"
         )
     # The fields it used to invent.
@@ -143,10 +147,17 @@ def test_filings_arrive_as_an_envelope_not_an_array(client: TestClient) -> None:
     )
     assert isinstance(filings.get("filings"), list), "the documents are not under `filings`"
 
-    source = (UI / "security" / "SecurityProfile.tsx").read_text()
-    assert "filingsEnvelope.filings" in source, (
-        "the panel no longer reads the documents out of the envelope"
+
+def test_the_filings_panels_read_the_envelope() -> None:
+    """The consumer half of the envelope contract, checked without a network call."""
+    company = UI.parents[0] / "company"
+    tabs = (company / "tabs" / "Detail.tsx").read_text()
+    assert "a.filings.filings.length" in tabs, "the filings tab no longer reads the documents out of the envelope"
+    panel = (company / "Filings.tsx").read_text()
+    assert "block.filings" in panel and "block.by_form" in panel, (
+        "the filings panel no longer reads the envelope's documents and form counts"
     )
-    assert "state.d.filings ?? []" not in source, (
-        "the panel treats the envelope as an array again, which renders nothing"
-    )
+    for path in (company / "tabs" / "Detail.tsx", company / "Filings.tsx", company / "Activity.tsx"):
+        assert "filings ?? [])" not in path.read_text().replace("a.filings?.filings ?? [])", ""), (
+            f"{path.name} treats the envelope as an array again, which renders nothing"
+        )

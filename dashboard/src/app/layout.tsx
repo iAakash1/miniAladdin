@@ -6,61 +6,52 @@ import '@fontsource/ibm-plex-mono/400.css'
 import '@fontsource/ibm-plex-mono/500.css'
 import '@fontsource/ibm-plex-mono/600.css'
 import './globals.css'
-import ThemeSync from '@/components/ui/ThemeSync'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://mini-aladding.vercel.app'
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: 'OmniSignal — Equity research terminal',
+    default: 'OmniSignal — Evidence-grounded equity research',
     template: '%s · OmniSignal',
   },
   description:
-    'Five weighted signals — momentum, risk-adjusted return, valuation, news sentiment and the macro cycle — combined into one risk-adjusted verdict per stock.',
-  keywords: ['equity research', 'stock analysis', 'risk analysis', 'market news', 'FRED', 'technical analysis'],
+    'An equity research terminal: deterministic quantitative signals, multi-provider evidence with visible disagreement, SEC primary sources and grounded AI explanation that never decides.',
+  keywords: ['equity research', 'evidence provenance', 'quantitative analysis', 'SEC filings', 'FRED macro', 'research terminal'],
   authors: [{ name: 'OmniSignal' }],
   openGraph: {
     type: 'website',
     siteName: 'OmniSignal',
-    title: 'OmniSignal — Equity research terminal',
+    title: 'OmniSignal — Evidence-grounded equity research',
     description:
-      'Five weighted signals combined into one risk-adjusted verdict per stock. Live macro conditions from FRED, technicals, fundamentals and news sentiment.',
+      'Deterministic signals, reconciled multi-provider evidence, SEC primary sources and grounded AI explanation — every number traceable to its source.',
     url: SITE_URL,
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'OmniSignal — Equity research terminal',
-    description: 'Five weighted signals. One risk-adjusted verdict.',
+    title: 'OmniSignal — Evidence-grounded equity research',
+    description: 'Deterministic signals. Auditable evidence. Grounded explanation.',
   },
   robots: { index: true, follow: true },
 }
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#faf9f6' },
-    { media: '(prefers-color-scheme: dark)', color: '#111210' },
-  ],
+  themeColor: '#0a0b0d',
   width: 'device-width',
   initialScale: 1,
 }
 
-/** Runs before paint: explicit choice from localStorage wins; otherwise the
-    site defaults light and the terminal defaults dark. `/company/*` counts
-   as terminal: it renders terminal chrome and is where Research lands, so
-   matching `/terminal` alone flashed light on direct load. Kept in sync with
-   TERMINAL_ROUTES in ThemeSync. */
-const THEME_SCRIPT = `(function(){try{var t=localStorage.getItem('omni-theme');if(t!=='dark'&&t!=='light'){var p=location.pathname;t=(p.indexOf('/terminal')===0||p.indexOf('/company')===0)?'dark':'light'}document.documentElement.dataset.theme=t}catch(e){document.documentElement.dataset.theme='light'}})()`
+/** Runs before paint. Dark is the default; an explicit light choice wins. */
+const THEME_SCRIPT = `(function(){try{var t=localStorage.getItem('omni-theme');document.documentElement.dataset.theme=t==='light'?'light':'dark'}catch(e){document.documentElement.dataset.theme='dark'}})()`
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" data-theme="dark" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         <a href="#main" className="skip-link">
           Skip to content
         </a>
-        <ThemeSync />
         {children}
       </body>
     </html>

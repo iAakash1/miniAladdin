@@ -5,7 +5,7 @@ import Memos from '@/components/terminal/memos/Memos'
 import { Panel } from '@/components/system'
 
 export const metadata: Metadata = {
-  title: 'Memos — miniAladdin',
+  title: 'Memos',
   description: 'A research notebook: thesis, evidence, risks and conclusion, attached to the objects the claim rests on.',
 }
 

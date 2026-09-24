@@ -17,6 +17,7 @@ import Link from 'next/link'
 import { Panel, StateBlock, Strip, Value } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { ObjectHeader, StripSkeleton, TableSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
+import { readerError } from '@/lib/failure'
 import { readResource } from '@/lib/resource'
 
 interface Entry {
@@ -101,7 +102,7 @@ export default function GateMatrix() {
     },
   ]
 
-  if (error) return <Panel title="Gate matrix" state="unavailable"><StateBlock state="unavailable" title="The registry could not be read" detail={error} /></Panel>
+  if (error) return <Panel title="Gate matrix" state="unavailable"><StateBlock state="unavailable" title="The registry could not be read" detail={`${readerError(error)}.`} /></Panel>
   if (!registry) {
     return (
       <>

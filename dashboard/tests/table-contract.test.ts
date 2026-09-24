@@ -157,11 +157,24 @@ test('every hand-built table in the product is accounted for', () => {
      headers, one value column, one cell per row. Not DOM-checked for the same
      reason — no browser in this session.
 
+     52 -> 49 when the security page and the company report were merged
+     into one company workspace. Six files that built tables went with the
+     pages they served: the old security profile, its fundamentals and
+     disclosure panels, the security workspace, the home recents list and the
+     shortcut sheet (now a definition list). Three arrived: the company
+     Evidence tab (inputs and citation ledger, headers and cells written side
+     by side), the Report's one shared Table helper (company/Conclusion.tsx), whose
+     header and cell rows both walk the same `head` array, and the home ranked-universe list.
+     Counted at source for the reason several entries above give — no Clerk
+     session in this environment — and the Report tables are additionally
+     rendered on the public landing page from a recorded run, where their
+     alignment can be read in the DOM.
+
      Every other one was read in the rendered DOM before this number moved,
      and the eight times it did not. */
   assert.equal(
-    handBuilt.length, 52,
-    `hand-built tables changed from 52 to ${handBuilt.length}. Route the new one ` +
+    handBuilt.length, 49,
+    `hand-built tables changed from 49 to ${handBuilt.length}. Route the new one ` +
     'through DataTable, or check its alignment in the rendered DOM and update ' +
     'this count deliberately.',
   )

@@ -5,14 +5,14 @@ import MarketWorkspace from '@/components/terminal/market/MarketWorkspace'
 import { Panel } from '@/components/system'
 
 export const metadata: Metadata = {
-  title: 'Market — miniAladdin',
+  title: 'Markets',
   description: 'Breadth, sector leadership, momentum dispersion, macro and dated events.',
 }
 
 export default function MarketPage() {
   return (
     <Workbench
-      title="Market"
+      title="Markets"
       subtitle="what is happening"
       rail={[
         { label: 'Feed', state: 'live', detail: 'vendor data, not point-in-time' },

@@ -16,6 +16,7 @@ import { Compare, CompareLegend, type CompareField, type CompareSubject } from '
 import { Panel, Prose, StateBlock, Status } from '@/components/system'
 import { ObjectHeader, TableSkeleton } from '@/components/system/composition'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
+import { readerError } from '@/lib/failure'
 import { recordVisit } from '@/lib/research/history'
 import { readResource } from '@/lib/resource'
 
@@ -99,7 +100,7 @@ export default function ModelCompare() {
     { key: 'ns', header: 'Net Sharpe', unit: 'after costs', numeric: true, sort: (r) => n(r.net_sharpe), render: (r) => <span className="sys-num">{r.net_sharpe?.toFixed(3) ?? '—'}</span> },
   ], [picked])
 
-  if (error) return <Panel title="Compare" state="unavailable"><StateBlock state="unavailable" title="The registry could not be read" detail={error} /></Panel>
+  if (error) return <Panel title="Compare" state="unavailable"><StateBlock state="unavailable" title="The registry could not be read" detail={`${readerError(error)}.`} /></Panel>
   if (!rows) {
     return <Panel title="Select models" state="waking" flush><TableSkeleton rows={10} columns={7} /></Panel>
   }

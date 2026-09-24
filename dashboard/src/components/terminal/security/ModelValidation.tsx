@@ -33,6 +33,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { Panel, Prose, StateBlock, Strip } from '@/components/system'
 import { TimeSeries } from '@/components/system/charts'
+import { readerError } from '@/lib/failure'
 import { failureModes, overallHealth } from '@/lib/validationInsights'
 
 interface Backtest {
@@ -58,17 +59,23 @@ interface Backtest {
 const HEALTH_STATE = { pos: 'recorded', warn: 'stale', neg: 'blocked' } as const
 
 export default function ModelValidation({ ticker }: { ticker: string }) {
-  const [data, setData] = useState<Backtest | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const symbol = ticker
+  /* Tagged with the symbol it answers, so a slow backtest for the previous
+     company can never render under the next one's name. */
+  const [answer, setAnswer] = useState<{ for: string; data?: Backtest; error?: string } | null>(null)
 
   useEffect(() => {
     let alive = true
-    fetch(`/api/backtest/${encodeURIComponent(ticker)}`)
+    fetch(`/api/backtest/${encodeURIComponent(symbol)}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((d: Backtest) => { if (alive) setData(d) })
-      .catch((e: Error) => { if (alive) setError(e.message) })
+      .then((d: Backtest) => { if (alive) setAnswer({ for: symbol, data: d }) })
+      .catch((e: Error) => { if (alive) setAnswer({ for: symbol, error: e.message }) })
     return () => { alive = false }
-  }, [ticker])
+  }, [symbol])
+
+  const current = answer?.for === symbol ? answer : null
+  const data = current?.data ?? null
+  const error = current?.error ?? null
 
   const health = useMemo(() => {
     if (!data) return null
@@ -96,7 +103,7 @@ export default function ModelValidation({ ticker }: { ticker: string }) {
         <StateBlock
           state="unavailable"
           title={`No validation could be read for ${ticker}`}
-          detail={`Request failed: ${error}. Nothing is shown in its place.`}
+          detail={`${readerError(error)}. Nothing is shown in its place.`}
         />
       </Panel>
     )
@@ -105,7 +112,7 @@ export default function ModelValidation({ ticker }: { ticker: string }) {
   if (data.error) {
     return (
       <Panel title="Model record" state="unavailable">
-        <StateBlock state="unavailable" title={`Cannot validate ${ticker}`} detail={data.error} />
+        <StateBlock state="unavailable" title={`Cannot validate ${ticker}`} detail={`${readerError(data.error)}.`} />
       </Panel>
     )
   }

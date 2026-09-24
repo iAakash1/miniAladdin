@@ -27,6 +27,7 @@
 import { useEffect, useState } from 'react'
 
 import { Panel, Prose, StateBlock, Value } from '@/components/system'
+import { readerError } from '@/lib/failure'
 import type { Kind } from '@/lib/quantity'
 import { fetchResearch } from '@/lib/research-cache'
 import { ownershipConflict } from '@/lib/security'
@@ -126,7 +127,7 @@ export default function Fundamentals2({ symbol }: { symbol: string }) {
         <StateBlock
           state="unavailable"
           title="No fundamentals were returned"
-          detail={`${current.error}. Nothing is shown in their place, and the market data above is unaffected.`}
+          detail={`${readerError(current.error)}. Nothing is shown in their place, and the market data above is unaffected.`}
         />
       </Panel>
     )

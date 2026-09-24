@@ -31,6 +31,7 @@ import { useEffect, useState } from 'react'
 
 import { Grid, Panel, Prose, StateBlock, Status, Value } from '@/components/system'
 import { BarRows } from '@/components/system/charts'
+import { readerError } from '@/lib/failure'
 import { readResource } from '@/lib/resource'
 
 interface ArmRow {
@@ -88,7 +89,7 @@ export default function Ablation({ experimentId = 'EXP-005' }: { experimentId?: 
         <StateBlock
           state="unavailable"
           title="The ablation could not be read"
-          detail={`Request failed: ${error}. Nothing is shown in its place.`}
+          detail={`${readerError(error)}. Nothing is shown in its place.`}
         />
       </Panel>
     )

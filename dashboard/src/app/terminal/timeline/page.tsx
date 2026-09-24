@@ -5,7 +5,7 @@ import ResearchTimeline from '@/components/terminal/timeline/ResearchTimeline'
 import { Panel } from '@/components/system'
 
 export const metadata: Metadata = {
-  title: 'Timeline — miniAladdin',
+  title: 'Timeline',
   description: 'What was recorded, when: model registrations, status changes and research memos.',
 }
 

@@ -1,19 +1,22 @@
 import { ClerkProvider } from '@clerk/nextjs'
 import type { Metadata } from 'next'
 
+import { EntitlementProvider } from '@/components/system/Entitlement'
+
 export const metadata: Metadata = {
-  title: 'Start — OmniSignal',
+  title: { absolute: 'Opening terminal · OmniSignal' },
   robots: { index: false, follow: false },
 }
 
 export const dynamic = 'force-dynamic'
 
+/* The entitlement provider registers the session-token accessor that
+   authenticated requests wait on. Without it the capabilities request here
+   waited out a ten-second timeout and then went out unauthenticated. */
 export default function StartLayout({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider>
-      <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}>
-        {children}
-      </div>
+      <EntitlementProvider>{children}</EntitlementProvider>
     </ClerkProvider>
   )
 }

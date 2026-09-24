@@ -91,15 +91,19 @@ test('a button whose content is only a glyph carries an accessible name', () => 
   )
 })
 
-test('a control that folds a section announces whether it is open', () => {
+test('shell disclosures announce their state and what they control', () => {
   /* aria-expanded is the only way a reader learns that activating a control
-     revealed something. Checked on the rail's group toggles, which are the
-     disclosures this product added most recently. */
-  const rail = readFileSync(join(ROOT, 'components/system/Workbench.tsx'), 'utf8')
-  const toggle = rail.match(/<button[^>]*wb-group-toggle[\s\S]{0,300}?>/)
-  assert.ok(toggle, 'the rail group toggle is no longer a button')
-  assert.match(toggle[0], /aria-expanded=/, 'the group toggle does not announce its state')
-  assert.match(toggle[0], /aria-controls=/, 'the group toggle does not say what it controls')
+     revealed something. The shell has two: the navigation drawer toggle and
+     the About drawer toggle. */
+  const top = readFileSync(join(ROOT, 'components/shell/TopBar.tsx'), 'utf8')
+  const menu = top.match(/<button[^>]*shell-top__menu[\s\S]{0,300}?>/)
+  assert.ok(menu, 'the navigation toggle is no longer a button')
+  assert.match(menu[0], /aria-expanded=/, 'the navigation toggle does not announce its state')
+
+  const shell = readFileSync(join(ROOT, 'components/system/Workbench.tsx'), 'utf8')
+  const about = shell.match(/<button[\s\S]{0,200}?aria-controls="about-drawer"[\s\S]{0,200}?>/)
+  assert.ok(about, 'the About toggle does not say what it controls')
+  assert.match(about[0], /aria-expanded=/, 'the About toggle does not announce its state')
 })
 
 /** The attributes of the JSX tag starting at `start`, to its real end.
@@ -163,17 +167,19 @@ test('wide content scrolls inside its own container, not the page', () => {
 })
 
 test('the responsive rail keeps a way to navigate at every width', () => {
-  /* The rule that makes the narrow rail safe: below the breakpoint the labels
-     go and the glyphs stay. A stylesheet that hid the links themselves would
-     leave a reader on a phone with no navigation at all. */
+  /* Below the breakpoint the rail leaves the layout and becomes a drawer
+     behind the menu button. A stylesheet that simply hid it would leave a
+     reader on a phone with no navigation at all, so this pins both halves:
+     the rail moves off-canvas rather than disappearing, and the button that
+     brings it back is shown at the same width. */
   const css = readFileSync(join(ROOT, 'styles/system.css'), 'utf8')
-  const hidden = css.match(/\.wb-label, \.wb-key, \.wb-group-label \{ display: none/)
-  assert.ok(hidden, 'the narrow rail no longer hides its labels')
-
-  const index = css.indexOf(hidden[0])
-  const block = css.slice(index, css.indexOf('}', css.indexOf('{', index)) + 400)
-  assert.doesNotMatch(block, /\.wb-link \{ display: none/,
-    'the narrow rail hides the links themselves, leaving no way to navigate')
-  assert.doesNotMatch(block, /\.wb-glyph \{ display: none/,
-    'the narrow rail hides the glyphs, which are its only remaining labels')
+  const start = css.indexOf('@media (max-width: 1023px)')
+  assert.ok(start >= 0, 'the narrow-width layout is gone')
+  const block = css.slice(start, css.indexOf('\n}\n', start))
+  assert.match(block, /\.shell-top__menu \{ display: inline-flex/, 'the menu button is not shown where the rail is hidden')
+  assert.match(block, /\.shell-rail \{[\s\S]*?position: fixed[\s\S]*?transform: translateX\(-100%\)/,
+    'the narrow rail is not an off-canvas drawer')
+  assert.match(block, /\.shell-rail\[data-open\] \{ transform: none; visibility: visible/,
+    'the open rail does not come back on screen')
+  assert.doesNotMatch(block, /\.shell-rail \{ display: none/, 'the narrow rail is removed outright')
 })

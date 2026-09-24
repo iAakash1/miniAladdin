@@ -22,6 +22,7 @@ import { useEffect, useState } from 'react'
 import { Grid, Panel, Prose, Section, StateBlock, Status, Strip, Value } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { BarRows, Histogram } from '@/components/system/charts'
+import { readerError } from '@/lib/failure'
 import { recordVisit } from '@/lib/research/history'
 import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
 import { readResource } from '@/lib/resource'
@@ -91,7 +92,7 @@ export default function PortfolioWorkbench() {
   if (error) {
     return (
       <Panel title="Book" state="unavailable">
-        <StateBlock state="unavailable" title="No book is available" detail={`Request failed: ${error}. Nothing is shown in its place.`} />
+        <StateBlock state="unavailable" title="No book is available" detail={`${readerError(error)}. Nothing is shown in its place.`} />
       </Panel>
     )
   }
@@ -145,7 +146,7 @@ export default function PortfolioWorkbench() {
       // Every holding is a link into its own workspace. This is the edge that
       // makes the book part of the object graph rather than a terminal list.
       render: (w) => (
-        <Link href={`/terminal/security?symbol=${encodeURIComponent(w.symbol)}`} style={{ color: 'inherit', fontFamily: 'var(--font-mono)' }}>
+        <Link href={`/company/${encodeURIComponent(w.symbol)}`} style={{ color: 'inherit', fontFamily: 'var(--font-mono)' }}>
           {w.symbol}
         </Link>
       ),

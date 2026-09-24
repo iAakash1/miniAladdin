@@ -5,13 +5,13 @@ import VaultView from '@/components/terminal/VaultView'
 import { Panel } from '@/components/system'
 
 export const metadata: Metadata = {
-  title: 'Vault — miniAladdin',
+  title: 'Research log',
   description: 'Saved research: reports, notes and exports kept across sessions.',
 }
 
 export default function Page() {
   return (
-    <Workbench title="Vault" subtitle="what you kept"
+    <Workbench title="Research log" subtitle="what you kept"
       context={
         <>
           <Panel title="What this answers">

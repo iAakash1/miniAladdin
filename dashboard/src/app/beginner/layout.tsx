@@ -4,7 +4,7 @@ import type { Metadata } from 'next'
 import { EntitlementProvider } from '@/components/system/Entitlement'
 
 export const metadata: Metadata = {
-  title: 'OmniSignal — Beginner',
+  title: { default: 'Simple', template: '%s · OmniSignal' },
   description: 'Plain-language equity signals, risk and ranked ideas.',
   robots: { index: false, follow: false },
 }

@@ -27,7 +27,9 @@
 
 import { useEffect, useState } from 'react'
 
-import { EmptyLine, Inspectable, Panel, Prose, StateBlock, Status, Value } from '@/components/system'
+import { Inspectable, Panel, Prose, StateBlock, Status, Value } from '@/components/system'
+import { describeFailure } from '@/lib/failure'
+import { sanitizeError } from '@/lib/providerHealth'
 import { readResource } from '@/lib/resource'
 
 interface Contract {
@@ -76,14 +78,14 @@ export default function Options({ symbol, underlyingPrice }: {
   /** The last price, used only to mark where the money is. */
   underlyingPrice?: number | null
 }) {
-  const [chain, setChain] = useState<{ for: string; d: Chain } | { for: string; error: string } | null>(null)
+  const [chain, setChain] = useState<{ for: string; d: Chain } | { for: string; error: unknown } | null>(null)
   const [expiry, setExpiry] = useState<string | null>(null)
 
   useEffect(() => {
     let alive = true
     readResource<Chain>(`/api/options/${encodeURIComponent(symbol)}`, 'snapshot')
       .then((d) => { if (alive) setChain({ for: symbol, d }) })
-      .catch((e: Error) => { if (alive) setChain({ for: symbol, error: e.message }) })
+      .catch((e: unknown) => { if (alive) setChain({ for: symbol, error: e }) })
     return () => { alive = false }
   }, [symbol])
 
@@ -91,13 +93,14 @@ export default function Options({ symbol, underlyingPrice }: {
   if (!settled) return <Panel title="Options" state="waking"><StateBlock state="waking" title="Reading the option chain" /></Panel>
 
   if ('error' in settled) {
+    const f = describeFailure(settled.error, 'options data')
     return (
       <Panel title="Options" state="unavailable">
-        <StateBlock
-          state="unavailable"
-          title="The option chain could not be read"
-          detail={`${settled.error}. Nothing is shown in its place.`}
-        />
+        <StateBlock state="unavailable" title={f.title} detail={`${f.detail} No chain is shown in its place.`}>
+          {f.technical ? (
+            <details className="sys-tech"><summary>Technical detail</summary><code>{f.technical}</code></details>
+          ) : null}
+        </StateBlock>
       </Panel>
     )
   }
@@ -105,14 +108,22 @@ export default function Options({ symbol, underlyingPrice }: {
   const d = settled.d
 
   if (d.status !== 'live' || !d.contracts.length) {
+    const notConfigured = d.provider_configured === false
+    const reason = sanitizeError(d.reason)
     return (
-      <EmptyLine label="Options">
-        {d.reason ?? 'No option chain was returned for this security.'}
-        {' '}
-        {d.provider_configured === false
-          ? 'This is a deployment configuration, not a statement that the security has no listed options.'
-          : 'That is what the provider returned, not a claim that none are listed.'}
-      </EmptyLine>
+      <Panel title="Options" state={notConfigured ? 'unknown' : 'unavailable'}>
+        <StateBlock
+          state={notConfigured ? 'unknown' : 'unavailable'}
+          title={notConfigured ? 'Options data not configured' : 'No option chain returned'}
+          detail={notConfigured
+            ? 'No options provider is configured on this deployment. That is a configuration state, not a statement that the security has no listed options.'
+            : `${d.source ? `${d.source} answered` : 'The provider answered'} with no contracts for ${symbol}. That is what it returned, not a claim that none are listed.`}
+        >
+          {reason ? (
+            <details className="sys-tech"><summary>Technical detail</summary><code>{d.status}{reason ? ` · ${reason}` : ''}</code></details>
+          ) : null}
+        </StateBlock>
+      </Panel>
     )
   }
 

@@ -6,7 +6,7 @@ import EvidenceAudit from '@/components/terminal/admin/EvidenceAudit'
 import { Panel, Prose } from '@/components/system'
 
 export const metadata: Metadata = {
-  title: 'Agent runs — miniAladdin',
+  title: 'Agent runs',
   description: 'Measured specialist execution, reconciliation and claim validation.',
 }
 

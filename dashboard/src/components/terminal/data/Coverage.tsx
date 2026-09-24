@@ -12,6 +12,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { readerError } from '@/lib/failure'
 
 import { Panel, Prose, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
 import { StripSkeleton, TableSkeleton } from '@/components/system/composition'
@@ -70,7 +71,7 @@ export default function Coverage() {
   }, [dated])
 
   if (error) {
-    return <Panel title="Coverage" state="unavailable"><StateBlock state="unavailable" title="Sources could not be read" detail={error} /></Panel>
+    return <Panel title="Coverage" state="unavailable"><StateBlock state="unavailable" title="Sources could not be read" detail={`${readerError(error)}.`} /></Panel>
   }
   if (!sources) {
     return (

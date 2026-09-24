@@ -5,7 +5,7 @@ import MethodologyView from '@/components/terminal/MethodologyView'
 import { Panel } from '@/components/system'
 
 export const metadata: Metadata = {
-  title: 'Methodology — miniAladdin',
+  title: 'Methodology',
   description: 'How each figure in the product is computed, and what it assumes.',
 }
 

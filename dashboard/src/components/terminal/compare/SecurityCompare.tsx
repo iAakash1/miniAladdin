@@ -20,6 +20,7 @@
 import { useEffect, useState } from 'react'
 
 import { Panel, Prose, StateBlock, Status, Value } from '@/components/system'
+import { readerError } from '@/lib/failure'
 import { delta, deltaMoved } from '@/lib/semantics'
 import type { Kind } from '@/lib/quantity'
 import { fetchResearch } from '@/lib/research-cache'
@@ -144,7 +145,7 @@ export default function SecurityCompare({ a, b }: { a: string; b: string }) {
           <StateBlock
             state="unavailable"
             title="One side could not be read"
-            detail={`${left.error ?? right.error}. No comparison is shown against a missing side — a difference against an absent value is not a difference.`}
+            detail={`${readerError(left.error ?? right.error)}. No comparison is shown against a missing side — a difference against an absent value is not a difference.`}
           />
         ) : !left.side || !right.side ? (
           <StateBlock state="waking" title="Reading both companies" detail="The vendor fan-out takes half a minute for each; they share a cache with their security pages." />

@@ -5,7 +5,7 @@ import RiskWorkbench from '@/components/terminal/risk/RiskWorkbench'
 import { Panel, Section } from '@/components/system'
 
 export const metadata: Metadata = {
-  title: 'Risk — miniAladdin',
+  title: 'Risk',
   description: 'Dispersion, tail, drawdown and risk-adjusted measures, grouped by the question each answers.',
 }
 

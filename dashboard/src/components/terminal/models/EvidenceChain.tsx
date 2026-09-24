@@ -24,6 +24,7 @@ import Link from 'next/link'
 
 import { Grid, Panel, Section, StateBlock, Status, Value, type ResearchState } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
+import { readerError } from '@/lib/failure'
 import { recordVisit, togglePin } from '@/lib/research/history'
 import { ObjectHeader, StripSkeleton, TableSkeleton, Toolbar, ToolbarGroup, ToolbarSpacer } from '@/components/system/composition'
 import Inspector from '@/components/system/Inspector'
@@ -168,7 +169,7 @@ export default function EvidenceChain() {
         <StateBlock
           state="unavailable"
           title="The registry could not be read"
-          detail={`The request failed with: ${error}. No leaderboard is shown in its place — a registry that cannot be read is not a registry with no models in it.`}
+          detail={`${readerError(error)}. No leaderboard is shown in its place — a registry that cannot be read is not a registry with no models in it.`}
         />
       </Panel>
     )

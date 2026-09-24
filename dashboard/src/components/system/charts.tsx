@@ -105,52 +105,6 @@ export function ChartFrame({
   )
 }
 
-/* ── sparkline ─────────────────────────────────────────────────────────── */
-
-export function Sparkline({
-  values, width = 96, height = 22, tone = true,
-}: {
-  values: (number | null)[]
-  width?: number
-  height?: number
-  tone?: boolean
-}) {
-  const finite = values.filter((v): v is number => v !== null && Number.isFinite(v))
-  if (finite.length < 2) {
-    return <span className="sys-null" style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)' }}>—</span>
-  }
-  const [lo, hi] = extent(finite)
-  const step = width / Math.max(1, values.length - 1)
-  const y = (v: number) => height - ((v - lo) / (hi - lo)) * height
-
-  // Gaps break the path rather than being bridged.
-  const segments: string[] = []
-  let current: string[] = []
-  values.forEach((v, i) => {
-    if (v === null || !Number.isFinite(v)) {
-      if (current.length > 1) segments.push(current.join(' '))
-      current = []
-      return
-    }
-    current.push(`${current.length ? 'L' : 'M'}${(i * step).toFixed(2)},${y(v).toFixed(2)}`)
-  })
-  if (current.length > 1) segments.push(current.join(' '))
-
-  const last = finite[finite.length - 1]
-  const first = finite[0]
-  const stroke = tone
-    ? last >= first ? 'var(--e-pos)' : 'var(--e-neg)'
-    : 'var(--ink-muted)'
-
-  return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} role="img" aria-label="sparkline" style={{ display: 'block', overflow: 'visible' }}>
-      {segments.map((d) => (
-        <path key={d.slice(0, 24)} d={d} fill="none" stroke={stroke} strokeWidth={1} vectorEffect="non-scaling-stroke" />
-      ))}
-    </svg>
-  )
-}
-
 /* ── time series ───────────────────────────────────────────────────────── */
 
 /**

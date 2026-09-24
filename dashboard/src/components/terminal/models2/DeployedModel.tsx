@@ -24,6 +24,7 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { Metric, MetricGrid, Panel, Prose, StateBlock, Status, Value } from '@/components/system'
+import { readerError } from '@/lib/failure'
 import { quantFetch } from '@/lib/quantApi'
 
 interface DeployedModelInfo {
@@ -177,7 +178,7 @@ export default function DeployedModel() {
           <StateBlock
             state="unavailable"
             title="No prediction is produced"
-            detail={`${status?.health?.error ?? status?.health?.detail ?? 'The inference service is not configured.'} ${status?.health?.remedy ?? ''}`}
+            detail={`${status?.health?.error ? `${readerError(status.health.error)}.` : status?.health?.detail ?? 'The inference service is not configured.'} ${status?.health?.remedy ?? ''}`}
           >
             <Prose size="tight">
               The research evidence elsewhere on this page is read from local

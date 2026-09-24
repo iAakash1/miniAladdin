@@ -2,13 +2,14 @@
 
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
-import PageHeader from '@/components/ui/PageHeader'
 import EmptyState from '@/components/ui/EmptyState'
 import Skeleton from '@/components/ui/Skeleton'
 import Tooltip from '@/components/ui/Tooltip'
 import { FACTOR_LABELS, diffSnapshots, useAllHistory } from '@/lib/history'
 import ConfirmButton from '@/components/ui/ConfirmButton'
 import CompanyMark from '@/components/ui/CompanyMark'
+import CompanyIdentity from '@/components/visual/CompanyIdentity'
+import SymbolSpark from '@/components/visual/SymbolSpark'
 import { ConfidenceBar, StatusPill, TrendMark } from '@/components/ui/DataMarks'
 import { notify } from '@/components/ui/Toasts'
 import { fmtPctRaw, timeAgo } from '@/lib/format'
@@ -16,6 +17,7 @@ import PositionsPanel from '@/components/terminal/PositionsPanel'
 import PortfolioIntelligence from '@/components/terminal/PortfolioIntelligence'
 import { refreshQuotes } from '@/lib/quote-hub'
 import { useQuotes } from '@/lib/use-quotes'
+import { useResearchHistory } from '@/lib/use-research-history'
 import {
   SUGGESTED_LISTS,
   type Watchlist,
@@ -208,6 +210,8 @@ export default function PortfolioView() {
   const lists = useWatchlists()
   const wlStatus = useWatchlistsStatus()
   const history = useAllHistory()
+  // Company names from the account's research record — a database read.
+  const research = useResearchHistory()
   const [activeId, setActiveId] = useState<string | null>(null)
   const [newName, setNewName] = useState('')
   const [addSymbol, setAddSymbol] = useState('')
@@ -334,22 +338,12 @@ export default function PortfolioView() {
 
   return (
     <div className="page-stack">
-      {/* Portfolio was the only route with no header at all: it opened
-          straight into the watchlist switcher, which butted against the
-          global nav and read as content clipped underneath it. The layout
-          was never wrong — 28px of clearance was always there — the page
-          simply had nothing establishing it. */}
-      <PageHeader
-        eyebrow="Portfolio"
-        title="Watchlists & positions"
-        lede="Every name you track, scored by the same engine as a full research report. Watchlists sync to your account; positions stay on this device."
-        meta={
-          <>
-            <span>{lists.length} list{lists.length === 1 ? '' : 's'}</span>
-            <span>{rows.length} name{rows.length === 1 ? '' : 's'} tracked</span>
-          </>
-        }
-      />
+      <p className="pf-summary">
+        <span><b className="sys-num">{lists.length}</b> list{lists.length === 1 ? '' : 's'}</span>
+        <span><b className="sys-num">{rows.length}</b> name{rows.length === 1 ? '' : 's'} in {active?.name ?? 'this list'}</span>
+        <span><b className="sys-num">{rows.filter((r) => r.latest).length}</b> researched in this browser</span>
+        <span>watchlists sync to your account · positions stay on this device</span>
+      </p>
 
       {/* List switcher */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
@@ -482,6 +476,7 @@ export default function PortfolioView() {
                     <SortHeader col="price" sort={sort} onSort={setSort} num>Price</SortHeader>
                     <SortHeader col="change_1d" sort={sort} onSort={setSort} num>1D</SortHeader>
                     <SortHeader col="change_1w" sort={sort} onSort={setSort} num>1W</SortHeader>
+                    <th scope="col">3 months</th>
                     <SortHeader col="verdict" sort={sort} onSort={setSort}>Verdict</SortHeader>
                     <th scope="col">Previous</th>
                     <th scope="col">Change</th>
@@ -495,16 +490,12 @@ export default function PortfolioView() {
                   {sortedRows.map(({ ticker, quote, latest, previous, diff }) => (
                     <tr key={ticker}>
                       <td>
-                        <span className="u-row" style={{ gap: 8, flexWrap: 'nowrap' }}>
-                        <CompanyMark ticker={ticker} />
-                        <Link
-                          href={`/company/${ticker}`}
-                          className="mono"
-                          style={{ fontWeight: 600, color: 'var(--text)' }}
-                        >
-                          {ticker}
-                        </Link>
-                        </span>
+                        <CompanyIdentity
+                          symbol={ticker}
+                          name={research.latest(ticker)?.company_name}
+                          size="sm"
+                          href={`/company/${encodeURIComponent(ticker)}`}
+                        />
                       </td>
                       <td className="num">
                         {loadingQuotes && !quote ? <Skeleton width={54} height={14} /> :
@@ -512,6 +503,7 @@ export default function PortfolioView() {
                       </td>
                       <td style={{ textAlign: 'right' }}><ChangeCell value={quote?.change_1d} /></td>
                       <td style={{ textAlign: 'right' }}><ChangeCell value={quote?.change_1w} /></td>
+                      <td><SymbolSpark symbol={ticker} width={84} height={20} /></td>
                       <td>
                         {latest ? (
                           <span className={`badge ${verdictTone(latest.verdict)}`} style={{ height: 19, fontSize: '0.625rem' }}>
@@ -567,11 +559,10 @@ export default function PortfolioView() {
                       </td>
                       <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                         <Link
-                          href={`/company/${ticker}`}
+                          href={`/company/${encodeURIComponent(ticker)}`}
                           className="btn btn--ghost btn--xs"
-                         
                         >
-                          Explain
+                          Open
                         </Link>
                         <ConfirmButton
                           className="btn btn--ghost btn--xs reveal"
@@ -592,9 +583,8 @@ export default function PortfolioView() {
             </div>
           )}
           <p className="u-meta">
-            Verdict columns come from your own analysis runs, stored in this browser (see “Where is
-            this stored?” below) — run Analyze on a ticker to populate them. Quotes via the provider
-            fallback chain.
+            Verdict columns come from research runs recorded in this browser — open a company to run
+            one. Quotes via the provider fallback chain; trends are three months of daily closes.
           </p>
 
           <PositionsPanel />

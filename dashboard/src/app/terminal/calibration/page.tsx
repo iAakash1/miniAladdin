@@ -5,7 +5,7 @@ import Calibration from '@/components/terminal/validation/Calibration'
 import { Panel, StateBlock } from '@/components/system'
 
 export const metadata: Metadata = {
-  title: 'Calibration — miniAladdin',
+  title: 'Calibration',
   description: 'Does a score mean what it says: calibration, confusion, population stability and rolling IC for one name.',
 }
 
