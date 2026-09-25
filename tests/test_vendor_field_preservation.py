@@ -460,3 +460,28 @@ def test_adjusted_closes_are_preferred_wherever_a_vendor_offers_them():
         bar = MarketStackVendor().get_series("AAPL", "1mo").bars[0]
     assert bar.close == 100.0
     assert bar.volume == 40
+
+
+def test_marketstack_series_is_the_latest_window_in_date_order():
+    """sort=ASC let `limit` select the oldest sessions of the vendor's archive,
+    so a 3-month AAPL series ended in February and its close was served as
+    the current quote. The newest sessions must be requested, then ordered."""
+    from src.providers.vendors.market_vendors import MarketStackVendor
+
+    seen = {}
+    newest_first = {"data": [
+        {"date": "2026-09-24T00:00:00+0000", "close": 335.9, "volume": 1},
+        {"date": "2026-09-23T00:00:00+0000", "close": 337.0, "volume": 1},
+        {"date": "2026-09-22T00:00:00+0000", "close": 333.1, "volume": 1},
+    ]}
+
+    def fake(self, url, params=None, **kwargs):
+        seen.update(params or {})
+        return newest_first
+
+    with patch.object(MarketStackVendor, "_get_json", fake):
+        series = MarketStackVendor().get_series("AAPL", "3mo")
+
+    assert seen["sort"] == "DESC"
+    assert [bar.date for bar in series.bars] == ["2026-09-22", "2026-09-23", "2026-09-24"]
+    assert series.bars[-1].close == 335.9

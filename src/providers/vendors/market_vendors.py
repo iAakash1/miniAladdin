@@ -635,14 +635,18 @@ class MarketStackVendor(VendorClient):
     BASE = "https://api.marketstack.com/v1"
 
     def get_series(self, symbol: str, period: str) -> Optional[PriceSeries]:
+        # Newest first, then put in date order. Marketstack applies `limit`
+        # after sorting, so sort=ASC took the oldest end of its archive: a
+        # three-month request ended on 2026-02-05, and that close was served
+        # as AAPL's current price in September.
         data = self._get_json(
             f"{self.BASE}/eod",
             params={
                 "access_key": self.api_key, "symbols": symbol,
-                "limit": min(_period_to_days(period), 1000), "sort": "ASC",
+                "limit": min(_period_to_days(period), 1000), "sort": "DESC",
             },
         )
-        rows = data.get("data") or []
+        rows = sorted(data.get("data") or [], key=lambda item: str(item.get("date", "")))
         bars = []
         for item in rows:
             # Adjusted values where the vendor supplies them, raw otherwise.
