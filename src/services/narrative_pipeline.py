@@ -35,7 +35,7 @@ logger = logging.getLogger("omnisignal.narrative")
 
 SCHEMA_VERSION = "grounded-narrative-v1"
 GROQ_PROMPT_VERSION = "groq-analyst-v4"
-DEEPSEEK_PROMPT_VERSION = "deepseek-final-v7"
+DEEPSEEK_PROMPT_VERSION = "deepseek-final-v8"
 DEFAULT_GROQ_MODEL = "openai/gpt-oss-120b"
 DEFAULT_DEEPSEEK_FAST_MODEL = "deepseek-flash"
 DEFAULT_DEEPSEEK_PRO_MODEL = "deepseek-v4-pro"
@@ -489,10 +489,24 @@ def _allowed_numeric_tokens(evidence: list[EvidenceItem]) -> dict[str, list[str]
     return allowed
 
 
+def _presentable(token: str) -> bool:
+    """Whether a spelling belongs in prose.
+
+    A value held at full float precision is grounded, but offering
+    "52.2728230052" as a spelling put that figure in a report beside the
+    engine's "52/100".  The validator still accepts it; the contract simply
+    stops suggesting it.
+    """
+    return len(token.rstrip("%").partition(".")[2]) <= 4
+
+
 def _grounding_contract(evidence: list[EvidenceItem]) -> dict[str, Any]:
     return {
         "allowed_evidence_ids": [item.id for item in evidence],
-        "allowed_numeric_tokens_by_evidence_id": _allowed_numeric_tokens(evidence),
+        "allowed_numeric_tokens_by_evidence_id": {
+            evidence_id: [token for token in tokens if _presentable(token)] or tokens
+            for evidence_id, tokens in _allowed_numeric_tokens(evidence).items()
+        },
     }
 
 
@@ -961,14 +975,26 @@ def _sanitize_narrative(
 
     for name, section in _sections(narrative):
         refs = set(section.evidence_ids)
-        invalid = bool(refs - known) or bool(section.text.strip() and not refs)
-        invalid = invalid or any(token.lower() in section.text.lower() for token in forbidden)
-        if not invalid and section.text.strip():
-            invalid = bool(_unsupported_numbers(
-                section.text, [by_id[evidence_id] for evidence_id in refs],
-            ))
-        if not invalid:
+        rejected: list[str] = []
+        if refs - known:
+            reason = "unknown_evidence_ids"
+        elif section.text.strip() and not refs:
+            reason = "uncited_prose"
+        elif any(token.lower() in section.text.lower() for token in forbidden):
+            reason = "forbidden_material"
+        elif section.text.strip() and (rejected := _unsupported_numbers(
+            section.text, [by_id[evidence_id] for evidence_id in refs],
+        )):
+            reason = "unsupported_numbers"
+        else:
             continue
+        # Why a section was withheld, as ids and numeric tokens only — never
+        # the prose — so a dropped section can be diagnosed without logging
+        # model text or evidence.
+        logger.info(
+            "narrative section withheld: section=%s reason=%s cited=%s rejected=%s",
+            name, reason, sorted(item[:64] for item in refs)[:12], rejected[:6],
+        )
         dropped.append(name)
         if "." in name:
             root, index = name.split(".", 1)

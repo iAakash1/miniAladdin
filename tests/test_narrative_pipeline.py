@@ -270,6 +270,43 @@ def test_invalid_optional_section_is_dropped_without_provider_retry(monkeypatch)
     assert result["validation"]["status"] == "PASSED"
 
 
+def test_a_withheld_section_is_logged_by_reason_and_token_not_prose(caplog):
+    """A dropped section must be diagnosable without logging model text."""
+    evidence = pipeline.build_evidence_envelope(_payload())
+    value = json.loads(_narrative("decision.confidence"))
+    value["bear_case"] = {
+        "text": "Confidential phrasing aside, momentum is 999.9% stretched.",
+        "evidence_ids": ["decision.confidence"],
+    }
+    narrative = pipeline.GroundedNarrative.model_validate(value)
+
+    with caplog.at_level("INFO", logger="omnisignal.narrative"):
+        _, dropped = pipeline._sanitize_narrative(narrative, evidence)
+
+    assert dropped == ["bear_case"]
+    logged = "\n".join(record.getMessage() for record in caplog.records)
+    assert "section=bear_case reason=unsupported_numbers" in logged
+    assert "999.9%" in logged and "decision.confidence" in logged
+    assert "Confidential phrasing" not in logged and "stretched" not in logged
+
+
+def test_the_contract_offers_no_full_float_precision_spelling():
+    """Observed live: "a risk score of 52.2728230052" beside the engine's 52/100."""
+    payload = _payload()
+    payload["quant"]["risk_score"] = 52.2728230052
+    evidence = pipeline.build_evidence_envelope(payload)
+    offered = pipeline._grounding_contract(evidence)["allowed_numeric_tokens_by_evidence_id"]
+
+    assert "52.2728230052" not in offered["quant.risk_score"]
+    assert {"52", "52.3", "52.27"} <= set(offered["quant.risk_score"])
+    # Still grounded: the validator accepts the exact value; it is only no
+    # longer suggested to the writer.
+    exact = pipeline.GroundedNarrative.model_validate(json.loads(
+        _narrative("quant.risk_score", "The risk score is 52.2728230052.")
+    ))
+    pipeline.validate_narrative(exact, evidence)
+
+
 def test_invalid_executive_is_replaced_only_with_engine_fields():
     evidence = pipeline._narrative_evidence(pipeline.build_evidence_envelope(_payload()))
     narrative = pipeline.GroundedNarrative.model_validate(json.loads(
