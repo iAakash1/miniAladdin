@@ -127,13 +127,57 @@ def test_supported_negative_numeric_claim_keeps_its_sign():
 
 def test_deterministic_display_rounding_is_allowed_for_cited_evidence():
     payload = _payload()
-    payload["quant"]["factors"][0]["contribution"] = 0.1763
+    payload["technicals"]["return_21d"] = 0.1763
     evidence = pipeline.build_evidence_envelope(payload)
     narrative = pipeline.GroundedNarrative.model_validate(json.loads(
-        _narrative("factor.r12_1.contribution", "Momentum contributed 17.6%.")
+        _narrative("technical.return_21d", "The stock returned 17.6% over 21 days.")
     ))
 
     pipeline.validate_narrative(narrative, evidence)
+
+
+def test_a_unitless_score_may_not_be_spelled_as_a_percentage():
+    """Observed live: a +0.21 composite written as "21%", a contribution as "17.6%"."""
+    payload = _payload()
+    payload["quant"]["factors"][0]["contribution"] = 0.1763
+    evidence = pipeline.build_evidence_envelope(payload)
+    as_percent = pipeline.GroundedNarrative.model_validate(json.loads(
+        _narrative("factor.r12_1.contribution", "Momentum contributed 17.6%.")
+    ))
+    with pytest.raises(ValueError, match="unsupported numeric claims"):
+        pipeline.validate_narrative(as_percent, evidence)
+
+    as_decimal = pipeline.GroundedNarrative.model_validate(json.loads(
+        _narrative("factor.r12_1.contribution", "Momentum contributed 0.18 to the score.")
+    ))
+    pipeline.validate_narrative(as_decimal, evidence)
+
+
+def test_a_yield_spread_in_points_is_not_a_percentage_of_one():
+    """Observed live: a 0.31-point spread described as "a 31% yield spread"."""
+    payload = _payload()
+    payload["macro"]["yield_spread"] = 0.31
+    evidence = pipeline.build_evidence_envelope(payload)
+    wrong = pipeline.GroundedNarrative.model_validate(json.loads(
+        _narrative("macro.yield_spread", "The curve shows a 31% yield spread.")
+    ))
+    with pytest.raises(ValueError, match="unsupported numeric claims"):
+        pipeline.validate_narrative(wrong, evidence)
+
+    assert "0.31" in pipeline._allowed_numeric_tokens(evidence)["macro.yield_spread"]
+
+
+def test_a_rate_reported_as_a_percent_literal_is_grounded():
+    """FRED rates arrive as "3.63%"; skipping them rejected every macro paragraph."""
+    payload = _payload()
+    payload["macro"]["fed_funds_rate"] = "3.63%"
+    evidence = pipeline.build_evidence_envelope(payload)
+    narrative = pipeline.GroundedNarrative.model_validate(json.loads(
+        _narrative("macro.fed_funds_rate", "The fed funds rate stands at 3.63%.")
+    ))
+
+    pipeline.validate_narrative(narrative, evidence)
+    assert "3.6%" in pipeline._allowed_numeric_tokens(evidence)["macro.fed_funds_rate"]
 
 
 def test_numeric_claim_must_match_the_evidence_cited_by_its_section():
@@ -163,7 +207,8 @@ def test_final_prompt_exposes_mechanical_grounding_contract(monkeypatch):
     assert "decision.confidence" in request["allowed_evidence_ids"]
     numeric = request["allowed_numeric_tokens_by_evidence_id"]
     assert numeric["decision.confidence"] == ["70", "70%"]
-    assert {"0.18", "18%"} <= set(numeric["factor.r12_1.contribution"])
+    assert "0.18" in numeric["factor.r12_1.contribution"]
+    assert "18%" not in numeric["factor.r12_1.contribution"]
 
 
 def test_narrative_packet_is_bounded_without_losing_decision_evidence():

@@ -35,7 +35,7 @@ logger = logging.getLogger("omnisignal.narrative")
 
 SCHEMA_VERSION = "grounded-narrative-v1"
 GROQ_PROMPT_VERSION = "groq-analyst-v4"
-DEEPSEEK_PROMPT_VERSION = "deepseek-final-v6"
+DEEPSEEK_PROMPT_VERSION = "deepseek-final-v7"
 DEFAULT_GROQ_MODEL = "openai/gpt-oss-120b"
 DEFAULT_DEEPSEEK_FAST_MODEL = "deepseek-flash"
 DEFAULT_DEEPSEEK_PRO_MODEL = "deepseek-v4-pro"
@@ -333,7 +333,9 @@ Copy evidence ids verbatim.  When using a number, copy one of the deterministic
 display tokens for that section's cited evidence from ALLOWED NUMERIC TOKENS;
 otherwise omit it.  ALLOWED EVIDENCE IDS and ALLOWED NUMERIC TOKENS are
 mechanically generated contracts, not suggestions.  Never infer a number from
-an id, field name or analyst summary.
+an id, field name or analyst summary.  A value whose allowed tokens carry no %
+sign is a unitless score, contribution, multiplier or index: write it as the
+listed decimal and never describe it as a percentage.
 
 OUTPUT
 Return one JSON object and nothing else.  Every prose section has exactly
@@ -439,8 +441,26 @@ def _rounded_tokens(value: float, *, percent: bool = False) -> list[str]:
         rendered = f"{value:.{decimals}f}"
         if "." in rendered:
             rendered = rendered.rstrip("0").rstrip(".")
+        if value != 0 and float(rendered) == 0:
+            continue  # a 0.31-point spread is not "0%"
         tokens.append(f"{rendered}{suffix}")
     return list(dict.fromkeys(tokens))
+
+
+#: Fractions a reader expects to see as percentages: a 0.086 21-day return is
+#: "8.6%", a 0.40 factor weight is "40%".  Every other value between -1 and 1 in
+#: the envelope is unitless — a composite score, a factor contribution, the
+#: macro gate, a conflict or uncertainty index, a beta.  Spelling those as
+#: percentages was accepted before, and the writer used it: a +0.21 composite
+#: became "21%" and a 0.31-point yield spread became "a 31% yield spread".
+_FRACTION_AS_PERCENT = re.compile(
+    r"technical\.(?:return_\d+d|volatility|max_drawdown)|factor\.[a-z0-9_]+\.weight"
+)
+
+#: A figure a provider reports already formatted as a percentage, e.g. the
+#: FRED fed funds rate "3.63%".  It is the measurement itself, so its percent
+#: spellings are grounded; skipping it rejected every sentence that cited it.
+_PERCENT_LITERAL = re.compile(r"\s*([+-]?\d+(?:\.\d+)?)\s*%\s*")
 
 
 def _allowed_numeric_tokens(evidence: list[EvidenceItem]) -> dict[str, list[str]]:
@@ -449,15 +469,21 @@ def _allowed_numeric_tokens(evidence: list[EvidenceItem]) -> dict[str, list[str]
     allowed: dict[str, list[str]] = {}
     for item in evidence:
         value = item.value
+        percent = item.unit == "percent"
+        if isinstance(value, str):
+            literal = _PERCENT_LITERAL.fullmatch(value)
+            if literal is None:
+                continue
+            value, percent = float(literal.group(1)), True
         if isinstance(value, bool) or not isinstance(value, (int, float)):
             continue
         number = float(value)
         if not math.isfinite(number):
             continue
         tokens = [_display_number(value), *_rounded_tokens(number)]
-        if item.unit == "percent":
+        if percent:
             tokens.extend(_rounded_tokens(number, percent=True))
-        elif -1.0 <= number <= 1.0:
+        elif _FRACTION_AS_PERCENT.fullmatch(item.id):
             tokens.extend(_rounded_tokens(number * 100.0, percent=True))
         allowed[item.id] = list(dict.fromkeys(tokens))
     return allowed
