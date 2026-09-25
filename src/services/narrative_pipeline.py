@@ -24,6 +24,7 @@ import re
 import threading
 import time
 from dataclasses import dataclass
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -35,7 +36,7 @@ logger = logging.getLogger("omnisignal.narrative")
 
 SCHEMA_VERSION = "grounded-narrative-v1"
 GROQ_PROMPT_VERSION = "groq-analyst-v4"
-DEEPSEEK_PROMPT_VERSION = "deepseek-final-v8"
+DEEPSEEK_PROMPT_VERSION = "deepseek-final-v9"
 DEFAULT_GROQ_MODEL = "openai/gpt-oss-120b"
 DEFAULT_DEEPSEEK_FAST_MODEL = "deepseek-flash"
 DEFAULT_DEEPSEEK_PRO_MODEL = "deepseek-v4-pro"
@@ -437,13 +438,23 @@ def _rounded_tokens(value: float, *, percent: bool = False) -> list[str]:
     # above one may use normal desk-style whole/one-decimal presentation;
     # fractional raw values retain at least two decimals.
     decimal_places = (0, 1, 2) if percent or abs(value) >= 1 else (2, 3, 4)
+    # Rounded from the value's own decimal spelling, half up, the way a reader
+    # rounds it: 0.1485 is "0.149".  Formatting the binary float alone gave
+    # "0.148" (it is 0.14849999...), which rejected the writer's correct
+    # rounding of a cited score.  That spelling is kept as well, so nothing
+    # previously accepted is refused.
+    exact = Decimal(repr(value))
     for decimals in decimal_places:
-        rendered = f"{value:.{decimals}f}"
-        if "." in rendered:
-            rendered = rendered.rstrip("0").rstrip(".")
-        if value != 0 and float(rendered) == 0:
-            continue  # a 0.31-point spread is not "0%"
-        tokens.append(f"{rendered}{suffix}")
+        quantum = Decimal(1).scaleb(-decimals)
+        for rendered in (
+            f"{exact.quantize(quantum, rounding=ROUND_HALF_UP):f}",
+            f"{value:.{decimals}f}",
+        ):
+            if "." in rendered:
+                rendered = rendered.rstrip("0").rstrip(".")
+            if value != 0 and float(rendered) == 0:
+                continue  # a 0.31-point spread is not "0%"
+            tokens.append(f"{rendered}{suffix}")
     return list(dict.fromkeys(tokens))
 
 

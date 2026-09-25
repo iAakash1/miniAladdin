@@ -136,6 +136,38 @@ def test_deterministic_display_rounding_is_allowed_for_cited_evidence():
     pipeline.validate_narrative(narrative, evidence)
 
 
+def test_a_decimal_tie_rounds_the_way_a_reader_rounds_it():
+    """Observed live (NVDA): a cited news score of 0.1485 written "0.149" was
+    withheld, because 0.1485 is 0.14849999... in binary and only "0.148" was
+    offered. Both roundings of the displayed value are now accepted."""
+    payload = _payload()
+    payload["quant"]["news_score"] = 0.1485
+    evidence = pipeline.build_evidence_envelope(payload)
+    for spelling in ("0.149", "0.148", "0.15", "0.1485"):
+        narrative = pipeline.GroundedNarrative.model_validate(json.loads(
+            _narrative("quant.news_score", f"The news score is {spelling}.")
+        ))
+        pipeline.validate_narrative(narrative, evidence)
+
+
+def test_a_dropped_minus_sign_is_still_withheld():
+    """Observed live (NVDA, eleven sections): asset growth contributed -0.0476
+    and the writer wrote "0.048". The sign is the claim; keep failing closed."""
+    payload = _payload()
+    payload["quant"]["factors"][0]["contribution"] = -0.0476
+    evidence = pipeline.build_evidence_envelope(payload)
+    unsigned = pipeline.GroundedNarrative.model_validate(json.loads(
+        _narrative("factor.r12_1.contribution", "Asset growth weighs on quality by 0.048.")
+    ))
+    with pytest.raises(ValueError, match="unsupported numeric claims"):
+        pipeline.validate_narrative(unsigned, evidence)
+
+    signed = pipeline.GroundedNarrative.model_validate(json.loads(
+        _narrative("factor.r12_1.contribution", "Asset growth contributes -0.048.")
+    ))
+    pipeline.validate_narrative(signed, evidence)
+
+
 def test_a_unitless_score_may_not_be_spelled_as_a_percentage():
     """Observed live: a +0.21 composite written as "21%", a contribution as "17.6%"."""
     payload = _payload()
