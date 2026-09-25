@@ -12,15 +12,19 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
 /**
  * A failed read in the reader's terms. The status decides the wording —
- * throttled, not entitled, signed out, not found, or unavailable — and the raw
+ * busy, not entitled, signed out, not found, or unavailable — and the raw
  * message is kept only as a sanitised technical detail, never as the headline.
  */
 export function describeFailure(error: unknown, what: string): Failure {
   const raw = error instanceof Error ? error.message : null
   const technical = raw ? (sanitizeError(raw) ?? '').slice(0, 240) || null : null
   const status = error instanceof ResourceError ? error.status : null
+  // A vendor's throttling never reaches the browser as an HTTP 429: the
+  // backend retries it and reports it inside the evidence. A 429 here is the
+  // research server itself refusing for lack of capacity, after the proxy has
+  // already retried it.
   if (status === 429) {
-    return { title: `${cap(what)} rate limited`, detail: 'The provider is throttling requests. Try again shortly.', technical }
+    return { title: `${cap(what)} delayed`, detail: 'The research server is busy with other requests. Try again shortly.', technical }
   }
   if (status === 401) {
     return { title: 'Sign-in required', detail: `${cap(what)} needs a signed-in session.`, technical }
@@ -46,7 +50,7 @@ export function describeFailure(error: unknown, what: string): Failure {
 export function readerError(message?: string | null): string {
   const m = message ?? ''
   const status = Number(/\b([45]\d\d)\b/.exec(m)?.[1] ?? NaN)
-  if (status === 429) return 'The provider is throttling requests'
+  if (status === 429) return 'The research server is busy with other requests'
   if (status === 401) return 'A signed-in session is required'
   if (status === 403) return 'This deployment does not include this data'
   if (status === 404) return 'The service holds nothing for this request'

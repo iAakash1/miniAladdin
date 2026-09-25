@@ -87,6 +87,25 @@ test('a protected read waits for the Clerk hook bridge when no global exists', a
   assert.equal(calls[0]?.authorization, 'Bearer token-bridge')
 })
 
+test('reads issued before the session registers still share one request', async () => {
+  // A page's first reads come from child effects, which run before the
+  // provider above them registers the session: two panels, one record.
+  Object.defineProperty(globalThis, 'window', {
+    configurable: true,
+    value: { Clerk: { session: null, user: null } },
+  })
+  const pending = Promise.all([
+    readAuthResource('/api/history?page=1&page_size=50', 'snapshot'),
+    readAuthResource('/api/history?page=1&page_size=50', 'snapshot'),
+  ])
+  configureAuthSession({ scope: 'session-late', getToken: async () => 'token-late' })
+
+  await pending
+
+  assert.equal(calls.length, 1)
+  assert.equal(calls[0]?.authorization, 'Bearer token-late')
+})
+
 test('authenticated reads retain single-flight and TTL behavior within one session', async () => {
   const answers = await Promise.all([
     readAuthResource('/api/paper/account', 'snapshot'),

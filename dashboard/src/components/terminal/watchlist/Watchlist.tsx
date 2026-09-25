@@ -76,7 +76,10 @@ export default function Watchlist({ limit = 10 }: { limit?: number }) {
                         {run.confidence !== null ? <span className="home-run__c sys-num">{run.confidence}</span> : null}
                         <span className="home-run__t">{age(run.created_at)}</span>
                       </span>
-                    ) : <span className="home-dim">not researched</span>}
+                    ) : research.status === 'ready' ? <span className="home-dim">not researched</span>
+                      /* Absence is only known once the record has been read. */
+                      : research.status === 'loading' ? <span className="home-dim">reading…</span>
+                        : <span className="home-dim" title="The research record could not be read">record unavailable</span>}
                   </td>
                 </tr>
               )

@@ -14,8 +14,17 @@ type Tone = 'pos' | 'warn' | 'neg' | 'muted' | 'info'
 
 interface QuantStatus {
   production?: number | null
-  holdout?: { touched?: boolean }
-  firewall?: { contract_state?: 'ARMED' | 'NOT_ARMED' | 'UNKNOWN' }
+}
+
+/** Each study's manifest records whether it read the holdout. */
+interface ResearchRecord {
+  experiments?: Array<{ holdout_touched?: boolean }>
+}
+
+interface Governance {
+  production: number | null
+  /** Recorded, not verified: untouched is not the same claim as sealed. */
+  holdout: 'untouched' | 'spent' | null
 }
 
 const STATE_TONE: Record<ResearchState, Tone> = {
@@ -62,7 +71,19 @@ function notCurrent<T>(read: Observed<T> | null, render: (v: T) => string): { to
 
 const loadProviders = () =>
   readResource<{ providers?: Record<string, VendorSnapshot[]> }>('/api/providers/health', 'snapshot')
-const loadGovernance = () => readResource<QuantStatus>('/api/quant/status', 'snapshot')
+// /api/quant/status carries no holdout reading. The research record does —
+// per study, the same flags Quant Lab lists — and is read from the same cache.
+const loadGovernance = async (): Promise<Governance> => {
+  const [status, record] = await Promise.all([
+    readResource<QuantStatus>('/api/quant/status', 'snapshot'),
+    readResource<ResearchRecord>('/api/quant/research-history', 'artifact').catch(() => null),
+  ])
+  const studies = record?.experiments ?? []
+  return {
+    production: status.production ?? null,
+    holdout: studies.length === 0 ? null : studies.some((e) => e.holdout_touched === true) ? 'spent' : 'untouched',
+  }
+}
 const loadMacro = () => fetchMacroClient().then((m) => {
   if (!m) throw new Error('macro unavailable')
   return m
@@ -123,15 +144,15 @@ export default function StatusBar({ pageFacts }: {
         value: `${macroLine(m)}${m.stale ? ' · stale' : ''}`,
       })
 
-  const governanceLine = (g: QuantStatus) => [
+  const governanceLine = (g: Governance) => [
     g.production && g.production > 0 ? `${g.production} model${g.production === 1 ? '' : 's'} promoted` : 'no model promoted',
-    g.holdout?.touched === undefined ? 'holdout state not reported' : g.holdout.touched ? 'holdout spent' : 'holdout sealed',
+    g.holdout === null ? 'holdout state not reported' : `holdout ${g.holdout}`,
   ].join(' · ')
   const g = governance?.state === 'observed' ? governance.value : null
   const governanceFact = notCurrent(governance, governanceLine) ?? (
     !g
       ? { tone: 'muted' as Tone, value: 'status unavailable' }
-      : { tone: (g.holdout?.touched ? 'warn' : 'info') as Tone, value: governanceLine(g) })
+      : { tone: (g.holdout === 'spent' ? 'warn' : 'info') as Tone, value: governanceLine(g) })
 
   const build = (process.env.NEXT_PUBLIC_BUILD_SHA ?? 'unknown').slice(0, 7)
 

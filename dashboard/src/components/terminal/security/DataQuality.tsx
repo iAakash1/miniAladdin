@@ -545,10 +545,10 @@ export default function DataQuality({ symbol }: { symbol: string }) {
       ) : null}
 
       <Prose size="fine">
-        Every count here was counted, not scored. There is no quality grade,
-        because a grade would fold coverage, agreement and freshness — three
-        things with different causes and different remedies — into one number
-        that hides all three. Agreement between providers is evidence that a
+        Every count here was counted, not scored. This panel adds no grade of
+        its own: coverage, agreement and freshness have different causes and
+        different remedies, so they are kept apart here rather than folded
+        into one number. Agreement between providers is evidence that a
         figure was recorded consistently; it is not evidence that it is right,
         and vendors sharing an upstream source can agree in error.
       </Prose>

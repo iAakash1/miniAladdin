@@ -6,12 +6,17 @@
  * paper host and refuses to start against any other. The live host is shown
  * as refused because it is — there is no configuration that reaches it.
  */
-export default function PaperGates({ state }: {
-  /** Which gate is currently closed, when one is. */
-  state?: 'credentials' | 'owners' | 'open'
-}) {
-  const owners = state === 'owners' ? 'closed' : 'open'
-  const creds = state === 'credentials' ? 'closed' : 'open'
+/** What the server reported about one gate; `unknown` when it was not checked. */
+export type GateState = 'open' | 'closed' | 'unknown'
+
+/**
+ * Each gate is drawn from its own reading. Both can be closed at once — a
+ * deployment with neither credentials nor operators is the default — and a
+ * gate that was never checked is drawn neutral rather than passed.
+ */
+export default function PaperGates({ who, where }: { who: GateState; where: GateState }) {
+  const owners = who
+  const creds = where
   return (
     <figure className="pg" aria-label="How a paper order reaches the broker">
       <ol className="pg-flow">

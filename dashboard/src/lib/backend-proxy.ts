@@ -20,6 +20,11 @@ const RESPONSE_BLOCKED_HEADERS = new Set([
   'x-serverless-authorization',
 ])
 const MAX_BACKEND_RESPONSE_BYTES = 8 * 1024 * 1024
+// The route's maxDuration is 120 s. Every attempt, and every wait between
+// attempts, fits inside one budget with room left to write the response.
+const PROXY_BUDGET_MS = 115_000
+const CAPACITY_RETRY_BASE_MS = 250
+const CAPACITY_RETRY_MAX_MS = 2_000
 
 type CachedIdToken = { token: string; expiresAt: number }
 let cachedIdToken: CachedIdToken | null = null
@@ -121,7 +126,22 @@ function connectionScopedHeaders(headers: Headers, base: Set<string>): Set<strin
   return blocked
 }
 
+/**
+ * Cloud Run's own refusal when no instance can take a request.
+ *
+ * The service runs one instance at concurrency one, so a page that asks for
+ * ten things at once has nine of them refused — immediately, or after they
+ * have queued behind a slow research run. Cloud Run writes that 429 itself;
+ * the request never reached the application, which stamps X-Request-Id on
+ * every response it produces. Repeating such a request cannot run anything
+ * twice, whatever its method.
+ */
+function refusedByPlatform(upstream: Response): boolean {
+  return upstream.status === 429 && !upstream.headers.has('x-request-id')
+}
+
 export async function proxyBackend(request: Request, path: string[]): Promise<Response> {
+  const deadline = Date.now() + PROXY_BUDGET_MS
   const origin = required('BACKEND_ORIGIN').replace(/\/$/, '')
   const incomingUrl = new URL(request.url)
   const target = new URL(`${origin}/api/${path.map(encodeURIComponent).join('/')}`)
@@ -136,14 +156,23 @@ export async function proxyBackend(request: Request, path: string[]): Promise<Re
 
   const method = request.method.toUpperCase()
   const body = method === 'GET' || method === 'HEAD' ? undefined : await request.arrayBuffer()
-  const upstream = await fetch(target, {
-    method,
-    headers,
-    body,
-    redirect: 'manual',
-    cache: 'no-store',
-    signal: AbortSignal.timeout(120_000),
-  })
+  let upstream: Response
+  for (let attempt = 0; ; attempt += 1) {
+    upstream = await fetch(target, {
+      method,
+      headers,
+      body: body?.slice(0),
+      redirect: 'manual',
+      cache: 'no-store',
+      signal: AbortSignal.timeout(Math.max(1_000, deadline - Date.now())),
+    })
+    if (!refusedByPlatform(upstream) || request.signal?.aborted) break
+    // Jittered so a page's refused requests do not return in lockstep.
+    const wait = Math.min(CAPACITY_RETRY_MAX_MS, CAPACITY_RETRY_BASE_MS * 2 ** attempt) * (0.5 + Math.random() / 2)
+    if (Date.now() + wait + 1_000 >= deadline) break
+    await upstream.arrayBuffer().catch(() => undefined)
+    await new Promise((resolve) => setTimeout(resolve, wait))
+  }
   // Buffer the bounded JSON payload before returning it. A cross-origin
   // ReadableStream was observed to lose its body when the Render rollback
   // connection closed after Vercel had already emitted the response headers.

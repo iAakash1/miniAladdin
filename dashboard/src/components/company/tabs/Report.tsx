@@ -166,7 +166,9 @@ function Masthead({ a }: { a: Analysis }) {
     ['Confidence', a.engineConfidence !== null ? `${a.engineConfidence}/100` : '—', undefined],
     ['Risk', q ? `${q.riskScore} · ${(a.riskLevel ?? '').toLowerCase()}` : (a.riskLevel ?? '—').toLowerCase(), undefined],
     ['Evidence', a.decisionQuality ? a.decisionQuality.grade.toLowerCase() : '—', undefined],
-    ['Price', a.consensusPrice ? a.consensusPrice.consensus.toFixed(2) : '—', undefined],
+    // The price the engine analysed. The vendor consensus figure records no
+    // basis for how it was chosen and is shown only beside its readings.
+    ['Price', a.price !== null ? a.price.toFixed(2) : '—', undefined],
   ]
   return (
     <header className="rp-title" data-sector={sector ? sectorKey(sector) : undefined}>

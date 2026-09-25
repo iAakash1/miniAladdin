@@ -82,6 +82,22 @@ export function authSessionScope(): string | null {
   return clerk?.session?.id ?? clerk?.user?.id ?? null
 }
 
+/**
+ * The cache scope once Clerk has resolved.
+ *
+ * React runs a child's effects before its parent's, so a page's first reads
+ * are issued before the provider above them registers the session. Keyed
+ * then, they had no scope, skipped the shared cache, and two panels reading
+ * the same record sent two requests. authFetch waits for the session anyway;
+ * the key now waits with it.
+ */
+export async function resolvedAuthSessionScope(): Promise<string | null> {
+  const scope = authSessionScope()
+  if (scope || authSessionSource) return scope
+  const source = await waitForAuthSession()
+  return source?.scope ?? authSessionScope()
+}
+
 /** fetch() with the Clerk session token attached as a Bearer token. */
 export async function authFetch(path: string, init: RequestInit = {}): Promise<Response> {
   const token = await sessionToken()

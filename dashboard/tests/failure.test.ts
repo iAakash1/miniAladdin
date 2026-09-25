@@ -12,7 +12,7 @@ test('transport failures read as the service not being reachable', () => {
 
 test('status codes become plain words', () => {
   assert.equal(readerError('The analysis service returned an error (502).'), 'The service did not answer')
-  assert.equal(readerError('/api/options/AAPL returned 429'), 'The provider is throttling requests')
+  assert.equal(readerError('/api/options/AAPL returned 429'), 'The research server is busy with other requests')
   assert.equal(readerError('403 Forbidden'), 'This deployment does not include this data')
 })
 
@@ -25,7 +25,8 @@ test('structured or URL-bearing messages are replaced, short plain ones kept', (
 
 test('a described failure keeps the detail out of the headline', () => {
   const f = describeFailure(new ResourceError('/api/options/AAPL', 429, 'upstream 429 for https://x.io/q'), 'options data')
-  assert.equal(f.title, 'Options data rate limited')
+  assert.equal(f.title, 'Options data delayed')
+  assert.doesNotMatch(f.detail, /provider|throttl/)
   assert.doesNotMatch(f.title + f.detail, /429|https/)
   assert.ok(f.technical && !/https?:/.test(f.technical))
 })

@@ -116,7 +116,7 @@ export default function PaperWorkspace() {
       <>
         <Ribbon />
         <StateBlock state="blocked" title="Sign in required" detail={state.detail} />
-        <PaperGates state="owners" />
+        <PaperGates who="closed" where="open" />
       </>
     )
   }
@@ -134,7 +134,7 @@ export default function PaperWorkspace() {
             The paper account is one shared demonstration account, so being signed in is not enough:
             only named operators may use it. {state.detail}
           </p>
-          <PaperGates state="owners" />
+          <PaperGates who="closed" where="open" />
         </section>
       </>
     )
@@ -156,6 +156,7 @@ export default function PaperWorkspace() {
   if (state.at === 'unconfigured') {
     // Not a defect. A deployment without broker credentials is a deployment
     // that has not been given a paper account, which is the default state.
+    const operatorsSet = state.status.access?.enabled === true
     return (
       <>
         <Ribbon />
@@ -166,10 +167,15 @@ export default function PaperWorkspace() {
           </div>
           <p className="paper-closed__lede">
             A simulation environment for trying out ideas from the research. It needs an Alpaca paper
-            account on the server and a named operator; neither is set on this deployment, so no account
-            is connected. Market data, research, rankings and watchlists all work without it.
+            account on the server and a named operator;{' '}
+            {operatorsSet
+              ? 'operators are named, but no paper account is connected on this deployment.'
+              : 'neither is set on this deployment, so no account is connected.'}{' '}
+            Market data, research, rankings and watchlists all work without it.
           </p>
-          <PaperGates state="credentials" />
+          {/* The operator allowlist is known only as set or unset here; whether
+              this reader is on it is checked once an account exists. */}
+          <PaperGates who={operatorsSet ? 'unknown' : 'closed'} where="closed" />
           <dl className="paper-closed__needs">
             <div><dt>Broker credentials</dt><dd>APCA_API_KEY_ID and APCA_API_SECRET_KEY, server-side only</dd></div>
             <div><dt>Operators</dt><dd>PAPER_TRADING_OWNERS — the Clerk user ids allowed to use the account</dd></div>
@@ -186,7 +192,7 @@ export default function PaperWorkspace() {
       <AccountBand account={state.account} />
       <Positions positions={state.positions} />
       <Orders orders={state.orders} />
-      <PaperGates state="open" />
+      <PaperGates who="open" where="open" />
     </>
   )
 }

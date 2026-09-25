@@ -2,7 +2,7 @@
 
 /** Session-scoped reads for private API resources. */
 
-import { authFetch, authSessionScope } from './persistence'
+import { authFetch, authSessionScope, resolvedAuthSessionScope } from './persistence'
 import {
   clearResourceCachePrefix,
   readResource,
@@ -23,8 +23,8 @@ function sessionPrefix(scope: string): string {
  * caching is disabled. A private response can therefore never be reused by a
  * later browser session merely because the URL is the same.
  */
-export function readAuthResource<T>(url: string, policy: Policy = 'artifact'): Promise<T> {
-  const scope = authSessionScope()
+export async function readAuthResource<T>(url: string, policy: Policy = 'artifact'): Promise<T> {
+  const scope = await resolvedAuthSessionScope()
   return readResource<T>(url, policy, {
     fetcher: authFetch,
     cacheKey: scope ? `${sessionPrefix(scope)}${url}` : null,

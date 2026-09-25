@@ -13,7 +13,7 @@
  */
 'use client'
 
-import { useId, useMemo, useState, type ReactNode } from 'react'
+import { Fragment, useId, useMemo, useState, type ReactNode } from 'react'
 
 import { bounds, commit, MIN_SPAN, type Window } from '@/lib/chart-window'
 import { format, type Kind } from '@/lib/quantity'
@@ -733,12 +733,15 @@ export function BarRows({
 
   return (
     <ChartFrame title={title} unit={unit}>
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
+      {/* One grid for every row, so the value column fits the widest value
+          ("+0.0290 rank corr.") and each bar track keeps the same width —
+          bars on different tracks could not be compared by length. */}
+      <div style={{ display: 'grid', gridTemplateColumns: '108px minmax(0, 1fr) auto', gridAutoRows: 'var(--row-compact)', alignItems: 'center', columnGap: 'var(--d-2)' }}>
         {rows.map((r) => {
           const v = r.value
           const pct = v === null ? 0 : (Math.abs(v) / bound) * (hasNegative ? 50 : 100)
           return (
-            <div key={r.label} style={{ display: 'grid', gridTemplateColumns: '108px 1fr 68px', alignItems: 'center', gap: 'var(--d-2)', height: 'var(--row-compact)' }}>
+            <Fragment key={r.label}>
               <span className="sys-meta" style={{ color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.note ?? r.label}>
                 {r.label}
               </span>
@@ -756,7 +759,7 @@ export function BarRows({
                   />
                 )}
               </div>
-              <span className="sys-num" style={{ fontSize: 'var(--t-meta)' }}>
+              <span className="sys-num" style={{ fontSize: 'var(--t-meta)', whiteSpace: 'nowrap', textAlign: 'right' }}>
                 {v === null ? (
                   <span className="sys-null">—</span>
                 ) : (
@@ -766,7 +769,7 @@ export function BarRows({
                   <Value value={v} kind={kind} measure={r.method} title={r.note} />
                 )}
               </span>
-            </div>
+            </Fragment>
           )
         })}
       </div>
