@@ -88,7 +88,10 @@ export default function ResearchHistory() {
   return (
     <Panel
       title="Research history"
-      subtitle={`${data.experiments.length} studies · ${data.promoted_models} models promoted · holdout ${data.holdout.state.toLowerCase()} (${data.holdout.window})`}
+      // From the rows' own manifest flags, as the status bar reads it. The
+      // summary's fixed "SEALED" claims more than any study records: every
+      // manifest says untouched, and nothing verifies a seal.
+      subtitle={`${data.experiments.length} studies · ${data.promoted_models} models promoted · holdout ${data.experiments.some((r) => r.holdout_touched) ? 'spent' : 'untouched'} (${data.holdout.window})`}
       flush
     >
       <DataTable columns={columns} rows={data.experiments} rowKey={(r) => r.id} density="compact" filterPlaceholder="filter studies" />
