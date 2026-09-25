@@ -1061,6 +1061,16 @@ def research_ticker(
                 used_for=["momentum factors", "volatility", "risk score"],
             )
 
+    if prediction is None:
+        # Nothing to score. Continuing used to hand an empty technical record
+        # to the legacy synthesis, which answered "Hold" at 90% confidence for
+        # a symbol no provider knew ("NVIDIA" from the palette). The research
+        # page already has an honest state for this answer; send it.
+        raise HTTPException(
+            status_code=404,
+            detail=f"No provider returned price history for {ticker}. Nothing was scored.",
+        )
+
     if prediction is not None:
         risk_adjusted = RiskAwarePredictionAgent.apply_dampening(
             prediction.raw_signal, multiplier

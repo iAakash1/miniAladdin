@@ -127,6 +127,22 @@ def test_fast_mode_skips_sentiment_and_llm(client):
     assert body["ai"] is None
 
 
+def test_a_symbol_with_no_price_history_is_not_scored(client):
+    """Observed live: /api/research/NVIDIA answered Hold at 90% confidence
+    with no price, no scorecard and an INSUFFICIENT evidence grade. With no
+    price history there is nothing to score, and the page has a 404 state."""
+    with patch.object(
+        api_module.RiskAwarePredictionAgent, "predict",
+        side_effect=ValueError("no price data for NVIDIA"),
+    ):
+        response = client.get("/api/research/NVIDIA")
+
+    assert response.status_code == 404
+    body = response.json()
+    assert "NVIDIA" in body["detail"] and "Nothing was scored" in body["detail"]
+    assert "verdict" not in body and "confidence" not in body
+
+
 def test_invalid_ticker_rejected(client):
     assert client.get("/api/research/WAYTOOLONGTICKER").status_code == 400
 
