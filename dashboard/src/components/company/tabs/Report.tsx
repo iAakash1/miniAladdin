@@ -17,6 +17,7 @@ import CompanyMark from '@/components/ui/CompanyMark'
 import SectorMark, { sectorKey } from '@/components/visual/SectorMark'
 import Timeline from '@/components/visual/Timeline'
 import { currentSectionId, pinnedSection, scrollToSection, workspaceRoot } from '@/lib/section-nav'
+import { ordinal } from '@/lib/format'
 import { venueLabel } from '@/lib/text'
 import type { Analysis } from '@/lib/types'
 
@@ -166,9 +167,13 @@ function Masthead({ a }: { a: Analysis }) {
     ['Confidence', a.engineConfidence !== null ? `${a.engineConfidence}/100` : '—', undefined],
     ['Risk', q ? `${q.riskScore} · ${(a.riskLevel ?? '').toLowerCase()}` : (a.riskLevel ?? '—').toLowerCase(), undefined],
     ['Evidence', a.decisionQuality ? a.decisionQuality.grade.toLowerCase() : '—', undefined],
-    // The price the engine analysed. The vendor consensus figure records no
-    // basis for how it was chosen and is shown only beside its readings.
-    ['Price', a.price !== null ? a.price.toFixed(2) : '—', undefined],
+    // The price the engine analysed, dated by the bar it came from. The quote
+    // above may already be a later session (NVDA: 225.51 analysed from the
+    // 23 Sep bar while three vendors agreed on 224.58 for 24 Sep), so an
+    // undated figure here read as the current price. The vendor consensus
+    // records no basis for how it was chosen and stays beside its readings.
+    [a.technicalIntelligence?.as_of ? `Close ${a.technicalIntelligence.as_of}` : 'Analysed price',
+      a.price !== null ? a.price.toFixed(2) : '—', undefined],
   ]
   return (
     <header className="rp-title" data-sector={sector ? sectorKey(sector) : undefined}>
@@ -475,12 +480,14 @@ export default function Report({ analysis: a }: { analysis: Analysis }) {
         <Section id="risks" title="Risks">
           {riskRows.length ? (
             <p className="rp-prose">
-              The engine&apos;s risk score is <strong>{q?.riskScore}/100</strong>; its largest components are {riskRows.slice(0, 3).map((c) => `${c.name.replace(/_/g, ' ')} (${c.percentile.toFixed(0)}th percentile)`).join(', ')}.
+              The engine&apos;s risk score is <strong>{q?.riskScore}/100</strong>; its largest components are {riskRows.slice(0, 3).map((c) => `${c.name.replace(/_/g, ' ')} (${ordinal(c.percentile)} percentile)`).join(', ')}.
             </p>
           ) : null}
           {gen && ai?.riskReasoning ? <p className="rp-prose rp-prose--gen">{ai.riskReasoning}<Cites ids={one('risk_reasoning')} index={index} symbol={a.ticker} /></p> : null}
           {gen && ai?.keyRisks.length ? (
-            <ul className="rp-list">
+            /* Model-written, under the engine's own risk sentence: marked as
+               generated like every narrative paragraph outside the synthesis. */
+            <ul className="rp-list rp-list--gen">
               {ai.keyRisks.map((k, i) => <li key={k}>{k}<Cites ids={many('key_risks')?.[i]} index={index} symbol={a.ticker} /></li>)}
             </ul>
           ) : null}

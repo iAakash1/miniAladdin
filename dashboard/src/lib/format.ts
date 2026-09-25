@@ -20,6 +20,14 @@ function unsignZero(text: string): string {
   return /^-0(\.0*)?$/.test(text) ? text.slice(1) : text
 }
 
+/** 1st, 2nd, 3rd, 4th … 11th, 12th, 13th … 21st, 83rd. */
+export function ordinal(n: number): string {
+  const r = Math.round(n)
+  const s = ['th', 'st', 'nd', 'rd']
+  const v = r % 100
+  return `${r}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`
+}
+
 export function fmtPrice(v: number | null | undefined): string {
   if (isMissing(v)) return '—'
   // Round to the displayed precision *before* formatting. Checking for -0

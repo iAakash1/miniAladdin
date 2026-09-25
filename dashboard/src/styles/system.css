@@ -3585,6 +3585,7 @@ a.tape:hover .tape__sym { color: var(--accent); }
 .rp-findings li[data-tone='neg']::before { background: var(--e-neg); }
 .rp-list { margin: 0 0 12px; padding-left: 18px; font: 400 14px / 1.6 var(--font-serif); color: var(--ink); }
 .rp-list li + li { margin-top: 4px; }
+.rp-list--gen { padding-left: 30px; box-shadow: inset 2px 0 0 var(--rule-strong); }
 .rp-case { padding: 12px 14px; border-radius: var(--r-sm); background: var(--p-raised); }
 .rp-case[data-tone='pos'] .rp-h3 { color: var(--e-pos); }
 .rp-case[data-tone='neg'] .rp-h3 { color: var(--e-neg); }

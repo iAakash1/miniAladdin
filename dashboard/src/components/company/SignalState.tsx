@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 
 import type { ResearchRun } from './useCompany'
 import { providerSet, signalTone, verdictWord } from './derive'
+import { ordinal } from '@/lib/format'
 import { FREE_DAILY_LIMIT } from '@/lib/usage'
 import type { Analysis } from '@/lib/types'
 
@@ -17,13 +18,6 @@ const RISK_LABEL: Record<string, string> = {
   downside_dev: 'downside deviation', tail_risk: 'tail risk', drawdown: 'drawdown state',
   vol_regime: 'volatility regime', beta: 'beta', idiosyncratic: 'idiosyncratic share',
   liquidity: 'liquidity', macro: 'macro', sector: 'sector',
-}
-
-function ordinal(n: number): string {
-  const r = Math.round(n)
-  const s = ['th', 'st', 'nd', 'rd']
-  const v = r % 100
-  return `${r}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`
 }
 
 function Cell({ label, children, sub, tone }: {

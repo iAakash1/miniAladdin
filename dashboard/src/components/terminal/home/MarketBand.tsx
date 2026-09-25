@@ -94,34 +94,42 @@ export default function MarketBand() {
         </p>
       ) : (
         <>
-          <div className="band__tape" role="list">
-            {indexes.length
-              ? indexes.map((i) => (
-                <Link
-                  role="listitem"
-                  key={i.symbol}
-                  href={`/company/${encodeURIComponent(i.symbol)}`}
-                  className="tape"
-                  title={i.source ? `via ${i.source}` : undefined}
-                >
-                  <span className="tape__sym"><CompanyMark ticker={i.symbol} size={16} />{i.symbol}</span>
-                  <span className="tape__px"><Value value={i.price ?? null} kind="currency" /></span>
-                  <span className="tape__chg">
-                    <Value value={i.change_1d ?? null} kind="percent" digits={2} signed tone />
+          {d && !indexes.length ? (
+            /* The snapshot answered without index quotes. Placeholders here
+               would read as still loading, and nothing more is coming. */
+            <p className="band__absent">
+              Index quotes were not returned with this snapshot; the facts below were.
+            </p>
+          ) : (
+            <div className="band__tape" role="list">
+              {indexes.length
+                ? indexes.map((i) => (
+                  <Link
+                    role="listitem"
+                    key={i.symbol}
+                    href={`/company/${encodeURIComponent(i.symbol)}`}
+                    className="tape"
+                    title={i.source ? `via ${i.source}` : undefined}
+                  >
+                    <span className="tape__sym"><CompanyMark ticker={i.symbol} size={16} />{i.symbol}</span>
+                    <span className="tape__px"><Value value={i.price ?? null} kind="currency" /></span>
+                    <span className="tape__chg">
+                      <Value value={i.change_1d ?? null} kind="percent" digits={2} signed tone />
+                    </span>
+                  </Link>
+                ))
+                /* Placeholders keep the tape's height so the line of facts below
+                   does not jump when the quotes land. They carry the instrument
+                   names, which are fixed, and an em dash where the number goes. */
+                : ['SPY', 'QQQ', 'DIA', 'IWM', 'VIX'].map((s) => (
+                  <span role="listitem" key={s} className="tape tape--pending">
+                    <span className="tape__sym">{s}</span>
+                    <span className="tape__px">—</span>
+                    <span className="tape__chg">—</span>
                   </span>
-                </Link>
-              ))
-              /* Placeholders keep the tape's height so the line of facts below
-                 does not jump when the quotes land. They carry the instrument
-                 names, which are fixed, and an em dash where the number goes. */
-              : ['SPY', 'QQQ', 'DIA', 'IWM', 'VIX'].map((s) => (
-                <span role="listitem" key={s} className="tape tape--pending">
-                  <span className="tape__sym">{s}</span>
-                  <span className="tape__px">—</span>
-                  <span className="tape__chg">—</span>
-                </span>
-              ))}
-          </div>
+                ))}
+            </div>
+          )}
 
           <dl className="band__facts">
             <Fact k="Breadth">
