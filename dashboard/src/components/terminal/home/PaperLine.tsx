@@ -72,7 +72,15 @@ export default function PaperLine() {
           },
         })
       })
-      .catch((e: Error) => { if (alive) setState({ s: 'unavailable', reason: e.message }) })
+      .catch((e: Error) => {
+        if (!alive) return
+        setState({
+          s: 'unavailable',
+          reason: e instanceof ResourceError && e.status === 503
+            ? 'the paper account status is temporarily unavailable'
+            : 'the paper account could not be reached',
+        })
+      })
     return () => { alive = false }
   }, [])
 
