@@ -6,6 +6,7 @@ News vendors: NewsAPI (delegates to the existing client), GNews, Yahoo RSS
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+import math
 from typing import Optional
 
 from src.providers.base import VendorClient
@@ -125,6 +126,65 @@ class GNewsVendor(VendorClient):
             for article in articles
             if article.get("title")
         ]
+        return headlines or None
+
+
+class MarketauxVendor(VendorClient):
+    """Entity-filtered financial headlines, with sentiment kept vendor-attributed."""
+
+    NAME = "marketaux"
+    KEY_ENV = "MARKETAUX_API_KEY"
+    DEFAULT_RPM = 5
+    BASE = "https://api.marketaux.com/v1/news/all"
+
+    def get_news(self, query: str, company_name: str = "", limit: int = 12) -> Optional[list[NewsHeadline]]:
+        symbol = query.strip().upper()
+        if not symbol:
+            return None
+        data = self._get_json(
+            self.BASE,
+            params={
+                "symbols": symbol,
+                "filter_entities": "true",
+                "language": "en",
+                "limit": min(max(limit, 1), 20),
+                "api_token": self.api_key,
+            },
+            operation="news",
+        )
+        if not isinstance(data, dict) or not isinstance(data.get("data"), list):
+            return None
+        headlines: list[NewsHeadline] = []
+        for article in data["data"][:limit]:
+            if not isinstance(article, dict):
+                continue
+            title = str(article.get("title") or "").strip()
+            if not title:
+                continue
+            entities = [entity for entity in article.get("entities", [])
+                        if isinstance(entity, dict)]
+            matched = next((entity for entity in entities
+                            if str(entity.get("symbol") or "").upper() == symbol), None)
+            score = None
+            if matched is not None:
+                try:
+                    score = float(matched["sentiment_score"])
+                    if not math.isfinite(score) or not -1 <= score <= 1:
+                        score = None
+                except (KeyError, TypeError, ValueError):
+                    pass
+            headlines.append(NewsHeadline(
+                title=title,
+                source=str(article.get("source") or "Marketaux"),
+                url=str(article.get("url") or ""),
+                published_at=str(article.get("published_at") or ""),
+                summary=str(article.get("description") or "")[:280],
+                image_url=str(article.get("image_url") or ""),
+                tickers=[str(entity.get("symbol")).upper() for entity in entities
+                         if entity.get("symbol")][:8],
+                sentiment_score=score,
+                sentiment_source=self.NAME if score is not None else None,
+            ))
         return headlines or None
 
 

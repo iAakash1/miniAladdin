@@ -62,7 +62,7 @@ from src.providers.vendors.market_vendors import (  # noqa: F401 — PolygonVend
     YFinanceVendor,
 )
 from src.providers.vendors.massive_vendor import MassiveVendor
-from src.providers.vendors.news_vendors import GNewsVendor, NewsApiVendor, YahooRssVendor
+from src.providers.vendors.news_vendors import GNewsVendor, MarketauxVendor, NewsApiVendor, YahooRssVendor
 from src.providers.vendors.search_vendors import ExaVendor, TavilyVendor
 from src.providers.vendors.sec_vendor import SECVendor
 from src.providers.vendors.tiingo_vendor import TiingoVendor
@@ -397,6 +397,7 @@ class NewsProvider:
     def __init__(self, cache: CacheBackend, flight: SingleFlight):
         self.newsapi = NewsApiVendor()
         self.gnews = GNewsVendor()
+        self.marketaux = MarketauxVendor()
         self.yahoo_rss = YahooRssVendor()
         self.tavily = TavilyVendor()
         # Tiingo carries tags and a ticker list the other news vendors do not,
@@ -411,7 +412,7 @@ class NewsProvider:
 
     @property
     def vendors(self):
-        return [self.newsapi, self.gnews, self.yahoo_rss, self.tavily,
+        return [self.newsapi, self.gnews, self.marketaux, self.yahoo_rss, self.tavily,
                 self.tiingo, self.alpha_vantage]
 
     def news_evidence(self, symbol: str, company_name: str = "", limit: int = 12) -> list[Evidence]:
@@ -447,6 +448,7 @@ class NewsProvider:
         links = [
             ChainLink(self.newsapi, lambda: self.newsapi.get_news(symbol, company_name, limit)),
             ChainLink(self.gnews, lambda: self.gnews.get_news(symbol, company_name, limit)),
+            ChainLink(self.marketaux, lambda: self.marketaux.get_news(symbol, company_name, limit)),
             ChainLink(self.yahoo_rss, lambda: self.yahoo_rss.get_news(symbol, company_name, limit)),
             ChainLink(self.tavily, lambda: self.tavily.get_news(symbol, company_name, limit)),
             ChainLink(self.tiingo, lambda: self.tiingo.get_news(symbol, limit)),

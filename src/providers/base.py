@@ -275,6 +275,8 @@ class VendorClient:
             }.get(stats.get("last_failure_class"), "UNAVAILABLE")
         elif stats.get("failures"):
             health_state = "DEGRADED"
+        elif not stats.get("requests"):
+            health_state = "IDLE"
         else:
             health_state = "HEALTHY"
         return {
