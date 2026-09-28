@@ -62,7 +62,7 @@ from src.providers.vendors.market_vendors import (  # noqa: F401 — PolygonVend
     YFinanceVendor,
 )
 from src.providers.vendors.massive_vendor import MassiveVendor
-from src.providers.vendors.macro_vendors import BeaVendor, BlsVendor
+from src.providers.vendors.macro_vendors import BeaVendor, BlsVendor, EiaVendor
 from src.providers.vendors.news_vendors import GNewsVendor, MarketauxVendor, NewsApiVendor, YahooRssVendor
 from src.providers.vendors.openfigi_vendor import OpenFigiVendor
 from src.providers.vendors.search_vendors import ExaVendor, TavilyVendor
@@ -478,12 +478,13 @@ class MacroProvider:
         self.fred = FredVendor()
         self.bls = BlsVendor()
         self.bea = BeaVendor()
+        self.eia = EiaVendor()
         self._chain = FallbackChain[MacroSnapshot]("macro.snapshot", cache, flight, self.TTL)
         self._series_chain = FallbackChain[list]("macro.series", cache, flight, self.SERIES_TTL)
 
     @property
     def vendors(self):
-        return [self.fred, self.bls, self.bea]
+        return [self.fred, self.bls, self.bea, self.eia]
 
     def get_macro(self) -> ProviderResult[MacroSnapshot]:
         return self._chain.execute(
@@ -492,7 +493,12 @@ class MacroProvider:
         )
 
     def get_series_snapshot(self, series_id: str, count: int = 8) -> ProviderResult[list]:
-        """Last N (date, value) pairs of any FRED series, cached per series."""
+        """Last N dated observations, routed only to capable sources."""
+        if series_id == self.eia.SERIES:
+            return self._series_chain.execute(
+                f"macro:series:{series_id}:{count}",
+                [ChainLink(self.eia, lambda: self.eia.get_energy_series(series_id, count))],
+            )
         links = [ChainLink(self.fred, lambda: self.fred.get_observations(series_id, count))]
         if series_id in self.bls.SERIES:
             links.append(ChainLink(

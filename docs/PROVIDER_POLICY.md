@@ -49,6 +49,8 @@ The macro board asks FRED first. BLS is a keyless fallback for the equivalent
 seasonally adjusted CPI and unemployment series; BEA can supply the same real
 GDP growth measure when its key is active. Neither source substitutes a
 missing observation with zero or changes the deterministic macro gate.
+EIA supplies monthly Cushing WTI spot prices as a separate energy context
+card; that price does not enter the regime or signal calculation.
 
 `Retry-After` is honored only inside a short request-safe bound. A longer
 server delay opens a bounded cooldown and returns immediately rather than

@@ -222,6 +222,13 @@ _ALL: tuple[Capability, ...] = (
         fanout_limit=1,
     ),
     Capability(
+        name="energy_context", method="get_energy_series",
+        label="Energy context",
+        description="Monthly Cushing WTI spot price in dollars per barrel from EIA.",
+        reconciliation="none", fabric=False,
+        excluded_because="A macro-board context series, not ticker-scoped evidence fan-out.",
+    ),
+    Capability(
         name="official_macro_series", method="get_official_series",
         label="Official macro series",
         description="Source-equivalent CPI, unemployment and GDP observations from BLS or BEA.",

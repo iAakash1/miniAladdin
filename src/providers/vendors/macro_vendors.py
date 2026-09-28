@@ -131,3 +131,46 @@ class BeaVendor(VendorClient):
                 month = (int(match.group(2)) - 1) * 3 + 1
                 observations.append((f"{match.group(1)}-{month:02d}-01", value))
         return sorted(observations)[-count:] or None
+
+
+class EiaVendor(VendorClient):
+    """Monthly Cushing WTI spot price, in dollars per barrel."""
+
+    NAME = "eia"
+    KEY_ENV = "EIA_API_KEY"
+    DEFAULT_RPM = 5
+    URL = "https://api.eia.gov/v2/petroleum/pri/spt/data/"
+    SERIES = "EIA_WTI_M"
+
+    def get_energy_series(self, series_id: str, count: int = 8) -> Optional[list[tuple[str, float]]]:
+        if series_id != self.SERIES:
+            return None
+        data = self._get_json(
+            self.URL,
+            params={
+                "api_key": self.api_key,
+                "frequency": "monthly",
+                "data[0]": "value",
+                "facets[series][]": "RWTC",
+                "sort[0][column]": "period",
+                "sort[0][direction]": "desc",
+                "offset": 0,
+                "length": min(max(count, 1), 24),
+            },
+            operation="energy_context",
+        )
+        rows = ((data or {}).get("response") or {}).get("data") or []
+        observations = []
+        for row in rows:
+            if not isinstance(row, dict) or row.get("series") != "RWTC":
+                continue
+            period = str(row.get("period") or "")
+            if not re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", period):
+                continue
+            try:
+                value = float(str(row.get("value") or "").replace(",", ""))
+            except ValueError:
+                continue
+            if math.isfinite(value) and value > 0:
+                observations.append((f"{period}-01", value))
+        return sorted(observations)[-count:] or None

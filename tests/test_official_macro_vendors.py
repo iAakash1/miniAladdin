@@ -3,7 +3,7 @@
 from unittest.mock import Mock
 import pytest
 
-from src.providers.vendors.macro_vendors import BeaVendor, BlsVendor
+from src.providers.vendors.macro_vendors import BeaVendor, BlsVendor, EiaVendor
 from src.providers.base import VendorError, redact
 
 
@@ -63,3 +63,20 @@ def test_bea_inactive_key_is_not_reported_healthy(monkeypatch):
     with pytest.raises(VendorError):
         vendor.get_official_series("A191RL1Q225SBEA")
     assert vendor.health_snapshot()["health_state"] == "AUTH_FAILURE"
+
+
+def test_eia_monthly_wti_keeps_units_and_source_period(monkeypatch):
+    monkeypatch.setenv("EIA_API_KEY", "test-key-placeholder")
+    session = _session({"response": {"data": [
+        {"series": "RWTC", "period": "2026-08", "value": "83.90"},
+        {"series": "RBRTE", "period": "2026-08", "value": "85.00"},
+        {"series": "RWTC", "period": "2026-07", "value": "80.46"},
+    ]}})
+    vendor = EiaVendor(session=session)
+    assert vendor.get_energy_series("EIA_WTI_M", 2) == [
+        ("2026-07-01", 80.46), ("2026-08-01", 83.9),
+    ]
+    assert vendor.get_energy_series("CPIAUCSL") is None
+    params = session.request.call_args.kwargs["params"]
+    assert params["facets[series][]"] == "RWTC"
+    assert params["frequency"] == "monthly"

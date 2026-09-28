@@ -69,6 +69,8 @@ MACRO_SERIES: list[dict[str, str]] = [
      "explain": "University of Michigan survey — households' mood about the economy."},
     {"id": "HOUST", "label": "Housing Starts", "unit": "k",
      "explain": "New residential construction — the most rate-sensitive activity gauge."},
+    {"id": "EIA_WTI_M", "label": "WTI Crude Oil", "unit": "$/bbl",
+     "explain": "Cushing spot price, monthly average — energy cost context from EIA."},
 ]
 
 SECTOR_ETFS: list[tuple[str, str]] = [
