@@ -42,7 +42,13 @@ text:
 - `DEGRADED`: a provider has recovered but retains recorded failures.
 - `UNAVAILABLE`: transport/upstream/parse failure without a more specific state.
 - `NOT_CONFIGURED`: required credential is absent; the provider was not called.
-- `HEALTHY`: configured and eligible with no unresolved observed failure.
+- `IDLE`: configured but not called since this process started; upstream health is unproven.
+- `HEALTHY`: at least one observed request succeeded with no unresolved failure.
+
+The macro board asks FRED first. BLS is a keyless fallback for the equivalent
+seasonally adjusted CPI and unemployment series; BEA can supply the same real
+GDP growth measure when its key is active. Neither source substitutes a
+missing observation with zero or changes the deterministic macro gate.
 
 `Retry-After` is honored only inside a short request-safe bound. A longer
 server delay opens a bounded cooldown and returns immediately rather than

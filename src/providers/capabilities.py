@@ -222,6 +222,16 @@ _ALL: tuple[Capability, ...] = (
         fanout_limit=1,
     ),
     Capability(
+        name="official_macro_series", method="get_official_series",
+        label="Official macro series",
+        description="Source-equivalent CPI, unemployment and GDP observations from BLS or BEA.",
+        reconciliation="none", requires_auth=False, fabric=False,
+        excluded_because=(
+            "These series are explicit source-equivalent fallbacks in the macro "
+            "value chain; they are not ticker-scoped evidence fan-out."
+        ),
+    ),
+    Capability(
         name="instrument_identity", method="get_instrument_identity",
         label="Instrument identity",
         description="US ticker to unambiguous composite FIGI, with source evidence.",

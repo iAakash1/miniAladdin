@@ -58,7 +58,7 @@ class FailureClass(str, Enum):
 # because there is no way to know every place an error string will end up.
 _SECRET_PARAMS = (
     "apikey", "api_key", "apiKey", "token", "access_key", "access_token",
-    "key", "auth", "client_id", "client_secret",
+    "key", "auth", "client_id", "client_secret", "UserID",
 )
 _SECRET_RE = re.compile(
     r"(?i)\b(" + "|".join(re.escape(p) for p in _SECRET_PARAMS) + r")=[^&\s\"']+"
@@ -440,6 +440,7 @@ class VendorClient:
                     )
                 response.raise_for_status()
                 payload = response.json()
+                self._validate_payload(payload)
                 self.stats.record(True, latency)
                 # Total elapsed, not this attempt's: retries and backoff are
                 # time the caller genuinely waited, and hiding them is how a
@@ -497,6 +498,9 @@ class VendorClient:
             _metrics.registry.increment("vendor.cooldown", vendor=self.NAME)
         assert last_error is not None
         raise last_error
+
+    def _validate_payload(self, payload: Any) -> None:
+        """Adapters may reject an API-level error returned with HTTP 200."""
 
     @staticmethod
     def _parse_retry_after(value: Optional[str]) -> Optional[float]:
