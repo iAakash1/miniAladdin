@@ -185,6 +185,30 @@ def test_a_unitless_score_may_not_be_spelled_as_a_percentage():
     pipeline.validate_narrative(as_decimal, evidence)
 
 
+def test_confidence_deduction_is_points_not_a_percentage():
+    payload = _payload()
+    payload["decision"]["confidence_breakdown"] = [
+        {"component": "Model confidence base", "points": 100},
+        {"component": "Less: family dispersion", "points": -27},
+    ]
+    evidence = pipeline.build_evidence_envelope(payload)
+    base_id = "decision.confidence_component.model_confidence_base"
+    deduction_id = "decision.confidence_component.less_family_dispersion"
+    by_id = {item.id: item for item in evidence}
+    assert by_id[base_id].unit == "points"
+    assert "100%" not in pipeline._allowed_numeric_tokens(evidence)[base_id]
+    wrong_base = pipeline.GroundedNarrative.model_validate(json.loads(
+        _narrative(base_id, "Confidence starts from a base of 100%.")
+    ))
+    with pytest.raises(ValueError, match="unsupported numeric claims"):
+        pipeline.validate_narrative(wrong_base, evidence)
+    wrong_deduction = pipeline.GroundedNarrative.model_validate(json.loads(
+        _narrative(deduction_id, "Family dispersion deducts -27%.")
+    ))
+    with pytest.raises(ValueError, match="unsupported numeric claims"):
+        pipeline.validate_narrative(wrong_deduction, evidence)
+
+
 def test_a_yield_spread_in_points_is_not_a_percentage_of_one():
     """Observed live: a 0.31-point spread described as "a 31% yield spread"."""
     payload = _payload()

@@ -242,7 +242,7 @@ def build_evidence_envelope(payload: dict[str, Any]) -> list[EvidenceItem]:
             item.get("points"),
             source="deterministic_engine",
             field=str(item.get("component") or label),
-            unit="percent",
+            unit="points",
         )
 
     def add_mapping(prefix: str, values: Any, source: str) -> None:
@@ -336,7 +336,9 @@ otherwise omit it.  ALLOWED EVIDENCE IDS and ALLOWED NUMERIC TOKENS are
 mechanically generated contracts, not suggestions.  Never infer a number from
 an id, field name or analyst summary.  A value whose allowed tokens carry no %
 sign is a unitless score, contribution, multiplier or index: write it as the
-listed decimal and never describe it as a percentage.
+listed decimal and never describe it as a percentage.  Confidence itself is a
+percentage, but its breakdown adds and subtracts points on that scale.  Say
+"points" for confidence components; never attach % to them.
 
 OUTPUT
 Return one JSON object and nothing else.  Every prose section has exactly
