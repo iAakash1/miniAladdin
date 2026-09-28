@@ -2174,6 +2174,7 @@ def provider_capabilities():
         "fundamentals": providers.fundamentals.vendors,
         "news": providers.news.vendors,
         "macro": providers.macro.vendors,
+        "identity": providers.identity.vendors,
         "visual": visual_intelligence.IMAGE_VENDORS,
     })
     matrix["visual"] = visual_intelligence.diagnostics()

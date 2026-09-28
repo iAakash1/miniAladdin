@@ -17,6 +17,7 @@ from src.providers.dedupe import SingleFlight
 from src.providers.providers import (
     FilingsProvider,
     FundamentalsProvider,
+    IdentityProvider,
     MacroProvider,
     MarketDataProvider,
     NewsProvider,
@@ -32,6 +33,7 @@ news = NewsProvider(cache, _flight)
 macro = MacroProvider(cache, _flight)
 search = SearchProvider(cache, _flight, news=news)
 filings = FilingsProvider(cache, _flight)
+identity = IdentityProvider()
 
 _ALL = {
     "market_data": market_data,
@@ -40,6 +42,7 @@ _ALL = {
     "macro": macro,
     "search": search,
     "filings": filings,
+    "identity": identity,
 }
 
 

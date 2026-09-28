@@ -40,7 +40,7 @@ deliberately distinct rather than a single "merge" concept:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Iterable, Optional
 
 #: Failure modes the fan-out classifier can produce. A capability declares the
@@ -220,6 +220,16 @@ _ALL: tuple[Capability, ...] = (
         ),
         reconciliation="primary", primary_source=True, requires_auth=False,
         fanout_limit=1,
+    ),
+    Capability(
+        name="instrument_identity", method="get_instrument_identity",
+        label="Instrument identity",
+        description="US ticker to unambiguous composite FIGI, with source evidence.",
+        reconciliation="none", fabric=False,
+        excluded_because=(
+            "The company intelligence graph consumes a sourced KnowledgeBundle "
+            "directly; the numeric evidence fabric cannot reconcile identifiers."
+        ),
     ),
     Capability(
         name="brand_mark", method="get_brand", label="Company logo",

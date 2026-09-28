@@ -296,7 +296,7 @@ class VendorClient:
         return self._request_json("GET", url, params=params, headers=headers,
                                   operation=operation)
 
-    def _post_json(self, url: str, json_body: dict[str, Any],
+    def _post_json(self, url: str, json_body: Any,
                    headers: Optional[dict[str, str]] = None,
                    operation: str = "http") -> Any:
         return self._request_json("POST", url, json_body=json_body, headers=headers,
@@ -366,7 +366,7 @@ class VendorClient:
 
     def _request_json(self, method: str, url: str,
                       params: Optional[dict[str, Any]] = None,
-                      json_body: Optional[dict[str, Any]] = None,
+                      json_body: Optional[Any] = None,
                       headers: Optional[dict[str, str]] = None,
                       operation: str = "http") -> Any:
         """

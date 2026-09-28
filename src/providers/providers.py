@@ -63,6 +63,7 @@ from src.providers.vendors.market_vendors import (  # noqa: F401 — PolygonVend
 )
 from src.providers.vendors.massive_vendor import MassiveVendor
 from src.providers.vendors.news_vendors import GNewsVendor, MarketauxVendor, NewsApiVendor, YahooRssVendor
+from src.providers.vendors.openfigi_vendor import OpenFigiVendor
 from src.providers.vendors.search_vendors import ExaVendor, TavilyVendor
 from src.providers.vendors.sec_vendor import SECVendor
 from src.providers.vendors.tiingo_vendor import TiingoVendor
@@ -493,6 +494,17 @@ class MacroProvider:
             f"macro:series:{series_id}:{count}",
             [ChainLink(self.fred, lambda: self.fred.get_observations(series_id, count))],
         )
+
+
+class IdentityProvider:
+    """Reference identifiers used for provenance, never valuation or signals."""
+
+    def __init__(self):
+        self.openfigi = OpenFigiVendor()
+
+    @property
+    def vendors(self):
+        return [self.openfigi]
 
 
 class SearchProvider:

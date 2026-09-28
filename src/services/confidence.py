@@ -44,6 +44,7 @@ def _env_float(name: str, default: float) -> float:
 # database is curated but secondary; web research is corroborating context.
 PROVIDER_BASELINE: dict[str, float] = {
     "sec": _env_float("CONF_SEC", 1.0),
+    "openfigi": _env_float("CONF_OPENFIGI", 0.85),
     "wikidata": _env_float("CONF_WIKIDATA", 0.90),
     "finnhub": _env_float("CONF_FINNHUB", 0.85),
     "exa": _env_float("CONF_EXA", 0.60),

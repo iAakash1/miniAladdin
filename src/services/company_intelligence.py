@@ -18,9 +18,10 @@ import logging
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Optional
+from typing import Any
 
 from src.providers.research_schemas import KnowledgeBundle
+from src.providers import identity
 from src.providers.vendors.sec_vendor import SECVendor
 from src.providers.vendors.wikidata_vendor import WikidataVendor
 from src.services.knowledge_graph import merge_bundles, neighbors, timeline
@@ -68,7 +69,7 @@ def build(symbol: str, company_name: str = "") -> dict[str, Any]:
     if cached and cached[0] > now:
         return cached[1]
 
-    with ThreadPoolExecutor(max_workers=3, thread_name_prefix="knowledge") as pool:
+    with ThreadPoolExecutor(max_workers=4, thread_name_prefix="knowledge") as pool:
         futures = [
             pool.submit(_safe, "sec", lambda: _sec.get_knowledge(symbol)),
             pool.submit(_safe, "wikidata", lambda: _wikidata.get_knowledge(symbol, company_name)),
@@ -79,6 +80,10 @@ def build(symbol: str, company_name: str = "") -> dict[str, Any]:
         # knows nor cares which provider answered.
         futures.append(pool.submit(_safe, "research",
                                    lambda: research_engine.research_company(symbol, company_name)))
+        if identity.openfigi.available:
+            futures.append(pool.submit(
+                _safe, "openfigi", lambda: identity.openfigi.get_instrument_identity(symbol),
+            ))
         bundles = [future.result() for future in futures]
 
     merged = merge_bundles(bundles)
