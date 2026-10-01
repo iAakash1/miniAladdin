@@ -70,6 +70,17 @@ from src.providers.vendors.sec_vendor import SECVendor
 from src.providers.vendors.tiingo_vendor import TiingoVendor
 
 
+def _is_index_symbol(symbol: str) -> bool:
+    """Yahoo's caret spelling of an index, e.g. ^VIX.
+
+    Only the yfinance adapter understands it. Every keyed vendor was asked
+    first and answered 404 or 422, which spent their quotas and recorded each
+    as failing — Twelve Data showed "unavailable" on the providers page
+    because the market band asks for ^VIX, not because the vendor was down.
+    """
+    return symbol.startswith("^")
+
+
 class MarketDataProvider:
     """get_price / get_prices / get_series — quotes and OHLCV history."""
 
@@ -115,6 +126,8 @@ class MarketDataProvider:
             ChainLink(self.marketstack, lambda: self.marketstack.get_price(symbol)),
             ChainLink(self.yfinance, lambda: self.yfinance.get_price(symbol)),
         ]
+        if _is_index_symbol(symbol):
+            links = [link for link in links if link.vendor is self.yfinance]
         return self._price_chain.execute(
             f"price:{symbol}",
             links,
@@ -151,6 +164,8 @@ class MarketDataProvider:
             ChainLink(self.marketstack, lambda: self.marketstack.get_series(symbol, period)),
             ChainLink(self.yfinance, lambda: self.yfinance.get_series(symbol, period)),
         ]
+        if _is_index_symbol(symbol):
+            links = [link for link in links if link.vendor is self.yfinance]
         return self._series_chain.execute(f"series:{symbol}:{period}", links)
 
     # ── multi-source ─────────────────────────────────────────────────────────

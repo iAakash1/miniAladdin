@@ -420,23 +420,44 @@ def test_finnhub_keeps_the_vendors_own_session_move():
     assert q.as_of.startswith("2026-")
 
 
-def test_fmp_quote_keeps_its_twenty_five_field_response():
+def test_fmp_quote_keeps_its_full_stable_response():
     from src.providers.vendors.market_vendors import FMPVendor
     payload = [{
-        "price": 309.35, "change": -1.95, "changesPercentage": -0.6264,
+        "price": 309.35, "change": -1.95, "changePercentage": -0.6264,
         "open": 312.05, "dayHigh": 312.38, "dayLow": 307.01,
-        "previousClose": 311.30, "volume": 46768100, "avgVolume": 52000000,
+        "previousClose": 311.30, "volume": 46768100,
         "yearHigh": 344.57, "yearLow": 223.78,
         "priceAvg50": 300.12, "priceAvg200": 285.44,
         "marketCap": 4.5e12, "exchange": "NASDAQ", "timestamp": 1787428800,
     }]
-    with patch.object(FMPVendor, "_get_json", lambda self, *a, **k: payload):
+    seen = {}
+    def fake(self, url, params=None, **k):
+        seen["url"], seen["params"] = url, params
+        return payload
+    with patch.object(FMPVendor, "_get_json", fake):
         q = FMPVendor().get_price("AAPL")
+    assert seen["url"].endswith("/stable/quote") and seen["params"]["symbol"] == "AAPL"
     assert q.ma_50 == 300.12 and q.ma_200 == 285.44
-    assert q.avg_volume == 52000000
+    assert q.change_pct == -0.6264
     assert q.market_cap == 4.5e12
     assert q.exchange == "NASDAQ"
     assert q.week_52_high == 344.57
+
+
+def test_fmp_never_calls_the_retired_v3_paths():
+    """FMP answers every /api/v3 path with 403 "Legacy Endpoint" for current keys."""
+    from src.providers.vendors.market_vendors import FMPVendor
+    assert FMPVendor.BASE == "https://financialmodelingprep.com/stable"
+
+
+def test_fmp_fundamentals_read_the_ttm_ratios():
+    from src.providers.vendors.market_vendors import FMPVendor
+    payload = [{"priceToEarningsRatioTTM": 38.2, "netIncomePerShareTTM": 7.46}]
+    with patch.object(FMPVendor, "_get_json", lambda self, *a, **k: payload):
+        f = FMPVendor().get_fundamentals("AAPL")
+    assert (f.pe_ratio, f.eps) == (38.2, 7.46)
+    with patch.object(FMPVendor, "_get_json", lambda self, *a, **k: [{}]):
+        assert FMPVendor().get_fundamentals("AAPL") is None
 
 
 def test_adjusted_closes_are_preferred_wherever_a_vendor_offers_them():
@@ -445,19 +466,20 @@ def test_adjusted_closes_are_preferred_wherever_a_vendor_offers_them():
     would manufacture a cross-vendor conflict at every historical split."""
     from src.providers.vendors.market_vendors import FMPVendor, MarketStackVendor
 
-    fmp_payload = {"historical": [
-        {"date": "2026-08-21", "open": 1.0, "high": 1.0, "low": 1.0,
-         "close": 400.0, "adjClose": 100.0, "volume": 10},
-    ]}
+    fmp_payload = [
+        {"date": "2026-08-21", "adjOpen": 99.0, "adjHigh": 101.0, "adjLow": 98.0,
+         "adjClose": 100.0, "volume": 10},
+    ]
     with patch.object(FMPVendor, "_get_json", lambda self, *a, **k: fmp_payload):
-        assert FMPVendor().get_series("AAPL", "1mo").bars[0].close == 100.0
+        bar = FMPVendor().get_series("AAPL", "5y").bars[0]
+    assert (bar.open, bar.high, bar.low, bar.close) == (99.0, 101.0, 98.0, 100.0)
 
     ms_payload = {"data": [
         {"date": "2026-08-21", "open": 1.0, "high": 1.0, "low": 1.0,
          "close": 400.0, "adj_close": 100.0, "volume": 10, "adj_volume": 40},
     ]}
     with patch.object(MarketStackVendor, "_get_json", lambda self, *a, **k: ms_payload):
-        bar = MarketStackVendor().get_series("AAPL", "1mo").bars[0]
+        bar = MarketStackVendor().get_series("AAPL", "5y").bars[0]
     assert bar.close == 100.0
     assert bar.volume == 40
 
@@ -485,3 +507,30 @@ def test_marketstack_series_is_the_latest_window_in_date_order():
     assert seen["sort"] == "DESC"
     assert [bar.date for bar in series.bars] == ["2026-09-22", "2026-09-23", "2026-09-24"]
     assert series.bars[-1].close == 335.9
+
+
+def test_bar_count_vendors_return_the_same_calendar_window_as_the_rest():
+    """Twelve Data, FMP and Marketstack take a bar count. Given the window's
+    calendar days as that count, a "3mo" chart spanned four and a half months
+    whenever one of them answered."""
+    from datetime import date, timedelta
+    from src.providers.vendors.market_vendors import FMPVendor, MarketStackVendor, TwelveDataVendor
+
+    today = date.today()
+    days = [today - timedelta(days=n) for n in range(140, -1, -1)]
+    inside = [d for d in days if d >= today - timedelta(days=92)]
+
+    fmp_payload = [{"date": d.isoformat(), "adjClose": 10.0} for d in reversed(days)]
+    with patch.object(FMPVendor, "_get_json", lambda self, *a, **k: fmp_payload):
+        bars = FMPVendor().get_series("AAPL", "3mo").bars
+    assert bars[0].date == inside[0].isoformat() and len(bars) == len(inside)
+
+    ms_payload = {"data": [{"date": f"{d.isoformat()}T00:00:00+0000", "close": 10.0} for d in days]}
+    with patch.object(MarketStackVendor, "_get_json", lambda self, *a, **k: ms_payload):
+        bars = MarketStackVendor().get_series("AAPL", "3mo").bars
+    assert bars[0].date == inside[0].isoformat() and len(bars) == len(inside)
+
+    td_payload = {"values": [{"datetime": d.isoformat(), "close": "10"} for d in days]}
+    with patch.object(TwelveDataVendor, "_get_json", lambda self, *a, **k: td_payload):
+        bars = TwelveDataVendor().get_series("AAPL", "3mo").bars
+    assert bars[0].date == inside[0].isoformat() and len(bars) == len(inside)

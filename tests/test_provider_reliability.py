@@ -368,3 +368,21 @@ def test_the_earnings_lookup_goes_through_the_reliability_layer():
     assert "timed_call(_fetch, operation=\"earnings_calendar\")" in src, (
         "the earnings calendar still bypasses rate limiting, stats and timeout"
     )
+
+
+def test_caret_index_symbols_go_only_to_the_vendor_that_reads_them(monkeypatch):
+    """A keyed vendor asked for ^VIX answers 404 and is recorded as failing."""
+    from src.providers import market_data
+    from src.providers.schemas import OHLCVBar, PriceSeries
+
+    asked = []
+    for vendor in market_data.vendors:
+        if vendor is market_data.yfinance:
+            continue
+        monkeypatch.setattr(vendor, "get_series", lambda *a, _n=vendor.NAME: asked.append(_n), raising=False)
+    bars = [OHLCVBar(date=f"2026-09-{d:02d}", close=17.0 + d / 10) for d in range(1, 25)]
+    monkeypatch.setattr(market_data.yfinance, "get_series",
+                        lambda s, p: PriceSeries(symbol=s, bars=bars))
+    result = market_data.get_series("^VIX", "1mo")
+    assert result.ok and result.source == "yfinance"
+    assert asked == []

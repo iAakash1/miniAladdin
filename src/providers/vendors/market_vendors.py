@@ -59,6 +59,21 @@ def _period_to_days(period: str) -> int:
         ) from None
 
 
+def _within_window(bars: list[OHLCVBar], period: str) -> list[OHLCVBar]:
+    """Bars inside the period's calendar window.
+
+    The window is calendar days, which is how Polygon, Massive and Tiingo read
+    it. Twelve Data, FMP and Marketstack take a bar *count*, and were given the
+    same number: a "3mo" request returned 92 sessions — about four and a half
+    months — from those vendors and three months from the rest. The chart
+    labelled 3M spanned May to September, and every "over window" return and
+    cross-vendor comparison inherited the longer span. They still ask for that
+    many bars, which always covers the window; the excess is dropped here.
+    """
+    cutoff = (datetime.now(timezone.utc).date() - timedelta(days=_period_to_days(period))).isoformat()
+    return [bar for bar in bars if bar.date[:10] >= cutoff]
+
+
 def _safe_float(value) -> Optional[float]:
     """A vendor number, or None.
 
@@ -480,6 +495,7 @@ class TwelveDataVendor(VendorClient):
             for item in values
             if _safe_float(item.get("close")) is not None
         ]
+        bars = _within_window(bars, period)
         return PriceSeries(symbol=symbol, bars=bars) if bars else None
 
 
@@ -490,33 +506,35 @@ class FMPVendor(VendorClient):
     KEY_ENV = "FMP_API_KEY"
     DEFAULT_RPM = 10  # free tier is 250/day — keep bursts polite
 
-    BASE = "https://financialmodelingprep.com/api/v3"
+    #: FMP retired the /api/v3 paths for keys issued after its 2025 cut-over:
+    #: every call answered 403 "Legacy Endpoint", so the vendor showed as not
+    #: entitled with 0% success while the same key works on /stable.
+    BASE = "https://financialmodelingprep.com/stable"
+    LISTED_EXCHANGES = {"NASDAQ", "NYSE", "AMEX"}
 
     def get_price(self, symbol: str) -> Optional[PriceQuote]:
-        data = self._get_json(f"{self.BASE}/quote/{symbol}", params={"apikey": self.api_key})
+        data = self._get_json(f"{self.BASE}/quote", params={"symbol": symbol, "apikey": self.api_key})
         if not isinstance(data, list) or not data:
             return None
         row = data[0]
         price = _safe_float(row.get("price"))
         if not price:
             return None
-        # FMP's quote is the richest in the set — roughly twenty-five fields,
-        # of which one was being kept. The moving averages are the vendor's
-        # own; recomputing them from our series would be cheap but would use
-        # our adjustment conventions rather than theirs, so both can differ
-        # legitimately and the vendor's value is what belongs on its quote.
+        # The moving averages are the vendor's own; recomputing them from our
+        # series would use our adjustment conventions rather than theirs, so
+        # both can differ legitimately and the vendor's value is what belongs
+        # on its quote.
         stamp = _safe_float(row.get("timestamp"))
         return PriceQuote(
             symbol=symbol,
             price=price,
             change=_safe_float(row.get("change")),
-            change_pct=_safe_float(row.get("changesPercentage")),
+            change_pct=_safe_float(row.get("changePercentage")),
             day_open=_safe_float(row.get("open")),
             day_high=_safe_float(row.get("dayHigh")),
             day_low=_safe_float(row.get("dayLow")),
             previous_close=_safe_float(row.get("previousClose")),
             volume=_safe_float(row.get("volume")),
-            avg_volume=_safe_float(row.get("avgVolume")),
             week_52_high=_safe_float(row.get("yearHigh")),
             week_52_low=_safe_float(row.get("yearLow")),
             ma_50=_safe_float(row.get("priceAvg50")),
@@ -531,56 +549,50 @@ class FMPVendor(VendorClient):
         )
 
     def get_series(self, symbol: str, period: str) -> Optional[PriceSeries]:
+        start = (datetime.now(timezone.utc).date() - timedelta(days=_period_to_days(period))).isoformat()
         data = self._get_json(
-            f"{self.BASE}/historical-price-full/{symbol}",
-            params={"timeseries": _period_to_days(period), "apikey": self.api_key},
+            f"{self.BASE}/historical-price-eod/dividend-adjusted",
+            params={"symbol": symbol, "from": start, "apikey": self.api_key},
         )
-        history = data.get("historical") or []
+        if not isinstance(data, list):
+            return None
         bars = []
-        for item in reversed(history):  # FMP returns newest first
-            # `adjClose` over `close`. This was using the raw close, which
-            # renders a 4-for-1 split as a 75% single-day crash — and every
-            # other series vendor here already returns adjusted values, so an
-            # unadjusted FMP series would manufacture a cross-vendor conflict
-            # at each historical split and put a false drawdown into any
-            # portfolio curve drawn from it.
-            close = _safe_float(item.get("adjClose")) or _safe_float(item.get("close"))
+        for item in reversed(data):  # FMP returns newest first
+            # The dividend-adjusted endpoint adjusts all four prices. Every
+            # other series vendor here returns adjusted values, so a raw FMP
+            # close would manufacture a cross-vendor conflict at each split
+            # and put a false drawdown into any portfolio curve drawn from it.
+            close = _safe_float(item.get("adjClose"))
             if close is None:
                 continue
             bars.append(OHLCVBar(
-                date=item.get("date", ""),
-                open=_safe_float(item.get("open")), high=_safe_float(item.get("high")),
-                low=_safe_float(item.get("low")), close=close,
+                date=str(item.get("date", ""))[:10],
+                open=_safe_float(item.get("adjOpen")), high=_safe_float(item.get("adjHigh")),
+                low=_safe_float(item.get("adjLow")), close=close,
                 volume=int(item["volume"]) if item.get("volume") else None,
             ))
+        bars = _within_window(bars, period)
         return PriceSeries(symbol=symbol, bars=bars) if bars else None
 
     def search_symbols(self, query: str, limit: int = 8) -> Optional[list[dict]]:
         """Symbol lookup: [{symbol, name}] for a company-name/ticker query."""
         data = self._get_json(
-            f"{self.BASE}/search",
-            params={"query": query, "limit": limit, "exchange": "NASDAQ,NYSE,AMEX",
-                    "apikey": self.api_key},
+            f"{self.BASE}/search-name",
+            params={"query": query, "limit": max(limit * 3, 10), "apikey": self.api_key},
         )
         if not isinstance(data, list):
             return None
         out = [
             {"symbol": row.get("symbol", ""), "name": row.get("name", "")}
             for row in data
-            if row.get("symbol")
+            if isinstance(row, dict) and row.get("symbol")
+            and str(row.get("exchange") or "").upper() in self.LISTED_EXCHANGES
         ]
         return out[:limit] or None
 
     def get_company(self, symbol: str) -> Optional[CompanyProfile]:
-        """Full company profile.
-
-        The response already carried description, website, CEO, headcount,
-        country, IPO date and beta on every call — the adapter kept six fields
-        and dropped the rest, so the product had no business description and
-        no domain to key a logo on while paying for a request that contained
-        both.
-        """
-        data = self._get_json(f"{self.BASE}/profile/{symbol}", params={"apikey": self.api_key})
+        """Full company profile, every field the response carries."""
+        data = self._get_json(f"{self.BASE}/profile", params={"symbol": symbol, "apikey": self.api_key})
         if not isinstance(data, list) or not data:
             return None
         item = data[0]
@@ -595,9 +607,9 @@ class FMPVendor(VendorClient):
             name=item.get("companyName", ""),
             sector=item.get("sector", ""),
             industry=item.get("industry", ""),
-            market_cap=_safe_float(item.get("mktCap")),
+            market_cap=_safe_float(item.get("marketCap")),
             currency=item.get("currency", "USD"),
-            exchange=item.get("exchangeShortName", ""),
+            exchange=item.get("exchange", ""),
             website=website,
             domain=_registrable_domain(website),
             description=str(item.get("description") or "")[:1200],
@@ -610,17 +622,21 @@ class FMPVendor(VendorClient):
         )
 
     def get_fundamentals(self, symbol: str) -> Optional[FundamentalsData]:
-        data = self._get_json(f"{self.BASE}/quote/{symbol}", params={"apikey": self.api_key})
+        """Trailing P/E and per-share earnings from FMP's TTM ratios.
+
+        The /stable quote no longer carries P/E or EPS. The 52-week range is
+        left to the vendors whose fundamentals response includes it rather
+        than spending a second request of a 250-a-day allowance on it.
+        """
+        data = self._get_json(f"{self.BASE}/ratios-ttm", params={"symbol": symbol, "apikey": self.api_key})
         if not isinstance(data, list) or not data:
             return None
         item = data[0]
-        return FundamentalsData(
-            symbol=symbol,
-            pe_ratio=_safe_float(item.get("pe")),
-            eps=_safe_float(item.get("eps")),
-            week_52_high=_safe_float(item.get("yearHigh")),
-            week_52_low=_safe_float(item.get("yearLow")),
-        )
+        pe = _safe_float(item.get("priceToEarningsRatioTTM"))
+        eps = _safe_float(item.get("netIncomePerShareTTM"))
+        if pe is None and eps is None:
+            return None
+        return FundamentalsData(symbol=symbol, pe_ratio=pe, eps=eps)
 
 
 # ── MarketStack ───────────────────────────────────────────────────────────────
@@ -668,6 +684,7 @@ class MarketStackVendor(VendorClient):
                 close=close,
                 volume=int(volume) if volume else None,
             ))
+        bars = _within_window(bars, period)
         return PriceSeries(symbol=symbol, bars=bars) if bars else None
 
     def get_price(self, symbol: str) -> Optional[PriceQuote]:
