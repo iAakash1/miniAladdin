@@ -32,9 +32,11 @@ export default function ExplorePage() {
     )
   }
 
+  // The terminal's sidebar calls this page Screener; the experience modes'
+  // navigation calls it Explore. Each heading matches its own navigation.
   return (
     <Workbench
-      title="Explore"
+      title="Screener"
       subtitle="ranked across the universe"
       rail={[{ label: 'Rankings', state: 'live', detail: 'cached snapshot' }]}
       context={
