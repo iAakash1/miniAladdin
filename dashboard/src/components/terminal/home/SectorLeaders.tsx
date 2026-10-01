@@ -36,12 +36,12 @@ function tone(signal: string | null): 'pos' | 'neg' | 'muted' {
   return /buy/i.test(signal) ? 'pos' : /sell/i.test(signal) ? 'neg' : 'muted'
 }
 
-function Tile({ r }: { r: ExploreRow }) {
+function Tile({ r, href }: { r: ExploreRow; href: string }) {
   const plus = factor(r.top_positive)
   const minus = factor(r.top_caution)
   const rank = r.overall_rank
   return (
-    <Link href={`/company/${encodeURIComponent(r.symbol)}`} className="sl-tile" data-stale={r.stale ? '' : undefined}>
+    <Link href={href} className="sl-tile" data-stale={r.stale ? '' : undefined}>
       <span className="sl-tile__head">
         <SectorMark sector={r.sector} size={14} />
         <span className="sl-tile__sector">{r.sector}</span>
@@ -71,7 +71,14 @@ function Tile({ r }: { r: ExploreRow }) {
   )
 }
 
-export default function SectorLeaders() {
+export default function SectorLeaders({
+  companyHref = (symbol: string) => `/company/${encodeURIComponent(symbol)}`,
+  screenerHref = '/explore',
+}: {
+  /** Where a tile opens. Experience modes keep the reader in their own workspace. */
+  companyHref?: (symbol: string) => string
+  screenerHref?: string
+} = {}) {
   const [answer, setAnswer] = useState<{ d?: RecommendationsResponse; error?: string } | null>(null)
 
   useEffect(() => {
@@ -98,7 +105,7 @@ export default function SectorLeaders() {
               : 'the engine’s best-ranked name in each sector'}
           </span>
         </div>
-        <Link className="cw-more" href="/explore">Open screener</Link>
+        <Link className="cw-more" href={screenerHref}>Open screener</Link>
       </header>
       {answer === null ? (
         <div className="sl-grid sl-grid--loading" aria-busy="true">
@@ -115,7 +122,7 @@ export default function SectorLeaders() {
         <StateBlock state="unavailable" title="Sector leaders are unavailable" detail={`${readerError(answer.error)}. The ranking is rebuilt from the screener universe; nothing is listed in its place.`} />
       ) : rows.length ? (
         <div className="sl-grid">
-          {rows.map((r) => <Tile key={r.symbol} r={r} />)}
+          {rows.map((r) => <Tile key={r.symbol} r={r} href={companyHref(r.symbol)} />)}
         </div>
       ) : (
         <StateBlock

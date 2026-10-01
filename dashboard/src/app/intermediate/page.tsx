@@ -8,6 +8,7 @@ import TopIdeas from '@/components/beginner/TopIdeas'
 import TrendingNow from '@/components/beginner/TrendingNow'
 import IntermediateShell from '@/components/intermediate/IntermediateShell'
 import MarketBand from '@/components/terminal/home/MarketBand'
+import SectorLeaders from '@/components/terminal/home/SectorLeaders'
 import { Panel, Prose } from '@/components/system'
 
 export default function IntermediateHome() {
@@ -38,6 +39,7 @@ export default function IntermediateHome() {
         <Prose>One scorecard, with factor contributions, validation and traceable evidence.</Prose>
       </Panel>
       <MarketBand />
+      <SectorLeaders companyHref={(s) => `/intermediate/company/${encodeURIComponent(s)}`} />
       <TopIdeas limit={6} mode="intermediate" />
       <PerformanceLeaders limit={6} mode="intermediate" />
       <TrendingNow limit={6} mode="intermediate" />

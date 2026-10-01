@@ -481,7 +481,7 @@ function HistoryRow({
         </span>
       </td>
       <td className="num">
-        {item.confidence !== null ? `${item.confidence}%` : '—'}
+        {item.confidence !== null ? item.confidence : '—'}
       </td>
       <td className="num">
         {item.composite_score !== null
@@ -840,7 +840,7 @@ function CompareView({ a, b, onBack }: { a: string; b: string; onBack: () => voi
                     <span className="mono" style={{ fontWeight: 600 }}>{run.ticker}</span>
                     <span className={`badge ${verdictTone(run.verdict)}`}>{run.verdict}</span>
                     <span className="num" style={{ fontSize: '0.875rem', fontWeight: 600 }}>
-                      {run.confidence !== null ? `${run.confidence}%` : '—'}
+                      {run.confidence !== null ? run.confidence : '—'}
                     </span>
  <span className="num u-note" >
                       {run.composite_score !== null
@@ -856,7 +856,7 @@ function CompareView({ a, b, onBack }: { a: string; b: string; onBack: () => voi
                 ? `The verdict held at ${result.after.verdict}`
                 : `The verdict moved ${result.before.verdict} → ${result.after.verdict}`}
               {result.before.confidence !== null && result.after.confidence !== null && (
-                <> · confidence {result.before.confidence}% → {result.after.confidence}%</>
+                <> · confidence {result.before.confidence} → {result.after.confidence} of 100</>
               )}
               {result.risk.level_before && result.risk.level_after && (
                 <> · risk {result.risk.level_before.toLowerCase()} → {result.risk.level_after.toLowerCase()}</>

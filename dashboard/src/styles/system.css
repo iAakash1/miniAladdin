@@ -2739,16 +2739,18 @@ a.tape:hover .tape__sym { color: var(--accent); }
 
 .bg__card-foot {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 4px 14px;
   border-top: 1px solid var(--rule);
   padding-top: 8px;
 }
 
-.bg__action { font-size: var(--t-meta); color: var(--accent); text-decoration: none; }
+/* Five actions in a 16rem card: they wrap as whole labels rather than
+   breaking "Paper trade" across two lines. */
+.bg__action { font-size: var(--t-meta); color: var(--accent); text-decoration: none; white-space: nowrap; }
 .bg__action:hover { text-decoration: underline; }
-.bg__asof { font-size: var(--t-micro, 11px); color: var(--ink-muted); }
+.bg__asof { margin-left: auto; font-size: var(--t-micro, 11px); color: var(--ink-muted); white-space: nowrap; }
 
 /* ── trending ──────────────────────────────────────────────────────────── */
 
@@ -2979,7 +2981,7 @@ a.tape:hover .tape__sym { color: var(--accent); }
 
 .bg__actions .bg__switch { margin-top: 0; text-decoration: none; display: inline-flex; align-items: center; }
 
-.bg__watch {
+.bg__watch { white-space: nowrap;
   appearance: none;
   font: inherit;
   font-size: var(--t-micro, 11px);
