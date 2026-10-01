@@ -14,6 +14,7 @@ from __future__ import annotations
 import logging
 import math
 import os
+import re
 import sys
 import threading
 import time
@@ -2222,6 +2223,20 @@ def company_media(ticker: str, sector: str = "", industry: str = "", name: str =
         "domain": domain,
         "visual_policy": "verified_identity_only",
     }
+
+
+@app.get("/api/company/{ticker}/record", tags=["research"])
+def company_record(ticker: str):
+    """The official record around a company: Federal Register documents that
+    name it, and — when EDGAR classifies it as healthcare — FDA recalls and
+    the clinical trials it leads. Context only; it never reaches the signal.
+    Each section states whether it answered, found nothing, or failed."""
+    from src.services import official_record
+
+    symbol = ticker.upper().strip()
+    if not symbol or len(symbol) > 10 or not re.fullmatch(r"[A-Z][A-Z0-9.\-]*", symbol):
+        raise HTTPException(status_code=400, detail="Invalid ticker symbol")
+    return official_record.build(symbol)
 
 
 @app.get("/api/ml/capabilities", tags=["ml"])

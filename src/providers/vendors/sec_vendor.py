@@ -140,6 +140,24 @@ class SECVendor(VendorClient):
     def resolve_cik(self, symbol: str) -> Optional[dict[str, Any]]:
         return self._ticker_index().get(symbol.upper())
 
+    def get_entity(self, symbol: str) -> Optional[dict[str, Any]]:
+        """The registrant as EDGAR records it: legal name and SIC industry."""
+        entry = self.resolve_cik(symbol)
+        if not entry:
+            return None
+        data = self._get_json(
+            f"{self.DATA_BASE}/submissions/CIK{entry['cik']}.json", headers=self._headers(),
+        )
+        if not isinstance(data, dict):
+            return None
+        sic = str(data.get("sic") or "")
+        return {
+            "cik": entry["cik"],
+            "name": str(data.get("name") or entry.get("name") or ""),
+            "sic": sic if sic.isdigit() else None,
+            "sic_description": str(data.get("sicDescription") or "") or None,
+        }
+
     # ── filings ──────────────────────────────────────────────────────────────
     def get_filings(self, symbol: str, limit: int = 20) -> list[dict[str, Any]]:
         """Recent filings, newest first, normalized and URL-resolved."""

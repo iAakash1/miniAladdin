@@ -528,10 +528,20 @@ def test_brand_mark_is_deliberately_outside_the_fan_out():
     collected = set(re.findall(r'collect\(\s*\n?\s*"([a-z_]+)"', sources))
     uncollected = {c for c in fabric.CAPABILITY_METHODS if c not in collected}
 
-    assert uncollected == {"brand_mark"}, (
-        f"capability wiring changed: {uncollected} are registered but never "
-        "collected. Either wire them into the fabric or document why not."
+    # Exactly the capabilities the registry declares outside the fan-out —
+    # in both directions. An undeclared one is a dead capability; a declared
+    # one that *is* collected means the declaration is stale.
+    from src.providers import capabilities as _caps
+    declared_outside = {name for name, cap in _caps.REGISTRY.items() if not cap.fabric}
+    assert uncollected == declared_outside, (
+        f"capability wiring changed: {uncollected ^ declared_outside} disagree with "
+        "the registry's fabric flags. Either wire them into the fabric or declare "
+        "fabric=False with a reason."
     )
+    assert declared_outside == {
+        "brand_mark", "energy_context", "macro_context", "official_macro_series",
+        "instrument_identity", "official_actions", "regulatory_recalls", "clinical_trials",
+    }
     # And the reasoning lives *in the registry*, as structured data rather
     # than a comment someone can delete without failing anything. Every
     # capability outside the fan-out must carry its own justification —

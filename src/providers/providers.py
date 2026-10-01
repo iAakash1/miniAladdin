@@ -62,9 +62,14 @@ from src.providers.vendors.market_vendors import (  # noqa: F401 — PolygonVend
     YFinanceVendor,
 )
 from src.providers.vendors.massive_vendor import MassiveVendor
-from src.providers.vendors.macro_vendors import BeaVendor, BlsVendor, EiaVendor
+from src.providers.vendors.macro_vendors import (
+    BeaVendor, BlsVendor, EcbVendor, EiaVendor, TreasuryFiscalVendor, WorldBankVendor,
+)
 from src.providers.vendors.news_vendors import GNewsVendor, MarketauxVendor, NewsApiVendor, YahooRssVendor
 from src.providers.vendors.openfigi_vendor import OpenFigiVendor
+from src.providers.vendors.record_vendors import (
+    ClinicalTrialsVendor, FederalRegisterVendor, OpenFdaVendor,
+)
 from src.providers.vendors.search_vendors import ExaVendor, TavilyVendor
 from src.providers.vendors.sec_vendor import SECVendor
 from src.providers.vendors.tiingo_vendor import TiingoVendor
@@ -494,12 +499,18 @@ class MacroProvider:
         self.bls = BlsVendor()
         self.bea = BeaVendor()
         self.eia = EiaVendor()
+        # Context series each publisher owns outright. None is a substitute
+        # for a FRED series, so none joins a fallback chain: a series is asked
+        # of the one source that publishes it, and is missing when that fails.
+        self.treasury = TreasuryFiscalVendor()
+        self.ecb = EcbVendor()
+        self.world_bank = WorldBankVendor()
         self._chain = FallbackChain[MacroSnapshot]("macro.snapshot", cache, flight, self.TTL)
         self._series_chain = FallbackChain[list]("macro.series", cache, flight, self.SERIES_TTL)
 
     @property
     def vendors(self):
-        return [self.fred, self.bls, self.bea, self.eia]
+        return [self.fred, self.bls, self.bea, self.eia, self.treasury, self.ecb, self.world_bank]
 
     def get_macro(self) -> ProviderResult[MacroSnapshot]:
         return self._chain.execute(
@@ -514,6 +525,12 @@ class MacroProvider:
                 f"macro:series:{series_id}:{count}",
                 [ChainLink(self.eia, lambda: self.eia.get_energy_series(series_id, count))],
             )
+        for publisher in (self.treasury, self.ecb, self.world_bank):
+            if series_id in publisher.SERIES:
+                return self._series_chain.execute(
+                    f"macro:series:{series_id}:{count}",
+                    [ChainLink(publisher, lambda p=publisher: p.get_context_series(series_id, count))],
+                )
         links = [ChainLink(self.fred, lambda: self.fred.get_observations(series_id, count))]
         if series_id in self.bls.SERIES:
             links.append(ChainLink(
@@ -538,6 +555,27 @@ class IdentityProvider:
     @property
     def vendors(self):
         return [self.openfigi]
+
+
+class OfficialRecordProvider:
+    """Agency documents, FDA recalls and sponsored trials about a company.
+
+    Context a reader opens and judges, never input to the signal. Each vendor
+    answers one capability and is asked only that; the composition and its
+    healthcare routing live in `src/services/official_record.py`.
+    """
+
+    def __init__(self, filings: Optional[FilingsProvider] = None):
+        # EDGAR supplies the registrant's legal name and industry. The
+        # filings provider's client is shared so its ticker index is too.
+        self.sec = filings.sec if filings else SECVendor()
+        self.federal_register = FederalRegisterVendor()
+        self.openfda = OpenFdaVendor()
+        self.clinicaltrials = ClinicalTrialsVendor()
+
+    @property
+    def vendors(self):
+        return [self.federal_register, self.openfda, self.clinicaltrials]
 
 
 class SearchProvider:

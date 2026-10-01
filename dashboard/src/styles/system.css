@@ -4062,6 +4062,35 @@ a.nw-story--lead:hover { background: none; }
 .nw-tone[data-tone='neg'] { color: var(--e-neg); }
 @media (max-width: 980px) { .nw-body { grid-template-columns: minmax(0, 1fr); } }
 
+/* ── official record (Federal Register, FDA, ClinicalTrials.gov) ─────── */
+.or-body { display: flex; flex-direction: column; gap: 18px; }
+.or-sec { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.or-sec + .or-sec { padding-top: 14px; border-top: 1px solid var(--rule); }
+.or-sec__title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0; font: 600 12px / 1.3 var(--font-sans); color: var(--ink); }
+.or-sec__title span { font-weight: 400; font-size: 11px; color: var(--ink-faint); }
+.or-docs { display: flex; flex-direction: column; list-style: none; margin: 0; padding: 0; }
+.or-doc { display: grid; grid-template-columns: 11ch minmax(0, 1fr); gap: 14px; padding: 9px 6px; border-bottom: 1px solid var(--rule); color: inherit; text-decoration: none; }
+.or-docs li:last-child .or-doc { border-bottom: 0; }
+a.or-doc:hover .or-doc__title { color: var(--accent); }
+a.or-doc:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: var(--r-sm); }
+.or-doc__date { font: 400 11px / 1.5 var(--font-mono); color: var(--ink-faint); white-space: nowrap; }
+.or-doc__body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.or-doc__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font: 400 11px / 1.4 var(--font-mono); color: var(--ink-muted); }
+.or-doc__title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font: 500 13px / 1.4 var(--font-sans); color: var(--ink); }
+.or-doc__sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11.5px; color: var(--ink-faint); }
+.or-chip { display: inline-flex; align-items: center; height: 17px; padding: 0 6px; border-radius: 2px; box-shadow: inset 0 0 0 1px var(--rule-strong); font: 500 10px / 1 var(--font-mono); letter-spacing: 0.02em; text-transform: uppercase; color: var(--ink-muted); }
+.or-chip[data-class='classi'] { color: var(--e-neg); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--e-neg) 50%, transparent); }
+.or-chip[data-class='classii'] { color: var(--e-warn); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--e-warn) 45%, transparent); }
+.or-figures { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 28px; padding: 4px 6px 6px; }
+.or-figure { display: flex; flex-direction: column; gap: 2px; }
+.or-figure__v { font: 500 20px / 1.1 var(--font-mono); color: var(--ink); }
+.or-figure__k { font-size: 11px; color: var(--ink-faint); }
+.or-share { flex: 1 1 160px; max-width: 280px; height: 6px; margin-bottom: 6px; overflow: hidden; border-radius: 2px; background: var(--p-sunken); }
+.or-share span { display: block; height: 100%; background: var(--accent); opacity: 0.8; }
+.or-note { margin: 0; padding: 2px 6px; font-size: 12.5px; line-height: 1.5; color: var(--ink-muted); }
+.or-foot { margin: 0; padding: 0 6px; font: 400 10.5px / 1.5 var(--font-mono); color: var(--ink-faint); }
+@media (max-width: 640px) { .or-doc { grid-template-columns: minmax(0, 1fr); gap: 4px; } }
+
 /* ── filings as documents ────────────────────────────────────────────── */
 [data-group='periodic'] { --fl-tone: var(--accent); }
 [data-group='current'] { --fl-tone: var(--e-warn); }

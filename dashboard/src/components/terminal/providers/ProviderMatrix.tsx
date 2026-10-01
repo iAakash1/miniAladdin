@@ -46,6 +46,9 @@ const VENDOR_LABEL: Record<string, string> = {
   fmp: 'Financial Modeling Prep', marketstack: 'Marketstack', tiingo: 'Tiingo',
   alpha_vantage: 'Alpha Vantage', yfinance: 'Yahoo Finance', yahoo_rss: 'Yahoo Finance RSS',
   newsapi: 'NewsAPI', gnews: 'GNews', tavily: 'Tavily', exa: 'Exa', fred: 'FRED', sec: 'SEC EDGAR',
+  marketaux: 'Marketaux', openfigi: 'OpenFIGI', bls: 'BLS', bea: 'BEA', eia: 'EIA',
+  treasury_fiscal: 'Treasury Fiscal Data', ecb: 'ECB Data Portal', world_bank: 'World Bank',
+  federal_register: 'Federal Register', openfda: 'openFDA', clinicaltrials: 'ClinicalTrials.gov',
 }
 
 const TONE_RANK: Record<HealthTone, number> = { neg: 4, warn: 3, pos: 2, info: 1, muted: 0 }

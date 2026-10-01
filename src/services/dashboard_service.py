@@ -71,6 +71,16 @@ MACRO_SERIES: list[dict[str, str]] = [
      "explain": "New residential construction — the most rate-sensitive activity gauge."},
     {"id": "EIA_WTI_M", "label": "WTI Crude Oil", "unit": "$/bbl",
      "explain": "Cushing spot price, monthly average — energy cost context from EIA."},
+    {"id": "TSY_AVG_RATE", "label": "Avg. Rate on Treasury Debt", "unit": "%", "digits": "3",
+     "explain": "Average interest rate the Treasury pays on its marketable debt, monthly — "
+                "the federal cost of borrowing, from Treasury Fiscal Data."},
+    {"id": "ECB_DFR", "label": "ECB Deposit Rate", "unit": "%",
+     "explain": "The ECB's policy floor, recorded at each decision that changed it — "
+                "European monetary context from the ECB Data Portal."},
+    {"id": "ECB_EURUSD", "label": "EUR/USD", "unit": "", "digits": "4",
+     "explain": "Monthly average of the ECB euro reference rate, in dollars per euro."},
+    {"id": "WB_GDP_WORLD", "label": "World GDP Growth", "unit": "%",
+     "explain": "Annual real GDP growth of the world economy, from the World Bank."},
 ]
 
 SECTOR_ETFS: list[tuple[str, str]] = [
@@ -126,14 +136,18 @@ def _macro_card(meta: dict[str, str]) -> Optional[dict[str, Any]]:
         trend = [yoy_at(i) for i in range(5, -1, -1)]
         trend = [value for value in trend if value is not None]
     else:
-        current = round(observations[-1][1], 2)
-        previous = round(observations[-2][1], 2) if len(observations) >= 2 else None
+        # Precision is the series' own: an exchange rate rounded to cents
+        # reads as unchanged through most of a month's movement.
+        places = int(meta.get("digits", "2"))
+        current = round(observations[-1][1], places)
+        previous = round(observations[-2][1], places) if len(observations) >= 2 else None
         unit = meta["unit"]
-        trend = [round(value, 2) for _, value in observations[-6:]]
+        trend = [round(value, places) for _, value in observations[-6:]]
 
     if current is None:
         return None
-    change = round(current - previous, 2) if previous is not None else None
+    places = 2 if yoy else int(meta.get("digits", "2"))
+    change = round(current - previous, places) if previous is not None else None
     return {
         "id": meta["id"],
         "label": meta["label"],
@@ -144,6 +158,7 @@ def _macro_card(meta: dict[str, str]) -> Optional[dict[str, Any]]:
         "unit": unit,
         "trend": trend,
         "updated": observations[-1][0],
+        "digits": places,
         "explain": meta["explain"],
         "source": result.source,
     }

@@ -174,3 +174,137 @@ class EiaVendor(VendorClient):
             if math.isfinite(value) and value > 0:
                 observations.append((f"{period}-01", value))
         return sorted(observations)[-count:] or None
+
+
+def _finite(raw) -> Optional[float]:
+    try:
+        value = float(str(raw).replace(",", ""))
+    except (TypeError, ValueError):
+        return None
+    return value if math.isfinite(value) else None
+
+
+class TreasuryFiscalVendor(VendorClient):
+    """Treasury Fiscal Data: the average rate paid on marketable federal debt."""
+
+    NAME = "treasury_fiscal"
+    KEY_ENV = None
+    DEFAULT_RPM = 10
+    URL = (
+        "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/"
+        "v2/accounting/od/avg_interest_rates"
+    )
+    #: Our series id -> the dataset's own security description. The dataset
+    #: carries one row per security class per month; only the exact total is
+    #: read, never a sum of its parts.
+    SERIES = {"TSY_AVG_RATE": "Total Marketable"}
+
+    def get_context_series(self, series_id: str, count: int = 8) -> Optional[list[tuple[str, float]]]:
+        description = self.SERIES.get(series_id)
+        if description is None:
+            return None
+        data = self._get_json(
+            self.URL,
+            params={
+                "filter": f"security_desc:eq:{description}",
+                "sort": "-record_date",
+                "page[size]": min(max(count, 1), 36),
+                "fields": "record_date,security_desc,avg_interest_rate_amt",
+            },
+            operation="macro_context",
+        )
+        observations = []
+        for row in (data or {}).get("data") or []:
+            if not isinstance(row, dict) or row.get("security_desc") != description:
+                continue
+            day = str(row.get("record_date") or "")
+            value = _finite(row.get("avg_interest_rate_amt"))
+            if re.fullmatch(r"\d{4}-\d{2}-\d{2}", day) and value is not None:
+                observations.append((day, value))
+        return sorted(observations)[-count:] or None
+
+
+class EcbVendor(VendorClient):
+    """ECB Data Portal: the deposit facility rate and the euro reference rate."""
+
+    NAME = "ecb"
+    KEY_ENV = None
+    DEFAULT_RPM = 10
+    BASE = "https://data-api.ecb.europa.eu/service/data/"
+    #: The deposit rate is stored as the level set at each decision, so its
+    #: observations are decision dates rather than a daily repetition.
+    SERIES = {
+        "ECB_DFR": "FM/B.U2.EUR.4F.KR.DFR.LEV",
+        "ECB_EURUSD": "EXR/M.USD.EUR.SP00.A",
+    }
+
+    def get_context_series(self, series_id: str, count: int = 8) -> Optional[list[tuple[str, float]]]:
+        key = self.SERIES.get(series_id)
+        if key is None:
+            return None
+        data = self._get_json(
+            self.BASE + key,
+            params={"lastNObservations": min(max(count, 1), 36), "format": "jsondata"},
+            headers={"Accept": "application/json"},
+            operation="macro_context",
+        )
+        if not isinstance(data, dict):
+            return None
+        try:
+            series = data["dataSets"][0]["series"]
+            dates = [str(v.get("id") or "") for v in data["structure"]["dimensions"]["observation"][0]["values"]]
+        except (KeyError, IndexError, TypeError, AttributeError):
+            return None
+        if not isinstance(series, dict) or len(series) != 1:
+            # The key names one series; anything else is not the series asked for.
+            return None
+        observations = []
+        for index, cell in (next(iter(series.values())).get("observations") or {}).items():
+            try:
+                period = dates[int(index)]
+            except (ValueError, IndexError):
+                continue
+            value = _finite(cell[0]) if isinstance(cell, list) and cell else None
+            if value is None:
+                continue
+            if re.fullmatch(r"\d{4}-\d{2}", period):
+                period = f"{period}-01"
+            if re.fullmatch(r"\d{4}-\d{2}-\d{2}", period):
+                observations.append((period, value))
+        return sorted(observations)[-count:] or None
+
+
+class WorldBankVendor(VendorClient):
+    """World Bank WDI: annual real GDP growth for the world economy."""
+
+    NAME = "world_bank"
+    KEY_ENV = None
+    DEFAULT_RPM = 10
+    TIMEOUT_SECONDS = 8.0
+    URL = "https://api.worldbank.org/v2/country/{country}/indicator/{indicator}"
+    SERIES = {"WB_GDP_WORLD": ("WLD", "NY.GDP.MKTP.KD.ZG")}
+
+    def get_context_series(self, series_id: str, count: int = 8) -> Optional[list[tuple[str, float]]]:
+        spec = self.SERIES.get(series_id)
+        if spec is None:
+            return None
+        country, indicator = spec
+        data = self._get_json(
+            self.URL.format(country=country, indicator=indicator),
+            params={"format": "json", "mrv": min(max(count, 1), 30), "per_page": 30},
+            operation="macro_context",
+        )
+        # Errors arrive as HTTP 200 with a one-element message list.
+        if not isinstance(data, list) or len(data) < 2 or not isinstance(data[1], list):
+            return None
+        observations = []
+        for row in data[1]:
+            if not isinstance(row, dict):
+                continue
+            if (row.get("indicator") or {}).get("id") != indicator or row.get("countryiso3code") != country:
+                continue
+            year = str(row.get("date") or "")
+            value = _finite(row.get("value")) if row.get("value") is not None else None
+            if re.fullmatch(r"\d{4}", year) and value is not None:
+                observations.append((f"{year}-01-01", value))
+        return sorted(observations)[-count:] or None

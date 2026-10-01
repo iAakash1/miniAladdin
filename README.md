@@ -808,6 +808,16 @@ reason. The ones that came from a measured failure rather than a preference:
 | `LLM_MAX_OUTPUT_TOKENS` | optional | Final-writer ceiling; default `6000`, bounded to `1000–8192` |
 | `ANALYST_SNAPSHOT_DIR` | optional | Best-effort analyst snapshot path; defaults to writable `/tmp` on Cloud Run |
 | `POLYGON_API_KEY` · `FINNHUB_API_KEY` · `TWELVEDATA_API_KEY` · `FMP_API_KEY` · `MARKETSTACK_API_KEY` · `GNEWS_API_KEY` · `TAVILY_API_KEY` · `EXA_API_KEY` | optional | Extra vendors in the provider chains — each self-disables when absent |
+| `MARKETAUX_API_KEY` · `OPENFIGI_API_KEY` | optional | Entity news; composite-FIGI instrument identity (provenance only) |
+| `BEA_API_KEY` · `EIA_API_KEY` | optional | Official GDP fallback for FRED; monthly WTI energy context |
+| `OPENFDA_API_KEY` | optional | FDA recalls on the Filings tab, asked only for SEC-classified healthcare registrants |
+
+Keyless public sources need no variable and are each asked one question:
+BLS (CPI and unemployment fallbacks), Treasury Fiscal Data (average rate on
+marketable debt), the ECB Data Portal (deposit rate, EUR/USD), the World Bank
+(world GDP growth), the Federal Register (agency documents naming a company)
+and ClinicalTrials.gov (trials a healthcare company leads). None of them feeds
+the signal; the macro board and the official record show them as context.
 | `SUPABASE_URL` | optional | Persistence: hosted Supabase project URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | optional | Persistence: server-only key (bypasses RLS by design — never ships to a browser) |
 | `CLERK_JWKS_URL` | optional | Verify Clerk session JWTs (`https://<instance>.clerk.accounts.dev/.well-known/jwks.json`) |

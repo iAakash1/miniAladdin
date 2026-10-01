@@ -6,6 +6,7 @@ import ChartPanel from '../ChartPanel'
 import Filings from '../Filings'
 import MacroVisual from '../MacroVisual'
 import News from '../News'
+import OfficialRecord from '../OfficialRecord'
 import Ownership from '../Ownership'
 import CompanyEcosystem from '@/components/terminal/CompanyEcosystem'
 import StreetIntelligence from '@/components/terminal/StreetIntelligence'
@@ -85,15 +86,20 @@ export function NewsTab({ analysis: a, isPro, requestUpgrade }: {
 }
 
 export function FilingsTab({ analysis: a }: { analysis: Analysis }) {
-  return a.filings && a.filings.filings.length ? (
-    <Filings block={a.filings} />
-  ) : (
-    <section className="sys-panel">
-      <div className="sys-state">
-        <div className="sys-state__head"><span className="sys-status" data-state="unavailable">no filings</span><span className="sys-state__title">EDGAR returned no recent filings for {a.ticker}</span></div>
-        <p className="sys-state__detail">Foreign private issuers and funds often file under different forms or not at all. Nothing is substituted.</p>
-      </div>
-    </section>
+  return (
+    <div className="cw-stack">
+      {a.filings && a.filings.filings.length ? (
+        <Filings block={a.filings} />
+      ) : (
+        <section className="sys-panel">
+          <div className="sys-state">
+            <div className="sys-state__head"><span className="sys-status" data-state="unavailable">no filings</span><span className="sys-state__title">EDGAR returned no recent filings for {a.ticker}</span></div>
+            <p className="sys-state__detail">Foreign private issuers and funds often file under different forms or not at all. Nothing is substituted.</p>
+          </div>
+        </section>
+      )}
+      <OfficialRecord symbol={a.ticker} />
+    </div>
   )
 }
 

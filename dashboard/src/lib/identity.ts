@@ -139,6 +139,17 @@ const PROVIDER_DOMAINS: Record<string, string> = {
   sec: 'sec.gov',
   logo_dev: 'logo.dev',
   wikidata: 'wikidata.org',
+  marketaux: 'marketaux.com',
+  openfigi: 'openfigi.com',
+  bls: 'bls.gov',
+  bea: 'bea.gov',
+  eia: 'eia.gov',
+  treasury_fiscal: 'fiscaldata.treasury.gov',
+  ecb: 'ecb.europa.eu',
+  world_bank: 'worldbank.org',
+  federal_register: 'federalregister.gov',
+  openfda: 'open.fda.gov',
+  clinicaltrials: 'clinicaltrials.gov',
 }
 
 /** The domain of a data provider by id, or '' when it is not one we know. */

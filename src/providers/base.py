@@ -433,6 +433,14 @@ class VendorClient:
                         f"HTTP {status}", transient=True,
                         failure_class=FailureClass.UPSTREAM, status_code=status,
                     )
+                if status >= 400 and self._is_empty_answer(response):
+                    # The vendor answered the question: nothing matches. A
+                    # failure here would push a healthy vendor into cooldown
+                    # for every company it has nothing on.
+                    self.stats.record(True, latency)
+                    _observe(self.NAME, operation, "ok",
+                             (time.perf_counter() - request_started) * 1000)
+                    return None
                 if status >= 400:
                     raise VendorError(
                         f"HTTP {status}", transient=False,
@@ -501,6 +509,14 @@ class VendorClient:
 
     def _validate_payload(self, payload: Any) -> None:
         """Adapters may reject an API-level error returned with HTTP 200."""
+
+    def _is_empty_answer(self, response: Any) -> bool:
+        """Whether an error status is the vendor's way of saying "no matches".
+
+        False by default: only an adapter that can recognise the vendor's own
+        no-match body may treat a 4xx as an answer rather than a failure.
+        """
+        return False
 
     @staticmethod
     def _parse_retry_after(value: Optional[str]) -> Optional[float]:

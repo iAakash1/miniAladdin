@@ -21,6 +21,7 @@ from src.providers.providers import (
     MacroProvider,
     MarketDataProvider,
     NewsProvider,
+    OfficialRecordProvider,
     SearchProvider,
 )
 
@@ -34,6 +35,7 @@ macro = MacroProvider(cache, _flight)
 search = SearchProvider(cache, _flight, news=news)
 filings = FilingsProvider(cache, _flight)
 identity = IdentityProvider()
+official_record = OfficialRecordProvider(filings=filings)
 
 _ALL = {
     "market_data": market_data,
@@ -43,6 +45,7 @@ _ALL = {
     "search": search,
     "filings": filings,
     "identity": identity,
+    "official_record": official_record,
 }
 
 

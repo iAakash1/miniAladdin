@@ -229,6 +229,20 @@ _ALL: tuple[Capability, ...] = (
         excluded_because="A macro-board context series, not ticker-scoped evidence fan-out.",
     ),
     Capability(
+        name="macro_context", method="get_context_series",
+        label="Official macro context",
+        description=(
+            "Series a publisher owns outright: Treasury Fiscal Data's average "
+            "rate on marketable debt, the ECB deposit rate and euro reference "
+            "rate, and World Bank global GDP growth."
+        ),
+        reconciliation="none", requires_auth=False, fabric=False,
+        excluded_because=(
+            "Macro-board context series with exactly one publisher each; they "
+            "are not ticker-scoped evidence and have nothing to reconcile."
+        ),
+    ),
+    Capability(
         name="official_macro_series", method="get_official_series",
         label="Official macro series",
         description="Source-equivalent CPI, unemployment and GDP observations from BLS or BEA.",
@@ -246,6 +260,38 @@ _ALL: tuple[Capability, ...] = (
         excluded_because=(
             "The company intelligence graph consumes a sourced KnowledgeBundle "
             "directly; the numeric evidence fabric cannot reconcile identifiers."
+        ),
+    ),
+    Capability(
+        name="official_actions", method="get_official_actions",
+        label="Federal Register documents",
+        description=(
+            "Documents federal agencies published that name the company: "
+            "investigations, rules, orders and notices, from FederalRegister.gov."
+        ),
+        reconciliation="primary", primary_source=True, requires_auth=False, fabric=False,
+        excluded_because=(
+            "Company-scoped primary records a reader opens and judges; the "
+            "deterministic engine never reads them, so there is no evidence "
+            "value to reconcile."
+        ),
+    ),
+    Capability(
+        name="regulatory_recalls", method="get_recalls", label="FDA enforcement reports",
+        description="Drug and device recalls where the company is the recalling firm, from openFDA.",
+        reconciliation="primary", primary_source=True, fabric=False,
+        excluded_because=(
+            "Asked only for companies EDGAR classifies as healthcare, and shown "
+            "as records; it is not evidence for the signal."
+        ),
+    ),
+    Capability(
+        name="clinical_trials", method="get_trials", label="Sponsored clinical trials",
+        description="Active studies the company leads, with phase and status, from ClinicalTrials.gov.",
+        reconciliation="primary", primary_source=True, requires_auth=False, fabric=False,
+        excluded_because=(
+            "Asked only for companies EDGAR classifies as healthcare, and shown "
+            "as records; it is not evidence for the signal."
         ),
     ),
     Capability(
