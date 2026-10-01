@@ -136,6 +136,13 @@ function connectionScopedHeaders(headers: Headers, base: Set<string>): Set<strin
  * every response it produces. Repeating such a request cannot run anything
  * twice, whatever its method.
  */
+/** One id per proxied request. The backend adopts it for its log line and
+ *  echoes it, so a proxy-side failure, its retries and the server's record of
+ *  the request carry the same id. A browser-supplied value is replaced. */
+function newRequestId(): string {
+  return crypto.randomUUID().replace(/-/g, '').slice(0, 16)
+}
+
 function refusedByPlatform(upstream: Response): boolean {
   return upstream.status === 429 && !upstream.headers.has('x-request-id')
 }
@@ -148,6 +155,17 @@ export async function proxyBackend(request: Request, path: string[]): Promise<Re
   target.search = incomingUrl.search
 
   const headers = outboundHeaders(request)
+  const requestId = newRequestId()
+  headers.set('X-Request-Id', requestId)
+  try {
+    return await forward(request, target, headers, deadline)
+  } catch (error) {
+    if (error instanceof Error) Object.assign(error, { requestId })
+    throw error
+  }
+}
+
+async function forward(request: Request, target: URL, headers: Headers, deadline: number): Promise<Response> {
   if ((process.env.BACKEND_AUTH_MODE || 'none').toLowerCase() === 'google_oidc') {
     // Cloud Run checks this header for infrastructure identity and leaves the
     // browser's Authorization header available to Clerk application auth.

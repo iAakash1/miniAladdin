@@ -13,6 +13,7 @@ async function handle(request: Request, context: Context): Promise<Response> {
   } catch (error) {
     console.error('[backend-proxy] request failed', {
       error: error instanceof Error ? error.name : 'UnknownError',
+      requestId: error instanceof Error && 'requestId' in error ? String(error.requestId) : null,
     })
     const message = error instanceof Error && error.message.startsWith('Missing server configuration:')
       ? 'Backend proxy is not configured.'

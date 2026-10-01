@@ -122,6 +122,9 @@ from api.persistence import router as persistence_router  # noqa: E402
 app.include_router(persistence_router)
 
 
+_REQUEST_ID = re.compile(r"[A-Za-z0-9_-]{8,64}")
+
+
 @app.middleware("http")
 async def request_logging(request, call_next):
     """One structured line per request: id, method, path, user, status, duration.
@@ -131,7 +134,12 @@ async def request_logging(request, call_next):
     attached by the auth dependency (request.state.clerk_user) when a valid
     token was presented — never any token contents.
     """
-    request_id = uuid.uuid4().hex[:12]
+    # The Vercel proxy mints one id per request and keeps it across its own
+    # retries; adopting it lets a proxy-side failure be matched to this line.
+    # Anything that is not a short token is ignored, so a caller cannot write
+    # into the log through the header.
+    inbound = request.headers.get("x-request-id") or ""
+    request_id = inbound if _REQUEST_ID.fullmatch(inbound) else uuid.uuid4().hex[:12]
     request.state.request_id = request_id
     # Profile every request. Attribution is per-label and lock-guarded, and
     # measured at 0.19 µs per record (benchmarks/observability.py), so this

@@ -220,3 +220,26 @@ test('a 429 the application wrote is returned, not repeated', async (t) => {
   assert.equal(response.status, 429)
   assert.deepEqual(await response.json(), { detail: 'slow down' })
 })
+
+test('one request id is forwarded and kept across platform retries', async (t) => {
+  const ids: Array<string | null> = []
+  let calls = 0
+  arrange(t, async (_input, init) => {
+    calls += 1
+    ids.push(new Headers(init?.headers).get('x-request-id'))
+    if (calls < 2) return new Response('Rate exceeded.', { status: 429 })
+    return Response.json({ ok: true }, { headers: { 'X-Request-Id': 'served' } })
+  })
+  await proxyBackend(request({ 'X-Request-Id': 'browser-chose-this' }), ['health'])
+  assert.equal(ids.length, 2)
+  assert.match(ids[0] ?? '', /^[a-f0-9]{16}$/, 'the proxy did not mint its own id')
+  assert.equal(ids[0], ids[1], 'a retry was sent under a different id')
+})
+
+test('a failed proxy request carries its id to the route boundary', async (t) => {
+  arrange(t, async () => { throw new TypeError('fetch failed') })
+  await assert.rejects(proxyBackend(request(), ['health']), (error: Error & { requestId?: string }) => {
+    assert.match(error.requestId ?? '', /^[a-f0-9]{16}$/)
+    return true
+  })
+})
