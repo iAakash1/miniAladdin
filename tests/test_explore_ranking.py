@@ -459,3 +459,32 @@ def test_across_sectors_never_exceeds_the_limit():
     from src.services.explore_service import across_sectors
     snap = _snapshot([_row(f"S{i}", sector=f"Sector {i}", overall_rank=50.0 + i) for i in range(12)])
     assert len(across_sectors(snap, 5)) == 5
+
+
+def test_universe_histories_are_reused_across_snapshot_rebuilds(monkeypatch):
+    """Each 10-minute rebuild refetched 78 one-year histories because the
+    provider cache holds them for five; a cold instance then starved the
+    dashboard of sector funds."""
+    from src.services import explore_service
+    from src.providers.schemas import OHLCVBar, PriceSeries, ProviderResult
+
+    explore_service.reset_cache_for_testing()
+    calls = []
+    bars = [OHLCVBar(date=f"2026-09-{d:02d}", close=100.0 + d) for d in range(1, 29)]
+
+    def fake(symbol, period):
+        calls.append(symbol)
+        return ProviderResult(data=PriceSeries(symbol=symbol, bars=bars), source="vendor")
+
+    monkeypatch.setattr(explore_service.providers.market_data, "get_series", fake)
+    explore_service._universe_series("AAA")
+    explore_service._universe_series("AAA")
+    assert calls == ["AAA"]
+
+    stale = []
+    monkeypatch.setattr(explore_service.providers.market_data, "get_series",
+                        lambda s, p: stale.append(s) or ProviderResult(error="down"))
+    explore_service._universe_series("BBB")
+    explore_service._universe_series("BBB")
+    assert stale == ["BBB", "BBB"], "a failed read was pinned instead of retried"
+    explore_service.reset_cache_for_testing()

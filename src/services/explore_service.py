@@ -53,6 +53,34 @@ _snapshot: Optional["ExploreSnapshot"] = None
 _snapshot_at: float = 0.0
 _building = False
 
+#: How long one universe member's daily history is reused across snapshots.
+#: The provider cache holds a series for five minutes and the snapshot is
+#: rebuilt every ten, so every rebuild refetched all 78 one-year histories —
+#: on a cold instance that drained every vendor's local budget and the home
+#: dashboard got 3 of 11 sector funds. Daily-bar rankings do not need bars
+#: fresher than half an hour; research keeps the provider's five minutes.
+UNIVERSE_SERIES_TTL_SECONDS = 1800.0
+_series_lock = threading.Lock()
+_series_cache: dict[str, tuple[float, Any]] = {}
+
+
+def _universe_series(symbol: str):
+    now = time.time()
+    with _series_lock:
+        hit = _series_cache.get(symbol)
+    if hit and hit[0] > now:
+        return hit[1]
+    result = providers.market_data.get_series(symbol, "1y")
+    # Only a fresh answer is held: a stale or failed one is retried at the
+    # next rebuild rather than pinned for half an hour.
+    if result is not None and result.ok and not result.stale:
+        with _series_lock:
+            _series_cache[symbol] = (now + UNIVERSE_SERIES_TTL_SECONDS, result)
+            if len(_series_cache) > 512:
+                for key in sorted(_series_cache, key=lambda k: _series_cache[k][0])[:64]:
+                    _series_cache.pop(key, None)
+    return result
+
 
 # ── shapes ───────────────────────────────────────────────────────────────────
 
@@ -173,7 +201,7 @@ def _gather(entry: Constituent, srm: float, spy_frame, stress: dict[str, Any]) -
         symbol=entry.symbol, company_name=entry.company_name, sector=entry.sector
     )
 
-    series_result = _safe(lambda: providers.market_data.get_series(entry.symbol, "1y"))
+    series_result = _safe(lambda: _universe_series(entry.symbol))
     if series_result is None or not series_result.ok or not series_result.data.bars:
         row.exclusion_reasons = ["no_price_series"]
         return row
@@ -343,7 +371,7 @@ def _build_snapshot() -> ExploreSnapshot:
     srm = multiplier if isinstance(multiplier, (int, float)) else 1.0
     stress = _safe(_stress_inputs, {}) or {}
 
-    spy_result = _safe(lambda: providers.market_data.get_series("SPY", "1y"))
+    spy_result = _safe(lambda: _universe_series("SPY"))
     spy_frame = (
         _safe(lambda: _series_to_dataframe(spy_result.data))
         if spy_result is not None and spy_result.ok and spy_result.data.bars
@@ -580,6 +608,8 @@ def get_snapshot(force: bool = False) -> ExploreSnapshot:
 
 def reset_cache_for_testing() -> None:
     global _snapshot, _snapshot_at, _building
+    with _series_lock:
+        _series_cache.clear()
     with _lock:
         _snapshot, _snapshot_at, _building = None, 0.0, False
 
