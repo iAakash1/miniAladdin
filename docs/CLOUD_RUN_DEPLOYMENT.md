@@ -128,11 +128,11 @@ Set `DEEPSEEK_FAST_MODEL=deepseek-flash` and
 fallback to select a retired model.
 The measured first real calls also require `LLM_TIMEOUT=20` and use the bounded
 `LLM_MAX_OUTPUT_TOKENS=6000`; the compact v2 prompt contracts keep typical
-responses below that ceiling. The DeepSeek final writer has its own single,
-non-retried attempt: `LLM_FAST_TIMEOUT` (default 32 s) for Flash and
-`LLM_DEEP_TIMEOUT` (default 35 s) for Pro, both capped at 45 s. A 20 s Flash
-attempt was measured streaming a full narrative past the limit, and retrying
-the identical request only doubled the wait. Cloud Run writes best-effort analyst snapshots
+responses below that ceiling. The DeepSeek final writer streams its response
+in one non-retried attempt: a 20 s limit on silence between chunks, a 25 s
+limit on the first content token (an overloaded API answers 200 and then sends
+only keep-alives), and a whole-write deadline of `LLM_FAST_TIMEOUT` (default
+60 s) for Flash or `LLM_DEEP_TIMEOUT` (default 70 s) for Pro, capped at 80 s. Cloud Run writes best-effort analyst snapshots
 and third-party caches only under ephemeral `/tmp`, never under `/app`.
 
 ## Preview candidates

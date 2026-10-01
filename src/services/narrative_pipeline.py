@@ -595,22 +595,34 @@ def _timeout_seconds() -> float:
         return 10.0
 
 
-def _deepseek_timeout_seconds(model: str) -> float:
-    """One bounded attempt long enough for a full narrative.
+#: Longest silence tolerated between streamed chunks. A writer that is
+#: producing tokens never comes near it; one that has stalled is abandoned
+#: without waiting out the whole deadline.
+DEEPSEEK_STREAM_GAP_SECONDS = 20.0
+#: How long to wait for the first content token. Measured on 1 Oct: an
+#: overloaded DeepSeek answered 200 at once and then sent only keep-alive
+#: comments for 110 s, even for a two-word prompt. Keep-alives reset the
+#: stall limit, so without this every research run waited out the full
+#: deadline before the fallback could answer.
+DEEPSEEK_FIRST_TOKEN_SECONDS = 25.0
 
-    Pro returned at the shared 20-second boundary and raised ``ReadTimeout``;
-    it gets 35 seconds. Flash used to finish inside 20, but on the NVDA run of
-    1 Oct it answered 200 and was still streaming the 19-section body at
-    20.7 seconds — twice, because the timeout was retried — and the report
-    fell back to Groq after 40 seconds of nothing. Flash now gets 32 seconds
-    in one attempt (see `_call_with_retries`), which stays inside the
-    proxy's 120-second budget together with research and the fallback.
+
+def _deepseek_timeout_seconds(model: str) -> float:
+    """The whole-response deadline for one streamed DeepSeek write.
+
+    The writer used to be called without streaming, so nothing arrived until
+    the full JSON was written and a read timeout raced total generation time:
+    on 1 Oct an NVDA narrative timed out at 20 s, then at 32 s, and the report
+    went out with no narrative. Streamed, the read timeout measures stalls
+    (`DEEPSEEK_STREAM_GAP_SECONDS`) and this deadline bounds the whole write:
+    60 s for Flash, 70 s for Pro, at most 80 s, which with research and the
+    Groq fallback stays inside the proxy's 115 s budget.
     """
 
     deep = model == _deepseek_model("deep")
-    name, default = ("LLM_DEEP_TIMEOUT", 35.0) if deep else ("LLM_FAST_TIMEOUT", 32.0)
+    name, default = ("LLM_DEEP_TIMEOUT", 70.0) if deep else ("LLM_FAST_TIMEOUT", 60.0)
     try:
-        return max(20.0, min(45.0, float(os.getenv(name, str(default)))))
+        return max(20.0, min(80.0, float(os.getenv(name, str(default)))))
     except ValueError:
         return default
 
@@ -735,29 +747,56 @@ def _call_stage(
         raise ValueError(f"unsupported LLM provider: {provider}")
     model = model or _deepseek_model("deep")
     base = os.getenv("DEEPSEEK_BASE_URL", DEFAULT_DEEPSEEK_BASE_URL).rstrip("/")
-    response = _get_deepseek_client().post(
+    import httpx
+
+    started = time.monotonic()
+    deadline = started + _deepseek_timeout_seconds(model)
+    first_token_by = started + DEEPSEEK_FIRST_TOKEN_SECONDS
+    parts: list[str] = []
+    usage: dict[str, Any] = {}
+    finish_reason: Optional[str] = None
+    with _get_deepseek_client().stream(
+        "POST",
         f"{base}/chat/completions",
         headers={"Authorization": f"Bearer {os.getenv('DEEPSEEK_API_KEY')}",
                  "Content-Type": "application/json"},
         json={
             "model": model, "messages": messages, "temperature": 0.1,
-            "top_p": 1, "stream": False, "max_tokens": _max_output_tokens(),
+            "top_p": 1, "stream": True, "stream_options": {"include_usage": True},
+            "max_tokens": _max_output_tokens(),
             "thinking": {"type": "disabled"},
             "response_format": {"type": "json_object"},
         },
-        timeout=_deepseek_timeout_seconds(model),
-    )
-    response.raise_for_status()
-    body = response.json()
-    content = ((body.get("choices") or [{}])[0].get("message") or {}).get("content") or ""
-    usage = body.get("usage") or {}
+        timeout=httpx.Timeout(10.0, read=DEEPSEEK_STREAM_GAP_SECONDS),
+    ) as response:
+        response.raise_for_status()
+        for line in response.iter_lines():
+            now = time.monotonic()
+            if now > deadline:
+                raise httpx.ReadTimeout("deepseek narrative exceeded its deadline")
+            if not parts and now > first_token_by:
+                raise httpx.ReadTimeout("deepseek produced no tokens; the request is queued upstream")
+            if not line.startswith("data:"):
+                continue  # SSE comments and keep-alives
+            data = line[5:].strip()
+            if data == "[DONE]":
+                break
+            chunk = json.loads(data)
+            if isinstance(chunk.get("usage"), dict):
+                usage = chunk["usage"]
+            for choice in chunk.get("choices") or []:
+                piece = (choice.get("delta") or {}).get("content")
+                if piece:
+                    parts.append(piece)
+                if choice.get("finish_reason"):
+                    finish_reason = choice["finish_reason"]
     return ProviderResponse(
-        content=content, provider="deepseek", model=model,
+        content="".join(parts), provider="deepseek", model=model,
         input_tokens=_usage_value(usage, "prompt_tokens"),
         output_tokens=_usage_value(usage, "completion_tokens"),
         cache_hit_tokens=_usage_value(usage, "prompt_cache_hit_tokens"),
         cache_miss_tokens=_usage_value(usage, "prompt_cache_miss_tokens"),
-        finish_reason=(body.get("choices") or [{}])[0].get("finish_reason"),
+        finish_reason=finish_reason,
     )
 
 

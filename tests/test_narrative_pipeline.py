@@ -548,21 +548,31 @@ def test_legacy_model_remains_a_compatibility_fallback(monkeypatch):
 
 def test_deepseek_request_disables_thinking_for_schema_writer(monkeypatch):
     captured: dict = {}
+    lines = [
+        ": keep-alive",
+        'data: {"choices":[{"delta":{"content":"{\\"a\\":"}}]}',
+        'data: {"choices":[{"delta":{"content":" 1}"},"finish_reason":"stop"}]}',
+        'data: {"choices":[],"usage":{"prompt_tokens":11,"completion_tokens":7}}',
+        "data: [DONE]",
+    ]
 
-    class Response:
+    class Stream:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
         def raise_for_status(self):
             return None
 
-        def json(self):
-            return {
-                "choices": [{"message": {"content": "{}"}}],
-                "usage": {},
-            }
+        def iter_lines(self):
+            yield from lines
 
     class Client:
-        def post(self, url, *, headers, json, timeout):
-            captured.update({"url": url, "headers": headers, "json": json, "timeout": timeout})
-            return Response()
+        def stream(self, method, url, *, headers, json, timeout):
+            captured.update({"method": method, "url": url, "json": json, "timeout": timeout})
+            return Stream()
 
     monkeypatch.setattr(pipeline, "_get_deepseek_client", lambda: Client())
 
@@ -572,11 +582,44 @@ def test_deepseek_request_disables_thinking_for_schema_writer(monkeypatch):
     )
 
     assert response.model == "deepseek-flash"
+    assert response.content == '{"a": 1}', "streamed deltas were not reassembled"
+    assert (response.input_tokens, response.output_tokens, response.finish_reason) == (11, 7, "stop")
+    assert captured["method"] == "POST"
+    assert captured["json"]["stream"] is True
     assert captured["json"]["model"] == "deepseek-flash"
     assert captured["json"]["max_tokens"] == pipeline.DEFAULT_MAX_OUTPUT_TOKENS
     assert captured["json"]["thinking"] == {"type": "disabled"}
     assert captured["json"]["response_format"] == {"type": "json_object"}
-    assert captured["timeout"] == pipeline._deepseek_timeout_seconds("deepseek-flash")
+    # The read timeout is a stall limit between chunks, not the whole write.
+    assert captured["timeout"].read == pipeline.DEEPSEEK_STREAM_GAP_SECONDS
+
+
+def test_a_streamed_write_past_its_deadline_is_abandoned(monkeypatch):
+    import httpx
+
+    class Stream:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def raise_for_status(self):
+            return None
+
+        def iter_lines(self):
+            while True:
+                yield 'data: {"choices":[{"delta":{"content":"x"}}]}'
+
+    class Client:
+        def stream(self, method, url, **kw):
+            return Stream()
+
+    clock = iter(range(0, 10_000, 10))
+    monkeypatch.setattr(pipeline, "_get_deepseek_client", lambda: Client())
+    monkeypatch.setattr(pipeline.time, "monotonic", lambda: float(next(clock)))
+    with pytest.raises(httpx.ReadTimeout):
+        pipeline._call_stage("deepseek", [], final=True, model="deepseek-flash")
 
 
 def test_deepseek_pro_has_a_bounded_stage_specific_timeout(monkeypatch):
@@ -584,10 +627,10 @@ def test_deepseek_pro_has_a_bounded_stage_specific_timeout(monkeypatch):
     monkeypatch.delenv("LLM_DEEP_TIMEOUT", raising=False)
     monkeypatch.delenv("LLM_FAST_TIMEOUT", raising=False)
 
-    assert pipeline._deepseek_timeout_seconds("deepseek-flash") == 32.0
-    assert pipeline._deepseek_timeout_seconds("deepseek-v4-pro") == 35.0
-    monkeypatch.setenv("LLM_FAST_TIMEOUT", "90")
-    assert pipeline._deepseek_timeout_seconds("deepseek-flash") == 45.0, "the ceiling holds"
+    assert pipeline._deepseek_timeout_seconds("deepseek-flash") == 60.0
+    assert pipeline._deepseek_timeout_seconds("deepseek-v4-pro") == 70.0
+    monkeypatch.setenv("LLM_FAST_TIMEOUT", "300")
+    assert pipeline._deepseek_timeout_seconds("deepseek-flash") == 80.0, "the ceiling holds"
 
 
 def test_a_deepseek_read_timeout_is_not_retried(monkeypatch):
@@ -1066,3 +1109,33 @@ def test_an_unknown_or_foreign_snapshot_is_refused():
     sid = pipeline._remember_snapshot(_payload())
     with pytest.raises(llm_service.SnapshotExpired):
         llm_service.explain_snapshot(sid, "beginner", "AAPL")
+
+
+def test_a_queued_deepseek_request_fails_fast(monkeypatch):
+    """Keep-alives with no tokens: the 1 Oct outage. The first-token limit
+    hands over to the fallback instead of waiting out the whole deadline."""
+    import httpx
+
+    class Stream:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def raise_for_status(self):
+            return None
+
+        def iter_lines(self):
+            while True:
+                yield ": keep-alive"
+
+    class Client:
+        def stream(self, method, url, **kw):
+            return Stream()
+
+    clock = iter(range(0, 10_000, 5))
+    monkeypatch.setattr(pipeline, "_get_deepseek_client", lambda: Client())
+    monkeypatch.setattr(pipeline.time, "monotonic", lambda: float(next(clock)))
+    with pytest.raises(httpx.ReadTimeout, match="no tokens"):
+        pipeline._call_stage("deepseek", [], final=True, model="deepseek-flash")
