@@ -418,3 +418,27 @@ def test_an_endpoint_outside_the_plan_degrades_the_vendor_without_condemning_it(
     with pytest.raises(VendorError):
         only._get_json("https://example.test/o", operation="options")
     assert only.health_snapshot()["health_state"] == "NOT_ENTITLED"
+
+
+def test_a_symbol_outside_the_plan_neither_fails_nor_benches_the_vendor():
+    """FMP's free plan answers 402 for sector funds while serving stocks;
+    three such refusals put the vendor in cooldown for everything."""
+    from unittest.mock import Mock
+    from src.providers.base import VendorClient, VendorError
+
+    class Vendor(VendorClient):
+        NAME = "plan_402_test"
+        KEY_ENV = None
+        MAX_RETRIES = 0
+
+    s = Mock(); s.headers = {}
+    r = Mock(status_code=402); r.json.return_value = {"Error Message": "Premium Query Parameter"}
+    s.request.return_value = r
+    v = Vendor(session=s)
+    for _ in range(5):
+        with pytest.raises(VendorError) as caught:
+            v._get_json("https://example.test/series", operation="series")
+        assert caught.value.failure_class == "not_entitled"
+    snap = v.health_snapshot()
+    assert not snap["cooling_down"] and v.healthy
+    assert snap["consecutive_failures"] == 0

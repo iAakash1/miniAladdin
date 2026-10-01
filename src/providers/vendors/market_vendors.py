@@ -226,7 +226,7 @@ class FinnhubVendor(VendorClient):
         return {**kwargs, "token": self.api_key}
 
     def get_price(self, symbol: str) -> Optional[PriceQuote]:
-        data = self._get_json(f"{self.BASE}/quote", params=self._params(symbol=symbol))
+        data = self._get_json(f"{self.BASE}/quote", params=self._params(symbol=symbol), operation="price")
         price = _safe_float(data.get("c"))
         if not price:  # Finnhub returns 0 for unknown symbols
             return None
@@ -259,7 +259,7 @@ class FinnhubVendor(VendorClient):
         registrable domain on this key, and the logo provider is keyed on
         domain when a ticker lookup misses.
         """
-        data = self._get_json(f"{self.BASE}/stock/profile2", params=self._params(symbol=symbol))
+        data = self._get_json(f"{self.BASE}/stock/profile2", params=self._params(symbol=symbol), operation="company")
         if not data or not data.get("name"):
             return None
         market_cap = _safe_float(data.get("marketCapitalization"))
@@ -363,7 +363,7 @@ class FinnhubVendor(VendorClient):
 
     def get_analyst_targets(self, symbol: str) -> Optional[AnalystTargets]:
         # Premium on some plans — a 403 surfaces as VendorError and the chain moves on.
-        data = self._get_json(f"{self.BASE}/stock/price-target", params=self._params(symbol=symbol))
+        data = self._get_json(f"{self.BASE}/stock/price-target", params=self._params(symbol=symbol), operation="price_target")
         mean = _safe_float(data.get("targetMean"))
         if mean is None:
             return None
@@ -381,7 +381,7 @@ class FinnhubVendor(VendorClient):
         sub-fetch is independent; a partial answer is still an answer."""
         recs: list[RecommendationMonth] = []
         try:
-            rows = self._get_json(f"{self.BASE}/stock/recommendation", params=self._params(symbol=symbol))
+            rows = self._get_json(f"{self.BASE}/stock/recommendation", params=self._params(symbol=symbol), operation="recommendation")
             for row in (rows or [])[:4]:
                 recs.append(RecommendationMonth(
                     period=str(row.get("period", "")),
@@ -396,7 +396,7 @@ class FinnhubVendor(VendorClient):
 
         surprises: list[EarningsSurprise] = []
         try:
-            rows = self._get_json(f"{self.BASE}/stock/earnings", params=self._params(symbol=symbol))
+            rows = self._get_json(f"{self.BASE}/stock/earnings", params=self._params(symbol=symbol), operation="earnings")
             for row in (rows or [])[:4]:
                 actual, estimate = _safe_float(row.get("actual")), _safe_float(row.get("estimate"))
                 pct = None
@@ -513,7 +513,7 @@ class FMPVendor(VendorClient):
     LISTED_EXCHANGES = {"NASDAQ", "NYSE", "AMEX"}
 
     def get_price(self, symbol: str) -> Optional[PriceQuote]:
-        data = self._get_json(f"{self.BASE}/quote", params={"symbol": symbol, "apikey": self.api_key})
+        data = self._get_json(f"{self.BASE}/quote", params={"symbol": symbol, "apikey": self.api_key}, operation="price")
         if not isinstance(data, list) or not data:
             return None
         row = data[0]
@@ -553,6 +553,7 @@ class FMPVendor(VendorClient):
         data = self._get_json(
             f"{self.BASE}/historical-price-eod/dividend-adjusted",
             params={"symbol": symbol, "from": start, "apikey": self.api_key},
+            operation="series",
         )
         if not isinstance(data, list):
             return None
@@ -579,6 +580,7 @@ class FMPVendor(VendorClient):
         data = self._get_json(
             f"{self.BASE}/search-name",
             params={"query": query, "limit": max(limit * 3, 10), "apikey": self.api_key},
+            operation="search",
         )
         if not isinstance(data, list):
             return None
@@ -592,7 +594,7 @@ class FMPVendor(VendorClient):
 
     def get_company(self, symbol: str) -> Optional[CompanyProfile]:
         """Full company profile, every field the response carries."""
-        data = self._get_json(f"{self.BASE}/profile", params={"symbol": symbol, "apikey": self.api_key})
+        data = self._get_json(f"{self.BASE}/profile", params={"symbol": symbol, "apikey": self.api_key}, operation="company")
         if not isinstance(data, list) or not data:
             return None
         item = data[0]
@@ -628,7 +630,7 @@ class FMPVendor(VendorClient):
         left to the vendors whose fundamentals response includes it rather
         than spending a second request of a 250-a-day allowance on it.
         """
-        data = self._get_json(f"{self.BASE}/ratios-ttm", params={"symbol": symbol, "apikey": self.api_key})
+        data = self._get_json(f"{self.BASE}/ratios-ttm", params={"symbol": symbol, "apikey": self.api_key}, operation="fundamentals")
         if not isinstance(data, list) or not data:
             return None
         item = data[0]

@@ -153,7 +153,12 @@ class VendorStats:
                 self.last_success_at = now
             else:
                 self.failures += 1
-                self.consecutive_failures += 1
+                # A plan refusal is a deterministic answer about one request,
+                # not a sign the vendor is down. Counting it toward cooldown
+                # benched FMP for everything after three sector-fund lookups
+                # its free plan does not cover.
+                if failure_class != FailureClass.NOT_ENTITLED.value:
+                    self.consecutive_failures += 1
                 self.last_error = (error or "unknown")[:300]
                 self.last_failure_at = now
                 self.last_failure_class = failure_class or FailureClass.UNAVAILABLE.value
@@ -441,9 +446,12 @@ class VendorClient:
                         "HTTP 401", failure_class=FailureClass.AUTH_FAILURE,
                         status_code=status,
                     )
-                if status == 403:
+                if status in (402, 403):
+                    # 402 is how FMP refuses a symbol outside the plan
+                    # ("Premium Query Parameter") while serving others: a plan
+                    # boundary, the same kind of answer as a 403.
                     raise VendorError(
-                        "HTTP 403", failure_class=FailureClass.NOT_ENTITLED,
+                        f"HTTP {status}", failure_class=FailureClass.NOT_ENTITLED,
                         status_code=status,
                     )
                 if status == 429:

@@ -513,10 +513,12 @@ def test_bar_count_vendors_return_the_same_calendar_window_as_the_rest():
     """Twelve Data, FMP and Marketstack take a bar count. Given the window's
     calendar days as that count, a "3mo" chart spanned four and a half months
     whenever one of them answered."""
-    from datetime import date, timedelta
+    from datetime import datetime, timedelta, timezone
     from src.providers.vendors.market_vendors import FMPVendor, MarketStackVendor, TwelveDataVendor
 
-    today = date.today()
+    # The window is a UTC calendar window; a local "today" disagreed with it
+    # for the hours either side of midnight UTC.
+    today = datetime.now(timezone.utc).date()
     days = [today - timedelta(days=n) for n in range(140, -1, -1)]
     inside = [d for d in days if d >= today - timedelta(days=92)]
 
