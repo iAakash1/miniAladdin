@@ -138,7 +138,8 @@ async def request_logging(request, call_next):
     # retries; adopting it lets a proxy-side failure be matched to this line.
     # Anything that is not a short token is ignored, so a caller cannot write
     # into the log through the header.
-    inbound = request.headers.get("x-request-id") or ""
+    headers = getattr(request, "headers", None)
+    inbound = (headers.get("x-request-id") if headers is not None else None) or ""
     request_id = inbound if _REQUEST_ID.fullmatch(inbound) else uuid.uuid4().hex[:12]
     request.state.request_id = request_id
     # Profile every request. Attribution is per-label and lock-guarded, and
