@@ -473,6 +473,11 @@ export interface ConsensusPrice {
    *  a moving average carries its vendor's adjustment conventions. A median
    *  of any of them would describe no actual venue. */
   session: Record<string, { value: number; provider: string }> | null
+  /** The trading date the agreement and session fields belong to. */
+  session_date?: string | null
+  /** Vendors that answered for an earlier session (or undated) and so were
+   *  not compared — named, because "answered with yesterday" is not "failed". */
+  session_excluded?: string[] | null
 }
 
 /** Union of reported statement figures across every entitled vendor. */

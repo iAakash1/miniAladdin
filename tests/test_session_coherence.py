@@ -143,3 +143,30 @@ def test_coherence_is_unknown_rather_than_true_when_there_is_no_range():
     assert c["session_coherent"] is None, (
         "absence of a range was reported as a passed coherence check"
     )
+
+
+def test_vendors_on_different_sessions_are_not_a_price_conflict():
+    """NVDA after the 1 Oct close: one vendor quoted 230.86 for 1 Oct, another
+    228.38 for 30 Sep, and the report said 0/2 sources agreed with two
+    conflicts. A different date is not a disagreement about one fact."""
+    from types import SimpleNamespace
+    from src.providers import fabric
+
+    def ev(provider, price, as_of):
+        return SimpleNamespace(provider=provider, ok=True, latency_ms=1.0,
+                               data=SimpleNamespace(price=price, as_of=as_of))
+
+    out = fabric.reconcile_price([
+        ev("fmp", 230.86, "2026-10-01T20:00:00+00:00"),
+        ev("massive", 228.38, "2026-09-30T20:00:00+00:00"),
+    ])
+    assert out["conflict"] is False
+    assert out["agreement"] == "1/1"
+    assert out["consensus"] == 230.86
+    assert out["session_excluded"] == ["massive"]
+
+    same_day = fabric.reconcile_price([
+        ev("fmp", 230.86, "2026-10-01T20:00:00+00:00"),
+        ev("massive", 221.00, "2026-10-01T20:00:00+00:00"),
+    ])
+    assert same_day["conflict"] is True, "a real same-session disagreement must still show"

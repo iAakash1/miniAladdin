@@ -129,9 +129,14 @@ export function SignalGrid({ a }: { a: Analysis }) {
       <Cell
         label="Provider agreement"
         tone={conflicts ? 'warn' : cp && cp.provider_count > 1 ? 'pos' : 'muted'}
-        sub={si && si.providers.length > 1
-          ? `history ${si.agreement_pct.toFixed(1)}% agree over ${si.shared_sessions} sessions`
-          : 'price history from one provider'}
+        sub={[
+          si && si.providers.length > 1
+            ? `history ${si.agreement_pct.toFixed(1)}% agree over ${si.shared_sessions} sessions`
+            : 'price history from one provider',
+          cp?.session_excluded?.length
+            ? `${cp.session_excluded.join(', ')} quoted an earlier session`
+            : null,
+        ].filter(Boolean).join(' · ')}
       >
         {cp ? (
           cp.provider_count > 1

@@ -298,15 +298,6 @@ def reconcile_price(evidence: list[Evidence]) -> Optional[dict[str, Any]]:
     if not readings:
         return None
 
-    prices = sorted(r["price"] for r in readings)
-    consensus = statistics.median(prices)
-    low, high = prices[0], prices[-1]
-    # Dispersion as a fraction of the consensus, so it is comparable across a
-    # $3 stock and a $3,000 one.
-    dispersion = (high - low) / consensus if consensus else 0.0
-    agreeing = sum(1 for p in prices if abs(p - consensus) / consensus <= PRICE_AGREE_TOLERANCE) \
-        if consensus else 0
-
     # Microstructure is taken from whichever vendor actually supplies a book;
     # it is not averaged, because a spread is a property of one venue.
     quoted = next((r for r in readings if r["bid"] is not None and r["ask"] is not None), None)
@@ -345,6 +336,22 @@ def reconcile_price(evidence: list[Evidence]) -> Optional[dict[str, Any]]:
     excluded = sorted(
         {r["provider"] for r, d in dated if d is None or d != latest}
     )
+
+    # Agreement is measured among readings of the same session. Comparing
+    # one vendor's close for 1 Oct with another's for 30 Sep reported NVDA's
+    # price sources as "0/2 agree, 2 conflicts" — a difference of dates, not
+    # a disagreement about one fact. Earlier-session vendors stay named in
+    # `session_excluded`. With no dated reading at all there is no session to
+    # pin, and every reading is compared as before.
+    compared = in_session if latest is not None else readings
+    prices = sorted(r["price"] for r in compared)
+    consensus = statistics.median(prices)
+    low, high = prices[0], prices[-1]
+    # Dispersion as a fraction of the consensus, so it is comparable across a
+    # $3 stock and a $3,000 one.
+    dispersion = (high - low) / consensus if consensus else 0.0
+    agreeing = sum(1 for p in prices if abs(p - consensus) / consensus <= PRICE_AGREE_TOLERANCE) \
+        if consensus else 0
 
     def _first(field: str) -> tuple[Optional[float], Optional[str]]:
         for r in in_session:
@@ -391,12 +398,12 @@ def reconcile_price(evidence: list[Evidence]) -> Optional[dict[str, Any]]:
         "low": round(low, 4),
         "high": round(high, 4),
         "dispersion_pct": round(dispersion * 100, 4),
-        "provider_count": len(readings),
+        "provider_count": len(compared),
         "agreeing": agreeing,
-        "agreement": f"{agreeing}/{len(readings)}",
+        "agreement": f"{agreeing}/{len(compared)}",
         # Material disagreement is a fact about the data, surfaced rather
         # than smoothed away.
-        "conflict": len(readings) > 1 and dispersion > PRICE_AGREE_TOLERANCE * 2,
+        "conflict": len(compared) > 1 and dispersion > PRICE_AGREE_TOLERANCE * 2,
         "readings": sorted(readings, key=lambda r: r["provider"]),
         "bid": quoted["bid"] if quoted else None,
         "ask": quoted["ask"] if quoted else None,
