@@ -21,7 +21,7 @@ import OrderTicket from '@/components/terminal/paper/OrderTicket'
 import { companyHref } from '@/lib/context-commands'
 import { fetchPaperStatus } from '@/lib/paper'
 import { readResource } from '@/lib/resource'
-import { workspaceRoot } from '@/lib/section-nav'
+import { publishStickyInset, workspaceRoot } from '@/lib/section-nav'
 import { useQuotes } from '@/lib/use-quotes'
 
 export const TABS = [
@@ -119,6 +119,12 @@ export default function CompanyWorkspace({ ticker }: { ticker: string }) {
   // Switching tabs keeps the tab bar in view rather than leaving the reader
   // halfway down the previous tab's content.
   const tabsRef = useRef<HTMLElement>(null)
+  // The bar's measured height is what every anchor offset and sticky rail
+  // below it is computed from.
+  useEffect(() => {
+    const bar = tabsRef.current
+    return bar ? publishStickyInset(bar) : undefined
+  }, [])
   const firstTab = useRef(true)
   useEffect(() => {
     if (firstTab.current) { firstTab.current = false; return }

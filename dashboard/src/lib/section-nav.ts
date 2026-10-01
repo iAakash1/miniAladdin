@@ -33,6 +33,36 @@ export function workspaceRoot(): HTMLElement | null {
   return typeof document === 'undefined' ? null : document.getElementById('workspace')
 }
 
+/** Space between the bottom of whatever is pinned to the workspace's top
+ *  edge and the heading a reader is taken to. */
+export const READING_GAP = 20
+
+/**
+ * The height pinned to the top of the workspace, as published by the sticky
+ * bar itself (see `publishStickyInset`). Measured rather than assumed: the
+ * tab bar is 36px on one row and taller when its tabs wrap or the compact
+ * identity joins it, and a constant offset hid headings behind it whenever
+ * the guess was wrong.
+ */
+export function stickyInset(root: HTMLElement | null = workspaceRoot()): number {
+  if (!root) return 0
+  const raw = parseFloat(root.style.getPropertyValue('--sticky-inset'))
+  return Number.isFinite(raw) ? raw : 0
+}
+
+/** Keep `--sticky-inset` on the workspace equal to `bar`'s rendered height. */
+export function publishStickyInset(bar: HTMLElement, root: HTMLElement | null = workspaceRoot()): () => void {
+  if (!root) return () => {}
+  const write = () => root.style.setProperty('--sticky-inset', `${bar.getBoundingClientRect().height}px`)
+  write()
+  const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(write)
+  ro?.observe(bar)
+  return () => {
+    ro?.disconnect()
+    root.style.removeProperty('--sticky-inset')
+  }
+}
+
 /**
  * Scroll the workspace to a section, honouring reduced motion. Returns the
  * scroll position it will settle at — clamped, because a short section near

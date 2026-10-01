@@ -14,7 +14,7 @@ const GROUPS: Array<{ key: Group; label: string; note: string }> = [
   { key: 'other', label: 'Other filings', note: 'registrations, proxies and the rest' },
 ]
 
-function groupOf(form: string): Group {
+export function groupOf(form: string): Group {
   const f = form.toUpperCase()
   if (/^10-[KQ]/.test(f) || /^20-F|^40-F/.test(f)) return 'periodic'
   if (/^8-K|^6-K/.test(f)) return 'current'

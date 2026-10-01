@@ -73,3 +73,15 @@ test('a section the reader picked stays current while its scroll settles', () =>
   assert.equal(pinnedSection(pin, 3100, 5_000), null)
   assert.equal(pinnedSection(null, 0, 0), null)
 })
+
+/* The anchor offset used to be a constant 56 while the bar it cleared was 36px
+   on one row and taller when its tabs wrapped. The bar now publishes its own
+   height; an absent or unparsable value reads as zero, never as a guess. */
+test('the sticky inset is read from what the bar published', async () => {
+  const { stickyInset } = await import('../src/lib/section-nav')
+  const root = (value: string) => ({ style: { getPropertyValue: () => value } }) as unknown as HTMLElement
+  assert.equal(stickyInset(root('36px')), 36)
+  assert.equal(stickyInset(root('72.5px')), 72.5)
+  assert.equal(stickyInset(root('')), 0)
+  assert.equal(stickyInset(null), 0)
+})

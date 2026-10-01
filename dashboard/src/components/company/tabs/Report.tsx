@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { newsItem } from '../Activity'
 import { SeriesUnavailable } from '../ChartPanel'
 import { DepthControl } from '../Depth'
-import { FilingDoc } from '../Filings'
+import { FilingDoc, groupOf } from '../Filings'
 import PriceChart from '../PriceChart'
 import { Cites, Lead, SynthesisMeta, citationIndex, sourceLabel, synthesisStatus } from '../Synthesis'
 import { DeterministicConclusion, FactorTable, Table } from '../Conclusion'
@@ -16,13 +16,15 @@ import { useEntitlement } from '@/components/system/Entitlement'
 import CompanyMark from '@/components/ui/CompanyMark'
 import SectorMark, { sectorKey } from '@/components/visual/SectorMark'
 import Timeline from '@/components/visual/Timeline'
-import { currentSectionId, pinnedSection, scrollToSection, workspaceRoot } from '@/lib/section-nav'
+import { READING_GAP, currentSectionId, pinnedSection, scrollToSection, stickyInset, workspaceRoot } from '@/lib/section-nav'
 import { ordinal } from '@/lib/format'
 import { venueLabel } from '@/lib/text'
 import type { Analysis } from '@/lib/types'
 
 /** Height of the sticky tab bar the report scrolls beneath. */
-const STICKY_OFFSET = 56
+/** Where a section's heading settles: below the measured sticky bar. The
+ *  fallback matches the bar's single-row height for the first paint. */
+const anchorOffset = () => (stickyInset() || 36) + READING_GAP
 
 interface SectionDef { id: string; label: string }
 
@@ -34,7 +36,7 @@ function Section({ id, title, kind, children }: {
   children: ReactNode
 }) {
   return (
-    <section id={id} className="rp-section" style={{ scrollMarginTop: STICKY_OFFSET }}>
+    <section id={id} className="rp-section">
       <header className="rp-section__head">
         <h2>{title}</h2>
         {kind ? (
@@ -48,8 +50,8 @@ function Section({ id, title, kind, children }: {
   )
 }
 
-/** The reading line: just below the sticky tab bar, where a heading arrives. */
-const READING_LINE = STICKY_OFFSET + 24
+/** The reading line: just below where a picked heading arrives. */
+const readingLine = () => anchorOffset() + 24
 
 type Pin = { id: string; target: number; until: number } | null
 
@@ -74,7 +76,7 @@ function useSpy(ids: string[]): { current: string | null; pin: (id: string, targ
         .filter((x): x is { id: string; top: number } => x !== null)
       // At the very bottom the last section is current even if short.
       const atEnd = root.scrollTop + root.clientHeight >= root.scrollHeight - 4
-      setCurrent(atEnd ? ids[ids.length - 1] : currentSectionId(tops, READING_LINE))
+      setCurrent(atEnd ? ids[ids.length - 1] : currentSectionId(tops, readingLine()))
     }
     const onScroll = () => { if (!frame) frame = window.requestAnimationFrame(measure) }
     measure()
@@ -110,7 +112,7 @@ function Outline({ sections, current, onPick }: {
               aria-current={current === s.id ? 'location' : undefined}
               onClick={(e) => {
                 e.preventDefault()
-                onPick(s.id, scrollToSection(s.id, STICKY_OFFSET))
+                onPick(s.id, scrollToSection(s.id, anchorOffset()))
                 window.history.replaceState(null, '', `#${s.id}`)
               }}
             >
@@ -281,6 +283,8 @@ export default function Report({ analysis: a }: { analysis: Analysis }) {
   const q = a.quant
   const gen = status.generated && ai !== null
   const depth = ai?.depth ?? 'intermediate'
+  const primaryDocs = (a.filings?.filings ?? []).filter((f) => groupOf(f.form) !== 'ownership')
+  const ownershipCount = (a.filings?.filings.length ?? 0) - primaryDocs.length
 
   const conflicts: Array<{ what: string; detail: string }> = []
   if (a.consensusPrice?.conflict) {
@@ -460,10 +464,16 @@ export default function Report({ analysis: a }: { analysis: Analysis }) {
 
         {a.filings?.filings.length ? (
           <Section id="primary" title="Primary sources" kind="source">
+            {/* Statements and material events first. A week of Form 4s is
+                eight insider-transaction rows that pushed the 10-Q and the
+                last 8-K out of a section meant to show what the company said. */}
             <div className="fl-docs rp-docs">
-              {a.filings.filings.slice(0, 8).map((f) => <FilingDoc key={f.accession} f={f} />)}
+              {(primaryDocs.length ? primaryDocs : a.filings.filings).slice(0, 6).map((f) => <FilingDoc key={f.accession} f={f} />)}
             </div>
-            <p className="rp-src">Each document opens on SEC EDGAR. These are what the company filed; every vendor figure in this report is a reading of one.</p>
+            <p className="rp-src">
+              Each document opens on SEC EDGAR. These are what the company filed; every vendor figure in this report is a reading of one.
+              {primaryDocs.length && ownershipCount ? ` ${ownershipCount} recent ownership filings (insider Forms 3/4/5, 13D/G, 144) are listed on the Filings tab.` : ''}
+            </p>
             {a.filings.restatements?.length ? (
               <>
                 <h3 className="rp-h3">Restatements</h3>
