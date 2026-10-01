@@ -102,6 +102,9 @@ export interface RecommendationsResponse extends Omit<ExploreResponse, 'category
   high_conviction: ExploreRow[]
   /** The closest misses, so an empty tier can say how close anything came. */
   near_conviction: ExploreRow[]
+  /** The best-ranked eligible name in each sector, in rank order. Absent
+   *  from snapshots served by an older backend. */
+  across_sectors?: ExploreRow[]
   /** Which conviction policy produced the two lists above. */
   conviction_policy_version: string
   disclaimer: string

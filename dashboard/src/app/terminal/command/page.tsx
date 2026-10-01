@@ -9,6 +9,7 @@ import PaperLine from '@/components/terminal/home/PaperLine'
 import RecentResearch from '@/components/terminal/home/RecentResearch'
 import ResearchStart from '@/components/terminal/home/ResearchStart'
 import ResearchStatus from '@/components/terminal/home/ResearchStatus'
+import SectorLeaders from '@/components/terminal/home/SectorLeaders'
 import SectorMovers from '@/components/terminal/home/SectorMovers'
 import Watchlist from '@/components/terminal/watchlist/Watchlist'
 
@@ -23,6 +24,7 @@ export default function TerminalHome() {
     <Workbench title="Home" subtitle="start research · market context · your names" context={<HomeContext />}>
       <ResearchStart />
       <MarketBand />
+      <SectorLeaders />
       <div className="home-grid">
         <Watchlist />
         <RecentResearch />

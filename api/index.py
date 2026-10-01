@@ -2915,6 +2915,11 @@ def recommendations(limit: int = Query(5, ge=1, le=20)):
         "near_conviction": [
             r.model_dump() for r in explore_service.near_conviction(snapshot, limit)
         ],
+        # One name per sector — the highest-ranked eligible security in each,
+        # ordered by that rank. A reading of the same ordering, not a new one.
+        "across_sectors": [
+            r.model_dump() for r in explore_service.across_sectors(snapshot, 10)
+        ],
         "conviction_policy_version": conviction.CONVICTION_POLICY_VERSION,
         "count": len(rows),
         "eligible_count": snapshot.eligible_count,

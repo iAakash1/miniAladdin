@@ -712,6 +712,22 @@ def recommendations(snapshot: ExploreSnapshot, limit: int = 5) -> list[ExploreRo
     return rank(snapshot, "overall", None, limit)
 
 
+def across_sectors(snapshot: ExploreSnapshot, limit: int = 8) -> list[ExploreRow]:
+    """The best-ranked eligible security in each sector, in rank order.
+
+    The same overall ordering as `recommendations`, read one sector at a
+    time: no second score, no sector quota that lifts a weak name into a
+    slot. A sector with no eligible security is absent rather than filled,
+    and each row keeps the signal the engine gave it — a sector's best name
+    can be a HOLD, and it is shown as one.
+    """
+    best: dict[str, ExploreRow] = {}
+    for row in rank(snapshot, "overall", None, 200):
+        if row.sector:
+            best.setdefault(row.sector, row)
+    return list(best.values())[: max(1, min(limit, 20))]
+
+
 def high_conviction(snapshot: ExploreSnapshot, limit: int = 5) -> list[ExploreRow]:
     """Securities where every condition agrees at once.
 

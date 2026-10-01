@@ -427,3 +427,35 @@ def test_a_security_without_a_performance_score_is_not_a_leader():
 
     rows = [_row("SCORED", performance_score=50.0), _row("UNSCORED", performance_score=None)]
     assert [r.symbol for r in performance_leaders(_snapshot(rows), 5)] == ["SCORED"]
+
+
+# ── across sectors ───────────────────────────────────────────────────────────
+
+def test_each_sector_contributes_its_best_ranked_name_in_rank_order():
+    from src.services.explore_service import across_sectors
+    snap = _snapshot([
+        _row("A1", sector="Health Care", overall_rank=81.0),
+        _row("T1", sector="Information Technology", overall_rank=88.0),
+        _row("T2", sector="Information Technology", overall_rank=86.0),
+        _row("E1", sector="Energy", overall_rank=62.0, model_signal="Hold"),
+        _row("A2", sector="Health Care", overall_rank=80.0),
+    ])
+    rows = across_sectors(snap, 8)
+    assert [r.symbol for r in rows] == ["T1", "A1", "E1"]
+    # The sector's best can be a Hold, and it is shown as one.
+    assert rows[-1].model_signal == "Hold"
+
+
+def test_a_sector_without_an_eligible_name_is_absent_not_filled():
+    from src.services.explore_service import across_sectors
+    snap = _snapshot([
+        _row("T1", sector="Information Technology", overall_rank=88.0),
+        _row("U1", sector="Utilities", overall_rank=95.0, eligible=False),
+    ])
+    assert [r.symbol for r in across_sectors(snap, 8)] == ["T1"]
+
+
+def test_across_sectors_never_exceeds_the_limit():
+    from src.services.explore_service import across_sectors
+    snap = _snapshot([_row(f"S{i}", sector=f"Sector {i}", overall_rank=50.0 + i) for i in range(12)])
+    assert len(across_sectors(snap, 5)) == 5
