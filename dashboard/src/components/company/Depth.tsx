@@ -41,7 +41,10 @@ export function useNarrativeControl(): NarrativeControl | null {
 export function useNarrative(analysis: Analysis | null): { ai: AiAnalysis | null; control: NarrativeControl | null } {
   const base = analysis?.ai ?? null
   const baseDepth: ReportDepth = base?.depth ?? 'intermediate'
-  const snapshot = base?.generated ? base.snapshotId : null
+  // Whenever the server holds the run's evidence, not only when the first
+  // narrative succeeded: a writer outage at research time used to remove
+  // re-explanation for the whole run.
+  const snapshot = base?.snapshotId ?? null
   const [depth, setDepthState] = useState<ReportDepth>(() => storedDepth())
   const [written, setWritten] = useState<Record<string, AiAnalysis>>({})
   const [problem, setProblem] = useState<{ key: string; kind: 'expired' | 'failed' } | null>(null)
@@ -66,8 +69,8 @@ export function useNarrative(analysis: Analysis | null): { ai: AiAnalysis | null
 
   const ai = depth === baseDepth ? base : wanted ?? base
   const shownDepth: ReportDepth = depth === baseDepth ? baseDepth : wanted ? depth : baseDepth
-  const status: Status = !base?.generated ? 'unavailable'
-    : depth === baseDepth || wanted ? 'ready'
+  const status: Status = depth === baseDepth ? (base?.generated ? 'ready' : 'unavailable')
+    : wanted ? (wanted.generated ? 'ready' : 'unavailable')
       : !snapshot ? 'unavailable'
         : problem?.key === key ? problem.kind
           : 'writing'

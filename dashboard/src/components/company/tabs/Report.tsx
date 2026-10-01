@@ -330,7 +330,7 @@ export default function Report({ analysis: a }: { analysis: Analysis }) {
       <article className="rp-doc" aria-label={`${a.ticker} research report`}>
         <Masthead a={a} />
 
-        {gen ? (
+        {gen || ai?.snapshotId ? (
           <div className="rp-depth">
             <span className="sys-label">Explanation depth</span>
             <DepthControl />

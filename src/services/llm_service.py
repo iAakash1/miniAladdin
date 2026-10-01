@@ -480,7 +480,15 @@ def explain_recommendation(payload: dict[str, Any], depth: str = "intermediate")
             grounded = None
         if grounded is not None:
             return _attach_deterministic(grounded, payload)
-        return _fallback(payload, "grounded narrative providers unavailable or invalid")
+        fallback = _fallback(payload, "grounded narrative providers unavailable or invalid")
+        # The evidence snapshot is held even when no writer answered. Without
+        # its id the report could never be re-explained — a DeepSeek outage
+        # at research time removed the depth control for the whole run.
+        sid = narrative_pipeline.snapshot_id(payload)
+        if narrative_pipeline.snapshot_payload(sid) is not None:
+            fallback["snapshot_id"] = sid
+        fallback["depth"] = narrative_pipeline.normalize_depth(depth)
+        return fallback
 
     if not is_configured():
         if not _missing_key_logged:

@@ -225,7 +225,7 @@ export default function Synthesis({ analysis, footer, preview = false }: {
         <div className="syn-head__title">
           <h3>Grounded synthesis</h3>
           <span className="syn-tag">Explanation layer · does not set the signal</span>
-          {status.generated && !preview ? <DepthControl compact /> : null}
+          {(status.generated || ai?.snapshotId) && !preview ? <DepthControl compact /> : null}
         </div>
         <SynthesisMeta status={status} />
       </header>

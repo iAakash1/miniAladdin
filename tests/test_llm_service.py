@@ -427,3 +427,23 @@ class TestPayloadBuilder:
             verdict="Buy", rationale="r", macro={}, technicals={}, sentiment=None,
         )
         assert all(b["factors"] == [] for b in payload["factor_impacts"].values())
+
+
+def test_a_failed_narrative_still_offers_its_evidence_snapshot(monkeypatch):
+    """A DeepSeek outage at research time must not remove re-explanation:
+    the evidence is held, so its id travels with the engine's fallback."""
+    from src.services import narrative_pipeline
+
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key-placeholder")
+    payload = make_payload()
+
+    def failed(p, depth):
+        narrative_pipeline._remember_snapshot(p)
+        return None
+
+    monkeypatch.setattr(narrative_pipeline, "generate", failed)
+    result = llm_service.explain_recommendation(payload, "advanced")
+    assert result["generated"] is False
+    assert result["snapshot_id"] == narrative_pipeline.snapshot_id(payload)
+    assert result["depth"] == "advanced"
+    narrative_pipeline.reset_for_tests()
