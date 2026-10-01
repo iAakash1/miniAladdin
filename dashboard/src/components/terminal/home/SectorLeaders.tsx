@@ -108,8 +108,8 @@ export default function SectorLeaders({
         <Link className="cw-more" href={screenerHref}>Open screener</Link>
       </header>
       {answer === null ? (
-        <div className="sl-grid sl-grid--loading" aria-busy="true">
-          {Array.from({ length: 5 }, (_, i) => (
+        <div className="sl-wrap"><div className="sl-grid sl-grid--loading" aria-busy="true">
+          {Array.from({ length: 6 }, (_, i) => (
             <div className="sl-tile" key={i} aria-hidden>
               <span className="sys-skeleton" style={{ width: 90, height: 8 }} />
               <span className="sys-skeleton" style={{ width: '70%', height: 14 }} />
@@ -117,13 +117,13 @@ export default function SectorLeaders({
               <span className="sys-skeleton" style={{ width: '80%', height: 8 }} />
             </div>
           ))}
-        </div>
+        </div></div>
       ) : answer.error ? (
         <StateBlock state="unavailable" title="Sector leaders are unavailable" detail={`${readerError(answer.error)}. The ranking is rebuilt from the screener universe; nothing is listed in its place.`} />
       ) : rows.length ? (
-        <div className="sl-grid">
+        <div className="sl-wrap"><div className="sl-grid">
           {rows.map((r) => <Tile key={r.symbol} r={r} href={companyHref(r.symbol)} />)}
-        </div>
+        </div></div>
       ) : (
         <StateBlock
           state="unknown"

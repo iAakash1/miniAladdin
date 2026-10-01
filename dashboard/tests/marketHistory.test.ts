@@ -24,6 +24,7 @@ function snap(overrides: Partial<MarketSnapshot> = {}): MarketSnapshot {
     cpiValue: 3.0,
     cpiDirection: 'flat',
     spyChange1w: 0.5,
+    sectorCount: 11,
     ...overrides,
   }
 }
@@ -155,4 +156,22 @@ test('flags a CPI direction change and a Fed rate change', () => {
 test('returns no changes for two identical snapshots', () => {
   const identical = diffMarketSnapshots(snap(), snap())
   assert.deepEqual(identical, [])
+})
+
+/* A cold backend once answered for 3 of 11 sector funds; the diff reported
+   breadth falling from 18% to 0% and a leadership change that were both
+   missing data. */
+test('sector changes are not reported across different coverage', () => {
+  const changes = diffMarketSnapshots(
+    snap({ sectorCount: 11, breadthScore: 18, leadership: 'Technology', laggard: 'Financials' }),
+    snap({ sectorCount: 3, breadthScore: 0, leadership: 'Consumer Cyclical', laggard: 'Utilities' }),
+  )
+  const ids = changes.map((c) => c.id)
+  assert.ok(ids.includes('coverage'), 'the coverage change itself is not reported')
+  assert.ok(!ids.includes('breadth') && !ids.includes('leadership') && !ids.includes('laggard'))
+})
+
+test('a snapshot stored before coverage was recorded is not compared on sectors', () => {
+  const changes = diffMarketSnapshots(snap({ sectorCount: undefined, breadthScore: 70 }), snap({ breadthScore: 20 }))
+  assert.ok(!changes.some((c) => c.id === 'breadth' || c.id === 'coverage'))
 })

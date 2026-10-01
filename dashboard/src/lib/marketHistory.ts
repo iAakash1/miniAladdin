@@ -30,6 +30,10 @@ export interface MarketSnapshot {
   cpiValue: number | null
   cpiDirection: 'up' | 'down' | 'flat' | null
   spyChange1w: number | null
+  /** How many sector funds answered. Breadth and leadership are only
+   *  comparable between snapshots that covered the same sectors. Absent from
+   *  snapshots stored before it was recorded. */
+  sectorCount?: number | null
 }
 
 /* ── storage (same pattern as lib/history.ts) ──────────────────────────── */
@@ -109,6 +113,7 @@ export function snapshotFromDashboard(data: DashboardData): MarketSnapshot {
     cpiValue: cpi ? cpi.value : null,
     cpiDirection: cpi ? cpi.direction : null,
     spyChange1w: spy ? spy.change_1w : null,
+    sectorCount: Number.isFinite(data.breadth.sector_count) ? data.breadth.sector_count : null,
   }
 }
 
@@ -173,7 +178,22 @@ export function diffMarketSnapshots(before: MarketSnapshot, after: MarketSnapsho
     })
   }
 
-  if (before.breadthScore !== null && after.breadthScore !== null
+  // A snapshot in which only 3 of 11 sector funds answered is not the market
+  // moving: comparing it with a full one reported "breadth weakened from 18%
+  // to 0%" and a leadership change that were both missing data. Sector-based
+  // changes are compared only across equal coverage, and a coverage change is
+  // reported as one.
+  const sameCoverage = before.sectorCount != null && after.sectorCount != null
+    && before.sectorCount === after.sectorCount
+  if (before.sectorCount != null && after.sectorCount != null && !sameCoverage) {
+    changes.push({
+      id: 'coverage',
+      text: `Sector coverage changed from ${before.sectorCount} to ${after.sectorCount} funds answering; breadth and leadership are not compared across different coverage.`,
+      tone: 'warn',
+    })
+  }
+
+  if (sameCoverage && before.breadthScore !== null && after.breadthScore !== null
       && Math.abs(after.breadthScore - before.breadthScore) >= BREADTH_MOVE_THRESHOLD) {
     const rising = after.breadthScore > before.breadthScore
     changes.push({
@@ -183,7 +203,7 @@ export function diffMarketSnapshots(before: MarketSnapshot, after: MarketSnapsho
     })
   }
 
-  if (before.leadership && after.leadership && before.leadership !== after.leadership) {
+  if (sameCoverage && before.leadership && after.leadership && before.leadership !== after.leadership) {
     changes.push({
       id: 'leadership',
       text: `Sector leadership shifted from ${before.leadership} to ${after.leadership}.`,
@@ -191,7 +211,7 @@ export function diffMarketSnapshots(before: MarketSnapshot, after: MarketSnapsho
     })
   }
 
-  if (before.laggard && after.laggard && before.laggard !== after.laggard) {
+  if (sameCoverage && before.laggard && after.laggard && before.laggard !== after.laggard) {
     changes.push({
       id: 'laggard',
       text: `The weakest sector shifted from ${before.laggard} to ${after.laggard}.`,
