@@ -442,3 +442,26 @@ def test_a_symbol_outside_the_plan_neither_fails_nor_benches_the_vendor():
     snap = v.health_snapshot()
     assert not snap["cooling_down"] and v.healthy
     assert snap["consecutive_failures"] == 0
+
+
+def test_not_found_answers_do_not_bench_the_vendor():
+    """Twelve Data's 404 for ^VIX and Marketstack's 422 for an unsupported
+    symbol are answers about that input; a run of them is not an outage."""
+    from unittest.mock import Mock
+    from src.providers.base import VendorClient, VendorError
+
+    class Vendor(VendorClient):
+        NAME = "not_found_test"
+        KEY_ENV = None
+        MAX_RETRIES = 0
+
+    for status in (404, 422):
+        s = Mock(); s.headers = {}
+        r = Mock(status_code=status); r.json.return_value = {}
+        s.request.return_value = r
+        v = Vendor(session=s)
+        for _ in range(4):
+            with pytest.raises(VendorError):
+                v._get_json("https://example.test/x", operation="series")
+        assert v.healthy and not v.health_snapshot()["cooling_down"], status
+        assert v.health_snapshot()["failures"] == 4, "the failures themselves must still be recorded"

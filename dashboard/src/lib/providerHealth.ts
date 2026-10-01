@@ -55,7 +55,9 @@ const FAILURE_LABEL: Record<string, string> = {
   upstream_failure: 'vendor returned an error',
   parse_failure: 'response could not be parsed',
   local_limiter: 'held back by local rate limit',
-  unavailable: 'vendor unreachable',
+  // Terminal 4xx answers (404, 422) as well as outright failures land here;
+  // the vendor usually answered, so "unreachable" was wrong for most of them.
+  unavailable: 'no usable answer',
 }
 
 export function failureLabel(cls: string | null | undefined): string | null {

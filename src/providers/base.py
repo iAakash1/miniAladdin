@@ -136,6 +136,7 @@ class VendorStats:
         error: Optional[str] = None,
         failure_class: Optional[str] = None,
         operation: Optional[str] = None,
+        request_specific: bool = False,
     ) -> None:
         with self._lock:
             now = time.time()
@@ -157,7 +158,10 @@ class VendorStats:
                 # not a sign the vendor is down. Counting it toward cooldown
                 # benched FMP for everything after three sector-fund lookups
                 # its free plan does not cover.
-                if failure_class != FailureClass.NOT_ENTITLED.value:
+                # A 404 or 422 is the same kind of answer: this input has
+                # nothing here (Twelve Data asked for ^VIX, Marketstack for an
+                # unsupported symbol), not an outage.
+                if failure_class != FailureClass.NOT_ENTITLED.value and not request_specific:
                     self.consecutive_failures += 1
                 self.last_error = (error or "unknown")[:300]
                 self.last_failure_at = now
@@ -519,6 +523,7 @@ class VendorClient:
             self.stats.record(
                 False, latency, str(last_error), last_error.failure_class,
                 operation=operation,
+                request_specific=last_error.status_code in (404, 422),
             )
             if last_error.transient and attempt < self.MAX_RETRIES:
                 delay = self.BACKOFF_BASE * (2 ** attempt)
