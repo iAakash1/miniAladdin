@@ -122,7 +122,7 @@ export interface SortState { key: SortKey | null; dir: 'asc' | 'desc' }
 interface SortableRow {
   ticker: string
   quote?: { price?: number | null; change_1d?: number | null; change_1w?: number | null }
-  latest: { verdict: string; confidence: number; ts: string } | null
+  latest: { verdict: string; confidence: number | null; ts: string } | null
 }
 
 /** Value a column sorts on. `null` means "no value", and null always sorts
@@ -235,19 +235,34 @@ export default function PortfolioView() {
     return active.tickers
       .map((ticker) => {
         const timeline = history[ticker] ?? []
-        const latest = timeline[timeline.length - 1] ?? null
+        const local = timeline[timeline.length - 1] ?? null
         const previous = timeline.length >= 2 ? timeline[timeline.length - 2] : null
-        const diff = latest && previous ? diffSnapshots(previous, latest) : null
+        const diff = local && previous ? diffSnapshots(previous, local) : null
+        // The account's research record, not only this browser's. Home's
+        // watchlist read the server record and this page read local storage,
+        // so one AAPL was "Buy 33" there and "not analyzed" here. The newer
+        // of the two runs is shown; the change columns still need the local
+        // snapshots, which carry the factor detail the record does not.
+        const recorded = research.latest(ticker)
+        const recordedView = recorded ? {
+          ts: recorded.created_at,
+          verdict: recorded.verdict,
+          confidence: recorded.confidence,
+          riskLevel: recorded.risk_level,
+        } : null
+        const latest = local && (!recordedView || Date.parse(local.ts) >= Date.parse(recordedView.ts))
+          ? { ts: local.ts, verdict: local.verdict, confidence: local.confidence as number | null, riskLevel: local.riskLevel }
+          : recordedView
         return { ticker, quote: quotes[ticker], latest, previous, diff }
       })
       .sort((a, b) => {
         const aRank = a.latest ? VERDICT_ORDER.indexOf(a.latest.verdict) : -1
         const bRank = b.latest ? VERDICT_ORDER.indexOf(b.latest.verdict) : -1
         if (aRank !== bRank) return bRank - aRank
-        if (a.latest && b.latest) return b.latest.confidence - a.latest.confidence
+        if (a.latest && b.latest) return (b.latest.confidence ?? 0) - (a.latest.confidence ?? 0)
         return (b.quote?.change_1w ?? -999) - (a.quote?.change_1w ?? -999)
       })
-  }, [active, history, quotes])
+  }, [active, history, quotes, research])
 
   const sortedRows = useMemo(() => sortRows(rows, sort), [rows, sort])
 
@@ -341,7 +356,7 @@ export default function PortfolioView() {
       <p className="pf-summary">
         <span><b className="sys-num">{lists.length}</b> list{lists.length === 1 ? '' : 's'}</span>
         <span><b className="sys-num">{rows.length}</b> name{rows.length === 1 ? '' : 's'} in {active?.name ?? 'this list'}</span>
-        <span><b className="sys-num">{rows.filter((r) => r.latest).length}</b> researched in this browser</span>
+        <span><b className="sys-num">{rows.filter((r) => r.latest).length}</b> researched</span>
         <span>watchlists sync to your account · positions stay on this device</span>
       </p>
 
@@ -503,7 +518,7 @@ export default function PortfolioView() {
                       </td>
                       <td style={{ textAlign: 'right' }}><ChangeCell value={quote?.change_1d} /></td>
                       <td style={{ textAlign: 'right' }}><ChangeCell value={quote?.change_1w} /></td>
-                      <td><SymbolSpark symbol={ticker} width={84} height={20} /></td>
+                      <td><SymbolSpark values={quote?.closes ?? (quotesFetchedAt ? [] : undefined)} width={84} height={20} /></td>
                       <td>
                         {latest ? (
                           <span className={`badge ${verdictTone(latest.verdict)}`} style={{ height: 19, fontSize: '0.625rem' }}>
@@ -583,8 +598,9 @@ export default function PortfolioView() {
             </div>
           )}
           <p className="u-meta">
-            Verdict columns come from research runs recorded in this browser — open a company to run
-            one. Quotes via the provider fallback chain; trends are three months of daily closes.
+            Verdict, confidence and risk come from your account&apos;s latest research run; the change
+            columns compare the last two runs opened in this browser. Quotes via the provider fallback
+            chain; trends are three months of daily closes.
           </p>
 
           <PositionsPanel />

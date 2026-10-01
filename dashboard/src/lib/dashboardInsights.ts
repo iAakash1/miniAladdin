@@ -23,6 +23,8 @@ export interface MacroCard {
   unit: string
   trend: number[]
   updated: string
+  /** Decimal places the series is published to; absent from older payloads. */
+  digits?: number
   explain: string
   /** Vendor that published the series — `fred` for every card the backend
    *  currently emits. Optional because it is additive: a payload from an

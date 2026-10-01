@@ -15,7 +15,7 @@ export default function Watchlist({ limit = 10 }: { limit?: number }) {
   const lists = useWatchlists()
   const status = useWatchlistsStatus()
   const symbols = useWatchedSymbols().slice(0, limit)
-  const { quotes, error } = useQuotes(symbols)
+  const { quotes, error, at: quotedAt } = useQuotes(symbols)
   const research = useResearchHistory()
 
   if (status === 'idle' || status === 'loading') {
@@ -68,7 +68,7 @@ export default function Watchlist({ limit = 10 }: { limit?: number }) {
                   <td className="num"><Value value={q?.price ?? null} kind="currency" /></td>
                   <td className="num"><Value value={q?.change_1d ?? null} kind="percent" digits={2} signed tone /></td>
                   <td className="num"><Value value={q?.change_1w ?? null} kind="percent" digits={2} signed tone /></td>
-                  <td className="home-wl__trend"><SymbolSpark symbol={s} width={84} height={20} /></td>
+                  <td className="home-wl__trend"><SymbolSpark values={q?.closes ?? (quotedAt ? [] : undefined)} width={84} height={20} /></td>
                   <td>
                     {run ? (
                       <span className="home-run">

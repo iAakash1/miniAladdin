@@ -43,6 +43,10 @@ const demand = new Map<string, number>()
 let state: State = { quotes: {}, at: null, error: null, loading: false }
 let timer: ReturnType<typeof setInterval> | null = null
 let inFlight: AbortController | null = null
+/** The symbols the running read asked for. */
+let inFlightSymbols: Set<string> = new Set()
+/** Demand grew while a read was running; read again once it lands. */
+let followUp = false
 
 /** Thirty seconds. Fast enough that a price is never minutes behind without
  *  saying so, slow enough to be polite to a rate-limited vendor. */
@@ -60,11 +64,18 @@ async function read(): Promise<void> {
   const wanted = symbols()
   if (!wanted.length) return
 
-  // One request at a time. A refresh that fires while the previous is still
-  // running would produce exactly the overlap this hub exists to remove.
-  inFlight?.abort()
+  // One request at a time, and a running one is never abandoned. Aborting it
+  // only frees the browser: the backend still serves the request in full, so
+  // a panel mounting a moment after another used to cost two complete
+  // fan-outs, the first thrown away. Demand the running read already covers
+  // rides it; anything wider waits for it and goes out once, unioned.
+  if (inFlight) {
+    if (wanted.some((s) => !inFlightSymbols.has(s))) followUp = true
+    return
+  }
   const controller = new AbortController()
   inFlight = controller
+  inFlightSymbols = new Set(wanted)
 
   state = { ...state, loading: true }
   emit()
@@ -90,9 +101,16 @@ async function read(): Promise<void> {
     // no longer current.
     state = { ...state, error: (e as Error).message, loading: false }
   } finally {
-    if (inFlight === controller) inFlight = null
+    if (inFlight === controller) {
+      inFlight = null
+      inFlightSymbols = new Set()
+    }
   }
   emit()
+  if (followUp && inFlight === null) {
+    followUp = false
+    void read()
+  }
 }
 
 function start(): void {
@@ -109,6 +127,8 @@ function stop(): void {
   timer = null
   inFlight?.abort()
   inFlight = null
+  inFlightSymbols = new Set()
+  followUp = false
 }
 
 /**
@@ -129,9 +149,9 @@ export function subscribeQuotes(wanted: string[], onChange: Listener): () => voi
   listeners.add(onChange)
   start()
 
-  /* A newly demanded symbol needs a read, which widens and replaces any read
-     already running. A symbol already covered does not: it either has a value
-     on screen or is arriving in the request currently in flight.
+  /* A newly demanded symbol needs a read, which follows any read already
+     running with the union of both. A symbol already covered does not: it
+     either has a value on screen or is arriving in the request in flight.
 
      Checking only `state.at === null` was not enough. Two panels mounting
      together both see a null timestamp — the first read has not landed — and

@@ -13,7 +13,7 @@ import {
   patchPosition,
   upsertPosition,
 } from '@/lib/persistence'
-import { fmtNum } from '@/lib/format'
+import { fmtNum, fmtPrice } from '@/lib/format'
 
 type Status = 'loading' | 'ready' | 'error'
 
@@ -116,7 +116,7 @@ export default function PositionsPanel() {
         <h2 id="positions-h" className="h-panel">Positions</h2>
         {positions.length > 0 && (
           <span className="num" style={{ fontSize: '0.75rem', color: 'var(--faint)' }}>
-            {positions.length} · cost basis ${fmtNum(totalCost, 2)}
+            {positions.length} · cost basis {fmtPrice(totalCost)}
           </span>
         )}
         <span style={{ marginLeft: 'auto', fontSize: '0.6875rem', color: 'var(--faint)' }}>
@@ -243,11 +243,11 @@ export default function PositionsPanel() {
                           }
                         />
                       ) : (
-                        `$${fmtNum(position.average_price, 2)}`
+                        fmtPrice(position.average_price)
                       )}
                     </td>
                     <td className="num">
-                      ${fmtNum(position.shares * position.average_price, 2)}
+                      {fmtPrice(position.shares * position.average_price)}
                     </td>
                     <td>
                       {/* Share of *cost basis*, computed from the figures in

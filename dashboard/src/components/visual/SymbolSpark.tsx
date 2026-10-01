@@ -1,51 +1,25 @@
-'use client'
-
-import { useEffect, useRef, useState } from 'react'
-
 import Sparkline from '@/components/ui/Sparkline'
-import { readResource } from '@/lib/resource'
 
 /**
- * Three months of closes for one symbol, loaded only once the row is on
- * screen. It reads the same server-side series cache the quote request just
- * filled, and the shared resource cache, so a list of sparklines costs no
- * extra vendor calls. Renders nothing when no series comes back.
+ * Three months of closes for one row, drawn from the quote that row already
+ * holds. The batch quote is computed from this same series and now returns
+ * it, so a list of sparklines costs nothing beyond the one quote request.
+ * Each row used to ask `/api/chart` for its own copy — nine requests queued
+ * behind the quote batch on a backend that serves one at a time.
+ *
+ * `values` undefined means the quote has not landed; an empty or one-point
+ * series means it landed without enough history to draw a line.
  */
-export default function SymbolSpark({ symbol, width = 72, height = 22 }: {
-  symbol: string
+export default function SymbolSpark({ values, width = 72, height = 22 }: {
+  values: readonly number[] | null | undefined
   width?: number
   height?: number
 }) {
-  const ref = useRef<HTMLSpanElement>(null)
-  const [visible, setVisible] = useState(false)
-  const [points, setPoints] = useState<{ for: string; values: number[] } | null>(null)
-
-  useEffect(() => {
-    const el = ref.current
-    if (!el || visible) return undefined
-    const io = new IntersectionObserver((entries) => {
-      if (entries.some((e) => e.isIntersecting)) { setVisible(true); io.disconnect() }
-    }, { rootMargin: '160px' })
-    io.observe(el)
-    return () => io.disconnect()
-  }, [visible])
-
-  useEffect(() => {
-    if (!visible) return undefined
-    let alive = true
-    readResource<{ prices?: Array<{ close: number }> }>(`/api/chart/${encodeURIComponent(symbol)}?period=3mo`, 'snapshot')
-      .then((d) => {
-        if (!alive) return
-        setPoints({ for: symbol, values: (d.prices ?? []).map((p) => p.close).filter((v) => Number.isFinite(v)) })
-      })
-      .catch(() => { if (alive) setPoints({ for: symbol, values: [] }) })
-    return () => { alive = false }
-  }, [visible, symbol])
-
-  const values = points?.for === symbol ? points.values : null
+  const points = values?.filter((v) => Number.isFinite(v)) ?? null
+  const state = points === null ? 'loading' : points.length > 1 ? 'ready' : 'empty'
   return (
-    <span ref={ref} className="sspark" style={{ width, height }} data-state={values === null ? 'loading' : values.length > 1 ? 'ready' : 'empty'}>
-      {values && values.length > 1 ? <Sparkline points={values} width={width} height={height} /> : null}
+    <span className="sspark" style={{ width, height }} data-state={state}>
+      {points && points.length > 1 ? <Sparkline points={points} width={width} height={height} /> : null}
     </span>
   )
 }

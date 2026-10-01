@@ -13,7 +13,7 @@ import { useResearchHistory, verdictTone } from '@/lib/use-research-history'
 export default function RecentResearch({ limit = 6 }: { limit?: number }) {
   const research = useResearchHistory()
   const runs = research.recent.slice(0, limit)
-  const { quotes } = useQuotes(runs.map((r) => r.ticker))
+  const { quotes, at: quotedAt } = useQuotes(runs.map((r) => r.ticker))
 
   if (research.status === 'loading') {
     return <section className="sys-panel"><StateBlock state="waking" title="Loading your research record" /></section>
@@ -62,7 +62,7 @@ export default function RecentResearch({ limit = 6 }: { limit?: number }) {
                 </span>
               </span>
               <span className="home-rr__px">
-                <SymbolSpark symbol={r.ticker.toUpperCase()} width={72} height={20} />
+                <SymbolSpark values={q?.closes ?? (quotedAt ? [] : undefined)} width={72} height={20} />
                 <span className="home-rr__chg"><Value value={q?.change_1d ?? null} kind="percent" digits={2} signed tone /></span>
               </span>
             </li>

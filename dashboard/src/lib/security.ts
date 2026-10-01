@@ -43,6 +43,8 @@ export interface Quote {
   stale: boolean
   as_of?: string | null
   price_basis?: string | null
+  /** The three months of daily closes the quote was computed from. */
+  closes?: number[]
 }
 
 /** A successful retrieval is not evidence that a daily close is live. */

@@ -25,6 +25,9 @@ export default function MarketNews({ count = 5 }: { count?: number }) {
   // Lead with a story that carries its own image, when one does.
   const leadIndex = Math.max(0, items.findIndex((i) => i.image && /^https:/i.test(i.image)))
   const lead = items[leadIndex]
+  // Without a publisher image the lead is set as type. A 16:9 frame holding
+  // only a feed's favicon is an empty rectangle, not a picture.
+  const leadPictured = Boolean(lead?.image && /^https:/i.test(lead.image))
   const rest = items.filter((_, i) => i !== leadIndex).slice(0, 4)
 
   return (
@@ -41,11 +44,16 @@ export default function MarketNews({ count = 5 }: { count?: number }) {
       ) : answer.error || !lead ? (
         <StateBlock state="unavailable" title="Market news is unavailable" detail="The public feeds did not answer. Company-specific news is still read inside each research run." />
       ) : (
-        <div className="home-news__body">
+        <div className="home-news__body" data-lead={leadPictured ? 'pictured' : 'type'}>
           <a className="home-news__lead" href={lead.url} target="_blank" rel="noreferrer">
-            <Thumb src={lead.image} source={lead.source} url={lead.url} width="100%" ratio="16 / 9" />
+            {leadPictured ? (
+              <Thumb src={lead.image} source={lead.source} url={lead.url} width="100%" ratio="16 / 9" />
+            ) : null}
             <span className="home-news__meta">{lead.source} · {timeAgo(lead.publishedAt)}</span>
             <span className="home-news__title home-news__title--lead">{lead.title}</span>
+            {!leadPictured && lead.summary && lead.summary !== lead.title ? (
+              <span className="home-news__summary">{lead.summary}</span>
+            ) : null}
           </a>
           <ul className="home-news__list">
             {rest.map((n) => (

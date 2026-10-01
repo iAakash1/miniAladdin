@@ -51,7 +51,7 @@ export default function Ideas() {
         <div className="sys-panel-head__title">
           <h2 className="sys-panel-title">Ranked universe</h2>
           <span className="sys-panel-sub">
-            {d ? `${d.eligible_count} of ${d.count} eligible${d.generated_at ? ` · ${freshness(d.generated_at) ?? ''}` : ''}` : null}
+            {d ? `${d.eligible_count} eligible of ${d.evaluated_count} evaluated${d.generated_at ? ` · ${freshness(d.generated_at) ?? ''}` : ''}` : null}
           </span>
         </div>
         <Link className="cw-more" href="/explore">Open screener</Link>

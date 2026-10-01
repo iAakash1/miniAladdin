@@ -2429,6 +2429,11 @@ def get_quotes(symbols: str = Query(..., description="Comma-separated tickers, m
     Batch quotes for watchlists: price, 1-day and 1-week change per symbol.
     Served from the MarketDataProvider series cache; per-symbol failures
     return an error entry rather than failing the batch.
+
+    Each quote also carries the three months of closes it was computed from.
+    A list's sparklines used to request `/api/chart` once per row for the
+    same series this handler had just read, which on a one-request-at-a-time
+    backend queued nine calls behind the quote batch.
     """
     requested = [s.strip().upper() for s in symbols.split(",") if s.strip()][:25]
     if not requested:
@@ -2452,6 +2457,7 @@ def get_quotes(symbols: str = Query(..., description="Comma-separated tickers, m
                 "price_basis": "daily close",
                 "change_1d": round((closes[-1] / closes[-2] - 1) * 100, 2) if closes[-2] else None,
                 "change_1w": round((closes[-1] / closes[-6] - 1) * 100, 2) if len(closes) >= 6 and closes[-6] else None,
+                "closes": [round(close, 2) for close in closes if math.isfinite(close)],
                 "source": result.source,
                 "stale": result.stale,
             }

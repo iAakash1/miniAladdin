@@ -69,7 +69,7 @@ interface Breadth {
   laggard?: string | null
 }
 
-interface MacroCard { label?: string; value?: number | string | null; unit?: string | null; source?: string | null; as_of?: string | null }
+interface MacroCard { label?: string; value?: number | string | null; unit?: string | null; digits?: number | null; source?: string | null; updated?: string | null }
 
 interface Dashboard {
   macro?: { cards?: MacroCard[]; regime?: Record<string, unknown> | string | null; note?: string | null }
@@ -126,18 +126,18 @@ export default function MarketWorkspace() {
         </Link>
       ),
     },
-    { key: 'price', header: 'Price', unit: 'currency', numeric: true, sort: (s) => n(s.price), render: (s) => <Value value={n(s.price)} digits={2} /> },
+    { key: 'price', header: 'Price', unit: 'currency', numeric: true, sort: (s) => n(s.price), render: (s) => <Value value={n(s.price)} kind="currency" /> },
     {
       key: 's21', header: 'Strength', unit: '21d', numeric: true, sort: (s) => n(s.strength_21d),
-      render: (s) => <Value value={n(s.strength_21d)} digits={4} signed tone />,
+      render: (s) => <Value value={n(s.strength_21d)} kind="percent" digits={1} signed tone />,
     },
     {
       key: 'm63', header: 'Momentum', unit: '63d', numeric: true, sort: (s) => n(s.momentum_63d),
-      render: (s) => <Value value={n(s.momentum_63d)} digits={4} signed tone />,
+      render: (s) => <Value value={n(s.momentum_63d)} kind="percent" digits={1} signed tone />,
     },
     {
       key: 'vol', header: 'Volatility', unit: 'ann.', numeric: true, sort: (s) => n(s.volatility),
-      render: (s) => <Value value={n(s.volatility)} digits={4} />,
+      render: (s) => <Value value={n(s.volatility)} kind="percent" digits={1} />,
     },
     {
       key: 'ma', header: 'Above 50d', width: '11%', sort: (s) => (s.above_50d ? 1 : 0),
@@ -344,6 +344,7 @@ export default function MarketWorkspace() {
       <Grid>
         <Panel title="Momentum dispersion" subtitle="63-day, by sector">
           <BarRows
+            kind="percent"
             unit="63-day momentum"
             rows={[...sectors]
               .sort((a, b2) => (n(b2.momentum_63d) ?? 0) - (n(a.momentum_63d) ?? 0))
@@ -358,6 +359,7 @@ export default function MarketWorkspace() {
 
         <Panel title="Volatility by sector">
           <BarRows
+            kind="percent"
             unit="annualised volatility"
             rows={[...sectors]
               .sort((a, b2) => (n(b2.volatility) ?? 0) - (n(a.volatility) ?? 0))
@@ -402,12 +404,12 @@ export default function MarketWorkspace() {
                 <span className="k">{c.label ?? '—'}</span>
                 <span className="v">
                   {typeof c.value === 'number'
-                    ? <Value value={c.value} digits={2} unit={c.unit ?? undefined} />
+                    ? <Value value={c.value} digits={c.digits ?? 2} unit={c.unit ?? undefined} signed={false} tone={false} />
                     : <span className="sys-num">{c.value ?? '—'}</span>}
                 </span>
-                {c.source || c.as_of ? (
+                {c.source || c.updated ? (
                   <span className="sys-meta" style={{ display: 'block', marginTop: 2 }}>
-                    {[c.source, c.as_of?.slice(0, 10)].filter(Boolean).join(' · ')}
+                    {[c.source, c.updated?.slice(0, 10)].filter(Boolean).join(' · ')}
                   </span>
                 ) : null}
               </div>

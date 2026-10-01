@@ -27,3 +27,14 @@ def test_one_failed_symbol_does_not_erase_the_other_quote():
     assert body['quotes']['AAPL']['error']
     assert body['quotes']['MSFT']['price'] == 406.0
     assert body['count'] == 2
+
+
+def test_batch_quote_carries_the_closes_it_was_computed_from():
+    """Sparklines draw from the quote batch instead of one chart call per row."""
+    bars = [OHLCVBar(date=f'2026-01-{i:02d}', close=100.004 + i, volume=0) for i in range(1, 8)]
+    result = ProviderResult(data=PriceSeries(symbol='AAPL', bars=bars), source='vendor')
+    with patch.object(api.providers.market_data, 'get_series', return_value=result) as series:
+        quote = TestClient(api.app).get('/api/quotes?symbols=AAPL').json()['quotes']['AAPL']
+    assert series.call_count == 1
+    assert quote['closes'] == [101.0, 102.0, 103.0, 104.0, 105.0, 106.0, 107.0]
+    assert quote['closes'][-1] == quote['price']

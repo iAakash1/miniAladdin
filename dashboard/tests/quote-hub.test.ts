@@ -53,6 +53,34 @@ test('a new symbol widens the request', async () => {
   off(); off2()
 })
 
+/* The home screen's watchlist and recent-research panels mount moments apart.
+   The hub used to abort the first read and send a wider one, but an aborted
+   fetch still runs to completion on the backend: two full fan-outs, the first
+   discarded, on a server that serves one request at a time. */
+test('demand that grows mid-read waits for the read instead of aborting it', async () => {
+  let release: () => void = () => {}
+  let aborted = 0
+  requests = []
+  ;(globalThis as { fetch: unknown }).fetch = async (url: string, init?: { signal?: AbortSignal }) => {
+    requests.push(decodeURIComponent(new URL(url, 'http://x').searchParams.get('symbols') ?? ''))
+    init?.signal?.addEventListener('abort', () => { aborted += 1 })
+    if (requests.length === 1) await new Promise<void>((r) => { release = r })
+    return { ok: true, json: async () => ({ quotes: { AAPL: { price: 1, stale: false } } }) }
+  }
+  const off = subscribeQuotes(['AAPL'], () => {})
+  await settle()
+  const off2 = subscribeQuotes(['MSFT'], () => {})
+  const off3 = subscribeQuotes(['NVDA'], () => {})
+  await settle()
+  assert.equal(requests.length, 1, 'a second read went out while the first was running')
+  release()
+  await settle()
+
+  assert.equal(aborted, 0, 'the running read was aborted')
+  assert.deepEqual(requests, ['AAPL', 'AAPL,MSFT,NVDA'], 'the follow-up did not union the new demand once')
+  off(); off2(); off3()
+})
+
 test('demand is reference counted', async () => {
   const offA = subscribeQuotes(['AAPL', 'MSFT'], () => {})
   const offB = subscribeQuotes(['AAPL'], () => {})
