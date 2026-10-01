@@ -17,6 +17,7 @@ import Link from 'next/link'
 import { useEffect, useState, useSyncExternalStore } from 'react'
 
 import { readerError } from '@/lib/failure'
+import { factorReason } from '@/lib/history'
 import { emptySnapshot, subscribeSymbols, toggleWatch, watchSnapshot } from '@/lib/symbols'
 
 import { EmptyLine, Panel, Prose, StateBlock } from '@/components/system'
@@ -99,9 +100,9 @@ function Card({ row, rank, mode }: { row: ExploreRow; rank: number; mode: Experi
 
       <dl className="bg__why">
         <dt>Strongest support</dt>
-        <dd>{row.top_positive ?? dash}</dd>
+        <dd>{factorReason(row.top_positive) ?? dash}</dd>
         <dt>Main caution</dt>
-        <dd>{row.top_caution ?? dash}</dd>
+        <dd>{factorReason(row.top_caution) ?? dash}</dd>
       </dl>
 
       <footer className="bg__card-foot">

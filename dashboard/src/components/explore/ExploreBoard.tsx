@@ -29,6 +29,7 @@ import {
   type CategoryKey, type ExploreCategory, type ExploreResponse, type ExploreRow,
   fetchCategories, fetchExplore, freshness, signalTone,
 } from '@/lib/explore'
+import { factorReason } from '@/lib/history'
 
 const dash = '—'
 
@@ -347,15 +348,15 @@ export default function ExploreBoard({
               },
               {
                 key: 'why', header: 'Strongest factor', optional: true,
-                text: (r) => r.top_positive ?? '',
+                text: (r) => factorReason(r.top_positive) ?? '',
                 sort: (r) => r.top_positive,
-                render: (r) => <span className="xp__why">{r.top_positive ?? dash}</span>,
+                render: (r) => <span className="xp__why">{factorReason(r.top_positive) ?? dash}</span>,
               },
               {
                 key: 'caution', header: 'Main caution', optional: true,
-                text: (r) => r.top_caution ?? '',
+                text: (r) => factorReason(r.top_caution) ?? '',
                 sort: (r) => r.top_caution,
-                render: (r) => <span className="xp__why">{r.top_caution ?? dash}</span>,
+                render: (r) => <span className="xp__why">{factorReason(r.top_caution) ?? dash}</span>,
               },
             ]}
           />

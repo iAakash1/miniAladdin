@@ -12,12 +12,12 @@
 'use client'
 
 import Link from 'next/link'
-import { readerError } from '@/lib/failure'
 import { useEffect, useState } from 'react'
 
 import { Grid, Panel, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
 import { ObjectHeader } from '@/components/system/composition'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
+import { readerError } from '@/lib/failure'
 import { recordVisit } from '@/lib/research/history'
 import { readResource } from '@/lib/resource'
 

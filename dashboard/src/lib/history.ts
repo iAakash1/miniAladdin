@@ -225,3 +225,18 @@ export const FACTOR_LABELS: Record<string, string> = {
   asset_growth: 'Asset growth',
   sentiment: 'News sentiment',
 }
+
+/**
+ * A ranking reason as a reader says it. The engine records the factor that
+ * contributed most for and against a security as "r63 (momentum)"; the
+ * screener, the idea cards and sector leaders printed that key verbatim.
+ * The family is kept when the label does not already name it.
+ */
+export function factorReason(reason: string | null | undefined): string | null {
+  if (!reason) return null
+  const m = /^(.*?)\s*\(([^)]+)\)\s*$/.exec(reason)
+  const key = (m ? m[1] : reason).trim()
+  const family = m ? m[2].trim() : null
+  const label = FACTOR_LABELS[key] ?? key.replace(/_/g, ' ')
+  return family && !label.toLowerCase().includes(family.toLowerCase()) ? `${label} · ${family}` : label
+}

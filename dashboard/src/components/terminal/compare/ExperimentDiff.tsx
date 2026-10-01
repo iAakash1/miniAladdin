@@ -13,10 +13,10 @@
 'use client'
 
 import Link from 'next/link'
-import { readerError } from '@/lib/failure'
 import { useEffect, useMemo, useState } from 'react'
 
 import { Panel, Prose, StateBlock, Status, Strip, Value } from '@/components/system'
+import { readerError } from '@/lib/failure'
 import { recordVisit } from '@/lib/research/history'
 import { ObjectHeader, TableSkeleton } from '@/components/system/composition'
 import { readResource } from '@/lib/resource'

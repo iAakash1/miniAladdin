@@ -20,16 +20,9 @@ import SectorMark from '@/components/visual/SectorMark'
 import { readerError } from '@/lib/failure'
 import { type ExploreRow, type RecommendationsResponse, freshness } from '@/lib/explore'
 import { fmtPrice } from '@/lib/format'
-import { FACTOR_LABELS } from '@/lib/history'
+import { factorReason } from '@/lib/history'
 import { readResource } from '@/lib/resource'
 
-/** "r63 (momentum)" → "63-day momentum"; the family is shown separately. */
-function factor(reason: string | null): { label: string; family: string | null } | null {
-  if (!reason) return null
-  const m = /^(.*?)\s*\(([^)]+)\)\s*$/.exec(reason)
-  const key = (m ? m[1] : reason).trim()
-  return { label: FACTOR_LABELS[key] ?? key.replace(/_/g, ' '), family: m ? m[2] : null }
-}
 
 function tone(signal: string | null): 'pos' | 'neg' | 'muted' {
   if (!signal) return 'muted'
@@ -37,8 +30,8 @@ function tone(signal: string | null): 'pos' | 'neg' | 'muted' {
 }
 
 function Tile({ r, href }: { r: ExploreRow; href: string }) {
-  const plus = factor(r.top_positive)
-  const minus = factor(r.top_caution)
+  const plus = factorReason(r.top_positive)
+  const minus = factorReason(r.top_caution)
   const rank = r.overall_rank
   return (
     <Link href={href} className="sl-tile" data-stale={r.stale ? '' : undefined}>
@@ -63,8 +56,8 @@ function Tile({ r, href }: { r: ExploreRow; href: string }) {
       </span>
       {plus || minus ? (
         <span className="sl-tile__why">
-          {plus ? <span data-tone="pos"><i aria-hidden>+</i><span className="visually-hidden">Strongest support: </span>{plus.label}</span> : null}
-          {minus ? <span data-tone="neg"><i aria-hidden>−</i><span className="visually-hidden">Main caution: </span>{minus.label}</span> : null}
+          {plus ? <span data-tone="pos"><i aria-hidden>+</i><span className="visually-hidden">Strongest support: </span>{plus}</span> : null}
+          {minus ? <span data-tone="neg"><i aria-hidden>−</i><span className="visually-hidden">Main caution: </span>{minus}</span> : null}
         </span>
       ) : null}
     </Link>

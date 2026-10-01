@@ -118,3 +118,11 @@ test('subsequence matching keeps initials and compact runs only', async () => {
   assert.ok(score('semis', 'System health · Operations') < 0, 'scattered letters no longer match')
   assert.ok(score('quant', 'Quant Lab · Risk') > score('qnt', 'Quant Lab · Risk'), 'prefix still outranks subsequence')
 })
+
+test('ranking reasons read as words, keeping the family when it adds information', async () => {
+  const { factorReason } = await import('../src/lib/history')
+  assert.equal(factorReason('r63 (momentum)'), '63-day momentum')
+  assert.equal(factorReason('gross_profitability (quality)'), 'Gross profitability (GP/A) · quality')
+  assert.equal(factorReason('mystery_factor (value)'), 'mystery factor · value')
+  assert.equal(factorReason(null), null)
+})
