@@ -6,8 +6,8 @@ import api.index as api
 
 
 def test_the_proxy_request_id_is_adopted_and_echoed():
-    response = TestClient(api.app).get("/api/health", headers={"X-Request-Id": "a1b2c3d4e5f60718"})
-    assert response.headers["X-Request-Id"] == "a1b2c3d4e5f60718"
+    response = TestClient(api.app).get("/api/health", headers={"X-Request-Id": "proxy-request-0001"})
+    assert response.headers["X-Request-Id"] == "proxy-request-0001"
 
 
 def test_a_malformed_request_id_is_replaced_not_logged():
