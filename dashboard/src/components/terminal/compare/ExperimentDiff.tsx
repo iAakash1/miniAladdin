@@ -13,6 +13,7 @@
 'use client'
 
 import Link from 'next/link'
+import { readerError } from '@/lib/failure'
 import { useEffect, useMemo, useState } from 'react'
 
 import { Panel, Prose, StateBlock, Status, Strip, Value } from '@/components/system'
@@ -92,7 +93,7 @@ export default function ExperimentDiff() {
     let alive = true
     readResource<{ experiments?: { experiment_id: string }[] }>('/api/quant/experiments', 'artifact')
       .then((d) => { if (alive) setIds((d.experiments ?? []).map((e: { experiment_id: string }) => e.experiment_id)) })
-      .catch((e: Error) => { if (alive) setErrors((p) => [...p, `list: ${e.message}`]) })
+      .catch((e: Error) => { if (alive) setErrors((p) => [...p, `list: ${readerError(e.message)}`]) })
     return () => { alive = false }
   }, [])
 
@@ -101,7 +102,7 @@ export default function ExperimentDiff() {
     const load = (id: string, set: (d: { id: string; data: Detail }) => void) => {
       readResource<Detail>(`/api/quant/experiments/${encodeURIComponent(id)}`, 'artifact')
         .then((d) => { if (alive) set({ id, data: d }) })
-        .catch((e: Error) => { if (alive) setErrors((p) => [...p, `${id}: ${e.message}`]) })
+        .catch((e: Error) => { if (alive) setErrors((p) => [...p, `${id}: ${readerError(e.message)}`]) })
     }
     load(left, setA)
     load(right, setB)

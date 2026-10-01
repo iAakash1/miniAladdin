@@ -12,6 +12,7 @@
 'use client'
 
 import Link from 'next/link'
+import { readerError } from '@/lib/failure'
 import { useEffect, useState } from 'react'
 
 import { Grid, Panel, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
@@ -69,7 +70,7 @@ export default function CommandCenter() {
 
   useEffect(() => {
     let alive = true
-    const fail = (what: string) => (e: Error) => { if (alive) setErrors((p) => [...p, `${what}: ${e.message}`]) }
+    const fail = (what: string) => (e: Error) => { if (alive) setErrors((p) => [...p, `${what}: ${readerError(e.message)}`]) }
     fetch('/api/quant/status').then((r) => r.ok ? r.json() : Promise.reject(new Error(String(r.status))))
       .then((d) => alive && setStatus(d)).catch(fail('status'))
     // The experiment list and the selection artifact are read by several other
