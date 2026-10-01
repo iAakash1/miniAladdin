@@ -128,8 +128,50 @@ Set `DEEPSEEK_FAST_MODEL=deepseek-flash` and
 fallback to select a retired model.
 The measured first real calls also require `LLM_TIMEOUT=20` and use the bounded
 `LLM_MAX_OUTPUT_TOKENS=6000`; the compact v2 prompt contracts keep typical
-responses below that ceiling. Cloud Run writes best-effort analyst snapshots
+responses below that ceiling. The DeepSeek final writer has its own single,
+non-retried attempt: `LLM_FAST_TIMEOUT` (default 32 s) for Flash and
+`LLM_DEEP_TIMEOUT` (default 35 s) for Pro, both capped at 45 s. A 20 s Flash
+attempt was measured streaming a full narrative past the limit, and retrying
+the identical request only doubled the wait. Cloud Run writes best-effort analyst snapshots
 and third-party caches only under ephemeral `/tmp`, never under `/app`.
+
+## Preview candidates
+
+Every backend change reaches the redesign preview as an immutable, private,
+zero-traffic revision built from one commit:
+
+```bash
+SHA=$(git rev-parse HEAD); SHORT=${SHA:0:7}
+git archive "$SHA" | tar -x -C "$BUILD_DIR" && cp "$BUILD_DIR/.dockerignore" "$BUILD_DIR/.gcloudignore"
+(cd "$BUILD_DIR" && gcloud builds submit --region asia-south1 \
+  --tag asia-south1-docker.pkg.dev/omnisignal-api-aakash-2026/cloud-run-source-deploy/omnisignal-api:$SHORT)
+gcloud run deploy omnisignal-api-poc --region asia-south1 \
+  --image asia-south1-docker.pkg.dev/omnisignal-api-aakash-2026/cloud-run-source-deploy/omnisignal-api@DIGEST \
+  --no-traffic --tag redesign-$SHORT --revision-suffix redesign-$SHORT \
+  --update-env-vars GIT_COMMIT=$SHA
+cd dashboard && vercel env update BACKEND_ORIGIN preview redesign/research-terminal \
+  --value https://redesign-$SHORT---omnisignal-api-poc-saigcozo6q-el.a.run.app --yes
+```
+
+- Building from `git archive` means the image contains the commit and nothing
+  else from the working tree; deploying by digest means the revision cannot
+  drift if the tag is reused. `/api/health` reports the commit it was built
+  from.
+- `--no-traffic` keeps production on its current revision. The tag gives the
+  candidate its own URL; the branch-scoped `BACKEND_ORIGIN` points only the
+  redesign preview at it.
+- `CLOUD_RUN_AUDIENCE` stays the canonical service URL even when the origin
+  is a tag URL. Cloud Run validates the identity token against the service,
+  not the tag; minting it for the tag URL is refused.
+- Secrets are added per revision with `--update-secrets NAME=secret:latest`
+  after confirming an enabled version exists and the runtime service account
+  holds `secretAccessor` on that secret alone.
+- Verify before use: an unauthenticated request to the tag URL returns `403`,
+  the IAM policy has no `allUsers`/`allAuthenticatedUsers`, and the traffic
+  split still shows 100% on the production revision.
+
+A Vercel environment change applies to the next deployment, so the branch is
+pushed after the origin is updated.
 
 ## Validation gate
 
