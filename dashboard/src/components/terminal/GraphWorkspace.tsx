@@ -279,6 +279,7 @@ export default function GraphWorkspace() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div>
         <PageHeader
+          nested
           eyebrow="Workspace"
           title="Knowledge graph"
           lede="Every entity and relationship OmniSignal knows, from SEC filings and Wikidata. Compare companies to see what they share, or trace how any two entities connect. Nothing here is inferred — every edge names the provider that asserted it and the confidence it carries."

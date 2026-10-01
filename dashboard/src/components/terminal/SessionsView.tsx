@@ -292,7 +292,8 @@ export default function SessionsView() {
   return (
     <div className="page-stack">
       <PageHeader
-        eyebrow="Workspace"
+        nested
+          eyebrow="Workspace"
         title="Investigations"
         lede="An investigation remembers the graph you were reading, what you pinned, the snapshots you took and everything you wrote. Leave for a week and open it exactly where you stopped."
         actions={

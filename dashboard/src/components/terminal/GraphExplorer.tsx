@@ -186,6 +186,7 @@ export default function GraphExplorer() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div>
         <PageHeader
+          nested
           eyebrow="Workspace"
           title="Graph explorer"
           lede="Every entity OmniSignal knows about, and how they connect. Select any node to re-center — companies, executives, products and industries are all valid starting points. Relationships come from SEC filings and Wikidata; nothing here is inferred."

@@ -1226,6 +1226,10 @@ footer a:hover { color: var(--text) !important; }
   color: var(--muted);
   max-width: 68ch;
 }
+/* Inside a Workbench the lede opens the view directly under the workbench
+   title: no second heading, and a quieter, tighter introduction. */
+.page-head[data-nested] { align-items: center; padding-bottom: 12px; }
+.page-head[data-nested] .page-head__lede { margin-top: 0; font-size: 0.8125rem; line-height: 1.55; max-width: 96ch; }
 .page-head__meta {
   display: flex;
   flex-wrap: wrap;

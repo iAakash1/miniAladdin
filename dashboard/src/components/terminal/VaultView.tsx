@@ -126,6 +126,7 @@ export default function VaultView() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div>
         <PageHeader
+          nested
           eyebrow="Workspace"
           title="Research Vault"
           lede="Every analysis you run is recorded to your account automatically. Reopen any past report exactly as it was, or compare two runs to see which factors moved the verdict."
