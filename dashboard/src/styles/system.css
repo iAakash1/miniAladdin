@@ -938,7 +938,9 @@ a.status-fact:hover .status-fact__value { color: var(--ink); }
   .shell-top__menu { display: inline-flex; }
   .shell-brand { width: auto; }
   .shell-loc { display: none; }
-  .shell-search { flex: 1; width: auto; }
+  /* min-width 0: a flex item keeps its text's min-content width otherwise,
+     and on a phone the search pushed the theme toggle and account off-screen. */
+  .shell-search { flex: 1; width: auto; min-width: 0; }
   .shell-detail { display: none; }
   .shell-rail {
     position: fixed;
@@ -1790,7 +1792,9 @@ a.tape:hover .tape__sym { color: var(--accent); }
   .band__tape { grid-auto-flow: row; grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .band__tape > * { border-left: 1px solid var(--rule); padding-left: var(--d-3); }
   .band__tape > :nth-child(3n+1) { border-left: 0; padding-left: 0; }
-  .band__facts { gap: 0 var(--d-4); }
+  /* Wrapped facts need a row gap: their values are set at line-height 1, so
+     a second row sat on the first and clipped REGIME. */
+  .band__facts { gap: var(--d-2) var(--d-4); }
 }
 
 /* A named section with nothing in it. One rule, one label, one sentence —
