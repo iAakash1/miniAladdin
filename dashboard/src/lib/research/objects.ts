@@ -150,11 +150,20 @@ export function score(query: string, candidate: string): number {
   if (c.startsWith(q)) return 500 - c.length
   const at = c.indexOf(q)
   if (at >= 0) return 200 - at - c.length * 0.1
-  // Subsequence: "hgb" matches "hist_gradient_boosting".
+  // Subsequence, held to a shape a person actually types: the candidate's
+  // word initials ("hgb" → hist_gradient_boosting) or letters close together.
+  // Any scattered subsequence matched "semis" to "System health · Operations".
   let i = 0
-  for (const ch of c) {
-    if (ch === q[i]) i += 1
-    if (i === q.length) return 60 - c.length * 0.1
+  let first = -1
+  let last = -1
+  let initials = true
+  for (let k = 0; k < c.length && i < q.length; k += 1) {
+    if (c[k] !== q[i]) continue
+    if (first < 0) first = k
+    last = k
+    if (k > 0 && /[a-z0-9]/.test(c[k - 1])) initials = false
+    i += 1
   }
-  return -1
+  if (i < q.length) return -1
+  return initials || last - first + 1 <= q.length * 2 ? 60 - c.length * 0.1 : -1
 }

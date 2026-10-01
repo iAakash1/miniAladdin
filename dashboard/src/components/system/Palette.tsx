@@ -231,11 +231,25 @@ export default function Palette() {
       const local = localMatches(q, recentSymbols, watched).map((m) => companyItem(m.symbol, null, m.context))
       out.push({ key: 'companies', label: 'Companies', note: current?.error ? 'search unavailable' : 'searching…', itemKey, items: local })
     }
-    if (looksLikeSymbol(q) && !(answer?.results ?? []).some((r) => r.symbol === q.toUpperCase())) {
-      out.push({
-        key: 'open-ticker', label: 'Open directly', itemKey,
-        items: [companyItem(q.toUpperCase(), null, 'open as a ticker')],
-      })
+    // A short token is most likely a ticker; anything longer ("semis",
+    // "copper miners") is more likely a theme. Both stay offered — the order
+    // decides what Enter does before the search answer lands.
+    const openTicker: PaletteSection<Item> | null = looksLikeSymbol(q) && !(answer?.results ?? []).some((r) => r.symbol === q.toUpperCase())
+      ? { key: 'open-ticker', label: 'Open directly', itemKey, items: [companyItem(q.toUpperCase(), null, 'open as a ticker')] }
+      : null
+    const screen: PaletteSection<Item> | null = q.trim().length >= 2
+      ? {
+          key: 'screen', label: 'Screen', itemKey,
+          items: [{
+            type: 'command', id: 'screen', icon: 'screen',
+            label: `Screen for “${q}”`, note: 'lookup or web-grounded theme search, with sources',
+            run: () => router.push(`/explore?q=${encodeURIComponent(q)}`),
+          }],
+        }
+      : null
+    const tickerFirst = q.trim().length <= 4
+    for (const section of tickerFirst ? [openTicker, screen] : [screen, openTicker]) {
+      if (section) out.push(section)
     }
 
     const rank = <T extends { label: string; note?: string }>(items: T[], limit: number) => items
@@ -247,16 +261,6 @@ export default function Palette() {
 
     out.push({ key: 'actions', label: 'Actions', itemKey, items: rank(commands, 5) })
     out.push({ key: 'goto', label: 'Go to', itemKey, items: rank(navigation, 5) })
-    if (q.split(/\s+/).length >= 2 || !looksLikeSymbol(q)) {
-      out.push({
-        key: 'screen', label: 'Screen', itemKey,
-        items: [{
-          type: 'command', id: 'screen', icon: 'screen',
-          label: `Screen for “${q}”`, note: 'lookup or web-grounded theme search, with sources',
-          run: () => router.push(`/explore?q=${encodeURIComponent(q)}`),
-        }],
-      })
-    }
 
     // Research objects: a query may name a kind or a state ("blocked
     // models"); what is left is matched against names.

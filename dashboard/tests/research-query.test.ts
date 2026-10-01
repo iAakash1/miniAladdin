@@ -108,3 +108,13 @@ test('a render state is understood even when nothing currently holds it', () => 
   assert.equal(q.text, '', 'the word must not leak into name matching')
   assert.equal(matchesStructure(obj('model', 'gb', 'retired'), q), false)
 })
+
+/* "semis" matched "System health · Operations" through a scattered
+   subsequence; initials and compact runs are what a person types. */
+test('subsequence matching keeps initials and compact runs only', async () => {
+  const { score } = await import('../src/lib/research/objects')
+  assert.ok(score('hgb', 'hist_gradient_boosting') > 0, 'word initials still match')
+  assert.ok(score('mdl', 'model lab') > 0, 'a compact run still matches')
+  assert.ok(score('semis', 'System health · Operations') < 0, 'scattered letters no longer match')
+  assert.ok(score('quant', 'Quant Lab · Risk') > score('qnt', 'Quant Lab · Risk'), 'prefix still outranks subsequence')
+})
