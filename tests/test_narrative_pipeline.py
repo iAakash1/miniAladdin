@@ -576,15 +576,52 @@ def test_deepseek_request_disables_thinking_for_schema_writer(monkeypatch):
     assert captured["json"]["max_tokens"] == pipeline.DEFAULT_MAX_OUTPUT_TOKENS
     assert captured["json"]["thinking"] == {"type": "disabled"}
     assert captured["json"]["response_format"] == {"type": "json_object"}
-    assert captured["timeout"] == pipeline._timeout_seconds()
+    assert captured["timeout"] == pipeline._deepseek_timeout_seconds("deepseek-flash")
 
 
 def test_deepseek_pro_has_a_bounded_stage_specific_timeout(monkeypatch):
     monkeypatch.setenv("LLM_TIMEOUT", "20")
     monkeypatch.delenv("LLM_DEEP_TIMEOUT", raising=False)
+    monkeypatch.delenv("LLM_FAST_TIMEOUT", raising=False)
 
-    assert pipeline._deepseek_timeout_seconds("deepseek-flash") == 20.0
+    assert pipeline._deepseek_timeout_seconds("deepseek-flash") == 32.0
     assert pipeline._deepseek_timeout_seconds("deepseek-v4-pro") == 35.0
+    monkeypatch.setenv("LLM_FAST_TIMEOUT", "90")
+    assert pipeline._deepseek_timeout_seconds("deepseek-flash") == 45.0, "the ceiling holds"
+
+
+def test_a_deepseek_read_timeout_is_not_retried(monkeypatch):
+    """The NVDA run of 1 Oct spent 2 x 20 s on a Flash response that was
+    still streaming before falling back. Retrying the identical request
+    runs just as long again; connection failures are still retried."""
+    class ReadTimeout(Exception):
+        pass
+
+    class ConnectTimeout(Exception):
+        pass
+
+    calls = []
+
+    def slow(provider, messages, *, final, model=None):
+        calls.append(provider)
+        raise ReadTimeout("still writing")
+
+    monkeypatch.setattr(pipeline, "_call_stage", slow)
+    with pytest.raises(ReadTimeout):
+        pipeline._call_with_retries("deepseek", [], final=True, model="deepseek-flash")
+    assert calls == ["deepseek"]
+
+    calls.clear()
+
+    def flaky(provider, messages, *, final, model=None):
+        calls.append(provider)
+        if len(calls) == 1:
+            raise ConnectTimeout("no route")
+        return "ok"
+
+    monkeypatch.setattr(pipeline, "_call_stage", flaky)
+    monkeypatch.setattr(pipeline.time, "sleep", lambda s: None)
+    assert pipeline._call_with_retries("deepseek", [], final=True, model="deepseek-flash") == ("ok", 1)
 
 
 # ── Groq ID-only analyst contract tests ────────────────────────────────────

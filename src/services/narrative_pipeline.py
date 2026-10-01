@@ -596,20 +596,23 @@ def _timeout_seconds() -> float:
 
 
 def _deepseek_timeout_seconds(model: str) -> float:
-    """Give the measured Pro writer more time without slowing Fast mode.
+    """One bounded attempt long enough for a full narrative.
 
-    Flash completed well inside the shared 20-second ceiling.  Pro returned at
-    that boundary and then raised ``ReadTimeout``.  Thirty-five seconds leaves
-    room for one validation correction and the server proxy's 120-second
-    budget while keeping every attempt bounded.
+    Pro returned at the shared 20-second boundary and raised ``ReadTimeout``;
+    it gets 35 seconds. Flash used to finish inside 20, but on the NVDA run of
+    1 Oct it answered 200 and was still streaming the 19-section body at
+    20.7 seconds — twice, because the timeout was retried — and the report
+    fell back to Groq after 40 seconds of nothing. Flash now gets 32 seconds
+    in one attempt (see `_call_with_retries`), which stays inside the
+    proxy's 120-second budget together with research and the fallback.
     """
 
-    if model != _deepseek_model("deep"):
-        return _timeout_seconds()
+    deep = model == _deepseek_model("deep")
+    name, default = ("LLM_DEEP_TIMEOUT", 35.0) if deep else ("LLM_FAST_TIMEOUT", 32.0)
     try:
-        return max(20.0, min(45.0, float(os.getenv("LLM_DEEP_TIMEOUT", "35"))))
+        return max(20.0, min(45.0, float(os.getenv(name, str(default)))))
     except ValueError:
-        return 35.0
+        return default
 
 
 def _cache_ttl() -> float:
@@ -789,7 +792,11 @@ def _call_with_retries(
             return _call_stage(provider, messages, final=final, model=model), attempt
         except Exception as exc:  # noqa: BLE001 - classified and bounded here
             last = exc
-            if _transient(exc) and attempt < max_transient_retries:
+            # A DeepSeek read timeout means the model was still writing; the
+            # identical request runs just as long again. Connection, rate
+            # and 5xx failures are still retried.
+            slow_writer = provider == "deepseek" and type(exc).__name__ == "ReadTimeout"
+            if _transient(exc) and not slow_writer and attempt < max_transient_retries:
                 time.sleep(0.4 * (2**attempt))
                 continue
             raise

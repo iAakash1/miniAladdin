@@ -351,8 +351,11 @@ def _fallback(payload: dict[str, Any], reason: str) -> dict[str, Any]:
     decision = payload.get("decision", {})
     rationale = decision.get("rationale") or "Signals were synthesized by the quantitative engine."
     breakdown = decision.get("confidence_breakdown") or []
+    # The breakdown adds and subtracts points on the 0-100 scale; rendering
+    # them as "(-15%)" stated a relative change the engine never computed.
     confidence_reason = (
-        " + ".join(f"{item.get('component')} ({item.get('points')}%)" for item in breakdown)
+        "; ".join(f"{item.get('component')} ({float(item.get('points') or 0):+g} pts)" for item in breakdown)
+        + f" = {decision.get('confidence', '—')} of 100"
         if breakdown
         else "Confidence reflects agreement between the technical, sentiment and macro factors."
     )
@@ -378,7 +381,10 @@ def _fallback(payload: dict[str, Any], reason: str) -> dict[str, Any]:
         "top_positive_narrative": "",
         "top_negative_narrative": "",
         "key_catalysts": [],
-        "key_risks": [part.strip() for part in rationale.split(";") if part.strip()][:5],
+        # Not the rationale split on ";" — that cut "(momentum ..., macro gate
+        # 0.9897)" in half and labelled a composite score and a STABLE regime
+        # as risks. The report's risk composition is the engine's own.
+        "key_risks": [],
         "things_to_watch": [],
         "investment_horizon": "",
         "market_outlook": "",

@@ -198,7 +198,10 @@ class TestFailurePaths:
         assert result["generated"] is False
         assert result["recommendation"] == "HOLD"
         assert "Neutral sentiment" in result["executive_summary"]
-        assert "Base confidence (50%)" in result["confidence_reason"]
+        # Components are points on the 0-100 scale, never a percent change.
+        assert "Base confidence (+50 pts)" in result["confidence_reason"]
+        assert "%" not in result["confidence_reason"]
+        assert result["key_risks"] == [], "the rationale was relabelled as risks"
 
     def test_invalid_then_valid_json_succeeds_on_retry(self, monkeypatch):
         client = fake_client_returning("garbage", json.dumps(VALID_MODEL_JSON))
