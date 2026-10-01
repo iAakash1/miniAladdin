@@ -386,3 +386,35 @@ def test_caret_index_symbols_go_only_to_the_vendor_that_reads_them(monkeypatch):
     result = market_data.get_series("^VIX", "1mo")
     assert result.ok and result.source == "yfinance"
     assert asked == []
+
+
+def test_an_endpoint_outside_the_plan_degrades_the_vendor_without_condemning_it():
+    """Massive's quotes and series answered while its options endpoint
+    returned 403; the providers page called the whole vendor not entitled."""
+    from unittest.mock import Mock
+    from src.providers.base import VendorClient, VendorError
+
+    class Vendor(VendorClient):
+        NAME = "plan_test"
+        KEY_ENV = None
+        MAX_RETRIES = 0
+
+    def session(status):
+        s = Mock(); s.headers = {}
+        r = Mock(status_code=status); r.json.return_value = {"ok": True}
+        s.request.return_value = r
+        return s
+
+    v = Vendor(session=session(200))
+    v._get_json("https://example.test/q", operation="price")
+    v._session = session(403)
+    with pytest.raises(VendorError):
+        v._get_json("https://example.test/o", operation="options")
+    snap = v.health_snapshot()
+    assert snap["health_state"] == "DEGRADED"
+    assert snap["restricted_operations"] == ["options"]
+
+    only = Vendor(session=session(403))
+    with pytest.raises(VendorError):
+        only._get_json("https://example.test/o", operation="options")
+    assert only.health_snapshot()["health_state"] == "NOT_ENTITLED"

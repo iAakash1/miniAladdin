@@ -124,6 +124,10 @@ class VendorStats:
         self.last_failure_at: Optional[float] = None
         self.last_attempt_at: Optional[float] = None
         self.last_failure_class: Optional[str] = None
+        #: The latest outcome of each operation. A 403 on one endpoint is a
+        #: plan boundary for that endpoint, not a verdict on the vendor; this
+        #: is what lets the health state say which.
+        self.last_by_operation: dict[str, tuple[bool, Optional[str], float]] = {}
 
     def record(
         self,
@@ -131,9 +135,14 @@ class VendorStats:
         latency_ms: float,
         error: Optional[str] = None,
         failure_class: Optional[str] = None,
+        operation: Optional[str] = None,
     ) -> None:
         with self._lock:
             now = time.time()
+            if operation:
+                self.last_by_operation[operation] = (
+                    ok, None if ok else (failure_class or FailureClass.UNAVAILABLE.value), now,
+                )
             self.total += 1
             self.last_attempt_at = now
             self.total_latency_ms += latency_ms
@@ -178,6 +187,10 @@ class VendorStats:
                 "last_failure_at": self.last_failure_at,
                 "last_attempt_at": self.last_attempt_at,
                 "last_failure_class": self.last_failure_class,
+                "operations": {
+                    op: {"ok": ok, "failure_class": cls, "at": at}
+                    for op, (ok, cls, at) in sorted(self.last_by_operation.items())
+                },
             }
 
 
@@ -279,12 +292,24 @@ class VendorClient:
             health_state = "IDLE"
         else:
             health_state = "HEALTHY"
+        operations = stats.get("operations") or {}
+        restricted = sorted(
+            op for op, o in operations.items()
+            if not o["ok"] and o["failure_class"] == FailureClass.NOT_ENTITLED.value
+        )
+        # A plan that excludes one endpoint while the others answer is a
+        # degraded vendor, not an unentitled one. Every other failure class
+        # (credentials, rate limits, timeouts) is about the vendor as a whole
+        # and keeps its state.
+        if health_state == "NOT_ENTITLED" and any(o["ok"] for o in operations.values()):
+            health_state = "DEGRADED"
         return {
             "vendor": self.NAME,
             "configured": self.available,
             "cooling_down": cooldown_remaining > 0,
             "cooldown_remaining_seconds": round(cooldown_remaining, 1),
             "health_state": health_state,
+            "restricted_operations": restricted,
             **stats,
         }
 
@@ -339,6 +364,7 @@ class VendorClient:
             latency = (time.perf_counter() - started) * 1000
             self.stats.record(
                 False, latency, f"timeout after {budget}s", FailureClass.TIMEOUT.value,
+                operation=operation,
             )
             _observe(self.NAME, operation, "error", latency)
             if self.stats.consecutive_failures >= self.COOLDOWN_AFTER_FAILURES:
@@ -351,6 +377,7 @@ class VendorClient:
             latency = (time.perf_counter() - started) * 1000
             self.stats.record(
                 False, latency, str(exc), FailureClass.UNAVAILABLE.value,
+                operation=operation,
             )
             _observe(self.NAME, operation, "error", latency)
             if self.stats.consecutive_failures >= self.COOLDOWN_AFTER_FAILURES:
@@ -360,7 +387,7 @@ class VendorClient:
                 failure_class=FailureClass.UNAVAILABLE,
             ) from exc
         latency = (time.perf_counter() - started) * 1000
-        self.stats.record(True, latency)
+        self.stats.record(True, latency, operation=operation)
         _observe(self.NAME, operation, "ok", latency)
         return value
 
@@ -437,7 +464,7 @@ class VendorClient:
                     # The vendor answered the question: nothing matches. A
                     # failure here would push a healthy vendor into cooldown
                     # for every company it has nothing on.
-                    self.stats.record(True, latency)
+                    self.stats.record(True, latency, operation=operation)
                     _observe(self.NAME, operation, "ok",
                              (time.perf_counter() - request_started) * 1000)
                     return None
@@ -449,7 +476,7 @@ class VendorClient:
                 response.raise_for_status()
                 payload = response.json()
                 self._validate_payload(payload)
-                self.stats.record(True, latency)
+                self.stats.record(True, latency, operation=operation)
                 # Total elapsed, not this attempt's: retries and backoff are
                 # time the caller genuinely waited, and hiding them is how a
                 # vendor that "averages 800ms" costs 18s in practice.
@@ -483,6 +510,7 @@ class VendorClient:
                 self.stats.record_rate_limit(FailureClass.RATE_LIMITED)
             self.stats.record(
                 False, latency, str(last_error), last_error.failure_class,
+                operation=operation,
             )
             if last_error.transient and attempt < self.MAX_RETRIES:
                 delay = self.BACKOFF_BASE * (2 ** attempt)

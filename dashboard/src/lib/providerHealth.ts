@@ -27,6 +27,9 @@ export interface VendorSnapshot {
   last_success_at?: number | null
   last_attempt_at?: number | null
   shared?: boolean
+  /** Operations whose latest call was refused by the plan (HTTP 403) while
+   *  the vendor kept answering others. Absent from older backends. */
+  restricted_operations?: string[]
 }
 
 export type HealthTone = 'pos' | 'warn' | 'neg' | 'muted' | 'info'
@@ -108,7 +111,11 @@ export function classifyVendor(v: VendorSnapshot): VendorHealth {
     case 'DEGRADED':
       return {
         state: 'DEGRADED', tone: 'warn', label: 'Degraded',
-        note: `${v.failures} of ${v.requests} requests failed`,
+        // A plan boundary says which data is excluded; a failure count would
+        // read as the vendor being unreliable when it is answering fine.
+        note: v.restricted_operations?.length
+          ? `Plan excludes ${v.restricted_operations.join(', ')} · other data answering`
+          : `${v.failures} of ${v.requests} requests failed`,
       }
     default:
       break
