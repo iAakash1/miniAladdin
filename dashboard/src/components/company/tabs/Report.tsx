@@ -165,7 +165,7 @@ function Masthead({ a }: { a: Analysis }) {
   const figures: Array<[string, string, string | undefined]> = [
     ['Signal', a.riskAdjusted, signalTone(a.riskAdjusted) ?? undefined],
     ['Confidence', a.engineConfidence !== null ? `${a.engineConfidence}/100` : '—', undefined],
-    ['Risk', q ? `${q.riskScore} · ${(a.riskLevel ?? '').toLowerCase()}` : (a.riskLevel ?? '—').toLowerCase(), undefined],
+    ['Risk', q ? `${q.riskScore}${a.riskLevel ? ` · ${a.riskLevel.toLowerCase()} class` : ''}` : a.riskLevel ? `${a.riskLevel.toLowerCase()} class` : '—', undefined],
     ['Evidence', a.decisionQuality ? a.decisionQuality.grade.toLowerCase() : '—', undefined],
     // The price the engine analysed, dated by the bar it came from. The quote
     // above may already be a later session (NVDA: 225.51 analysed from the

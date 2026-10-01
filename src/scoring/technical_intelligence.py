@@ -230,7 +230,7 @@ def build(frame: Optional[pd.DataFrame]) -> Optional[dict[str, Any]]:
     rsi = float(_rsi(close).iloc[-1])
     rsi_state = "overbought" if rsi > 70 else "oversold" if rsi < 30 else "neutral"
     indicators.append(_row(
-        "rsi", "RSI (14)", f"{rsi:.1f}", "14-day relative strength", rsi_state,
+        "rsi", "RSI (14)", f"{rsi:.1f}", "Wilder-smoothed, 14 days", rsi_state,
         "neg" if rsi > 70 else "pos" if rsi < 30 else "neutral",
     ))
 

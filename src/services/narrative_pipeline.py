@@ -36,7 +36,7 @@ logger = logging.getLogger("omnisignal.narrative")
 
 SCHEMA_VERSION = "grounded-narrative-v1"
 GROQ_PROMPT_VERSION = "groq-analyst-v4"
-DEEPSEEK_PROMPT_VERSION = "deepseek-final-v9"
+DEEPSEEK_PROMPT_VERSION = "deepseek-final-v10"
 DEFAULT_GROQ_MODEL = "openai/gpt-oss-120b"
 DEFAULT_DEEPSEEK_FAST_MODEL = "deepseek-flash"
 DEFAULT_DEEPSEEK_PRO_MODEL = "deepseek-v4-pro"
@@ -62,6 +62,7 @@ DEPTH_GUIDANCE: dict[str, dict[str, Any]] = {
             "Define each financial term the first time it appears, in the same sentence, in words.",
             "Say what a figure means for the company, not only what it is.",
             "Prefer fewer, clearer points over completeness.",
+            "Quote a score with the fewest decimals its allowed tokens offer, at most one score per sentence.",
         ],
         "executive_summary_words": 110,
         "section_words": 70,
@@ -72,6 +73,8 @@ DEPTH_GUIDANCE: dict[str, dict[str, Any]] = {
             "Write balanced professional prose.",
             "Explain why the important figures matter; do not define basic terms.",
             "Connect each piece of evidence to its implication for the decision.",
+            "Quote a score with the fewest decimals its allowed tokens offer (0.2, not 0.1958); "
+            "the engine's display rounds the same way. Cite at most three figures in one sentence.",
         ],
         "executive_summary_words": 90,
         "section_words": 60,
@@ -83,6 +86,7 @@ DEPTH_GUIDANCE: dict[str, dict[str, Any]] = {
             "Name factor families and their contributions explicitly where the evidence carries them.",
             "State single-source, conflicting, stale and missing evidence plainly.",
             "Include the quantitative detail the evidence supports, and nothing beyond it.",
+            "Use more decimals only where they separate values that would otherwise read as equal.",
         ],
         "executive_summary_words": 120,
         "section_words": 80,
@@ -257,6 +261,14 @@ def build_evidence_envelope(payload: dict[str, Any]) -> list[EvidenceItem]:
                 add_mapping(evidence_id, value, source)
 
     add_mapping("technical", payload.get("technicals") or {}, "deterministic_engine")
+    # The engine's RSI averages gains and losses over a simple 14-day window;
+    # the report's indicator table shows Wilder's smoothed RSI. Both are
+    # labelled "RSI-14" by convention and differ on the same prices (NVDA:
+    # 63.65 against 57.8), so the field names its method for the writer.
+    if "technical.rsi_14" in rows:
+        rows["technical.rsi_14"] = rows["technical.rsi_14"].model_copy(update={
+            "field": "rsi_14 (simple 14-day average of gains and losses, not Wilder smoothing)",
+        })
     add_mapping("macro", payload.get("macro") or {}, "macro_evidence")
 
     quant = payload.get("quant") or {}

@@ -88,10 +88,19 @@ export function SignalGrid({ a }: { a: Analysis }) {
       <Cell
         label="Risk"
         tone={a.riskLevel ? RISK_TONE[a.riskLevel] : undefined}
-        sub={topRisk ? `largest: ${RISK_LABEL[topRisk.name] ?? topRisk.name}, ${ordinal(topRisk.percentile)} pct` : undefined}
+        sub={topRisk ? `score vs its own history · largest: ${RISK_LABEL[topRisk.name] ?? topRisk.name}, ${ordinal(topRisk.percentile)} pct` : undefined}
       >
         {q ? <><span className="sys-num">{q.riskScore}</span><span className="sig-unit">/100</span></> : null}
-        {a.riskLevel ? <span className="sig-level">{a.riskLevel.toLowerCase()}</span> : null}
+        {/* Two deterministic readings, not one. The score ranks today's risk
+            mostly against the security's own history; the class applies fixed
+            thresholds to volatility, beta, drawdown and the macro multiplier.
+            A high-beta name can be calm for itself and still high class —
+            unlabelled, "29 high" read as a contradiction. */}
+        {a.riskLevel ? (
+          <span className="sig-level" title="Absolute class from fixed volatility, beta, drawdown and macro thresholds">
+            {a.riskLevel.toLowerCase()} class
+          </span>
+        ) : null}
         {!q && !a.riskLevel ? <span className="sys-null">—</span> : null}
       </Cell>
 
