@@ -36,7 +36,7 @@ logger = logging.getLogger("omnisignal.narrative")
 
 SCHEMA_VERSION = "grounded-narrative-v1"
 GROQ_PROMPT_VERSION = "groq-analyst-v4"
-DEEPSEEK_PROMPT_VERSION = "deepseek-final-v10"
+DEEPSEEK_PROMPT_VERSION = "deepseek-final-v11"
 DEFAULT_GROQ_MODEL = "openai/gpt-oss-120b"
 DEFAULT_DEEPSEEK_FAST_MODEL = "deepseek-flash"
 DEFAULT_DEEPSEEK_PRO_MODEL = "deepseek-v4-pro"
@@ -350,7 +350,10 @@ an id, field name or analyst summary.  A value whose allowed tokens carry no %
 sign is a unitless score, contribution, multiplier or index: write it as the
 listed decimal and never describe it as a percentage.  Confidence itself is a
 percentage, but its breakdown adds and subtracts points on that scale.  Say
-"points" for confidence components; never attach % to them.
+"points" for confidence components; never attach % to them.  A negative value
+keeps its minus sign exactly as listed: write "asset growth contributes -0.05",
+never "subtracts 0.05" or "a 0.05 drag" — an unsigned number is a different
+value and the section is withheld.
 
 OUTPUT
 Return one JSON object and nothing else.  Every prose section has exactly
