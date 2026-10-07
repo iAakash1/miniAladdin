@@ -6,7 +6,7 @@ than overwritten**, their disagreements and failures are **preserved as
 evidence**, and every number on screen can be traced back to the source and the
 moment it became available.
 
-**Live:** [mini-aladding.vercel.app](https://mini-aladding.vercel.app)
+**Live:** [omnisignalterminal.vercel.app](https://omnisignalterminal.vercel.app)
 
 ---
 
@@ -32,7 +32,7 @@ The design premise here is that **the evidence is the product**:
 ## The product
 
 Every image below is the **live production deployment** at
-[mini-aladding.vercel.app](https://mini-aladding.vercel.app), captured against
+[omnisignalterminal.vercel.app](https://omnisignalterminal.vercel.app), captured against
 AAPL on 2026-08-25. Nothing here is a mockup. Full capture metadata, including
 which panels production does *not* yet have, is in
 [docs/screenshots/README.md](docs/screenshots/README.md).

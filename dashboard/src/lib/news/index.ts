@@ -43,7 +43,7 @@ async function fetchFeed(url: string): Promise<string> {
   const res = await fetch(url, {
     signal: AbortSignal.timeout(FEED_TIMEOUT_MS),
     headers: {
-      'User-Agent': 'Mozilla/5.0 (compatible; OmniSignalNews/2.0; +https://mini-aladding.vercel.app)',
+      'User-Agent': 'Mozilla/5.0 (compatible; OmniSignalNews/2.0; +https://omnisignalterminal.vercel.app)',
       Accept: 'application/rss+xml, application/atom+xml, application/xml, text/xml;q=0.9, */*;q=0.8',
     },
     cache: 'no-store',

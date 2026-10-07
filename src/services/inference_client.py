@@ -3,7 +3,7 @@ Client for the Render inference service.
 
 ## The boundary this draws
 
-miniAladdin's research architecture is unchanged. This adds one thin edge:
+OmniSignal's research architecture is unchanged. This adds one thin edge:
 the product can ask a deployed model for a prediction, and it gets back the
 prediction *with its provenance attached*, or it gets back an explicit
 unavailability. It never gets back a bare number.

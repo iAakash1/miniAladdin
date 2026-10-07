@@ -25,6 +25,6 @@ services:
       - key: MODEL_ARTIFACT
         value: gradient_boosting@EXP-006
       # Browser origins allowed to call this directly. Empty by default: the
-      # miniAladdin backend proxies it server-side, so no browser needs CORS.
+      # OmniSignal backend proxies it server-side, so no browser needs CORS.
       - key: ALLOWED_ORIGINS
         sync: false

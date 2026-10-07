@@ -1,5 +1,5 @@
 /**
- * miniAladdin design system — React primitives.
+ * OmniSignal design system — React primitives.
  *
  * Every workspace composes from these. The rule they enforce together is the
  * one the audits kept proving matters: a number is never shown without its

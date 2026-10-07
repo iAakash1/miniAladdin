@@ -61,7 +61,7 @@ ARTIFACT_NAME = os.environ.get("MODEL_ARTIFACT", "gradient_boosting@EXP-006")
 #:
 #: Defaults to nothing. An inference service reachable from any origin is a free
 #: compute endpoint for whoever finds it, and the only browser that needs it is
-#: the miniAladdin frontend — which in practice reaches it through the backend
+#: the OmniSignal frontend — which in practice reaches it through the backend
 #: anyway. Set `ALLOWED_ORIGINS` to a comma-separated list to widen it.
 ALLOWED_ORIGINS = [
     o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "").split(",") if o.strip()
@@ -95,7 +95,7 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(
-    title="miniAladdin quant inference",
+    title="OmniSignal quant inference",
     description=(
         "EXP-006 research model. EXPERIMENTAL — not production-promoted, "
         "not investment advice."

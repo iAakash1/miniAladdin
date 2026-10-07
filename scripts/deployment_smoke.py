@@ -61,7 +61,7 @@ def request(probe: Probe, token: Optional[str]) -> tuple[int, dict[str, Any] | s
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--backend", default="https://minialaddin-d8oe.onrender.com")
-    parser.add_argument("--frontend", default="https://mini-aladding.vercel.app")
+    parser.add_argument("--frontend", default="https://omnisignalterminal.vercel.app")
     parser.add_argument(
         "--inference", default="https://minialaddin-quant-inference.onrender.com"
     )

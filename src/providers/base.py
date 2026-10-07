@@ -255,7 +255,7 @@ class VendorClient:
         self.stats = VendorStats()
         self._cooldown_until = 0.0
         self._session = session or requests.Session()
-        self._session.headers.setdefault("User-Agent", "OmniSignal/2.0 (+https://mini-aladding.vercel.app)")
+        self._session.headers.setdefault("User-Agent", "OmniSignal/2.0 (+https://omnisignalterminal.vercel.app)")
 
     # ── Availability & health ────────────────────────────────────────────────
 
