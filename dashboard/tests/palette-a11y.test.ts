@@ -67,3 +67,13 @@ test('Escape in an inspector yields to a modal dialog above it', () => {
   assert.match(hook, /document\.querySelector\('\[aria-modal="true"\]'\)/)
   assert.match(read('components', 'system', 'Palette.tsx'), /aria-modal="true"/)
 })
+
+test('a graph node and a selectable row can be operated from the keyboard and say what they are', () => {
+  const graph = read('components', 'system', 'GraphView.tsx')
+  assert.match(graph, /role=\{onSelect \? 'button' : undefined\}/)
+  assert.match(graph, /aria-pressed=\{onSelect \? isSelected : undefined\}/)
+  assert.match(graph, /e\.key === 'Enter' \|\| e\.key === ' '/)
+  const table = read('components', 'system', 'index.tsx')
+  assert.match(table, /e\.key === 'Enter' \|\| e\.key === ' '/)
+  assert.match(table, /aria-current=\{onSelect && selectedKey === key \? 'true' : undefined\}/)
+})

@@ -460,8 +460,9 @@ export function Table<T>({
                 key={key}
                 data-selected={selectedKey === key}
                 onClick={onSelect ? () => onSelect(row) : undefined}
-                onKeyDown={onSelect ? (e) => { if (e.key === 'Enter') onSelect(row) } : undefined}
+                onKeyDown={onSelect ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(row) } } : undefined}
                 tabIndex={onSelect ? 0 : undefined}
+                aria-current={onSelect && selectedKey === key ? 'true' : undefined}
                 style={onSelect ? { cursor: 'pointer' } : undefined}
               >
                 {columns.map((c) => (

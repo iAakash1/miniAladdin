@@ -211,7 +211,12 @@ export function GraphView({
               onMouseEnter={() => setHovered(p.id)}
               onClick={() => onSelect?.(p)}
               tabIndex={onSelect ? 0 : undefined}
-              onKeyDown={(e) => { if (e.key === 'Enter') onSelect?.(p) }}
+              role={onSelect ? 'button' : undefined}
+              aria-label={onSelect ? `${p.label}, ${p.type}, ${isRoot ? 'the focus' : `${p.ring} hop${p.ring === 1 ? '' : 's'} away`}` : undefined}
+              aria-pressed={onSelect ? isSelected : undefined}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect?.(p) }
+              }}
             >
               <rect
                 x={-4} y={-4} width={8} height={8}
