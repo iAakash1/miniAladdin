@@ -1,5 +1,7 @@
 'use client'
 
+import { verdictBadgeTone } from '@/lib/use-research-history'
+import { Badge } from '@/components/system'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Fragment, useCallback, useEffect, useState } from 'react'
@@ -71,10 +73,6 @@ export function groupByTicker<T extends { ticker: string; created_at: string }>(
   return [...groups.entries()]
     .map(([ticker, runs]) => ({ ticker, runs }))
     .sort((a, b) => b.runs[0].created_at.localeCompare(a.runs[0].created_at))
-}
-
-function verdictTone(verdict: string): string {
-  return verdict.includes('Buy') ? 'badge--pos' : verdict.includes('Sell') ? 'badge--neg' : 'badge--warn'
 }
 
 export type Mode = { view: 'history' } | { view: 'saved' } | { view: 'detail'; id: string } | { view: 'compare'; a: string; b: string }
@@ -477,9 +475,7 @@ function HistoryRow({
       <td className="mono" style={{ fontWeight: 600 }}><span className="u-row" style={{ gap: 8, flexWrap: 'nowrap' }}><CompanyMark ticker={item.ticker} size={20} />{item.ticker}</span></td>
       <td style={{ fontSize: 'var(--t-body)', color: 'var(--muted)' }}>{item.company_name ?? '—'}</td>
       <td>
-        <span className={`badge ${verdictTone(item.verdict)}`} style={{ height: 19, fontSize: 'var(--t-micro)' }}>
-          {item.verdict}
-        </span>
+        <Badge tone={verdictBadgeTone(item.verdict)}>{item.verdict}</Badge>
       </td>
       <td className="num">
         {item.confidence !== null ? item.confidence : '—'}
@@ -590,9 +586,7 @@ function SavedBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
               {report.analysis && (
                 <>
                   <span className="mono" style={{ fontWeight: 600 }}>{report.analysis.ticker}</span>
-                  <span className={`badge ${verdictTone(report.analysis.verdict)}`} style={{ height: 19, fontSize: 'var(--t-micro)' }}>
-                    {report.analysis.verdict}
-                  </span>
+                  <Badge tone={verdictBadgeTone(report.analysis.verdict)}>{report.analysis.verdict}</Badge>
                 </>
               )}
               <span style={{ fontSize: 'var(--t-body-lg)', fontWeight: 600 }}>
@@ -824,9 +818,9 @@ function CompareView({ a, b, onBack }: { a: string; b: string; onBack: () => voi
       {result !== null && (
         <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {!result.same_ticker && (
-            <p className="badge badge--warn" style={{ alignSelf: 'flex-start' }}>
-              Different tickers — deltas compare two separate names
-            </p>
+            <div style={{ alignSelf: 'flex-start' }}>
+              <Badge tone="warn">Different tickers — deltas compare two separate names</Badge>
+            </div>
           )}
 
           {/* Verdict + confidence movement */}
@@ -839,7 +833,7 @@ function CompareView({ a, b, onBack }: { a: string; b: string; onBack: () => voi
                   </p>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
                     <span className="mono" style={{ fontWeight: 600 }}>{run.ticker}</span>
-                    <span className={`badge ${verdictTone(run.verdict)}`}>{run.verdict}</span>
+                    <Badge tone={verdictBadgeTone(run.verdict)}>{run.verdict}</Badge>
                     <span className="num" style={{ fontSize: 'var(--t-body-lg)', fontWeight: 600 }}>
                       {run.confidence !== null ? run.confidence : '—'}
                     </span>

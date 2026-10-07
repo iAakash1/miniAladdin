@@ -1,5 +1,6 @@
 'use client'
 
+import { Badge } from '@/components/system'
 import type { SeriesIntegrity } from '@/lib/types'
 
 /**
@@ -73,7 +74,7 @@ export default function SeriesIntegrityPanel({ integrity }: { integrity: SeriesI
       {adjustment_mismatch.map((m) => (
         <div key={m.provider} className="sint__mismatch">
           <div className="sint__mismatch-head">
-            <span className="badge badge--neg" style={{ height: 20 }}>adjustment mismatch</span>
+            <Badge tone="fail">adjustment mismatch</Badge>
             <strong>{m.provider}</strong>
             <span className="num">×{m.ratio}</span>
             {m.likely_split && <span className="u-note">consistent with a {m.likely_split} split</span>}

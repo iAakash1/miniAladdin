@@ -56,7 +56,7 @@ function statusState(status: string): ResearchState {
     case 'production': return 'production'
     case 'production_candidate':
     case 'validated': return 'candidate'
-    case 'retired': return 'unavailable'
+    case 'retired': return 'retired'
     default: return 'experimental'
   }
 }
@@ -226,7 +226,7 @@ export default function ResearchTimeline() {
                       <div className="lin-body" style={{ paddingBottom: 'var(--d-3)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--d-2)', flexWrap: 'wrap' }}>
                           <span className="sys-meta">{e.at.slice(11, 19)}</span>
-                          <span className="pal-badge" aria-hidden>{KINDS[e.kind].glyph}</span>
+                          <span className="pal-glyph" aria-hidden>{KINDS[e.kind].glyph}</span>
                           <Link
                             href={objectHref({ kind: e.kind, id: e.id, label: e.label })}
                             style={{ color: 'inherit', fontFamily: 'var(--font-mono)', fontSize: 'var(--t-body)' }}

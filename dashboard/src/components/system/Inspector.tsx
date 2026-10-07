@@ -60,7 +60,7 @@ export default function Inspector({
   return (
     <aside className="sys-drawer" role="dialog" aria-modal="false" aria-label={`${meta.plural} inspector`}>
       <header className="sys-drawer-head">
-        <span className="pal-badge" aria-hidden>{meta.glyph}</span>
+        <span className="pal-glyph" aria-hidden>{meta.glyph}</span>
         <div style={{ minWidth: 0, flex: 1 }}>
           <div className="sys-lead" style={{ fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {object.label}

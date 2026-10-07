@@ -226,6 +226,15 @@
 .sys-status[data-state='experimental'],
 .sys-status[data-state='candidate'] { --tone: var(--accent); }
 .sys-status[data-state='unknown'] { --tone: var(--ink-disabled); }
+/* Shape carries the state as well as colour, so it survives greyscale:
+   retired is a ring, paper is a square, the rest are dots. */
+.sys-status[data-state='retired'] { color: var(--ink-faint); }
+.sys-status[data-state='retired']::before { background: transparent; box-shadow: inset 0 0 0 1px var(--ink-faint); }
+.sys-status[data-state='paper'] { --tone: var(--e-warn); color: var(--e-warn); }
+.sys-status[data-state='paper']::before { border-radius: 1px; }
+.sys-status[data-state='error'] { --tone: var(--e-neg); color: var(--e-neg); }
+.sys-status[data-state='warning'] { --tone: var(--e-warn); color: var(--e-warn); }
+.sys-status[data-state='info'] { --tone: var(--accent); }
 .sys-status[data-state='waking']::before { animation: sys-pulse 1.6s ease-in-out infinite; }
 
 @keyframes sys-pulse { 0%, 100% { opacity: 1 } 50% { opacity: 0.35 } }
@@ -249,12 +258,15 @@
   border-radius: var(--r-xs);
   color: var(--tone, var(--ink-muted));
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 .sys-badge[data-tone='pass'] { --tone: var(--e-pos); }
 .sys-badge[data-tone='fail'] { --tone: var(--e-neg); }
 .sys-badge[data-tone='warn'] { --tone: var(--e-warn); }
 .sys-badge[data-tone='info'] { --tone: var(--accent); }
 .sys-badge[data-tone='muted'] { --tone: var(--rule-strong); color: var(--ink-muted); }
+.sys-badge--lg { padding: 6px 12px; font-size: var(--t-small); }
+.sys-badge--literal { text-transform: none; letter-spacing: 0; }
 
 /* ── metric strip ────────────────────────────────────────────────────────
    Figures on one baseline with hairlines between. It wraps into rows rather

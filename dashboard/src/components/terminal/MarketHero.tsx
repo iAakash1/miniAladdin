@@ -1,5 +1,6 @@
 'use client'
 
+import { Badge, type Tone } from '@/components/system'
 import { useMemo } from 'react'
 import Metric from '@/components/ui/Metric'
 import {
@@ -12,7 +13,7 @@ import {
 } from '@/lib/dashboardInsights'
 import { fmtNum, fmtPctRaw } from '@/lib/format'
 
-const BADGE_TONE: Record<string, string> = { pos: 'badge--pos', neg: 'badge--neg', warn: 'badge--warn', neutral: 'badge--neutral' }
+const BADGE_TONE: Record<string, Tone> = { pos: 'pass', neg: 'fail', warn: 'warn', neutral: 'muted' }
 
 /**
  * The dashboard's single entry point: "what is happening in the market
@@ -46,12 +47,8 @@ export default function MarketHero({ data }: { data: DashboardData }) {
           sake. Screen readers and heading navigation get the anchor. */}
       <h1 id="hero-h" className="visually-hidden">Market overview</h1>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
-        <span className={`badge ${BADGE_TONE[regime.tone]}`} style={{ fontSize: 'var(--t-small)', height: 26, padding: '0 12px' }}>
-          {regime.label.toUpperCase()}
-        </span>
-        {data.macro.regime.recession_warning && (
-          <span className="badge badge--neg">Recession watch</span>
-        )}
+        <Badge tone={BADGE_TONE[regime.tone]} large>{regime.label}</Badge>
+        {data.macro.regime.recession_warning && <Badge tone="fail">Recession watch</Badge>}
       </div>
 
       {summary && (
@@ -99,13 +96,9 @@ export default function MarketHero({ data }: { data: DashboardData }) {
       {signals.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 20 }} aria-label="Quick signals">
           {signals.map((signal) => (
-            <span
-              key={signal.id}
-              className={`badge ${BADGE_TONE[signal.tone]}`}
-              title={signal.explain}
-            >
+            <Badge key={signal.id} tone={BADGE_TONE[signal.tone]} title={signal.explain}>
               {signal.label} · {signal.value}
-            </span>
+            </Badge>
           ))}
         </div>
       )}

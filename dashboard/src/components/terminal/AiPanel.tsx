@@ -1,11 +1,12 @@
 'use client'
 
+import { Badge, type Tone } from '@/components/system'
 import type { Analysis, RiskLevel } from '@/lib/types'
 
-const RISK_BADGE: Record<RiskLevel, string> = {
-  LOW: 'badge--pos',
-  MEDIUM: 'badge--warn',
-  HIGH: 'badge--neg',
+const RISK_BADGE: Record<RiskLevel, Tone> = {
+  LOW: 'pass',
+  MEDIUM: 'warn',
+  HIGH: 'fail',
 }
 
 const DOT_COLOR = { pos: 'var(--pos)', neg: 'var(--neg)', neutral: 'var(--warn)' } as const
@@ -125,14 +126,9 @@ function EvidenceRefs({ analysis, section }: { analysis: Analysis; section: stri
           ? `${item.source} · ${item.field} · ${String(item.value ?? 'unavailable')} · ${item.validation ?? 'unknown'}`
           : id
         return (
-          <span
-            key={id}
-            className="badge badge--neutral num"
-            title={detail}
-            style={{ fontSize: 'var(--t-micro)', textTransform: 'none', letterSpacing: 0 }}
-          >
+          <Badge key={id} literal title={detail}>
             {item?.source ?? id}
-          </span>
+          </Badge>
         )
       })}
     </span>
@@ -173,21 +169,18 @@ export default function AiPanel({ analysis }: { analysis: Analysis }) {
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, marginBottom: 14 }}>
         <h3 className="h-panel">Research report</h3>
         {ai.generated ? (
-          <span className="badge badge--accent" title={ai.model ?? undefined}>
+          <Badge tone="info" title={ai.model ?? undefined}>
             AI-generated
-          </span>
+          </Badge>
         ) : (
-          <span
-            className="badge badge--neutral"
-            title="The narrative model was unavailable for this run — this text is the engine's own deterministic rationale."
-          >
+          <Badge title="The narrative model was unavailable for this run — this text is the engine's own deterministic rationale.">
             Engine rationale
-          </span>
+          </Badge>
         )}
         {ai.generated && ai.provider && (
-          <span className="badge badge--neutral" title={ai.model ?? undefined}>
+          <Badge title={ai.model ?? undefined}>
             {ai.analystBriefUsed ? 'Groq → ' : ''}{ai.provider}
-          </span>
+          </Badge>
         )}
 
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -199,7 +192,7 @@ export default function AiPanel({ analysis }: { analysis: Analysis }) {
               {ai.confidence}%
             </span>
           </span>
-          <span className={`badge ${RISK_BADGE[ai.risk]}`}>{ai.risk.toLowerCase()} risk</span>
+          <Badge tone={RISK_BADGE[ai.risk]}>{ai.risk.toLowerCase()} risk</Badge>
         </div>
       </div>
 

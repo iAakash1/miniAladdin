@@ -23,6 +23,7 @@ export type Tone = 'pass' | 'fail' | 'warn' | 'info' | 'muted'
 export type ResearchState =
   | 'live' | 'recorded' | 'stale' | 'waking' | 'unavailable'
   | 'blocked' | 'experimental' | 'candidate' | 'production' | 'unknown'
+  | 'retired' | 'paper' | 'error' | 'warning' | 'info'
 
 const STATE_TITLE: Record<ResearchState, string> = {
   live:         'Observed now, inside its freshness window',
@@ -35,6 +36,11 @@ const STATE_TITLE: Record<ResearchState, string> = {
   candidate:    'Cleared the development gates; holdout not yet spent',
   production:   'Armed and serving',
   unknown:      'State could not be determined',
+  retired:      'Withdrawn from use. Kept in the record, never served',
+  paper:        'Simulated. No real order, money or position is involved',
+  error:        'The request failed. The cause is shown with it',
+  warning:      'Usable, but something about it needs a second look',
+  info:         'For the reader’s information; nothing needs doing',
 }
 
 const STATE_LABEL: Record<ResearchState, string> = {
@@ -48,6 +54,11 @@ const STATE_LABEL: Record<ResearchState, string> = {
   candidate: 'candidate',
   production: 'production',
   unknown: 'unknown',
+  retired: 'retired',
+  paper: 'paper',
+  error: 'error',
+  warning: 'warning',
+  info: 'info',
 }
 
 export function Status({ state, label }: { state: ResearchState; label?: string }) {
@@ -56,6 +67,26 @@ export function Status({ state, label }: { state: ResearchState; label?: string 
       {label ?? STATE_LABEL[state]}
     </span>
   )
+}
+
+/**
+ * A short verdict or classification — "HIGH RISK", "3 OF 8 GATES", "BUY".
+ * One outlined chip, five tones. It is not a provenance state: a number's
+ * origin is `Status`; what the number concludes is `Badge`.
+ */
+export function Badge({
+  tone = 'muted', title, large, literal, children,
+}: {
+  tone?: Tone
+  title?: string
+  /** The one hero chip on a page, e.g. the market regime. */
+  large?: boolean
+  /** Keep the text's own case: identifiers and source names, not labels. */
+  literal?: boolean
+  children: ReactNode
+}) {
+  const cls = `sys-badge${large ? ' sys-badge--lg' : ''}${literal ? ' sys-badge--literal' : ''}`
+  return <span className={cls} data-tone={tone} title={title}>{children}</span>
 }
 
 /* ── value ────────────────────────────────────────────────────────────────
@@ -217,7 +248,7 @@ export function Panel({
           {subtitle ? <span className="sys-panel-sub">{subtitle}</span> : null}
         </div>
         <div className="sys-panel-head__end">
-          {badge ? <span className="sys-badge" data-tone={badgeTone}>{badge}</span> : null}
+          {badge ? <Badge tone={badgeTone}>{badge}</Badge> : null}
           {/* The expected case says nothing; only a state that changes how
               the panel should be read is shown. */}
           {state && state !== 'live' && state !== 'waking' ? <Status state={state} /> : null}

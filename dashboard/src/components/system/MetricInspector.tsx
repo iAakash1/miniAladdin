@@ -50,7 +50,7 @@ export default function MetricInspector() {
   return (
     <aside className="sys-drawer" role="dialog" aria-modal="false" aria-label={`${current.label} inspector`}>
       <header className="sys-drawer-head">
-        <span className="pal-badge" aria-hidden>ƒ</span>
+        <span className="pal-glyph" aria-hidden>ƒ</span>
         <div style={{ minWidth: 0, flex: 1 }}>
           <div className="sys-label">{current.label}</div>
           <div className="sys-metric__value" style={{ fontSize: 'var(--t-title)', marginTop: 2 }}>

@@ -1,5 +1,6 @@
 'use client'
 
+import { Badge } from '@/components/system'
 import CompanyMark from '@/components/ui/CompanyMark'
 import CopyButton from '@/components/ui/CopyButton'
 import { useState } from 'react'
@@ -55,9 +56,7 @@ function SaveReportButton({ historyId }: { historyId: string }) {
 
   if (state === 'saved') {
     return (
-      <span className="badge badge--accent" style={{ height: 24 }}>
-        ★ Saved to Vault
-      </span>
+      <Badge tone="info">★ Saved to Vault</Badge>
     )
   }
   return (

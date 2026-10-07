@@ -186,7 +186,7 @@ export default function Memos({ initialId }: { initialId?: string }) {
                   <tbody>
                     {selected.references.map((r) => (
                       <tr key={`${r.kind}:${r.id}`}>
-                        <td style={{ width: 28 }}><span className="pal-badge">{KINDS[r.kind].glyph}</span></td>
+                        <td style={{ width: 28 }}><span className="pal-glyph">{KINDS[r.kind].glyph}</span></td>
                         <td>
                           <Link href={objectHref(r)} style={{ color: 'inherit', fontFamily: 'var(--font-mono)' }}>{r.label}</Link>
                         </td>

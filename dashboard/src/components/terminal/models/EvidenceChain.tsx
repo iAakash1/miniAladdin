@@ -88,7 +88,7 @@ function statusState(status: string): ResearchState {
     case 'production': return 'production'
     case 'production_candidate': return 'candidate'
     case 'validated': return 'candidate'
-    case 'retired': return 'unavailable'
+    case 'retired': return 'retired'
     default: return 'experimental'
   }
 }

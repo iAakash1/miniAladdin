@@ -100,7 +100,7 @@ export default function OrderTicket({
         <h3 className="ticket__title">
           {side === 'buy' ? 'Buy' : 'Sell'} {symbol}
         </h3>
-        <Status state="recorded" label="PAPER ORDER" />
+        <Status state="paper" label="paper order" />
         <button type="button" className="sys-btn sys-btn--micro ticket__close" onClick={onClose}>
           close
         </button>

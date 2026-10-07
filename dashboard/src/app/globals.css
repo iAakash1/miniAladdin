@@ -174,27 +174,6 @@ select.input {
 
 .hairline-top { border-top: 1px solid var(--rule); }
 
-/* ---------- Badges ---------- */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  height: 20px;
-  padding: 0 6px;
-  border-radius: var(--r-xs);
-  border: 1px solid transparent;
-  font: 600 var(--t-micro) / 1 var(--font-sans);
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-.badge--pos     { color: var(--e-pos);  background: var(--e-pos-wash); }
-.badge--neg     { color: var(--e-neg);  background: var(--e-neg-wash); }
-.badge--warn    { color: var(--e-warn); background: var(--e-warn-wash); }
-.badge--neutral { color: var(--ink-muted); background: var(--p-raised); border-color: var(--rule); }
-.badge--accent  { color: var(--accent-strong); background: var(--accent-wash); }
-
 /* ---------- Segmented control ---------- */
 .seg {
   display: inline-flex;
@@ -2412,7 +2391,7 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
    outline. The system family draws its controls with borders and survives;
    what it loses is the pressed / selected wash and the inset accent bars. */
 @media (forced-colors: active) {
-  .input, .card, .panel, .badge, .sys-btn, .sys-input, .sys-panel { border: 1px solid CanvasText; }
+  .input, .card, .panel, .sys-badge, .sys-btn, .sys-input, .sys-panel { border: 1px solid CanvasText; }
   .input:focus-visible, .card:focus-visible, .pick:focus-visible { outline: 2px solid CanvasText; outline-offset: 2px; }
   .pick:checked::after { color: CanvasText; }
 

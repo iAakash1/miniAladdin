@@ -1,5 +1,6 @@
 'use client'
 
+import { Badge } from '@/components/system'
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import EmptyState from '@/components/ui/EmptyState'
@@ -17,7 +18,7 @@ import PositionsPanel from '@/components/terminal/PositionsPanel'
 import PortfolioIntelligence from '@/components/terminal/PortfolioIntelligence'
 import { refreshQuotes } from '@/lib/quote-hub'
 import { useQuotes } from '@/lib/use-quotes'
-import { useResearchHistory } from '@/lib/use-research-history'
+import { useResearchHistory, verdictBadgeTone } from '@/lib/use-research-history'
 import {
   SUGGESTED_LISTS,
   type Watchlist,
@@ -31,10 +32,6 @@ import {
 } from '@/lib/watchlists'
 
 const VERDICT_ORDER = ['Strong Sell', 'Sell', 'Hold', 'Buy', 'Strong Buy']
-
-function verdictTone(verdict: string): string {
-  return verdict.includes('Buy') ? 'badge--pos' : verdict.includes('Sell') ? 'badge--neg' : 'badge--warn'
-}
 
 /** How current a stored analysis is.
  *
@@ -98,12 +95,7 @@ function StorageStatus() {
             <span style={{ width: 190, flexShrink: 0, fontSize: 'var(--t-small)', fontWeight: 600, color: 'var(--text)' }}>
               {row.label}
             </span>
-            <span
-              className="badge badge--neutral"
-              style={{ height: 19, fontSize: 'var(--t-micro)', flexShrink: 0 }}
-            >
-              {row.location}
-            </span>
+            <Badge>{row.location}</Badge>
             <span style={{ fontSize: 'var(--t-small)', color: 'var(--muted)', lineHeight: 1.5, flex: '1 1 320px' }}>
               {row.detail}
             </span>
@@ -521,9 +513,7 @@ export default function PortfolioView() {
                       <td><SymbolSpark values={quote?.closes ?? (quotesFetchedAt ? [] : undefined)} width={84} height={20} /></td>
                       <td>
                         {latest ? (
-                          <span className={`badge ${verdictTone(latest.verdict)}`} style={{ height: 19, fontSize: 'var(--t-micro)' }}>
-                            {latest.verdict}
-                          </span>
+                          <Badge tone={verdictBadgeTone(latest.verdict)}>{latest.verdict}</Badge>
                         ) : (
                           <span style={{ fontSize: 'var(--t-small)', color: 'var(--faint)' }}>not analyzed</span>
                         )}
@@ -550,12 +540,9 @@ export default function PortfolioView() {
                           </Tooltip>
                         ) : null}
                         {diff?.verdictChanged ? (
-                          <span
-                            className={`badge ${diff.direction === 'upgrade' ? 'badge--pos' : 'badge--neg'}`}
-                            style={{ height: 19, fontSize: 'var(--t-micro)', marginLeft: 4 }}
-                          >
+                          <Badge tone={diff.direction === 'upgrade' ? 'pass' : 'fail'}>
                             {diff.direction === 'upgrade' ? '▲ upgrade' : '▼ downgrade'}
-                          </span>
+                          </Badge>
                         ) : latest ? (
                           <span style={{ fontSize: 'var(--t-small)', color: 'var(--faint)' }}>unchanged</span>
                         ) : null}

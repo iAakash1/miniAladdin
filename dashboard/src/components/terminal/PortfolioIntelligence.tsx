@@ -34,6 +34,7 @@
  * that line silently excludes them.
  */
 
+import { Status } from '@/components/system'
 import { useCallback, useEffect, useState } from 'react'
 
 import CompanyMark from '@/components/ui/CompanyMark'
@@ -149,7 +150,7 @@ function HoldingsTable({ rows, currency }: { rows: HoldingValuation[]; currency:
                 <span className="u-row" style={{ gap: 8, flexWrap: 'nowrap' }}>
                   <CompanyMark ticker={row.ticker} size={18} />
                   <span className="mono" style={{ fontWeight: 600 }}>{row.ticker}</span>
-                  {row.stale && <span className="badge badge--warn" style={{ height: 17, fontSize: 'var(--t-micro)' }}>stale</span>}
+                  {row.stale && <Status state="stale" />}
                 </span>
               </td>
               <td className="num">{row.shares}</td>

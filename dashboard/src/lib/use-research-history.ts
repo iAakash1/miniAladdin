@@ -48,6 +48,11 @@ export function useResearchHistory(pageSize = 50): ResearchIndex {
   }, [state])
 }
 
+/** The same verdict read as a chip: Buy is a pass, Sell a fail, anything else a caution. */
+export function verdictBadgeTone(verdict: string): 'pass' | 'fail' | 'warn' {
+  return verdict.includes('Buy') ? 'pass' : verdict.includes('Sell') ? 'fail' : 'warn'
+}
+
 export function verdictTone(verdict: string | null | undefined): 'pos' | 'neg' | 'muted' {
   if (!verdict) return 'muted'
   if (/buy/i.test(verdict)) return 'pos'

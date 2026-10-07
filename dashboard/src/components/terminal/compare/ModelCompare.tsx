@@ -94,7 +94,7 @@ export default function ModelCompare() {
     },
     { key: 'model', header: 'Model', width: '24%', sort: (r) => r.model_id, text: (r) => r.model_id, render: (r) => <span className="sys-mono">{r.model_id}</span> },
     { key: 'label', header: 'Label', width: '14%', sort: (r) => r.label, text: (r) => r.label, render: (r) => <span className="sys-meta sys-meta--strong">{r.label}</span> },
-    { key: 'status', header: 'Status', width: '13%', sort: (r) => r.status, text: (r) => r.status, render: (r) => <Status state={r.status === 'retired' ? 'unavailable' : 'experimental'} label={r.status} /> },
+    { key: 'status', header: 'Status', width: '13%', sort: (r) => r.status, text: (r) => r.status, render: (r) => <Status state={r.status === 'retired' ? 'retired' : 'experimental'} label={r.status} /> },
     { key: 'ic', header: 'Mean IC', unit: 'rank corr.', numeric: true, sort: (r) => n(r.mean_ic), render: (r) => <span className="sys-num">{r.mean_ic?.toFixed(4) ?? '—'}</span> },
     { key: 't', header: 'IC t', unit: 'Newey-West', numeric: true, sort: (r) => n(r.ic_t_stat), render: (r) => <span className="sys-num">{r.ic_t_stat?.toFixed(2) ?? '—'}</span> },
     { key: 'ns', header: 'Net Sharpe', unit: 'after costs', numeric: true, sort: (r) => n(r.net_sharpe), render: (r) => <span className="sys-num">{r.net_sharpe?.toFixed(3) ?? '—'}</span> },

@@ -15,7 +15,7 @@
 
 import { useState } from 'react'
 
-import { Status, Value, type ResearchState } from './index'
+import { Badge, Status, Value, type ResearchState } from './index'
 
 export interface Envelope {
   value: number | string | null
@@ -91,13 +91,12 @@ export function EnvelopeMetric({
       </button>
       <Status state={state} />
       {verdict ? (
-        <span
-          className="sys-badge"
-          data-tone={verdict === 'pass' ? 'pass' : 'fail'}
+        <Badge
+          tone={verdict === 'pass' ? 'pass' : 'fail'}
           title={verdict === 'pass' ? 'Clears its threshold' : 'Does not clear its threshold'}
         >
           {verdict}
-        </span>
+        </Badge>
       ) : null}
 
       {open ? (

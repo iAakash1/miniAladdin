@@ -30,6 +30,7 @@ interface Governance {
 const STATE_TONE: Record<ResearchState, Tone> = {
   live: 'pos', production: 'pos', recorded: 'muted', stale: 'warn', waking: 'info',
   unavailable: 'muted', blocked: 'warn', experimental: 'info', candidate: 'info', unknown: 'muted',
+  retired: 'muted', paper: 'warn', error: 'neg', warning: 'warn', info: 'info',
 }
 
 /**

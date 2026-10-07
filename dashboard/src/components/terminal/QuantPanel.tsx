@@ -1,5 +1,6 @@
 'use client'
 
+import { Badge } from '@/components/system'
 import { useState } from 'react'
 import { uncertaintyBreakdown } from '@/lib/format'
 import { FACTOR_LABELS } from '@/lib/history'
@@ -73,9 +74,7 @@ export default function QuantPanel({ analysis }: { analysis: Analysis }) {
           {quant.modelVersion} · composite {quant.rawScore > 0 ? '+' : ''}{quant.rawScore.toFixed(3)}
         </span>
         {quant.regimes.map((regime) => (
-          <span key={regime} className="badge badge--warn" style={{ height: 19, fontSize: 'var(--t-micro)' }}>
-            {regime.replace('_', ' ')}
-          </span>
+          <Badge key={regime} tone="warn">{regime.replace('_', ' ')}</Badge>
         ))}
         <span className="num" style={{ marginLeft: 'auto', fontSize: 'var(--t-small)', color: 'var(--muted)' }}>
           risk score {quant.riskScore}/100

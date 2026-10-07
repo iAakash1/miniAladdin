@@ -1,5 +1,6 @@
 'use client'
 
+import { Badge } from '@/components/system'
 import CompanyMark from '@/components/ui/CompanyMark'
 import WorkBoot from '@/components/ui/WorkBoot'
 import Link from 'next/link'
@@ -290,7 +291,7 @@ export default function GraphWorkspace() {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
         {session ? (
           <>
-            <span className="badge badge--accent">{session.title}</span>
+            <Badge tone="info">{session.title}</Badge>
             <span className="u-meta">
               {saving ? 'Saving…' : 'All changes saved'}
             </span>

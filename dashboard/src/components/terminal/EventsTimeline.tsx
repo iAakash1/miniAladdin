@@ -1,3 +1,4 @@
+import { Badge } from '@/components/system'
 import { eventsWithBuckets, type EventRow } from '@/lib/dashboardInsights'
 
 /**
@@ -26,9 +27,7 @@ export default function EventsTimeline({ events }: { events: EventRow[] }) {
             <li key={`${event.date}-${event.type}`} className="events-timeline__row">
               {showBucket && <span className="events-timeline__bucket label">{bucket}</span>}
               <div className="events-timeline__item">
-                <span className={`badge ${event.importance === 'high' ? 'badge--warn' : 'badge--neutral'}`}>
-                  {event.type}
-                </span>
+                <Badge tone={event.importance === 'high' ? 'warn' : 'muted'}>{event.type}</Badge>
                 <span style={{ fontSize: 'var(--t-body)', flex: 1, minWidth: 160 }}>{event.title}</span>
                 {event.historical_move !== null && (
                   <span className="num" title={event.explain} style={{ fontSize: 'var(--t-meta)', color: 'var(--muted)' }}>

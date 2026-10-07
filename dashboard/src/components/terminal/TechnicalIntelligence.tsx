@@ -1,5 +1,6 @@
 'use client'
 
+import { Badge, type Tone } from '@/components/system'
 import MetricExplainer from './MetricExplainer'
 import Tooltip from '@/components/ui/Tooltip'
 import { TECHNICAL_GLOSSARY } from '@/lib/technicalGlossary'
@@ -11,17 +12,17 @@ const TONE_COLOR: Record<TechTone, string> = {
   neg: 'var(--neg)',
   neutral: 'var(--muted)',
 }
-const TONE_BADGE: Record<TechTone, string> = {
-  pos: 'badge--pos',
-  neg: 'badge--neg',
-  neutral: 'badge--neutral',
+const TONE_BADGE: Record<TechTone, Tone> = {
+  pos: 'pass',
+  neg: 'fail',
+  neutral: 'muted',
 }
 
 function RegimeCell({ title, regime }: { title: string; regime: TechRegime }) {
   return (
     <div>
       <p className="label" style={{ fontSize: 'var(--t-micro)', marginBottom: 6 }}>{title}</p>
-      <span className={`badge ${TONE_BADGE[regime.tone]}`}>{regime.label}</span>
+      <Badge tone={TONE_BADGE[regime.tone]}>{regime.label}</Badge>
       <p style={{ fontSize: 'var(--t-meta)', color: 'var(--faint)', marginTop: 6, lineHeight: 1.5 }}>
         {regime.note}
       </p>
