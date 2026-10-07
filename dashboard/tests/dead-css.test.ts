@@ -78,3 +78,20 @@ test('there is one fade, one pulse and one skeleton shimmer', () => {
   assert.match(all, /@keyframes fade-in\s*\{\s*from\s*\{\s*opacity:\s*0\s*\}\s*to\s*\{\s*opacity:\s*1\s*\}\s*\}/)
   assert.equal((all.match(/(?<![\w-])\.fade-in\s*\{/g) ?? []).length, 1, '.fade-in is defined more than once')
 })
+
+test('no comment sits inside a selector list, where it would swallow the rule below', () => {
+  // `.drawer__head,` followed by a comment and a new rule merged the two: the
+  // header lost its layout and gained `outline: none`. A trailing comma means
+  // the selector list is not finished, so nothing may be inserted there.
+  const raw = ['app/globals.css', 'styles/system.css'].map((f) => readFileSync(join(SRC, f), 'utf8')).join('\n')
+  const hits = [...raw.matchAll(/,[ \t]*\n[ \t]*\/\*[\s\S]*?\*\/[ \t]*\n[ \t]*([^\n{]*\{)/g)].map((m) => m[0].replace(/\s+/g, ' ').slice(0, 80))
+  assert.deepEqual(hits, [])
+})
+
+test('every rule\'s selector list is made only of selectors', () => {
+  const css = sheets.map((s) => s.css).join('\n')
+  const bad = [...css.matchAll(/(^|\})\s*([^{}@]+?)\s*\{/g)]
+    .map((m) => m[2])
+    .filter((list) => list.split(',').some((part) => part.trim() === '' && list.trim() !== ''))
+  assert.deepEqual(bad.map((b) => b.replace(/\s+/g, ' ').slice(0, 80)), [])
+})
