@@ -359,6 +359,9 @@ export function TimeSeries({
         viewBox={`0 0 ${W} ${H}`} width="100%" height={H} role="img"
         aria-label={title ?? 'time series'}
         onPointerLeave={() => { setHover(null); setDrag(null); cursor.set(null); cursor.setFocus(null) }}
+        // A vertical swipe is the browser's to scroll the page with, and it
+        // cancels the pointer when it takes the gesture.
+        onPointerCancel={() => { setHover(null); setDrag(null); cursor.set(null); cursor.setFocus(null) }}
         onPointerDown={(e) => {
           const i = indexAt(e.clientX, e.currentTarget)
           if (i === null) return
@@ -378,7 +381,7 @@ export function TimeSeries({
           if (next) setView(next)
         }}
         onDoubleClick={() => setView(null)}
-        style={{ display: 'block', cursor: drag ? 'ew-resize' : 'crosshair', touchAction: 'none' }}
+        style={{ display: 'block', cursor: drag ? 'ew-resize' : 'crosshair', touchAction: 'pan-y' }}
       >
         {ticks.map((t) => (
           <g key={t}>

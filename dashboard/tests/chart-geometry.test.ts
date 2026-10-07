@@ -82,3 +82,12 @@ test('a chip sized to its text uses the glyph width of the size it is drawn at',
   assert.doesNotMatch(CHARTS, /\* 5\.[46]\b/)
   assert.match(CHARTS, /const GLYPH = 6\.1/)
 })
+
+test('a chart does not trap a vertical swipe: the page can still be scrolled from over it', () => {
+  // touch-action: none on a full-width chart meant a thumb that landed on it
+  // could not scroll the page on a phone. Horizontal drags still reach the
+  // brush; vertical ones belong to the browser, which cancels the pointer.
+  assert.doesNotMatch(CHARTS, /touchAction:\s*'none'/)
+  assert.match(CHARTS, /touchAction:\s*'pan-y'/)
+  assert.match(CHARTS, /onPointerCancel=\{/)
+})
