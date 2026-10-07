@@ -34,7 +34,7 @@ const hits = (pattern: RegExp) => {
 }
 
 test('no number or date is formatted in the viewer\'s locale', () => {
-  assert.deepEqual(hits(/\.toLocale(?:Date|Time)?String\(\s*(?:undefined\s*)?[,)]/g), [])
+  assert.deepEqual(hits(/\.toLocale(?:Date|Time)?String\(\s*(?:undefined\s*|\[\]\s*)?[,)]/g), [])
   assert.deepEqual(hits(/Intl\.(?:NumberFormat|DateTimeFormat)\(\s*undefined/g), [])
 })
 

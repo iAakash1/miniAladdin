@@ -1,6 +1,5 @@
 'use client'
 
-import { Shortcut } from '@/components/system/Shortcut'
 import { UserButton } from '@clerk/nextjs'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -8,6 +7,7 @@ import { useState } from 'react'
 
 import Icon from '@/components/shell/Icon'
 import { openPalette } from '@/components/system/Palette'
+import { Shortcut } from '@/components/system/Shortcut'
 import { LogoMark } from '@/components/ui/Logo'
 import ThemeToggle from '@/components/ui/ThemeToggle'
 import { experienceHome, setExperienceMode, type ExperienceMode } from '@/lib/capabilities'
@@ -32,6 +32,7 @@ function DetailLevel({ navigation }: { navigation: NavigationSet }) {
         className="shell-detail__select"
         value={MODE_FOR[navigation]}
         disabled={busy}
+        aria-invalid={failed || undefined}
         onChange={async (e) => {
           const mode = e.target.value as ExperienceMode
           setBusy(true)
@@ -46,6 +47,8 @@ function DetailLevel({ navigation }: { navigation: NavigationSet }) {
         <option value="intermediate">Intermediate</option>
         <option value="beginner">Simple</option>
       </select>
+      {/* The tooltip is for a mouse. A failed save has to reach a screen reader and a thumb too. */}
+      <span className="visually-hidden" role="status">{failed ? 'The preference could not be saved.' : ''}</span>
     </label>
   )
 }

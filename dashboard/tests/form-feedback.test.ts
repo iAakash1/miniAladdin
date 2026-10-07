@@ -33,3 +33,10 @@ test('the message and the invalid border are styled, without a negative margin',
   assert.ok(rule, 'no .sys-field-error rule')
   assert.doesNotMatch(rule, /margin:[^;]*-/)
 })
+
+test('a detail level that could not be saved is announced, not only put in a tooltip', () => {
+  const bar = readFileSync(join(SRC, 'components', 'shell', 'TopBar.tsx'), 'utf8')
+  assert.match(bar, /aria-invalid=\{failed \|\| undefined\}/)
+  assert.match(bar, /role="status">\{failed \? 'The preference could not be saved\.' : ''\}/)
+  assert.match(STYLES, /\.shell-detail__select\[aria-invalid='true'\]\s*\{[^}]*border-color:\s*var\(--e-neg\)/)
+})

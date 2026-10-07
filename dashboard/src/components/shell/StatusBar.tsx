@@ -57,7 +57,8 @@ function useRead<T>(load: () => Promise<T>, every: number): Observed<T> | null {
 function clock(at: string | null): string {
   if (!at) return ''
   const d = new Date(at)
-  return Number.isNaN(d.getTime()) ? '' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  // UTC, like every other timestamp in the product; a bare "14:32" does not say whose clock.
+  return Number.isNaN(d.getTime()) ? '' : `${d.toISOString().slice(11, 16)} UTC`
 }
 
 /** The fact for a read that is not current, or null when it is. */
