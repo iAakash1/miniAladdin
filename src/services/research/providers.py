@@ -87,13 +87,33 @@ class BraveProvider(ResearchProvider):
         ][:limit]
 
 
+def _shared_vendor(group: str, attribute: str, factory):
+    """The provider registry's instance of a vendor, or a new one.
+
+    A vendor has one health record. These providers each built a private copy,
+    so what the shared chain learned — that NewsAPI had refused its credential,
+    that a vendor was cooling down — never reached the research provider
+    inventory, which kept reporting the vendor available from a copy nothing had
+    called. The registry already follows this for search (it reuses the news
+    registry's Tavily); this makes the research providers do the same.
+    Falls back to a fresh instance if the registry is unavailable.
+    """
+    try:
+        from src import providers as registry
+
+        vendor = getattr(getattr(registry, group), attribute, None)
+    except Exception:  # noqa: BLE001 — never let wiring break a provider
+        vendor = None
+    return vendor if isinstance(vendor, VendorClient) else factory()
+
+
 class TavilyProvider(ResearchProvider):
     """AI-native search: returns extracted content, not just snippets."""
 
     name = "tavily"
 
     def __init__(self) -> None:
-        self._vendor = TavilyVendor()
+        self._vendor = _shared_vendor("news", "tavily", TavilyVendor)
 
     def is_configured(self) -> bool:
         return self._vendor.available
@@ -129,7 +149,7 @@ class ExaProvider(ResearchProvider):
     name = "exa"
 
     def __init__(self) -> None:
-        self._vendor = ExaVendor()
+        self._vendor = _shared_vendor("search", "exa", ExaVendor)
 
     def is_configured(self) -> bool:
         return self._vendor.available
@@ -164,7 +184,7 @@ class NewsProvider(ResearchProvider):
     name = "news"
 
     def __init__(self) -> None:
-        self._vendor = YahooRssVendor()
+        self._vendor = _shared_vendor("news", "yahoo_rss", YahooRssVendor)
 
     def capabilities(self) -> ProviderCapabilities:
         return ProviderCapabilities(search=False, company_research=True, news=True)
@@ -233,7 +253,7 @@ class _RssStyleNewsProvider(ResearchProvider):
     vendor_cls: type = NewsApiVendor
 
     def __init__(self) -> None:
-        self._vendor = self.vendor_cls()
+        self._vendor = _shared_vendor("news", self.vendor_cls.NAME, self.vendor_cls)
 
     def is_configured(self) -> bool:
         return self._vendor.available

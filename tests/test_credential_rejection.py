@@ -221,3 +221,34 @@ def test_the_sentiment_path_falls_through_and_names_the_source_that_answered(leg
         analyzer.analyze_ticker("AAPL")
     assert seen["n"] == 1, "headlines from the fallback source were discarded"
     assert FailureClass.AUTH_FAILURE.value == "auth_failure"
+
+
+# ── one vendor, one health record ────────────────────────────────────────────
+
+def test_research_providers_share_the_registry_vendor_so_a_rejection_is_seen_everywhere():
+    """Found on the live service: after a real request settled NewsAPI as
+    rejected, `/api/research/providers/health` still said available.
+
+    The research provider had built its own private copy of the vendor, which
+    nothing had called, so it reported the copy's idle state. A vendor now has
+    one health record: whatever the shared chain learns, every view reports.
+    """
+    shared = api_module.providers.news.newsapi
+    assert NewsApiProvider()._vendor is shared
+    from src.services.research.providers import ExaProvider, GNewsProvider, NewsProvider, TavilyProvider
+
+    assert GNewsProvider()._vendor is api_module.providers.news.gnews
+    assert TavilyProvider()._vendor is api_module.providers.news.tavily
+    assert ExaProvider()._vendor is api_module.providers.search.exa
+    assert NewsProvider()._vendor is api_module.providers.news.yahoo_rss
+
+
+def test_a_rejection_seen_by_the_chain_reaches_the_research_inventory(monkeypatch):
+    monkeypatch.setenv("NEWSAPI_KEY", KEY)
+    fresh = NewsApiVendor()
+    monkeypatch.setattr(api_module.providers.news, "newsapi", fresh)
+    provider = NewsApiProvider()          # built after, as the engine builds it on first use
+    assert provider.health().available is True
+    _reject(fresh)                         # the chain's own request is refused
+    assert provider.health().available is False
+    assert provider.health().configured is True
