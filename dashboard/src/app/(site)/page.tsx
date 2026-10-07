@@ -163,7 +163,7 @@ export default function LandingPage() {
       <section id="news" className="lp-section lp-section--panel">
         <div className="lp-container">
           <header className="lp-section__head">
-            <p className="lp-eyebrow">Live</p>
+            <p className="lp-eyebrow">Latest</p>
             <h2 className="lp-h2">Market news, with its sources</h2>
           </header>
           <MarketNews count={5} />
@@ -185,7 +185,7 @@ export default function LandingPage() {
                 <li>{FREE_DAILY_LIMIT} research runs a day</li>
                 <li>Full signal, evidence record and synthesis</li>
                 <li>Three-month price charts</li>
-                <li>Live macro conditions</li>
+                <li>Macro conditions from FRED</li>
                 <li>Headlines, without article links</li>
               </ul>
               <Link href="/sign-up" className="lp-btn">Start free</Link>

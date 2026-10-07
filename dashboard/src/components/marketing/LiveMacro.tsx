@@ -10,9 +10,11 @@ function pct(v: number | null, digits = 2): string {
 }
 
 /**
- * The macro regime the engine is reading right now, from FRED. Live, unlike
- * the recorded run above it — so it says where it came from and how old each
- * observation is, and disappears rather than showing a stale reading as live.
+ * The macro regime the engine is reading now, from FRED. Fetched when the
+ * page loads, unlike the recorded run above it — but FRED publishes daily and
+ * monthly observations, so these are the latest published readings and not a
+ * live feed. Each carries its observation date, and the strip disappears
+ * rather than showing a stale reading as current.
  */
 export default function LiveMacro() {
   const [state, setState] = useState<{ m?: Macro; failed?: boolean } | null>(null)
@@ -41,7 +43,7 @@ export default function LiveMacro() {
       <div className="lp-container lp-live__row">
         <span className="lp-live__k">
           <span className="dot" data-tone={m ? (m.stale ? 'warn' : 'pos') : 'muted'} aria-hidden />
-          Live · macro regime from FRED{m?.stale ? ' · stale' : ''}
+          Macro regime · latest FRED observations{m?.stale ? ' · stale' : ''}
         </span>
         {m ? (
           <dl className="lp-live__cells">
