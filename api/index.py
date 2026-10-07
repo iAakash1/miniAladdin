@@ -102,7 +102,7 @@ ALLOWED_ORIGINS = [
     origin.strip()
     for origin in os.getenv(
         "ALLOWED_ORIGINS",
-        "https://mini-aladding.vercel.app,http://localhost:3000",
+        "https://omnisignalterminal.vercel.app,https://mini-aladding.vercel.app,http://localhost:3000",
     ).split(",")
     if origin.strip()
 ]
@@ -654,6 +654,13 @@ def health():
         #                client can ask what exists instead of discovering
         #                absence through a 404.
         "commit": _build_commit(),
+        #   revision     Cloud Run's own name for the running revision
+        #                (K_REVISION, injected by the platform — not
+        #                configuration). It identifies the deployment even
+        #                when no commit was supplied, which is how a revision
+        #                that was deployed without GIT_COMMIT can still be
+        #                matched to the platform's record. Null off Cloud Run.
+        "revision": os.getenv("K_REVISION") or None,
         "capabilities": sorted(
             {
                 route.path.split("/")[2]

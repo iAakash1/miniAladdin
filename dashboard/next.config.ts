@@ -6,6 +6,14 @@ const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_BUILD_SHA:
       process.env.VERCEL_GIT_COMMIT_SHA || process.env.GIT_COMMIT || 'unknown',
+    // The rest of a deployment's identity, all public-safe: which branch and
+    // Vercel deployment produced this build, in which environment, and when.
+    // A CLI deploy carries no git metadata, so the SHA reads "unknown" and the
+    // deployment id is the only link back to Vercel's own record.
+    NEXT_PUBLIC_BUILD_REF: process.env.VERCEL_GIT_COMMIT_REF || '',
+    NEXT_PUBLIC_BUILD_ENV: process.env.VERCEL_ENV || process.env.NODE_ENV || '',
+    NEXT_PUBLIC_BUILD_DEPLOYMENT: process.env.VERCEL_DEPLOYMENT_ID || '',
+    NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
   },
   // Explicit root: a stray lockfile higher up the tree otherwise makes
   // Turbopack guess the wrong workspace directory.

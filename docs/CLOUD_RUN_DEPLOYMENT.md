@@ -211,3 +211,76 @@ Set Vercel `BACKEND_ORIGIN` to the existing Render service,
 `BACKEND_AUTH_MODE=none`, and redeploy the
 frontend. Cloud Run revisions are immutable; route traffic back to the last
 known-good revision if the failure is isolated to a new backend revision.
+
+## Release procedure and provenance (2026-10-07)
+
+> The "Provisioned candidate" section above is a point-in-time record from
+> 2026-09-22 and is superseded by this one: the runtime identity now holds
+> per-secret `secretAccessor` bindings, and candidate revisions carry the
+> Clerk, Supabase, provider and LLM configuration.
+
+A push to GitHub does not by itself change what users see. Two independent
+systems decide that, and only one of them watches Git:
+
+| Tier | Source of truth | Triggered by | Identifies itself at |
+|---|---|---|---|
+| Frontend (Vercel project `mini-aladding`, root `dashboard`, production branch `main`) | the GitHub commit | a push to `main`; a CLI deploy carries **no** git metadata | `GET /api/build` (public) |
+| Backend (Cloud Run service `omnisignal-api-poc`, `asia-south1`) | the container image **and the traffic split** | a manual build and deploy; there are no Cloud Build triggers | `GET /api/health` (private; needs an identity token) |
+
+Pushing code to `main` updates the first and does nothing to the second. A new
+Cloud Run revision also serves no traffic until it is given some, so "deployed"
+and "live" are different states. That gap is how a production service ran a
+credential-free proof-of-concept revision for weeks while the repository moved
+on.
+
+### Deploy the backend
+
+```bash
+SHA=$(git rev-parse HEAD)               # the commit that is on origin/main
+SHA7=${SHA:0:7}
+gcloud builds submit --project omnisignal-api-aakash-2026 --tag \
+  asia-south1-docker.pkg.dev/omnisignal-api-aakash-2026/cloud-run-source-deploy/omnisignal-api:$SHA7 .
+
+# a revision that takes no traffic yet, tagged so it can be tested
+gcloud run deploy omnisignal-api-poc --project omnisignal-api-aakash-2026 --region asia-south1 \
+  --image asia-south1-docker.pkg.dev/omnisignal-api-aakash-2026/cloud-run-source-deploy/omnisignal-api@<digest> \
+  --no-traffic --tag release-$SHA7 --revision-suffix release-$SHA7 \
+  --update-env-vars GIT_COMMIT=$SHA
+```
+
+`GIT_COMMIT` is not optional: it is the only thing that lets the running
+service name its commit. Without it `/api/health` reports `"unknown"`.
+
+### Prove what is running
+
+The service is private. Call it with an identity token; never make it public.
+
+```bash
+TOKEN=$(gcloud auth print-identity-token)
+curl -s -H "Authorization: Bearer $TOKEN" https://<tagged-or-service-url>/api/health
+#   "commit":   the Git SHA the image was built from
+#   "revision": Cloud Run's own revision name (K_REVISION)
+curl -s https://omnisignalterminal.vercel.app/api/build
+#   commit, ref, environment, deployment (Vercel id), built_at
+```
+
+The chain is only proven when all of these agree:
+
+1. `git rev-parse HEAD` equals `git ls-remote origin refs/heads/main`.
+2. `/api/build` `commit` on the production alias equals that SHA.
+3. `/api/health` `commit` on the service URL equals that SHA, and `revision`
+   names the revision holding 100% of traffic
+   (`gcloud run services describe omnisignal-api-poc --format='value(status.traffic)'`).
+
+### Move traffic, and undo it
+
+Backend first: an older frontend tolerates a newer backend, but a newer
+frontend calling an older backend meets routes that do not exist.
+
+```bash
+gcloud run services update-traffic omnisignal-api-poc --region asia-south1 \
+  --project omnisignal-api-aakash-2026 --to-revisions=omnisignal-api-poc-release-$SHA7=100
+# rollback is the same command naming the previous revision
+```
+
+An anonymous request to the service must still receive `403`.
