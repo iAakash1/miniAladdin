@@ -407,6 +407,10 @@ a.sys-btn, a.sys-relation, a.sys-method { text-decoration: none; }
 .sys-input::placeholder { color: var(--ink-faint); }
 /* A field that fills its row, as a form field does; in a toolbar it sizes to its content. */
 .sys-input--block { width: 100%; }
+/* A field that failed validation: the border says which, the message says why. */
+.sys-input[aria-invalid='true'] { border-color: var(--e-neg); }
+/* In a wrapping field row it takes a line of its own. */
+.sys-field-error { flex: 1 0 100%; margin: 0; color: var(--e-neg); }
 /* The one field a page is built around: the explore and news searches. */
 .sys-input--lg { height: 36px; font-size: var(--t-body-lg); }
 select.sys-input {

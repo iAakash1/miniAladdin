@@ -47,6 +47,9 @@ export default function PositionsPanel() {
   const [shares, setShares] = useState('')
   const [price, setPrice] = useState('')
   const [busy, setBusy] = useState(false)
+  // Which field is wrong and why. A save that fails must say so: this form used
+  // to return without a word on a zero share count or a failed request.
+  const [problem, setProblem] = useState<{ field: 'ticker' | 'shares' | 'price' | 'save'; text: string } | null>(null)
   const [editing, setEditing] = useState<{ id: string; shares: string; price: string } | null>(null)
 
   const reload = () => {
@@ -67,10 +70,14 @@ export default function PositionsPanel() {
     event.preventDefault()
     const nShares = Number(shares)
     const nPrice = Number(price)
-    if (!ticker.trim() || !Number.isFinite(nShares) || nShares <= 0 || !Number.isFinite(nPrice) || nPrice < 0) return
+    if (!ticker.trim()) return setProblem({ field: 'ticker', text: 'Enter a ticker.' })
+    if (!Number.isFinite(nShares) || nShares <= 0) return setProblem({ field: 'shares', text: 'Shares must be a number above zero.' })
+    if (!Number.isFinite(nPrice) || nPrice < 0) return setProblem({ field: 'price', text: 'Average price must be zero or more.' })
+    setProblem(null)
     setBusy(true)
     const created = await upsertPosition(ticker, nShares, nPrice)
     setBusy(false)
+    if (!created) setProblem({ field: 'save', text: 'The position could not be saved. Check your connection and try again.' })
     if (created) {
       setTicker('')
       setShares('')
@@ -133,7 +140,8 @@ export default function PositionsPanel() {
           placeholder="Ticker"
           maxLength={8}
           value={ticker}
-          onChange={(e) => setTicker(e.target.value.toUpperCase().replace(/[^A-Z.^-]/g, ''))}
+          aria-invalid={problem?.field === 'ticker' || undefined}
+          onChange={(e) => { setProblem(null); setTicker(e.target.value.toUpperCase().replace(/[^A-Z.^-]/g, '')) }}
         />
         <label htmlFor="pos-shares" className="visually-hidden">Shares</label>
         <input
@@ -143,7 +151,8 @@ export default function PositionsPanel() {
           placeholder="Shares"
           inputMode="decimal"
           value={shares}
-          onChange={(e) => setShares(e.target.value.replace(/[^0-9.]/g, ''))}
+          aria-invalid={problem?.field === 'shares' || undefined}
+          onChange={(e) => { setProblem(null); setShares(e.target.value.replace(/[^0-9.]/g, '')) }}
         />
         <label htmlFor="pos-price" className="visually-hidden">Average price</label>
         <input
@@ -153,7 +162,8 @@ export default function PositionsPanel() {
           placeholder="Avg price"
           inputMode="decimal"
           value={price}
-          onChange={(e) => setPrice(e.target.value.replace(/[^0-9.]/g, ''))}
+          aria-invalid={problem?.field === 'price' || undefined}
+          onChange={(e) => { setProblem(null); setPrice(e.target.value.replace(/[^0-9.]/g, '')) }}
         />
         <button
           type="submit"
@@ -162,6 +172,7 @@ export default function PositionsPanel() {
         >
           {busy ? 'Saving…' : 'Add position'}
         </button>
+        {problem ? <p className="sys-meta sys-field-error" role="alert">{problem.text}</p> : null}
       </form>
 
       {status === 'loading' && <Skeleton height={72} />}
