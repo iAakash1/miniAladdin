@@ -56,7 +56,7 @@ function SaveReportButton({ historyId }: { historyId: string }) {
 
   if (state === 'saved') {
     return (
-      <Badge tone="info">★ Saved to Vault</Badge>
+      <Badge tone="info">★ Saved to Research log</Badge>
     )
   }
   return (
@@ -65,7 +65,7 @@ function SaveReportButton({ historyId }: { historyId: string }) {
       className="sys-btn sys-btn--ghost"
       onClick={save}
       disabled={state === 'saving'}
-      title="Bookmark this analysis in your Vault"
+      title="Keep this analysis in your Research log"
       style={{ border: '1px solid var(--rule)' }}
     >
       {state === 'saving' ? 'Saving…' : state === 'failed' ? 'Retry save' : '☆ Save report'}

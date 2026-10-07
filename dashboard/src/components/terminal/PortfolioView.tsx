@@ -74,7 +74,7 @@ interface StorageRow {
 const STORAGE_ROWS: StorageRow[] = [
   { label: 'Watchlists', location: 'Cloud', detail: 'Synced to your OmniSignal account — sign in on any device and they follow you.' },
   { label: 'Portfolio positions', location: 'Cloud', detail: 'Shares and average cost, stored per account like watchlists.' },
-  { label: 'Analysis history & saved reports', location: 'Cloud', detail: 'Every completed analysis is recorded automatically to your account — browse it in the Vault tab.' },
+  { label: 'Analysis history & saved reports', location: 'Cloud', detail: 'Every completed analysis is recorded automatically to your account — browse it in the Research log tab.' },
   { label: 'Verdict timeline (Analyze page)', location: 'Browser', detail: 'The per-ticker run-to-run diff shown under an analysis still lives in this browser’s local storage.' },
   { label: 'Prices & quotes', location: 'Server (live)', detail: 'Read from the provider chain, shared with every other panel showing the same symbol, and re-read every 30 seconds or when you click Refresh. Held in memory for the session only — never stored between visits.' },
   { label: 'AI research narrative', location: 'Server (5 min cache)', detail: 'Briefly cached to avoid duplicate model calls; the full report is kept with each history row.' },

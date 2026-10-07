@@ -125,7 +125,7 @@ export async function answerIntent(intent: Intent): Promise<Entity[]> {
       : `Analyze ${intent.ticker} to start its history`,
     subtitle: ids.length === 1
       ? 'Change detection needs two stored runs — you have one'
-      : 'No stored runs yet — the Vault records every analysis automatically',
+      : 'No stored runs yet — the Research log records every analysis automatically',
     route: `/company/${encodeURIComponent(intent.ticker)}`,
     keywords: [],
   }]

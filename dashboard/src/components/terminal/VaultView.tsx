@@ -711,7 +711,7 @@ function DetailView({ id, onBack }: { id: string; onBack: () => void }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <button type="button" className="sys-btn" onClick={onBack}>
-          ← Back to Vault
+          ← Back to Research log
         </button>
         {meta && (
           <span className="num" style={{ fontSize: 'var(--t-small)', color: 'var(--ink-faint)' }}>
@@ -726,7 +726,7 @@ function DetailView({ id, onBack }: { id: string; onBack: () => void }) {
           description="The stored report didn't load — it may have been deleted, or the service is briefly unavailable."
           action={
             <button type="button" className="sys-btn" onClick={onBack}>
-              Back to Vault
+              Back to Research log
             </button>
           }
         />
@@ -797,7 +797,7 @@ function CompareView({ a, b, onBack }: { a: string; b: string; onBack: () => voi
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <button type="button" className="sys-btn" onClick={onBack}>
-          ← Back to Vault
+          ← Back to Research log
         </button>
         <h3 className="h-panel">Run comparison</h3>
       </div>
@@ -808,7 +808,7 @@ function CompareView({ a, b, onBack }: { a: string; b: string; onBack: () => voi
           description="One of the analyses may have been deleted, or the service is briefly unavailable."
           action={
             <button type="button" className="sys-btn" onClick={onBack}>
-              Back to Vault
+              Back to Research log
             </button>
           }
         />
