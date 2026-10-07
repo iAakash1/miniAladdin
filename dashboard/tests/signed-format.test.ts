@@ -58,3 +58,17 @@ test('no component rebuilds the sign rule by hand', () => {
   }
   assert.deepEqual(offenders, [])
 })
+
+import { yesNo } from '../src/lib/format'
+
+test('a flag reads yes or no, and one that was not reported is no value', () => {
+  assert.equal(yesNo(true), 'yes')
+  assert.equal(yesNo(false), 'no')
+  assert.equal(yesNo(undefined), '—')
+  assert.equal(yesNo(null), '—')
+})
+
+test('the command centre never prints a raw boolean', () => {
+  const text = readFileSync(join(__dirname, '..', 'src', 'components', 'terminal', 'command', 'CommandCenter.tsx'), 'utf8')
+  assert.doesNotMatch(text, /String\((?:status|selection)[\w.?]*(?:armed|available|touched|engaged|serving)[\w]*\)/)
+})

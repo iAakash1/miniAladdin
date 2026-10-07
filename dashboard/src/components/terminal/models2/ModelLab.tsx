@@ -1,5 +1,6 @@
 'use client'
 
+import { yesNo } from '@/lib/format'
 import { useEffect, useMemo, useState } from 'react'
 
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
@@ -206,7 +207,7 @@ export default function ModelLab() {
         </Prose>
         <Prose size="fine">
           Dataset {data.dataset.dataset_id} · {data.dataset.feature_set_id} · {data.dataset.integrity_status}.
-          Revenue-affected feature sets: {data.dataset.revenue_affected_feature_sets}. Final holdout touched: {String(data.holdout.touched)}.
+          Revenue-affected feature sets: {data.dataset.revenue_affected_feature_sets}. Final holdout touched: {yesNo(data.holdout.touched)}.
           EXP-012: {data.exp012.status}.
         </Prose>
       </Panel>

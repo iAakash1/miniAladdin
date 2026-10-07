@@ -56,6 +56,12 @@ export function fmtSigned(v: number | null | undefined, digits = 2): string {
   return `${parseFloat(body) > 0 ? '+' : ''}${body}`
 }
 
+/** A flag as a reader would say it. A boolean printed raw is "true" or "false",
+ *  which is the program talking; one that was not reported is "no value", not "no". */
+export function yesNo(v: boolean | null | undefined): string {
+  return v === null || v === undefined ? '—' : v ? 'yes' : 'no'
+}
+
 /** 0.0431 -> "+4.31%" */
 export function fmtPct(v: number | null | undefined, digits = 2, signed = true): string {
   if (isMissing(v)) return '—'

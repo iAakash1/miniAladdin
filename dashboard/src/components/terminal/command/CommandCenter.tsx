@@ -11,6 +11,7 @@
  */
 'use client'
 
+import { yesNo } from '@/lib/format'
 import { Shortcut } from '@/components/system/Shortcut'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -225,8 +226,8 @@ export default function CommandCenter() {
           <table className="sys-table sys-table--compact">
             <tbody>
               <tr><td>Status</td><td className="num">{deployment}</td></tr>
-              <tr><td>Registry readable</td><td className="num">{status?.registry_available === undefined ? '—' : String(status.registry_available)}</td></tr>
-              <tr><td>Serving predictions</td><td className="num">{status?.serving_predictions === undefined ? '—' : String(status.serving_predictions)}</td></tr>
+              <tr><td>Registry readable</td><td className="num">{yesNo(status?.registry_available)}</td></tr>
+              <tr><td>Serving predictions</td><td className="num">{yesNo(status?.serving_predictions)}</td></tr>
             </tbody>
           </table>
           {status?.message ? (
@@ -241,8 +242,8 @@ export default function CommandCenter() {
           <table className="sys-table sys-table--compact">
             <tbody>
               <tr><td>Contract</td><td className="num">{status?.firewall?.contract_state ?? '—'}</td></tr>
-              <tr><td>Armed</td><td className="num">{status?.firewall?.contract_armed === undefined ? '—' : String(status.firewall.contract_armed)}</td></tr>
-              <tr><td>Engaged</td><td className="num">{status?.firewall?.engaged === undefined ? '—' : String(status.firewall.engaged)}</td></tr>
+              <tr><td>Armed</td><td className="num">{yesNo(status?.firewall?.contract_armed)}</td></tr>
+              <tr><td>Engaged</td><td className="num">{yesNo(status?.firewall?.engaged)}</td></tr>
               <tr><td>Breaches prevented</td><td className="num"><Value value={status?.firewall?.breaches_prevented ?? null} kind="count" /></td></tr>
             </tbody>
           </table>
@@ -254,7 +255,7 @@ export default function CommandCenter() {
         <Panel title="Holdout" state={holdoutState}>
           <table className="sys-table sys-table--compact">
             <tbody>
-              <tr><td>Touched</td><td className="num">{selection?.holdout?.touched === undefined ? '—' : String(selection.holdout.touched)}</td></tr>
+              <tr><td>Touched</td><td className="num">{yesNo(selection?.holdout?.touched)}</td></tr>
             </tbody>
           </table>
           <p style={{ margin: 'var(--d-2) 0 0', fontSize: 'var(--t-meta)', color: 'var(--ink-muted)', lineHeight: 'var(--lh-body)' }}>
