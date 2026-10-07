@@ -1,5 +1,6 @@
 'use client'
 
+import { safeDecode } from '@/lib/page-title'
 import { use } from 'react'
 
 import BeginnerAnalysis from '@/components/beginner/BeginnerAnalysis'
@@ -9,7 +10,7 @@ export default function BeginnerCompanyPage(
   { params }: { params: Promise<{ ticker: string }> },
 ) {
   const { ticker } = use(params)
-  const symbol = decodeURIComponent(ticker).toUpperCase()
+  const symbol = safeDecode(ticker).toUpperCase()
 
   return (
     <SimpleShell title={symbol} subtitle="plain-language analysis">

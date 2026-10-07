@@ -8,6 +8,8 @@
  * is a route the product serves.
  */
 
+import { safeDecode } from './page-title'
+
 export interface ContextCommand {
   id: string
   label: string
@@ -37,7 +39,7 @@ export const companyHref = (symbol: string, tab?: string): string =>
 /** The symbol a company route names, or null. */
 export function companyFromPath(pathname: string): string | null {
   const m = pathname.match(/^\/company\/([^/?#]+)/)
-  return m ? decodeURIComponent(m[1]).toUpperCase() : null
+  return m ? safeDecode(m[1]).toUpperCase() : null
 }
 
 const TABS: Array<{ tab: string; label: string; note: string }> = [

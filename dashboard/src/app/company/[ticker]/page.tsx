@@ -1,5 +1,6 @@
 'use client'
 
+import { safeDecode } from '@/lib/page-title'
 import { useParams } from 'next/navigation'
 
 import CompanyWorkspace from '@/components/company/CompanyWorkspace'
@@ -15,7 +16,7 @@ const TICKER_RE = /^[A-Z0-9.^-]{1,10}$/
  */
 export default function CompanyPage() {
   const params = useParams<{ ticker: string }>()
-  const ticker = decodeURIComponent(params.ticker ?? '').toUpperCase()
+  const ticker = safeDecode(params.ticker).toUpperCase()
   const valid = TICKER_RE.test(ticker)
 
   return (

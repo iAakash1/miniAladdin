@@ -6,7 +6,7 @@
    told two companies apart by nothing. */
 
 import assert from 'node:assert/strict'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import test from 'node:test'
 
@@ -41,4 +41,28 @@ test('the company, evidence and agent pages each set one', () => {
     assert.match(text, /export async function generateMetadata/, `${file} sets no title`)
     assert.match(text, /securityTitle\(/)
   }
+})
+
+import { safeDecode } from '../src/lib/page-title'
+import { companyFromPath } from '../src/lib/context-commands'
+
+test('a malformed escape in an address is text, not an exception', () => {
+  assert.equal(safeDecode('%5EGSPC'), '^GSPC')
+  assert.equal(safeDecode('%E0%A4%A'), '%E0%A4%A')
+  assert.equal(safeDecode(undefined), '')
+  assert.equal(companyFromPath('/company/aapl'), 'AAPL')
+  assert.doesNotThrow(() => companyFromPath('/company/%E0%A4%A'))
+})
+
+test('no route segment is decoded with the throwing built-in', () => {
+  const offenders: string[] = []
+  const walk = (dir: string) => {
+    for (const name of readdirSync(dir)) {
+      const full = join(dir, name)
+      if (statSync(full).isDirectory()) walk(full)
+      else if (/\.tsx?$/.test(name) && !full.endsWith('page-title.ts') && /decodeURIComponent\(/.test(readFileSync(full, 'utf8'))) offenders.push(full.slice(full.indexOf('src/')))
+    }
+  }
+  walk(join(__dirname, '..', 'src'))
+  assert.deepEqual(offenders, [])
 })

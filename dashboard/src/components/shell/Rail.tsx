@@ -1,10 +1,11 @@
 'use client'
 
-import { Shortcut } from '@/components/system/Shortcut'
+import { safeDecode } from '@/lib/page-title'
 import Link from 'next/link'
 import { useSyncExternalStore } from 'react'
 
 import Icon from '@/components/shell/Icon'
+import { Shortcut } from '@/components/system/Shortcut'
 import ModeSwitch from '@/components/beginner/ModeSwitch'
 import { destinationAt } from '@/lib/destinations'
 import type { NavigationDefinition } from '@/lib/navigation'
@@ -26,7 +27,7 @@ export default function Rail({
   const recent = useSyncExternalStore(subscribeSymbols, recentSnapshot, emptySnapshot)
   const terminal = set.home === '/terminal/command'
   const currentSymbol = pathname.startsWith('/company/')
-    ? decodeURIComponent(pathname.split('/')[2] ?? '').toUpperCase()
+    ? safeDecode(pathname.split('/')[2]).toUpperCase()
     : null
 
   return (

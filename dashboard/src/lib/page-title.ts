@@ -10,6 +10,20 @@
 
 const SYMBOL = /^[A-Z0-9.^-]{1,10}$/
 
+/**
+ * A URL segment as text. A stray "%" is not a reason to throw: this runs in
+ * the shell and in the palette, which are mounted on every page, so a bad
+ * escape in an address must not take the whole screen down with it.
+ */
+export function safeDecode(segment: string | undefined | null): string {
+  if (!segment) return ''
+  try {
+    return decodeURIComponent(segment)
+  } catch {
+    return segment
+  }
+}
+
 /** A route segment as the symbol it names, or null when it is not one. */
 export function symbolFromSegment(segment: string | undefined): string | null {
   if (!segment) return null

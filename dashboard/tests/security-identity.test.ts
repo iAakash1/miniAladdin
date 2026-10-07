@@ -46,7 +46,7 @@ test('the company route canonicalises the symbol it is given', () => {
   // Lowercase "aapl" from a hand-typed URL must resolve to the same object as
   // "AAPL" from the watchlist — and the retired security route must land on it.
   const page = readFileSync(join(ROOT, 'app/company/[ticker]/page.tsx'), 'utf8')
-  assert.match(page, /params\.ticker \?\? ''\)\.toUpperCase\(\)/)
+  assert.match(page, /safeDecode\(params\.ticker\)\.toUpperCase\(\)/)
   const retired = readFileSync(join(ROOT, 'app/terminal/security/page.tsx'), 'utf8')
   assert.match(retired, /\.trim\(\)\.toUpperCase\(\)/)
   assert.match(retired, /redirect\(`\/company\/\$\{encodeURIComponent\(symbol\)\}/)

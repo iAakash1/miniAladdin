@@ -1,5 +1,6 @@
 'use client'
 
+import { safeDecode } from '@/lib/page-title'
 import { use } from 'react'
 import { useSearchParams } from 'next/navigation'
 
@@ -11,7 +12,7 @@ import { useCapabilities } from '@/lib/capabilities'
 
 export default function EvidenceInspectorPage({ params }: { params: Promise<{ ticker: string }> }) {
   const { ticker } = use(params)
-  const symbol = decodeURIComponent(ticker).toUpperCase()
+  const symbol = safeDecode(ticker).toUpperCase()
   const search = useSearchParams()
   const { caps } = useCapabilities()
   const requested = search.get('mode')
