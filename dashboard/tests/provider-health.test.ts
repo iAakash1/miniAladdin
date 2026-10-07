@@ -41,3 +41,37 @@ test('one endpoint outside the plan names it instead of counting failures', () =
   const plain = classifyVendor(snap({ health_state: 'DEGRADED', failures: 3 }))
   assert.match(plain.note ?? '', /3 of 10 requests failed/)
 })
+
+/* The production NewsAPI key is refused with `apiKeyInvalid`. The backend pauses
+   a vendor after rejecting its credential, so `cooling_down` is true for exactly
+   these vendors — and the cooldown branch ran first, labelling a wrong key
+   "Cooling down: paused after repeated failures". That reads as transient for a
+   fault only the key's owner can fix. */
+test('a refused credential is not described as a transient cooldown', () => {
+  const h = classifyVendor(snap({
+    health_state: 'AUTH_FAILURE', cooling_down: true, cooldown_remaining_seconds: 840,
+    last_failure_class: 'auth_failure', failures: 1, success_pct: 0,
+  }))
+  assert.equal(h.state, 'AUTH_FAILURE')
+  assert.equal(h.tone, 'neg')
+  assert.equal(h.label, 'Credential rejected')
+  assert.match(h.note ?? '', /rejected the credential/)
+  assert.match(h.note ?? '', /14 min/)
+})
+
+test('an older backend that only reports the cooldown still shows the rejection', () => {
+  const h = classifyVendor(snap({ cooling_down: true, last_failure_class: 'auth_failure' }))
+  assert.equal(h.state, 'AUTH_FAILURE')
+})
+
+test('an ordinary cooldown after transient failures is still a cooldown', () => {
+  const h = classifyVendor(snap({
+    health_state: 'COOLDOWN', cooling_down: true, cooldown_remaining_seconds: 40, last_failure_class: 'upstream_failure',
+  }))
+  assert.equal(h.state, 'COOLDOWN')
+  assert.equal(h.tone, 'warn')
+})
+
+test('a credential that was refused and later accepted is not shown as rejected', () => {
+  assert.notEqual(classifyVendor(snap({ health_state: 'HEALTHY', last_failure_class: 'auth_failure' })).state, 'AUTH_FAILURE')
+})

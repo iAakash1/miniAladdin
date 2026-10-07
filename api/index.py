@@ -672,7 +672,10 @@ def health():
         "data_sources": {
             "fred":          bool(os.getenv("FRED_API_KEY")),
             "alpha_vantage": av_client.available,
-            "news_api":      NewsAPIClient().available,
+            # Configured *and* not known to be rejected. This reported only
+            # that a key string existed, so a key NewsAPI answered with
+            # `apiKeyInvalid` was advertised as a working news source.
+            "news_api":      NewsAPIClient().available and providers.news.newsapi.operational,
             "llm":           llm_service.narrative_configured(),
             "llm_providers": llm_service.configured_providers(),
             "yfinance":      True,

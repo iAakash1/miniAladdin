@@ -89,6 +89,18 @@ export function classifyVendor(v: VendorSnapshot): VendorHealth {
   if (v.health_state === 'DEV_ONLY') {
     return { state: 'DEV_ONLY', tone: 'muted', label: 'Development only', note: 'Disabled outside local development' }
   }
+  /* A refused credential is checked before the cooldown. The backend pauses a
+     vendor after it rejects the key, so `cooling_down` is true for exactly the
+     vendors this applies to, and the cooldown branch would label them
+     "Paused after repeated failures" — a transient-sounding state for a fault
+     that only the key's owner can fix. */
+  if (v.health_state === 'AUTH_FAILURE' || (v.cooling_down && v.last_failure_class === 'auth_failure')) {
+    const s = v.cooldown_remaining_seconds
+    return {
+      state: 'AUTH_FAILURE', tone: 'neg', label: 'Credential rejected',
+      note: `The vendor rejected the credential${s ? ` · next check in ${Math.ceil(s / 60)} min` : ''}`,
+    }
+  }
   if (v.cooling_down || v.health_state === 'COOLDOWN') {
     const s = v.cooldown_remaining_seconds
     return {
@@ -98,7 +110,7 @@ export function classifyVendor(v: VendorSnapshot): VendorHealth {
   }
   switch (v.health_state) {
     case 'AUTH_FAILURE':
-      return { state: 'AUTH_FAILURE', tone: 'neg', label: 'Auth failure', note: 'The vendor rejected the credential' }
+      return { state: 'AUTH_FAILURE', tone: 'neg', label: 'Credential rejected', note: 'The vendor rejected the credential' }
     case 'NOT_ENTITLED':
       return { state: 'NOT_ENTITLED', tone: 'warn', label: 'Not entitled', note: 'The current plan does not include this data' }
     case 'RATE_LIMITED':

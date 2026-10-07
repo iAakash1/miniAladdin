@@ -66,12 +66,12 @@ class BraveProvider(ResearchProvider):
 
     def health(self) -> ProviderHealth:
         return ProviderHealth(
-            name=self.name, available=self._vendor.available,
+            name=self.name, available=self._vendor.operational,
             configured=self._vendor.available, stats=self._vendor.health_snapshot(),
         )
 
     def search(self, query: str, limit: int = 6) -> list[ResearchHit]:
-        if not self._vendor.available:
+        if not self._vendor.healthy:
             return []
         rows = self._vendor.web_search(query, limit)
         return [
@@ -103,11 +103,11 @@ class TavilyProvider(ResearchProvider):
                                     news=True, extracts_content=True)
 
     def health(self) -> ProviderHealth:
-        return ProviderHealth(name=self.name, available=self._vendor.available,
+        return ProviderHealth(name=self.name, available=self._vendor.operational,
                               configured=self._vendor.available, stats=self._vendor.health_snapshot())
 
     def search(self, query: str, limit: int = 6) -> list[ResearchHit]:
-        if not self._vendor.available:
+        if not self._vendor.healthy:
             return []
         # advanced depth + raw content: Tavily's value is extracted page
         # text, not snippets. Year window keeps research current.
@@ -138,11 +138,11 @@ class ExaProvider(ResearchProvider):
         return ProviderCapabilities(search=True, company_research=True, semantic=True)
 
     def health(self) -> ProviderHealth:
-        return ProviderHealth(name=self.name, available=self._vendor.available,
+        return ProviderHealth(name=self.name, available=self._vendor.operational,
                               configured=self._vendor.available, stats=self._vendor.health_snapshot())
 
     def search(self, query: str, limit: int = 6, category: Optional[str] = None) -> list[ResearchHit]:
-        if not self._vendor.available:
+        if not self._vendor.healthy:
             return []
         results = self._vendor.search(query, limit=limit, category=category) or []
         return [
@@ -212,11 +212,11 @@ class ApifyProvider(ResearchProvider):
                                     extracts_content=True)
 
     def health(self) -> ProviderHealth:
-        return ProviderHealth(name=self.name, available=self._vendor.available,
+        return ProviderHealth(name=self.name, available=self._vendor.operational,
                               configured=self._vendor.available, stats=self._vendor.health_snapshot())
 
     def search(self, query: str, limit: int = 6) -> list[ResearchHit]:
-        if not self._vendor.available:
+        if not self._vendor.healthy:
             return []
         rows = self._vendor.search(query, limit=limit)
         return [
@@ -242,12 +242,19 @@ class _RssStyleNewsProvider(ResearchProvider):
         return ProviderCapabilities(search=True, company_research=True, news=True)
 
     def health(self) -> ProviderHealth:
-        return ProviderHealth(name=self.name, available=self._vendor.available,
+        # `configured` is whether a key exists; `available` is whether the
+        # vendor can currently answer. A key the vendor rejected is configured
+        # and not available, and saying otherwise advertised a news source
+        # that had never returned a headline.
+        return ProviderHealth(name=self.name, available=self._vendor.operational,
                               configured=self._vendor.available,
                               stats=self._vendor.health_snapshot())
 
     def search(self, query: str, limit: int = 6) -> list[ResearchHit]:
-        if not self._vendor.available:
+        # `healthy` also excludes a vendor in cooldown, including the long one
+        # after a rejected credential, so a dead key is not called on every
+        # search.
+        if not self._vendor.healthy:
             return []
         try:
             headlines = self._vendor.get_news(query, "", limit=limit) or []

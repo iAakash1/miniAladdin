@@ -12,6 +12,7 @@ from __future__ import annotations
 import logging
 
 import os
+import time
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -23,6 +24,19 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 NEWSAPI_BASE = "https://newsapi.org/v2/everything"
+
+#: When NewsAPI last answered 401, this process stops sending it requests for
+#: a while. A 401 is not transient: the same key gets the same answer, so
+#: retrying on every analysis spends quota and log lines to learn nothing.
+#: Process-wide on purpose — each analysis builds its own client, so state on
+#: the instance would be forgotten between requests.
+REJECTION_WINDOW_SECONDS = 900.0
+_rejected_until = 0.0
+
+
+def credential_rejected() -> bool:
+    """True while a recent 401 says the configured key is not accepted."""
+    return time.monotonic() < _rejected_until
 
 
 class NewsAPIClient:
@@ -39,7 +53,9 @@ class NewsAPIClient:
 
     def __init__(self, api_key: Optional[str] = None):
         self.api_key  = api_key or os.getenv("NEWSAPI_KEY", "")
-        self.available = bool(self.api_key and len(self.api_key) > 5)
+        # A key that is present *and* not recently refused. Presence alone
+        # reported a key NewsAPI had answered `apiKeyInvalid` as available.
+        self.available = bool(self.api_key and len(self.api_key) > 5) and not credential_rejected()
         self._session = requests.Session()
         self._session.headers.update({
             "User-Agent": "OmniSignal/1.0",
@@ -57,9 +73,11 @@ class NewsAPIClient:
 
         Returns:
             List of {"title": str, "source": str, "is_breaking": bool} dicts.
-            Empty list on failure.
+            Empty list when nothing was retrieved — the caller falls through to
+            the next source and names the one that actually answered, so an
+            empty list here is never presented as "no news exists".
         """
-        if not self.available:
+        if not self.available or credential_rejected():
             return []
 
         # Build a focused query: ticker + optional company name
@@ -130,7 +148,13 @@ class NewsAPIClient:
             if e.response is not None and e.response.status_code == 426:
                 logger.warning("NewsAPI upgrade required (426) — free tier limitation")
             elif e.response is not None and e.response.status_code == 401:
-                logger.error("NewsAPI invalid API key (401)")
+                global _rejected_until
+                if not credential_rejected():
+                    logger.error(
+                        "NewsAPI rejected the API key (401); not retrying for %.0fs",
+                        REJECTION_WINDOW_SECONDS,
+                    )
+                _rejected_until = time.monotonic() + REJECTION_WINDOW_SECONDS
             elif e.response is not None and e.response.status_code == 429:
                 logger.warning("NewsAPI rate limit exceeded (429)")
             else:

@@ -246,6 +246,13 @@ class VendorClient:
     BACKOFF_BASE = 0.4
     COOLDOWN_AFTER_FAILURES = 3
     COOLDOWN_SECONDS = 60.0
+    #: How long to leave a vendor alone after it rejects our credential. A
+    #: rejected key is not a transient fault — retrying it a minute later gets
+    #: the same answer — so the short cooldown meant a dead key was re-probed
+    #: every 60 seconds indefinitely: wasted quota, noisy logs, and a status
+    #: that read as "paused" rather than "your credential is wrong". One probe
+    #: per window is enough to notice that the key has been fixed.
+    AUTH_COOLDOWN_SECONDS = 900.0
     MAX_RETRY_AFTER_SECONDS = 2.0
 
     def __init__(self, session: Optional[requests.Session] = None):
@@ -275,6 +282,44 @@ class VendorClient:
         """Available and not cooling down after repeated failures."""
         return self.available and time.monotonic() >= self._cooldown_until
 
+    @property
+    def credential_rejected(self) -> bool:
+        """The vendor's most recent answer refused our credential.
+
+        Stays true until a later request succeeds. A key being present says
+        nothing about whether the vendor accepts it; this is the evidence that
+        it does not.
+        """
+        stats = self.stats.snapshot()
+        failed_at = stats.get("last_failure_at")
+        return bool(
+            failed_at
+            and (stats.get("last_success_at") or 0) < failed_at
+            and stats.get("last_failure_class") == FailureClass.AUTH_FAILURE.value
+        )
+
+    @property
+    def operational(self) -> bool:
+        """Configured and not known to be rejected — what "available" should
+        mean to anyone reporting whether this vendor can currently answer."""
+        return self.available and not self.credential_rejected
+
+    @property
+    def credential_state(self) -> str:
+        """not_required | not_configured | unverified | accepted | rejected.
+
+        "unverified" is the honest word for a configured key nothing has used
+        yet in this process; it is neither a claim that the key works nor one
+        that it does not.
+        """
+        if self.KEY_ENV is None:
+            return "not_required"
+        if not self.available:
+            return "not_configured"
+        if self.credential_rejected:
+            return "rejected"
+        return "accepted" if self.stats.snapshot().get("last_success_at") else "unverified"
+
     def health_snapshot(self) -> dict[str, Any]:
         stats = self.stats.snapshot()
         cooldown_remaining = max(0.0, self._cooldown_until - time.monotonic())
@@ -282,6 +327,12 @@ class VendorClient:
             health_state = "NOT_CONFIGURED"
         elif getattr(self, "DEV_ONLY", False):
             health_state = "DEV_ONLY"
+        elif self.credential_rejected:
+            # Checked before the cooldown, which would otherwise describe a
+            # wrong credential as a vendor that is merely "paused after
+            # repeated failures" — a transient-sounding state for a fault that
+            # only the key's owner can fix.
+            health_state = "AUTH_FAILURE"
         elif cooldown_remaining > 0:
             health_state = "COOLDOWN"
         elif (
@@ -318,6 +369,7 @@ class VendorClient:
             "cooling_down": cooldown_remaining > 0,
             "cooldown_remaining_seconds": round(cooldown_remaining, 1),
             "health_state": health_state,
+            "credential_state": self.credential_state,
             "restricted_operations": restricted,
             **stats,
         }
@@ -540,12 +592,20 @@ class VendorClient:
 
         _observe(self.NAME, operation, "error",
                  (time.perf_counter() - request_started) * 1000)
-        if self.stats.consecutive_failures >= self.COOLDOWN_AFTER_FAILURES:
+        assert last_error is not None
+        if last_error.failure_class == FailureClass.AUTH_FAILURE.value:
+            # One rejection is enough: nothing a retry changes can make a wrong
+            # credential right. Logged once per window, not once per call.
+            if time.monotonic() >= self._cooldown_until:
+                logger.error("%s rejected the credential (HTTP %s); not retrying for %.0fs",
+                             self.NAME, last_error.status_code, self.AUTH_COOLDOWN_SECONDS)
+                _metrics.registry.increment("vendor.credential_rejected", vendor=self.NAME)
+            self._cooldown_until = time.monotonic() + self.AUTH_COOLDOWN_SECONDS
+        elif self.stats.consecutive_failures >= self.COOLDOWN_AFTER_FAILURES:
             self._cooldown_until = time.monotonic() + self.COOLDOWN_SECONDS
             logger.warning("%s cooling down for %.0fs after %d consecutive failures",
                            self.NAME, self.COOLDOWN_SECONDS, self.stats.consecutive_failures)
             _metrics.registry.increment("vendor.cooldown", vendor=self.NAME)
-        assert last_error is not None
         raise last_error
 
     def _validate_payload(self, payload: Any) -> None:
