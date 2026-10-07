@@ -39,7 +39,9 @@ function definedProperties(): Set<string> {
   const defined = new Set<string>()
   for (const file of SOURCES) {
     const text = read(file)
-    for (const m of text.matchAll(/(--[\w-]+)\s*:/g)) defined.add(m[1])
+    // A declaration, not the tail of a class name: `.qc__key--gap::before`
+    // once counted as a definition of --gap, which was never defined.
+    for (const m of text.matchAll(/(?<![\w-])(--[\w-]+)\s*:(?!:)/g)) defined.add(m[1])
     for (const m of text.matchAll(/['"`](--[\w-]+)['"`]\s*:/g)) defined.add(m[1])
     for (const m of text.matchAll(/setProperty\(\s*['"`](--[\w-]+)/g)) defined.add(m[1])
   }

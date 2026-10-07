@@ -104,6 +104,11 @@
   --d-5: 24px;
   --d-6: 32px;
   --d-7: 48px;
+  /* The rhythm between sibling blocks. Twenty-eight rules read it, among them
+     the experience chooser's card padding (calc(var(--gap) * 1.25)) and the
+     brief cards, and it was never defined: every one of those paddings and
+     margins resolved to nothing. */
+  --gap: var(--d-4);
 
   --row-compact: 24px;
   --row-normal: 30px;

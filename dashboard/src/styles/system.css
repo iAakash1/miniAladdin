@@ -30,7 +30,6 @@
   white-space: nowrap;
 }
 
-.sys-value { font-size: var(--t-value); color: var(--ink); }
 .sys-lead { font: 600 var(--t-lead) / var(--lh-tight) var(--font-sans); color: var(--ink); letter-spacing: var(--tracking-display); }
 .sys-title { font: 600 var(--t-title) / var(--lh-tight) var(--font-sans); color: var(--ink); letter-spacing: var(--tracking-display); }
 
@@ -1377,11 +1376,6 @@ tr[data-selected='true'] .sys-row-actions { opacity: 1; }
    classification, a status word read as a value. */
 .sys-meta--strong { color: var(--ink); }
 
-/* Vertical rhythm inside a panel body, where a stack of sections needs the
-   same gap every time. */
-.sys-stack { display: flex; flex-direction: column; gap: var(--d-3); }
-.sys-stack--tight { gap: var(--d-2); }
-
 /* ── chart interaction ───────────────────────────────────────────────────
    A legend entry is a control, so it has to look like one — but quietly. The
    reader's attention belongs on the plot, and a row of buttons under a chart
@@ -2643,13 +2637,6 @@ a.tape:hover .tape__sym { color: var(--accent); }
 .xp__reset:hover { color: var(--ink); border-color: var(--rule-strong); }
 .xp__reset:focus-visible { outline: 2px solid var(--rule-focus); outline-offset: 1px; }
 
-.xp__company {
-  display: block;
-  font-size: var(--t-micro);
-  color: var(--ink-muted);
-  font-weight: 400;
-}
-
 /* Direction of travel, shown only on the trending tab, where "trending" on
    its own cannot tell a rally from a collapse. */
 .xp__trend {
@@ -2668,7 +2655,7 @@ a.tape:hover .tape__sym { color: var(--accent); }
 }
 
 .xp__signal[data-tone='positive'] { color: var(--pos, var(--accent)); }
-.xp__signal[data-tone='negative'] { color: var(--neg, #b3452f); }
+.xp__signal[data-tone='negative'] { color: var(--neg); }
 .xp__signal[data-tone='neutral']  { color: var(--ink-muted); }
 
 .xp__why {
@@ -2819,7 +2806,7 @@ a.tape:hover .tape__sym { color: var(--accent); }
 /* A glyph rather than colour alone, for the same reason the signal keeps its
    label: the distinction has to survive without hue. */
 .bg__reason[data-tone='positive']::before { content: '+'; color: var(--pos, var(--accent)); }
-.bg__reason[data-tone='negative']::before { content: '!'; color: var(--neg, #b3452f); }
+.bg__reason[data-tone='negative']::before { content: '!'; color: var(--neg); }
 
 .bg__reason[data-tone]::before {
   position: absolute;
@@ -3002,7 +2989,7 @@ a.tape:hover .tape__sym { color: var(--accent); }
 .xc__cta:focus-visible { outline: 2px solid var(--rule-focus); outline-offset: 2px; }
 .xc__cta:disabled { opacity: 0.6; cursor: default; }
 
-.xc__error { font-size: var(--t-meta); color: var(--neg, #b3452f); margin-top: var(--gap); }
+.xc__error { font-size: var(--t-meta); color: var(--neg); margin-top: var(--gap); }
 .xc__note { font-size: var(--t-meta); color: var(--ink-muted); margin-top: var(--gap); }
 
 @media (max-width: 640px) {
@@ -3521,7 +3508,6 @@ a.tape:hover .tape__sym { color: var(--accent); }
 .cw-kv dt { flex: none; color: var(--ink-muted); }
 .cw-kv dd { display: flex; align-items: center; justify-content: flex-end; gap: 6px; min-width: 0; margin: 0; text-align: right; color: var(--ink); }
 .cw-kv__sub { font-size: var(--t-meta); color: var(--ink-faint); }
-
 
 .cw-chart__body { padding-top: 8px; }
 
