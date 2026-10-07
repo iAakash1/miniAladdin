@@ -84,7 +84,7 @@ export default function ChartPanel({
                   onClick={() => (locked ? requestUpgrade('feature') : setRange(r.value))}
                 >
                   {r.label}
-                  {locked ? <span className="cw-pro" aria-label="Pro">·</span> : null}
+                  {locked ? <span className="cw-pro" role="img" aria-label="Pro">·</span> : null}
                 </button>
               )
             })}
@@ -93,7 +93,7 @@ export default function ChartPanel({
       </header>
       <div className="cw-chart__body">
         {loading ? (
-          <div className="sys-skeleton" style={{ height, borderRadius: 0 }} aria-label="Loading price history" />
+          <div className="sys-skeleton" style={{ height, borderRadius: 0 }} role="status" aria-label="Loading price history" />
         ) : points.length ? (
           <PriceChart points={points} height={height} label={`${symbol} daily close, ${label}`} />
         ) : (

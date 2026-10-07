@@ -106,7 +106,7 @@ export default function News({ headlines, stream, isPro, onUpgrade }: {
         ) : null}
       </header>
       {categories.length ? (
-        <div className="nw-cats" aria-label="Story categories">
+        <div className="nw-cats" role="group" aria-label="Story categories">
           {categories.map(([label, n]) => (
             <span key={label} className="nw-cat">{label}<b className="sys-num">{n}</b></span>
           ))}

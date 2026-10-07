@@ -69,3 +69,21 @@ test('no element is nested where an HTML parser would rewrite it', () => {
   }
   assert.deepEqual(found, [])
 })
+
+test('a name given to a generic element comes with a role that can carry it', () => {
+  // aria-label on a bare <div> or <span> is not announced: those elements have
+  // no role to name. A group, an image or a status can.
+  const generic = new Set(['div', 'span', 'p', 'strong', 'em', 'small', 'b', 'i', 'li', 'td', 'tr', 'th', 'g', 'text'])
+  const found: string[] = []
+  for (const file of walk(SRC)) {
+    const text = readFileSync(file, 'utf8')
+    for (const m of text.matchAll(/<([a-z][a-z0-9]*)\b(?=[\s/>])/g)) {
+      if (!generic.has(m[1])) continue
+      const end = tagEnd(text, m.index!)
+      if (end < 0) continue
+      const tag = text.slice(m.index!, end)
+      if (/\baria-label(?:ledby)?=/.test(tag) && !/\brole=/.test(tag)) found.push(`${relative(SRC, file).split(sep).join('/')}:${text.slice(0, m.index!).split('\n').length} <${m[1]}>`)
+    }
+  }
+  assert.deepEqual(found, [])
+})

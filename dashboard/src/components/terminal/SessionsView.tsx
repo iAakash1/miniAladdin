@@ -164,7 +164,7 @@ function NoteList({ notes }: { notes: SessionNote[] }) {
     <ul className="ws-notes">
       {notes.slice(0, 3).map((note) => (
         <li key={note.id} className="ws-note">
-          {note.pinned && <span className="ws-note__pin" aria-label="Pinned">◆</span>}
+          {note.pinned && <span className="ws-note__pin" role="img" aria-label="Pinned">◆</span>}
           <span className="ws-note__body">{note.body.slice(0, 120)}</span>
           {note.refs.length > 0 && (
             <span className="ws-note__refs">

@@ -69,7 +69,7 @@ function Card({ row, rank, mode }: { row: ExploreRow; rank: number; mode: Experi
   return (
     <article className="bg__card">
       <header className="bg__card-head">
-        <span className="bg__rank" aria-label={`Rank ${rank}`}>#{rank}</span>
+        <span className="bg__rank" role="img" aria-label={`Rank ${rank}`}>#{rank}</span>
         <div>
           <Link href={companyHref(mode, row.symbol)} className="bg__sym">
             {row.symbol}

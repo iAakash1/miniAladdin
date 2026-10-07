@@ -116,7 +116,7 @@ function EvidenceRefs({ analysis, section }: { analysis: Analysis; section: stri
   if (!Array.isArray(refs) || refs.length === 0 || Array.isArray(refs[0])) return null
   const evidence = new Map((analysis.ai?.evidence ?? []).map((item) => [item.id, item]))
   return (
-    <span aria-label={`Evidence supporting ${section}`} style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 7 }}>
+    <span role="group" aria-label={`Evidence supporting ${section}`} style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 7 }}>
       {(refs as string[]).slice(0, 6).map((id) => {
         const item = evidence.get(id)
         const detail = item

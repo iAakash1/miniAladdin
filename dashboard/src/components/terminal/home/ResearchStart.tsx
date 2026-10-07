@@ -33,7 +33,7 @@ export default function ResearchStart() {
           <span>Search by ticker, company or theme — “semiconductor equipment”, “AAPL”</span>
           <kbd><Shortcut k="K" /></kbd>
         </button>
-        <div className="hs-picks" aria-label={recent.length ? 'Recent and suggested companies' : 'Suggested companies'}>
+        <div className="hs-picks" role="group" aria-label={recent.length ? 'Recent and suggested companies' : 'Suggested companies'}>
           {picks.map((s) => (
             <Link key={s} href={`/company/${encodeURIComponent(s)}`} className="hs-pick">
               <CompanyMark ticker={s} size={18} />

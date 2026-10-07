@@ -141,7 +141,7 @@ function money(v: number): string {
 function PriceFigure({ a }: { a: Analysis }) {
   const { series, loading } = usePriceSeries(a.ticker, '3mo')
   const points = series?.points ?? []
-  if (loading) return <div className="sys-skeleton rp-figure__skeleton" aria-label="Loading price history" />
+  if (loading) return <div className="sys-skeleton rp-figure__skeleton" role="status" aria-label="Loading price history" />
   if (points.length < 2) return <div className="rp-figure"><SeriesUnavailable series={series} /></div>
   const first = points[0].close
   const last = points[points.length - 1].close

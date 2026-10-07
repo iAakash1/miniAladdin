@@ -94,7 +94,7 @@ export default function MarketHero({ data }: { data: DashboardData }) {
       </div>
 
       {signals.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 20 }} aria-label="Quick signals">
+        <div role="group" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 20 }} aria-label="Quick signals">
           {signals.map((signal) => (
             <Badge key={signal.id} tone={BADGE_TONE[signal.tone]} title={signal.explain}>
               {signal.label} · {signal.value}
