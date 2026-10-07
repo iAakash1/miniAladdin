@@ -149,7 +149,7 @@ function HoldingsTable({ rows, currency }: { rows: HoldingValuation[]; currency:
                 <span className="u-row" style={{ gap: 8, flexWrap: 'nowrap' }}>
                   <CompanyMark ticker={row.ticker} size={18} />
                   <span className="mono" style={{ fontWeight: 600 }}>{row.ticker}</span>
-                  {row.stale && <span className="badge badge--warn" style={{ height: 17, fontSize: '0.5625rem' }}>stale</span>}
+                  {row.stale && <span className="badge badge--warn" style={{ height: 17, fontSize: 'var(--t-micro)' }}>stale</span>}
                 </span>
               </td>
               <td className="num">{row.shares}</td>

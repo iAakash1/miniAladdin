@@ -46,7 +46,7 @@ export default function MarketHero({ data }: { data: DashboardData }) {
           sake. Screen readers and heading navigation get the anchor. */}
       <h1 id="hero-h" className="visually-hidden">Market overview</h1>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
-        <span className={`badge ${BADGE_TONE[regime.tone]}`} style={{ fontSize: '0.75rem', height: 26, padding: '0 12px' }}>
+        <span className={`badge ${BADGE_TONE[regime.tone]}`} style={{ fontSize: 'var(--t-small)', height: 26, padding: '0 12px' }}>
           {regime.label.toUpperCase()}
         </span>
         {data.macro.regime.recession_warning && (
@@ -55,7 +55,7 @@ export default function MarketHero({ data }: { data: DashboardData }) {
       </div>
 
       {summary && (
-        <p style={{ fontSize: '0.9375rem', color: 'var(--muted)', lineHeight: 1.65, maxWidth: '68ch', marginBottom: 22 }}>
+        <p style={{ fontSize: 'var(--t-value)', color: 'var(--muted)', lineHeight: 1.65, maxWidth: '68ch', marginBottom: 22 }}>
           {summary}
         </p>
       )}

@@ -20,9 +20,9 @@ const TONE_BADGE: Record<TechTone, string> = {
 function RegimeCell({ title, regime }: { title: string; regime: TechRegime }) {
   return (
     <div>
-      <p className="label" style={{ fontSize: '0.625rem', marginBottom: 6 }}>{title}</p>
+      <p className="label" style={{ fontSize: 'var(--t-micro)', marginBottom: 6 }}>{title}</p>
       <span className={`badge ${TONE_BADGE[regime.tone]}`}>{regime.label}</span>
-      <p style={{ fontSize: '0.6875rem', color: 'var(--faint)', marginTop: 6, lineHeight: 1.5 }}>
+      <p style={{ fontSize: 'var(--t-meta)', color: 'var(--faint)', marginTop: 6, lineHeight: 1.5 }}>
         {regime.note}
       </p>
     </div>
@@ -47,7 +47,7 @@ export default function TechnicalIntelligence({ block }: { block: TechBlock | nu
  <span className="num u-meta" >
           {block.bars} sessions · as of {block.as_of}
         </span>
-        <span style={{ marginLeft: 'auto', fontSize: '0.6875rem', color: 'var(--faint)' }}>
+        <span style={{ marginLeft: 'auto', fontSize: 'var(--t-meta)', color: 'var(--faint)' }}>
           Computed from price history — not a scoring input
         </span>
       </div>
@@ -63,7 +63,7 @@ export default function TechnicalIntelligence({ block }: { block: TechBlock | nu
       {/* Findings: deterministic sentences, most load-bearing first */}
       <ul style={{ listStyle: 'none', margin: '0 0 18px', padding: 0, display: 'flex', flexDirection: 'column', gap: 7 }}>
         {findings.map((finding) => (
-          <li key={finding.text} style={{ display: 'flex', gap: 9, fontSize: '0.8125rem', lineHeight: 1.55, color: 'var(--text)' }}>
+          <li key={finding.text} style={{ display: 'flex', gap: 9, fontSize: 'var(--t-body)', lineHeight: 1.55, color: 'var(--text)' }}>
             <span
               aria-hidden="true"
               style={{ flexShrink: 0, marginTop: 7, width: 6, height: 6, borderRadius: 1, background: TONE_COLOR[finding.tone] }}
@@ -74,7 +74,7 @@ export default function TechnicalIntelligence({ block }: { block: TechBlock | nu
       </ul>
 
       {/* Levels */}
-      <p className="num" style={{ fontSize: '0.75rem', color: 'var(--muted)', marginBottom: 16 }}>
+      <p className="num" style={{ fontSize: 'var(--t-small)', color: 'var(--muted)', marginBottom: 16 }}>
         Support {fmtPrice(levels.support)} ({levels.support_distance_pct}% below price)
         {' · '}Resistance {fmtPrice(levels.resistance)} ({levels.resistance_distance_pct}% above)
         {' · '}{levels.lookback_days}-day swing window
@@ -99,7 +99,7 @@ export default function TechnicalIntelligence({ block }: { block: TechBlock | nu
               const entry = TECHNICAL_GLOSSARY[row.key]
               return (
                 <tr key={row.key}>
-                  <td style={{ fontWeight: 550, whiteSpace: 'nowrap' }}>
+                  <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                       {row.label}
                       {entry && (
@@ -110,9 +110,9 @@ export default function TechnicalIntelligence({ block }: { block: TechBlock | nu
                     </span>
                   </td>
                   <td className="num">{row.value}</td>
-                  <td style={{ color: 'var(--muted)', fontSize: '0.8125rem' }}>{row.detail}</td>
+                  <td style={{ color: 'var(--muted)', fontSize: 'var(--t-body)' }}>{row.detail}</td>
                   <td>
-                    <span style={{ fontSize: '0.8125rem', fontWeight: 550, color: TONE_COLOR[row.tone] }}>
+                    <span style={{ fontSize: 'var(--t-body)', fontWeight: 600, color: TONE_COLOR[row.tone] }}>
                       {row.state}
                     </span>
                   </td>
@@ -125,7 +125,7 @@ export default function TechnicalIntelligence({ block }: { block: TechBlock | nu
 
       {/* Learn More: the full education layer, collapsed by default */}
       <details className="disclosure" style={{ marginTop: 16 }}>
-        <summary style={{ fontSize: '0.8125rem', fontWeight: 550, color: 'var(--muted)' }}>
+        <summary style={{ fontSize: 'var(--t-body)', fontWeight: 600, color: 'var(--muted)' }}>
           Learn more about these indicators
         </summary>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(20px, 4vw, 44px)', marginTop: 14 }}>

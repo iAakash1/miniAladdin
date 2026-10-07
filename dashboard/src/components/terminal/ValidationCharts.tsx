@@ -19,7 +19,7 @@ import {
 } from 'recharts'
 import type { BacktestData } from '@/lib/backtest'
 
-const AXIS_TICK = { fill: 'var(--faint)', fontSize: 10, fontFamily: 'var(--font-mono)' }
+const AXIS_TICK = { fill: 'var(--faint)', fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)' }
 
 interface TooltipRow {
   name: string
@@ -32,7 +32,7 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
   return (
     <div style={{
       background: 'var(--surface-2)', border: '1px solid var(--line-strong)',
-      borderRadius: 'var(--r-md)', padding: '8px 12px', fontSize: '0.75rem',
+      borderRadius: 'var(--r-md)', padding: '8px 12px', fontSize: 'var(--t-small)',
       boxShadow: 'var(--shadow-2)',
     }}>
       <div style={{ color: 'var(--faint)', marginBottom: 3 }}>{label}</div>
@@ -82,7 +82,7 @@ export function EquityCurveChart({ data }: { data: BacktestData }) {
           )}
         </div>
       </div>
-      <p style={{ fontSize: '0.6875rem', color: 'var(--faint)', marginBottom: 10, lineHeight: 1.6 }}>
+      <p style={{ fontSize: 'var(--t-meta)', color: 'var(--faint)', marginBottom: 10, lineHeight: 1.6 }}>
         The long/flat strategy holds only when the composite score clears +0.15. Tracking below
         buy &amp; hold with lower drawdown is the expected profile of a dampening signal.
       </p>
@@ -148,14 +148,14 @@ export function RollingIcChart({ data }: { data: BacktestData }) {
               aria-pressed={window === w.id}
               disabled={Number.isFinite(w.keep) && data.rolling_ic.length <= w.keep}
               onClick={() => setWindow(w.id)}
-              style={{ fontSize: '0.75rem' }}
+              style={{ fontSize: 'var(--t-small)' }}
             >
               {w.label}
             </button>
           ))}
         </div>
       </div>
-      <p style={{ fontSize: '0.6875rem', color: 'var(--faint)', marginBottom: 10, lineHeight: 1.6 }}>
+      <p style={{ fontSize: 'var(--t-meta)', color: 'var(--faint)', marginBottom: 10, lineHeight: 1.6 }}>
         Signal quality over time. IC decays and revives with market regime — sustained
         readings above zero matter more than the average.
         {series.length !== data.rolling_ic.length && (

@@ -21,7 +21,7 @@ function Row({ label, text }: { label: string; text?: string }) {
   return (
     <div style={{ marginBottom: 18 }}>
       <p className="label" style={{ marginBottom: 6 }}>{label}</p>
-      <p style={{ fontSize: '0.9375rem', lineHeight: 1.65, color: 'var(--muted)', maxWidth: '68ch' }}>{text}</p>
+      <p style={{ fontSize: 'var(--t-value)', lineHeight: 1.65, color: 'var(--muted)', maxWidth: '68ch' }}>{text}</p>
     </div>
   )
 }

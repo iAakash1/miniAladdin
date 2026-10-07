@@ -184,7 +184,7 @@ export default function NewsExplorer() {
             placeholder="Search headlines…"
             value={inputValue}
             onChange={(e) => onSearchChange(e.target.value)}
-            style={{ height: 36, fontSize: '0.875rem' }}
+            style={{ height: 36, fontSize: 'var(--t-body-lg)' }}
           />
         </div>
       </div>
@@ -202,7 +202,7 @@ export default function NewsExplorer() {
           marginBottom: 4,
         }}
       >
-        <span style={{ fontSize: '0.8125rem', color: 'var(--muted)' }}>
+        <span style={{ fontSize: 'var(--t-body)', color: 'var(--muted)' }}>
           {status === 'loading' && 'Loading stories…'}
           {status === 'ready' && data && (
             <>
@@ -220,7 +220,7 @@ export default function NewsExplorer() {
                       padding: 0,
                       color: 'var(--accent)',
                       cursor: 'pointer',
-                      fontSize: '0.8125rem',
+                      fontSize: 'var(--t-body)',
                       textDecoration: 'underline',
                       textUnderlineOffset: 3,
                     }}
@@ -234,7 +234,7 @@ export default function NewsExplorer() {
           {status === 'error' && 'Could not load stories.'}
         </span>
         {status === 'ready' && data && (
-          <span style={{ fontSize: '0.8125rem', color: 'var(--faint)' }}>
+          <span style={{ fontSize: 'var(--t-body)', color: 'var(--faint)' }}>
             Updated {timeAgo(data.updatedAt)}
           </span>
         )}
@@ -301,7 +301,7 @@ export default function NewsExplorer() {
               >
                 ← Newer
               </button>
-              <span className="num" style={{ fontSize: '0.8125rem', color: 'var(--muted)' }}>
+              <span className="num" style={{ fontSize: 'var(--t-body)', color: 'var(--muted)' }}>
                 Page {data.page} of {data.totalPages}
               </span>
               <button

@@ -192,8 +192,8 @@ function PipelineFlow() {
  <span className="num u-meta" >
               {String(index + 1).padStart(2, '0')}
             </span>
-            <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text)' }}>{stage.title}</span>
-            <p style={{ fontSize: '0.6875rem', lineHeight: 1.5, color: 'var(--muted)' }}>{stage.body}</p>
+            <span style={{ fontSize: 'var(--t-body)', fontWeight: 600, color: 'var(--text)' }}>{stage.title}</span>
+            <p style={{ fontSize: 'var(--t-meta)', lineHeight: 1.5, color: 'var(--muted)' }}>{stage.body}</p>
           </div>
           {index < PIPELINE.length - 1 && (
             <span
@@ -205,7 +205,7 @@ function PipelineFlow() {
                 width: 22,
                 flexShrink: 0,
                 color: 'var(--faint)',
-                fontSize: '0.875rem',
+                fontSize: 'var(--t-body-lg)',
               }}
             >
               →
@@ -221,25 +221,25 @@ function DataSourceCard({ source }: { source: DataSource }) {
   return (
     <div className="panel" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-        <h3 className="h-panel" style={{ fontSize: '0.875rem' }}>{source.name}</h3>
+        <h3 className="h-panel" style={{ fontSize: 'var(--t-body-lg)' }}>{source.name}</h3>
  <span className="num u-meta" >{source.updateFrequency}</span>
       </div>
-      <p style={{ fontSize: '0.8125rem', lineHeight: 1.55, color: 'var(--text)' }}>{source.purpose}</p>
+      <p style={{ fontSize: 'var(--t-body)', lineHeight: 1.55, color: 'var(--text)' }}>{source.purpose}</p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
         {source.vendors.map((vendor) => (
           <span
             key={vendor}
             className="num"
-            style={{ fontSize: '0.6875rem', padding: '3px 8px', borderRadius: 'var(--r-sm)', background: 'var(--surface-2)', color: 'var(--muted)' }}
+            style={{ fontSize: 'var(--t-meta)', padding: '3px 8px', borderRadius: 'var(--r-sm)', background: 'var(--surface-2)', color: 'var(--muted)' }}
           >
             {vendor}
           </span>
         ))}
       </div>
-      <p style={{ fontSize: '0.75rem', lineHeight: 1.55, color: 'var(--muted)' }}>
+      <p style={{ fontSize: 'var(--t-small)', lineHeight: 1.55, color: 'var(--muted)' }}>
         <span style={{ color: 'var(--faint)' }}>Fallback: </span>{source.fallback}
       </p>
-      <p style={{ fontSize: '0.75rem', lineHeight: 1.55, color: 'var(--muted)' }}>
+      <p style={{ fontSize: 'var(--t-small)', lineHeight: 1.55, color: 'var(--muted)' }}>
         <span style={{ color: 'var(--faint)' }}>Missing data: </span>{source.missingData}
       </p>
     </div>
@@ -258,7 +258,7 @@ export default function MethodologyView() {
       </div>
 
       <Section id="meth-architecture" title="Overall architecture" defaultOpen>
-        <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', lineHeight: 1.6, marginBottom: 16, maxWidth: '80ch' }}>
+        <p style={{ fontSize: 'var(--t-body)', color: 'var(--muted)', lineHeight: 1.6, marginBottom: 16, maxWidth: '80ch' }}>
           Every analysis moves through the same ten stages, in the same order, whether the result is a
           Strong Buy or a Strong Sell. Nothing in this pipeline is ticker-specific — it’s the same
           code path for every name.
@@ -269,7 +269,7 @@ export default function MethodologyView() {
       </Section>
 
       <Section id="meth-data-sources" title="Data sources">
-        <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', lineHeight: 1.6, marginBottom: 16, maxWidth: '80ch' }}>
+        <p style={{ fontSize: 'var(--t-body)', color: 'var(--muted)', lineHeight: 1.6, marginBottom: 16, maxWidth: '80ch' }}>
           Five kinds of data feed the engine, each behind its own vendor fallback chain. The product
           never shows which vendor answered a given request — only that an answer was cross-checked
           and cached to keep the system fast and within vendor rate limits.
@@ -282,7 +282,7 @@ export default function MethodologyView() {
       </Section>
 
       <Section id="meth-factor-library" title="Factor library">
-        <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', lineHeight: 1.6, marginBottom: 20, maxWidth: '80ch' }}>
+        <p style={{ fontSize: 'var(--t-body)', color: 'var(--muted)', lineHeight: 1.6, marginBottom: 20, maxWidth: '80ch' }}>
           15 factors, grouped into five families. Every factor below is what the engine actually
           computes — nothing here is aspirational or planned. Each one expands into its formula,
           interpretation, and the academic literature it comes from.
@@ -290,7 +290,7 @@ export default function MethodologyView() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
           {FAMILY_ORDER.map((family) => (
             <div key={family}>
-              <h3 className="label" style={{ fontSize: '0.6875rem', marginBottom: 10, color: 'var(--faint)' }}>
+              <h3 className="label" style={{ fontSize: 'var(--t-meta)', marginBottom: 10, color: 'var(--faint)' }}>
                 {FAMILY_TITLES[family]}
               </h3>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(20px, 4vw, 44px)' }}>
@@ -308,8 +308,8 @@ export default function MethodologyView() {
       <Section id="meth-composite-score" title="Composite score, confidence & risk">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18, maxWidth: '80ch' }}>
           <div>
-            <h3 className="h-panel" style={{ fontSize: '0.8125rem', marginBottom: 6 }}>Normalization</h3>
-            <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', lineHeight: 1.6 }}>
+            <h3 className="h-panel" style={{ fontSize: 'var(--t-body)', marginBottom: 6 }}>Normalization</h3>
+            <p style={{ fontSize: 'var(--t-body)', color: 'var(--muted)', lineHeight: 1.6 }}>
               Return-based factors are converted into a t-statistic — how many multiples of the
               stock’s own noise a move represents — which preserves trend direction and adapts to
               each name’s own volatility. Level-based factors use a robust median/MAD z-score, resistant
@@ -319,8 +319,8 @@ export default function MethodologyView() {
             </p>
           </div>
           <div>
-            <h3 className="h-panel" style={{ fontSize: '0.8125rem', marginBottom: 6 }}>Sleeve aggregation & regime adaptation</h3>
-            <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', lineHeight: 1.6 }}>
+            <h3 className="h-panel" style={{ fontSize: 'var(--t-body)', marginBottom: 6 }}>Sleeve aggregation & regime adaptation</h3>
+            <p style={{ fontSize: 'var(--t-body)', color: 'var(--muted)', lineHeight: 1.6 }}>
               Factors combine into one score per family; families combine into the composite score.
               Weights are not static: in a detected high-volatility regime, momentum’s weight is cut
               and the short-term reversal sleeve — near-zero in calm markets — is funded by that cut,
@@ -331,8 +331,8 @@ export default function MethodologyView() {
             </p>
           </div>
           <div>
-            <h3 className="h-panel" style={{ fontSize: '0.8125rem', marginBottom: 6 }}>Macro-stress gate</h3>
-            <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', lineHeight: 1.6 }}>
+            <h3 className="h-panel" style={{ fontSize: 'var(--t-body)', marginBottom: 6 }}>Macro-stress gate</h3>
+            <p style={{ fontSize: 'var(--t-body)', color: 'var(--muted)', lineHeight: 1.6 }}>
               A probabilistic stress read, built from the yield curve, financial-conditions index,
               credit spreads and volatility percentile, scales down the momentum sleeve specifically
               during high-stress regimes. Value, quality and news are deliberately never macro-suppressed
@@ -341,8 +341,8 @@ export default function MethodologyView() {
             </p>
           </div>
           <div>
-            <h3 className="h-panel" style={{ fontSize: '0.8125rem', marginBottom: 6 }}>Confidence</h3>
-            <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', lineHeight: 1.6 }}>
+            <h3 className="h-panel" style={{ fontSize: 'var(--t-body)', marginBottom: 6 }}>Confidence</h3>
+            <p style={{ fontSize: 'var(--t-body)', color: 'var(--muted)', lineHeight: 1.6 }}>
               Confidence starts at 100 and is reduced by named, itemized deductions rather than one
               opaque number: disagreement between active families, data completeness, proximity to an
               earnings or FOMC event, data staleness, the model’s own recently measured skill on this
@@ -351,8 +351,8 @@ export default function MethodologyView() {
             </p>
           </div>
           <div>
-            <h3 className="h-panel" style={{ fontSize: '0.8125rem', marginBottom: 6 }}>Risk</h3>
-            <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', lineHeight: 1.6 }}>
+            <h3 className="h-panel" style={{ fontSize: 'var(--t-body)', marginBottom: 6 }}>Risk</h3>
+            <p style={{ fontSize: 'var(--t-body)', color: 'var(--muted)', lineHeight: 1.6 }}>
               A separate 0–100 score, deliberately independent of the verdict — a Strong Buy can carry
               high risk, and a Hold can carry low risk. Nine components, each expressed as a percentile
               against the stock’s own history (downside deviation, tail risk, drawdown, volatility
@@ -362,8 +362,8 @@ export default function MethodologyView() {
             </p>
           </div>
           <div>
-            <h3 className="h-panel" style={{ fontSize: '0.8125rem', marginBottom: 6 }}>Missing factors</h3>
-            <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', lineHeight: 1.6 }}>
+            <h3 className="h-panel" style={{ fontSize: 'var(--t-body)', marginBottom: 6 }}>Missing factors</h3>
+            <p style={{ fontSize: 'var(--t-body)', color: 'var(--muted)', lineHeight: 1.6 }}>
               A factor whose required input isn’t available is omitted, never estimated from
               incomplete data. The composite score is a weighted average of whatever factors did
               compute; a data-completeness figure travels with every scorecard so thin coverage is
@@ -371,8 +371,8 @@ export default function MethodologyView() {
             </p>
           </div>
           <div>
-            <h3 className="h-panel" style={{ fontSize: '0.8125rem', marginBottom: 6 }}>Verdict</h3>
-            <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', lineHeight: 1.6 }}>
+            <h3 className="h-panel" style={{ fontSize: 'var(--t-body)', marginBottom: 6 }}>Verdict</h3>
+            <p style={{ fontSize: 'var(--t-body)', color: 'var(--muted)', lineHeight: 1.6 }}>
               The composite score maps to Strong Buy, Buy, Hold, Sell or Strong Sell once it crosses a
               fixed threshold in either direction. An “ungated” verdict — what the sleeves said before
               any macro-stress gate was applied — is computed alongside the live one, so a bullish read
@@ -383,7 +383,7 @@ export default function MethodologyView() {
       </Section>
 
       <Section id="meth-validation" title="Validation methodology">
-        <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', lineHeight: 1.6, maxWidth: '80ch' }}>
+        <p style={{ fontSize: 'var(--t-body)', color: 'var(--muted)', lineHeight: 1.6, maxWidth: '80ch' }}>
           OmniSignal validates the engine the way a quant desk grades any signal before trusting it:
           by replaying it walk-forward over real price history and checking whether higher scores
           actually preceded higher subsequent returns. Each historical point is scored using only
@@ -413,13 +413,13 @@ export default function MethodologyView() {
       <Section id="meth-limitations" title="Limitations" defaultOpen>
         <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
           {LIMITATIONS.map((item) => (
-            <li key={item} style={{ display: 'flex', gap: 9, fontSize: '0.8125rem', lineHeight: 1.55, color: 'var(--muted)' }}>
+            <li key={item} style={{ display: 'flex', gap: 9, fontSize: 'var(--t-body)', lineHeight: 1.55, color: 'var(--muted)' }}>
               <span aria-hidden="true" style={{ flexShrink: 0, marginTop: 7, width: 6, height: 6, borderRadius: 1, background: 'var(--faint)' }} />
               {item}
             </li>
           ))}
         </ul>
-        <p style={{ fontSize: '0.75rem', color: 'var(--faint)', lineHeight: 1.6, marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--line)' }}>
+        <p style={{ fontSize: 'var(--t-small)', color: 'var(--faint)', lineHeight: 1.6, marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--line)' }}>
           Trust matters more than marketing here — if something above changes (a factor is retired, a
           vendor is swapped, a threshold is retuned), this page is meant to be updated alongside the
           code, not treated as a one-time description.

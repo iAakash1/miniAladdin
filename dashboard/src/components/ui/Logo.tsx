@@ -37,8 +37,8 @@ export default function Logo({ size = 20, withWordmark = true, className }: Logo
         <span
           style={{
             fontSize: size * 0.82,
-            fontWeight: 620,
-            letterSpacing: '-0.02em',
+            fontWeight: 600,
+            letterSpacing: 'var(--tracking-figure)',
             lineHeight: 1,
           }}
         >

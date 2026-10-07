@@ -120,7 +120,7 @@ export default function SiteHeader() {
               style={{
                 padding: '12px 4px',
                 textDecoration: 'none',
-                fontSize: '0.9375rem',
+                fontSize: 'var(--t-value)',
                 fontWeight: 500,
                 color: 'var(--text)',
                 borderBottom: '1px solid var(--line)',

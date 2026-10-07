@@ -44,7 +44,7 @@ export default function SiteFooter() {
         >
           <div style={{ gridColumn: 'span 1', maxWidth: 280 }}>
             <Logo size={20} />
-            <p style={{ fontSize: '0.875rem', color: 'var(--muted)', lineHeight: 1.65, marginTop: 14 }}>
+            <p style={{ fontSize: 'var(--t-body-lg)', color: 'var(--muted)', lineHeight: 1.65, marginTop: 14 }}>
               Evidence-grounded equity research. A deterministic engine sets
               the signal; every input is traced to the provider that supplied it.
             </p>
@@ -63,7 +63,7 @@ export default function SiteFooter() {
                         href={link.href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        style={{ fontSize: '0.875rem', color: 'var(--muted)', textDecoration: 'none' }}
+                        style={{ fontSize: 'var(--t-body-lg)', color: 'var(--muted)', textDecoration: 'none' }}
                       >
                         {link.label}
                         <span aria-hidden="true" style={{ color: 'var(--faint)' }}> ↗</span>
@@ -71,7 +71,7 @@ export default function SiteFooter() {
                     ) : (
                       <Link
                         href={link.href}
-                        style={{ fontSize: '0.875rem', color: 'var(--muted)', textDecoration: 'none' }}
+                        style={{ fontSize: 'var(--t-body-lg)', color: 'var(--muted)', textDecoration: 'none' }}
                       >
                         {link.label}
                       </Link>
@@ -93,10 +93,10 @@ export default function SiteFooter() {
             padding: '20px 0 28px',
           }}
         >
-          <p style={{ fontSize: '0.8125rem', color: 'var(--faint)' }}>
+          <p style={{ fontSize: 'var(--t-body)', color: 'var(--faint)' }}>
             © {new Date().getFullYear()} OmniSignal
           </p>
-          <p style={{ fontSize: '0.8125rem', color: 'var(--faint)' }}>
+          <p style={{ fontSize: 'var(--t-body)', color: 'var(--faint)' }}>
             Research and education only — not investment advice.
           </p>
         </div>

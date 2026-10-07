@@ -41,8 +41,8 @@ export default function LearnIndexPage() {
                   className="panel"
                   style={{ padding: '14px 16px', textDecoration: 'none', display: 'block' }}
                 >
-                  <p style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: 4 }}>{topic.entry.label}</p>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--muted)', lineHeight: 1.5 }}>
+                  <p style={{ fontSize: 'var(--t-body-lg)', fontWeight: 600, marginBottom: 4 }}>{topic.entry.label}</p>
+                  <p style={{ fontSize: 'var(--t-small)', color: 'var(--muted)', lineHeight: 1.5 }}>
                     {topic.entry.short}
                   </p>
                 </Link>

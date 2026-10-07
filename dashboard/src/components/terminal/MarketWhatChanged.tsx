@@ -29,7 +29,7 @@ export default function MarketWhatChanged({ data }: { data: DashboardData }) {
   return (
     <section aria-labelledby="whatchanged-h" className="card dash-events">
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
-        <span id="whatchanged-h" className="h-panel" style={{ fontSize: '0.9375rem' }}>
+        <span id="whatchanged-h" className="h-panel" style={{ fontSize: 'var(--t-value)' }}>
           What changed
         </span>
         {before && (
@@ -40,18 +40,18 @@ export default function MarketWhatChanged({ data }: { data: DashboardData }) {
       </div>
 
       {!before || !after ? (
-        <p style={{ fontSize: '0.8125rem', color: 'var(--faint)' }}>
+        <p style={{ fontSize: 'var(--t-body)', color: 'var(--faint)' }}>
           This is your first snapshot of the market on this device — nothing to compare yet. Check
           back after the next update to see what moved.
         </p>
       ) : changes.length === 0 ? (
-        <p style={{ fontSize: '0.8125rem', color: 'var(--muted)' }}>
+        <p style={{ fontSize: 'var(--t-body)', color: 'var(--muted)' }}>
           No material change in regime, breadth, or headline macro readings since your last visit.
         </p>
       ) : (
         <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
           {changes.map((change) => (
-            <li key={change.id} style={{ display: 'flex', gap: 9, fontSize: '0.8125rem', lineHeight: 1.55, color: 'var(--text)' }}>
+            <li key={change.id} style={{ display: 'flex', gap: 9, fontSize: 'var(--t-body)', lineHeight: 1.55, color: 'var(--text)' }}>
               <span
                 aria-hidden="true"
                 style={{ flexShrink: 0, marginTop: 7, width: 6, height: 6, borderRadius: 1, background: TONE_COLOR[change.tone] }}

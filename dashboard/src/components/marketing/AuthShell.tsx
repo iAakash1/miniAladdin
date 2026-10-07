@@ -18,7 +18,7 @@ export default function AuthShell({ children }: { children: React.ReactNode }) {
                 <rect className="auth-bar auth-bar-2" x="8.75" y="7.5" width="2.5" height="8" rx="0.75" fill="currentColor" />
                 <rect className="auth-bar auth-bar-3" x="12.75" y="4.5" width="2.5" height="11" rx="0.75" fill="currentColor" opacity="0.55" />
               </svg>
-              <span style={{ fontSize: 17, fontWeight: 620, letterSpacing: '-0.02em' }}>OmniSignal</span>
+              <span style={{ fontSize: 'var(--t-lead)', fontWeight: 600, letterSpacing: 'var(--tracking-figure)' }}>OmniSignal</span>
             </span>
           </Link>
         </div>
@@ -28,12 +28,12 @@ export default function AuthShell({ children }: { children: React.ReactNode }) {
         <div className="auth-panel">
           <div style={{ textAlign: 'center', marginBottom: 4 }}>
             <p className="eyebrow" style={{ marginBottom: 8 }}>Research terminal</p>
-            <p style={{ fontSize: '0.875rem', color: 'var(--muted)', lineHeight: 1.6, maxWidth: '34ch', margin: '0 auto' }}>
+            <p style={{ fontSize: 'var(--t-body-lg)', color: 'var(--muted)', lineHeight: 1.6, maxWidth: '34ch', margin: '0 auto' }}>
               Five signals, one explainable verdict — every number auditable.
             </p>
           </div>
           {children}
-          <p style={{ fontSize: '0.75rem', color: 'var(--faint)', textAlign: 'center' }}>
+          <p style={{ fontSize: 'var(--t-small)', color: 'var(--faint)', textAlign: 'center' }}>
             Free tier: five analyses a day. No card required.
           </p>
         </div>

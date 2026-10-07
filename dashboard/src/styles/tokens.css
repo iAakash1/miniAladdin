@@ -80,6 +80,7 @@
   --t-body: 13px;
   --t-body-lg: 14px;
   --t-value: 15px;
+  --t-base: 16px;   /* reading size; inputs stay >= 16px so iOS does not zoom on focus */
   --t-lead: 17px;
   --t-title: 20px;
   --t-display: 24px;
@@ -89,7 +90,8 @@
   --lh-body: 1.5;
   --lh-read: 1.65;
 
-  --tracking-label: 0.06em;
+  --tracking-label: 0.06em;     /* small uppercase labels */
+  --tracking-eyebrow: 0.12em;   /* wide-tracked eyebrows and tags */
   --tracking-display: -0.018em;
   --tracking-figure: -0.02em;
 
@@ -119,20 +121,24 @@
   --status-h: 26px;
   --inspector-w: 420px;
   --workspace-pad: 20px;
+  /* Offset for sticky in-page navigation, clear of the top bar. */
+  --sticky-inset: 36px;
 
   /* Elevation — overlays only */
   --shadow-overlay: 0 0 0 1px var(--rule-strong), 0 16px 40px -12px rgb(0 0 0 / 0.7);
   --shadow-drawer: -1px 0 0 var(--rule-strong), -24px 0 48px -24px rgb(0 0 0 / 0.75);
 
   /* Motion */
-  --t-fast: 100ms;
-  --t-med: 160ms;
+  --t-fast: 100ms;   /* hover, press, focus, colour */
+  --t-med: 160ms;    /* state changes: expand, select, reveal */
+  --t-slow: 240ms;   /* overlays and larger movement */
   --ease: cubic-bezier(0.2, 0, 0, 1);
 
   /* ── legacy aliases (older components) ─────────────────────────────── */
   --bg: var(--p-base);
   --paper: var(--p-base);
   --surface: var(--p-panel);
+  --surface-1: var(--p-panel);
   --surface-2: var(--p-raised);
   --surface-3: var(--p-overlay);
   --text: var(--ink);

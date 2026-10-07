@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
  * The one way a page introduces itself.
  *
  * Before this, every route invented its own header. Three of them repeated
- * the identical `style={{ fontSize: '1rem', marginBottom: 6 }}` override
+ * the identical `style={{ fontSize: 'var(--t-base)', marginBottom: 6 }}` override
  * verbatim, which is the tell that the token was wrong rather than the usage
  * — and several pages opened at `<h2>`, so they shipped with no `<h1>` at
  * all. A screen reader announcing a document outline that starts at level

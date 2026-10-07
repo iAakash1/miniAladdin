@@ -421,7 +421,7 @@ function HistoryBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
             </table>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span className="num" style={{ fontSize: '0.75rem', color: 'var(--faint)' }}>
+            <span className="num" style={{ fontSize: 'var(--t-small)', color: 'var(--faint)' }}>
               {page.total} analyses · page {page.page} of {totalPages}
             </span>
             <span style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
@@ -471,13 +471,13 @@ function HistoryRow({
           onChange={onSelect}
         />
       </td>
-      <td className="num" style={{ fontSize: '0.75rem', color: 'var(--muted)', whiteSpace: 'nowrap' }}>
+      <td className="num" style={{ fontSize: 'var(--t-small)', color: 'var(--muted)', whiteSpace: 'nowrap' }}>
         {fmtDate(item.created_at)} · {timeAgo(item.created_at)}
       </td>
       <td className="mono" style={{ fontWeight: 600 }}><span className="u-row" style={{ gap: 8, flexWrap: 'nowrap' }}><CompanyMark ticker={item.ticker} size={20} />{item.ticker}</span></td>
-      <td style={{ fontSize: '0.8125rem', color: 'var(--muted)' }}>{item.company_name ?? '—'}</td>
+      <td style={{ fontSize: 'var(--t-body)', color: 'var(--muted)' }}>{item.company_name ?? '—'}</td>
       <td>
-        <span className={`badge ${verdictTone(item.verdict)}`} style={{ height: 19, fontSize: '0.625rem' }}>
+        <span className={`badge ${verdictTone(item.verdict)}`} style={{ height: 19, fontSize: 'var(--t-micro)' }}>
           {item.verdict}
         </span>
       </td>
@@ -590,15 +590,15 @@ function SavedBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
               {report.analysis && (
                 <>
                   <span className="mono" style={{ fontWeight: 600 }}>{report.analysis.ticker}</span>
-                  <span className={`badge ${verdictTone(report.analysis.verdict)}`} style={{ height: 19, fontSize: '0.625rem' }}>
+                  <span className={`badge ${verdictTone(report.analysis.verdict)}`} style={{ height: 19, fontSize: 'var(--t-micro)' }}>
                     {report.analysis.verdict}
                   </span>
                 </>
               )}
-              <span style={{ fontSize: '0.875rem', fontWeight: 550 }}>
+              <span style={{ fontSize: 'var(--t-body-lg)', fontWeight: 600 }}>
                 {report.custom_title ?? report.analysis?.company_name ?? 'Saved analysis'}
               </span>
-              <span className="num" style={{ marginLeft: 'auto', fontSize: '0.6875rem', color: 'var(--faint)' }}>
+              <span className="num" style={{ marginLeft: 'auto', fontSize: 'var(--t-meta)', color: 'var(--faint)' }}>
                 saved {timeAgo(report.saved_at)}
               </span>
             </div>
@@ -609,7 +609,7 @@ function SavedBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
                 <input
                   id={`title-${report.id}`}
                   className="input"
-                  style={{ height: 32, fontSize: '0.8125rem', maxWidth: 420 }}
+                  style={{ height: 32, fontSize: 'var(--t-body)', maxWidth: 420 }}
                   placeholder="Custom title…"
                   value={editing.title}
                   onChange={(e) => setEditing({ ...editing, title: e.target.value })}
@@ -618,7 +618,7 @@ function SavedBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
                 <textarea
                   id={`notes-${report.id}`}
                   className="input"
-                  style={{ height: 88, fontSize: '0.8125rem', padding: '8px 12px', resize: 'vertical' }}
+                  style={{ height: 88, fontSize: 'var(--t-body)', padding: '8px 12px', resize: 'vertical' }}
                   placeholder="Your notes on this analysis…"
                   value={editing.notes}
                   onChange={(e) => setEditing({ ...editing, notes: e.target.value })}
@@ -648,7 +648,7 @@ function SavedBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
               </div>
             ) : (
               report.notes && (
-                <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', lineHeight: 1.6, marginTop: 10, maxWidth: '78ch', whiteSpace: 'pre-wrap' }}>
+                <p style={{ fontSize: 'var(--t-body)', color: 'var(--muted)', lineHeight: 1.6, marginTop: 10, maxWidth: '78ch', whiteSpace: 'pre-wrap' }}>
                   {report.notes}
                 </p>
               )
@@ -720,7 +720,7 @@ function DetailView({ id, onBack }: { id: string; onBack: () => void }) {
           ← Back to Vault
         </button>
         {meta && (
-          <span className="num" style={{ fontSize: '0.75rem', color: 'var(--faint)' }}>
+          <span className="num" style={{ fontSize: 'var(--t-small)', color: 'var(--faint)' }}>
             as generated {fmtDate(meta.created_at)} · {timeAgo(meta.created_at)}
           </span>
         )}
@@ -760,7 +760,7 @@ function DeltaBar({ delta, max }: { delta: number; max: number }) {
   const half = 50
   const width = Math.min(half, (Math.abs(delta) / Math.max(max, 0.001)) * half)
   return (
-    <div style={{ position: 'relative', height: 6, background: 'var(--surface-2)', borderRadius: 3, flex: 1, minWidth: 120 }}>
+    <div style={{ position: 'relative', height: 6, background: 'var(--surface-2)', borderRadius: 'var(--r-sm)', flex: 1, minWidth: 120 }}>
       <span style={{ position: 'absolute', left: '50%', top: -2, bottom: -2, width: 1, background: 'var(--line-strong)' }} />
       <span
         style={{
@@ -770,7 +770,7 @@ function DeltaBar({ delta, max }: { delta: number; max: number }) {
           left: delta >= 0 ? '50%' : `${half - width}%`,
           width: `${width}%`,
           background: delta >= 0 ? 'var(--pos)' : 'var(--neg)',
-          borderRadius: 3,
+          borderRadius: 'var(--r-sm)',
         }}
       />
     </div>
@@ -840,7 +840,7 @@ function CompareView({ a, b, onBack }: { a: string; b: string; onBack: () => voi
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
                     <span className="mono" style={{ fontWeight: 600 }}>{run.ticker}</span>
                     <span className={`badge ${verdictTone(run.verdict)}`}>{run.verdict}</span>
-                    <span className="num" style={{ fontSize: '0.875rem', fontWeight: 600 }}>
+                    <span className="num" style={{ fontSize: 'var(--t-body-lg)', fontWeight: 600 }}>
                       {run.confidence !== null ? run.confidence : '—'}
                     </span>
  <span className="num u-note" >
@@ -852,7 +852,7 @@ function CompareView({ a, b, onBack }: { a: string; b: string; onBack: () => voi
                 </div>
               ))}
             </div>
-            <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--line)' }}>
+            <p style={{ fontSize: 'var(--t-body)', color: 'var(--muted)', marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--line)' }}>
               {result.before.verdict === result.after.verdict
                 ? `The verdict held at ${result.after.verdict}`
                 : `The verdict moved ${result.before.verdict} → ${result.after.verdict}`}
@@ -868,27 +868,27 @@ function CompareView({ a, b, onBack }: { a: string; b: string; onBack: () => voi
           {/* Family deltas */}
           <section aria-label="Factor family deltas" className="panel panel--pad">
             <h4 className="h-panel" style={{ marginBottom: 4 }}>What moved</h4>
-            <p style={{ fontSize: '0.75rem', color: 'var(--faint)', marginBottom: 14 }}>
+            <p style={{ fontSize: 'var(--t-small)', color: 'var(--faint)', marginBottom: 14 }}>
               Contribution change per signal family, computed by the engine from both stored scorecards.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {result.families.map((family) => (
                 <div key={family.family} style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                  <span style={{ width: 96, flexShrink: 0, fontSize: '0.75rem', fontWeight: family.changed ? 600 : 400, color: family.changed ? 'var(--text)' : 'var(--muted)' }}>
+                  <span style={{ width: 96, flexShrink: 0, fontSize: 'var(--t-small)', fontWeight: family.changed ? 600 : 400, color: family.changed ? 'var(--text)' : 'var(--muted)' }}>
                     {family.label}
                   </span>
-                  <span className="num" style={{ width: 130, flexShrink: 0, fontSize: '0.75rem', color: 'var(--muted)' }}>
+                  <span className="num" style={{ width: 130, flexShrink: 0, fontSize: 'var(--t-small)', color: 'var(--muted)' }}>
                     {family.before !== null ? family.before.toFixed(3) : '—'} → {family.after !== null ? family.after.toFixed(3) : '—'}
                   </span>
                   <DeltaBar delta={family.delta} max={maxFamilyDelta} />
-                  <span className="num" style={{ width: 64, textAlign: 'right', flexShrink: 0, fontSize: '0.75rem', fontWeight: 600, color: !family.changed ? 'var(--faint)' : family.delta >= 0 ? 'var(--pos)' : 'var(--neg)' }}>
+                  <span className="num" style={{ width: 64, textAlign: 'right', flexShrink: 0, fontSize: 'var(--t-small)', fontWeight: 600, color: !family.changed ? 'var(--faint)' : family.delta >= 0 ? 'var(--pos)' : 'var(--neg)' }}>
                     {family.delta >= 0 ? '+' : ''}{family.delta.toFixed(3)}
                   </span>
                 </div>
               ))}
               {/* Macro + risk rows use the same layout */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', paddingTop: 8, borderTop: '1px solid var(--line)' }}>
-                <span style={{ width: 96, flexShrink: 0, fontSize: '0.75rem', color: 'var(--muted)' }}>Macro (SRM)</span>
+                <span style={{ width: 96, flexShrink: 0, fontSize: 'var(--t-small)', color: 'var(--muted)' }}>Macro (SRM)</span>
  <span className="num u-note" >
                   {result.macro.srm_before ?? '—'} → {result.macro.srm_after ?? '—'}
                   {result.macro.srm_delta !== null && (
@@ -897,7 +897,7 @@ function CompareView({ a, b, onBack }: { a: string; b: string; onBack: () => voi
                     </span>
                   )}
                 </span>
-                <span style={{ width: 96, flexShrink: 0, fontSize: '0.75rem', color: 'var(--muted)', marginLeft: 24 }}>Risk score</span>
+                <span style={{ width: 96, flexShrink: 0, fontSize: 'var(--t-small)', color: 'var(--muted)', marginLeft: 24 }}>Risk score</span>
  <span className="num u-note" >
                   {result.risk.score_before ?? '—'} → {result.risk.score_after ?? '—'}
                 </span>

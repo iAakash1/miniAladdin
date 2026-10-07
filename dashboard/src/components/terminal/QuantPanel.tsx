@@ -9,16 +9,16 @@ function ScorePill({ label, value }: { label: string; value: number | null }) {
   if (value === null) {
     return (
       <div>
-        <span className="label" style={{ fontSize: '0.625rem' }}>{label}</span>
-        <p style={{ fontSize: '0.8125rem', color: 'var(--faint)' }}>no data</p>
+        <span className="label" style={{ fontSize: 'var(--t-micro)' }}>{label}</span>
+        <p style={{ fontSize: 'var(--t-body)', color: 'var(--faint)' }}>no data</p>
       </div>
     )
   }
   const color = value > 0.05 ? 'var(--pos)' : value < -0.05 ? 'var(--neg)' : 'var(--warn)'
   return (
     <div>
-      <span className="label" style={{ fontSize: '0.625rem' }}>{label}</span>
-      <p className="num" style={{ fontSize: '1.125rem', fontWeight: 600, color }}>
+      <span className="label" style={{ fontSize: 'var(--t-micro)' }}>{label}</span>
+      <p className="num" style={{ fontSize: 'var(--t-lead)', fontWeight: 600, color }}>
         {value > 0 ? '+' : ''}{value.toFixed(2)}
       </p>
     </div>
@@ -31,7 +31,7 @@ function ContributionBar({ value, max }: { value: number; max: number }) {
   const width = Math.min(half, (Math.abs(value) / max) * half)
   const color = value >= 0 ? 'var(--pos)' : 'var(--neg)'
   return (
-    <div style={{ position: 'relative', height: 6, background: 'var(--surface-2)', borderRadius: 3, flex: 1 }}>
+    <div style={{ position: 'relative', height: 6, background: 'var(--surface-2)', borderRadius: 'var(--r-sm)', flex: 1 }}>
       <span style={{ position: 'absolute', left: '50%', top: -2, bottom: -2, width: 1, background: 'var(--line-strong)' }} />
       <span
         style={{
@@ -41,7 +41,7 @@ function ContributionBar({ value, max }: { value: number; max: number }) {
           left: value >= 0 ? '50%' : `${half - width}%`,
           width: `${width}%`,
           background: color,
-          borderRadius: 3,
+          borderRadius: 'var(--r-sm)',
         }}
       />
     </div>
@@ -69,15 +69,15 @@ export default function QuantPanel({ analysis }: { analysis: Analysis }) {
     <section aria-label="Score decomposition" className="panel" style={{ padding: 'clamp(18px, 3vw, 24px)' }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 12, marginBottom: 16 }}>
         <h3 className="h-panel">Score decomposition</h3>
-        <span className="num" style={{ fontSize: '0.75rem', color: 'var(--faint)' }}>
+        <span className="num" style={{ fontSize: 'var(--t-small)', color: 'var(--faint)' }}>
           {quant.modelVersion} · composite {quant.rawScore > 0 ? '+' : ''}{quant.rawScore.toFixed(3)}
         </span>
         {quant.regimes.map((regime) => (
-          <span key={regime} className="badge badge--warn" style={{ height: 19, fontSize: '0.625rem' }}>
+          <span key={regime} className="badge badge--warn" style={{ height: 19, fontSize: 'var(--t-micro)' }}>
             {regime.replace('_', ' ')}
           </span>
         ))}
-        <span className="num" style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--muted)' }}>
+        <span className="num" style={{ marginLeft: 'auto', fontSize: 'var(--t-small)', color: 'var(--muted)' }}>
           risk score {quant.riskScore}/100
         </span>
       </div>
@@ -94,8 +94,8 @@ export default function QuantPanel({ analysis }: { analysis: Analysis }) {
           <ScorePill label={`Reversal · w ${quant.weightsUsed.reversal ?? '—'}`} value={quant.reversalScore} />
         )}
         <div>
-          <span className="label" style={{ fontSize: '0.625rem' }}>Momentum gate</span>
-          <p className="num" style={{ fontSize: '1.125rem', fontWeight: 600, color: gatePct > 0 ? 'var(--warn)' : 'var(--text)' }}>
+          <span className="label" style={{ fontSize: 'var(--t-micro)' }}>Momentum gate</span>
+          <p className="num" style={{ fontSize: 'var(--t-lead)', fontWeight: 600, color: gatePct > 0 ? 'var(--warn)' : 'var(--text)' }}>
             ×{quant.macroGate.toFixed(2)}
           </p>
           <p className="u-meta">
@@ -105,15 +105,15 @@ export default function QuantPanel({ analysis }: { analysis: Analysis }) {
           </p>
         </div>
         <div>
-          <span className="label" style={{ fontSize: '0.625rem' }}>Conflict</span>
-          <p className="num" style={{ fontSize: '1.125rem', fontWeight: 600, color: quant.conflictIndex !== null && quant.conflictIndex > 0.15 ? 'var(--warn)' : 'var(--text)' }}>
+          <span className="label" style={{ fontSize: 'var(--t-micro)' }}>Conflict</span>
+          <p className="num" style={{ fontSize: 'var(--t-lead)', fontWeight: 600, color: quant.conflictIndex !== null && quant.conflictIndex > 0.15 ? 'var(--warn)' : 'var(--text)' }}>
             {quant.conflictIndex === null ? '—' : quant.conflictIndex.toFixed(2)}
           </p>
           {quant.conflictIndex === null && <p className="u-meta">not recorded</p>}
         </div>
         <div>
-          <span className="label" style={{ fontSize: '0.625rem' }}>Uncertainty</span>
-          <p className="num" style={{ fontSize: '1.125rem', fontWeight: 600 }}>
+          <span className="label" style={{ fontSize: 'var(--t-micro)' }}>Uncertainty</span>
+          <p className="num" style={{ fontSize: 'var(--t-lead)', fontWeight: 600 }}>
             {quant.uncertainty === null ? '—' : `${(quant.uncertainty * 100).toFixed(0)}%`}
           </p>
           <p className="u-meta">
@@ -123,13 +123,13 @@ export default function QuantPanel({ analysis }: { analysis: Analysis }) {
       </div>
 
       {/* Factor contributions */}
-      <p className="label" style={{ fontSize: '0.625rem', marginBottom: 10 }}>
+      <p className="label" style={{ fontSize: 'var(--t-micro)', marginBottom: 10 }}>
         Factor contributions (sum = composite before gate)
       </p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {visible.map((factor) => (
           <div key={factor.name} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ flex: '0 1 172px', minWidth: 96, fontSize: '0.75rem', color: 'var(--muted)' }}>
+            <span style={{ flex: '0 1 172px', minWidth: 96, fontSize: 'var(--t-small)', color: 'var(--muted)' }}>
               {FACTOR_LABELS[factor.name] ?? factor.name}
               {factor.z !== null && (
                 <span className="num" style={{ color: 'var(--faint)' }}> z {factor.z.toFixed(1)}</span>
@@ -141,7 +141,7 @@ export default function QuantPanel({ analysis }: { analysis: Analysis }) {
               style={{
                 width: 58,
                 textAlign: 'right',
-                fontSize: '0.75rem',
+                fontSize: 'var(--t-small)',
                 color: factor.contribution >= 0 ? 'var(--pos)' : 'var(--neg)',
                 flexShrink: 0,
               }}
@@ -166,18 +166,18 @@ export default function QuantPanel({ analysis }: { analysis: Analysis }) {
       {/* Confidence + risk decomposition */}
       <div className="hairline-top" style={{ display: 'flex', flexWrap: 'wrap', gap: '14px 44px', marginTop: 16, paddingTop: 14 }}>
         <div>
-          <p className="label" style={{ fontSize: '0.625rem', marginBottom: 6 }}>Confidence composition</p>
-          <p className="num" style={{ fontSize: '0.75rem', color: 'var(--muted)', lineHeight: 1.7 }}>
+          <p className="label" style={{ fontSize: 'var(--t-micro)', marginBottom: 6 }}>Confidence composition</p>
+          <p className="num" style={{ fontSize: 'var(--t-small)', color: 'var(--muted)', lineHeight: 1.7 }}>
             {quant.confidenceLosses.length === 0
               ? `No deductions — ${quant.confidence}%`
               : `100 ${quant.confidenceLosses.map((loss) => `− ${loss.points} (${loss.component.toLowerCase()})`).join(' ')} = ${quant.confidence}%`}
           </p>
         </div>
         <div style={{ maxWidth: 460 }}>
-          <p className="label" style={{ fontSize: '0.625rem', marginBottom: 6 }}>
+          <p className="label" style={{ fontSize: 'var(--t-micro)', marginBottom: 6 }}>
             Risk composition (weight × percentile = contribution)
           </p>
-          <p className="num" style={{ fontSize: '0.75rem', color: 'var(--muted)', lineHeight: 1.7 }}>
+          <p className="num" style={{ fontSize: 'var(--t-small)', color: 'var(--muted)', lineHeight: 1.7 }}>
             {quant.riskComponents.length === 0
               ? '—'
               : quant.riskComponents
@@ -186,7 +186,7 @@ export default function QuantPanel({ analysis }: { analysis: Analysis }) {
           </p>
         </div>
         <div>
-          <p className="label" style={{ fontSize: '0.625rem', marginBottom: 6 }}>Data completeness</p>
+          <p className="label" style={{ fontSize: 'var(--t-micro)', marginBottom: 6 }}>Data completeness</p>
  <p className="num u-note" >
             {(quant.dataCompleteness * 100).toFixed(0)}% of factors computable
           </p>

@@ -74,7 +74,7 @@ export default function NewsCard({ item, lead = false }: NewsCardProps) {
             <span className="label" style={{ color: 'var(--faint)', textTransform: 'none', letterSpacing: 0 }}>
               {CATEGORY_LABEL[item.category]}
             </span>
-            <span style={{ fontSize: '0.75rem', color: 'var(--faint)' }}>
+            <span style={{ fontSize: 'var(--t-small)', color: 'var(--faint)' }}>
               <time dateTime={item.publishedAt}>{timeAgo(item.publishedAt)}</time>
             </span>
           </div>
@@ -85,7 +85,7 @@ export default function NewsCard({ item, lead = false }: NewsCardProps) {
               fontSize: lead ? 'clamp(1.5rem, 3vw, 2rem)' : '1.125rem',
               fontWeight: 500,
               lineHeight: lead ? 1.2 : 1.35,
-              letterSpacing: '-0.008em',
+              letterSpacing: '0',
               color: 'var(--text)',
               marginBottom: item.summary ? 8 : 0,
             }}
@@ -110,7 +110,7 @@ export default function NewsCard({ item, lead = false }: NewsCardProps) {
           )}
 
           {item.author && (
-            <p style={{ fontSize: '0.75rem', color: 'var(--faint)', marginTop: 8 }}>By {item.author}</p>
+            <p style={{ fontSize: 'var(--t-small)', color: 'var(--faint)', marginTop: 8 }}>By {item.author}</p>
           )}
         </div>
 

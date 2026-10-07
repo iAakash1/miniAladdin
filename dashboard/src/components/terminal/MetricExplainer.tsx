@@ -10,10 +10,10 @@ function ExplainRow({ label, text, tone }: { label: string; text: string; tone?:
   if (!text) return null
   return (
     <div>
-      <p className="label" style={{ fontSize: '0.625rem', marginBottom: 3, color: tone ? TONE_COLOR[tone] : undefined }}>
+      <p className="label" style={{ fontSize: 'var(--t-micro)', marginBottom: 3, color: tone ? TONE_COLOR[tone] : undefined }}>
         {label}
       </p>
-      <p style={{ fontSize: '0.75rem', lineHeight: 1.55, color: 'var(--muted)' }}>{text}</p>
+      <p style={{ fontSize: 'var(--t-small)', lineHeight: 1.55, color: 'var(--muted)' }}>{text}</p>
     </div>
   )
 }
@@ -41,21 +41,21 @@ export default function MetricExplainer({
   return (
     <div style={{ minWidth: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-        <span className="label" style={{ fontSize: '0.625rem' }}>
+        <span className="label" style={{ fontSize: 'var(--t-micro)' }}>
           {entry.label}
         </span>
         <Tooltip label={`What is ${entry.label}`}>
           <p style={{ margin: 0 }}>{entry.short}</p>
-          <p style={{ margin: '6px 0 0', color: 'var(--faint)', fontSize: '0.6875rem' }}>Good: {entry.good}</p>
+          <p style={{ margin: '6px 0 0', color: 'var(--faint)', fontSize: 'var(--t-meta)' }}>Good: {entry.good}</p>
         </Tooltip>
       </div>
       {value !== undefined && value !== '' && (
-        <p className="num" style={{ fontSize: '1.0625rem', fontWeight: 600, color: TONE_COLOR[valueTone] }}>
+        <p className="num" style={{ fontSize: 'var(--t-lead)', fontWeight: 600, color: TONE_COLOR[valueTone] }}>
           {value}
         </p>
       )}
       <details>
-        <summary style={{ cursor: 'pointer', fontSize: '0.6875rem', fontWeight: 550, color: 'var(--faint)', userSelect: 'none' }}>
+        <summary style={{ cursor: 'pointer', fontSize: 'var(--t-meta)', fontWeight: 600, color: 'var(--faint)', userSelect: 'none' }}>
           Explain
         </summary>
         <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8, maxWidth: '58ch' }}>

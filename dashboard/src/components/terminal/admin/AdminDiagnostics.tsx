@@ -188,7 +188,7 @@ export default function AdminDiagnostics() {
                 { label: 'Cooling down', value: cooling, kind: 'count' },
               ]}
             />
-            <ul style={{ listStyle: 'none', margin: 'var(--s-3) 0 0', padding: 0 }}>
+            <ul style={{ listStyle: 'none', margin: 'var(--d-3) 0 0', padding: 0 }}>
               {vendors.map((v) => (
                 <li
                   key={v.vendor}
@@ -196,8 +196,8 @@ export default function AdminDiagnostics() {
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    gap: 'var(--s-2)',
-                    padding: 'var(--s-1) 0',
+                    gap: 'var(--d-2)',
+                    padding: 'var(--d-1) 0',
                     borderBottom: '1px solid var(--rule)',
                     fontSize: 'var(--t-meta)',
                   }}

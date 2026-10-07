@@ -115,11 +115,11 @@ export default function PositionsPanel() {
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
         <h2 id="positions-h" className="h-panel">Positions</h2>
         {positions.length > 0 && (
-          <span className="num" style={{ fontSize: '0.75rem', color: 'var(--faint)' }}>
+          <span className="num" style={{ fontSize: 'var(--t-small)', color: 'var(--faint)' }}>
             {positions.length} · cost basis {fmtPrice(totalCost)}
           </span>
         )}
-        <span style={{ marginLeft: 'auto', fontSize: '0.6875rem', color: 'var(--faint)' }}>
+        <span style={{ marginLeft: 'auto', fontSize: 'var(--t-meta)', color: 'var(--faint)' }}>
           Synced to your account
         </span>
       </div>
@@ -129,7 +129,7 @@ export default function PositionsPanel() {
         <input
           id="pos-ticker"
           className="input mono"
-          style={{ maxWidth: 120, height: 32, fontSize: '0.8125rem', letterSpacing: '0.06em' }}
+          style={{ maxWidth: 120, height: 32, fontSize: 'var(--t-body)', letterSpacing: 'var(--tracking-label)' }}
           placeholder="Ticker"
           maxLength={8}
           value={ticker}
@@ -139,7 +139,7 @@ export default function PositionsPanel() {
         <input
           id="pos-shares"
           className="input num"
-          style={{ maxWidth: 110, height: 32, fontSize: '0.8125rem' }}
+          style={{ maxWidth: 110, height: 32, fontSize: 'var(--t-body)' }}
           placeholder="Shares"
           inputMode="decimal"
           value={shares}
@@ -149,7 +149,7 @@ export default function PositionsPanel() {
         <input
           id="pos-price"
           className="input num"
-          style={{ maxWidth: 130, height: 32, fontSize: '0.8125rem' }}
+          style={{ maxWidth: 130, height: 32, fontSize: 'var(--t-body)' }}
           placeholder="Avg price"
           inputMode="decimal"
           value={price}
@@ -221,7 +221,7 @@ export default function PositionsPanel() {
                         <input
                           aria-label={`Shares of ${position.ticker}`}
                           className="input num"
-                          style={{ width: 90, height: 26, fontSize: '0.8125rem', textAlign: 'right' }}
+                          style={{ width: 90, height: 26, fontSize: 'var(--t-body)', textAlign: 'right' }}
                           value={editing.shares}
                           onChange={(e) =>
                             setEditing({ ...editing, shares: e.target.value.replace(/[^0-9.]/g, '') })
@@ -236,7 +236,7 @@ export default function PositionsPanel() {
                         <input
                           aria-label={`Average price of ${position.ticker}`}
                           className="input num"
-                          style={{ width: 100, height: 26, fontSize: '0.8125rem', textAlign: 'right' }}
+                          style={{ width: 100, height: 26, fontSize: 'var(--t-body)', textAlign: 'right' }}
                           value={editing.price}
                           onChange={(e) =>
                             setEditing({ ...editing, price: e.target.value.replace(/[^0-9.]/g, '') })

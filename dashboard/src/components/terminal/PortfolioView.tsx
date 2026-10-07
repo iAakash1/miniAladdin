@@ -89,22 +89,22 @@ const STORAGE_ROWS: StorageRow[] = [
 function StorageStatus() {
   return (
     <details className="panel disclosure" style={{ padding: '14px 18px' }}>
-      <summary style={{ fontSize: '0.8125rem', fontWeight: 550, color: 'var(--text)' }}>
+      <summary style={{ fontSize: 'var(--t-body)', fontWeight: 600, color: 'var(--text)' }}>
         Where is this stored?
       </summary>
       <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
         {STORAGE_ROWS.map((row) => (
           <div key={row.label} style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-            <span style={{ width: 190, flexShrink: 0, fontSize: '0.75rem', fontWeight: 550, color: 'var(--text)' }}>
+            <span style={{ width: 190, flexShrink: 0, fontSize: 'var(--t-small)', fontWeight: 600, color: 'var(--text)' }}>
               {row.label}
             </span>
             <span
               className="badge badge--neutral"
-              style={{ height: 19, fontSize: '0.625rem', flexShrink: 0 }}
+              style={{ height: 19, fontSize: 'var(--t-micro)', flexShrink: 0 }}
             >
               {row.location}
             </span>
-            <span style={{ fontSize: '0.75rem', color: 'var(--muted)', lineHeight: 1.5, flex: '1 1 320px' }}>
+            <span style={{ fontSize: 'var(--t-small)', color: 'var(--muted)', lineHeight: 1.5, flex: '1 1 320px' }}>
               {row.detail}
             </span>
           </div>
@@ -318,7 +318,7 @@ export default function PortfolioView() {
                   <span className="sugg-marks__more num">+{suggestion.tickers.length - 6}</span>
                 )}
               </span>
-              <p className="num" style={{ fontSize: '0.6875rem', color: 'var(--muted)', marginTop: 8 }}>
+              <p className="num" style={{ fontSize: 'var(--t-meta)', color: 'var(--muted)', marginTop: 8 }}>
                 {suggestion.tickers.join(' · ')}
               </p>
             </button>
@@ -394,7 +394,7 @@ export default function PortfolioView() {
           <input
             id="another-list"
             className="input"
-            style={{ width: 150, height: 32, fontSize: '0.8125rem' }}
+            style={{ width: 150, height: 32, fontSize: 'var(--t-body)' }}
             placeholder="New list…"
             value={newName}
             onChange={(event) => setNewName(event.target.value)}
@@ -444,7 +444,7 @@ export default function PortfolioView() {
             <input
               id="add-ticker"
               className="input mono"
-              style={{ maxWidth: 180, height: 32, fontSize: '0.8125rem', letterSpacing: '0.06em' }}
+              style={{ maxWidth: 180, height: 32, fontSize: 'var(--t-body)', letterSpacing: 'var(--tracking-label)' }}
               placeholder="Add ticker…"
               maxLength={8}
               value={addSymbol}
@@ -521,20 +521,20 @@ export default function PortfolioView() {
                       <td><SymbolSpark values={quote?.closes ?? (quotesFetchedAt ? [] : undefined)} width={84} height={20} /></td>
                       <td>
                         {latest ? (
-                          <span className={`badge ${verdictTone(latest.verdict)}`} style={{ height: 19, fontSize: '0.625rem' }}>
+                          <span className={`badge ${verdictTone(latest.verdict)}`} style={{ height: 19, fontSize: 'var(--t-micro)' }}>
                             {latest.verdict}
                           </span>
                         ) : (
-                          <span style={{ fontSize: '0.75rem', color: 'var(--faint)' }}>not analyzed</span>
+                          <span style={{ fontSize: 'var(--t-small)', color: 'var(--faint)' }}>not analyzed</span>
                         )}
                       </td>
-                      <td style={{ fontSize: '0.75rem', color: 'var(--faint)' }}>
+                      <td style={{ fontSize: 'var(--t-small)', color: 'var(--faint)' }}>
                         {previous ? previous.verdict : '—'}
                       </td>
                       <td>
                         {diff && (diff.verdictChanged || Math.abs(diff.confidenceDelta) >= 3) ? (
                           <Tooltip label={`Why ${ticker} changed`}>
-                            <p style={{ margin: 0, fontWeight: 550, color: 'var(--text)' }}>
+                            <p style={{ margin: 0, fontWeight: 600, color: 'var(--text)' }}>
                               Confidence {diff.confidenceDelta >= 0 ? '+' : ''}{diff.confidenceDelta}pp
                               {diff.scoreDelta !== null && ` · composite ${diff.scoreDelta >= 0 ? '+' : ''}${diff.scoreDelta.toFixed(3)}`}
                             </p>
@@ -552,12 +552,12 @@ export default function PortfolioView() {
                         {diff?.verdictChanged ? (
                           <span
                             className={`badge ${diff.direction === 'upgrade' ? 'badge--pos' : 'badge--neg'}`}
-                            style={{ height: 19, fontSize: '0.625rem', marginLeft: 4 }}
+                            style={{ height: 19, fontSize: 'var(--t-micro)', marginLeft: 4 }}
                           >
                             {diff.direction === 'upgrade' ? '▲ upgrade' : '▼ downgrade'}
                           </span>
                         ) : latest ? (
-                          <span style={{ fontSize: '0.75rem', color: 'var(--faint)' }}>unchanged</span>
+                          <span style={{ fontSize: 'var(--t-small)', color: 'var(--faint)' }}>unchanged</span>
                         ) : null}
                       </td>
                       <td className="num">

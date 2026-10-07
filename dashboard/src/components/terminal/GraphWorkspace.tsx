@@ -328,7 +328,7 @@ export default function GraphWorkspace() {
           className="input mono"
           defaultValue={symbols}
           placeholder="NVDA,MSFT"
-          style={{ maxWidth: 190, height: 32, fontSize: '0.8125rem', letterSpacing: '0.05em' }}
+          style={{ maxWidth: 190, height: 32, fontSize: 'var(--t-body)', letterSpacing: 'var(--tracking-label)' }}
           onKeyDown={(e) => {
             if (e.key === 'Enter') setParam('symbols', (e.target as HTMLInputElement).value.toUpperCase())
           }}
@@ -362,11 +362,11 @@ export default function GraphWorkspace() {
         {/* Filters by when OmniSignal OBSERVED a relationship, not when the
             relationship began — Wikidata edges carry no start date, so this
             cannot reconstruct history. Labelled for what it actually does. */}
-        <label htmlFor="ws-before" className="label" style={{ fontSize: '0.625rem' }}>Observed before</label>
+        <label htmlFor="ws-before" className="label" style={{ fontSize: 'var(--t-micro)' }}>Observed before</label>
         <input
           id="ws-before" type="date" className="input num" defaultValue={before}
           title="Shows only relationships OmniSignal recorded before this date. Not a historical reconstruction — providers do not supply relationship start dates."
-          style={{ maxWidth: 150, height: 32, fontSize: '0.75rem' }}
+          style={{ maxWidth: 150, height: 32, fontSize: 'var(--t-small)' }}
           onChange={(e) => setParam('before', e.target.value)}
         />
       </div>
@@ -559,7 +559,7 @@ export default function GraphWorkspace() {
             </p>
           )}
           {data && (
-            <p className="num" style={{ fontSize: '0.6875rem', color: 'var(--faint)', marginTop: 8 }}>
+            <p className="num" style={{ fontSize: 'var(--t-meta)', color: 'var(--faint)', marginTop: 8 }}>
               {data.analytics.nodes} entities · {data.analytics.edges} relationships ·
               density {data.analytics.density} · avg confidence {data.analytics.avg_confidence}
             </p>
@@ -571,12 +571,12 @@ export default function GraphWorkspace() {
           {selectedNode ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
-                <p className="label" style={{ fontSize: '0.625rem', marginBottom: 4 }}>{selectedNode.type}</p>
+                <p className="label" style={{ fontSize: 'var(--t-micro)', marginBottom: 4 }}>{selectedNode.type}</p>
                 {/* The inspector is where an entity gets read rather than
                     scanned, and it is the one place in this view with room
                     for a mark at a size that resolves — a node circle is
                     four screen pixels across. */}
-                <p style={{ fontSize: '1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 9 }}>
+                <p style={{ fontSize: 'var(--t-base)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 9 }}>
                   {selectedNode.type === 'company' && selectedNode.id.split(':')[1] && (
                     <CompanyMark
                       ticker={selectedNode.id.split(':')[1]}
@@ -587,7 +587,7 @@ export default function GraphWorkspace() {
                   {selectedNode.label}
                 </p>
                 {selectedNode.description && (
-                  <p style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: 4 }}>{selectedNode.description}</p>
+                  <p style={{ fontSize: 'var(--t-small)', color: 'var(--muted)', marginTop: 4 }}>{selectedNode.description}</p>
                 )}
               </div>
 
@@ -606,7 +606,7 @@ export default function GraphWorkspace() {
               </div>
 
               <div>
-                <p className="label" style={{ fontSize: '0.625rem', marginBottom: 6 }}>
+                <p className="label" style={{ fontSize: 'var(--t-micro)', marginBottom: 6 }}>
                   Relationships ({selectedEdges.length})
                 </p>
                 <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 240, overflowY: 'auto' }}>
@@ -615,9 +615,9 @@ export default function GraphWorkspace() {
                     const other = nodeById.get(otherId)
                     if (!other) return null
                     return (
-                      <li key={`${otherId}-${i}`} style={{ fontSize: '0.75rem' }}>
+                      <li key={`${otherId}-${i}`} style={{ fontSize: 'var(--t-small)' }}>
                         <button type="button" onClick={() => setSelected(otherId)}
-                                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', color: 'var(--text)', fontWeight: 550 }}>
+                                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', color: 'var(--text)', fontWeight: 600 }}>
                           {other.label}
                         </button>
                         <span style={{ color: 'var(--faint)' }}>
@@ -632,13 +632,13 @@ export default function GraphWorkspace() {
               </div>
             </div>
           ) : (
-            <p style={{ fontSize: '0.8125rem', color: 'var(--faint)' }}>Select a node to inspect it.</p>
+            <p style={{ fontSize: 'var(--t-body)', color: 'var(--faint)' }}>Select a node to inspect it.</p>
           )}
 
           {/* Multi-select: what the compared companies share */}
           {data && data.shared.length > 0 && (
             <div className="hairline-top" style={{ marginTop: 14, paddingTop: 12 }}>
-              <p className="label" style={{ fontSize: '0.625rem', marginBottom: 8 }}>
+              <p className="label" style={{ fontSize: 'var(--t-micro)', marginBottom: 8 }}>
                 Shared by all selected companies
               </p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -656,11 +656,11 @@ export default function GraphWorkspace() {
           {/* Analytics */}
           {data && data.analytics.most_connected.length > 0 && (
             <details className="disclosure" style={{ marginTop: 14 }}>
-              <summary style={{ fontSize: '0.75rem', fontWeight: 550, color: 'var(--muted)' }}>
+              <summary style={{ fontSize: 'var(--t-small)', fontWeight: 600, color: 'var(--muted)' }}>
                 Graph analytics
               </summary>
               <div style={{ marginTop: 10 }}>
-                <p className="label" style={{ fontSize: '0.625rem', marginBottom: 6 }}>Most connected</p>
+                <p className="label" style={{ fontSize: 'var(--t-micro)', marginBottom: 6 }}>Most connected</p>
                 <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {data.analytics.most_connected.slice(0, 6).map((row) => (
                     <li key={row.id} className="u-note">
@@ -672,7 +672,7 @@ export default function GraphWorkspace() {
                     </li>
                   ))}
                 </ul>
-                <p className="num" style={{ fontSize: '0.6875rem', color: 'var(--faint)', marginTop: 8 }}>
+                <p className="num" style={{ fontSize: 'var(--t-meta)', color: 'var(--faint)', marginTop: 8 }}>
                   Providers: {Object.entries(data.analytics.provider_coverage).map(([p, n]) => `${p} ${n}`).join(' · ')}
                 </p>
               </div>
@@ -685,7 +685,7 @@ export default function GraphWorkspace() {
       {session && (
         <section aria-label="Research notebook" className="panel panel--pad">
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 10 }}>
-            <h3 className="h-panel" style={{ fontSize: '0.875rem' }}>Notebook</h3>
+            <h3 className="h-panel" style={{ fontSize: 'var(--t-body-lg)' }}>Notebook</h3>
             <span className="u-meta">
               {session.notes.length} note{session.notes.length === 1 ? '' : 's'}
               {selected ? ` · will reference ${selected.split(':')[1] ?? selected}` : ''}
@@ -695,7 +695,7 @@ export default function GraphWorkspace() {
             <label htmlFor="note-draft" className="visually-hidden">New note</label>
             <input id="note-draft" className="input" value={noteDraft}
                    placeholder="Record a finding…"
-                   style={{ height: 32, fontSize: '0.8125rem' }}
+                   style={{ height: 32, fontSize: 'var(--t-body)' }}
                    onChange={(e) => setNoteDraft(e.target.value)}
                    onKeyDown={(e) => { if (e.key === 'Enter') void saveNote() }} />
             <button type="button" className="btn btn--secondary btn--sm"
@@ -706,7 +706,7 @@ export default function GraphWorkspace() {
           {session.notes.length > 0 && (
             <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
               {session.notes.slice(0, 8).map((note) => (
-                <li key={note.id} style={{ fontSize: '0.8125rem', lineHeight: 1.5 }}>
+                <li key={note.id} style={{ fontSize: 'var(--t-body)', lineHeight: 1.5 }}>
                   <span style={{ color: 'var(--text)' }}>{note.body}</span>
                   {note.refs.length > 0 && (
  <span className="num u-meta" >

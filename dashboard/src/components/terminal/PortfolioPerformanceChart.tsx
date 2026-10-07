@@ -101,10 +101,10 @@ function RebasedChart({ benchmark }: { benchmark: PortfolioBenchmark }) {
         <ResponsiveContainer width="100%" height={200}>
           <AreaChart data={data} margin={{ top: 6, right: 4, bottom: 0, left: 4 }}>
             <CartesianGrid stroke="var(--line)" strokeDasharray="2 4" vertical={false} />
-            <XAxis dataKey="dateLabel" tick={{ fill: 'var(--faint)', fontSize: 10 }}
+            <XAxis dataKey="dateLabel" tick={{ fill: 'var(--faint)', fontSize: 'var(--t-micro)' }}
                    tickLine={false} axisLine={{ stroke: 'var(--line)' }} minTickGap={44} />
             <YAxis domain={[low - pad, high + pad]} width={44}
-                   tick={{ fill: 'var(--faint)', fontSize: 10 }} tickLine={false} axisLine={false}
+                   tick={{ fill: 'var(--faint)', fontSize: 'var(--t-micro)' }} tickLine={false} axisLine={false}
                    tickFormatter={(v: number) => v.toFixed(0)} />
             <Tooltip content={<RebasedTooltip label={benchmark.label} />}
                      cursor={{ stroke: 'var(--line-strong)', strokeWidth: 1 }} />
@@ -241,14 +241,14 @@ export default function PortfolioPerformanceChart({
             <CartesianGrid stroke="var(--line)" strokeDasharray="2 4" vertical={false} />
             <XAxis
               dataKey="dateLabel"
-              tick={{ fill: 'var(--faint)', fontSize: 10 }}
+              tick={{ fill: 'var(--faint)', fontSize: 'var(--t-micro)' }}
               tickLine={false}
               axisLine={{ stroke: 'var(--line)' }}
               minTickGap={44}
             />
             <YAxis
               domain={[low - pad, high + pad]}
-              tick={{ fill: 'var(--faint)', fontSize: 10 }}
+              tick={{ fill: 'var(--faint)', fontSize: 'var(--t-micro)' }}
               tickLine={false}
               axisLine={false}
               width={62}
@@ -267,7 +267,7 @@ export default function PortfolioPerformanceChart({
                 value: 'cost',
                 position: 'insideTopLeft',
                 fill: 'var(--faint)',
-                fontSize: 10,
+                fontSize: 'var(--t-micro)',
               }}
             />
             <Area

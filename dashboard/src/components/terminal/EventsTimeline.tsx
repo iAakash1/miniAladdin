@@ -17,7 +17,7 @@ export default function EventsTimeline({ events }: { events: EventRow[] }) {
 
   return (
     <section aria-labelledby="events-h" className="card dash-events">
-      <span id="events-h" className="h-panel" style={{ fontSize: '0.9375rem', marginBottom: 14, display: 'block' }}>
+      <span id="events-h" className="h-panel" style={{ fontSize: 'var(--t-value)', marginBottom: 14, display: 'block' }}>
         Upcoming events
       </span>
       <ol className="events-timeline">
@@ -29,9 +29,9 @@ export default function EventsTimeline({ events }: { events: EventRow[] }) {
                 <span className={`badge ${event.importance === 'high' ? 'badge--warn' : 'badge--neutral'}`}>
                   {event.type}
                 </span>
-                <span style={{ fontSize: '0.8125rem', flex: 1, minWidth: 160 }}>{event.title}</span>
+                <span style={{ fontSize: 'var(--t-body)', flex: 1, minWidth: 160 }}>{event.title}</span>
                 {event.historical_move !== null && (
-                  <span className="num" title={event.explain} style={{ fontSize: '0.6875rem', color: 'var(--muted)' }}>
+                  <span className="num" title={event.explain} style={{ fontSize: 'var(--t-meta)', color: 'var(--muted)' }}>
                     ±{event.historical_move}% typical
                   </span>
                 )}
