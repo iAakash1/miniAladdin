@@ -210,7 +210,9 @@ export default function Street({ symbol }: { symbol: string }) {
                   label: 'Mean price target',
                   display: format(mean, 'currency').text,
                   claim: `The ${targets.analyst_count ?? 'covering'} analysts this vendor polls average a target of ${format(mean, 'currency').text}.`,
-                  observation: `One vendor's consensus of its own contributing analysts, spanning ${format(lo ?? 0, 'currency').text} to ${format(hi ?? 0, 'currency').text}.`,
+                  observation: typeof lo === 'number' && typeof hi === 'number'
+                    ? `One vendor's consensus of its own contributing analysts, spanning ${format(lo, 'currency').text} to ${format(hi, 'currency').text}.`
+                    : "One vendor's consensus of its own contributing analysts. The vendor did not report the low and high of the range.",
                   source: targets.source ?? undefined,
                   providers: targets.source ? [targets.source] : undefined,
                   method: 'the vendor’s own mean of its own panel — not computed here, and not reconciled with any other vendor’s panel',

@@ -159,10 +159,10 @@ function Recalls({ drug, device, core }: { drug: RecallSection; device: RecallSe
       {answered.length ? (
         <div className="or-figures">
           {drug.status === 'ok' || drug.status === 'empty' ? (
-            <div className="or-figure"><span className="or-figure__v sys-num">{drug.total ?? 0}</span><span className="or-figure__k">drug recalls on record</span></div>
+            <div className="or-figure"><span className="or-figure__v sys-num">{drug.total ?? (drug.status === 'empty' ? 0 : '—')}</span><span className="or-figure__k">drug recalls on record</span></div>
           ) : null}
           {device.status === 'ok' || device.status === 'empty' ? (
-            <div className="or-figure"><span className="or-figure__v sys-num">{device.total ?? 0}</span><span className="or-figure__k">device recalls on record</span></div>
+            <div className="or-figure"><span className="or-figure__v sys-num">{device.total ?? (device.status === 'empty' ? 0 : '—')}</span><span className="or-figure__k">device recalls on record</span></div>
           ) : null}
         </div>
       ) : null}

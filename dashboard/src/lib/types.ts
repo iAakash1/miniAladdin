@@ -230,9 +230,11 @@ export interface QuantCard {
   rawVerdict: string
   confidence: number
   confidenceLosses: Array<{ component: string; points: number }>
-  uncertainty: number
+  /** Null when the record carries no reading — never a zero, which would claim certainty. */
+  uncertainty: number | null
   uncertaintyComponents: Record<string, number>
-  conflictIndex: number
+  /** Null when the record carries no reading — never a zero, which would claim agreement. */
+  conflictIndex: number | null
   momentumScore: number | null
   fundamentalScore: number | null
   qualityScore: number | null

@@ -304,7 +304,7 @@ function SectorMap({ sectors, active, onActive }: {
             <span className="mm-map__sparkcell">
               <Spark points={s.history ?? []} positive={up} active={isActive} />
             </span>
-            <span className="mm-num mm-map__lead" style={{ color: up ? 'var(--pos)' : 'var(--neg)' }}>
+            <span className="mm-num mm-map__lead" style={{ color: s.strength_21d === null ? 'var(--faint)' : up ? 'var(--pos)' : 'var(--neg)' }}>
               {signed(s.strength_21d)}
             </span>
             <span className="mm-num mm-map__muted">{signed(s.momentum_63d)}</span>

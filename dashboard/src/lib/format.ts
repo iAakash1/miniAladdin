@@ -126,3 +126,25 @@ export function timeAgo(iso: string | null | undefined): string {
 export function fmtDate(iso: string, opts?: Intl.DateTimeFormatOptions): string {
   return new Date(iso).toLocaleDateString('en-US', opts ?? { month: 'short', day: 'numeric' })
 }
+
+/**
+ * "disp 0.12 · data 0.05" — the uncertainty components that were recorded.
+ *
+ * A component the record does not carry is left out rather than printed as
+ * 0.00: a zero here reads as "this source of doubt was measured and found
+ * absent", which an analysis that never measured it has no basis to say.
+ * Returns an empty string when none were recorded.
+ */
+export function uncertaintyBreakdown(components: Record<string, number | null | undefined>): string {
+  const parts: Array<[string, string]> = [
+    ['dispersion', 'disp'],
+    ['data', 'data'],
+    ['event', 'event'],
+  ]
+  return parts
+    .flatMap(([key, label]) => {
+      const v = components[key]
+      return typeof v === 'number' && Number.isFinite(v) ? [`${label} ${v.toFixed(2)}`] : []
+    })
+    .join(' · ')
+}

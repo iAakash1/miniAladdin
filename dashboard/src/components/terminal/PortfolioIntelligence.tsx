@@ -58,6 +58,13 @@ type Status = 'loading' | 'ready' | 'error'
    placement for the reader's locale; a hand-rolled `$${n}` would be wrong
    the moment a non-USD venue is added, and wrong for every reader whose
    locale groups differently. */
+/** Holdings that have a drawdown reading. One without is left out rather than
+ *  drawn as a 0.0% bar — a short history has not "never fallen", it has not
+ *  been measured. */
+function drawnHoldings<T extends { pct?: number | null }>(rows: readonly T[] | undefined): Array<T & { pct: number }> {
+  return (rows ?? []).filter((d): d is T & { pct: number } => typeof d.pct === 'number' && Number.isFinite(d.pct))
+}
+
 function money(value: number | null | undefined, currency: string, digits = 2): string {
   if (value === null || value === undefined || !Number.isFinite(value)) return '—'
   try {
@@ -553,18 +560,18 @@ export default function PortfolioIntelligence() {
                 range rather than reading a figure from a handful of days.
               </p>
             )}
-            {risk.holding_drawdowns && risk.holding_drawdowns.length > 0 && (
+            {drawnHoldings(risk.holding_drawdowns).length > 0 && (
               <ul className="pf__rows">
-                {risk.holding_drawdowns.slice(0, 3).map((d) => (
+                {drawnHoldings(risk.holding_drawdowns).slice(0, 3).map((d) => (
                   <li key={d.ticker} className="pf__row">
                     <CompanyMark ticker={d.ticker} size={18} />
                     <span className="mono pf__row-name">{d.ticker}</span>
                     <WeightBar
-                      pct={Math.abs(d.pct ?? 0)}
-                      max={Math.abs(risk.holding_drawdowns?.[0]?.pct ?? 1)}
+                      pct={Math.abs(d.pct)}
+                      max={Math.abs(drawnHoldings(risk.holding_drawdowns)[0]?.pct ?? 1)}
                       tone="neg"
                     />
-                    <span className="num pf__row-val">{(d.pct ?? 0).toFixed(1)}%</span>
+                    <span className="num pf__row-val">{d.pct.toFixed(1)}%</span>
                   </li>
                 ))}
               </ul>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { uncertaintyBreakdown } from '@/lib/format'
 import { FACTOR_LABELS } from '@/lib/history'
 import type { Analysis } from '@/lib/types'
 
@@ -105,19 +106,18 @@ export default function QuantPanel({ analysis }: { analysis: Analysis }) {
         </div>
         <div>
           <span className="label" style={{ fontSize: '0.625rem' }}>Conflict</span>
-          <p className="num" style={{ fontSize: '1.125rem', fontWeight: 600, color: quant.conflictIndex > 0.15 ? 'var(--warn)' : 'var(--text)' }}>
-            {quant.conflictIndex.toFixed(2)}
+          <p className="num" style={{ fontSize: '1.125rem', fontWeight: 600, color: quant.conflictIndex !== null && quant.conflictIndex > 0.15 ? 'var(--warn)' : 'var(--text)' }}>
+            {quant.conflictIndex === null ? '—' : quant.conflictIndex.toFixed(2)}
           </p>
+          {quant.conflictIndex === null && <p className="u-meta">not recorded</p>}
         </div>
         <div>
           <span className="label" style={{ fontSize: '0.625rem' }}>Uncertainty</span>
           <p className="num" style={{ fontSize: '1.125rem', fontWeight: 600 }}>
-            {(quant.uncertainty * 100).toFixed(0)}%
+            {quant.uncertainty === null ? '—' : `${(quant.uncertainty * 100).toFixed(0)}%`}
           </p>
           <p className="u-meta">
-            disp {(quant.uncertaintyComponents.dispersion ?? 0).toFixed(2)} ·
-            data {(quant.uncertaintyComponents.data ?? 0).toFixed(2)} ·
-            event {(quant.uncertaintyComponents.event ?? 0).toFixed(2)}
+            {quant.uncertainty === null ? 'not recorded' : uncertaintyBreakdown(quant.uncertaintyComponents)}
           </p>
         </div>
       </div>

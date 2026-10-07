@@ -18,7 +18,7 @@ import { strict as assert } from 'node:assert'
 import test from 'node:test'
 
 import { normalizeAnalysis, normalizeChart, normalizeChartSeries, normalizeMacro } from '../src/lib/api'
-import { parsePercentString } from '../src/lib/format'
+import { parsePercentString, uncertaintyBreakdown } from '../src/lib/format'
 
 /** The eight fields that were coerced. */
 const COERCED = [
@@ -198,4 +198,38 @@ test('a response with no status falls back on whether it has points', () => {
   assert.equal(
     normalizeChartSeries({ prices: [{ date: 'd', close: 1 }] } as never).status, 'ok',
   )
+})
+
+// ── quant card: uncertainty and conflict ────────────────────────────────────
+
+/* A record saved before uncertainty and conflict were measured carries
+   neither. The card turned that into "Conflict 0.00" and "Uncertainty 0%",
+   which is a claim that every input agreed and nothing was in doubt — the
+   opposite of what an absent measurement means. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const quantCard = (quant: Record<string, unknown>): any =>
+  normalizeAnalysis({ ticker: 'X', quant: { raw_score: 0.2, ...quant } } as never).quant
+
+test('a record without uncertainty or conflict has none, rather than zero', () => {
+  const q = quantCard({})
+  assert.equal(q.uncertainty, null)
+  assert.equal(q.conflictIndex, null)
+})
+
+test('a recorded zero uncertainty and zero conflict stay zero', () => {
+  const q = quantCard({ uncertainty: 0, conflict_index: 0 })
+  assert.equal(q.uncertainty, 0)
+  assert.equal(q.conflictIndex, 0)
+})
+
+test('non-finite readings are treated as absent', () => {
+  const q = quantCard({ uncertainty: Number.NaN, conflict_index: Number.POSITIVE_INFINITY })
+  assert.equal(q.uncertainty, null)
+  assert.equal(q.conflictIndex, null)
+})
+
+test('only the recorded uncertainty components are described', () => {
+  assert.equal(uncertaintyBreakdown({}), '')
+  assert.equal(uncertaintyBreakdown({ dispersion: 0.12, data: 0 }), 'disp 0.12 · data 0.00')
+  assert.equal(uncertaintyBreakdown({ event: 0.5, data: Number.NaN }), 'event 0.50')
 })

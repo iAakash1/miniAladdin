@@ -141,6 +141,9 @@ export function normalizeAi(raw: RawAiAnalysis | null | undefined): AiAnalysis |
   }
 }
 
+const finiteOrNull = (v: number | null | undefined): number | null =>
+  typeof v === 'number' && Number.isFinite(v) ? v : null
+
 function normalizeQuant(raw: RawQuant | null | undefined): QuantCard | null {
   if (!raw || typeof raw.raw_score !== 'number') return null
   return {
@@ -150,9 +153,11 @@ function normalizeQuant(raw: RawQuant | null | undefined): QuantCard | null {
     rawVerdict: raw.raw_verdict ?? raw.verdict ?? 'Hold',
     confidence: raw.confidence ?? 50,
     confidenceLosses: raw.confidence_losses ?? [],
-    uncertainty: raw.uncertainty ?? 0,
+    /* `?? null`: an analysis saved before these were recorded has no
+       uncertainty, and "0% uncertain" is a claim of certainty it never made. */
+    uncertainty: finiteOrNull(raw.uncertainty),
     uncertaintyComponents: raw.uncertainty_components ?? {},
-    conflictIndex: raw.conflict_index ?? 0,
+    conflictIndex: finiteOrNull(raw.conflict_index),
     momentumScore: raw.momentum_score ?? null,
     fundamentalScore: raw.fundamental_score ?? null,
     qualityScore: raw.quality_score ?? null,
