@@ -31,10 +31,12 @@ The design premise here is that **the evidence is the product**:
 
 ## The product
 
-Every image below is the **live production deployment** at
-[omnisignalterminal.vercel.app](https://omnisignalterminal.vercel.app), captured against
-AAPL on 2026-08-25. Nothing here is a mockup. Full capture metadata, including
-which panels production does *not* yet have, is in
+Every image below was captured from the **production deployment** at
+[omnisignalterminal.vercel.app](https://omnisignalterminal.vercel.app) against
+AAPL on 2026-08-25. Nothing here is a mockup, but the terminal has been rebuilt
+since (a new shell, navigation and design system), so these show the earlier
+interface and are due to be recaptured. Full capture metadata, including which
+panels production did *not* yet have, is in
 [docs/screenshots/README.md](docs/screenshots/README.md).
 
 ### Company overview
@@ -134,7 +136,7 @@ flowchart TB
         NEXT["Next.js 16 · terminal components"]
     end
 
-    subgraph BACKEND["FastAPI on Render"]
+    subgraph BACKEND["FastAPI on Google Cloud Run (private)"]
         API["api/index.py · api/persistence.py"]
         RESEARCH["Research pipeline"]
         PORT["Portfolio intelligence"]
@@ -194,8 +196,11 @@ flowchart LR
     STD -->|"study.json + registry.json"| SVC
 ```
 
-No queue, no broker, no worker, no container orchestration. Vercel serves the
-frontend; `next.config.ts` rewrites `/api/*` to the Render backend.
+No queue, no broker, no worker. Vercel serves the frontend, and its `/api/*`
+routes proxy server-side to the private Cloud Run service, authenticating with a
+Google-signed identity token minted from Vercel's OIDC token
+(`dashboard/src/lib/backend-proxy.ts`; the service answers 403 to anyone else).
+Render remains a documented rollback target, not the serving path.
 
 ## Two retrieval modes, and why both exist
 
@@ -620,11 +625,13 @@ Every ablation contrast reads `NO IMPROVEMENT`. The void study stays listed.
 Screenshots are **LOCAL** and unverified in production — see
 [`docs/screenshots/quant/README.md`](docs/screenshots/quant/README.md).
 
-### Deployed, but not promoted
+### Packaged, but not promoted
 
-`gradient_boosting@4.0:fwd_rank_21` from EXP-006 runs as an inference service on
-Render — an 89 KB estimator, loaded once, computing no features and touching no
-dataset. It is labelled **EXPERIMENTAL** with **promotion BLOCKED** in the
+`gradient_boosting@4.0:fwd_rank_21` from EXP-006 is packaged as a separate
+inference service (`render.yaml`) — an 89 KB estimator, loaded once, computing no
+features and touching no dataset. The Cloud Run backend is not configured with
+that service's URL (`QUANT_INFERENCE_URL` is unset), so the production model
+panel reports it unavailable rather than guessing. It is labelled **EXPERIMENTAL** with **promotion BLOCKED** in the
 artifact metadata, in the API response and on the page, because it fails one of
 four candidate gates:
 
@@ -635,7 +642,7 @@ four candidate gates:
 | beats best baseline | true | +0.0290 vs +0.0209 | PASS |
 | **net Sharpe** | **> 0** | **−0.102** | **FAIL** |
 
-Deploying it changes nothing about that. `promote()` lives in the research
+Hosting it changes nothing about that. `promote()` lives in the research
 repository; the serving path has no authority over it.
 
 Full detail: [`docs/quant.md`](docs/quant.md) ·
@@ -791,7 +798,7 @@ reason. The ones that came from a measured failure rather than a preference:
 
 ## Environment variables
 
-**Backend runtime (Cloud Run candidate; Render rollback)**
+**Backend runtime (Cloud Run; Render is the rollback target)**
 
 | Var | Required | Purpose |
 |---|---|---|
@@ -856,7 +863,7 @@ python -m pytest tests/ -v      # hermetic by default
 # Frontend
 cd dashboard
 npm install
-echo 'BACKEND_ORIGIN=http://127.0.0.1:8000' >> .env.local   # else it uses the live Render API
+echo 'BACKEND_ORIGIN=http://127.0.0.1:8000' >> .env.local   # required: the frontend has no default backend
 npm run dev                     # http://localhost:3000
 npm test && npm run lint && npx tsc --noEmit && npm run build
 ```

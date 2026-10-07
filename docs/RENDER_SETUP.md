@@ -1,5 +1,10 @@
 # Render setup
 
+> **Status (2026-10-08).** Production serves from Google Cloud Run
+> (`docs/CLOUD_RUN_DEPLOYMENT.md`). The Render services below are the documented
+> rollback target, and the "primary" in the table means primary *on Render*. The
+> production backend is not configured with the inference service's URL.
+
 This repository is connected to existing Render services. Do not create a
 second backend or inference service to apply these settings.
 
