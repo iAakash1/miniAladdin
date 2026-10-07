@@ -1,5 +1,6 @@
 'use client'
 
+import { fmtSigned } from '@/lib/format'
 import { Badge, type Tone } from '@/components/system'
 import type { Analysis, RiskLevel } from '@/lib/types'
 
@@ -10,10 +11,6 @@ const RISK_BADGE: Record<RiskLevel, Tone> = {
 }
 
 const DOT_COLOR = { pos: 'var(--pos)', neg: 'var(--neg)', neutral: 'var(--warn)' } as const
-
-function formatSigned(value: number, digits = 3): string {
-  return `${value >= 0 ? '+' : ''}${value.toFixed(digits)}`
-}
 
 function FactorList({
   title,
@@ -300,25 +297,25 @@ export default function AiPanel({ analysis }: { analysis: Analysis }) {
             )}
             <ImpactRow
               label="Momentum"
-              valueText={formatSigned(impacts.momentum.contribution)}
+              valueText={fmtSigned(impacts.momentum.contribution)}
               tone={impactTone(impacts.momentum.contribution)}
               narrative={ai.momentumImpact}
             />
             <ImpactRow
               label="Quality"
-              valueText={formatSigned(impacts.quality.contribution)}
+              valueText={fmtSigned(impacts.quality.contribution)}
               tone={impactTone(impacts.quality.contribution)}
               narrative={ai.qualityImpact}
             />
             <ImpactRow
               label="Value"
-              valueText={formatSigned(impacts.value.contribution)}
+              valueText={fmtSigned(impacts.value.contribution)}
               tone={impactTone(impacts.value.contribution)}
               narrative={ai.valueImpact}
             />
             <ImpactRow
               label="Post-earnings drift"
-              valueText={formatSigned(impacts.pead.contribution)}
+              valueText={fmtSigned(impacts.pead.contribution)}
               tone={impactTone(impacts.pead.contribution)}
               narrative={ai.peadImpact}
             />
@@ -334,7 +331,7 @@ export default function AiPanel({ analysis }: { analysis: Analysis }) {
             />
             <ImpactRow
               label="News"
-              valueText={formatSigned(impacts.news.contribution)}
+              valueText={fmtSigned(impacts.news.contribution)}
               tone={impactTone(impacts.news.contribution)}
               narrative={ai.newsReasoning}
             />

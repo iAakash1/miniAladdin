@@ -32,6 +32,7 @@
  * trend, no placeholder series, no smoothing that invents shape.
  */
 
+import { fmtSigned } from '@/lib/format'
 import CompanyMark from '@/components/ui/CompanyMark'
 import Link from 'next/link'
 import { Fragment, useMemo, useState } from 'react'
@@ -105,7 +106,7 @@ const TONE: Record<Verdict['tone'], string> = {
 }
 
 const signed = (v: number | null, digits = 1) =>
-  v === null ? '—' : `${v > 0 ? '+' : ''}${v.toFixed(digits)}%`
+  v === null ? '—' : `${fmtSigned(v, digits)}%`
 
 /* ── the read: score, verdict, trend ──────────────────────────────────────── */
 
@@ -151,7 +152,7 @@ function BreadthRead({ breadth, verdict, positive21, positive63, total }: {
           <div className="mm-read__trendfoot">
             <span>{history.length} sessions</span>
             <span style={{ color: change !== null && change >= 0 ? 'var(--pos)' : 'var(--neg)' }}>
-              {change !== null ? `${change >= 0 ? '+' : ''}${change} pts` : ''}
+              {change !== null ? `${fmtSigned(change, 0)} pts` : ''}
             </span>
           </div>
         </div>

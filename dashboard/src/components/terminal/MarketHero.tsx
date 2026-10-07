@@ -11,7 +11,7 @@ import {
   regimeLabel,
   signalConfidence,
 } from '@/lib/dashboardInsights'
-import { fmtNum, fmtPctRaw } from '@/lib/format'
+import { fmtNum, fmtPctRaw, fmtSigned } from '@/lib/format'
 
 const BADGE_TONE: Record<string, Tone> = { pos: 'pass', neg: 'fail', warn: 'warn', neutral: 'muted' }
 
@@ -68,7 +68,7 @@ export default function MarketHero({ data }: { data: DashboardData }) {
           label="VIX"
           value={vix ? fmtNum(vix.price, 1) : '—'}
           size="lg"
-          change={vix?.change_1d != null ? `${vix.change_1d > 0 ? '+' : ''}${vix.change_1d}% 1d` : undefined}
+          change={vix?.change_1d != null ? `${fmtSigned(vix.change_1d, 2)}% 1d` : undefined}
           tone={vix?.change_1d != null ? (vix.change_1d > 0 ? 'warn' : 'pos') : 'neutral'}
         />
         <Metric label="Fed" value={fed ? fmtPctRaw(fed.value) : '—'} size="lg" />
@@ -82,7 +82,7 @@ export default function MarketHero({ data }: { data: DashboardData }) {
           label="Trend"
           value={trend.label}
           size="lg"
-          change={trend.changePct != null ? `${trend.changePct > 0 ? '+' : ''}${trend.changePct}% 1w` : undefined}
+          change={trend.changePct != null ? `${fmtSigned(trend.changePct, 2)}% 1w` : undefined}
           tone={trend.label === 'Up' ? 'pos' : trend.label === 'Down' ? 'neg' : 'neutral'}
         />
         <Metric

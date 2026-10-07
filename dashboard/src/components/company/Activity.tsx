@@ -1,5 +1,6 @@
 'use client'
 
+import { fmtSigned } from '@/lib/format'
 import { useMemo, useState } from 'react'
 
 import { factorName } from './derive'
@@ -63,10 +64,10 @@ function runDetail(run: AnalysisSnapshot, older: AnalysisSnapshot | undefined): 
   const d = diffSnapshots(older, run)
   const parts: string[] = []
   if (d.verdictChanged) parts.push(`${older.verdict} → ${run.verdict}`)
-  if (d.confidenceDelta) parts.push(`confidence ${d.confidenceDelta > 0 ? '+' : ''}${d.confidenceDelta}`)
+  if (d.confidenceDelta) parts.push(`confidence ${fmtSigned(d.confidenceDelta, 0)}`)
   const top = d.topDrivers[0]
   if (top && Math.abs(top.delta) >= 0.005) {
-    parts.push(`${factorName(top.name)} ${top.delta > 0 ? 'strengthened' : 'weakened'} ${top.delta > 0 ? '+' : ''}${top.delta.toFixed(3)}`)
+    parts.push(`${factorName(top.name)} ${top.delta > 0 ? 'strengthened' : 'weakened'} ${fmtSigned(top.delta, 3)}`)
   }
   for (const r of d.regimesEntered) parts.push(`entered ${r.replace(/_/g, ' ')}`)
   return parts.length ? parts.join(' · ') : 'no material change from the previous run'

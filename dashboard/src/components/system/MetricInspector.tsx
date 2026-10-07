@@ -121,7 +121,7 @@ export default function MetricInspector() {
                   <tr key={o.provider}>
                     <td>{o.provider}</td>
                     <td className="num">
-                      {typeof o.value === 'number' ? o.value.toLocaleString() : (o.value ?? '—')}
+                      {typeof o.value === 'number' ? o.value.toLocaleString('en-US') : (o.value ?? '—')}
                     </td>
                   </tr>
                 ))}

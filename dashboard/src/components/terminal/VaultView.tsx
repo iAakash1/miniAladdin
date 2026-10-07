@@ -15,7 +15,7 @@ import { normalizeAnalysis } from '@/lib/api'
 import ConfirmButton from '@/components/ui/ConfirmButton'
 import CompanyMark from '@/components/ui/CompanyMark'
 import { Segmented, Switch } from '@/components/ui/Controls'
-import { fmtDate, timeAgo } from '@/lib/format'
+import { fmtDate, timeAgo, fmtSigned } from '@/lib/format'
 import {
   type CompareResult,
   type HistoryFilters,
@@ -482,7 +482,7 @@ function HistoryRow({
       </td>
       <td className="num">
         {item.composite_score !== null
-          ? `${item.composite_score >= 0 ? '+' : ''}${item.composite_score.toFixed(3)}`
+          ? `${fmtSigned(item.composite_score, 3)}`
           : '—'}
       </td>
       <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
@@ -839,7 +839,7 @@ function CompareView({ a, b, onBack }: { a: string; b: string; onBack: () => voi
                     </span>
  <span className="num u-note" >
                       {run.composite_score !== null
-                        ? `composite ${run.composite_score >= 0 ? '+' : ''}${run.composite_score.toFixed(3)}`
+                        ? `composite ${fmtSigned(run.composite_score, 3)}`
                         : ''}
                     </span>
                   </div>
@@ -876,7 +876,7 @@ function CompareView({ a, b, onBack }: { a: string; b: string; onBack: () => voi
                   </span>
                   <DeltaBar delta={family.delta} max={maxFamilyDelta} />
                   <span className="num" style={{ width: 64, textAlign: 'right', flexShrink: 0, fontSize: 'var(--t-small)', fontWeight: 600, color: !family.changed ? 'var(--faint)' : family.delta >= 0 ? 'var(--pos)' : 'var(--neg)' }}>
-                    {family.delta >= 0 ? '+' : ''}{family.delta.toFixed(3)}
+                    {fmtSigned(family.delta, 3)}
                   </span>
                 </div>
               ))}
@@ -887,7 +887,7 @@ function CompareView({ a, b, onBack }: { a: string; b: string; onBack: () => voi
                   {result.macro.srm_before ?? '—'} → {result.macro.srm_after ?? '—'}
                   {result.macro.srm_delta !== null && (
                     <span style={{ color: result.macro.srm_delta > 0 ? 'var(--warn)' : 'var(--muted)' }}>
-                      {' '}({result.macro.srm_delta >= 0 ? '+' : ''}{result.macro.srm_delta})
+                      {' '}({fmtSigned(result.macro.srm_delta, 2)})
                     </span>
                   )}
                 </span>
@@ -925,7 +925,7 @@ function CompareView({ a, b, onBack }: { a: string; b: string; onBack: () => voi
                         {factor.after !== null ? factor.after.toFixed(3) : '—'}
                       </td>
                       <td className="num" style={{ textAlign: 'right', fontWeight: 600, color: !factor.changed ? 'var(--faint)' : factor.delta >= 0 ? 'var(--pos)' : 'var(--neg)' }}>
-                        {factor.delta >= 0 ? '+' : ''}{factor.delta.toFixed(3)}
+                        {fmtSigned(factor.delta, 3)}
                       </td>
                     </tr>
                   ))}

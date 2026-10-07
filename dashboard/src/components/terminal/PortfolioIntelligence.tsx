@@ -69,7 +69,7 @@ function drawnHoldings<T extends { pct?: number | null }>(rows: readonly T[] | u
 function money(value: number | null | undefined, currency: string, digits = 2): string {
   if (value === null || value === undefined || !Number.isFinite(value)) return '—'
   try {
-    return new Intl.NumberFormat(undefined, {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency,
       minimumFractionDigits: digits,

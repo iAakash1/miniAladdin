@@ -1,5 +1,6 @@
 'use client'
 
+import { fmtSigned } from '@/lib/format'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
@@ -72,7 +73,7 @@ export function Drivers({ a, links = true }: { a: Analysis; links?: boolean }) {
   return (
     <Card
       title="Signal decomposition"
-      sub={<>composite <span className="sys-num">{q.rawScore >= 0 ? '+' : ''}{q.rawScore.toFixed(2)}</span></>}
+      sub={<>composite <span className="sys-num">{fmtSigned(q.rawScore, 2)}</span></>}
       more={links ? { href: `${companyHref(a.ticker, 'report')}#drivers`, label: `All ${q.factors.length} factors` } : undefined}
     >
       <table className="cw-fam">
@@ -91,7 +92,7 @@ export function Drivers({ a, links = true }: { a: Analysis; links?: boolean }) {
               <tr key={f}>
                 <td>{FAMILY_LABEL[f]}</td>
                 <td className="num">{q.weightsUsed[f] !== undefined ? `${Math.round(q.weightsUsed[f] * 100)}%` : '—'}</td>
-                <td className="num">{s === null ? <span className="sys-null">—</span> : `${s >= 0 ? '+' : ''}${s.toFixed(2)}`}</td>
+                <td className="num">{s === null ? <span className="sys-null">—</span> : `${fmtSigned(s, 2)}`}</td>
                 <td className="cw-fam__bar"><Diverging value={s} /></td>
               </tr>
             )
@@ -106,7 +107,7 @@ export function Drivers({ a, links = true }: { a: Analysis; links?: boolean }) {
       <ul className="cw-contrib">
         {factors.map((f) => (
           <li key={f.name}>
-            <span className={`sys-num ${f.contribution >= 0 ? 'sys-pos' : 'sys-neg'}`}>{f.contribution >= 0 ? '+' : ''}{f.contribution.toFixed(3)}</span>
+            <span className={`sys-num ${f.contribution >= 0 ? 'sys-pos' : 'sys-neg'}`}>{fmtSigned(f.contribution, 3)}</span>
             <span className="cw-contrib__name">{factorName(f.name)}</span>
             <span className="cw-contrib__fam">{f.family}</span>
           </li>

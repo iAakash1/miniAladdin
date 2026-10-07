@@ -47,6 +47,15 @@ export function fmtNum(v: number | null | undefined, digits = 2): string {
   return unsignZero((v as number).toFixed(digits))
 }
 
+/** A signed figure: "+0.123", "-0.123", "0.000". The same rule as `format()` —
+ *  the plus is decided after rounding, so a value that rounds to zero gets
+ *  neither sign, and anything not finite is "no value" rather than "NaN". */
+export function fmtSigned(v: number | null | undefined, digits = 2): string {
+  if (isMissing(v)) return '—'
+  const body = unsignZero((v as number).toFixed(digits))
+  return `${parseFloat(body) > 0 ? '+' : ''}${body}`
+}
+
 /** 0.0431 -> "+4.31%" */
 export function fmtPct(v: number | null | undefined, digits = 2, signed = true): string {
   if (isMissing(v)) return '—'

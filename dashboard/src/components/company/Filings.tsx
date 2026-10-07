@@ -1,5 +1,6 @@
 'use client'
 
+import { fmtSigned } from '@/lib/format'
 import { useState } from 'react'
 
 import { filingItems } from '@/lib/filings'
@@ -131,7 +132,7 @@ export default function Filings({ block, recorded = false }: {
                   <span data-tone={t.change_pct >= 0 ? 'pos' : 'neg'} style={{ width: `${(Math.abs(t.change_pct) / maxAbs) * 100}%` }} />
                 </span>
                 <span className={`fl-trend__pct sys-num ${t.change_pct > 0 ? 'sys-pos' : t.change_pct < 0 ? 'sys-neg' : ''}`}>
-                  {t.change_pct > 0 ? '+' : ''}{t.change_pct.toFixed(1)}%
+                  {fmtSigned(t.change_pct, 1)}%
                 </span>
                 <span className="fl-trend__src">FY{t.prior_year}→FY{t.latest_year} · {t.form} filed {t.filed}</span>
               </li>
@@ -157,7 +158,7 @@ export default function Filings({ block, recorded = false }: {
                 <span className="fl-restate__name">{r.label}</span>
                 <span className="sys-num">{r.period_start ? `${r.period_start} → ${r.period_end}` : r.period_end}</span>
                 <span className="sys-num">{compact(r.original_value)} → {compact(r.revised_value)}</span>
-                <span className={`sys-num ${r.change_pct > 0 ? 'sys-pos' : 'sys-neg'}`}>{r.change_pct > 0 ? '+' : ''}{r.change_pct.toFixed(1)}%</span>
+                <span className={`sys-num ${r.change_pct > 0 ? 'sys-pos' : 'sys-neg'}`}>{fmtSigned(r.change_pct, 1)}%</span>
                 <span className="fl-restate__filed">filed {r.original_filed}, revised {r.revised_filed}</span>
               </li>
             ))}

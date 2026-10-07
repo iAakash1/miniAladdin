@@ -9,6 +9,7 @@
  */
 'use client'
 
+import { fmtSigned } from '@/lib/format'
 import type { ReactNode } from 'react'
 
 import { useMetrics, type MetricRef } from './MetricContext'
@@ -576,7 +577,7 @@ export const dash = (v: unknown): string =>
 
 export function signed(v: number | null | undefined, digits = 4): string {
   if (v === null || v === undefined || !Number.isFinite(v)) return '—'
-  return `${v >= 0 ? '+' : ''}${v.toFixed(digits)}`
+  return `${fmtSigned(v, digits)}`
 }
 
 /* ── prose ──────────────────────────────────────────────────────────────

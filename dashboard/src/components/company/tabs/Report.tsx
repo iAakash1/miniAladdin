@@ -17,7 +17,7 @@ import CompanyMark from '@/components/ui/CompanyMark'
 import SectorMark, { sectorKey } from '@/components/visual/SectorMark'
 import Timeline from '@/components/visual/Timeline'
 import { READING_GAP, currentSectionId, pinnedSection, scrollToSection, stickyInset, workspaceRoot } from '@/lib/section-nav'
-import { ordinal } from '@/lib/format'
+import { ordinal, fmtSigned } from '@/lib/format'
 import { venueLabel } from '@/lib/text'
 import type { Analysis } from '@/lib/types'
 
@@ -126,7 +126,7 @@ function Outline({ sections, current, onPick }: {
   )
 }
 
-const signed = (v: number, d = 3) => `${v >= 0 ? '+' : ''}${v.toFixed(d)}`
+const signed = (v: number, d = 3) => fmtSigned(v, d)
 const pct = (v: number | undefined, d = 1) => (v === undefined || !Number.isFinite(v) ? '—' : `${v.toFixed(d)}%`)
 const mult = (v: number | undefined, d = 1) => (v === undefined || !Number.isFinite(v) ? '—' : `${v.toFixed(d)}×`)
 function money(v: number): string {
@@ -153,7 +153,7 @@ function PriceFigure({ a }: { a: Analysis }) {
       <figcaption>
         <b>Figure 1.</b> {a.ticker} daily close and volume over three months ({points.length} sessions
         {series?.source ? `, ${series.source}` : ''}). Range {Math.min(...closes).toFixed(2)}–{Math.max(...closes).toFixed(2)}
-        {change !== null ? `, ${change >= 0 ? '+' : ''}${change.toFixed(1)}% over the window` : ''}.
+        {change !== null ? `, ${fmtSigned(change, 1)}% over the window` : ''}.
       </figcaption>
     </figure>
   )
@@ -415,7 +415,7 @@ export default function Report({ analysis: a }: { analysis: Analysis }) {
                   numeric={[1, 2, 3]}
                   rows={a.filings.xbrl_trend.map((t) => [
                     t.concept, `${money(t.latest_value)} FY${t.latest_year}`, `${money(t.prior_value)} FY${t.prior_year}`,
-                    <span key="c" className={t.change_pct >= 0 ? 'sys-pos' : 'sys-neg'}>{t.change_pct >= 0 ? '+' : ''}{t.change_pct.toFixed(1)}%</span>,
+                    <span key="c" className={t.change_pct >= 0 ? 'sys-pos' : 'sys-neg'}>{fmtSigned(t.change_pct, 1)}%</span>,
                     `${t.form} · ${t.filed}`,
                   ])}
                 />
@@ -448,7 +448,7 @@ export default function Report({ analysis: a }: { analysis: Analysis }) {
             <Table
               head={['Series', 'Value', 'Change', 'As of', 'Why it matters']}
               numeric={[1, 2]}
-              rows={a.macroContext.rates.map((m) => [m.label, `${m.value.toFixed(2)}${m.unit}`, m.change === null ? '—' : `${m.change >= 0 ? '+' : ''}${m.change.toFixed(2)}`, m.as_of, m.why])}
+              rows={a.macroContext.rates.map((m) => [m.label, `${m.value.toFixed(2)}${m.unit}`, m.change === null ? '—' : `${fmtSigned(m.change, 2)}`, m.as_of, m.why])}
             />
           ) : null}
           {gen && ai?.macroReasoning ? <p className="rp-prose rp-prose--gen">{ai.macroReasoning}<Cites ids={one('macro_reasoning')} index={index} symbol={a.ticker} /></p> : null}
@@ -480,7 +480,7 @@ export default function Report({ analysis: a }: { analysis: Analysis }) {
                 <Table
                   head={['Concept', 'Period end', 'Original', 'Revised', 'Change']}
                   numeric={[2, 3, 4]}
-                  rows={a.filings.restatements.map((x) => [x.label, x.period_end, `${money(x.original_value)} (${x.original_filed})`, `${money(x.revised_value)} (${x.revised_filed})`, `${x.change_pct >= 0 ? '+' : ''}${x.change_pct.toFixed(2)}%`])}
+                  rows={a.filings.restatements.map((x) => [x.label, x.period_end, `${money(x.original_value)} (${x.original_filed})`, `${money(x.revised_value)} (${x.revised_filed})`, `${fmtSigned(x.change_pct, 2)}%`])}
                 />
               </>
             ) : null}

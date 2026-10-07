@@ -19,6 +19,7 @@
  * holding. Both can carry the same signal.
  */
 
+import { fmtSigned } from '@/lib/format'
 import { useEffect, useState } from 'react'
 
 import {
@@ -65,9 +66,7 @@ const num = (v: number | null | undefined, digits = 1): string =>
   v === null || v === undefined || !Number.isFinite(v) ? dash : v.toFixed(digits)
 
 const signedNum = (v: number | null | undefined, digits = 2): string =>
-  v === null || v === undefined || !Number.isFinite(v)
-    ? dash
-    : `${v > 0 ? '+' : ''}${v.toFixed(digits)}`
+  v === null || v === undefined || !Number.isFinite(v) ? dash : fmtSigned(v, digits)
 
 export default function RankAttribution({ a, b }: { a: string; b: string }) {
   const [data, setData] = useState<Attribution | null>(null)

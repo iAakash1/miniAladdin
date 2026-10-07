@@ -341,7 +341,7 @@ export default function Street({ symbol }: { symbol: string }) {
                     label: 'Insider sentiment (MSPR)',
                     display: insider.mspr.toFixed(1),
                     claim: `Insider trading over the last six months reads as ${insider.read ?? 'unclassified'}.`,
-                    observation: `Finnhub's monthly share purchase ratio, ${insider.mspr.toFixed(1)} on a scale from -100 to 100${typeof insider.net_shares === 'number' ? `, on net share movement of ${insider.net_shares.toLocaleString()}` : ''}.`,
+                    observation: `Finnhub's monthly share purchase ratio, ${insider.mspr.toFixed(1)} on a scale from -100 to 100${typeof insider.net_shares === 'number' ? `, on net share movement of ${insider.net_shares.toLocaleString('en-US')}` : ''}.`,
                     source: 'finnhub',
                     unit: 'index, -100 to 100',
                     method: 'vendor-supplied index — bounded, and not a percentage despite its range',

@@ -7,6 +7,7 @@
    Async tier: company resolver (/api/screen), vault history.
    ============================================================ */
 
+import { formatDate } from '@/lib/quantity'
 import { fetchKnowledge, knowledgeEntities } from '../knowledge'
 import { allTopics } from '../learn'
 import { readHistorySnapshot } from '../history'
@@ -230,7 +231,7 @@ export function registerDefaultProviders(): void {
           id: `vault:${item.id}`,
           type: 'vault' as const,
           title: `${item.ticker} — ${item.verdict}`,
-          subtitle: new Date(item.created_at).toLocaleDateString(),
+          subtitle: formatDate(item.created_at),
           route: `/terminal/vault?id=${encodeURIComponent(item.id)}`,
           keywords: [item.ticker.toLowerCase(), (item.company_name ?? '').toLowerCase()].filter(Boolean),
         }))

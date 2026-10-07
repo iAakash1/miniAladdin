@@ -1,5 +1,6 @@
 'use client'
 
+import { fmtSigned } from '@/lib/format'
 import { Diverging } from '@/components/company/Panels'
 import { SignalGrid } from '@/components/company/SignalState'
 import { factorName } from '@/components/company/derive'
@@ -58,7 +59,7 @@ export default function RunPreview() {
                 <span className="lp-contrib__name">{factorName(f.name)}</span>
                 <Diverging value={f.contribution} max={0.08} />
                 <span className={`sys-num ${f.contribution >= 0 ? 'sys-pos' : 'sys-neg'}`}>
-                  {f.contribution >= 0 ? '+' : ''}{f.contribution.toFixed(3)}
+                  {fmtSigned(f.contribution, 3)}
                 </span>
               </li>
             ))}

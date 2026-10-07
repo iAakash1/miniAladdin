@@ -11,6 +11,7 @@
  * upstream is down is worse than search that says which part is missing.
  */
 
+import { fmtSigned } from '@/lib/format'
 import type { ResearchObject } from './objects'
 import { readResource, type Policy } from '@/lib/resource'
 
@@ -87,7 +88,7 @@ export async function loadCatalogue(force = false): Promise<Catalogue> {
           // The headline figure travels with the result, so choosing between
           // two models in the palette does not require opening both.
           const ic = typeof m.mean_ic === 'number' && Number.isFinite(m.mean_ic)
-            ? `IC ${m.mean_ic >= 0 ? '+' : ''}${m.mean_ic.toFixed(4)}`
+            ? `IC ${fmtSigned(m.mean_ic, 4)}`
             : null
           out.push({
             kind: 'model', id: m.model_id, label: m.model_id,

@@ -2,7 +2,7 @@
 
 import EntityMark from '@/components/visual/EntityMark'
 import Thumb from '@/components/visual/Thumb'
-import { timeAgo } from '@/lib/format'
+import { timeAgo, fmtSigned } from '@/lib/format'
 import { sourceDomain } from '@/lib/identity'
 import type { Headline, NewsStream } from '@/lib/types'
 
@@ -16,7 +16,7 @@ function KeywordTone({ h }: { h: Headline }) {
       data-tone={h.score > 0 ? 'pos' : 'neg'}
       title="Keyword tone from the engine's news factor — bullish and bearish words counted, not a reading of the article"
     >
-      keyword tone {h.score > 0 ? '+' : ''}{h.score.toFixed(2)}
+      keyword tone {fmtSigned(h.score, 2)}
     </span>
   )
 }

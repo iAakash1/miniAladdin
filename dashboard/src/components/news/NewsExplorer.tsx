@@ -207,7 +207,7 @@ export default function NewsExplorer() {
           {status === 'ready' && data && (
             <>
               {fetching ? 'Updating… · ' : ''}
-              {data.total.toLocaleString()} {data.total === 1 ? 'story' : 'stories'}
+              {data.total.toLocaleString('en-US')} {data.total === 1 ? 'story' : 'stories'}
               {hasFilters && (
                 <>
                   {' · '}

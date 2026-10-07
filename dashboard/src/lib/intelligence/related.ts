@@ -11,6 +11,7 @@
    persistence calls the reasoning provider uses.
    ============================================================ */
 
+import { formatDate } from '@/lib/quantity'
 import { learnRoute } from '../learn'
 import { fetchHistory } from '../persistence'
 import { STREET_GLOSSARY, TECHNICAL_GLOSSARY } from '../technicalGlossary'
@@ -75,7 +76,7 @@ export async function relatedResearch(ticker: string): Promise<Entity[]> {
       id: `vault:${item.id}`,
       type: 'vault' as const,
       title: `${item.ticker} — ${item.verdict}`,
-      subtitle: new Date(item.created_at).toLocaleDateString(),
+      subtitle: formatDate(item.created_at),
       route: `/terminal/vault?id=${encodeURIComponent(item.id)}`,
       keywords: [],
     }))

@@ -13,7 +13,7 @@ import CompanyIdentity from '@/components/visual/CompanyIdentity'
 import SymbolSpark from '@/components/visual/SymbolSpark'
 import { ConfidenceBar, StatusPill, TrendMark } from '@/components/ui/DataMarks'
 import { notify } from '@/components/ui/Toasts'
-import { fmtPctRaw, timeAgo } from '@/lib/format'
+import { fmtPctRaw, timeAgo, fmtSigned } from '@/lib/format'
 import PositionsPanel from '@/components/terminal/PositionsPanel'
 import PortfolioIntelligence from '@/components/terminal/PortfolioIntelligence'
 import { refreshQuotes } from '@/lib/quote-hub'
@@ -525,8 +525,8 @@ export default function PortfolioView() {
                         {diff && (diff.verdictChanged || Math.abs(diff.confidenceDelta) >= 3) ? (
                           <Tooltip label={`Why ${ticker} changed`}>
                             <p style={{ margin: 0, fontWeight: 600, color: 'var(--text)' }}>
-                              Confidence {diff.confidenceDelta >= 0 ? '+' : ''}{diff.confidenceDelta}pp
-                              {diff.scoreDelta !== null && ` · composite ${diff.scoreDelta >= 0 ? '+' : ''}${diff.scoreDelta.toFixed(3)}`}
+                              Confidence {fmtSigned(diff.confidenceDelta, 0)}pp
+                              {diff.scoreDelta !== null && ` · composite ${fmtSigned(diff.scoreDelta, 3)}`}
                             </p>
                             {diff.topDrivers.length > 0 && (
                               <ul style={{ listStyle: 'none', margin: '6px 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>

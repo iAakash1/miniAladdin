@@ -1,5 +1,6 @@
 'use client'
 
+import { fmtSigned } from '@/lib/format'
 import MetricExplainer from './MetricExplainer'
 import { STREET_GLOSSARY } from '@/lib/technicalGlossary'
 import type { StreetIntelligence as StreetBlock, TechTone } from '@/lib/types'
@@ -47,7 +48,7 @@ export default function StreetIntelligence({ block }: { block: StreetBlock | nul
               {surprises.beats}/{surprises.quarters} beats
             </p>
  <p className="num u-meta" >
-              avg {surprises.avg_surprise_pct >= 0 ? '+' : ''}{surprises.avg_surprise_pct}% vs estimates
+              avg {fmtSigned(surprises.avg_surprise_pct, 2)}% vs estimates
             </p>
           </div>
         )}
@@ -60,7 +61,7 @@ export default function StreetIntelligence({ block }: { block: StreetBlock | nul
             }}>
               {insider.read}
             </p>
- <p className="num u-meta" >MSPR {insider.mspr >= 0 ? '+' : ''}{insider.mspr} · 6 months</p>
+ <p className="num u-meta" >MSPR {fmtSigned(insider.mspr, 2)} · 6 months</p>
           </div>
         )}
       </div>

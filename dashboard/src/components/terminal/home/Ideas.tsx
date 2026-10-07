@@ -1,5 +1,6 @@
 'use client'
 
+import { fmtSigned } from '@/lib/format'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
@@ -99,7 +100,7 @@ export default function Ideas() {
                   <td><Signal value={r.model_signal} /></td>
                   <td className="num">
                     {view === 'performance'
-                      ? (r.excess_return_6m === null ? '—' : `${r.excess_return_6m >= 0 ? '+' : ''}${(r.excess_return_6m * 100).toFixed(1)}%`)
+                      ? (r.excess_return_6m === null ? '—' : `${fmtSigned(r.excess_return_6m * 100, 1)}%`)
                       : (
                         <span className="home-rank">
                           <span className="home-rank__bar" aria-hidden><span style={{ width: `${Math.max(0, Math.min(100, r.overall_rank ?? 0))}%` }} /></span>

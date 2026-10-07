@@ -292,14 +292,14 @@ export default function DataQuality({ symbol }: { symbol: string }) {
           </div>
 
           <p className="dq__lede">
-            {shared.toLocaleString()} of {union.toLocaleString()} sessions were
+            {shared.toLocaleString('en-US')} of {union.toLocaleString('en-US')} sessions were
             returned by more than one provider.{' '}
             {typeof integrity.agreeing_sessions === 'number'
               && typeof integrity.tolerance_pct === 'number' ? (
               <>
                 {integrity.agreeing_sessions === shared
-                  ? `All ${shared.toLocaleString()} agreed`
-                  : `${integrity.agreeing_sessions.toLocaleString()} of them agreed`}{' '}
+                  ? `All ${shared.toLocaleString('en-US')} agreed`
+                  : `${integrity.agreeing_sessions.toLocaleString('en-US')} of them agreed`}{' '}
                 within {integrity.tolerance_pct}%
                 {typeof integrity.max_divergence_pct === 'number'
                   ? `, the widest gap on any one session being ${integrity.max_divergence_pct}%`
@@ -310,7 +310,7 @@ export default function DataQuality({ symbol }: { symbol: string }) {
 
           {unchecked > 0 ? (
             <p className="dq__caveat">
-              The other {unchecked.toLocaleString()} came from one provider
+              The other {unchecked.toLocaleString('en-US')} came from one provider
               only and were never checked against a second source. Agreement
               above describes{' '}
               {covered !== null ? `${covered.toFixed(0)}%` : 'part'} of the
@@ -334,9 +334,9 @@ export default function DataQuality({ symbol }: { symbol: string }) {
                     <td className="num">
                       <Inspectable refValue={{
                         label: `${p} · sessions returned`,
-                        display: n.toLocaleString(),
-                        claim: `${p} returned ${n.toLocaleString()} daily closes for this security.`,
-                        observation: `A count of bars in ${p}'s response, against ${union.toLocaleString()} distinct sessions across all providers.`,
+                        display: n.toLocaleString('en-US'),
+                        claim: `${p} returned ${n.toLocaleString('en-US')} daily closes for this security.`,
+                        observation: `A count of bars in ${p}'s response, against ${union.toLocaleString('en-US')} distinct sessions across all providers.`,
                         method: 'counted from the bars each provider returned — vendors interpret a request for the same window differently, so a lower count is usually a shorter window rather than missing data',
                         source: p,
                         status: 'recorded',
@@ -344,7 +344,7 @@ export default function DataQuality({ symbol }: { symbol: string }) {
                           'The provider was asked for, and correctly returned, a shorter window than another provider — in which case this is not a coverage defect.',
                         ],
                       }}>
-                        {n.toLocaleString()}
+                        {n.toLocaleString('en-US')}
                       </Inspectable>
                     </td>
                     <td className="num">

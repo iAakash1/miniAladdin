@@ -1,5 +1,6 @@
 'use client'
 
+import { fmtSigned } from '@/lib/format'
 import { useEffect, useState } from 'react'
 
 import AskOmniSignal from '@/components/beginner/AskOmniSignal'
@@ -41,7 +42,7 @@ function FactorList({ factors, direction }: { factors: QuantFactor[]; direction:
           <span className="obs__name">{factor.name.replaceAll('_', ' ')}</span>
           <span className="obs__num">{factor.family}</span>
           <span className={factor.contribution > 0 ? 'sys-pos' : 'sys-neg'}>
-            {factor.contribution > 0 ? '+' : ''}{factor.contribution.toFixed(3)}
+            {fmtSigned(factor.contribution, 3)}
           </span>
           <span className="obs__note">
             score {factor.score === null ? '—' : factor.score.toFixed(2)}

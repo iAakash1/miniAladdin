@@ -1,5 +1,6 @@
 'use client'
 
+import { formatTimestamp } from '@/lib/quantity'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
@@ -113,7 +114,7 @@ export default function SystemHealthBoard({ compact = false }: { compact?: boole
           { label: 'Unavailable', value: health.summary.UNAVAILABLE, kind: 'count' },
           { label: 'Not configured', value: health.summary.NOT_CONFIGURED, kind: 'count' },
         ]} />
-        <Prose size="fine">Checked {new Date(health.checked_at).toLocaleString()}. READY is withheld whenever a critical research constraint remains.</Prose>
+        <Prose size="fine">Checked {formatTimestamp(health.checked_at)} UTC. READY is withheld whenever a critical research constraint remains.</Prose>
       </Panel>
       <Grid variant="halves">
         <Panel

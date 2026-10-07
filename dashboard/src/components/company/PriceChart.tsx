@@ -1,5 +1,6 @@
 'use client'
 
+import { fmtSigned } from '@/lib/format'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 
 import type { PricePoint } from '@/lib/types'
@@ -103,7 +104,7 @@ export default function PriceChart({
   }
 
   const summary = first !== null && last !== null
-    ? `${label}: ${fmtPrice(first)} to ${fmtPrice(last)}${change !== null ? ` (${change >= 0 ? '+' : ''}${(change * 100).toFixed(2)}%)` : ''} over ${points.length} sessions.`
+    ? `${label}: ${fmtPrice(first)} to ${fmtPrice(last)}${change !== null ? ` (${fmtSigned(change * 100, 2)}%)` : ''} over ${points.length} sessions.`
     : label
 
   return (
@@ -190,7 +191,7 @@ export default function PriceChart({
             <b>{fmtPrice(at.close)}</b>
             {atChange !== null ? (
               <span className={atChange >= 0 ? 'sys-pos' : 'sys-neg'}>
-                {atChange >= 0 ? '+' : ''}{(atChange * 100).toFixed(2)}% vs window start
+                {fmtSigned(atChange * 100, 2)}% vs window start
               </span>
             ) : null}
             <span>vol {fmtVolume(at.volume)}</span>
@@ -198,7 +199,7 @@ export default function PriceChart({
         ) : change !== null ? (
           <>
             <span>{fmtDay(points[0].date, true)} – {fmtDay(points[points.length - 1].date, true)}</span>
-            <span className={change >= 0 ? 'sys-pos' : 'sys-neg'}>{change >= 0 ? '+' : ''}{(change * 100).toFixed(2)}% over window</span>
+            <span className={change >= 0 ? 'sys-pos' : 'sys-neg'}>{fmtSigned(change * 100, 2)}% over window</span>
           </>
         ) : null}
       </div>

@@ -4,7 +4,7 @@ import { Badge } from '@/components/system'
 import CompanyMark from '@/components/ui/CompanyMark'
 import CopyButton from '@/components/ui/CopyButton'
 import { useState } from 'react'
-import { fmtPrice } from '@/lib/format'
+import { fmtPrice, fmtSigned } from '@/lib/format'
 import { sectorProxy } from '@/lib/identity'
 import { saveReport } from '@/lib/persistence'
 import type { Analysis, ConsensusPrice, Verdict } from '@/lib/types'
@@ -126,11 +126,11 @@ function SessionStrip({ session }: { session: NonNullable<ConsensusPrice['sessio
     ['day_high', 'High', (v) => v.toFixed(2)],
     ['day_low', 'Low', (v) => v.toFixed(2)],
     ['previous_close', 'Prev close', (v) => v.toFixed(2)],
-    ['change_pct', 'Change', (v) => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`],
+    ['change_pct', 'Change', (v) => `${fmtSigned(v, 2)}%`],
     ['vwap', 'VWAP', (v) => v.toFixed(2)],
     ['ma_50', '50d MA', (v) => v.toFixed(2)],
     ['ma_200', '200d MA', (v) => v.toFixed(2)],
-    ['trade_count', 'Trades', (v) => v.toLocaleString()],
+    ['trade_count', 'Trades', (v) => v.toLocaleString('en-US')],
     ['avg_volume', 'Avg vol', (v) => `${(v / 1e6).toFixed(1)}M`],
   ]
   const rows = ORDER.filter(([key]) => session[key] !== undefined)

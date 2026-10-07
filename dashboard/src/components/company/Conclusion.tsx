@@ -1,3 +1,4 @@
+import { fmtSigned } from '@/lib/format'
 import type { ReactNode } from 'react'
 
 import { Diverging } from './Panels'
@@ -70,7 +71,7 @@ export function DeterministicConclusion({ a }: { a: Analysis }) {
 export function FactorTable({ a }: { a: Analysis }) {
   const factors = [...(a.quant?.factors ?? [])].sort((x, y) => Math.abs(y.contribution) - Math.abs(x.contribution))
   if (!factors.length) return null
-  const signed = (v: number) => `${v >= 0 ? '+' : ''}${v.toFixed(3)}`
+  const signed = (v: number) => fmtSigned(v, 3)
   return (
     <Table
       head={['Factor', 'Family', 'Value', 'z', 'Contribution', '']}

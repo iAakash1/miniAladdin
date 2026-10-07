@@ -2,7 +2,7 @@
 
 import { Badge } from '@/components/system'
 import { useState } from 'react'
-import { uncertaintyBreakdown } from '@/lib/format'
+import { uncertaintyBreakdown, fmtSigned } from '@/lib/format'
 import { FACTOR_LABELS } from '@/lib/history'
 import type { Analysis } from '@/lib/types'
 
@@ -20,7 +20,7 @@ function ScorePill({ label, value }: { label: string; value: number | null }) {
     <div>
       <span className="label" style={{ fontSize: 'var(--t-micro)' }}>{label}</span>
       <p className="num" style={{ fontSize: 'var(--t-lead)', fontWeight: 600, color }}>
-        {value > 0 ? '+' : ''}{value.toFixed(2)}
+        {fmtSigned(value, 2)}
       </p>
     </div>
   )
@@ -71,7 +71,7 @@ export default function QuantPanel({ analysis }: { analysis: Analysis }) {
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 12, marginBottom: 16 }}>
         <h3 className="h-panel">Score decomposition</h3>
         <span className="num" style={{ fontSize: 'var(--t-small)', color: 'var(--faint)' }}>
-          {quant.modelVersion} · composite {quant.rawScore > 0 ? '+' : ''}{quant.rawScore.toFixed(3)}
+          {quant.modelVersion} · composite {fmtSigned(quant.rawScore, 3)}
         </span>
         {quant.regimes.map((regime) => (
           <Badge key={regime} tone="warn">{regime.replace('_', ' ')}</Badge>
@@ -145,7 +145,7 @@ export default function QuantPanel({ analysis }: { analysis: Analysis }) {
                 flexShrink: 0,
               }}
             >
-              {factor.contribution >= 0 ? '+' : ''}{factor.contribution.toFixed(3)}
+              {fmtSigned(factor.contribution, 3)}
             </span>
           </div>
         ))}

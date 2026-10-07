@@ -56,19 +56,19 @@ function money(value: number, currency: string): string {
   // so nothing here hardcodes a currency the product may not be denominated
   // in. Fractions are dropped: a portfolio axis in cents is noise.
   try {
-    return new Intl.NumberFormat(undefined, {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency,
       maximumFractionDigits: 0,
     }).format(value)
   } catch {
-    return `${Math.round(value).toLocaleString()}`
+    return `${Math.round(value).toLocaleString('en-US')}`
   }
 }
 
 function moneyExact(value: number, currency: string): string {
   try {
-    return new Intl.NumberFormat(undefined, {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency,
       minimumFractionDigits: 2,

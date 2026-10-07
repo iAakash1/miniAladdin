@@ -1,3 +1,4 @@
+import { fmtSigned } from '@/lib/format'
 import type { Analysis, MacroRate } from '@/lib/types'
 
 /** A value on a fixed scale, with the scale's ends labelled. */
@@ -48,7 +49,7 @@ function Rates({ rates }: { rates: MacroRate[] }) {
             </span>
             <span className="mv-rates__value sys-num">{r.value.toFixed(2)}%</span>
             <span className="mv-rates__meta">
-              {r.change !== null && r.change !== 0 ? <span className={r.change > 0 ? 'sys-pos' : 'sys-neg'}>{r.change > 0 ? '+' : ''}{r.change.toFixed(2)} </span> : null}
+              {r.change !== null && r.change !== 0 ? <span className={r.change > 0 ? 'sys-pos' : 'sys-neg'}>{fmtSigned(r.change, 2)} </span> : null}
               {r.source} · {r.as_of}
             </span>
           </li>

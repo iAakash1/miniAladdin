@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 
 import type { ResearchRun } from './useCompany'
 import { providerSet, signalTone, verdictWord } from './derive'
-import { ordinal } from '@/lib/format'
+import { ordinal, fmtSigned } from '@/lib/format'
 import { FREE_DAILY_LIMIT } from '@/lib/usage'
 import type { Analysis } from '@/lib/types'
 
@@ -66,7 +66,7 @@ export function SignalGrid({ a }: { a: Analysis }) {
         sub={q ? (
           <>
             {a.verdict !== a.riskAdjusted ? `raw ${verdictWord(a.verdict)}, dampened · ` : 'raw signal agrees · '}
-            score <span className="sys-num">{q.rawScore >= 0 ? '+' : ''}{q.rawScore.toFixed(2)}</span>
+            score <span className="sys-num">{fmtSigned(q.rawScore, 2)}</span>
             {' · '}momentum gate <span className="sys-num">×{q.macroGate.toFixed(2)}</span>
           </>
         ) : 'scorecard not returned for this run'}

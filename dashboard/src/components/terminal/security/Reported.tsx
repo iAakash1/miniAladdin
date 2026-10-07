@@ -173,7 +173,7 @@ export default function Reported({ symbol }: { symbol: string }) {
                         providers: g.providers,
                         source: g.providers?.join(', '),
                         method: first && first.scale && first.scale !== 1
-                          ? `as published, rescaled by ${first.scale.toLocaleString()} — the vendor reports this in millions and every other figure here is in units`
+                          ? `as published, rescaled by ${first.scale.toLocaleString('en-US')} — the vendor reports this in millions and every other figure here is in units`
                           : 'as published by the vendor — not derived, not converted between bases',
                         /* The existing conflict primitive, fed rather than
                            reimplemented: it draws the disputed marker and

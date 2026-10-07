@@ -149,7 +149,7 @@ export default function Coverage() {
                     }}
                   />
                   <span
-                    title={`${s.min_date} → ${s.max_date}, ${s.rows?.toLocaleString() ?? '—'} rows`}
+                    title={`${s.min_date} → ${s.max_date}, ${s.rows?.toLocaleString('en-US') ?? '—'} rows`}
                     style={{
                       position: 'absolute', top: 0, bottom: 0,
                       left: `${pos(from)}%`,
@@ -160,7 +160,7 @@ export default function Coverage() {
                   />
                 </div>
                 <span className="sys-num" style={{ fontSize: 'var(--t-micro)' }}>
-                  {s.rows ? s.rows.toLocaleString() : '—'}
+                  {s.rows ? s.rows.toLocaleString('en-US') : '—'}
                 </span>
               </div>
             )
