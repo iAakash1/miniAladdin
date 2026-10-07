@@ -1265,7 +1265,7 @@ footer a:hover { color: var(--ink) !important; }
 
 /* ── Selection checkbox ─────────────────────────────────────────────────── */
 .pick {
-  --pick-color: var(--rule-strong);
+  --pick-color: var(--rule-control);
   appearance: none;
   /* Enlarged from 15px. The whole point is that you *see* the predicted
      tick before committing, which a 15px box with a half-opacity glyph

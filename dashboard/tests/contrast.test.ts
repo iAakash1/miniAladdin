@@ -129,3 +129,18 @@ test('every main landmark is the skip link\'s target', () => {
   walk(SRC)
   assert.deepEqual(missing, [])
 })
+
+test('the outline of a text field and a checkbox is 3:1 against every surface it sits on', () => {
+  // WCAG 1.4.11. A field's border is what tells a reader where to type once the
+  // placeholder is gone; the separator colour, --rule-strong, is 1.3 to 1.5:1.
+  for (const [name, theme] of [['dark', DARK], ['light', LIGHT]] as const) {
+    const low: string[] = []
+    for (const s of SURFACES) {
+      const ratio = contrast(color(theme, '--rule-control'), color(theme, s))
+      if (ratio < 3) low.push(`${name} --rule-control on ${s}: ${ratio.toFixed(2)}`)
+    }
+    assert.deepEqual(low, [])
+  }
+  assert.match(SYSTEM, /\.sys-input\s*\{[^}]*border:\s*1px solid var\(--rule-control\)/)
+  assert.match(GLOBALS, /\.pick\s*\{[^}]*--pick-color:\s*var\(--rule-control\)/)
+})

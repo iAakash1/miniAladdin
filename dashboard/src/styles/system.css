@@ -398,11 +398,11 @@ a.sys-btn, a.sys-relation, a.sys-method { text-decoration: none; }
   font: 400 var(--t-small) / 1.2 var(--font-sans);
   color: var(--ink);
   background: var(--p-sunken);
-  border: 1px solid var(--rule-strong);
+  border: 1px solid var(--rule-control);
   border-radius: var(--r-sm);
   transition: border-color var(--t-fast) var(--ease);
 }
-.sys-input:hover:not(:focus) { border-color: color-mix(in srgb, var(--rule-strong) 55%, var(--ink-faint)); }
+.sys-input:hover:not(:focus) { border-color: var(--ink-faint); }
 .sys-input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 2px var(--accent-wash); }
 .sys-input::placeholder { color: var(--ink-faint); }
 /* A field that fills its row, as a form field does; in a toolbar it sizes to its content. */

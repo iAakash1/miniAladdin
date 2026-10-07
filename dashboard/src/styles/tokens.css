@@ -33,6 +33,10 @@
   --rule: #1e2228;
   --rule-strong: #2b3038;
   --rule-focus: #5b8fd0;
+  /* The outline of a control whose boundary is what identifies it (a text
+     field, a checkbox): 3:1 against every surface, where --rule-strong is a
+     separator and sits near 1.4:1. */
+  --rule-control: #626972;
 
   /* Ink */
   --ink: #e6e8eb;
@@ -190,6 +194,7 @@
   --rule: #e2e5e9;
   --rule-strong: #cdd2d9;
   --rule-focus: #2f6db5;
+  --rule-control: #838a93;
 
   --ink: #14171b;
   --ink-muted: #4d5561;
