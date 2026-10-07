@@ -60,3 +60,17 @@ test('no rule hard-codes a colour when the token it falls back to exists', () =>
     [...css.matchAll(/var\(--(?:pos|neg|warn)\s*,\s*#[0-9a-fA-F]{3,8}\)/g)].map((m) => `${file}: ${m[0]}`))
   assert.deepEqual(fallbacks, [])
 })
+
+test('there is one fade, one pulse and one skeleton shimmer', () => {
+  // `fade-in` was defined twice with different bodies, so which one ran
+  // depended on stylesheet order, and the palette backdrop slid down 6px as
+  // it faded in. `live-pulse` was a copy of `sys-pulse`, and Sessions drew its
+  // own transform-sweep skeleton beside the system's.
+  const all = sheets.map((s) => s.css).join('\n')
+  const defined = [...all.matchAll(/@keyframes\s+([\w-]+)/g)].map((m) => m[1])
+  const duplicates = defined.filter((n, i) => defined.indexOf(n) !== i)
+  assert.deepEqual(duplicates, [])
+  for (const alias of ['mkt-fade-in', 'live-pulse', 'ws-skel-sweep']) assert.ok(!defined.includes(alias), `${alias} duplicates a system animation`)
+  assert.match(all, /@keyframes fade-in\s*\{\s*from\s*\{\s*opacity:\s*0\s*\}\s*to\s*\{\s*opacity:\s*1\s*\}\s*\}/)
+  assert.equal((all.match(/(?<![\w-])\.fade-in\s*\{/g) ?? []).length, 1, '.fade-in is defined more than once')
+})

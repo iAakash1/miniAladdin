@@ -1,7 +1,8 @@
 'use client'
 
 /**
- * The deployed EXP-006 model, and inference against it.
+ * The hosted EXP-006 research model, and inference against it. It is not a
+ * production model: promotion is blocked and the registry holds none.
  *
  * This is the part of the product most likely to be misread, so it is built
  * around three refusals.
@@ -119,7 +120,7 @@ export default function DeployedModel() {
   return (
     <>
       <Panel
-        title="Deployed model"
+        title="Research model"
         subtitle={model?.registry_key ?? 'gradient_boosting@4.0:fwd_rank_21'}
         state="experimental"
         badge={`PROMOTION ${model?.promotion_status ?? 'BLOCKED'}`}
@@ -252,7 +253,7 @@ export default function DeployedModel() {
             ) : (
               <Prose size="tight">
                 Enter a ticker from the top-250 universe to score it against the
-                deployed research model.
+                hosted research model.
               </Prose>
             )}
           </>

@@ -226,12 +226,12 @@ function InvestigationSkeleton() {
   return (
     <article className="ws-card ws-card--skeleton" aria-hidden="true">
       <div className="ws-card__link">
-        <span className="ws-skel ws-skel--title" />
-        <span className="ws-skel ws-skel--symbols" />
-        <span className="ws-skel ws-skel--counts" />
+        <span className="sys-skeleton ws-skel--title" />
+        <span className="sys-skeleton ws-skel--symbols" />
+        <span className="sys-skeleton ws-skel--counts" />
       </div>
       <div className="ws-card__foot">
-        <span className="ws-skel ws-skel--meta" />
+        <span className="sys-skeleton ws-skel--meta" />
       </div>
     </article>
   )

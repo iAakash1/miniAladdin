@@ -225,10 +225,6 @@ img { max-width: 100%; display: block; }
 .dialog-panel { animation: dialog-in var(--t-med) var(--ease) both; }
 
 /* ---------- Live dot ---------- */
-@keyframes live-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.35; }
-}
 .live-dot {
   width: 6px;
   height: 6px;
@@ -236,7 +232,7 @@ img { max-width: 100%; display: block; }
   background: var(--pos);
   display: inline-block;
   flex-shrink: 0;
-  animation: live-pulse 2.4s ease-in-out infinite;
+  animation: sys-pulse 2.4s ease-in-out infinite;
 }
 
 /* ---------- Scroll reveal (marketing) ---------- */
@@ -246,11 +242,7 @@ img { max-width: 100%; display: block; }
   transition: opacity 500ms var(--ease), transform 500ms var(--ease);
 }
 
-.fade-in { animation: fade-in 300ms ease-out both; }
-@keyframes fade-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: none; }
-}
+
 
 /* ---------- Prose (methodology etc.) ---------- */
 .prose p { margin: 0 0 1.1em; }
@@ -1162,9 +1154,8 @@ footer a:hover { color: var(--text) !important; }
   justify-content: center;
   gap: 12px;
   min-height: 46vh;
-  animation: mkt-fade-in 240ms var(--ease) both;
+  animation: fade-in var(--t-slow) var(--ease) both;
 }
-@keyframes mkt-fade-in { from { opacity: 0; } to { opacity: 1; } }
 
 .boot__label {
   font-size: var(--t-body);
@@ -1184,7 +1175,7 @@ footer a:hover { color: var(--text) !important; }
 
 /* Content arrives with the same fade the boot state left with, so the
    swap is a cross-dissolve rather than a jump. */
-.fade-in { animation: mkt-fade-in 260ms var(--ease) both; }
+.fade-in { animation: fade-in var(--t-slow) var(--ease) both; }
 
 /* ============================================================
    Utilities
@@ -1264,39 +1255,14 @@ footer a:hover { color: var(--text) !important; }
 
 /* ── Investigation card placeholder ────────────────────────────────────────
    Shares `.ws-card` so padding, border and radius can never drift from the
-   real card. Only the inner bars are placeholder-specific. The shimmer is
-   one transform-driven sweep — the same mechanism as the pipeline rails —
-   rather than a background-position animation, which repaints the whole
-   element every frame. */
+   real card. The bars are the system skeleton, so a loading card shimmers
+   exactly as every other loading surface does. */
 .ws-card--skeleton { pointer-events: none; }
-.ws-skel {
-  display: block;
-  position: relative;
-  overflow: hidden;
-  border-radius: var(--r-sm);
-  background: var(--surface-2);
-}
-.ws-skel--title   { height: 13px; width: 58%; }
-.ws-skel--symbols { height: 10px; width: 40%; }
-.ws-skel--counts  { height: 10px; width: 72%; }
-.ws-skel--meta    { height: 9px;  width: 34%; }
-.ws-skel::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, transparent, var(--line-strong), transparent);
-  transform: translateX(-100%);
-  animation: ws-skel-sweep 1.6s var(--ease) infinite;
-}
-.ws-skel--symbols::after { animation-delay: 120ms; }
-.ws-skel--counts::after  { animation-delay: 240ms; }
-.ws-skel--meta::after    { animation-delay: 360ms; }
-@keyframes ws-skel-sweep {
-  to { transform: translateX(100%); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .ws-skel::after { animation: none; opacity: 0; }
-}
+/* Skeleton card lines: the system skeleton, sized per line. */
+.ws-skel--title   { display: block; height: 13px; width: 58%; }
+.ws-skel--symbols { display: block; height: 10px; width: 40%; }
+.ws-skel--counts  { display: block; height: 10px; width: 72%; }
+.ws-skel--meta    { display: block; height: 9px;  width: 34%; }
 
 /* ══════════════════════════════════════════════════════════════════════════
    Interaction primitives — adapted from Uiverse
