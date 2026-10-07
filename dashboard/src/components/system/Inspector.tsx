@@ -16,6 +16,7 @@ import { useEffect } from 'react'
 import Link from 'next/link'
 
 import { Status, type ResearchState } from './index'
+import { useDrawerFocus } from './useDrawerFocus'
 import { recordVisit, togglePin, usePinnedObjects } from '@/lib/research/history'
 import { KINDS, href as objectHref, neighbours, type ResearchObject } from '@/lib/research/objects'
 import { Relations } from './Relations'
@@ -48,17 +49,13 @@ export default function Inspector({
     recordVisit(object)
   }, [object])
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  const panel = useDrawerFocus<HTMLElement>(true, onClose)
 
   const meta = KINDS[object.kind]
   const pinned = pinnedList.some((o) => o.kind === object.kind && o.id === object.id)
 
   return (
-    <aside className="sys-drawer" role="dialog" aria-modal="false" aria-label={`${meta.plural} inspector`}>
+    <aside ref={panel} tabIndex={-1} className="sys-drawer" role="dialog" aria-modal="false" aria-label={`${meta.plural} inspector`}>
       <header className="sys-drawer-head">
         <span className="pal-glyph" aria-hidden>{meta.glyph}</span>
         <div style={{ minWidth: 0, flex: 1 }}>

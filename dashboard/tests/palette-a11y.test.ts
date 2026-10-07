@@ -45,3 +45,25 @@ test('keyboard navigation and activation are all still wired', () => {
   for (const key of ['ArrowDown', 'ArrowUp', 'Enter', 'Escape']) assert.ok(SRC.includes(`'${key}'`), `${key} is not handled`)
   assert.match(SRC, /aria-activedescendant/)
 })
+
+const read = (...p: string[]) => readFileSync(join(__dirname, '..', 'src', ...p), 'utf8')
+
+test('the inspector panels take focus when they open and give it back when they close', () => {
+  const hook = read('components', 'system', 'useDrawerFocus.ts')
+  assert.match(hook, /panel\.current\?\.focus\(\)/)
+  assert.match(hook, /if \(opener\?\.isConnected\) opener\.focus\(\)/)
+  for (const file of ['Inspector.tsx', 'MetricInspector.tsx']) {
+    const src = read('components', 'system', file)
+    assert.match(src, /useDrawerFocus</, `${file} does not use the hook`)
+    assert.match(src, /ref=\{panel\} tabIndex=\{-1\}/, `${file} never lets the panel take focus`)
+    assert.doesNotMatch(src, /addEventListener\('keydown'/, `${file} still has its own Escape listener`)
+  }
+})
+
+test('Escape in an inspector yields to a modal dialog above it', () => {
+  // The palette and the inspector both listen on window; one press used to
+  // close the palette and the panel beneath it.
+  const hook = read('components', 'system', 'useDrawerFocus.ts')
+  assert.match(hook, /document\.querySelector\('\[aria-modal="true"\]'\)/)
+  assert.match(read('components', 'system', 'Palette.tsx'), /aria-modal="true"/)
+})

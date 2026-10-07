@@ -9,10 +9,10 @@
  */
 'use client'
 
-import { useEffect } from 'react'
 import Link from 'next/link'
 
 import { Status, type ResearchState } from './index'
+import { useDrawerFocus } from './useDrawerFocus'
 import { useMetrics } from './MetricContext'
 
 const STATUS_MAP: Record<string, ResearchState> = {
@@ -38,17 +38,13 @@ const ANN_LABEL: Record<string, string> = {
 export default function MetricInspector() {
   const { current, close, entry } = useMetrics()
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close() }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [close])
+  const panel = useDrawerFocus<HTMLElement>(Boolean(current), close)
 
   if (!current) return null
   const def = entry(current.measure)
 
   return (
-    <aside className="sys-drawer" role="dialog" aria-modal="false" aria-label={`${current.label} inspector`}>
+    <aside ref={panel} tabIndex={-1} className="sys-drawer" role="dialog" aria-modal="false" aria-label={`${current.label} inspector`}>
       <header className="sys-drawer-head">
         <span className="pal-glyph" aria-hidden>ƒ</span>
         <div style={{ minWidth: 0, flex: 1 }}>

@@ -537,6 +537,8 @@ select.sys-input {
 }
 
 .drawer__head,
+/* The panel takes focus when it opens so it is announced; it is not itself a control. */
+.sys-drawer:focus { outline: none; }
 .sys-drawer-head {
   display: flex;
   align-items: flex-start;
