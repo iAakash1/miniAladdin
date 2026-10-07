@@ -55,3 +55,29 @@ test('only build-identifying fields are exposed, whatever else is in the environ
   assert.ok(!JSON.stringify(id).includes('sk_live'))
   assert.ok(!JSON.stringify(id).includes('internal.example'))
 })
+
+/* The route must name each build-time variable literally.
+
+   The first version passed `process.env` to buildIdentity(). It type-checked,
+   built, and passed the tests above — and returned null for every field in
+   production, because Next inlines `process.env.NEXT_PUBLIC_*` only where it
+   sees that literal expression. The unit tests inject their own environment,
+   so they cannot see this; the route's source can be checked. */
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
+test('the build route references every NEXT_PUBLIC_BUILD_* value literally', () => {
+  const route = readFileSync(join(__dirname, '..', 'src', 'app', 'api', 'build', 'route.ts'), 'utf8')
+  const code = route.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')
+  for (const name of ['SHA', 'REF', 'ENV', 'DEPLOYMENT', 'TIME']) {
+    assert.match(code, new RegExp(`process\\.env\\.NEXT_PUBLIC_BUILD_${name}\\b`), `NEXT_PUBLIC_BUILD_${name} is not referenced literally`)
+  }
+  assert.doesNotMatch(code, /buildIdentity\(\s*process\.env\s*\)/, 'process.env is passed wholesale and will not be inlined')
+})
+
+test('every variable the route reads is one next.config.ts sets at build time', () => {
+  const config = readFileSync(join(__dirname, '..', 'next.config.ts'), 'utf8')
+  for (const name of ['SHA', 'REF', 'ENV', 'DEPLOYMENT', 'TIME']) {
+    assert.match(config, new RegExp(`NEXT_PUBLIC_BUILD_${name}\\s*:`), `next.config.ts does not set NEXT_PUBLIC_BUILD_${name}`)
+  }
+})
