@@ -238,14 +238,19 @@ on.
 ```bash
 SHA=$(git rev-parse HEAD)               # the commit that is on origin/main
 SHA7=${SHA:0:7}
-gcloud builds submit --project omnisignal-api-aakash-2026 --tag \
-  asia-south1-docker.pkg.dev/omnisignal-api-aakash-2026/cloud-run-source-deploy/omnisignal-api:$SHA7 .
+mkdir -p /tmp/src-$SHA7 && git archive $SHA | tar -x -C /tmp/src-$SHA7   # tracked files only: no .env
+
+# Builds run as omnisignal-build, not the default compute account (see
+# "Least privilege" below). A custom account needs the config file.
+gcloud builds submit /tmp/src-$SHA7 --project omnisignal-api-aakash-2026 \
+  --config cloudbuild.yaml --substitutions _TAG=$SHA7 \
+  --service-account projects/omnisignal-api-aakash-2026/serviceAccounts/omnisignal-build@omnisignal-api-aakash-2026.iam.gserviceaccount.com
 
 # a revision that takes no traffic yet, tagged so it can be tested
 gcloud run deploy omnisignal-api-poc --project omnisignal-api-aakash-2026 --region asia-south1 \
   --image asia-south1-docker.pkg.dev/omnisignal-api-aakash-2026/cloud-run-source-deploy/omnisignal-api@<digest> \
   --no-traffic --tag release-$SHA7 --revision-suffix release-$SHA7 \
-  --update-env-vars GIT_COMMIT=$SHA
+  --min-instances 1 --update-env-vars GIT_COMMIT=$SHA
 ```
 
 `GIT_COMMIT` is not optional: it is the only thing that lets the running
@@ -284,3 +289,89 @@ gcloud run services update-traffic omnisignal-api-poc --region asia-south1 \
 ```
 
 An anonymous request to the service must still receive `403`.
+
+
+## Hardening pass (2026-10-07)
+
+### Least privilege
+
+The runtime identity was never the problem: the live service runs as
+`omnisignal-api-runtime`, which holds **no project role** and reads secrets
+through per-secret `secretAccessor` bindings. The broad grant was on the
+**default compute service account**, which held `roles/editor` on the whole
+project — and could not simply be removed, because *Cloud Build ran as that
+account*. The one thing that depended on it was the build.
+
+| | Before | After |
+|---|---|---|
+| Image builds run as | default compute SA (`roles/editor`) | `omnisignal-build` |
+| `omnisignal-build` can | — | push to the `cloud-run-source-deploy` repository only; read the `…_cloudbuild` source bucket only; write build logs |
+| Default compute SA project roles | `roles/editor` | none |
+| Service accounts holding `roles/editor` | 1 | 0 |
+| User-managed service-account keys | 0 | 0 |
+
+Order matters if this is ever repeated: create the account and grants, prove a
+build succeeds under it (`--service-account`), and only then remove the old
+grant. Reverting is `gcloud projects add-iam-policy-binding … --role=roles/editor`.
+`797507035809@cloudbuild.gserviceaccount.com` still holds the legacy
+`roles/cloudbuild.builds.builder`; nothing uses it (no triggers exist) and it
+was left alone rather than widen the change. The original proof-of-concept
+revision `omnisignal-api-poc-00001-wql` (0% traffic) still names the default
+compute account; it calls no Google API, so it needs no role.
+
+### Cold start
+
+Measured, not assumed. On a revision scaled to zero, the first `/api/health`
+(which does no work) took **9.9 s**; the same call warm takes ~40 ms. Cloud Run's
+own `container/startup_latencies` reported 6.0–7.9 s per new instance, and the
+log shows 9.6 s from "Starting new instance" to uvicorn's first line. The
+application is not the cost: importing it takes ~0.5–0.7 s locally and the first
+request is answered in 56 ms. A first FRED fetch then adds ~3.5 s, and the
+Vercel proxy's token exchange a little more — together the ~16 s seen on the
+landing page's macro strip.
+
+What was done, in order of how much it matters:
+
+1. **`--min-instances 1`.** The only thing that removes the cold start from the
+   first user request, because it is instance provisioning and image fetch, not
+   code. Cost: one always-allocated instance (1 vCPU, 2 GiB) at Cloud Run's idle
+   rate — an estimated US$10–25 a month in `asia-south1`; check the billing
+   report rather than trusting that range. Revert with
+   `gcloud run services update omnisignal-api-poc --min-instances 0`. Chosen
+   over a scheduled ping because a ping needs a new service (Cloud Scheduler)
+   and an extra invoker identity, and still gives no guarantee that the
+   instance survives between pings.
+2. **Bytecode precompiled in the image** (`Dockerfile`). Small and free: 0.68 s
+   → 0.56 s import.
+
+Not done, on purpose: pruning dependencies. `pyarrow` (≈108 MB) and `scipy`
+(≈98 MB) dominate the image, but removing either needs proof that no runtime
+path imports it, and a wrong guess is a production outage to save seconds that
+`min-instances` already removes.
+
+Concurrency stays at 1 with a single instance, so a long research request
+(tens of seconds) still queues the next one. That is the memory-bounding
+decision recorded above, unchanged.
+
+### News providers
+
+`NEWSAPI_KEY` is bound to Secret Manager secret `newsapi-key`, which holds one
+enabled version. That value is 36 characters in UUID form, not the 32-hex
+characters of a NewsAPI key, and NewsAPI answers it with `apiKeyInvalid`; it is
+not a copy of any other secret. The integration itself is correct (documented
+endpoint, `X-Api-Key` header), so the fix is a valid key, which only the
+account owner can obtain from newsapi.org:
+
+```bash
+printf '%s' "<new-key>" | gcloud secrets versions add newsapi-key --data-file=-
+```
+
+then deploy a new revision, since secrets are read when an instance starts.
+
+Until then the product reports it truthfully: the vendor chain falls through to
+the other news sources and names the one that answered; a rejected credential is
+its own state (`AUTH_FAILURE`, credential `rejected`) rather than "paused"; it
+is re-probed once every 15 minutes, not every minute; and `/api/health`, the
+provider inventory and the providers page no longer call it available. A
+configured key nothing has used yet is reported as `unverified`, so a fresh
+instance says "configured" until the first news request settles it.

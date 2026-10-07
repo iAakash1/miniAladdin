@@ -1,0 +1,27 @@
+# Build the API image under a dedicated, least-privilege identity.
+#
+#   gcloud builds submit <source-dir> --project omnisignal-api-aakash-2026 \
+#     --config cloudbuild.yaml --substitutions _TAG=<git-sha7> \
+#     --service-account projects/omnisignal-api-aakash-2026/serviceAccounts/omnisignal-build@omnisignal-api-aakash-2026.iam.gserviceaccount.com
+#
+# Why a config file and an explicit account: builds used to run as the default
+# compute service account, which holds roles/editor on the whole project, so
+# the account that compiles and pushes an image could also modify or delete
+# almost anything else. omnisignal-build can do three things — push to this one
+# Artifact Registry repository, read the uploaded source archive, and write
+# build logs — and has no key and no runtime role. A custom account requires
+# logging to be declared, which is the one thing `--tag` cannot express.
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: ["build", "--tag", "${_IMAGE}:${_TAG}", "."]
+
+images:
+  - "${_IMAGE}:${_TAG}"
+
+substitutions:
+  _IMAGE: asia-south1-docker.pkg.dev/omnisignal-api-aakash-2026/cloud-run-source-deploy/omnisignal-api
+  _TAG: manual
+
+options:
+  logging: CLOUD_LOGGING_ONLY

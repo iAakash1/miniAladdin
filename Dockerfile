@@ -32,6 +32,15 @@ COPY --chown=omnisignal:omnisignal data/research/models ./data/research/models
 COPY --chown=omnisignal:omnisignal data/research/reports ./data/research/reports
 COPY --chown=omnisignal:omnisignal data/research/universe ./data/research/universe
 
+# Compile the application's bytecode now, not on every cold start. The image
+# sets PYTHONDONTWRITEBYTECODE, so nothing is ever compiled at runtime and each
+# new instance would otherwise parse ~3 MB of Python source before it could
+# answer. Measured on this tree: 0.68s -> 0.56s to import the app locally,
+# which is a small share of a cold start dominated by image fetch and instance
+# provisioning, but it costs nothing and cannot change behaviour. Done as root
+# before the user switch; the files stay world-readable.
+RUN python -m compileall -q api src services config
+
 USER omnisignal
 
 CMD ["sh", "-c", "exec uvicorn api.index:app --host 0.0.0.0 --port ${PORT:-8080} --workers 1 --proxy-headers --forwarded-allow-ips='*'"]
