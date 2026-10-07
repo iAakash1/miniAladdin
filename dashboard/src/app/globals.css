@@ -242,8 +242,6 @@ img { max-width: 100%; display: block; }
   transition: opacity 500ms var(--ease), transform 500ms var(--ease);
 }
 
-
-
 /* ---------- Prose (methodology etc.) ---------- */
 .prose p { margin: 0 0 1.1em; }
 .prose p:last-child { margin-bottom: 0; }
@@ -332,8 +330,6 @@ img { max-width: 100%; display: block; }
 @media (max-width: 480px) {
   .dash-hero__metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-
-/* ---------- Market dashboard: cards ---------- */
 
 /* ---------- Info tooltip ---------- */
 .info-trigger {
@@ -428,7 +424,6 @@ img { max-width: 100%; display: block; }
 .dash-section__summary { color: var(--faint); }
 .dash-section__body { margin-top: 16px; }
 
-/* ---------- Sector heatmap ---------- */
 /* ---------- Market map ----------
    Rebuilt around the market rather than around a score. Two columns: a
    narrow "read" rail (score, verdict, trend, participation) and a dense
@@ -694,7 +689,6 @@ img { max-width: 100%; display: block; }
 .report-section { scroll-margin-top: 96px; }
 html { scroll-behavior: smooth; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
-/* ---------- Screen search hits ---------- */
 
 /* ---------- Footer & nav link polish ---------- */
 footer a { transition: color var(--t-fast) var(--ease); }
@@ -712,8 +706,6 @@ footer a:hover { color: var(--text) !important; }
   .site-nav, .site-signin { display: none !important; }
   .menu-toggle { display: inline-flex; }
 }
-
-/* ---------- Mobile: hero CTAs go full width ---------- */
 
 /* ---------- Scrollbar (subtle, standards-based) ---------- */
 * { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
@@ -993,29 +985,10 @@ footer a:hover { color: var(--text) !important; }
   .page-head { align-items: stretch; }
   .page-head__actions { width: 100%; }
 }
-
 /* ---------- ResearchLoader ----------
    The pipeline while it runs. One pulse on the active row and nothing else:
    the brief asked for a research terminal doing work, not an animation. A
    stage is only ticked when completion is actually known. */
-
-.rl {
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  background: var(--surface);
-  padding: clamp(24px, 4vw, 38px);
-  max-width: 640px;
-  /* Centred in the content column, not pinned left.
-     The card is 640px inside a 1200px column, so left-aligning it left ~560px
-     of dead space beside a loading state — which reads as a broken layout
-     rather than a deliberate one. `margin-inline: auto` centres the box, and
-     the vertical padding lifts it off the top edge so it sits in the optical
-     centre of the viewport rather than clinging to the header. */
-  margin-inline: auto;
-  margin-block: clamp(24px, 8vh, 88px);
-}
-
-@media (max-width: 560px) { .rl { padding: 20px 18px; } }
 
 /* ---------- Workspace: typed objects ----------
    A note looks like prose, an entity like a chip, a snapshot like a saved
@@ -1113,11 +1086,6 @@ footer a:hover { color: var(--text) !important; }
    outline follows the element's own shape, and rewriting the radius on focus
    squared the corners of any rounded element the moment it was tabbed to. */
 :focus-visible { outline: 2px solid var(--rule-focus); outline-offset: 1px; }
-
-/* ---------- ResearchLoader ---------- */
-.rl { position: relative; overflow: hidden; }
-
-/* ---------- Terminal tabs ---------- */
 
 /* ---------- Entity chips ---------- */
 .ws-symbols__chip:hover { border-color: var(--rule-strong); color: var(--ink); }
@@ -1295,7 +1263,7 @@ footer a:hover { color: var(--text) !important; }
 
 /* Expo-out. Fast departure, long settle — reads as precise rather than
    springy, which is what a terminal wants from a state change. */
-:root { --ease-state: var(--ease); }  /* one curve: kept as an alias for older rules */
+:root { --ease-state: var(--ease); } /* one curve: kept as an alias for older rules */  
 
 /* ── Selection checkbox ─────────────────────────────────────────────────── */
 .pick {
@@ -1610,29 +1578,6 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
   background: var(--surface-3);
   box-shadow: var(--lift-1);
 }
-
-/* Conviction threshold. A native range input restyled to the token system —
-   keyboard, arrow keys and screen-reader semantics come free, which a
-   div-based slider would have to rebuild badly. */
-.thresh {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding: 10px 0 14px;
-  border-bottom: 1px solid var(--line);
-  margin-bottom: 10px;
-}
-/* The Factor Lab threshold is now the shared `uthresh` control (see
-   ui/Controls) rather than a second, differently-styled range input. The
-   per-page copy that lived here — a 6px track, a ringed 16px thumb and an
-   accent output — has been folded into that one definition, so the
-   conviction filter and every future threshold behave identically. Only the
-   page-level sizing stays local. */
-.thresh .uthresh { flex: 0 1 340px; }
-.thresh .uthresh__input { flex: 1; width: auto; min-width: 160px; }
-.thresh .uthresh__label { font-size: var(--t-small); color: var(--text); font-weight: 600; }
-.thresh .uthresh__value { font-size: var(--t-value); font-weight: 600; color: var(--accent); min-width: 46px; }
 
 /* Vault group header. A row that is a label, not data — flush with the table
    but visually subordinate to the runs beneath it. */
@@ -2896,154 +2841,6 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
   white-space: nowrap;
 }
 .sint__table tr:last-child td { border-bottom: none; }
-/* ── Model Intelligence ─────────────────────────────────────────────────────
- *
- * The page's job is to make an unfavourable result as legible as a favourable
- * one, so the treatment is deliberately flat: no gradient on the winning row,
- * no success green on a leaderboard, no chart that grows with performance.
- * The only colour that carries meaning is the significance pill, and it is
- * paired with a dot so it survives a monochrome screenshot — the same rule
- * `.spill` already follows.
- */
-
-/* ── quant research ───────────────────────────────────────────────────────
-   Reuses the terminal surfaces, lines and type scale. The only new idea is
-   the banner: a state that must read at a glance and must not be softened
-   when the answer is negative. */
-
-/* ── quant terminal: findings, integrity, registry, pipeline ──────────────
-   Extends the existing terminal surfaces. The only new idea is weight: a
-   negative finding has to read as loudly as a positive one would, so the
-   finding card and the integrity grid carry the same visual authority a
-   "profitable strategy" panel would have had. */
-
-/* ── charts ─────────────────────────────────────────────────────────────── */
-
-/* ── deployed model + inference ───────────────────────────────────────────
-   The status pills sit beside the number, never below it: a prediction that
-   scrolls away from its EXPERIMENTAL label is a prediction without one. */
-
-/* ── engine offline diagnostic ────────────────────────────────────────────
-   Replaces "TypeError: Failed to fetch". A research terminal that fails
-   opaquely is worse than one that fails loudly: the reader cannot tell
-   whether the model is broken, the data is missing, or the network hiccuped,
-   and those call for different reactions. */
-.qe { border: 1px solid var(--neg); border-left-width: 3px; padding: 16px 18px; margin-bottom: 16px; }
-
-/* ── portfolio / risk / cost ──────────────────────────────────────────────
-   The waterfall is the important shape here: it is where a positive gross
-   number becomes a negative net one, which is this project's central finding. */
-
-/* ══════════════════════════════════════════════════════════════════════════
-   Quant search lab — EXP-007
-
-   Colour discipline: green is reserved for a gate that PASSED, never for a
-   number that happens to be positive. The highest IC in the leaderboard is
-   routinely amber, because it is routinely overfit.
-   ══════════════════════════════════════════════════════════════════════════ */
-
-/* ── overfitting census ─────────────────────────────────────────────────── */
-
-/* ── filters ────────────────────────────────────────────────────────────── */
-
-/* ── configuration rows ─────────────────────────────────────────────────── */
-
-/* ── generalisation gap ─────────────────────────────────────────────────── */
-
-/* ── gates ──────────────────────────────────────────────────────────────── */
-
-/* ── timeline ───────────────────────────────────────────────────────────── */
-
-/* ── the command ────────────────────────────────────────────────────────── */
-
-/* ══════════════════════════════════════════════════════════════════════════
-   QUANT RESEARCH TERMINAL — scoped to `.qt`
-
-   A research surface with different requirements from the rest of the product:
-   dense, monospaced where it is numeric, and dark regardless of the app theme,
-   because this page is read for long stretches beside a terminal.
-
-   Scoped deliberately. Every token below is redefined on `.qt` rather than on
-   `:root`, so nothing here can reach the other terminal pages — this route is
-   the only place the research palette applies, and a change made for /quant
-   cannot destabilise /terminal.
-
-   Colour discipline, enforced by convention and by the component API:
-     GREEN  a gate that PASSED, or a genuinely healthy system state
-     RED    a gate that FAILED, or a blocking condition
-     AMBER  a warning, or evidence too thin to quote
-     GREY   unknown, unavailable, not computed
-   Green is never used because a number happens to be positive. The highest IC
-   in the search leaderboard routinely renders amber, because it is routinely
-   overfit.
-   ══════════════════════════════════════════════════════════════════════════ */
-
-.qt {
-  --paper:        #0c0e0d;
-  --bg:           #0c0e0d;
-  --surface:      #121514;
-  --surface-2:    #171b19;
-  --ink:          #dfe3e0;
-  --ink-2:        #9aa39e;
-  --ink-3:        #6b7570;
-  --text:         #dfe3e0;
-  --muted:        #9aa39e;
-  --faint:        #6b7570;
-  --line:         rgba(255, 255, 255, 0.07);
-  --line-strong:  rgba(255, 255, 255, 0.15);
-  --accent:       #4ea88a;
-  --accent-strong:#6fc4a5;
-  --accent-wash:  rgba(78, 168, 138, 0.10);
-  --pos:          #46a06f;
-  --pos-wash:     rgba(70, 160, 111, 0.10);
-  --neg:          #c9524a;
-  --neg-wash:     rgba(201, 82, 74, 0.10);
-  --warn:         #c08a2e;
-  --warn-wash:    rgba(192, 138, 46, 0.10);
-  --r-sm: 2px;
-  --r-md: 2px;
-  --r-lg: 3px;
-
-  background: var(--bg);
-  color: var(--text);
-  /* Research pages are read at width. Tables scroll inside their own
-     containers; the document itself must never scroll sideways. */
-  max-width: 100%;
-  overflow-x: hidden;
-}
-
-.qt table { font-variant-numeric: tabular-nums; }
-.qt .num,
-.qt dd,
-.qt th.num,
-.qt td.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-
-/* ── masthead ───────────────────────────────────────────────────────────── */
-
-/* ── status rail ────────────────────────────────────────────────────────── */
-
-/* ── executive summary ──────────────────────────────────────────────────── */
-
-/* ── holdout firewall ───────────────────────────────────────────────────── */
-
-/* ── blocked headline ───────────────────────────────────────────────────── */
-
-/* ── metric cell ────────────────────────────────────────────────────────── */
-
-/* ══════════════════════════════════════════════════════════════════════════
-   Terminal primitives — Panel / Metric / StateBlock / ProvenanceChain
-
-   Shared across workspaces so a number looks the same wherever it appears and
-   carries the same context. Theme-neutral: these use the app's own tokens and
-   therefore work inside the dark `.qt` research surface and on the ordinary
-   terminal pages without redefinition.
-   ══════════════════════════════════════════════════════════════════════════ */
-
-/* ── status chip ────────────────────────────────────────────────────────── */
-
-/* ── metric ─────────────────────────────────────────────────────────────── */
-
-/* ── provenance chain ───────────────────────────────────────────────────── */
 
 /* Inline code tokens must be allowed to break.
    Identifiers like `baseline_low_volatility` and `docs/PRE_HOLDOUT_AUDIT.md`

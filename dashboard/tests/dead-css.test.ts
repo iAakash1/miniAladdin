@@ -30,7 +30,11 @@ const dynamicPrefixes = new Set<string>([
   ...[...source.matchAll(/([A-Za-z][\w-]*)\$\{/g)].map((m) => m[1]),
   ...[...source.matchAll(/['"`]([A-Za-z][\w-]*)['"`]\s*\+/g)].map((m) => m[1]),
 ].filter((p) => p.length >= 3))
-const reached = (cls: string) => source.includes(cls) || [...dynamicPrefixes].some((p) => cls.startsWith(p))
+// A whole token, not a substring: `qt` sat in the sheet for weeks because
+// those two letters appear inside other words.
+const reached = (cls: string) =>
+  new RegExp(`(?<![\\w-])${cls.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}(?![\\w-])`).test(source) ||
+  [...dynamicPrefixes].some((p) => cls.startsWith(p))
 
 const sheets = ['app/globals.css', 'styles/system.css'].map((f) => ({
   file: f,
