@@ -355,7 +355,8 @@ a.sys-btn, a.sys-relation, a.sys-method { text-decoration: none; }
   transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
 }
 .sys-btn:hover { background: var(--p-hover); border-color: color-mix(in srgb, var(--rule-strong) 55%, var(--ink-faint)); }
-.sys-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.sys-btn:disabled, .sys-btn[aria-disabled='true'] { opacity: 0.45; cursor: not-allowed; }
+.sys-btn[data-loading='true'] { cursor: progress; pointer-events: none; opacity: 0.75; }
 .sys-btn[aria-pressed='true'], .sys-btn.is-active {
   background: var(--accent-wash);
   border-color: var(--accent-line);
@@ -366,7 +367,15 @@ a.sys-btn, a.sys-relation, a.sys-method { text-decoration: none; }
 .sys-btn--primary { background: var(--ink); border-color: var(--ink); color: var(--p-base); }
 .sys-btn--primary:hover { background: color-mix(in srgb, var(--ink) 88%, var(--p-base)); border-color: transparent; }
 .sys-btn--icon { width: 28px; padding: 0; }
-.sys-btn--micro { height: 22px; padding: 0 7px; font-size: var(--t-meta); }
+/* Sizes and the accent fill the legacy button carried. --xs is the labelled
+   small button (the legacy xs); --micro stays the icon-sized one. --lg is for a
+   deliberate call to action. */
+.sys-btn--xs { height: 24px; padding: 0 7px; font-size: var(--t-meta); }
+.sys-btn--lg { height: 32px; padding: 0 14px; font-size: var(--t-body); }
+.sys-btn--accent { background: var(--accent); border-color: var(--accent); color: #07111e; }
+.sys-btn--accent:hover:not(:disabled) { background: var(--accent-strong); border-color: var(--accent-strong); }
+:root[data-theme='light'] .sys-btn--accent { color: #fff; }
+.sys-btn--micro { height: 24px; padding: 0 7px; font-size: var(--t-meta); }
 
 .sys-seg { display: inline-flex; border: 1px solid var(--rule-strong); border-radius: var(--r-sm); overflow: hidden; }
 .sys-seg > .sys-btn { border: 0; border-radius: 0; height: 26px; background: transparent; color: var(--ink-muted); }
@@ -4677,4 +4686,30 @@ a.objidx__k:hover { color: var(--accent); text-decoration: underline; }
 .terminal-boot__rail span { position: absolute; inset: 0 auto 0 0; width: 40%; border-radius: 1px; background: var(--accent); animation: sig-indeterminate 1.3s var(--ease) infinite; }
 @media (prefers-reduced-motion: reduce) {
   .terminal-boot__mark span, .terminal-boot__rail span { animation: none; }
+}
+
+/* ── accessibility floor ────────────────────────────────────────────────────
+   Two guarantees that hold however a component is written.
+
+   Motion. Reduced-motion was handled class by class, and eight rules with
+   animations had no override, among them the pulsing live dot and the looping
+   progress bar, which never stop. A catch-all means a new animation cannot
+   forget to opt out. Animations finish at once rather than being removed, so
+   anything that waits for them to end still fires.
+
+   Targets. WCAG 2.2 asks for 24 x 24 CSS px; the smallest buttons were 22px
+   tall. Coarse pointers (fingers) get a larger floor again. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+@media (pointer: coarse) {
+  .sys-btn { min-height: 36px; }
+  .sys-btn--xs, .sys-btn--micro { min-height: 32px; }
+  .sys-btn--icon { min-width: 36px; }
+  .sys-input { min-height: 36px; }
 }

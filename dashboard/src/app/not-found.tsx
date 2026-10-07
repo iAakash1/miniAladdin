@@ -26,10 +26,10 @@ export default function NotFound() {
         home page or the terminal.
       </p>
       <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-        <Link href="/" className="btn btn--secondary btn--sm">
+        <Link href="/" className="sys-btn">
           Home
         </Link>
-        <Link href="/terminal" className="btn btn--primary btn--sm">
+        <Link href="/terminal" className="sys-btn sys-btn--primary">
           Open terminal
         </Link>
       </div>

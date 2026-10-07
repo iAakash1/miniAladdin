@@ -154,7 +154,7 @@ export default function QuantPanel({ analysis }: { analysis: Analysis }) {
       {factors.length > 6 && (
         <button
           type="button"
-          className="btn btn--ghost btn--xs"
+          className="sys-btn sys-btn--ghost sys-btn--xs"
           style={{ marginTop: 10 }}
           aria-expanded={showAll}
           onClick={() => setShowAll((value) => !value)}

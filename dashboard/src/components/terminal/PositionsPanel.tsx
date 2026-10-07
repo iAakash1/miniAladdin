@@ -157,7 +157,7 @@ export default function PositionsPanel() {
         />
         <button
           type="submit"
-          className="btn btn--secondary btn--sm"
+          className="sys-btn"
           disabled={busy || !ticker.trim() || !shares || !price}
         >
           {busy ? 'Saving…' : 'Add position'}
@@ -171,7 +171,7 @@ export default function PositionsPanel() {
           title="Positions couldn't be loaded"
           description="The persistence service didn't respond — your holdings are safe on the server."
           action={
-            <button type="button" className="btn btn--secondary btn--sm" onClick={reload}>
+            <button type="button" className="sys-btn" onClick={reload}>
               Try again
             </button>
           }
@@ -266,10 +266,10 @@ export default function PositionsPanel() {
                     <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                       {isEditing ? (
                         <>
-                          <button type="button" className="btn btn--ghost btn--xs" onClick={saveEdit}>
+                          <button type="button" className="sys-btn sys-btn--ghost sys-btn--xs" onClick={saveEdit}>
                             Save
                           </button>
-                          <button type="button" className="btn btn--ghost btn--xs" onClick={() => setEditing(null)}>
+                          <button type="button" className="sys-btn sys-btn--ghost sys-btn--xs" onClick={() => setEditing(null)}>
                             Cancel
                           </button>
                         </>
@@ -277,7 +277,7 @@ export default function PositionsPanel() {
                         <>
                           <button
                             type="button"
-                            className="btn btn--ghost btn--xs"
+                            className="sys-btn sys-btn--ghost sys-btn--xs"
                             onClick={() =>
                               setEditing({
                                 id: position.id,

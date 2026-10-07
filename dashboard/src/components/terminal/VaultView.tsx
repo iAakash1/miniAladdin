@@ -293,7 +293,7 @@ function HistoryBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
         {selected.length === 2 && (
           <button
             type="button"
-            className="btn btn--accent btn--sm"
+            className="sys-btn sys-btn--accent"
             style={{ marginLeft: 'auto' }}
             onClick={() => onOpen({ view: 'compare', a: selected[0], b: selected[1] })}
           >
@@ -307,7 +307,7 @@ function HistoryBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
           title="Your research history couldn't be loaded"
           description="The persistence service didn't respond — nothing is lost. Try again in a moment."
           action={
-            <button type="button" className="btn btn--secondary btn--sm" onClick={() => setReloadKey((k) => k + 1)}>
+            <button type="button" className="sys-btn" onClick={() => setReloadKey((k) => k + 1)}>
               Try again
             </button>
           }
@@ -332,7 +332,7 @@ function HistoryBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
             title="No analyses match these filters"
             description={`Nothing recorded ${describeFilters(filters)}. Widen the range or clear the filters to see your full history.`}
             action={
-              <button type="button" className="btn btn--secondary btn--sm" onClick={clearFilters}>
+              <button type="button" className="sys-btn" onClick={clearFilters}>
                 Clear filters
               </button>
             }
@@ -342,7 +342,7 @@ function HistoryBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
             title="No analyses recorded yet"
             description="Run an analysis on the Research tab — every completed run is stored here automatically, with its full report and scorecard."
             action={
-              <Link href="/terminal/analyze" className="btn btn--secondary btn--sm btn--go">
+              <Link href="/terminal/analyze" className="sys-btn sys-btn--go">
                 Go to Research
                 <span className="go-arrow" aria-hidden />
               </Link>
@@ -427,7 +427,7 @@ function HistoryBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
             <span style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
               <button
                 type="button"
-                className="btn btn--ghost btn--sm"
+                className="sys-btn sys-btn--ghost"
                 disabled={page.page <= 1}
                 onClick={() => patchFilters({ page: page.page - 1 })}
               >
@@ -435,7 +435,7 @@ function HistoryBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
               </button>
               <button
                 type="button"
-                className="btn btn--ghost btn--sm"
+                className="sys-btn sys-btn--ghost"
                 disabled={page.page >= totalPages}
                 onClick={() => patchFilters({ page: page.page + 1 })}
               >
@@ -490,12 +490,12 @@ function HistoryRow({
           : '—'}
       </td>
       <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-        <button type="button" className="btn btn--ghost btn--xs" onClick={onOpen}>
+        <button type="button" className="sys-btn sys-btn--ghost sys-btn--xs" onClick={onOpen}>
           Open
         </button>
         <button
           type="button"
-          className={`btn btn--ghost btn--xs confirmed${confirming ? ' is-confirming' : ''}`}
+          className={`sys-btn sys-btn--ghost sys-btn--xs confirmed${confirming ? ' is-confirming' : ''}`}
           title={bookmarked ? 'Saved' : 'Save to reports'}
           aria-label={bookmarked ? `${item.ticker} run saved` : `Save ${item.ticker} run to reports`}
           onClick={() => {
@@ -514,7 +514,7 @@ function HistoryRow({
           {bookmarked ? '★' : '☆'}
         </button>
         <ConfirmButton
-          className="btn btn--ghost btn--xs reveal"
+          className="sys-btn sys-btn--ghost sys-btn--xs reveal"
           description={`Delete ${item.ticker} run from ${fmtDate(item.created_at)}`}
           confirmLabel="Delete?"
           onConfirm={() => deleteHistory(item.id)}
@@ -558,7 +558,7 @@ function SavedBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
         title="Saved reports couldn't be loaded"
         description="The persistence service didn't respond — your bookmarks are safe on the server."
         action={
-          <button type="button" className="btn btn--secondary btn--sm" onClick={() => setReloadKey((k) => k + 1)}>
+          <button type="button" className="sys-btn" onClick={() => setReloadKey((k) => k + 1)}>
             Try again
           </button>
         }
@@ -572,7 +572,7 @@ function SavedBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
         title="No saved reports yet"
         description="Bookmark an analysis with the ☆ button — on a fresh run, or on any row under All analyses — and it will be pinned here with room for your own notes."
         action={
-          <button type="button" className="btn btn--secondary btn--sm" onClick={() => onOpen({ view: 'history' })}>
+          <button type="button" className="sys-btn" onClick={() => onOpen({ view: 'history' })}>
             Browse all analyses
           </button>
         }
@@ -626,7 +626,7 @@ function SavedBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
                 <span style={{ display: 'flex', gap: 6 }}>
                   <button
                     type="button"
-                    className="btn btn--accent btn--sm"
+                    className="sys-btn sys-btn--accent"
                     onClick={() => {
                       void updateSavedReport(report.id, {
                         custom_title: editing.title,
@@ -641,7 +641,7 @@ function SavedBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
                   >
                     Save notes
                   </button>
-                  <button type="button" className="btn btn--ghost btn--sm" onClick={() => setEditing(null)}>
+                  <button type="button" className="sys-btn sys-btn--ghost" onClick={() => setEditing(null)}>
                     Cancel
                   </button>
                 </span>
@@ -658,14 +658,14 @@ function SavedBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
               <div style={{ display: 'flex', gap: 6, marginTop: 12 }}>
                 <button
                   type="button"
-                  className="btn btn--secondary btn--sm"
+                  className="sys-btn"
                   onClick={() => onOpen({ view: 'detail', id: report.analysis_history_id })}
                 >
                   Open report
                 </button>
                 <button
                   type="button"
-                  className="btn btn--ghost btn--sm"
+                  className="sys-btn sys-btn--ghost"
                   onClick={() =>
                     setEditing({ id: report.id, title: report.custom_title ?? '', notes: report.notes ?? '' })
                   }
@@ -673,7 +673,7 @@ function SavedBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
                   Edit notes
                 </button>
                 <ConfirmButton
-                  className="btn btn--ghost btn--sm"
+                  className="sys-btn sys-btn--ghost"
                   description={`Remove saved report ${report.custom_title ?? report.analysis?.ticker ?? ''}`.trim()}
                   confirmLabel="Remove?"
                   onConfirm={() => deleteSavedReport(report.id)}
@@ -716,7 +716,7 @@ function DetailView({ id, onBack }: { id: string; onBack: () => void }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button type="button" className="btn btn--secondary btn--sm" onClick={onBack}>
+        <button type="button" className="sys-btn" onClick={onBack}>
           ← Back to Vault
         </button>
         {meta && (
@@ -731,7 +731,7 @@ function DetailView({ id, onBack }: { id: string; onBack: () => void }) {
           title="This analysis couldn't be opened"
           description="The stored report didn't load — it may have been deleted, or the service is briefly unavailable."
           action={
-            <button type="button" className="btn btn--secondary btn--sm" onClick={onBack}>
+            <button type="button" className="sys-btn" onClick={onBack}>
               Back to Vault
             </button>
           }
@@ -802,7 +802,7 @@ function CompareView({ a, b, onBack }: { a: string; b: string; onBack: () => voi
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button type="button" className="btn btn--secondary btn--sm" onClick={onBack}>
+        <button type="button" className="sys-btn" onClick={onBack}>
           ← Back to Vault
         </button>
         <h3 className="h-panel">Run comparison</h3>
@@ -813,7 +813,7 @@ function CompareView({ a, b, onBack }: { a: string; b: string; onBack: () => voi
           title="These runs couldn't be compared"
           description="One of the analyses may have been deleted, or the service is briefly unavailable."
           action={
-            <button type="button" className="btn btn--secondary btn--sm" onClick={onBack}>
+            <button type="button" className="sys-btn" onClick={onBack}>
               Back to Vault
             </button>
           }

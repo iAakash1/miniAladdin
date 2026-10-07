@@ -30,6 +30,8 @@ const CSS = walk(SRC, /\.css$/)
 const SOURCES = walk(SRC, /\.(tsx?|css)$/)
 const read = (f: string) => readFileSync(f, 'utf8')
 const rel = (f: string) => relative(SRC, f).split(sep).join('/')
+/** A stylesheet's code without its comments, so prose can never match a rule. */
+const code = (f: string) => read(f).replace(/\/\*[\s\S]*?\*\//g, '')
 
 /** Every custom property defined anywhere: in a stylesheet, as an inline-style
  *  key, or through setProperty. */
@@ -88,7 +90,7 @@ const TSX = SOURCES.filter((f) => /\.tsx$/.test(f))
 const SVG_TEXT_RULE = /gfocus__edge-label|pchart__tag-text|pchart__tick|\brt-t|\brt-x/
 
 function rules(file: string): Array<{ selector: string; body: string }> {
-  return [...read(file).matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({ selector: m[1].trim(), body: m[2] }))
+  return [...code(file).matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({ selector: m[1].trim(), body: m[2] }))
 }
 
 const HERO_SIZES = new Set(['34px', '4rem', '1.875rem'])
@@ -129,7 +131,7 @@ test('nothing sets text below the 10px token floor', () => {
   assert.equal(micro, 10)
   const small: string[] = []
   for (const file of [...STYLESHEETS, ...TSX]) {
-    for (const m of read(file).matchAll(/(?:font-size:|fontSize:)\s*['"]?(\d*\.?\d+)(px|rem)?['"]?/g)) {
+    for (const m of (file.endsWith('.css') ? code(file) : read(file)).matchAll(/(?:font-size:|fontSize:)\s*['"]?(\d*\.?\d+)(px|rem)?['"]?/g)) {
       const px = Number(m[1]) * (m[2] === 'rem' ? 16 : 1)
       if (px > 0 && px < 10 && m[2] !== undefined) small.push(`${rel(file)}: ${m[0]}`)
     }
@@ -141,7 +143,7 @@ test('nothing sets text below the 10px token floor', () => {
 test('font weights come from a four-step scale', () => {
   const bad: string[] = []
   for (const file of [...STYLESHEETS, ...TSX]) {
-    for (const m of read(file).matchAll(/(?:font-weight:|fontWeight:)\s*(\d{3})\b/g)) {
+    for (const m of (file.endsWith('.css') ? code(file) : read(file)).matchAll(/(?:font-weight:|fontWeight:)\s*(\d{3})\b/g)) {
       if (!['400', '500', '600', '700'].includes(m[1])) bad.push(`${rel(file)}: ${m[0]}`)
     }
   }
@@ -152,7 +154,7 @@ test('letter-spacing is a token, zero, or one of the named display values', () =
   const allowed = new Set(['0', '0.02em', '0.16em', '0.22em', '-0.045em', 'normal', 'inherit', '0.002em'])
   const bad: string[] = []
   for (const file of [...STYLESHEETS, ...TSX]) {
-    for (const m of read(file).matchAll(/(?:letter-spacing:\s*|letterSpacing:\s*['"])([^;'"}!]+)/g)) {
+    for (const m of (file.endsWith('.css') ? code(file) : read(file)).matchAll(/(?:letter-spacing:\s*|letterSpacing:\s*['"])([^;'"}!]+)/g)) {
       const v = m[1].trim()
       if (v.startsWith('var(--tracking-') || allowed.has(v)) continue
       if (/[{(?:]/.test(v)) continue // computed
@@ -165,7 +167,7 @@ test('letter-spacing is a token, zero, or one of the named display values', () =
 test('border-radius uses the radius tokens, apart from circles, pills and hairlines', () => {
   const bad: string[] = []
   for (const file of STYLESHEETS) {
-    for (const m of read(file).matchAll(/border-radius:\s*([^;!}]+)/g)) {
+    for (const m of code(file).matchAll(/border-radius:\s*([^;!}]+)/g)) {
       const v = m[1].trim()
       if (v.includes('var(--r-') || ['50%', '0', '1px', '999px', 'inherit', '0 1px 1px 0'].includes(v)) continue
       if (/^(\d+px\s*){2,4}$/.test(v) || /^(5|10|14)px$/.test(v)) continue // asymmetric and one-off shapes
@@ -178,7 +180,7 @@ test('border-radius uses the radius tokens, apart from circles, pills and hairli
 test('transitions use the motion tokens: no literal durations, no bare easing', () => {
   const bad: string[] = []
   for (const file of STYLESHEETS) {
-    for (const m of read(file).matchAll(/(?<![-\w])transition:\s*([^;{}]+)/g)) {
+    for (const m of code(file).matchAll(/(?<![-\w])transition:\s*([^;{}]+)/g)) {
       const v = m[1]
       for (const d of v.matchAll(/(?<![\w.-])(\d+)ms\b/g)) {
         if (Number(d[1]) <= 320) bad.push(`${rel(file)}: transition ${v.trim()}`)

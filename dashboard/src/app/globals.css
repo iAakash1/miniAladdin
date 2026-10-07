@@ -32,11 +32,6 @@ img { max-width: 100%; display: block; }
 
 ::selection { background: var(--accent); color: #fff; }
 
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-  border-radius: var(--r-xs);
-}
 
 .visually-hidden {
   position: absolute;
@@ -137,41 +132,6 @@ img { max-width: 100%; display: block; }
   font-variant-numeric: tabular-nums;
   letter-spacing: var(--tracking-display);
 }
-
-/* ---------- Buttons ---------- */
-.btn {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  height: 32px;
-  padding: 0 14px;
-  border-radius: var(--r-sm);
-  border: 1px solid transparent;
-  font: 500 var(--t-body) / 1 var(--font-sans);
-  text-decoration: none;
-  white-space: nowrap;
-  cursor: pointer;
-  user-select: none;
-  transition: background-color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
-}
-.btn:focus-visible { outline: 2px solid var(--rule-focus); outline-offset: 1px; }
-.btn[disabled], .btn[aria-disabled='true'] { opacity: 0.45; cursor: not-allowed; }
-.btn[data-loading='true'] { cursor: progress; pointer-events: none; opacity: 0.75; }
-
-.btn--primary { background: var(--ink); color: var(--p-base); }
-.btn--primary:hover:not([disabled]) { background: color-mix(in srgb, var(--ink) 88%, var(--p-base)); }
-.btn--accent { background: var(--accent); color: #07111e; }
-.btn--accent:hover:not([disabled]) { background: var(--accent-strong); }
-:root[data-theme='light'] .btn--accent { color: #fff; }
-.btn--secondary { background: var(--p-raised); border-color: var(--rule-strong); color: var(--ink); }
-.btn--secondary:hover:not([disabled]) { background: var(--p-hover); }
-.btn--ghost { background: transparent; color: var(--ink-muted); }
-.btn--ghost:hover:not([disabled]) { color: var(--ink); background: var(--p-hover); }
-
-.btn--xs { height: 22px; padding: 0 7px; font-size: var(--t-meta); }
-.btn--sm { height: 28px; padding: 0 10px; font-size: var(--t-small); }
 
 /* ---------- Inputs ---------- */
 .input {
@@ -1484,7 +1444,10 @@ footer a:hover { color: var(--text) !important; }
 
 /* Shell boot: chrome is already up, only the content column is waiting. */
 
-/* ---------- Focus ---------- */
+/* ---------- Focus ----------
+   One ring for everything focusable. It does not touch border-radius: the
+   outline follows the element's own shape, and rewriting the radius on focus
+   squared the corners of any rounded element the moment it was tabbed to. */
 :focus-visible { outline: 2px solid var(--rule-focus); outline-offset: 1px; }
 
 /* ---------- ResearchLoader ---------- */
@@ -2217,7 +2180,6 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
 }
 /* The stronger reading, where "stronger" is actually defined. */
 .fcmp__win { color: var(--pos); font-weight: 600; }
-.btn.is-on { color: var(--accent); border-color: var(--accent); }
 
 /* Conviction threshold. A native range input restyled to the token system —
    keyboard, arrow keys and screen-reader semantics come free, which a
@@ -2444,13 +2406,21 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
 /* Run scrubber context. The markers alone read as decoration; the endpoints
    and the picked run's detail make it legible as a timeline. */
 
-/* ── Windows High Contrast / Accessibility Overrides ── */
+/* ── Windows High Contrast / Accessibility Overrides ──
+   Forced colours strips backgrounds and box-shadows, so anything that signals
+   state or draws an edge with either has to be restated with a real border or
+   outline. The system family draws its controls with borders and survives;
+   what it loses is the pressed / selected wash and the inset accent bars. */
 @media (forced-colors: active) {
-  .btn, .input, .card, .panel, .badge { border: 1px solid CanvasText; }
-  .btn:focus-visible, .input:focus-visible, .card:focus-visible, .pick:focus-visible { outline: 2px solid CanvasText; outline-offset: 2px; }
+  .input, .card, .panel, .badge, .sys-btn, .sys-input, .sys-panel { border: 1px solid CanvasText; }
+  .input:focus-visible, .card:focus-visible, .pick:focus-visible { outline: 2px solid CanvasText; outline-offset: 2px; }
   .pick:checked::after { color: CanvasText; }
 
   .rl__stage.is-active::before { background: Highlight; }
+
+  .sys-btn[aria-pressed='true'], .sys-btn.is-active,
+  .sys-seg > .sys-btn[aria-pressed='true'], .sys-seg > .sys-btn.is-active { outline: 2px solid Highlight; outline-offset: -2px; }
+  .sys-btn:disabled, .sys-btn[aria-disabled='true'] { color: GrayText; border-color: GrayText; }
 }
 /* ══════════════════════════════════════════════════════════════════════════
    Interaction polish — Uiverse mechanisms in OmniSignal's own tokens
@@ -2535,7 +2505,7 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
    indigo fill and the colour inversion. Kept: the chevron construction and
    the shaft reveal, in currentColor — so it works on any button variant and
    in both themes without new colours. Used on actions that navigate. */
-.btn--go .go-arrow {
+.sys-btn--go .go-arrow {
   position: relative;
   display: inline-block;
   width: 12px;
@@ -2544,7 +2514,7 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
   background: transparent;          /* shaft hidden at rest */
   transition: background var(--t-med) var(--ease), transform var(--t-med) var(--ease);
 }
-.btn--go .go-arrow::before {
+.sys-btn--go .go-arrow::before {
   content: '';
   position: absolute;
   top: -3px;
@@ -2555,10 +2525,10 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
   transform: rotate(-45deg);
   transition: right var(--t-med) var(--ease);
 }
-.btn--go:hover:not([disabled]) .go-arrow,
-.btn--go:focus-visible .go-arrow { background: currentColor; transform: translateX(2px); }
+.sys-btn--go:hover:not(:disabled) .go-arrow,
+.sys-btn--go:focus-visible .go-arrow { background: currentColor; transform: translateX(2px); }
 @media (prefers-reduced-motion: reduce) {
-  .btn--go .go-arrow, .btn--go .go-arrow::before { transition: none; }
+  .sys-btn--go .go-arrow, .sys-btn--go .go-arrow::before { transition: none; }
 }
 
 /* ── Company mark ──────────────────────────────────────────────────────────

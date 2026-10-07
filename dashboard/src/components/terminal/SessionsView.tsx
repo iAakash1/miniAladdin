@@ -303,7 +303,7 @@ export default function SessionsView() {
                    placeholder="Name a new investigation…"
                    onChange={(e) => setTitle(e.target.value)}
                    onKeyDown={(e) => { if (e.key === 'Enter') void start() }} />
-            <button type="button" className="btn btn--primary btn--sm" onClick={() => void start()}>
+            <button type="button" className="sys-btn sys-btn--primary" onClick={() => void start()}>
               Start
             </button>
           </>
@@ -359,7 +359,7 @@ export default function SessionsView() {
             <EmptyState
               title="Investigations couldn't be loaded"
               description="The persistence service didn't respond. Your work is safe on the server — this usually clears in a moment."
-              action={<button type="button" className="btn btn--secondary btn--sm" onClick={refresh}>Try again</button>}
+              action={<button type="button" className="sys-btn" onClick={refresh}>Try again</button>}
             />
           ) : sessions === null ? (
             <div className="ws-grid" aria-busy="true">
@@ -370,7 +370,7 @@ export default function SessionsView() {
               title="No investigations yet"
               description="Name one above, or open the knowledge graph and choose “Start investigation”. From then on every entity you pin, every snapshot you take and every note you write is remembered here."
               action={
-                <Link href="/terminal/graph" className="btn btn--primary btn--sm">
+                <Link href="/terminal/graph" className="sys-btn sys-btn--primary">
                   Open the graph
                 </Link>
               }
@@ -439,7 +439,7 @@ export default function SessionsView() {
                           <div className="ws-card__foot">
                             <span>{s.tags.length ? s.tags.join(' · ') : timeAgo(s.last_opened_at)}</span>
                             <ConfirmButton
-                              className="btn btn--ghost btn--xs ws-card__delete"
+                              className="sys-btn sys-btn--ghost sys-btn--xs ws-card__delete"
                               description={`Delete investigation ${s.title}`}
                               confirmLabel="Delete?"
                               onConfirm={() => deleteSession(s.id)}

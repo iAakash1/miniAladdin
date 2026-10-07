@@ -117,7 +117,7 @@ export default function UpgradeDialog({ open, onClose, reason }: UpgradeDialogPr
             type="button"
             onClick={onClose}
             aria-label="Close dialog"
-            className="btn btn--ghost btn--sm"
+            className="sys-btn sys-btn--ghost"
             style={{ marginRight: -8, marginTop: -6 }}
           >
             ✕
@@ -182,7 +182,7 @@ export default function UpgradeDialog({ open, onClose, reason }: UpgradeDialogPr
 
         <button
           type="button"
-          className="btn btn--accent"
+          className="sys-btn sys-btn--accent sys-btn--lg"
           onClick={startCheckout}
           disabled={busy}
           style={{ width: '100%' }}

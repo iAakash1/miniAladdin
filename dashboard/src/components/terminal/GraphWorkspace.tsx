@@ -294,12 +294,12 @@ export default function GraphWorkspace() {
             <span className="u-meta">
               {saving ? 'Saving…' : 'All changes saved'}
             </span>
-            <button type="button" className="btn btn--ghost btn--xs"
+            <button type="button" className="sys-btn sys-btn--ghost sys-btn--xs"
                     style={{ border: '1px solid var(--line)' }}
                     onClick={() => persist((current) => captureSnapshot(current, `${symbols} view`))}>
               Snapshot ({state.snapshots.length})
             </button>
-            <Link href="/terminal/sessions" className="btn btn--ghost btn--xs"
+            <Link href="/terminal/sessions" className="sys-btn sys-btn--ghost sys-btn--xs"
                   style={{ border: '1px solid var(--line)' }}>
               All investigations
             </Link>
@@ -309,10 +309,10 @@ export default function GraphWorkspace() {
             <span className="u-note">
               Not in a session — pins and notes won&apos;t be saved.
             </span>
-            <button type="button" className="btn btn--secondary btn--xs" onClick={startSession}>
+            <button type="button" className="sys-btn sys-btn--xs" onClick={startSession}>
               Start investigation
             </button>
-            <Link href="/terminal/sessions" className="btn btn--ghost btn--xs"
+            <Link href="/terminal/sessions" className="sys-btn sys-btn--ghost sys-btn--xs"
                   style={{ border: '1px solid var(--line)' }}>
               Open existing
             </Link>
@@ -388,7 +388,7 @@ export default function GraphWorkspace() {
                 symbols !== 'AAPL' ? (
                   <button
                     type="button"
-                    className="btn btn--secondary btn--sm"
+                    className="sys-btn"
                     onClick={() => {
                       const next = new URLSearchParams(params.toString())
                       next.set('symbols', 'AAPL')
@@ -592,13 +592,13 @@ export default function GraphWorkspace() {
               </div>
 
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <button type="button" className="btn btn--ghost btn--xs"
+                <button type="button" className="sys-btn sys-btn--ghost sys-btn--xs"
                         style={{ border: '1px solid var(--line)' }}
                         onClick={() => togglePin(selectedNode.id)}>
                   {pinned.includes(selectedNode.id) ? 'Unpin' : 'Pin'}
                 </button>
                 {selectedNode.route?.startsWith('/company/') && (
-                  <Link href={selectedNode.route} className="btn btn--ghost btn--xs"
+                  <Link href={selectedNode.route} className="sys-btn sys-btn--ghost sys-btn--xs"
                         style={{ border: '1px solid var(--line)' }}>
                     Open company research
                   </Link>
@@ -643,7 +643,7 @@ export default function GraphWorkspace() {
               </p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {data.shared.slice(0, 12).map((row) => (
-                  <button key={row.node.id} type="button" className="btn btn--ghost btn--xs"
+                  <button key={row.node.id} type="button" className="sys-btn sys-btn--ghost sys-btn--xs"
                           style={{ border: '1px solid var(--line)' }}
                           onClick={() => setSelected(row.node.id)}>
                     {row.node.label}
@@ -698,7 +698,7 @@ export default function GraphWorkspace() {
                    style={{ height: 32, fontSize: 'var(--t-body)' }}
                    onChange={(e) => setNoteDraft(e.target.value)}
                    onKeyDown={(e) => { if (e.key === 'Enter') void saveNote() }} />
-            <button type="button" className="btn btn--secondary btn--sm"
+            <button type="button" className="sys-btn"
                     disabled={!noteDraft.trim()} onClick={() => void saveNote()}>
               Add
             </button>

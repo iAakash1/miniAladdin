@@ -82,7 +82,7 @@ export default function CompanyEcosystem({ ticker }: { ticker: string }) {
                     <Link
                       key={member.id}
                       href={member.route}
-                      className="btn btn--ghost btn--xs"
+                      className="sys-btn sys-btn--ghost sys-btn--xs"
                       style={{ border: '1px solid var(--line)' }}
                     >
                       {content}
@@ -90,7 +90,7 @@ export default function CompanyEcosystem({ ticker }: { ticker: string }) {
                   ) : (
                     <span
                       key={member.id}
-                      className="btn btn--ghost btn--xs"
+                      className="sys-btn sys-btn--ghost sys-btn--xs"
                       style={{ border: '1px solid var(--line)', cursor: 'default' }}
                     >
                       {content}

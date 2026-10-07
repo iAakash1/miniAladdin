@@ -297,7 +297,7 @@ export default function PortfolioIntelligence() {
           title="Book-level figures couldn't be computed"
           description="The persistence service didn't respond. Your positions are safe on the server — the table above is unaffected."
           action={
-            <button type="button" className="btn btn--secondary btn--sm" onClick={() => load()}>
+            <button type="button" className="sys-btn" onClick={() => load()}>
               Try again
             </button>
           }
@@ -334,7 +334,7 @@ export default function PortfolioIntelligence() {
               system, not two. */}
           <button
             type="button"
-            className="btn btn--ghost btn--sm"
+            className="sys-btn sys-btn--ghost"
             onClick={() => load(true)}
             disabled={refreshing}
             data-loading={refreshing || undefined}

@@ -201,7 +201,7 @@ export default function GraphExplorer() {
               {index > 0 && <span style={{ color: 'var(--faint)', fontSize: 'var(--t-small)' }}>›</span>}
               <button
                 type="button"
-                className="btn btn--ghost btn--xs"
+                className="sys-btn sys-btn--ghost sys-btn--xs"
                 onClick={() => recenter(node)}
                 style={{ border: index === trail.length - 1 ? '1px solid var(--line-strong)' : '1px solid var(--line)' }}
               >
@@ -226,7 +226,7 @@ export default function GraphExplorer() {
               title={`No connections recorded for ${slice?.center.label ?? nodeId}`}
               description="This entity is in the graph but no provider has asserted a relationship for it yet. Open a company to explore a populated ecosystem."
               action={
-                <Link href="/terminal/graph?node=company:NVDA&label=NVDA" className="btn btn--secondary btn--sm">
+                <Link href="/terminal/graph?node=company:NVDA&label=NVDA" className="sys-btn">
                   Explore NVDA
                 </Link>
               }
@@ -345,11 +345,11 @@ export default function GraphExplorer() {
                 </p>
               </div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <button type="button" className="btn btn--secondary btn--sm" onClick={() => recenter(edges[active].node)}>
+                <button type="button" className="sys-btn" onClick={() => recenter(edges[active].node)}>
                   Explore
                 </button>
                 {edges[active].node.route?.startsWith('/company/') && (
-                  <Link href={edges[active].node.route!} className="btn btn--ghost btn--sm">
+                  <Link href={edges[active].node.route!} className="sys-btn sys-btn--ghost">
                     Open report
                   </Link>
                 )}

@@ -58,7 +58,7 @@ export default function SiteHeader() {
             <Link
               key={item.href}
               href={item.href}
-              className="btn btn--ghost btn--sm"
+              className="sys-btn sys-btn--ghost"
               style={{
                 color: pathname === item.href ? 'var(--text)' : undefined,
                 fontWeight: 500,
@@ -72,7 +72,7 @@ export default function SiteHeader() {
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
           <ThemeToggle />
           {!signedIn && (
-            <Link href="/sign-in" className="btn btn--ghost btn--sm site-signin" style={{ fontWeight: 500 }}>
+            <Link href="/sign-in" className="sys-btn sys-btn--ghost site-signin" style={{ fontWeight: 500 }}>
               Sign in
             </Link>
           )}
@@ -83,12 +83,12 @@ export default function SiteHeader() {
               request and a console error on the public site for every visitor
               who never clicked it. Navigation is unaffected — a click is a
               full navigation, not a fetch. */}
-          <Link href="/terminal" prefetch={false} className="btn btn--primary btn--sm">
+          <Link href="/terminal" prefetch={false} className="sys-btn sys-btn--primary">
             Open terminal
           </Link>
           <button
             type="button"
-            className="btn btn--ghost btn--sm menu-toggle"
+            className="sys-btn sys-btn--ghost menu-toggle"
             aria-expanded={menuOpen}
             aria-controls="mobile-nav"
             onClick={() => setMenuOpen((v) => !v)}

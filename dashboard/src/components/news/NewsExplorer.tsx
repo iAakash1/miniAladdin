@@ -248,7 +248,7 @@ export default function NewsExplorer() {
           title="The news feed is unreachable"
           description="Source feeds may be briefly unavailable. This usually resolves in under a minute."
           action={
-            <button type="button" className="btn btn--secondary btn--sm" onClick={retry}>
+            <button type="button" className="sys-btn" onClick={retry}>
               Try again
             </button>
           }
@@ -265,7 +265,7 @@ export default function NewsExplorer() {
           }
           action={
             hasFilters ? (
-              <button type="button" className="btn btn--secondary btn--sm" onClick={clearFilters}>
+              <button type="button" className="sys-btn" onClick={clearFilters}>
                 Clear filters
               </button>
             ) : undefined
@@ -295,7 +295,7 @@ export default function NewsExplorer() {
             >
               <button
                 type="button"
-                className="btn btn--secondary btn--sm"
+                className="sys-btn"
                 disabled={page <= 1}
                 onClick={() => goToPage(page - 1)}
               >
@@ -306,7 +306,7 @@ export default function NewsExplorer() {
               </span>
               <button
                 type="button"
-                className="btn btn--secondary btn--sm"
+                className="sys-btn"
                 disabled={page >= data.totalPages}
                 onClick={() => goToPage(page + 1)}
               >

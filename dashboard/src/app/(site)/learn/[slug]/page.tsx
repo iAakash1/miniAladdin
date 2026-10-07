@@ -63,7 +63,7 @@ export default async function LearnTopicPage({ params }: { params: Promise<{ slu
           <p className="label" style={{ marginBottom: 12 }}>Related concepts</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {related.map((t) => (
-              <Link key={t.slug} href={`/learn/${t.slug}`} className="btn btn--secondary btn--sm" style={{ textDecoration: 'none' }}>
+              <Link key={t.slug} href={`/learn/${t.slug}`} className="sys-btn" style={{ textDecoration: 'none' }}>
                 {t.entry.label}
               </Link>
             ))}

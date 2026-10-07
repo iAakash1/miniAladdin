@@ -66,13 +66,13 @@ export default function RouteError({
         </StateBlock>
       </div>
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
-        <button type="button" className="btn btn--primary btn--sm" onClick={() => reset()}>
+        <button type="button" className="sys-btn sys-btn--primary" onClick={() => reset()}>
           Try again
         </button>
-        <Link href="/" className="btn btn--secondary btn--sm">
+        <Link href="/" className="sys-btn">
           Home
         </Link>
-        <Link href="/terminal" className="btn btn--secondary btn--sm">
+        <Link href="/terminal" className="sys-btn">
           Open terminal
         </Link>
       </div>

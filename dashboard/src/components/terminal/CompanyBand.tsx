@@ -63,7 +63,7 @@ function SaveReportButton({ historyId }: { historyId: string }) {
   return (
     <button
       type="button"
-      className="btn btn--ghost btn--sm"
+      className="sys-btn sys-btn--ghost"
       onClick={save}
       disabled={state === 'saving'}
       title="Bookmark this analysis in your Vault"

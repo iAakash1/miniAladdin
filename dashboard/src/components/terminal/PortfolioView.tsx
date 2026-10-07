@@ -281,7 +281,7 @@ export default function PortfolioView() {
         title="Your watchlists couldn't be loaded"
         description="The persistence service didn't respond. Your lists are safe on the server — try again in a moment."
         action={
-          <button type="button" className="btn btn--secondary btn--sm" onClick={() => refreshWatchlists()}>
+          <button type="button" className="sys-btn" onClick={() => refreshWatchlists()}>
             Try again
           </button>
         }
@@ -343,7 +343,7 @@ export default function PortfolioView() {
             value={newName}
             onChange={(event) => setNewName(event.target.value)}
           />
-          <button type="submit" className="btn btn--secondary btn--sm" disabled={!newName.trim()}>
+          <button type="submit" className="sys-btn" disabled={!newName.trim()}>
             Create
           </button>
         </form>
@@ -399,13 +399,13 @@ export default function PortfolioView() {
             value={newName}
             onChange={(event) => setNewName(event.target.value)}
           />
-          <button type="submit" className="btn btn--ghost btn--sm" disabled={!newName.trim()}>
+          <button type="submit" className="sys-btn sys-btn--ghost" disabled={!newName.trim()}>
             Add
           </button>
         </form>
         {active && (
           <ConfirmButton
-            className="btn btn--ghost btn--sm u-push"
+            className="sys-btn sys-btn--ghost u-push"
             description={`Delete the watchlist ${active.name} and all ${active.tickers.length} of its tickers`}
             confirmLabel="Delete list?"
             onConfirm={() => {
@@ -450,7 +450,7 @@ export default function PortfolioView() {
               value={addSymbol}
               onChange={(event) => setAddSymbol(event.target.value.toUpperCase().replace(/[^A-Z.^-]/g, ''))}
             />
-            <button type="submit" className="btn btn--secondary btn--sm" disabled={!addSymbol.trim()}>
+            <button type="submit" className="sys-btn" disabled={!addSymbol.trim()}>
               Add to {active.name}
             </button>
             <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -465,7 +465,7 @@ export default function PortfolioView() {
               ) : null}
               <button
                 type="button"
-                className="btn btn--ghost btn--sm"
+                className="sys-btn sys-btn--ghost"
                 onClick={() => refreshQuotes()}
                 disabled={loadingQuotes || active.tickers.length === 0}
               >
@@ -575,12 +575,12 @@ export default function PortfolioView() {
                       <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                         <Link
                           href={`/company/${encodeURIComponent(ticker)}`}
-                          className="btn btn--ghost btn--xs"
+                          className="sys-btn sys-btn--ghost sys-btn--xs"
                         >
                           Open
                         </Link>
                         <ConfirmButton
-                          className="btn btn--ghost btn--xs reveal"
+                          className="sys-btn sys-btn--ghost sys-btn--xs reveal"
                           description={`Remove ${ticker} from ${active.name}`}
                           confirmLabel="Remove?"
                           onConfirm={() => {
