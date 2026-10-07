@@ -898,7 +898,10 @@ a.status-fact:hover .status-fact__value { color: var(--ink); }
   color: var(--ink-muted);
   cursor: pointer;
 }
-.pal-row[data-active='true'] { background: var(--accent-wash); color: var(--ink); }
+.pal-row[data-active='true'] { background: var(--accent-wash); color: var(--ink); box-shadow: inset 2px 0 0 var(--accent); }
+/* The ticker leads and the name follows it: a company row's name is secondary. */
+.pal-sym + .pal-label { color: var(--ink-muted); }
+.pal-row[data-active='true'] .pal-sym + .pal-label { color: var(--ink); }
 .pal-sym { flex: none; min-width: 58px; font: 600 var(--t-body) / 1 var(--font-mono); color: var(--ink); }
 .pal-label { flex: 0 1 auto; min-width: 0; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pal-note { flex: 1 1 auto; min-width: 0; font-size: var(--t-meta); color: var(--ink-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -63,7 +63,7 @@ function WatchControl({ symbol }: { symbol: string }) {
         aria-expanded={lists.length > 1 ? open : undefined}
         title={unavailable ? 'Watchlists are unavailable right now' : watched ? `On ${holding.map((l) => l.name).join(', ')}` : 'Add to a watchlist'}
       >
-        <Icon name="star" size={13} />
+        <Icon name="star" size={14} />
         {watched ? 'Watching' : 'Watch'}
       </button>
       {open ? (
@@ -182,7 +182,7 @@ export default function CompanyHeader({
             {site ? (
               <span>
                 <a className="cw-site" href={site.href} target="_blank" rel="noreferrer">
-                  {site.label}<Icon name="external" size={11} />
+                  {site.label}<Icon name="external" size={12} />
                 </a>
               </span>
             ) : null}

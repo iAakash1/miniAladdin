@@ -429,13 +429,19 @@ export default function Palette() {
 
           {q && !selectable.length ? (
             <p className="pal-empty">
-              {current ? `Nothing matches “${q}”.` : 'Searching…'}
+              {!current
+                ? 'Searching…'
+                : current.error
+                  // A failed search is not an empty one: "nothing matches AAPL"
+                  // while the service is down tells the reader the ticker does not exist.
+                  ? 'Search is unavailable right now. A ticker can still be opened directly.'
+                  : `Nothing matches “${q}”. Try a ticker, a company name or a theme.`}
             </p>
           ) : null}
         </div>
 
         <div className="visually-hidden" role="status" aria-live="polite">
-          {q ? (current ? `${selectable.length} ${selectable.length === 1 ? 'result' : 'results'}` : 'Searching') : ''}
+          {q ? (!current ? 'Searching' : current.error ? 'Search unavailable' : `${selectable.length} ${selectable.length === 1 ? 'result' : 'results'}`) : ''}
         </div>
 
         <div className="pal-foot">

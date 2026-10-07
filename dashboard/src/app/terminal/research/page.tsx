@@ -6,7 +6,7 @@ import PipelineFigure from '@/components/marketing/PipelineFigure'
 import AgentObservatory from '@/components/terminal/observatory/AgentObservatory'
 import ArchitectureFigure from '@/components/terminal/system/ArchitectureFigure'
 import SystemHealthBoard from '@/components/terminal/system/SystemHealthBoard'
-import { Grid, Panel, Prose, Status } from '@/components/system'
+import { Grid, Panel, Prose, Section, Status } from '@/components/system'
 
 export const metadata: Metadata = {
   title: 'Architecture',
@@ -59,7 +59,8 @@ export default function ResearchOSPage() {
       <Panel title="Authority boundary" subtitle="the signal is fixed before the narrative is written">
         <PipelineFigure />
       </Panel>
-      <Panel title="OmniSignal" subtitle="three accountable layers">
+      {/* Three panels under a heading, not three panels inside a fourth. */}
+      <Section title="OmniSignal — three accountable layers">
         <Grid variant="halves">
           {pillars.map((pillar) => (
             <Panel key={pillar.title} title={pillar.title} state={pillar.state} seam>
@@ -68,7 +69,7 @@ export default function ResearchOSPage() {
             </Panel>
           ))}
         </Grid>
-      </Panel>
+      </Section>
       <SystemHealthBoard compact />
       <AgentObservatory />
     </Workbench>

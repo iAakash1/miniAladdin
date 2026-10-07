@@ -9,7 +9,7 @@
    tooltip. These tests read the source because the component needs a DOM. */
 
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import test from 'node:test'
 
@@ -76,4 +76,26 @@ test('a graph node and a selectable row can be operated from the keyboard and sa
   const table = read('components', 'system', 'index.tsx')
   assert.match(table, /e\.key === 'Enter' \|\| e\.key === ' '/)
   assert.match(table, /aria-current=\{onSelect && selectedKey === key \? 'true' : undefined\}/)
+})
+
+test('a failed search is not reported as an empty one', () => {
+  const src = read('components', 'system', 'Palette.tsx')
+  assert.match(src, /current\.error\s*\n?\s*(?:\/\/.*\n\s*)*\?\s*'Search is unavailable/)
+  assert.match(src, /'Search unavailable'/)
+  assert.match(src, /Nothing matches “\$\{q\}”\. Try a ticker/)
+})
+
+test('icons are drawn at three sizes: 12, 14 and 16', () => {
+  const sizes = new Set<number>()
+  const walk = (dir: string) => {
+    for (const name of readdirSync(dir)) {
+      const full = join(dir, name)
+      if (statSync(full).isDirectory()) walk(full)
+      else if (name.endsWith('.tsx')) {
+        for (const m of readFileSync(full, 'utf8').matchAll(/<Icon\b[^>]*\bsize=\{(\d+)\}/g)) sizes.add(Number(m[1]))
+      }
+    }
+  }
+  walk(join(__dirname, '..', 'src'))
+  assert.deepEqual([...sizes].sort((a, b) => a - b).filter((n) => ![12, 14, 16].includes(n)), [])
 })

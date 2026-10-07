@@ -36,6 +36,7 @@ const reached = (cls: string) =>
   new RegExp(`(?<![\\w-])${cls.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}(?![\\w-])`).test(source) ||
   [...dynamicPrefixes].some((p) => cls.startsWith(p))
 
+const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, '')
 const sheets = ['app/globals.css', 'styles/system.css'].map((f) => ({
   file: f,
   // comments and url(...) go: a data URI's "www.w3.org" is not a class
@@ -94,4 +95,19 @@ test('every rule\'s selector list is made only of selectors', () => {
     .map((m) => m[2])
     .filter((list) => list.split(',').some((part) => part.trim() === '' && list.trim() !== ''))
   assert.deepEqual(bad.map((b) => b.replace(/\s+/g, ' ').slice(0, 80)), [])
+})
+
+test('every animation a rule names has a keyframes definition', () => {
+  const all = sheets.map((s) => s.css).join('\n') + strip(readFileSync(join(SRC, 'styles', 'tokens.css'), 'utf8'))
+  const defined = new Set([...all.matchAll(/@keyframes\s+([\w-]+)/g)].map((m) => m[1]))
+  const keywords = new Set(['none', 'infinite', 'both', 'forwards', 'backwards', 'alternate', 'reverse', 'normal', 'running', 'paused',
+    'initial', 'inherit', 'unset', 'ease', 'ease-in', 'ease-out', 'ease-in-out', 'linear', 'step-start', 'step-end'])
+  const missing: string[] = []
+  for (const m of all.matchAll(/(?<![\w-])animation(?:-name)?:\s*([^;}]+)/g)) {
+    const value = m[1].replace(/var\([^)]*\)|cubic-bezier\([^)]*\)|steps\([^)]*\)/g, ' ')
+    for (const token of value.match(/(?<![\w.-])[a-z][\w-]*(?![\w(-])/g) ?? []) {
+      if (!keywords.has(token) && !/^\d/.test(token) && !defined.has(token)) missing.push(token)
+    }
+  }
+  assert.deepEqual([...new Set(missing)], [])
 })

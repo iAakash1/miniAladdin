@@ -106,3 +106,44 @@ test('a text field takes its size from the field class, not from its own style',
   assert.deepEqual(offenders, [])
   assert.match(STYLES, /\.sys-input--lg\s*\{[^}]*height:\s*36px/)
 })
+
+/** The end of the JSX tag that starts at `from`, aware of braces and quotes. */
+function tagEnd(text: string, from: number): number {
+  let depth = 0
+  let quote: string | null = null
+  for (let i = from; i < text.length; i++) {
+    const c = text[i]
+    if (quote) { if (c === quote && text[i - 1] !== '\\') quote = null }
+    else if (c === '"' || c === "'" || c === '`') quote = c
+    else if (c === '{') depth++
+    else if (c === '}') depth--
+    else if (c === '>' && depth === 0 && text[i - 1] !== '=') return i + 1
+  }
+  return -1
+}
+
+test('a panel is never drawn inside another panel', () => {
+  // A card inside a card inside a card is what makes a financial interface
+  // read as a template. A group takes a heading (`Section`), not a surface.
+  const nested: string[] = []
+  for (const file of walk(SRC)) {
+    const text = readFileSync(file, 'utf8')
+    const stack: Array<{ name: string; surface: boolean }> = []
+    for (const m of text.matchAll(/<\/?([A-Za-z][\w.]*)/g)) {
+      const end = tagEnd(text, m.index!)
+      if (end < 0) continue
+      const tag = text.slice(m.index!, end)
+      const name = m[1]
+      if (tag.startsWith('</')) {
+        const at = stack.map((s) => s.name).lastIndexOf(name)
+        if (at >= 0) stack.length = at
+        continue
+      }
+      const surface = name === 'Panel' || classes(tag).some((c) => c === 'sys-panel' || c === 'panel')
+      // an empty or loading state drawn inside a panel is the panel's content, not a second surface
+      if (surface && stack.some((s) => s.surface)) nested.push(`${rel(file)}:${text.slice(0, m.index!).split('\n').length}`)
+      if (!tag.trimEnd().endsWith('/>')) stack.push({ name, surface })
+    }
+  }
+  assert.deepEqual(nested, [])
+})
