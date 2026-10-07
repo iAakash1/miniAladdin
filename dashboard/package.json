@@ -1,5 +1,6 @@
 {
-  "name": "dashboard",
+  "name": "omnisignal-dashboard",
+  "description": "OmniSignal — evidence-grounded equity research terminal (Next.js frontend).",
   "version": "2.0.0",
   "private": true,
   "scripts": {
