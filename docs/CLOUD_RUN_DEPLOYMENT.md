@@ -299,6 +299,19 @@ gcloud run services update-traffic omnisignal-api-poc --region asia-south1 \
 
 An anonymous request to the service must still receive `403`.
 
+**Then warm it.** A revision's minimum instance is *not* kept while the revision
+sits at 0% traffic: the log reads `Starting new instance. Reason:
+DEPLOYMENT_ROLLOUT` at the moment traffic moves. So the first request after a
+release meets a fresh container (about 6 s), a cold macro cache on it (about
+3 s) and, if the frontend was deployed too, a new Vercel function. Measured
+once, that was 13 s through Vercel. Make the first request yourself, before
+anyone else does:
+
+```bash
+curl -s https://omnisignalterminal.vercel.app/api/macro >/dev/null   # container, FRED cache, function
+python3 scripts/smoke_cloud_run.py <service-url> <commit-prefix> <revision>
+```
+
 
 ## Hardening pass (2026-10-07)
 
@@ -357,6 +370,30 @@ Not done, on purpose: pruning dependencies. `pyarrow` (≈108 MB) and `scipy`
 (≈98 MB) dominate the image, but removing either needs proof that no runtime
 path imports it, and a wrong guess is a production outage to save seconds that
 `min-instances` already removes.
+
+Measured after the change, from a machine in India:
+
+| Request | Before | After |
+|---|---|---|
+| Cloud Run direct, first request after ≥10 min idle | 9.9 s | 0.06 s |
+| Public path (Vercel → OIDC → Cloud Run → FRED), first request after ≥10 min idle | ~14–16 s | 2.3 s |
+| Same, warm | 0.9–2.1 s | 0.6 s |
+| First request in the minutes after a release | — | up to ~13 s (see "Then warm it") |
+
+The 2.3 s is Vercel's own function start and the three-call Google token
+exchange, which the proxy then caches for ~55 minutes.
+
+### Where the proxy runs
+
+The Vercel project defaulted to `iad1` (US East). Requests entered at Mumbai
+(`x-vercel-id: bom1::iad1::…`), ran in Virginia, then called Cloud Run back in
+Mumbai: two crossings of the planet for a call whose backend time is a few
+milliseconds. `dashboard/vercel.json` pins the functions to `bom1`, beside the
+backend. A user anywhere still pays one long hop, so this is never worse than
+the default and is much better for the people the product is for; a test
+(`dashboard/tests/function-region.test.ts`) pins it. It is a configuration
+file rather than a project setting so the decision is reviewable and
+reproducible.
 
 Concurrency stays at 1 with a single instance, so a long research request
 (tens of seconds) still queues the next one. That is the memory-bounding
