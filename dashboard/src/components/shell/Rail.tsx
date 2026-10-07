@@ -1,5 +1,6 @@
 'use client'
 
+import { Shortcut } from '@/components/system/Shortcut'
 import Link from 'next/link'
 import { useSyncExternalStore } from 'react'
 
@@ -91,7 +92,7 @@ export default function Rail({
       </div>
 
       <div className="rail-foot">
-        <span><kbd>⌘K</kbd> search</span>
+        <span><kbd><Shortcut k="K" /></kbd> search</span>
         <span><kbd>?</kbd> shortcuts</span>
       </div>
     </nav>

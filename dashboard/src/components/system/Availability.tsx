@@ -49,7 +49,7 @@ const STATE: Record<AvailabilityStatus, ResearchState> = {
   UNSUPPORTED: 'blocked',
   DEPENDENCY_UNAVAILABLE: 'unavailable',
   PERMISSION_DENIED: 'blocked',
-  ERROR: 'unavailable',
+  ERROR: 'error',
 }
 
 const TITLE: Record<AvailabilityStatus, string> = {
@@ -62,7 +62,7 @@ const TITLE: Record<AvailabilityStatus, string> = {
   UNSUPPORTED: 'Not supported',
   DEPENDENCY_UNAVAILABLE: 'A dependency is unavailable',
   PERMISSION_DENIED: 'Not permitted',
-  ERROR: 'Something went wrong',
+  ERROR: 'The request failed',
 }
 
 export function isAvailable(payload: { status?: string } | null | undefined): boolean {

@@ -1,5 +1,6 @@
 'use client'
 
+import { Shortcut } from '@/components/system/Shortcut'
 import Link from 'next/link'
 import { useSyncExternalStore } from 'react'
 
@@ -30,7 +31,7 @@ export default function ResearchStart() {
         <button type="button" className="hs-search" onClick={() => openPalette()}>
           <Icon name="search" size={16} />
           <span>Search by ticker, company or theme — “semiconductor equipment”, “AAPL”</span>
-          <kbd>⌘K</kbd>
+          <kbd><Shortcut k="K" /></kbd>
         </button>
         <div className="hs-picks" aria-label={recent.length ? 'Recent and suggested companies' : 'Suggested companies'}>
           {picks.map((s) => (

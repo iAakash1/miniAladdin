@@ -19,6 +19,7 @@
  * resizes at the moment of clicking moves whatever sits next to it.
  */
 
+import { Shortcut } from '@/components/system/Shortcut'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 type Phase = 'idle' | 'copied' | 'failed'
@@ -78,7 +79,7 @@ export default function CopyButton({
       <span className="copyb__stack" aria-hidden>
         <span className="copyb__face copyb__face--idle">⧉ {resting}</span>
         <span className="copyb__face copyb__face--done">
-          {phase === 'failed' ? 'Press ⌘C' : '✓ Copied'}
+          {phase === 'failed' ? <>Press <Shortcut k="C" /></> : '✓ Copied'}
         </span>
       </span>
       <span className="visually-hidden" role="status">

@@ -11,6 +11,7 @@
  */
 'use client'
 
+import { Shortcut } from '@/components/system/Shortcut'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
@@ -281,7 +282,7 @@ export default function CommandCenter() {
           <Link href="/terminal/memos" className="sys-btn">Write it down</Link>
         </div>
         <p style={{ margin: 'var(--d-2) 0 0', fontSize: 'var(--t-micro)', color: 'var(--ink-faint)' }}>
-          Press ⌘K to search every object, or ? for the keyboard map.
+          Press <Shortcut k="K" /> to search every object, or ? for the keyboard map.
         </p>
       </Panel>
 

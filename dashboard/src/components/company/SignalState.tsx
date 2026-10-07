@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 
 import type { ResearchRun } from './useCompany'
 import { providerSet, signalTone, verdictWord } from './derive'
+import { StateBlock } from '@/components/system'
 import { ordinal, fmtSigned } from '@/lib/format'
 import { FREE_DAILY_LIMIT } from '@/lib/usage'
 import type { Analysis } from '@/lib/types'
@@ -199,26 +200,24 @@ export default function SignalState({ run, onRetry, onUpgrade }: {
       ) : null}
 
       {run.status === 'limited' ? (
-        <div className="sig-state">
-          <p className="sig-state__title">Daily research limit reached</p>
-          <p className="sig-state__detail">
-            Free accounts run {FREE_DAILY_LIMIT} full analyses a day. Price and history above stay
-            live; your Research log keeps every run you have already made.
-          </p>
+        <StateBlock
+          state="blocked"
+          title="Daily research limit reached"
+          detail={`Free accounts run ${FREE_DAILY_LIMIT} full analyses a day. Price and history above stay live; your Research log keeps every run you have already made.`}
+        >
           <div className="sig-state__actions">
             <button type="button" className="sys-btn sys-btn--primary" onClick={onUpgrade}>Upgrade</button>
             <Link className="sys-btn" href="/terminal/vault">Open research log</Link>
           </div>
-        </div>
+        </StateBlock>
       ) : null}
 
       {run.status === 'error' ? (
-        <div className="sig-state" data-tone="neg">
-          <p className="sig-state__title">The research run did not complete</p>
-          <p className="sig-state__detail">
-            {run.code === 404 ? 'No provider recognised this symbol.' : 'An upstream provider or the research service failed before a result was produced.'}
-            {' '}No partial signal is shown in its place.
-          </p>
+        <StateBlock
+          state="error"
+          title="The research run did not complete"
+          detail={`${run.code === 404 ? 'No provider recognised this symbol.' : 'An upstream provider or the research service failed before a result was produced.'} No partial signal is shown in its place.`}
+        >
           <details className="sig-state__diag">
             <summary>Diagnostics</summary>
             <code>{run.code ? `HTTP ${run.code} · ` : ''}{run.message.slice(0, 240)}</code>
@@ -226,7 +225,7 @@ export default function SignalState({ run, onRetry, onUpgrade }: {
           <div className="sig-state__actions">
             <button type="button" className="sys-btn" onClick={onRetry}>Retry</button>
           </div>
-        </div>
+        </StateBlock>
       ) : null}
     </section>
   )

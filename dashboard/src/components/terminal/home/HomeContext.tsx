@@ -1,3 +1,4 @@
+import { Shortcut } from '@/components/system/Shortcut'
 import { Panel } from '@/components/system'
 
 const LIVES: [string, string][] = [
@@ -23,10 +24,14 @@ export default function HomeContext() {
       </Panel>
       <Panel title="Keys">
         <ul className="objidx">
-          {[['⌘K or /', 'search companies and commands'], ['g c', 'reopen the last company'], ['?', 'every shortcut']].map(([k, what]) => (
-            <li className="objidx__row" key={k}>
+          {[
+            [<><Shortcut k="K" /> or /</>, 'search companies and commands'],
+            ['g c', 'reopen the last company'],
+            ['?', 'every shortcut'],
+          ].map(([keys, what]) => (
+            <li className="objidx__row" key={String(what)}>
               <span className="objidx__k">{what}</span>
-              <kbd className="sys-kbd">{k}</kbd>
+              <kbd className="sys-kbd">{keys}</kbd>
             </li>
           ))}
         </ul>

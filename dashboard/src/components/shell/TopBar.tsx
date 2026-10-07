@@ -1,5 +1,6 @@
 'use client'
 
+import { Shortcut } from '@/components/system/Shortcut'
 import { UserButton } from '@clerk/nextjs'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -83,10 +84,10 @@ export default function TopBar({
         <span className="shell-loc__page" aria-current="page">{location}</span>
       </nav>
 
-      <button type="button" className="shell-search" onClick={() => openPalette()} aria-label="Search companies, tickers and commands">
+      <button type="button" className="shell-search" onClick={() => openPalette()} aria-keyshortcuts="Control+K Meta+K">
         <Icon name="search" size={14} />
         <span className="shell-search__text">Search companies, tickers, themes, commands</span>
-        <kbd className="shell-search__kbd">⌘K</kbd>
+        <kbd className="shell-search__kbd" aria-hidden><Shortcut k="K" /></kbd>
       </button>
 
       <div className="shell-top__end">
