@@ -61,9 +61,9 @@ const STATE_LABEL: Record<ResearchState, string> = {
   info: 'info',
 }
 
-export function Status({ state, label }: { state: ResearchState; label?: string }) {
+export function Status({ state, label, title }: { state: ResearchState; label?: string; title?: string }) {
   return (
-    <span className="sys-status" data-state={state} title={STATE_TITLE[state]}>
+    <span className="sys-status" data-state={state} title={title ?? STATE_TITLE[state]}>
       {label ?? STATE_LABEL[state]}
     </span>
   )

@@ -57,7 +57,7 @@ const STATE_MAP: Record<string, ResearchState> = {
   live: 'live', recorded: 'recorded', stale: 'stale', waking: 'waking',
   unavailable: 'unavailable', blocked: 'blocked', experimental: 'experimental',
   production_candidate: 'candidate', validated: 'candidate',
-  production: 'production', retired: 'unavailable',
+  production: 'production', retired: 'retired',
 }
 
 type Item =
@@ -120,13 +120,22 @@ export default function Palette() {
 
   useEffect(() => {
     if (!open) return undefined
+    // Closing returns the reader to where they were, not to the top of the
+    // page. A shortcut opens it from body, which needs no restoring.
+    const opener = document.activeElement instanceof HTMLElement && document.activeElement !== document.body
+      ? document.activeElement
+      : null
     const t = window.setTimeout(() => inputRef.current?.focus(), 0)
     loadCatalogue()
       .then((c) => setObjects(c.objects))
       .catch(() => { /* the catalogue reports its own failures */ })
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
     window.addEventListener('keydown', onKey)
-    return () => { window.clearTimeout(t); window.removeEventListener('keydown', onKey) }
+    return () => {
+      window.clearTimeout(t)
+      window.removeEventListener('keydown', onKey)
+      if (opener?.isConnected) opener.focus()
+    }
   }, [open])
 
   // One in-flight screen request; each keystroke cancels the last.
@@ -346,6 +355,7 @@ export default function Palette() {
             role="combobox"
             aria-expanded="true"
             aria-controls="pal-list"
+            aria-autocomplete="list"
             aria-activedescendant={selectable.length ? optionId(cursor) : undefined}
             aria-label="Search"
             autoComplete="off"
@@ -355,6 +365,10 @@ export default function Palette() {
               if (e.key === 'ArrowDown') { e.preventDefault(); setCursor(Math.min(cursor + 1, selectable.length - 1)) }
               if (e.key === 'ArrowUp') { e.preventDefault(); setCursor(Math.max(cursor - 1, 0)) }
               if (e.key === 'Enter') { e.preventDefault(); activate(cursor) }
+              // The input is the dialog's only control. Tab would walk out
+              // behind the backdrop while the palette is still open; Escape
+              // is the way out.
+              if (e.key === 'Tab') e.preventDefault()
             }}
           />
           <kbd className="pal-esc">esc</kbd>
@@ -418,6 +432,10 @@ export default function Palette() {
               {current ? `Nothing matches “${q}”.` : 'Searching…'}
             </p>
           ) : null}
+        </div>
+
+        <div className="visually-hidden" role="status" aria-live="polite">
+          {q ? (current ? `${selectable.length} ${selectable.length === 1 ? 'result' : 'results'}` : 'Searching') : ''}
         </div>
 
         <div className="pal-foot">

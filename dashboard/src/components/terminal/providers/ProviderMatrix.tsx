@@ -17,7 +17,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import RoutingFigure from './RoutingFigure'
-import { Panel, StateBlock } from '@/components/system'
+import { Panel, StateBlock, Status, type ResearchState } from '@/components/system'
 import EntityMark from '@/components/visual/EntityMark'
 import { providerDomain } from '@/lib/identity'
 import {
@@ -50,6 +50,9 @@ const VENDOR_LABEL: Record<string, string> = {
   treasury_fiscal: 'Treasury Fiscal Data', ecb: 'ECB Data Portal', world_bank: 'World Bank',
   federal_register: 'Federal Register', openfda: 'openFDA', clinicaltrials: 'ClinicalTrials.gov',
 }
+
+/** A vendor's health tone, drawn with the same status grammar as everything else. */
+const TONE_STATE: Record<HealthTone, ResearchState> = { neg: 'error', warn: 'warning', pos: 'live', info: 'info', muted: 'unknown' }
 
 const TONE_RANK: Record<HealthTone, number> = { neg: 4, warn: 3, pos: 2, info: 1, muted: 0 }
 
@@ -117,9 +120,9 @@ function Card({ c }: { c: VendorCard }) {
           <h3>{label}</h3>
           <span className="pv-card__vid">{c.id}{c.shared ? ' · shared client' : ''}</span>
         </div>
-        <span className="pv-state" data-tone={c.worst.tone}>
-          <span className="dot" data-tone={c.worst.tone} aria-hidden />{c.worst.label}
-        </span>
+        {/* The note is printed under the header, so only a muted state — whose
+            default tooltip says "could not be determined" — needs its own. */}
+        <Status state={TONE_STATE[c.worst.tone]} label={c.worst.label} title={c.worst.tone === 'muted' ? c.worst.note ?? undefined : undefined} />
       </header>
       {c.worst.note ? <p className="pv-card__note">{c.worst.note}</p> : null}
       <ul className="pv-caps" aria-label={`${label} capabilities`}>

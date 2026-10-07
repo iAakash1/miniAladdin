@@ -13,7 +13,7 @@
  */
 'use client'
 
-import { Fragment, useId, useMemo, useState, type ReactNode } from 'react'
+import { Fragment, useCallback, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 
 import { bounds, commit, MIN_SPAN, type Window } from '@/lib/chart-window'
 import { format, type Kind } from '@/lib/quantity'
@@ -28,7 +28,51 @@ export interface Point {
   y: number | null
 }
 
-const PAD = { top: 8, right: 8, bottom: 18, left: 44 }
+const PAD = { top: 8, right: 8, bottom: 18, left: 48 }
+
+/** Axis text is drawn at the stylesheet's type floor (--t-micro), never below it. */
+const AXIS_FONT = 10
+/** One monospace glyph's advance at AXIS_FONT, for sizing a chip to its text. */
+const GLYPH = 6.1
+
+const DEFAULT_WIDTH = 640
+const MIN_WIDTH = 240
+
+/**
+ * The width a chart is actually drawn at, in CSS pixels.
+ *
+ * The plot used to be laid out in a fixed 640-unit viewBox and stretched to
+ * `width="100%"` inside a fixed height. An SVG keeps its aspect ratio unless
+ * told otherwise, so in a panel wider than 640 the drawing sat centred with
+ * empty bands either side, while the pointer maths and the HTML readout
+ * assumed it filled the element: the crosshair landed on the wrong
+ * observation. In a panel narrower than 640 the whole drawing, labels
+ * included, shrank with it — 9px text on a phone came out near 5px.
+ *
+ * Laying the plot out in real pixels removes both: one unit is one CSS pixel,
+ * labels are the size they say, and a pointer x maps to an observation
+ * directly. Attach the returned ref to the element whose width the chart
+ * should take. A callback ref, because a chart that starts empty and later
+ * receives data mounts its element after the first effect has run.
+ */
+function useChartWidth(): [(el: Element | null) => void, number] {
+  const [width, setWidth] = useState(DEFAULT_WIDTH)
+  const observer = useRef<ResizeObserver | null>(null)
+  const attach = useCallback((el: Element | null) => {
+    observer.current?.disconnect()
+    observer.current = null
+    if (!el) return
+    const measure = () => {
+      const next = Math.max(MIN_WIDTH, Math.round(el.getBoundingClientRect().width))
+      setWidth((previous) => (previous === next ? previous : next))
+    }
+    measure()
+    if (typeof ResizeObserver === 'undefined') return
+    observer.current = new ResizeObserver(measure)
+    observer.current.observe(el)
+  }, [])
+  return [attach, width]
+}
 
 function extent(values: number[]): [number, number] {
   if (!values.length) return [0, 1]
@@ -159,6 +203,7 @@ export function TimeSeries({
   const [hidden, setHidden] = useState<string[]>([])
   const cursor = useChartCursor()
   const id = useId()
+  const [measure, width] = useChartWidth()
 
   const total = series[0]?.points.length ?? 0
   // See lib/chart-window: a window of indices is only meaningful against the
@@ -198,7 +243,7 @@ export function TimeSeries({
   }
 
   const [lo, hi] = extent([...all, ...bandValues, ...(zeroLine ? [0] : [])])
-  const W = 640
+  const W = width
   const H = height
   const iw = W - PAD.left - PAD.right
   const ih = H - PAD.top - PAD.bottom
@@ -309,7 +354,7 @@ export function TimeSeries({
         </div>
       }
     >
-      <div className="cx">
+      <div className="cx" ref={measure}>
       <svg
         viewBox={`0 0 ${W} ${H}`} width="100%" height={H} role="img"
         aria-label={title ?? 'time series'}
@@ -338,7 +383,7 @@ export function TimeSeries({
         {ticks.map((t) => (
           <g key={t}>
             <line x1={PAD.left} x2={W - PAD.right} y1={py(t)} y2={py(t)} stroke="var(--rule)" strokeWidth={1} />
-            <text x={PAD.left - 5} y={py(t) + 3} textAnchor="end" fontSize={9} fill="var(--ink-faint)" fontFamily="var(--font-mono)">
+            <text x={PAD.left - 5} y={py(t) + 3} textAnchor="end" fontSize={AXIS_FONT} fill="var(--ink-faint)" fontFamily="var(--font-mono)">
               {fmtTick(t)}
             </text>
           </g>
@@ -422,14 +467,14 @@ export function TimeSeries({
             window falls and not what the horizontal direction means, which for
             a fold index or a spread sweep is not the same question. */}
         {xLabel ? (
-          <text x={W / 2} y={11} textAnchor="middle" fontSize={9} fill="var(--ink-faint)" fontFamily="var(--font-mono)">
+          <text x={W / 2} y={11} textAnchor="middle" fontSize={AXIS_FONT} fill="var(--ink-faint)" fontFamily="var(--font-mono)">
             {xLabel}{frequency ? ` · ${frequency}` : ''}
           </text>
         ) : null}
-        <text x={PAD.left} y={H - 4} fontSize={9} fill="var(--ink-faint)" fontFamily="var(--font-mono)">
+        <text x={PAD.left} y={H - 4} fontSize={AXIS_FONT} fill="var(--ink-faint)" fontFamily="var(--font-mono)">
           {String(labels[0]?.x ?? '')}
         </text>
-        <text x={W - PAD.right} y={H - 4} textAnchor="end" fontSize={9} fill="var(--ink-faint)" fontFamily="var(--font-mono)">
+        <text x={W - PAD.right} y={H - 4} textAnchor="end" fontSize={AXIS_FONT} fill="var(--ink-faint)" fontFamily="var(--font-mono)">
           {String(labels[n - 1]?.x ?? '')}
         </text>
         {/* The date, anchored under the hairline rather than centred under the
@@ -438,7 +483,7 @@ export function TimeSeries({
         {marked !== null ? (() => {
           const x = px(marked)
           const label = String(labels[marked]?.x ?? '')
-          const w = Math.max(52, label.length * 5.6 + 10)
+          const w = Math.max(52, label.length * GLYPH + 10)
           // Kept inside the plot so the chip never hangs off either end.
           const cx = Math.min(W - PAD.right - w / 2, Math.max(PAD.left + w / 2, x))
           return (
@@ -448,7 +493,7 @@ export function TimeSeries({
                 fill="var(--p-inverse)" rx={1}
               />
               <text
-                x={cx} y={H - PAD.bottom + 12} textAnchor="middle" fontSize={9}
+                x={cx} y={H - PAD.bottom + 12} textAnchor="middle" fontSize={AXIS_FONT}
                 fill="var(--p-panel)" fontFamily="var(--font-mono)"
               >
                 {label}
@@ -465,7 +510,7 @@ export function TimeSeries({
           const v = sliced[0].points[marked].y as number
           const y = py(v)
           const text = format(v, kind).text
-          const w = Math.max(38, text.length * 5.6 + 8)
+          const w = Math.max(38, text.length * GLYPH + 8)
           return (
             <g>
               <line
@@ -474,13 +519,13 @@ export function TimeSeries({
                 strokeDasharray="2 3"
               />
               {/* Sits in the axis gutter, right edge against the plot. The
-                  gutter is 44 units wide, so a wider chip is clamped to the
+                  gutter is PAD.left wide, so a wider chip is clamped to the
                   left margin rather than drawn off the canvas — it covers the
                   tick it replaces, which is the intent: while the pointer is
                   down the axis reads the exact value, not the nearest tick. */}
               <rect x={Math.max(0, PAD.left - 2 - w)} y={y - 6.5} width={w} height={13} fill="var(--p-inverse)" rx={1} />
               <text
-                x={Math.max(0, PAD.left - 2 - w) + w / 2} y={y + 3} textAnchor="middle" fontSize={9}
+                x={Math.max(0, PAD.left - 2 - w) + w / 2} y={y + 3} textAnchor="middle" fontSize={AXIS_FONT}
                 fill="var(--p-panel)" fontFamily="var(--font-mono)"
               >
                 {text}
@@ -536,10 +581,11 @@ export function TimeSeries({
 /* ── drawdown ──────────────────────────────────────────────────────────── */
 
 export function DrawdownChart({ points, height = 150, title = 'Drawdown' }: { points: Point[]; height?: number; title?: string }) {
+  const [measure, width] = useChartWidth()
   const finite = points.map((p) => p.y).filter((v): v is number => v !== null && Number.isFinite(v))
   if (finite.length < 2) return <ChartFrame title={title} height={height} empty>{null}</ChartFrame>
 
-  const W = 640
+  const W = width
   const H = height
   const iw = W - PAD.left - PAD.right
   const ih = H - PAD.top - PAD.bottom
@@ -557,11 +603,11 @@ export function DrawdownChart({ points, height = 150, title = 'Drawdown' }: { po
 
   return (
     <ChartFrame title={title} unit="return, from peak" method="peak_to_trough on the wealth path">
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} role="img" aria-label="drawdown" style={{ display: 'block' }}>
+      <svg ref={measure} viewBox={`0 0 ${W} ${H}`} width="100%" height={H} role="img" aria-label="drawdown" style={{ display: 'block' }}>
         <line x1={PAD.left} x2={W - PAD.right} y1={PAD.top} y2={PAD.top} stroke="var(--rule-strong)" />
         <path d={area} fill="var(--e-neg)" opacity={0.16} stroke="var(--e-neg)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
-        <text x={PAD.left - 5} y={PAD.top + 3} textAnchor="end" fontSize={9} fill="var(--ink-faint)" fontFamily="var(--font-mono)">0</text>
-        <text x={PAD.left - 5} y={PAD.top + ih} textAnchor="end" fontSize={9} fill="var(--ink-faint)" fontFamily="var(--font-mono)">{fmtTick(trough)}</text>
+        <text x={PAD.left - 5} y={PAD.top + 3} textAnchor="end" fontSize={AXIS_FONT} fill="var(--ink-faint)" fontFamily="var(--font-mono)">0</text>
+        <text x={PAD.left - 5} y={PAD.top + ih} textAnchor="end" fontSize={AXIS_FONT} fill="var(--ink-faint)" fontFamily="var(--font-mono)">{fmtTick(trough)}</text>
       </svg>
     </ChartFrame>
   )
@@ -580,6 +626,7 @@ export function Histogram({
   /** Vertical rules — a VaR cutoff, a mean, a threshold. */
   marks?: { at: number; label: string; color?: string }[]
 }) {
+  const [measure, canvas] = useChartWidth()
   const finite = values.filter((v) => Number.isFinite(v))
   if (finite.length < 2) return <ChartFrame title={title} unit={unit} height={height} empty>{null}</ChartFrame>
 
@@ -592,7 +639,7 @@ export function Histogram({
   }
   const peak = Math.max(...counts)
 
-  const W = 640
+  const W = canvas
   const H = height
   const iw = W - PAD.left - PAD.right
   const ih = H - PAD.top - PAD.bottom
@@ -602,7 +649,7 @@ export function Histogram({
 
   return (
     <ChartFrame title={title} unit={unit} method={`${finite.length} observations, ${bins} bins`}>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} role="img" aria-label="distribution" style={{ display: 'block' }}>
+      <svg ref={measure} viewBox={`0 0 ${W} ${H}`} width="100%" height={H} role="img" aria-label="distribution" style={{ display: 'block' }}>
         {counts.map((c, i) => (
           <rect
             key={i}
@@ -616,11 +663,17 @@ export function Histogram({
         {marks?.map((m) => (
           <g key={m.label}>
             <line x1={mx(m.at)} x2={mx(m.at)} y1={PAD.top} y2={PAD.top + ih} stroke={m.color ?? 'var(--ink)'} strokeWidth={1} strokeDasharray="3 2" />
-            <text x={mx(m.at) + 3} y={PAD.top + 8} fontSize={9} fill={m.color ?? 'var(--ink)'} fontFamily="var(--font-mono)">{m.label}</text>
+            {/* A rule near the right edge labels itself on its left, so the
+                text is never clipped by the canvas. */}
+            {mx(m.at) > W - PAD.right - (m.label.length * GLYPH + 8) ? (
+              <text x={mx(m.at) - 3} y={PAD.top + 9} textAnchor="end" fontSize={AXIS_FONT} fill={m.color ?? 'var(--ink)'} fontFamily="var(--font-mono)">{m.label}</text>
+            ) : (
+              <text x={mx(m.at) + 3} y={PAD.top + 9} fontSize={AXIS_FONT} fill={m.color ?? 'var(--ink)'} fontFamily="var(--font-mono)">{m.label}</text>
+            )}
           </g>
         ))}
-        <text x={PAD.left} y={H - 4} fontSize={9} fill="var(--ink-faint)" fontFamily="var(--font-mono)">{fmtTick(lo)}</text>
-        <text x={W - PAD.right} y={H - 4} textAnchor="end" fontSize={9} fill="var(--ink-faint)" fontFamily="var(--font-mono)">{fmtTick(hi)}</text>
+        <text x={PAD.left} y={H - 4} fontSize={AXIS_FONT} fill="var(--ink-faint)" fontFamily="var(--font-mono)">{fmtTick(lo)}</text>
+        <text x={W - PAD.right} y={H - 4} textAnchor="end" fontSize={AXIS_FONT} fill="var(--ink-faint)" fontFamily="var(--font-mono)">{fmtTick(hi)}</text>
       </svg>
     </ChartFrame>
   )
@@ -643,7 +696,7 @@ export function Matrix({
 
   const n = labels.length
   const cell = Math.max(12, Math.min(30, Math.floor(560 / n)))
-  const gutter = Math.min(96, Math.max(48, ...labels.map((l) => l.length * 5.4)))
+  const gutter = Math.min(104, Math.max(48, ...labels.map((l) => l.length * GLYPH)))
   const W = gutter + n * cell + 8
   const H = gutter + n * cell + 8
 
@@ -659,21 +712,21 @@ export function Matrix({
   return (
     <ChartFrame title={title} unit={unit} method="an unmeasured pair is drawn hatched, never as zero">
       <div className="sys-scroll-x">
-        <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} role="img" aria-label={title ?? 'matrix'} style={{ display: 'block', maxWidth: '100%' }}>
+        <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} role="img" aria-label={title ?? 'matrix'} style={{ display: 'block' }}>
           <defs>
             <pattern id="sys-nomeasure" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
               <line x1="0" y1="0" x2="0" y2="4" stroke="var(--ink-faint)" strokeWidth="1" opacity="0.5" />
             </pattern>
           </defs>
           {labels.map((l, i) => (
-            <text key={`r${l}`} x={gutter - 4} y={gutter + i * cell + cell / 2 + 3} textAnchor="end" fontSize={9} fill="var(--ink-muted)" fontFamily="var(--font-mono)">
+            <text key={`r${l}`} x={gutter - 4} y={gutter + i * cell + cell / 2 + 3} textAnchor="end" fontSize={AXIS_FONT} fill="var(--ink-muted)" fontFamily="var(--font-mono)">
               {l.length > 16 ? `${l.slice(0, 15)}…` : l}
             </text>
           ))}
           {labels.map((l, j) => (
             <text
               key={`c${l}`} x={gutter + j * cell + cell / 2} y={gutter - 5}
-              textAnchor="start" fontSize={9} fill="var(--ink-muted)" fontFamily="var(--font-mono)"
+              textAnchor="start" fontSize={AXIS_FONT} fill="var(--ink-muted)" fontFamily="var(--font-mono)"
               transform={`rotate(-60 ${gutter + j * cell + cell / 2} ${gutter - 5})`}
             >
               {l.length > 16 ? `${l.slice(0, 15)}…` : l}
@@ -788,12 +841,13 @@ export function Scatter({
   height?: number
   title?: string
 }) {
+  const [measure, canvas] = useChartWidth()
   const usable = points.filter((p) => Number.isFinite(p.x) && Number.isFinite(p.y))
   if (usable.length < 2) return <ChartFrame title={title} height={height} empty>{null}</ChartFrame>
 
   const [xlo, xhi] = extent(usable.map((p) => p.x))
   const [ylo, yhi] = extent(usable.map((p) => p.y))
-  const W = 640
+  const W = canvas
   const H = height
   const iw = W - PAD.left - PAD.right
   const ih = H - PAD.top - PAD.bottom
@@ -802,11 +856,11 @@ export function Scatter({
 
   return (
     <ChartFrame title={title} unit={xLabel && yLabel ? `${xLabel} × ${yLabel}` : undefined}>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} role="img" aria-label="scatter" style={{ display: 'block' }}>
+      <svg ref={measure} viewBox={`0 0 ${W} ${H}`} width="100%" height={H} role="img" aria-label="scatter" style={{ display: 'block' }}>
         {niceTicks(ylo, yhi, 4).map((t) => (
           <g key={t}>
             <line x1={PAD.left} x2={W - PAD.right} y1={py(t)} y2={py(t)} stroke="var(--rule)" />
-            <text x={PAD.left - 5} y={py(t) + 3} textAnchor="end" fontSize={9} fill="var(--ink-faint)" fontFamily="var(--font-mono)">{fmtTick(t)}</text>
+            <text x={PAD.left - 5} y={py(t) + 3} textAnchor="end" fontSize={AXIS_FONT} fill="var(--ink-faint)" fontFamily="var(--font-mono)">{fmtTick(t)}</text>
           </g>
         ))}
         {xlo < 0 && xhi > 0 ? <line x1={px(0)} x2={px(0)} y1={PAD.top} y2={PAD.top + ih} stroke="var(--rule-strong)" /> : null}
