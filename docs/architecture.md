@@ -337,7 +337,7 @@ sequenceDiagram
     autonumber
     participant B as Browser
     participant N as Next rewrite
-    participant A as miniAladdin API
+    participant A as OmniSignal API
     participant C as InferenceClient
     participant R as Render inference
     participant M as EXP-006 artifact

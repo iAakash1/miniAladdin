@@ -10,7 +10,7 @@ so nothing here claims to describe how they *feel* — only what they are built
 to do and why.
 
 Where a claim is about their architecture it is sourced. Where it is a
-judgement about miniAladdin it is mine, and marked as such.
+judgement about OmniSignal it is mine, and marked as such.
 
 No code, markup, asset or implementation from either project has been copied.
 What follows is a reading of their product decisions.
@@ -36,7 +36,7 @@ one shape regardless of which of a dozen vendors served it.
 alternative is every screen knowing which vendor it is talking to, which is how
 a UI ends up with `results[0].c` in one place and `close` in another.
 
-**What miniAladdin already has** — The same shape, arrived at independently.
+**What OmniSignal already has** — The same shape, arrived at independently.
 `VendorClient` is the provider model; `PriceQuote`, `PriceSeries`,
 `CompanyProfile` are the standard models; `ChainLink`/`FallbackChain` is the
 reconciliation layer. Validation lives in the schema (`PriceSeries` validates on
@@ -72,7 +72,7 @@ writing code.
 **Why it matters** — It is the right answer for a platform serving many
 institutions with incompatible workflows. Each desk builds its own screen.
 
-**What miniAladdin already has** — Deliberately, the opposite. Workspaces are
+**What OmniSignal already has** — Deliberately, the opposite. Workspaces are
 composed by us, and the security page is an argued sequence: identity, price,
 history, company, ratios, filed facts, research.
 
@@ -106,7 +106,7 @@ investing, economics and geopolitics.
 **Why it matters** — When it works it collapses a research task into a
 sentence.
 
-**What miniAladdin already has** — A deterministic command palette that acts on
+**What OmniSignal already has** — A deterministic command palette that acts on
 the open object, and a research programme whose verdict is
 `NO PRODUCTION CANDIDATE`.
 
@@ -135,7 +135,7 @@ integrations, an 18-module quant suite.
 **Why it matters** — For a Bloomberg replacement it genuinely does. A terminal
 that cannot reach an asset class is useless to the desk that trades it.
 
-**What miniAladdin has** — Seven market-data vendors, one broker, one asset
+**What OmniSignal has** — Seven market-data vendors, one broker, one asset
 class.
 
 **Adopt** — Nothing.
@@ -162,7 +162,7 @@ first-class source.
 
 **Why it matters** — An institution's own data is the data it trusts most.
 
-**What miniAladdin has** — Nothing. Providers are compiled in.
+**What OmniSignal has** — Nothing. Providers are compiled in.
 
 **Adopt — conditionally** — The *idea* is right and the cost is low given our
 existing `VendorClient` contract: a vendor is a class with a key, a health
@@ -186,7 +186,7 @@ filings and news, reachable from one symbol.
 
 **Why it matters** — It is the actual job.
 
-**What miniAladdin already has** — Identity, quote, history, profile, a
+**What OmniSignal already has** — Identity, quote, history, profile, a
 28-field ratio surface, ownership, filings, coverage, and now six fiscal years
 of SEC XBRL facts with per-fact provenance.
 
@@ -214,7 +214,7 @@ attributes data at the *provider* level — you know the endpoint served by
 documented, answers "which vendor said this *particular* number, and does any
 other vendor disagree".
 
-That is the gap miniAladdin already occupies. The employee-count case is the
+That is the gap OmniSignal already occupies. The employee-count case is the
 proof: three vendors contribute to one profile, two disagree by ten per cent,
 and the honest rendering is `158,000±` opening onto both observations.
 

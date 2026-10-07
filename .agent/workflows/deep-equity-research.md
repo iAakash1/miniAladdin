@@ -2,7 +2,7 @@
 description: Deep equity research workflow combining macro risk, technical analysis, and live sentiment
 ---
 
-# Aladdin Deep Equity Research
+# OmniSignal Deep Equity Research
 
 **Command:** `/research [TICKER]`
 

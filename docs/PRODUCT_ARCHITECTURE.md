@@ -1,4 +1,4 @@
-# miniAladdin — product architecture
+# OmniSignal — product architecture
 
 What the product would be if it were built today, given what the audits and the
 capability harvest established. This is the control plane for the migration: it

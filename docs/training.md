@@ -275,7 +275,7 @@ flowchart LR
     subgraph V["Vercel"]
         Q["/quant"]
     end
-    subgraph API["Render — miniAladdin backend"]
+    subgraph API["Render — OmniSignal backend"]
         C["inference_client.py"]
     end
     subgraph INF["Render — inference service"]
@@ -300,7 +300,7 @@ provider fabric, no Dolt.
 | `GET /model` | Full provenance: registry key, experiment, fingerprint, features, dataset hash, git SHA, seed, fit scope, specification metrics, blocked gate |
 | `POST /predict` | Scores pre-computed feature vectors. Every response repeats model identity and status |
 
-**miniAladdin backend** (degrades, never raises):
+**OmniSignal backend** (degrades, never raises):
 
 | Endpoint | Purpose |
 |---|---|

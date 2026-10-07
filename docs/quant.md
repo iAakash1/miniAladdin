@@ -432,7 +432,7 @@ artifact carries `promotion_status: BLOCKED` as data, so no part of the serving
 path can present it otherwise.
 
 The service loads an 89 KB estimator once at startup, computes no features, and
-touches no dataset. Callers supply a feature vector; the miniAladdin backend
+touches no dataset. Callers supply a feature vector; the OmniSignal backend
 supplies one from a **frozen snapshot dated 2025-08-27** (the last panel date
 before the holdout), and that date travels in every response.
 

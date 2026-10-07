@@ -163,7 +163,7 @@ strengthened by the convergence:
 
 ### What we rejected
 
-* **The LLM agent layer.** miniAladdin's research conclusions must be
+* **The LLM agent layer.** OmniSignal's research conclusions must be
   reproducible from a seed and a dataset hash. Inserting a language model into
   the path that decides what is significant makes that impossible, and this
   project has already voided one study over a reproducibility defect.

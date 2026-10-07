@@ -1,6 +1,6 @@
 # Terminal research: what we took, and what we did not
 
-Source study of two open financial terminals, read against miniAladdin's own
+Source study of two open financial terminals, read against OmniSignal's own
 architecture. The purpose is product ideas, not code: nothing here was copied,
 and several of the strongest ideas were deliberately declined.
 
