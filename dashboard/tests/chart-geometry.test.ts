@@ -62,8 +62,17 @@ test('no component sets a numeric font size below the 10px floor', () => {
   const offenders: string[] = []
   for (const file of walk(SRC)) {
     const text = readFileSync(file, 'utf8')
-    for (const m of text.matchAll(/fontSize[=:]\s*\{?\s*(\d+(?:\.\d+)?)\s*\}?/g)) {
-      if (Number(m[1]) < 10) offenders.push(`${relative(SRC, file).split(sep).join('/')}: ${m[0]}`)
+    // Every numeric literal in the expression, so `isRoot ? 11 : 9` is read
+    // as well as `9`, and every pixel string, so '9px' is. Arithmetic on a
+    // size (`size * 0.4`) and tokens have no literal to read.
+    for (const m of text.matchAll(/fontSize[=:]\s*\{?([^,}\n]*)/g)) {
+      const expr = m[1]
+      if (/var\(|Math\./.test(expr)) continue
+      const where = `${relative(SRC, file).split(sep).join('/')}: ${m[0].trim()}`
+      for (const px of expr.matchAll(/['"`](\d+(?:\.\d+)?)px['"`]/g)) if (Number(px[1]) < 10) offenders.push(where)
+      if (/\*/.test(expr)) continue
+      const bare = expr.replace(/'[^']*'|"[^"]*"|`[^`]*`/g, '')
+      for (const n of bare.matchAll(/(?<![\w.])(\d+(?:\.\d+)?)(?![\w.])/g)) if (Number(n[1]) < 10) offenders.push(where)
     }
   }
   assert.deepEqual(offenders, [])

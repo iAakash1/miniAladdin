@@ -167,7 +167,7 @@ export function DataTable<T>({
           ) : null}
           {columnsOpen ? (
             <div style={{
-              position: 'absolute', top: '100%', right: 0, zIndex: 20, marginTop: 4,
+              position: 'absolute', top: '100%', right: 0, zIndex: 'var(--z-menu)', marginTop: 4,
               background: 'var(--p-panel)', border: '1px solid var(--rule-strong)',
               padding: 'var(--d-2)', minWidth: 180, display: 'flex', flexDirection: 'column', gap: 2,
             }}>

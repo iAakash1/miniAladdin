@@ -408,6 +408,8 @@ a.sys-btn, a.sys-relation, a.sys-method { text-decoration: none; }
 .sys-input::placeholder { color: var(--ink-faint); }
 /* A field that fills its row, as a form field does; in a toolbar it sizes to its content. */
 .sys-input--block { width: 100%; }
+/* The one field a page is built around: the explore and news searches. */
+.sys-input--lg { height: 36px; font-size: var(--t-body-lg); }
 select.sys-input {
   appearance: none;
   padding-right: 24px;
@@ -512,7 +514,7 @@ select.sys-input {
 .drawer-scrim {
   position: fixed;
   inset: var(--topbar-h) 0 var(--status-h) 0;
-  z-index: 99;
+  z-index: var(--z-drawer-scrim);
   border: 0;
   padding: 0;
   background: rgb(0 0 0 / 0.28);
@@ -525,7 +527,7 @@ select.sys-input {
   top: var(--topbar-h);
   right: 0;
   bottom: var(--status-h);
-  z-index: 100;
+  z-index: var(--z-drawer);
   width: min(var(--inspector-w), 100vw);
   display: flex;
   flex-direction: column;
@@ -584,7 +586,7 @@ select.sys-input {
   padding: 0 var(--d-3) 0 var(--d-4);
   background: var(--p-chrome);
   border-bottom: 1px solid var(--rule);
-  z-index: 30;
+  z-index: var(--z-top);
 }
 .shell-top__menu { display: none; }
 
@@ -655,7 +657,7 @@ select.sys-input {
   min-height: 0;
   background: var(--p-chrome);
   border-right: 1px solid var(--rule);
-  z-index: 20;
+  z-index: var(--z-rail);
 }
 .rail-scroll {
   flex: 1;
@@ -760,7 +762,7 @@ select.sys-input {
 .ws-tabs {
   position: sticky;
   top: 0;
-  z-index: 15;
+  z-index: var(--z-tabs);
   display: flex;
   gap: 2px;
   padding: 0 var(--workspace-pad);
@@ -786,7 +788,7 @@ select.sys-input {
   display: none;
   position: fixed;
   inset: var(--topbar-h) 0 0 0;
-  z-index: 19;
+  z-index: var(--z-shell-scrim);
   border: 0;
   padding: 0;
   background: var(--backdrop);
@@ -820,7 +822,7 @@ a.status-fact:hover .status-fact__value { color: var(--ink); }
 .pal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 200;
+  z-index: var(--z-overlay);
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -3319,7 +3321,7 @@ a.tape:hover .tape__sym { color: var(--accent); }
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
-  z-index: 40;
+  z-index: var(--z-nav);
   min-width: 210px;
   padding: 4px;
   background: var(--p-overlay);
@@ -3420,7 +3422,7 @@ a.tape:hover .tape__sym { color: var(--accent); }
 .cw-tabs {
   position: sticky;
   top: 0;
-  z-index: 15;
+  z-index: var(--z-tabs);
   display: flex;
   align-items: center;
   gap: 16px;
@@ -4479,7 +4481,7 @@ a.objidx__k:hover { color: var(--accent); text-decoration: underline; }
 /* ── screener search ─────────────────────────────────────────────────── */
 .xs { margin-bottom: 12px; }
 .xs-form { display: flex; gap: 8px; padding: 12px; }
-.xs-input { flex: 1; min-width: 0; height: 36px; font-size: var(--t-body-lg); }
+.xs-input { flex: 1; min-width: 0; }
 .xs-answer { padding: 0 12px 12px; }
 .xs-read { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 10px; font-size: var(--t-body); color: var(--ink-muted); }
 .xs-note { color: var(--ink-faint); }

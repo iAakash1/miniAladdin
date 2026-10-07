@@ -69,7 +69,7 @@ export default function Dialog({ open, onClose, labelledBy, children, maxWidth =
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 100,
+        zIndex: 'var(--z-dialog)',
         background: 'var(--backdrop)',
         display: 'flex',
         alignItems: 'center',

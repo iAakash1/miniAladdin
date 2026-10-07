@@ -129,7 +129,7 @@ export default function PositionsPanel() {
         <input
           id="pos-ticker"
           className="sys-input sys-input--block mono"
-          style={{ maxWidth: 120, height: 32, fontSize: 'var(--t-body)', letterSpacing: 'var(--tracking-label)' }}
+          style={{ maxWidth: 120, letterSpacing: 'var(--tracking-label)' }}
           placeholder="Ticker"
           maxLength={8}
           value={ticker}
@@ -139,7 +139,7 @@ export default function PositionsPanel() {
         <input
           id="pos-shares"
           className="sys-input sys-input--block num"
-          style={{ maxWidth: 110, height: 32, fontSize: 'var(--t-body)' }}
+          style={{ maxWidth: 110 }}
           placeholder="Shares"
           inputMode="decimal"
           value={shares}
@@ -149,7 +149,7 @@ export default function PositionsPanel() {
         <input
           id="pos-price"
           className="sys-input sys-input--block num"
-          style={{ maxWidth: 130, height: 32, fontSize: 'var(--t-body)' }}
+          style={{ maxWidth: 130 }}
           placeholder="Avg price"
           inputMode="decimal"
           value={price}
@@ -221,7 +221,7 @@ export default function PositionsPanel() {
                         <input
                           aria-label={`Shares of ${position.ticker}`}
                           className="sys-input sys-input--block num"
-                          style={{ width: 90, height: 26, fontSize: 'var(--t-body)', textAlign: 'right' }}
+                          style={{ width: 90, textAlign: 'right' }}
                           value={editing.shares}
                           onChange={(e) =>
                             setEditing({ ...editing, shares: e.target.value.replace(/[^0-9.]/g, '') })
@@ -236,7 +236,7 @@ export default function PositionsPanel() {
                         <input
                           aria-label={`Average price of ${position.ticker}`}
                           className="sys-input sys-input--block num"
-                          style={{ width: 100, height: 26, fontSize: 'var(--t-body)', textAlign: 'right' }}
+                          style={{ width: 100, textAlign: 'right' }}
                           value={editing.price}
                           onChange={(e) =>
                             setEditing({ ...editing, price: e.target.value.replace(/[^0-9.]/g, '') })

@@ -223,7 +223,7 @@ export function GraphView({
               <text
                 x={0} y={isRoot ? 18 : 14}
                 textAnchor="middle"
-                fontSize={isRoot ? 10 : 8.5}
+                fontSize={isRoot ? 11 : 10}
                 fontFamily="var(--font-mono)"
                 fill={isSelected || isRoot ? 'var(--ink)' : 'var(--ink-muted)'}
               >

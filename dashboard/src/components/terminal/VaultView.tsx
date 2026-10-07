@@ -603,7 +603,7 @@ function SavedBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
                 <input
                   id={`title-${report.id}`}
                   className="sys-input sys-input--block"
-                  style={{ height: 32, fontSize: 'var(--t-body)', maxWidth: 420 }}
+                  style={{ maxWidth: 420 }}
                   placeholder="Custom title…"
                   value={editing.title}
                   onChange={(e) => setEditing({ ...editing, title: e.target.value })}

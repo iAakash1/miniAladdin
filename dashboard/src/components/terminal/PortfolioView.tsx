@@ -385,7 +385,7 @@ export default function PortfolioView() {
           <input
             id="another-list"
             className="sys-input sys-input--block"
-            style={{ width: 150, height: 32, fontSize: 'var(--t-body)' }}
+            style={{ width: 150 }}
             placeholder="New list…"
             value={newName}
             onChange={(event) => setNewName(event.target.value)}
@@ -435,7 +435,7 @@ export default function PortfolioView() {
             <input
               id="add-ticker"
               className="sys-input sys-input--block mono"
-              style={{ maxWidth: 180, height: 32, fontSize: 'var(--t-body)', letterSpacing: 'var(--tracking-label)' }}
+              style={{ maxWidth: 180, letterSpacing: 'var(--tracking-label)' }}
               placeholder="Add ticker…"
               maxLength={8}
               value={addSymbol}

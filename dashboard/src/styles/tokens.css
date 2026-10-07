@@ -110,6 +110,23 @@
      margins resolved to nothing. */
   --gap: var(--d-4);
 
+  /* Stacking layers, lowest to highest. Anything above 3 is a layer of the
+     page and takes a name from here; 0 to 3 is local stacking inside one
+     component (a sticky table head over its rows) and may stay a number. */
+  --z-tabs: 15;
+  --z-shell-scrim: 19;
+  --z-rail: 20;
+  --z-top: 30;
+  --z-nav: 40;
+  --z-header: 50;
+  --z-tooltip: 70;
+  --z-drawer-scrim: 99;
+  --z-drawer: 100;
+  --z-dialog: 100;
+  --z-menu: 140;
+  --z-toast: 150;
+  --z-overlay: 200;
+
   --row-compact: 24px;
   --row-normal: 30px;
   --row-relaxed: 36px;

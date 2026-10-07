@@ -329,7 +329,7 @@ export default function GraphWorkspace() {
           className="sys-input sys-input--block mono"
           defaultValue={symbols}
           placeholder="NVDA,MSFT"
-          style={{ maxWidth: 190, height: 32, fontSize: 'var(--t-body)', letterSpacing: 'var(--tracking-label)' }}
+          style={{ maxWidth: 190, letterSpacing: 'var(--tracking-label)' }}
           onKeyDown={(e) => {
             if (e.key === 'Enter') setParam('symbols', (e.target as HTMLInputElement).value.toUpperCase())
           }}
@@ -367,7 +367,7 @@ export default function GraphWorkspace() {
         <input
           id="ws-before" type="date" className="sys-input sys-input--block num" defaultValue={before}
           title="Shows only relationships OmniSignal recorded before this date. Not a historical reconstruction — providers do not supply relationship start dates."
-          style={{ maxWidth: 150, height: 32, fontSize: 'var(--t-small)' }}
+          style={{ maxWidth: 150 }}
           onChange={(e) => setParam('before', e.target.value)}
         />
       </div>
@@ -498,8 +498,7 @@ export default function GraphWorkspace() {
                     )}
                     {(isRoot || isSelected || node.degree > 3 || node.depth <= 1) && (
                       <text y={-radius - 5} textAnchor="middle"
-                            style={{ fontSize: isRoot ? 11 : 9,
-                                     fontWeight: isRoot || isSelected ? 600 : 400,
+                            style={{ fontSize: isRoot ? 11 : 10, fontWeight: isRoot || isSelected ? 600 : 400,
                                      fill: isSelected ? 'var(--text)' : 'var(--muted)' }}>
                         {node.label.length > 20 ? `${node.label.slice(0, 19)}…` : node.label}
                       </text>
@@ -696,7 +695,6 @@ export default function GraphWorkspace() {
             <label htmlFor="note-draft" className="visually-hidden">New note</label>
             <input id="note-draft" className="sys-input sys-input--block" value={noteDraft}
                    placeholder="Record a finding…"
-                   style={{ height: 32, fontSize: 'var(--t-body)' }}
                    onChange={(e) => setNoteDraft(e.target.value)}
                    onKeyDown={(e) => { if (e.key === 'Enter') void saveNote() }} />
             <button type="button" className="sys-btn"

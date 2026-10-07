@@ -180,11 +180,10 @@ export default function NewsExplorer() {
           <input
             id="news-search"
             type="search"
-            className="sys-input sys-input--block"
+            className="sys-input sys-input--lg sys-input--block"
             placeholder="Search headlines…"
             value={inputValue}
             onChange={(e) => onSearchChange(e.target.value)}
-            style={{ height: 36, fontSize: 'var(--t-body-lg)' }}
           />
         </div>
       </div>

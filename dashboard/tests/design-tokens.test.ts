@@ -215,3 +215,26 @@ test('every declaration in the stylesheets has balanced parentheses', () => {
   }
   assert.deepEqual(bad, [])
 })
+
+test('stacking layers are named, and ordered so the right thing is on top', () => {
+  // Fourteen rules and three inline styles used bare numbers from 15 to 200.
+  // Past 3, a z-index is a layer of the page and has a name.
+  const bare: string[] = []
+  for (const file of SOURCES) {
+    const text = code(file)
+    for (const m of text.matchAll(/z-index:\s*(\d+)(?=\s*[;}])/g)) if (Number(m[1]) > 3) bare.push(`${file}: z-index: ${m[1]}`)
+    for (const m of text.matchAll(/zIndex:\s*(\d+)/g)) if (Number(m[1]) > 3) bare.push(`${file}: zIndex: ${m[1]}`)
+  }
+  assert.deepEqual(bare, [])
+
+  const z = Object.fromEntries(
+    [...code(join(SRC, 'styles', 'tokens.css')).matchAll(/--z-([\w-]+):\s*(\d+)/g)].map((m) => [m[1], Number(m[2])]),
+  )
+  const ladder = ['tabs', 'rail', 'top', 'nav', 'header', 'tooltip', 'drawer-scrim', 'drawer', 'menu', 'toast', 'overlay']
+  for (let i = 1; i < ladder.length; i++) {
+    assert.ok(z[ladder[i - 1]] < z[ladder[i]], `--z-${ladder[i - 1]} (${z[ladder[i - 1]]}) must sit below --z-${ladder[i]} (${z[ladder[i]]})`)
+  }
+  assert.ok(z['shell-scrim'] < z.rail, 'the shell scrim sits under the rail it dims around')
+  assert.ok(z['dialog'] >= z.drawer, 'a dialog opens over a drawer')
+  assert.ok(z.overlay > z.toast, 'the palette is above a toast')
+})

@@ -57,7 +57,7 @@ export default function ThemeSearch({ companyHref }: { companyHref: (symbol: str
         <label htmlFor="xs-q" className="visually-hidden">Company, ticker or theme</label>
         <input
           id="xs-q"
-          className="sys-input xs-input"
+          className="sys-input sys-input--lg xs-input"
           placeholder="A company, a ticker, or a theme such as “grid-scale batteries”"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}

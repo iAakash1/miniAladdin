@@ -38,7 +38,7 @@ export default function SiteHeader() {
       style={{
         position: 'sticky',
         top: 0,
-        zIndex: 50,
+        zIndex: 'var(--z-header)',
         background: 'color-mix(in srgb, var(--paper) 92%, transparent)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',

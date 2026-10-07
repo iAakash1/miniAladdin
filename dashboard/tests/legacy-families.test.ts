@@ -91,3 +91,18 @@ test('a text field is the same height as the button beside it', () => {
   const height = (selector: string) => STYLES.match(new RegExp(`${selector.replace('.', '\\.')}\\s*\\{[^}]*?(?<![\\w-])height:\\s*(\\d+)px`))?.[1]
   assert.equal(height('.sys-input'), height('.sys-btn'))
 })
+
+test('a text field takes its size from the field class, not from its own style', () => {
+  // Thirteen fields set a 26, 32 or 36px height and their own type size to
+  // patch over a 34px default that no longer exists. The sizes are classes now.
+  const offenders: string[] = []
+  for (const file of walk(SRC)) {
+    if (rel(file) === 'components/terminal/memos/Memos.tsx') continue // a memo title is deliberately set in lead type
+    for (const tag of tags(readFileSync(file, 'utf8'))) {
+      if (!/^<(input|select)\b/.test(tag) || !classes(tag).includes('sys-input')) continue
+      if (/(?<![\w-])(height|fontSize)\s*:/.test(style(tag))) offenders.push(`${rel(file)}: ${tag.slice(0, 90)}`)
+    }
+  }
+  assert.deepEqual(offenders, [])
+  assert.match(STYLES, /\.sys-input--lg\s*\{[^}]*height:\s*36px/)
+})

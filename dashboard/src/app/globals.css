@@ -49,7 +49,7 @@ img { max-width: 100%; display: block; }
   position: absolute;
   left: 16px;
   top: -48px;
-  z-index: 200;
+  z-index: var(--z-overlay);
   background: var(--ink);
   color: var(--paper);
   padding: 8px 14px;
@@ -367,7 +367,7 @@ img { max-width: 100%; display: block; }
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
-  z-index: 70;
+  z-index: var(--z-tooltip);
   width: max-content;
   max-width: 240px;
   background: var(--surface-3);
@@ -673,7 +673,7 @@ img { max-width: 100%; display: block; }
 .section-nav {
   position: sticky;
   top: 54px; /* directly under the terminal header */
-  z-index: 40;
+  z-index: var(--z-nav);
   display: flex;
   gap: 2px;
   overflow-x: auto;
@@ -1594,7 +1594,7 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
    coordinate space and any ancestor overflow. */
 .ctxmenu {
   position: fixed;
-  z-index: 140;
+  z-index: var(--z-menu);
   min-width: 176px;
   padding: 5px;
   background: var(--surface-3);
@@ -1637,7 +1637,7 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
 .fcmp {
   position: sticky;
   top: 8px;
-  z-index: 20;
+  z-index: var(--z-rail);
   margin-bottom: 14px;
   border: 1px solid var(--line-strong);
   border-radius: var(--r-md);
@@ -1689,7 +1689,7 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
   position: fixed;
   left: 20px;
   bottom: 20px;
-  z-index: 150;
+  z-index: var(--z-toast);
   display: flex;
   flex-direction: column;
   gap: 8px;
