@@ -252,7 +252,7 @@ export default function ExperimentDiff() {
                   {[...new Set(rows.map((r) => r.group))].map((group) => (
                     <>
                       <tr key={`g-${group}`}>
-                        <td colSpan={4} className="sys-label" style={{ background: 'var(--p-sunken)', fontSize: 'var(--t-micro)', height: 'var(--row-compact)' }}>
+                        <td colSpan={4} className="sys-label" style={{ background: 'var(--p-sunken)', height: 'var(--row-compact)' }}>
                           {group}
                         </td>
                       </tr>

@@ -110,7 +110,7 @@ export default function UpgradeDialog({ open, onClose, reason }: UpgradeDialogPr
     <Dialog open={open} onClose={onClose} labelledBy="upgrade-title">
       <div style={{ padding: '28px 30px 26px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-          <h2 id="upgrade-title" className="h-panel" style={{ fontSize: 'var(--t-lead)' }}>
+          <h2 id="upgrade-title" className="h-panel h-panel--lg">
             Upgrade to Pro
           </h2>
           <button

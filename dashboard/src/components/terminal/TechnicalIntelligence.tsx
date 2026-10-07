@@ -21,7 +21,7 @@ const TONE_BADGE: Record<TechTone, Tone> = {
 function RegimeCell({ title, regime }: { title: string; regime: TechRegime }) {
   return (
     <div>
-      <p className="label" style={{ fontSize: 'var(--t-micro)', marginBottom: 6 }}>{title}</p>
+      <p className="sys-label" style={{ marginBottom: 6 }}>{title}</p>
       <Badge tone={TONE_BADGE[regime.tone]}>{regime.label}</Badge>
       <p style={{ fontSize: 'var(--t-meta)', color: 'var(--faint)', marginTop: 6, lineHeight: 1.5 }}>
         {regime.note}
@@ -42,10 +42,10 @@ export default function TechnicalIntelligence({ block }: { block: TechBlock | nu
   const { regimes, indicators, levels, findings } = block
 
   return (
-    <section aria-label="Technical intelligence" className="panel" style={{ padding: 'clamp(18px, 3vw, 24px)' }}>
+    <section aria-label="Technical intelligence" className="panel panel--pad">
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
         <h3 className="h-panel">Technical intelligence</h3>
- <span className="num u-meta" >
+ <span className="num u-meta">
           {block.bars} sessions · as of {block.as_of}
         </span>
         <span style={{ marginLeft: 'auto', fontSize: 'var(--t-meta)', color: 'var(--faint)' }}>
@@ -86,7 +86,7 @@ export default function TechnicalIntelligence({ block }: { block: TechBlock | nu
 
       {/* Indicator table */}
       <div style={{ overflowX: 'auto' }}>
-        <table className="data-table">
+        <table className="sys-table">
           <thead>
             <tr>
               <th scope="col">Indicator</th>

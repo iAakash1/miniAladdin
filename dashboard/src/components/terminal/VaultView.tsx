@@ -221,7 +221,7 @@ function HistoryBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
             id="vault-q"
             type="search"
             placeholder="Search ticker or company…"
-            className="input input--sm srch__field"
+            className="sys-input sys-input--block srch__field"
             value={filters.q ?? ''}
             onChange={(e) => patchFilters({ q: e.target.value.trim() || undefined })}
           />
@@ -239,7 +239,7 @@ function HistoryBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
         <label htmlFor="vault-verdict" className="visually-hidden">Filter by verdict</label>
         <select
           id="vault-verdict"
-          className="input input--sm"
+          className="sys-input sys-input--block"
           style={{ maxWidth: 150 }}
           value={filters.verdict ?? ''}
           onChange={(e) => patchFilters({ verdict: e.target.value || undefined })}
@@ -252,7 +252,7 @@ function HistoryBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
         <label htmlFor="vault-from" className="visually-hidden">From date</label>
         <input
           id="vault-from"
-          className="input input--sm num"
+          className="sys-input sys-input--block num"
           type="date"
           style={{ maxWidth: 150 }}
           value={filters.from ?? ''}
@@ -261,7 +261,7 @@ function HistoryBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
         <label htmlFor="vault-to" className="visually-hidden">To date</label>
         <input
           id="vault-to"
-          className="input input--sm num"
+          className="sys-input sys-input--block num"
           type="date"
           style={{ maxWidth: 150 }}
           value={filters.to ?? ''}
@@ -279,7 +279,7 @@ function HistoryBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
         <label htmlFor="vault-sort" className="visually-hidden">Sort</label>
         <select
           id="vault-sort"
-          className="input input--sm"
+          className="sys-input sys-input--block"
           style={{ maxWidth: 140 }}
           value={filters.sort}
           onChange={(e) => patchFilters({ sort: e.target.value as HistoryFilters['sort'] })}
@@ -355,7 +355,7 @@ function HistoryBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
             Select two runs to compare which factors moved. Reports open exactly as generated.
           </p>
           <div className="panel" style={{ overflowX: 'auto' }}>
-            <table className="data-table" style={{ minWidth: 760 }}>
+            <table className="sys-table" style={{ minWidth: 760 }}>
               <caption className="visually-hidden">Recorded analyses</caption>
               <thead>
                 <tr>
@@ -602,7 +602,7 @@ function SavedBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
                 <label htmlFor={`title-${report.id}`} className="visually-hidden">Custom title</label>
                 <input
                   id={`title-${report.id}`}
-                  className="input"
+                  className="sys-input sys-input--block"
                   style={{ height: 32, fontSize: 'var(--t-body)', maxWidth: 420 }}
                   placeholder="Custom title…"
                   value={editing.title}
@@ -611,7 +611,7 @@ function SavedBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
                 <label htmlFor={`notes-${report.id}`} className="visually-hidden">Notes</label>
                 <textarea
                   id={`notes-${report.id}`}
-                  className="input"
+                  className="sys-input sys-input--block"
                   style={{ height: 88, fontSize: 'var(--t-body)', padding: '8px 12px', resize: 'vertical' }}
                   placeholder="Your notes on this analysis…"
                   value={editing.notes}
@@ -828,7 +828,7 @@ function CompareView({ a, b, onBack }: { a: string; b: string; onBack: () => voi
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(20px, 5vw, 64px)' }}>
               {[result.before, result.after].map((run, index) => (
                 <div key={run.id}>
-                  <p className="label" style={{ marginBottom: 8 }}>
+                  <p className="sys-label" style={{ marginBottom: 8 }}>
                     {index === 0 ? 'Before' : 'After'} · {fmtDate(run.created_at)}
                   </p>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
@@ -837,7 +837,7 @@ function CompareView({ a, b, onBack }: { a: string; b: string; onBack: () => voi
                     <span className="num" style={{ fontSize: 'var(--t-body-lg)', fontWeight: 600 }}>
                       {run.confidence !== null ? run.confidence : '—'}
                     </span>
- <span className="num u-note" >
+ <span className="num u-note">
                       {run.composite_score !== null
                         ? `composite ${fmtSigned(run.composite_score, 3)}`
                         : ''}
@@ -883,7 +883,7 @@ function CompareView({ a, b, onBack }: { a: string; b: string; onBack: () => voi
               {/* Macro + risk rows use the same layout */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', paddingTop: 8, borderTop: '1px solid var(--line)' }}>
                 <span style={{ width: 96, flexShrink: 0, fontSize: 'var(--t-small)', color: 'var(--muted)' }}>Macro (SRM)</span>
- <span className="num u-note" >
+ <span className="num u-note">
                   {result.macro.srm_before ?? '—'} → {result.macro.srm_after ?? '—'}
                   {result.macro.srm_delta !== null && (
                     <span style={{ color: result.macro.srm_delta > 0 ? 'var(--warn)' : 'var(--muted)' }}>
@@ -892,7 +892,7 @@ function CompareView({ a, b, onBack }: { a: string; b: string; onBack: () => voi
                   )}
                 </span>
                 <span style={{ width: 96, flexShrink: 0, fontSize: 'var(--t-small)', color: 'var(--muted)', marginLeft: 24 }}>Risk score</span>
- <span className="num u-note" >
+ <span className="num u-note">
                   {result.risk.score_before ?? '—'} → {result.risk.score_after ?? '—'}
                 </span>
               </div>
@@ -903,7 +903,7 @@ function CompareView({ a, b, onBack }: { a: string; b: string; onBack: () => voi
           <section aria-label="Per-factor deltas" className="panel panel--pad">
             <h4 className="h-panel" style={{ marginBottom: 12 }}>Factor detail</h4>
             <div style={{ overflowX: 'auto' }}>
-              <table className="data-table" style={{ minWidth: 520 }}>
+              <table className="sys-table" style={{ minWidth: 520 }}>
                 <thead>
                   <tr>
                     <th scope="col">Factor</th>

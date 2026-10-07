@@ -161,11 +161,11 @@ export default function Handbook({ initialMeasure }: { initialMeasure?: string }
             </Section>
             <Section title="Authored">
               <div>
-                <div className="sys-label" style={{ fontSize: 'var(--t-micro)', marginBottom: 'var(--d-1)' }}>Purpose</div>
+                <div className="sys-label" style={{ marginBottom: 'var(--d-1)' }}>Purpose</div>
                 <p style={{ margin: '0 0 var(--d-3)', fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
                   {entry.purpose ?? '—'}
                 </p>
-                <div className="sys-label" style={{ fontSize: 'var(--t-micro)', marginBottom: 'var(--d-1)' }}>Fails when</div>
+                <div className="sys-label" style={{ marginBottom: 'var(--d-1)' }}>Fails when</div>
                 <Prose tone="strong">
                   {entry.fails_when ?? '—'}
                 </Prose>

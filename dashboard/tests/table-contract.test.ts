@@ -170,11 +170,22 @@ test('every hand-built table in the product is accounted for', () => {
      rendered on the public landing page from a recorded run, where their
      alignment can be read in the DOM.
 
+     49 -> 54 when the last five legacy views stopped carrying their own table
+     class. The positions list, the research archive and its run comparison,
+     the technical regime table, the watchlist grid and the portfolio
+     intelligence table were styled by `.data-table`, four stacked blocks of
+     rules in the global stylesheet, so this count never saw them. They now use
+     `.sys-table` like every other table, and so are counted. None is new and
+     none changed structure: header cells against body cells, compared at
+     source, are 6/6, 8/8 (group rows span 8), 5/5, 4/4, 12/12 and 8/8. Not
+     DOM-checked, because this session was asked not to open a browser; that
+     check is owed.
+
      Every other one was read in the rendered DOM before this number moved,
      and the eight times it did not. */
   assert.equal(
-    handBuilt.length, 49,
-    `hand-built tables changed from 49 to ${handBuilt.length}. Route the new one ` +
+    handBuilt.length, 54,
+    `hand-built tables changed from 54 to ${handBuilt.length}. Route the new one ` +
     'through DataTable, or check its alignment in the rendered DOM and update ' +
     'this count deliberately.',
   )

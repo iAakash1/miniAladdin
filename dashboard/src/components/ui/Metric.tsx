@@ -25,7 +25,7 @@ const TONE_COLOR: Record<Tone, string> = {
 export default function Metric({ label, value, unit, tone = 'neutral', size = 'md', change }: MetricProps) {
   return (
     <div>
-      <div className="label" style={{ fontSize: 'var(--t-micro)', marginBottom: 4 }}>{label}</div>
+      <div className="sys-label" style={{ marginBottom: 4 }}>{label}</div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
         <span
           className="num"

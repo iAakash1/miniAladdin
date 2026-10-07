@@ -24,7 +24,7 @@ function FactorList({
   if (items.length === 0) return null
   return (
     <div style={{ flex: '1 1 240px', minWidth: 0 }}>
-      <p className="label" style={{ marginBottom: 8 }}>
+      <p className="sys-label" style={{ marginBottom: 8 }}>
         {title}
       </p>
       <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 7 }}>
@@ -54,7 +54,7 @@ function CaseColumn({ title, text, tone }: { title: string; text: string; tone: 
   return (
     <div style={{ flex: '1 1 260px', minWidth: 0 }}>
       <p
-        className="label"
+        className="sys-label"
         style={{ marginBottom: 6, color: tone === 'pos' ? 'var(--pos)' : 'var(--neg)' }}
       >
         {title}
@@ -162,7 +162,7 @@ export default function AiPanel({ analysis }: { analysis: Analysis }) {
     ai.newsReasoning
 
   return (
-    <section aria-label="Research report" className="panel" style={{ padding: 'clamp(18px, 3vw, 24px)' }}>
+    <section aria-label="Research report" className="panel panel--pad">
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, marginBottom: 14 }}>
         <h3 className="h-panel">Research report</h3>
         {ai.generated ? (
@@ -182,7 +182,7 @@ export default function AiPanel({ analysis }: { analysis: Analysis }) {
 
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 14 }}>
           <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 6 }}>
-            <span className="label" style={{ fontSize: 'var(--t-micro)' }}>
+            <span className="sys-label">
               Confidence
             </span>
             <span className="num" style={{ fontSize: 'var(--t-body-lg)', fontWeight: 600 }}>
@@ -362,7 +362,7 @@ export default function AiPanel({ analysis }: { analysis: Analysis }) {
 
       {ai.conclusion && (
         <div className="hairline-top" style={{ paddingTop: 16, marginTop: 16 }}>
-          <p className="label" style={{ marginBottom: 8 }}>Conclusion</p>
+          <p className="sys-label" style={{ marginBottom: 8 }}>Conclusion</p>
           <p
             style={{
               fontFamily: 'var(--font-serif)',

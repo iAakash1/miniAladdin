@@ -299,7 +299,7 @@ export default function SessionsView() {
         actions={
           <>
             <label htmlFor="new-session" className="visually-hidden">New investigation title</label>
-            <input id="new-session" className="input ws-input" value={title}
+            <input id="new-session" className="sys-input sys-input--block ws-input" value={title}
                    placeholder="Name a new investigation…"
                    onChange={(e) => setTitle(e.target.value)}
                    onKeyDown={(e) => { if (e.key === 'Enter') void start() }} />
@@ -313,7 +313,7 @@ export default function SessionsView() {
       <div className="ws-search">
         <label htmlFor="session-search" className="visually-hidden">Search investigations and notes</label>
         <span className="input-wrap srch" style={{ display: 'block' }}>
-          <input id="session-search" className="input ws-input srch__field" type="search" value={query}
+          <input id="session-search" className="sys-input sys-input--block ws-input srch__field" type="search" value={query}
                  placeholder="Search everything you have written…"
                  onChange={(e) => setQuery(e.target.value)} />
           {query && (

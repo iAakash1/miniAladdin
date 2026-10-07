@@ -57,7 +57,7 @@ export function EquityCurveChart({ data }: { data: BacktestData }) {
     })
 
   return (
-    <section aria-label="Equity curve" className="panel" style={{ padding: '16px 20px' }}>
+    <section aria-label="Equity curve" className="panel panel--pad">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
         <h3 className="h-panel" style={{ marginBottom: 4 }}>Growth of $1 — signal vs buy &amp; hold</h3>
         {/* A legend that does something. Two lines on one axis with similar
@@ -132,7 +132,7 @@ export function RollingIcChart({ data }: { data: BacktestData }) {
   const [window, setWindow] = useState<IcWindow>('all')
   const series = sliceIc(data.rolling_ic, window)
   return (
-    <section aria-label="Rolling information coefficient" className="panel" style={{ padding: '16px 20px' }}>
+    <section aria-label="Rolling information coefficient" className="panel panel--pad">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
         <h3 className="h-panel" style={{ marginBottom: 4 }}>Rolling IC (26 signals ≈ 6 months)</h3>
         {/* Narrowing the window is how you separate "this never worked" from

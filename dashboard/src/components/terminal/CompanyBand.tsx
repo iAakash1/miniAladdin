@@ -155,9 +155,7 @@ export default function CompanyBand({ analysis }: { analysis: Analysis }) {
   return (
     <section
       aria-label={`${analysis.ticker} overview`}
-      className="panel"
-      style={{ padding: 'clamp(18px, 3vw, 26px)' }}
-    >
+      className="panel panel--pad">
       <div
         style={{
           display: 'flex',
@@ -228,7 +226,7 @@ export default function CompanyBand({ analysis }: { analysis: Analysis }) {
             }}
           >
             {analysis.historyId && <SaveReportButton historyId={analysis.historyId} />}
-            <p className="label">Risk-adjusted verdict</p>
+            <p className="sys-label">Risk-adjusted verdict</p>
           </div>
           <VerdictChip verdict={analysis.riskAdjusted} size="lg" />
           <p style={{ fontSize: 'var(--t-body)', color: 'var(--muted)', marginTop: 12, maxWidth: 240 }}>

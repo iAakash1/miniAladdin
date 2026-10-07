@@ -30,7 +30,7 @@ export default function Section({ id, title, summary, defaultOpen = false, child
   return (
     <details className="dash-section" open={defaultOpen}>
       <summary aria-controls={id}>
-        <h2 className="h-panel" style={{ fontSize: 'var(--t-value)' }}>{title}</h2>
+        <h2 className="h-panel">{title}</h2>
         {summary && <span className="dash-section__summary">{summary}</span>}
       </summary>
       <div id={id} className="dash-section__body fade-in">

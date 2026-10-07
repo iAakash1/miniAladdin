@@ -180,7 +180,7 @@ export default function NewsExplorer() {
           <input
             id="news-search"
             type="search"
-            className="input"
+            className="sys-input sys-input--block"
             placeholder="Search headlines…"
             value={inputValue}
             onChange={(e) => onSearchChange(e.target.value)}

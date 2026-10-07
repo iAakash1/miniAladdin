@@ -404,8 +404,22 @@ a.sys-btn, a.sys-relation, a.sys-method { text-decoration: none; }
   border-radius: var(--r-sm);
   transition: border-color var(--t-fast) var(--ease);
 }
+.sys-input:hover:not(:focus) { border-color: color-mix(in srgb, var(--rule-strong) 55%, var(--ink-faint)); }
 .sys-input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 2px var(--accent-wash); }
 .sys-input::placeholder { color: var(--ink-faint); }
+/* A field that fills its row, as a form field does; in a toolbar it sizes to its content. */
+.sys-input--block { width: 100%; }
+select.sys-input {
+  appearance: none;
+  padding-right: 24px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--ink-faint) 50%),
+    linear-gradient(135deg, var(--ink-faint) 50%, transparent 50%);
+  background-position: calc(100% - 12px) center, calc(100% - 8px) center;
+  background-size: 4px 4px, 4px 4px;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}
 
 .sys-focusable:focus-visible,
 .sys-table tbody tr:focus-visible,
@@ -4719,4 +4733,10 @@ a.objidx__k:hover { color: var(--accent); text-decoration: underline; }
   .sys-btn--xs, .sys-btn--micro { min-height: 32px; }
   .sys-btn--icon { min-width: 36px; }
   .sys-input { min-height: 36px; }
+  /* iOS Safari zooms the page when a control under 16px takes focus, and does
+     not zoom back. Eleven classes size text fields between 11 and 15px; this
+     is the one rule that holds them all, written to out-rank every one. */
+  :is(input, select, textarea):not([type='checkbox']):not([type='radio']):not([type='range']):not([type='button']):not([type='submit']):not([type='color']):not([type='file']) {
+    font-size: var(--t-base);
+  }
 }

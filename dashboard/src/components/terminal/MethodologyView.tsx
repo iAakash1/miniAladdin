@@ -180,16 +180,15 @@ function PipelineFlow() {
         <div key={stage.title} style={{ display: 'flex', alignItems: 'stretch' }}>
           <div
             role="listitem"
-            className="panel"
+            className="panel panel--compact"
             style={{
               width: 168,
-              padding: '12px 14px',
               display: 'flex',
               flexDirection: 'column',
               gap: 6,
             }}
           >
- <span className="num u-meta" >
+ <span className="num u-meta">
               {String(index + 1).padStart(2, '0')}
             </span>
             <span style={{ fontSize: 'var(--t-body)', fontWeight: 600, color: 'var(--text)' }}>{stage.title}</span>
@@ -219,10 +218,10 @@ function PipelineFlow() {
 
 function DataSourceCard({ source }: { source: DataSource }) {
   return (
-    <div className="panel" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div className="panel panel--pad" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-        <h3 className="h-panel" style={{ fontSize: 'var(--t-body-lg)' }}>{source.name}</h3>
- <span className="num u-meta" >{source.updateFrequency}</span>
+        <h3 className="h-panel h-panel--sub">{source.name}</h3>
+ <span className="num u-meta">{source.updateFrequency}</span>
       </div>
       <p style={{ fontSize: 'var(--t-body)', lineHeight: 1.55, color: 'var(--text)' }}>{source.purpose}</p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -290,7 +289,7 @@ export default function MethodologyView() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
           {FAMILY_ORDER.map((family) => (
             <div key={family}>
-              <h3 className="label" style={{ fontSize: 'var(--t-meta)', marginBottom: 10, color: 'var(--faint)' }}>
+              <h3 className="sys-label" style={{ marginBottom: 10, color: 'var(--faint)' }}>
                 {FAMILY_TITLES[family]}
               </h3>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(20px, 4vw, 44px)' }}>
@@ -308,7 +307,7 @@ export default function MethodologyView() {
       <Section id="meth-composite-score" title="Composite score, confidence & risk">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18, maxWidth: '80ch' }}>
           <div>
-            <h3 className="h-panel" style={{ fontSize: 'var(--t-body)', marginBottom: 6 }}>Normalization</h3>
+            <h3 className="h-panel h-panel--sub" style={{ marginBottom: 6 }}>Normalization</h3>
             <p style={{ fontSize: 'var(--t-body)', color: 'var(--muted)', lineHeight: 1.6 }}>
               Return-based factors are converted into a t-statistic — how many multiples of the
               stock’s own noise a move represents — which preserves trend direction and adapts to
@@ -319,7 +318,7 @@ export default function MethodologyView() {
             </p>
           </div>
           <div>
-            <h3 className="h-panel" style={{ fontSize: 'var(--t-body)', marginBottom: 6 }}>Sleeve aggregation & regime adaptation</h3>
+            <h3 className="h-panel h-panel--sub" style={{ marginBottom: 6 }}>Sleeve aggregation & regime adaptation</h3>
             <p style={{ fontSize: 'var(--t-body)', color: 'var(--muted)', lineHeight: 1.6 }}>
               Factors combine into one score per family; families combine into the composite score.
               Weights are not static: in a detected high-volatility regime, momentum’s weight is cut
@@ -331,7 +330,7 @@ export default function MethodologyView() {
             </p>
           </div>
           <div>
-            <h3 className="h-panel" style={{ fontSize: 'var(--t-body)', marginBottom: 6 }}>Macro-stress gate</h3>
+            <h3 className="h-panel h-panel--sub" style={{ marginBottom: 6 }}>Macro-stress gate</h3>
             <p style={{ fontSize: 'var(--t-body)', color: 'var(--muted)', lineHeight: 1.6 }}>
               A probabilistic stress read, built from the yield curve, financial-conditions index,
               credit spreads and volatility percentile, scales down the momentum sleeve specifically
@@ -341,7 +340,7 @@ export default function MethodologyView() {
             </p>
           </div>
           <div>
-            <h3 className="h-panel" style={{ fontSize: 'var(--t-body)', marginBottom: 6 }}>Confidence</h3>
+            <h3 className="h-panel h-panel--sub" style={{ marginBottom: 6 }}>Confidence</h3>
             <p style={{ fontSize: 'var(--t-body)', color: 'var(--muted)', lineHeight: 1.6 }}>
               Confidence starts at 100 and is reduced by named, itemized deductions rather than one
               opaque number: disagreement between active families, data completeness, proximity to an
@@ -351,7 +350,7 @@ export default function MethodologyView() {
             </p>
           </div>
           <div>
-            <h3 className="h-panel" style={{ fontSize: 'var(--t-body)', marginBottom: 6 }}>Risk</h3>
+            <h3 className="h-panel h-panel--sub" style={{ marginBottom: 6 }}>Risk</h3>
             <p style={{ fontSize: 'var(--t-body)', color: 'var(--muted)', lineHeight: 1.6 }}>
               A separate 0–100 score, deliberately independent of the verdict — a Strong Buy can carry
               high risk, and a Hold can carry low risk. Nine components, each expressed as a percentile
@@ -362,7 +361,7 @@ export default function MethodologyView() {
             </p>
           </div>
           <div>
-            <h3 className="h-panel" style={{ fontSize: 'var(--t-body)', marginBottom: 6 }}>Missing factors</h3>
+            <h3 className="h-panel h-panel--sub" style={{ marginBottom: 6 }}>Missing factors</h3>
             <p style={{ fontSize: 'var(--t-body)', color: 'var(--muted)', lineHeight: 1.6 }}>
               A factor whose required input isn’t available is omitted, never estimated from
               incomplete data. The composite score is a weighted average of whatever factors did
@@ -371,7 +370,7 @@ export default function MethodologyView() {
             </p>
           </div>
           <div>
-            <h3 className="h-panel" style={{ fontSize: 'var(--t-body)', marginBottom: 6 }}>Verdict</h3>
+            <h3 className="h-panel h-panel--sub" style={{ marginBottom: 6 }}>Verdict</h3>
             <p style={{ fontSize: 'var(--t-body)', color: 'var(--muted)', lineHeight: 1.6 }}>
               The composite score maps to Strong Buy, Buy, Hold, Sell or Strong Sell once it crosses a
               fixed threshold in either direction. An “ungated” verdict — what the sleeves said before

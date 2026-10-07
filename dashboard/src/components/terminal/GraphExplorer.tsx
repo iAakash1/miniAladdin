@@ -214,7 +214,7 @@ export default function GraphExplorer() {
 
       <div className="terminal-grid-main">
         {/* The graph */}
-        <section aria-label="Graph view" className="panel" style={{ padding: 18 }}>
+        <section aria-label="Graph view" className="panel panel--pad">
           {loading ? (
             <WorkBoot
               compact
@@ -328,19 +328,19 @@ export default function GraphExplorer() {
           {edges[active] ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
-                <p className="label" style={{ fontSize: 'var(--t-micro)', marginBottom: 4 }}>Entity</p>
+                <p className="sys-label" style={{ marginBottom: 4 }}>Entity</p>
                 <p style={{ fontSize: 'var(--t-value)', fontWeight: 600 }}>{edges[active].node.label}</p>
                 <p style={{ fontSize: 'var(--t-small)', color: 'var(--faint)' }}>{edges[active].node.type}</p>
               </div>
               <div>
-                <p className="label" style={{ fontSize: 'var(--t-micro)', marginBottom: 4 }}>Connection</p>
+                <p className="sys-label" style={{ marginBottom: 4 }}>Connection</p>
                 <p style={{ fontSize: 'var(--t-body)', color: 'var(--text)' }}>
                   {edges[active].types.map((t) => EDGE_LABELS[t] ?? t).join(' · ')}
                 </p>
               </div>
               <div>
-                <p className="label" style={{ fontSize: 'var(--t-micro)', marginBottom: 4 }}>Provenance</p>
- <p className="num u-note" >
+                <p className="sys-label" style={{ marginBottom: 4 }}>Provenance</p>
+ <p className="num u-note">
                   {edges[active].provider} · confidence {edges[active].confidence}
                 </p>
               </div>
@@ -363,7 +363,7 @@ export default function GraphExplorer() {
 
           {(slice?.findings.length ?? 0) > 0 && (
             <div className="hairline-top" style={{ marginTop: 16, paddingTop: 14 }}>
-              <p className="label" style={{ fontSize: 'var(--t-micro)', marginBottom: 8 }}>From filings</p>
+              <p className="sys-label" style={{ marginBottom: 8 }}>From filings</p>
               <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {slice!.findings.slice(0, 4).map((finding) => (
                   <li key={finding.id} className="u-note">

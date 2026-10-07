@@ -170,8 +170,8 @@ export function Compare({
                 <td
                   colSpan={subjects.length + 1}
                   className="sys-label"
-                  style={{ background: 'var(--p-sunken)', fontSize: 'var(--t-micro)', height: 'var(--row-compact)' }}
-                >
+                  style={{ background: 'var(--p-sunken)',  height: 'var(--row-compact)' }}
+>
                   {g}
                 </td>
               </tr>

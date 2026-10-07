@@ -129,7 +129,7 @@ export function ChartFrame({
     <figure style={{ margin: 0, display: 'flex', flexDirection: 'column', gap: 'var(--d-1)' }}>
       {title || unit ? (
         <figcaption style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 'var(--d-2)' }}>
-          {title ? <span className="sys-label" style={{ fontSize: 'var(--t-micro)' }}>{title}</span> : <span />}
+          {title ? <span className="sys-label">{title}</span> : <span />}
           {unit ? <span className="sys-meta" title={method}>{unit}</span> : null}
         </figcaption>
       ) : null}

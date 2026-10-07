@@ -507,7 +507,7 @@ export function Provenance({ steps }: { steps: ProvenanceStep[] }) {
             ) : null}
           </div>
           <div style={{ minWidth: 0 }}>
-            <div className="sys-label" style={{ fontSize: 'var(--t-micro)' }}>{s.label}</div>
+            <div className="sys-label">{s.label}</div>
             <div className="sys-meta" style={{ color: 'var(--ink)', wordBreak: 'break-word' }}>
               {s.href ? <a href={s.href} style={{ color: 'inherit' }}>{s.value}</a> : s.value}
             </div>

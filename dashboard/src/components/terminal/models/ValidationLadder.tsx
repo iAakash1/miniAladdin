@@ -116,7 +116,7 @@ export default function ValidationLadder() {
 
                   {rung.eligible.length ? (
                     <div style={{ marginTop: 'var(--d-2)' }}>
-                      <div className="sys-label" style={{ fontSize: 'var(--t-micro)', marginBottom: 'var(--d-1)' }}>
+                      <div className="sys-label" style={{ marginBottom: 'var(--d-1)' }}>
                         Eligible but not there
                       </div>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--d-1)' }}>

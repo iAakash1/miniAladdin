@@ -91,6 +91,8 @@ img { max-width: 100%; display: block; }
   font-weight: 600;
   letter-spacing: 0;
 }
+.h-panel--sub { font-size: var(--t-body-lg); }
+.h-panel--lg { font-size: var(--t-lead); }
 
 .lede {
   font-size: var(--t-lead);
@@ -107,13 +109,6 @@ img { max-width: 100%; display: block; }
   color: var(--accent);
 }
 
-.label {
-  font-size: var(--t-meta);
-  font-weight: 600;
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
-  color: var(--faint);
-}
 
 .body-copy {
   font-size: var(--t-lead);
@@ -133,36 +128,6 @@ img { max-width: 100%; display: block; }
   letter-spacing: var(--tracking-display);
 }
 
-/* ---------- Inputs ---------- */
-.input {
-  width: 100%;
-  height: 34px;
-  padding: 0 10px;
-  background: var(--p-sunken);
-  border: 1px solid var(--rule-strong);
-  border-radius: var(--r-sm);
-  color: var(--ink);
-  font: 400 var(--t-body) / 1.2 var(--font-sans);
-  transition: border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
-}
-.input::placeholder { color: var(--ink-faint); }
-.input:hover:not(:focus) { border-color: color-mix(in srgb, var(--rule-strong) 55%, var(--ink-faint)); }
-.input:focus, .input:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-wash); }
-select.input {
-  appearance: none;
-  padding-right: 28px;
-  background-image:
-    linear-gradient(45deg, transparent 50%, var(--ink-faint) 50%),
-    linear-gradient(135deg, var(--ink-faint) 50%, transparent 50%);
-  background-position: calc(100% - 14px) center, calc(100% - 10px) center;
-  background-size: 4px 4px, 4px 4px;
-  background-repeat: no-repeat;
-  cursor: pointer;
-}
-@media screen and (max-width: 768px) {
-  .input, select.input { font-size: var(--t-base); }
-}
-
 /* ---------- Cards & panels ---------- */
 .card,
 .panel {
@@ -170,7 +135,6 @@ select.input {
   border: 1px solid var(--rule);
   border-radius: var(--r-md);
 }
-.panel--pad { padding: var(--d-4); }
 
 .hairline-top { border-top: 1px solid var(--rule); }
 
@@ -819,27 +783,6 @@ footer a:hover { color: var(--text) !important; }
 
 /* ---------- Mobile: hero CTAs go full width ---------- */
 
-/* ---------- Tables ---------- */
-.data-table { width: 100%; border-collapse: collapse; }
-.data-table th {
-  text-align: left;
-  font-size: var(--t-meta);
-  font-weight: 600;
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
-  color: var(--faint);
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--line-strong);
-}
-.data-table td {
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--line);
-  font-size: var(--t-body-lg);
-  vertical-align: top;
-}
-.data-table tr:last-child td { border-bottom: none; }
-.data-table tbody tr { transition: background-color var(--t-fast) var(--ease); }
-.data-table tbody tr:hover { background: var(--surface-2); }
 
 /* ---------- Scrollbar (subtle, standards-based) ---------- */
 * { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
@@ -932,7 +875,7 @@ footer a:hover { color: var(--text) !important; }
    session's actual substance — pins, notes, snapshots, symbols, last action —
    because a page that shows no evidence of work gives no reason to return. */
 
-.ws-input { height: 34px; font-size: var(--t-body); min-width: 240px; }
+.ws-input { min-width: 240px; }
 
 .ws-search { display: flex; align-items: center; gap: 10px; }
 /* The search field is the primary way back into written work, so it takes
@@ -1452,18 +1395,6 @@ footer a:hover { color: var(--text) !important; }
   background: var(--accent);
 }
 
-/* ---------- Data tables ---------- */
-.data-table { font-variant-numeric: tabular-nums; }
-.data-table thead th {
-  padding: 0 8px 8px;
-  font: 600 var(--t-label) / 1.2 var(--font-sans);
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
-  color: var(--ink-faint);
-  border-bottom: 1px solid var(--rule-strong);
-}
-.data-table tbody tr:hover { background: var(--p-hover); }
-.data-table td { padding: 7px 8px; }
 
 /* ---------- Entity chips ---------- */
 .ws-symbols__chip:hover { border-color: var(--rule-strong); color: var(--ink); }
@@ -1588,14 +1519,9 @@ footer a:hover { color: var(--text) !important; }
 /* Standard interior padding for a panel. Was written out 24 different ways;
    the clamp keeps dense screens dense without cramping a phone. */
 .panel--pad { padding: clamp(16px, 2.4vw, 22px); }
+/* A card inside a grid or a disclosure: the same surface, closer to its content. */
+.panel--compact { padding: var(--d-3) var(--d-4); }
 
-/* Compact control size, for toolbars sitting above a table. */
-.input--sm { height: 32px; font-size: var(--t-body); }
-
-/* Numeric table cells align right without every cell saying so. `.num` already
-   means "tabular figures"; inside a data table that also implies alignment,
-   because a column of right-aligned figures is the only way digits line up. */
-.data-table td.num, .data-table th.num { text-align: right; }
 
 /* Section heading inside a panel — the level below PageHeader. */
 .section-head {
@@ -2391,8 +2317,8 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
    outline. The system family draws its controls with borders and survives;
    what it loses is the pressed / selected wash and the inset accent bars. */
 @media (forced-colors: active) {
-  .input, .card, .panel, .sys-badge, .sys-btn, .sys-input, .sys-panel { border: 1px solid CanvasText; }
-  .input:focus-visible, .card:focus-visible, .pick:focus-visible { outline: 2px solid CanvasText; outline-offset: 2px; }
+  .card, .panel, .sys-badge, .sys-btn, .sys-input, .sys-panel { border: 1px solid CanvasText; }
+  .sys-input:focus-visible, .card:focus-visible, .pick:focus-visible { outline: 2px solid CanvasText; outline-offset: 2px; }
   .pick:checked::after { color: CanvasText; }
 
   .rl__stage.is-active::before { background: Highlight; }
@@ -2411,7 +2337,7 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
 
 /* ── Search fields: clear affordance appears only with content ─────────────
    The Uiverse search pattern reveals a reset control once the field is
-   non-empty. Sits inside the existing `.input` box, so the field's own
+   non-empty. Sits inside the existing `.sys-input` box, so the field's own
    geometry and recessed treatment are unchanged. */
 .srch { position: relative; display: inline-block; }
 .srch__field { padding-right: 30px; }
@@ -3015,23 +2941,6 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
 .ws-jump__item:focus-visible::before { opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .ws-jump__item::before { transition: none; } }
 
-/* ── Data tables: a header that stays put and reads as a header ────────────
-   Column headings scrolled away with the rows in every long table in the
-   product — the archive, the screen, the watchlist — so by row twenty the
-   figures had no labels. Sticky headings, on the table's own surface so
-   rows pass behind rather than through them. */
-.data-table thead th {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  background: var(--p-panel);
-  /* A border on a sticky cell scrolls away with its own box; a shadow does
-     not, so the rule under the heading survives the scroll. */
-  box-shadow: inset 0 -1px 0 var(--rule-strong);
-}
-/* Numeric columns line up on the decimal, which is the entire reason a
-   terminal uses tabular figures. */
-.data-table td.num, .data-table th.num { font-variant-numeric: tabular-nums; }
 
 /* ── Watchlist suggestions ─────────────────────────────────────────────────
    A suggested list is chosen on what is in it, so the constituents are shown

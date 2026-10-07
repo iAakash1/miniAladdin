@@ -127,7 +127,7 @@ const toneOf = (n: number | null | undefined): 'pos' | 'neg' | 'neutral' =>
 function HoldingsTable({ rows, currency }: { rows: HoldingValuation[]; currency: string }) {
   return (
     <div className="pf-table-wrap">
-      <table className="data-table pf-table">
+      <table className="sys-table pf-table">
         <caption className="visually-hidden">
           Holdings valued against current market prices
         </caption>

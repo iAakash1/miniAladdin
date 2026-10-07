@@ -66,7 +66,7 @@ export function ObjectHeader({
         <div style={{ minWidth: 0 }}>
           <h1 className="sys-object-name">{name}</h1>
           <div className="sys-object-sub">
-            {kind ? <span className="sys-label" style={{ fontSize: 'var(--t-micro)' }}>{kind}</span> : null}
+            {kind ? <span className="sys-label">{kind}</span> : null}
             {state ? <Status state={state} /> : null}
             {detail ? <span className="sys-meta">{detail}</span> : null}
           </div>
@@ -115,7 +115,7 @@ export function Toolbar({
 export function ToolbarGroup({ label, children }: { label?: string; children: ReactNode }) {
   return (
     <div className="sys-toolbar-group">
-      {label ? <span className="sys-label" style={{ fontSize: 'var(--t-micro)', marginRight: 2 }}>{label}</span> : null}
+      {label ? <span className="sys-label" style={{ marginRight: 2 }}>{label}</span> : null}
       {children}
     </div>
   )

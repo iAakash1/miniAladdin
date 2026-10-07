@@ -52,7 +52,7 @@ export default function SiteFooter() {
 
           {COLUMNS.map((col) => (
             <nav key={col.heading} aria-label={col.heading}>
-              <p className="label" style={{ marginBottom: 14 }}>
+              <p className="sys-label" style={{ marginBottom: 14 }}>
                 {col.heading}
               </p>
               <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>

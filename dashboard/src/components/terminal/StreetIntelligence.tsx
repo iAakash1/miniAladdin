@@ -17,7 +17,7 @@ export default function StreetIntelligence({ block }: { block: StreetBlock | nul
   const { recommendations: recs, surprises, insider, findings } = block
 
   return (
-    <section aria-label="Street and insider intelligence" className="panel" style={{ padding: 'clamp(18px, 3vw, 24px)' }}>
+    <section aria-label="Street and insider intelligence" className="panel panel--pad">
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 10, marginBottom: 14 }}>
         <h3 className="h-panel">Street &amp; insiders</h3>
         <span style={{ marginLeft: 'auto', fontSize: 'var(--t-meta)', color: 'var(--faint)' }}>
@@ -28,11 +28,11 @@ export default function StreetIntelligence({ block }: { block: StreetBlock | nul
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(20px, 4vw, 48px)', marginBottom: 14 }}>
         {recs && (
           <div>
-            <span className="label" style={{ fontSize: 'var(--t-micro)' }}>Analyst consensus</span>
+            <span className="sys-label">Analyst consensus</span>
             <p className="num" style={{ fontSize: 'var(--t-lead)', fontWeight: 600 }}>
               {recs.buy_ratio !== null ? `${Math.round(100 * recs.buy_ratio)}% buy` : '—'}
             </p>
- <p className="num u-meta" >
+ <p className="num u-meta">
               {recs.strong_buy + recs.buy} buy · {recs.hold} hold · {recs.sell + recs.strong_sell} sell
               {' · '}
               <span style={{ color: recs.trend === 'improving' ? 'var(--pos)' : recs.trend === 'deteriorating' ? 'var(--neg)' : 'var(--faint)' }}>
@@ -43,25 +43,25 @@ export default function StreetIntelligence({ block }: { block: StreetBlock | nul
         )}
         {surprises && (
           <div>
-            <span className="label" style={{ fontSize: 'var(--t-micro)' }}>EPS surprises</span>
+            <span className="sys-label">EPS surprises</span>
             <p className="num" style={{ fontSize: 'var(--t-lead)', fontWeight: 600 }}>
               {surprises.beats}/{surprises.quarters} beats
             </p>
- <p className="num u-meta" >
+ <p className="num u-meta">
               avg {fmtSigned(surprises.avg_surprise_pct, 2)}% vs estimates
             </p>
           </div>
         )}
         {insider && (
           <div>
-            <span className="label" style={{ fontSize: 'var(--t-micro)' }}>Insider sentiment</span>
+            <span className="sys-label">Insider sentiment</span>
             <p className="num" style={{
               fontSize: 'var(--t-lead)', fontWeight: 600,
               color: insider.read === 'buying' ? 'var(--pos)' : insider.read === 'selling' ? 'var(--neg)' : 'var(--text)',
             }}>
               {insider.read}
             </p>
- <p className="num u-meta" >MSPR {fmtSigned(insider.mspr, 2)} · 6 months</p>
+ <p className="num u-meta">MSPR {fmtSigned(insider.mspr, 2)} · 6 months</p>
           </div>
         )}
       </div>

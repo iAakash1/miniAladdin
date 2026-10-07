@@ -75,3 +75,14 @@ test('forced-colors mode restates the states a background wash cannot carry', ()
   assert.match(block, /outline:\s*2px solid Highlight/)
   assert.match(block, /\.sys-btn/)
 })
+
+test('on touch, a text field is never under 16px, so iOS does not zoom the page on focus', () => {
+  const coarse = SYSTEM.slice(SYSTEM.indexOf('@media (pointer: coarse)'))
+  const rule = coarse.match(/:is\(input, select, textarea\)([^{]*)\{([^}]*)\}/)
+  assert.ok(rule, 'no coarse-pointer rule for text fields')
+  assert.match(rule[2], /font-size:\s*var\(--t-base\)/)
+  // checkboxes, radios and buttons are not text fields
+  for (const type of ['checkbox', 'radio', 'range', 'button', 'submit']) assert.ok(rule[1].includes(`[type='${type}']`), `${type} should be excluded`)
+  // 0,6,1 beats any single-class selector that sizes a field
+  assert.ok((rule[1].match(/:not\(/g)?.length ?? 0) >= 4)
+})

@@ -10,7 +10,7 @@ function ExplainRow({ label, text, tone }: { label: string; text: string; tone?:
   if (!text) return null
   return (
     <div>
-      <p className="label" style={{ fontSize: 'var(--t-micro)', marginBottom: 3, color: tone ? TONE_COLOR[tone] : undefined }}>
+      <p className="sys-label" style={{ marginBottom: 3, color: tone ? TONE_COLOR[tone] : undefined }}>
         {label}
       </p>
       <p style={{ fontSize: 'var(--t-small)', lineHeight: 1.55, color: 'var(--muted)' }}>{text}</p>
@@ -41,7 +41,7 @@ export default function MetricExplainer({
   return (
     <div style={{ minWidth: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-        <span className="label" style={{ fontSize: 'var(--t-micro)' }}>
+        <span className="sys-label">
           {entry.label}
         </span>
         <Tooltip label={`What is ${entry.label}`}>

@@ -10,7 +10,7 @@ function ScorePill({ label, value }: { label: string; value: number | null }) {
   if (value === null) {
     return (
       <div>
-        <span className="label" style={{ fontSize: 'var(--t-micro)' }}>{label}</span>
+        <span className="sys-label">{label}</span>
         <p style={{ fontSize: 'var(--t-body)', color: 'var(--faint)' }}>no data</p>
       </div>
     )
@@ -18,7 +18,7 @@ function ScorePill({ label, value }: { label: string; value: number | null }) {
   const color = value > 0.05 ? 'var(--pos)' : value < -0.05 ? 'var(--neg)' : 'var(--warn)'
   return (
     <div>
-      <span className="label" style={{ fontSize: 'var(--t-micro)' }}>{label}</span>
+      <span className="sys-label">{label}</span>
       <p className="num" style={{ fontSize: 'var(--t-lead)', fontWeight: 600, color }}>
         {fmtSigned(value, 2)}
       </p>
@@ -67,7 +67,7 @@ export default function QuantPanel({ analysis }: { analysis: Analysis }) {
   const gatePct = Math.round((1 - quant.macroGate) * 100)
 
   return (
-    <section aria-label="Score decomposition" className="panel" style={{ padding: 'clamp(18px, 3vw, 24px)' }}>
+    <section aria-label="Score decomposition" className="panel panel--pad">
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 12, marginBottom: 16 }}>
         <h3 className="h-panel">Score decomposition</h3>
         <span className="num" style={{ fontSize: 'var(--t-small)', color: 'var(--faint)' }}>
@@ -93,7 +93,7 @@ export default function QuantPanel({ analysis }: { analysis: Analysis }) {
           <ScorePill label={`Reversal · w ${quant.weightsUsed.reversal ?? '—'}`} value={quant.reversalScore} />
         )}
         <div>
-          <span className="label" style={{ fontSize: 'var(--t-micro)' }}>Momentum gate</span>
+          <span className="sys-label">Momentum gate</span>
           <p className="num" style={{ fontSize: 'var(--t-lead)', fontWeight: 600, color: gatePct > 0 ? 'var(--warn)' : 'var(--text)' }}>
             ×{quant.macroGate.toFixed(2)}
           </p>
@@ -104,14 +104,14 @@ export default function QuantPanel({ analysis }: { analysis: Analysis }) {
           </p>
         </div>
         <div>
-          <span className="label" style={{ fontSize: 'var(--t-micro)' }}>Conflict</span>
+          <span className="sys-label">Conflict</span>
           <p className="num" style={{ fontSize: 'var(--t-lead)', fontWeight: 600, color: quant.conflictIndex !== null && quant.conflictIndex > 0.15 ? 'var(--warn)' : 'var(--text)' }}>
             {quant.conflictIndex === null ? '—' : quant.conflictIndex.toFixed(2)}
           </p>
           {quant.conflictIndex === null && <p className="u-meta">not recorded</p>}
         </div>
         <div>
-          <span className="label" style={{ fontSize: 'var(--t-micro)' }}>Uncertainty</span>
+          <span className="sys-label">Uncertainty</span>
           <p className="num" style={{ fontSize: 'var(--t-lead)', fontWeight: 600 }}>
             {quant.uncertainty === null ? '—' : `${(quant.uncertainty * 100).toFixed(0)}%`}
           </p>
@@ -122,7 +122,7 @@ export default function QuantPanel({ analysis }: { analysis: Analysis }) {
       </div>
 
       {/* Factor contributions */}
-      <p className="label" style={{ fontSize: 'var(--t-micro)', marginBottom: 10 }}>
+      <p className="sys-label" style={{ marginBottom: 10 }}>
         Factor contributions (sum = composite before gate)
       </p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -165,7 +165,7 @@ export default function QuantPanel({ analysis }: { analysis: Analysis }) {
       {/* Confidence + risk decomposition */}
       <div className="hairline-top" style={{ display: 'flex', flexWrap: 'wrap', gap: '14px 44px', marginTop: 16, paddingTop: 14 }}>
         <div>
-          <p className="label" style={{ fontSize: 'var(--t-micro)', marginBottom: 6 }}>Confidence composition</p>
+          <p className="sys-label" style={{ marginBottom: 6 }}>Confidence composition</p>
           <p className="num" style={{ fontSize: 'var(--t-small)', color: 'var(--muted)', lineHeight: 1.7 }}>
             {quant.confidenceLosses.length === 0
               ? `No deductions — ${quant.confidence}%`
@@ -173,7 +173,7 @@ export default function QuantPanel({ analysis }: { analysis: Analysis }) {
           </p>
         </div>
         <div style={{ maxWidth: 460 }}>
-          <p className="label" style={{ fontSize: 'var(--t-micro)', marginBottom: 6 }}>
+          <p className="sys-label" style={{ marginBottom: 6 }}>
             Risk composition (weight × percentile = contribution)
           </p>
           <p className="num" style={{ fontSize: 'var(--t-small)', color: 'var(--muted)', lineHeight: 1.7 }}>
@@ -185,8 +185,8 @@ export default function QuantPanel({ analysis }: { analysis: Analysis }) {
           </p>
         </div>
         <div>
-          <p className="label" style={{ fontSize: 'var(--t-micro)', marginBottom: 6 }}>Data completeness</p>
- <p className="num u-note" >
+          <p className="sys-label" style={{ marginBottom: 6 }}>Data completeness</p>
+ <p className="num u-note">
             {(quant.dataCompleteness * 100).toFixed(0)}% of factors computable
           </p>
         </div>

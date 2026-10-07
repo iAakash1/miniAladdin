@@ -18,14 +18,14 @@ export default function EventsTimeline({ events }: { events: EventRow[] }) {
 
   return (
     <section aria-labelledby="events-h" className="card dash-events">
-      <span id="events-h" className="h-panel" style={{ fontSize: 'var(--t-value)', marginBottom: 14, display: 'block' }}>
+      <span id="events-h" className="h-panel" style={{ marginBottom: 14, display: 'block' }}>
         Upcoming events
       </span>
       <ol className="events-timeline">
         {rows.map(({ event, bucket, showBucket }) => {
           return (
             <li key={`${event.date}-${event.type}`} className="events-timeline__row">
-              {showBucket && <span className="events-timeline__bucket label">{bucket}</span>}
+              {showBucket && <span className="events-timeline__bucket sys-label">{bucket}</span>}
               <div className="events-timeline__item">
                 <Badge tone={event.importance === 'high' ? 'warn' : 'muted'}>{event.type}</Badge>
                 <span style={{ fontSize: 'var(--t-body)', flex: 1, minWidth: 160 }}>{event.title}</span>

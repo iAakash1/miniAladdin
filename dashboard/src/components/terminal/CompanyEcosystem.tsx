@@ -40,7 +40,7 @@ export default function CompanyEcosystem({ ticker }: { ticker: string }) {
 
   if (state.status === 'loading') {
     return (
-      <section aria-label="Company ecosystem" className="panel" style={{ padding: 'clamp(18px, 3vw, 24px)' }}>
+      <section aria-label="Company ecosystem" className="panel panel--pad">
         <h3 className="h-panel" style={{ marginBottom: 14 }}>Ecosystem</h3>
         <Skeleton height={120} />
       </section>
@@ -53,10 +53,10 @@ export default function CompanyEcosystem({ ticker }: { ticker: string }) {
   }
 
   return (
-    <section aria-label="Company ecosystem" className="panel" style={{ padding: 'clamp(18px, 3vw, 24px)' }}>
+    <section aria-label="Company ecosystem" className="panel panel--pad">
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 10, marginBottom: 16 }}>
         <h3 className="h-panel">Ecosystem</h3>
- <span className="num u-meta" >
+ <span className="num u-meta">
           {data.graph.nodes} entities · {data.graph.edges} relationships
         </span>
         <span style={{ marginLeft: 'auto', fontSize: 'var(--t-meta)', color: 'var(--faint)' }}>
@@ -68,14 +68,14 @@ export default function CompanyEcosystem({ ticker }: { ticker: string }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: data.findings.length ? 18 : 0 }}>
           {data.ecosystem.map((group) => (
             <div key={group.key}>
-              <p className="label" style={{ fontSize: 'var(--t-micro)', marginBottom: 8 }}>{group.label}</p>
+              <p className="sys-label" style={{ marginBottom: 8 }}>{group.label}</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {group.members.map((member) => {
                   const roles = member.edges.map((edge) => EDGE_LABELS[edge] ?? edge).join(' · ')
                   const content = (
                     <>
                       {member.label}
-                      <span className="label" style={{ fontSize: 'var(--t-micro)', color: 'var(--faint)' }}>{roles}</span>
+                      <span className="sys-label" style={{ color: 'var(--faint)' }}>{roles}</span>
                     </>
                   )
                   return member.route ? (

@@ -29,11 +29,11 @@ export default function MarketWhatChanged({ data }: { data: DashboardData }) {
   return (
     <section aria-labelledby="whatchanged-h" className="card dash-events">
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
-        <span id="whatchanged-h" className="h-panel" style={{ fontSize: 'var(--t-value)' }}>
+        <span id="whatchanged-h" className="h-panel">
           What changed
         </span>
         {before && (
- <span className="num u-meta" >
+ <span className="num u-meta">
             since {timeAgo(before.ts)}
           </span>
         )}

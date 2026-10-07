@@ -68,10 +68,10 @@ export default function NewsCard({ item, lead = false }: NewsCardProps) {
       >
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', marginBottom: 8, flexWrap: 'wrap' }}>
-            <span className="label" style={{ color: 'var(--accent)' }}>
+            <span className="sys-label" style={{ color: 'var(--accent)' }}>
               {item.source}
             </span>
-            <span className="label" style={{ color: 'var(--faint)', textTransform: 'none', letterSpacing: 0 }}>
+            <span className="sys-label" style={{ color: 'var(--faint)', textTransform: 'none', letterSpacing: 0 }}>
               {CATEGORY_LABEL[item.category]}
             </span>
             <span style={{ fontSize: 'var(--t-small)', color: 'var(--faint)' }}>

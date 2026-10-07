@@ -85,7 +85,7 @@ const STORAGE_ROWS: StorageRow[] = [
  *  design, so this states that plainly rather than leaving it implicit. */
 function StorageStatus() {
   return (
-    <details className="panel disclosure" style={{ padding: '14px 18px' }}>
+    <details className="panel disclosure panel--compact">
       <summary style={{ fontSize: 'var(--t-body)', fontWeight: 600, color: 'var(--text)' }}>
         Where is this stored?
       </summary>
@@ -294,10 +294,9 @@ export default function PortfolioView() {
             <button
               key={suggestion.name}
               type="button"
-              className="panel"
+              className="panel panel--pad"
               onClick={() => void createWatchlist(suggestion.name, suggestion.tickers)}
-              style={{ padding: '16px 18px', textAlign: 'left', cursor: 'pointer', background: 'var(--surface)' }}
-            >
+              style={{ textAlign: 'left', cursor: 'pointer', background: 'var(--surface)' }}>
               <p className="h-panel" style={{ marginBottom: 8 }}>{suggestion.name}</p>
               {/* The names themselves, not a comma-joined string of them. A
                   suggestion is chosen on what is *in* it, and a row of real
@@ -329,7 +328,7 @@ export default function PortfolioView() {
           <label htmlFor="new-list" className="visually-hidden">New watchlist name</label>
           <input
             id="new-list"
-            className="input input--sm"
+            className="sys-input sys-input--block"
             style={{ maxWidth: 220 }}
             placeholder="Or name a new list…"
             value={newName}
@@ -364,7 +363,7 @@ export default function PortfolioView() {
               onClick={() => setActiveId(list.id)}
             >
               {list.name}
- <span className="num u-meta" >
+ <span className="num u-meta">
                 {list.tickers.length}
               </span>
             </button>
@@ -385,7 +384,7 @@ export default function PortfolioView() {
           <label htmlFor="another-list" className="visually-hidden">New watchlist name</label>
           <input
             id="another-list"
-            className="input"
+            className="sys-input sys-input--block"
             style={{ width: 150, height: 32, fontSize: 'var(--t-body)' }}
             placeholder="New list…"
             value={newName}
@@ -435,7 +434,7 @@ export default function PortfolioView() {
             <label htmlFor="add-ticker" className="visually-hidden">Add ticker to {active.name}</label>
             <input
               id="add-ticker"
-              className="input mono"
+              className="sys-input sys-input--block mono"
               style={{ maxWidth: 180, height: 32, fontSize: 'var(--t-body)', letterSpacing: 'var(--tracking-label)' }}
               placeholder="Add ticker…"
               maxLength={8}
@@ -473,7 +472,7 @@ export default function PortfolioView() {
             />
           ) : (
             <div className="panel" style={{ overflowX: 'auto' }}>
-              <table className="data-table" style={{ minWidth: 960 }}>
+              <table className="sys-table" style={{ minWidth: 960 }}>
                 <caption className="visually-hidden">
                   {active.name} watchlist, ranked by verdict then confidence
                 </caption>

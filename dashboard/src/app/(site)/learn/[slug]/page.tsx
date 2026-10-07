@@ -20,7 +20,7 @@ function Row({ label, text }: { label: string; text?: string }) {
   if (!text) return null
   return (
     <div style={{ marginBottom: 18 }}>
-      <p className="label" style={{ marginBottom: 6 }}>{label}</p>
+      <p className="sys-label" style={{ marginBottom: 6 }}>{label}</p>
       <p style={{ fontSize: 'var(--t-value)', lineHeight: 1.65, color: 'var(--muted)', maxWidth: '68ch' }}>{text}</p>
     </div>
   )
@@ -60,7 +60,7 @@ export default async function LearnTopicPage({ params }: { params: Promise<{ slu
 
       {related.length > 0 && (
         <section aria-label="Related concepts" className="hairline-top" style={{ paddingTop: 24, marginTop: 12 }}>
-          <p className="label" style={{ marginBottom: 12 }}>Related concepts</p>
+          <p className="sys-label" style={{ marginBottom: 12 }}>Related concepts</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {related.map((t) => (
               <Link key={t.slug} href={`/learn/${t.slug}`} className="sys-btn" style={{ textDecoration: 'none' }}>

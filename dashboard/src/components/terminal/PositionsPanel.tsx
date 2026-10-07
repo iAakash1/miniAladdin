@@ -128,7 +128,7 @@ export default function PositionsPanel() {
         <label htmlFor="pos-ticker" className="visually-hidden">Ticker</label>
         <input
           id="pos-ticker"
-          className="input mono"
+          className="sys-input sys-input--block mono"
           style={{ maxWidth: 120, height: 32, fontSize: 'var(--t-body)', letterSpacing: 'var(--tracking-label)' }}
           placeholder="Ticker"
           maxLength={8}
@@ -138,7 +138,7 @@ export default function PositionsPanel() {
         <label htmlFor="pos-shares" className="visually-hidden">Shares</label>
         <input
           id="pos-shares"
-          className="input num"
+          className="sys-input sys-input--block num"
           style={{ maxWidth: 110, height: 32, fontSize: 'var(--t-body)' }}
           placeholder="Shares"
           inputMode="decimal"
@@ -148,7 +148,7 @@ export default function PositionsPanel() {
         <label htmlFor="pos-price" className="visually-hidden">Average price</label>
         <input
           id="pos-price"
-          className="input num"
+          className="sys-input sys-input--block num"
           style={{ maxWidth: 130, height: 32, fontSize: 'var(--t-body)' }}
           placeholder="Avg price"
           inputMode="decimal"
@@ -189,7 +189,7 @@ export default function PositionsPanel() {
 
       {status === 'ready' && positions.length > 0 && (
         <div style={{ overflowX: 'auto' }}>
-          <table className="data-table" style={{ minWidth: 560 }}>
+          <table className="sys-table" style={{ minWidth: 560 }}>
             <thead>
               <tr>
                 <th scope="col">Ticker</th>
@@ -220,7 +220,7 @@ export default function PositionsPanel() {
                       {isEditing ? (
                         <input
                           aria-label={`Shares of ${position.ticker}`}
-                          className="input num"
+                          className="sys-input sys-input--block num"
                           style={{ width: 90, height: 26, fontSize: 'var(--t-body)', textAlign: 'right' }}
                           value={editing.shares}
                           onChange={(e) =>
@@ -235,7 +235,7 @@ export default function PositionsPanel() {
                       {isEditing ? (
                         <input
                           aria-label={`Average price of ${position.ticker}`}
-                          className="input num"
+                          className="sys-input sys-input--block num"
                           style={{ width: 100, height: 26, fontSize: 'var(--t-body)', textAlign: 'right' }}
                           value={editing.price}
                           onChange={(e) =>
