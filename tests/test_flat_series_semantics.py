@@ -57,7 +57,7 @@ def test_a_flat_window_measures_a_zero_return_not_a_missing_one():
 
 
 @pytest.mark.parametrize("field", ["return_5d", "return_21d", "volatility"])
-def test_a_measured_zero_survives_serialisation(field):
+def test_a_measured_zero_survives_serialisation(field, offline_network):
     """The route's own expression, applied to a measured zero.
 
     Truthiness turns 0.0 into None here; `is not None` keeps it. This asserts

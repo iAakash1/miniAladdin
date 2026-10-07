@@ -166,10 +166,26 @@ def test_breadth_history_is_empty_without_enough_bars():
     assert _breadth_history([{}]) == []
 
 
-def test_internal_close_series_never_reaches_the_response():
-    """`_closes` is a computation detail; leaking it would bloat every payload."""
+def test_internal_close_series_never_reaches_the_response(offline_network, synthetic_series):
+    """`_closes` is a computation detail; leaking it would bloat every payload.
+
+    Built from a fixed series rather than the live market. It used to call
+    every vendor, and offline the sector list came back empty, so the
+    assertion over it was vacuously true — it passed precisely when it could
+    check nothing. The sectors are asserted present first for that reason.
+    """
+    from unittest.mock import patch
+
     from src.services import dashboard_service as ds
 
     ds.reset_for_tests()
-    payload = ds.get_dashboard()
+    try:
+        with patch.object(
+            ds.providers.market_data, "get_series",
+            side_effect=lambda symbol, period="1y": synthetic_series(symbol),
+        ):
+            payload = ds.get_dashboard()
+    finally:
+        ds.reset_for_tests()
+    assert payload["sectors"], "no sector rows were built, so there was nothing to check"
     assert all("_closes" not in row for row in payload["sectors"])

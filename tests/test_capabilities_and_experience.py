@@ -98,7 +98,22 @@ def _no_bootstrap(monkeypatch):
 
 # ── the admin wall ───────────────────────────────────────────────────────────
 
-def test_an_anonymous_caller_cannot_reach_diagnostics():
+@pytest.fixture
+def auth_configured(monkeypatch):
+    """Authentication configured, and no token verifies.
+
+    These two tests asserted 401 without configuring anything. They passed on a
+    machine whose `.env` supplied the Clerk settings and failed everywhere
+    else, where the server — correctly — answers 503 because it cannot verify
+    anyone. 401 is the answer *when authentication is on*, so say so.
+    """
+    from src.services import clerk_auth
+
+    monkeypatch.setattr(clerk_auth, "is_configured", lambda: True)
+    monkeypatch.setattr(clerk_auth, "verify_token", lambda token: None)
+
+
+def test_an_anonymous_caller_cannot_reach_diagnostics(auth_configured):
     with TestClient(api_module.app) as client:
         assert client.get("/api/admin/diagnostics").status_code == 401
 
@@ -131,7 +146,7 @@ def test_diagnostics_report_posture_not_material(client_as, monkeypatch):
 
 # ── capabilities ─────────────────────────────────────────────────────────────
 
-def test_capabilities_require_a_session():
+def test_capabilities_require_a_session(auth_configured):
     with TestClient(api_module.app) as client:
         assert client.get("/api/me/capabilities").status_code == 401
 

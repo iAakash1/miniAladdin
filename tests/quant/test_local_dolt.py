@@ -93,13 +93,22 @@ def test_split_coverage_starts_in_2014_as_the_catalog_records():
 
 @requires_clone
 def test_earnings_calendar_contains_future_dates():
-    """The leak the catalog warns about, asserted rather than assumed."""
+    """The leak the catalog warns about, asserted rather than assumed.
+
+    "Future" means after the date the clone was captured, which is a property
+    of the data. It used to mean after today's date, so the test passed on the
+    day the clone was taken and failed for good once the calendar's last
+    scheduled date (2026-10-01) fell behind the wall clock — a regression in
+    the calendar of the machine running the suite, not in the data. The
+    snapshot date is the latest commit in the clone's own history.
+    """
     local = LocalDoltClient()
     if not local.has_repository("earnings"):
         pytest.skip("no earnings clone")
     future = local.scalar(
         "earnings",
-        "select count(*) as `n` from earnings_calendar where `date` > current_date()",
+        "select count(*) as `n` from earnings_calendar "
+        "where `date` > (select date(max(`date`)) from dolt_log)",
     )
     assert int(future) > 0, (
         "earnings_calendar is expected to contain scheduled future dates; if this "

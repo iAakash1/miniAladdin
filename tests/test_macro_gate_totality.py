@@ -67,7 +67,7 @@ def test_real_multipliers_still_dampen_and_boost():
     assert Agent.apply_dampening(SignalVerdict.BUY, 1.0) is SignalVerdict.BUY
 
 
-def test_research_survives_an_unreadable_macro_provider():
+def test_research_survives_an_unreadable_macro_provider(offline_network, synthetic_series):
     """The endpoint-level regression: macro down must not mean 500.
 
     Driven through the real route with the macro fetch reporting exactly what
@@ -94,7 +94,12 @@ def test_research_survives_an_unreadable_macro_provider():
         },
     )
 
-    with patch.object(api, "_fetch_macro_safe", return_value=unavailable):
+    # Prices come from a fixture rather than a vendor: this used to read AAPL
+    # from the live market, so the test measured Yahoo's availability and
+    # failed whenever it was unreachable.
+    with patch.object(api, "_fetch_macro_safe", return_value=unavailable), patch.object(
+        api.providers.market_data, "get_series", return_value=synthetic_series("AAPL")
+    ):
         with TestClient(api.app) as client:
             response = client.get("/api/research/AAPL")
 

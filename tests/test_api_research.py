@@ -20,7 +20,7 @@ from src.providers.schemas import MacroSnapshot, ProviderResult
 
 
 @pytest.fixture()
-def client(monkeypatch):
+def client(monkeypatch, offline_network):
     monkeypatch.delenv("GROQ_API_KEY", raising=False)
     api_module._macro_cache.clear()  # module-level SRM cache must not leak between tests
 

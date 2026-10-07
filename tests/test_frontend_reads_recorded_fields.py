@@ -86,11 +86,31 @@ def test_the_providers_workspace_reads_those_fields() -> None:
         assert ghost not in source, f"{ghost} is not a field provider health carries"
 
 
-def test_breadth_history_is_date_and_score(client: TestClient) -> None:
-    payload = client.get("/api/dashboard").json()
+def test_breadth_history_is_date_and_score(client: TestClient, offline_network, synthetic_series) -> None:
+    """Pinned against a fixed market, not whatever the vendors answer today.
+
+    This read the live dashboard and skipped when the history was missing, so
+    on any machine that could not reach the vendors — CI, a laptop offline —
+    it skipped and held nothing. It now builds the dashboard from a
+    deterministic series and requires a history to exist.
+    """
+    from unittest.mock import patch
+
+    from src.services import dashboard_service as ds
+
+    ds.reset_for_tests()
+    try:
+        with patch.object(
+            ds.providers.market_data, "get_series",
+            side_effect=lambda symbol, period="1y": synthetic_series(symbol),
+        ):
+            payload = client.get("/api/dashboard").json()
+    finally:
+        ds.reset_for_tests()
     history = (payload.get("breadth") or {}).get("history")
-    if not isinstance(history, list) or not history or not isinstance(history[0], dict):
-        pytest.skip("breadth history is not a list of records in this environment")
+    assert isinstance(history, list) and history and isinstance(history[0], dict), (
+        "the dashboard built from a full market carries no breadth history"
+    )
     assert _keys(history) >= {"date", "score"}, (
         "breadth history no longer carries date and score; the market workspace "
         "reads both, and reading `value` there discarded the whole series once"
@@ -125,7 +145,7 @@ def test_the_timeline_reads_transitions_not_a_status_field() -> None:
     )
 
 
-def test_filings_arrive_as_an_envelope_not_an_array(client: TestClient) -> None:
+def test_filings_arrive_as_an_envelope_not_an_array(client: TestClient, offline_network, synthetic_series) -> None:
     """The fifth wrong-field bug, and the one that hid best.
 
     EDGAR's adapter returns an object — the documents under a `filings` key,
@@ -136,10 +156,28 @@ def test_filings_arrive_as_an_envelope_not_an_array(client: TestClient) -> None:
     It briefly looked correct: a probe counting `len(filings)` on the dict
     returned seven, which was its key count rather than a number of documents.
     """
-    payload = client.get("/api/research/AAPL").json()
+    from unittest.mock import patch
+
+    import api.index as api_module
+    from src.providers.fabric import Evidence
+
+    # Three recent filings, as the EDGAR adapter returns them. The envelope is
+    # built by the research route from these rows, which is the thing pinned;
+    # this used to fetch AAPL's real filings and skip when none came back.
+    rows = [
+        {"form": "10-K", "filed": "2025-10-31", "accession": "0000320193-25-000079",
+         "url": "https://www.sec.gov/Archives/edgar/data/320193/000032019325000079/"},
+        {"form": "10-Q", "filed": "2025-08-01", "accession": "0000320193-25-000073",
+         "url": "https://www.sec.gov/Archives/edgar/data/320193/000032019325000073/"},
+        {"form": "10-Q", "filed": "2025-05-02", "accession": "0000320193-25-000057",
+         "url": "https://www.sec.gov/Archives/edgar/data/320193/000032019325000057/"},
+    ]
+    evidence = [Evidence(provider="sec", capability="filings", symbol="AAPL", ok=True, data=rows)]
+    with patch.object(api_module.providers.market_data, "get_series", return_value=synthetic_series("AAPL")), \
+            patch.object(api_module.providers.filings, "filings_evidence", return_value=evidence):
+        payload = client.get("/api/research/AAPL?fast=true").json()
     filings = payload.get("filings")
-    if filings is None:
-        pytest.skip("no filings in this environment")
+    assert filings is not None, "the research route dropped the filings it was given"
 
     assert isinstance(filings, dict), (
         "filings is no longer an envelope; the security panel reads .filings "

@@ -20,6 +20,7 @@ import pandas as pd
 import pytest
 
 from src.panel.builder import PanelBuilder, _pit_window
+from src.panel.fundamentals import PointInTimeFacts
 from src.panel.schema import FACTOR_COLUMNS
 from src.panel.storage import PanelStore
 from src.panel.universe import Universe
@@ -389,8 +390,25 @@ def test_engine_choice_moves_values_by_at_most_one_ulp(universe, market):
     assert worst <= 2e-16, f"engines disagree by {worst:.3e}, more than round-off"
 
 
+def _filed_assets(symbol: str) -> PointInTimeFacts:
+    """Fixed SEC facts, so the fundamentals path runs without the live vendor.
+
+    The reproducibility test below builds with fundamentals on, which used to
+    reach sec.gov. When that call failed or the vendor entered its cooldown
+    part-way through, one build saw facts and the next did not, and the
+    "same engine" hashes differed for a reason unrelated to the engines.
+    """
+    scale = 1.0 if symbol == "AAPL" else 2.0
+    return PointInTimeFacts([
+        {"label": "Total assets", "period_end": "2021-12-31", "value": 100.0 * scale,
+         "filed": "2022-02-15", "form": "10-K"},
+        {"label": "Total assets", "period_end": "2022-12-31", "value": 120.0 * scale,
+         "filed": "2023-02-15", "form": "10-K"},
+    ])
+
+
 def test_content_hash_is_reproducible_per_engine_not_across_them(
-    universe, market, tmp_path
+    universe, market, tmp_path, monkeypatch
 ):
     """Pins a reproducibility boundary that Phase 4 depends on.
 
@@ -399,6 +417,7 @@ def test_content_hash_is_reproducible_per_engine_not_across_them(
     Parquet bytes. The manifest therefore records which engine ran, and
     `omni verify` must rebuild with the engine named there.
     """
+    monkeypatch.setattr("src.panel.builder.load_facts", _filed_assets)
     hashes = []
     for index, vectorized in enumerate((True, False, True)):
         frame, manifest = PanelBuilder(
