@@ -23,7 +23,7 @@ import { recordVisit, usePinnedObjects, useRecentObjects } from '@/lib/research/
 import { KIND_ORDER, KINDS, href as objectHref, score, type ObjectKind, type ResearchObject } from '@/lib/research/objects'
 import { describeQuery, matchesStructure, parseQuery } from '@/lib/research/query'
 import { localMatches } from '@/lib/search'
-import { looksLikeSymbol, screenQuery, type ScreenAnswer } from '@/lib/security'
+import { looksLikeSymbol, screenQuery, symbolKey, typedSymbol, type ScreenAnswer } from '@/lib/security'
 import { emptySnapshot, recentSnapshot, rememberSymbol, subscribeSymbols } from '@/lib/symbols'
 import { listsContaining, unwatchSymbol, useWatchedSymbols, useWatchlists, watchSymbol } from '@/lib/watchlists'
 
@@ -234,8 +234,12 @@ export default function Palette() {
     // A short token is most likely a ticker; anything longer ("semis",
     // "copper miners") is more likely a theme. Both stay offered — the order
     // decides what Enter does before the search answer lands.
-    const openTicker: PaletteSection<Item> | null = looksLikeSymbol(q) && !(answer?.results ?? []).some((r) => r.symbol === q.toUpperCase())
-      ? { key: 'open-ticker', label: 'Open directly', itemKey, items: [companyItem(q.toUpperCase(), null, 'open as a ticker')] }
+    // "BRK B" opens BRK.B; and a backend row that is the same listing under
+    // another spelling ("BRK-B") already answers the query, so no second row.
+    const typed = typedSymbol(q)
+    const openTicker: PaletteSection<Item> | null = looksLikeSymbol(q)
+      && !(answer?.results ?? []).some((r) => r.symbol === typed || symbolKey(r.symbol) === symbolKey(typed))
+      ? { key: 'open-ticker', label: 'Open directly', itemKey, items: [companyItem(typed, null, 'open as a ticker')] }
       : null
     const screen: PaletteSection<Item> | null = q.trim().length >= 2
       ? {

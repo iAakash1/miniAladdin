@@ -225,3 +225,84 @@ class TestWellKnownHelpers:
 
     def test_resolve_well_known_returns_empty_for_unknown_query(self):
         assert screen_service._resolve_well_known("qzxjklw") == []
+
+
+# ── share classes: one listing, several spellings ───────────────────────────
+
+class _SpellingVendor(_FakeVendor):
+    """Knows one symbol, spelled one way — as real vendors do. Anything else
+    is a miss, which is what a vendor does with "BRK B"."""
+
+    def __init__(self, name: str, symbol: str, label: str):
+        super().__init__(name)
+        self._symbol, self._label = symbol, label
+        self.queries: list[str] = []
+
+    def search_symbols(self, query: str, limit: int = 8) -> Optional[list[dict]]:
+        self.queries.append(query)
+        self.calls += 1
+        if query.upper() == self._symbol:
+            return [{"symbol": self._symbol, "name": self._label}]
+        return None
+
+
+class TestShareClassSpellings:
+    @pytest.mark.parametrize("typed", ["BRK B", "brk b", "BRK/B", "BRK-B", "BRK.B"])
+    def test_every_spelling_reaches_the_listing_the_vendor_knows(self, monkeypatch, typed):
+        finnhub = _SpellingVendor("finnhub", "BRK.B", "Berkshire Hathaway Inc-Cl B")
+        _patch_vendors(monkeypatch, finnhub=finnhub)
+        _patch_search(monkeypatch, data=[])
+
+        out = screen(typed)
+
+        assert [r["symbol"] for r in out["results"]] == ["BRK.B"], (typed, out)
+        assert out["mode"] == "lookup"
+
+    def test_a_spaced_query_is_tried_as_a_symbol_before_the_text_as_typed(self, monkeypatch):
+        finnhub = _SpellingVendor("finnhub", "BRK.B", "Berkshire Hathaway Inc-Cl B")
+        _patch_vendors(monkeypatch, finnhub=finnhub)
+        _patch_search(monkeypatch, data=[])
+
+        screen("BRK B")
+
+        # "BRK B" is not a symbol at any vendor, so it must not be the first
+        # thing asked — and the answer is found on the first spelling.
+        assert finnhub.queries == ["BRK.B"]
+
+    def test_the_hyphenated_vendor_spelling_is_a_fallback_for_a_dotted_query(self, monkeypatch):
+        yfinance = _SpellingVendor("yfinance", "BRK-B", "Berkshire Hathaway Inc. New")
+        _patch_vendors(monkeypatch, yfinance=yfinance)
+        _patch_search(monkeypatch, data=[])
+
+        out = screen("BRK.B")
+
+        assert yfinance.queries == ["BRK.B", "BRK-B"]
+        assert [r["symbol"] for r in out["results"]] == ["BRK-B"]
+
+    def test_an_ordinary_query_is_searched_exactly_as_typed_and_once(self, monkeypatch):
+        finnhub = _SpellingVendor("finnhub", "AAPL", "Apple Inc")
+        _patch_vendors(monkeypatch, finnhub=finnhub)
+        _patch_search(monkeypatch, data=[])
+
+        out = screen("AAPL")
+
+        assert finnhub.queries == ["AAPL"]
+        assert [r["symbol"] for r in out["results"]] == ["AAPL"]
+
+    def test_the_keyless_anchor_resolves_a_spaced_share_class_when_every_vendor_is_down(self, monkeypatch):
+        _patch_vendors(monkeypatch)
+        _patch_search(monkeypatch, data=[])
+
+        out = screen("BRK B")
+
+        assert [r["symbol"] for r in out["results"]] == ["BRK.B"]
+        assert out["results"][0]["via"] == "known symbol"
+
+    def test_an_unknown_ticker_still_returns_no_results(self, monkeypatch):
+        finnhub = _SpellingVendor("finnhub", "AAPL", "Apple Inc")
+        _patch_vendors(monkeypatch, finnhub=finnhub)
+        _patch_search(monkeypatch, data=[])
+
+        out = screen("QZXW")
+
+        assert out["results"] == []

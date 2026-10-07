@@ -9,7 +9,7 @@
 
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { rankSecurities } from '../src/lib/security'
+import { looksLikeSymbol, rankSecurities, symbolKey, typedSymbol } from '../src/lib/security'
 import { highlightSegments, localMatches } from '../src/lib/search'
 
 test('a ticker in the watchlist matches before the network answers', () => {
@@ -104,4 +104,79 @@ test('an exact ticker still outranks a name match', () => {
     { symbol: 'APP', name: 'Applovin', via: 'x' },
   ]
   assert.equal(rankSecurities('APP', rows)[0].symbol, 'APP')
+})
+
+/* Share classes are written three ways and a reader types a fourth.
+
+   Searching "BRK B" or "BRK-B" returned nothing: neither spelling is a prefix
+   or substring of the symbol BRK.B, so the ranker scored the row as unrelated
+   and dropped it — the one security the reader named was the one thing
+   removed. The local matcher had the same blind spot against a watchlist that
+   held BRK.B. */
+const BERKSHIRE = [
+  { symbol: 'BRK.A', name: 'Berkshire Hathaway Inc-Cl A', via: 'x' },
+  { symbol: 'BRK.B', name: 'Berkshire Hathaway Inc-Cl B', via: 'x' },
+]
+
+test('every spelling of a share class reaches its listing', () => {
+  for (const q of ['BRK.B', 'BRK-B', 'BRK B', 'brk b', 'BRK/B', 'BRKB']) {
+    assert.equal(rankSecurities(q, BERKSHIRE)[0]?.symbol, 'BRK.B', `"${q}" did not reach BRK.B`)
+  }
+})
+
+test('a share-class query does not promote the other class', () => {
+  assert.equal(rankSecurities('BRK B', BERKSHIRE)[0].symbol, 'BRK.B')
+  assert.equal(rankSecurities('BRK A', BERKSHIRE)[0].symbol, 'BRK.A')
+})
+
+test('typing the root still lists every class', () => {
+  assert.deepEqual(rankSecurities('BRK', BERKSHIRE).map((r) => r.symbol), ['BRK.A', 'BRK.B'])
+  // A trailing separator mid-typing must not empty the list.
+  assert.deepEqual(rankSecurities('BRK-', BERKSHIRE).map((r) => r.symbol), ['BRK.A', 'BRK.B'])
+})
+
+test('an exact literal symbol outranks a spelling-equivalent one', () => {
+  const rows = [
+    { symbol: 'BRK-B', name: 'Berkshire Hathaway Inc-Cl B', via: 'x' },
+    { symbol: 'BRK.B', name: 'Berkshire Hathaway Inc-Cl B', via: 'x' },
+  ]
+  assert.equal(rankSecurities('BRK.B', rows)[0].symbol, 'BRK.B')
+  assert.equal(rankSecurities('BRK-B', rows)[0].symbol, 'BRK-B')
+})
+
+test('AAPL reaches AAPL and does not surface APLE', () => {
+  const rows = [
+    { symbol: 'APLE', name: 'Apple Hospitality REIT Inc', via: 'x' },
+    { symbol: 'AAPL', name: 'Apple Inc', via: 'x' },
+  ]
+  assert.deepEqual(rankSecurities('AAPL', rows).map((r) => r.symbol), ['AAPL'])
+})
+
+test('a ticker nobody lists returns nothing rather than a guess', () => {
+  assert.deepEqual(rankSecurities('QZXW', BERKSHIRE), [])
+})
+
+test('the local matcher finds a watched share class by any spelling', () => {
+  for (const q of ['BRK B', 'BRK-B', 'brk.b']) {
+    assert.deepEqual(localMatches(q, [], ['BRK.B']).map((m) => m.symbol), ['BRK.B'], q)
+  }
+  assert.deepEqual(localMatches('BRK B', [], ['AAPL']), [])
+})
+
+test('a spaced share class is ticker-shaped and opens as a dotted symbol', () => {
+  assert.equal(looksLikeSymbol('BRK B'), true)
+  assert.equal(looksLikeSymbol('brk/b'), true)
+  assert.equal(typedSymbol('BRK B'), 'BRK.B')
+  assert.equal(typedSymbol('brk/b'), 'BRK.B')
+  // Already symbols: not rewritten.
+  assert.equal(typedSymbol('BRK-B'), 'BRK-B')
+  assert.equal(typedSymbol('BRK.B'), 'BRK.B')
+  assert.equal(typedSymbol('aapl'), 'AAPL')
+})
+
+test('free text is not mistaken for a share class', () => {
+  assert.equal(looksLikeSymbol('copper miners'), false)
+  assert.equal(looksLikeSymbol('apple inc'), false)
+  assert.equal(symbolKey('BRK.B'), symbolKey('brk b'))
+  assert.notEqual(symbolKey('AAPL'), symbolKey('APLE'))
 })

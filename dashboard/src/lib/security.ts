@@ -78,7 +78,38 @@ const SYMBOL = /^[A-Z][A-Z0-9.\-]{0,9}$/
  * rather than an answer.
  */
 export function looksLikeSymbol(query: string): boolean {
-  return SYMBOL.test(query.trim().toUpperCase())
+  const q = query.trim().toUpperCase()
+  return SYMBOL.test(q) || SHARE_CLASS_SPELLING.test(q)
+}
+
+/** A root and one class letter, separated the way people type them:
+ *  "BRK B", "BRK/B", "BRK-B", "BRK.B". */
+const SHARE_CLASS_SPELLING = /^[A-Z]{1,5}[\s./-][A-Z]$/
+
+/**
+ * A symbol with its punctuation and spacing removed, for asking whether two
+ * spellings name the same listing. Berkshire's B shares are written BRK.B by
+ * one vendor, BRK-B by another and "BRK B" by a person typing; none of those
+ * is wrong, and a search that treats them as strangers answers "nothing found"
+ * to a query that has an obvious answer.
+ *
+ * Only for comparison. It is never shown and never used as a route, because
+ * two distinct listings could in principle share a key.
+ */
+export function symbolKey(value: string): string {
+  return value.toUpperCase().replace(/[\s./-]+/g, '')
+}
+
+/**
+ * The symbol to open for a typed query that names a share class with a space
+ * or slash — "BRK B" becomes "BRK.B", the spelling the company page documents.
+ * Anything else is returned upper-cased and otherwise as typed: the reader's
+ * "BRK-B" is already a symbol the product resolves, and is not rewritten.
+ */
+export function typedSymbol(query: string): string {
+  const q = query.trim().toUpperCase()
+  const match = /^([A-Z]{1,5})[\s/]([A-Z])$/.exec(q)
+  return match ? `${match[1]}.${match[2]}` : q
 }
 
 interface ScreenResult {
@@ -229,16 +260,24 @@ export async function fetchBars(
 export function rankSecurities(query: string, rows: SecurityIdentity[]): SecurityIdentity[] {
   const q = query.trim().toUpperCase()
   if (!q) return rows
+  const qKey = symbolKey(q)
 
+  /* Spelling-insensitive comparison sits directly after the literal match so
+     "BRK B" and "BRK-B" reach BRK.B instead of being scored as unrelated. A
+     literal match still wins, so a distinct listing that happens to share a
+     key cannot displace the one that was typed exactly. */
   const score = (s: SecurityIdentity): number => {
     const sym = s.symbol.toUpperCase()
     const name = (s.name ?? '').toUpperCase()
+    const key = symbolKey(sym)
     if (sym === q) return 0
-    if (sym.startsWith(q)) return 1
-    if (name.startsWith(q)) return 2
-    if (sym.includes(q)) return 3
-    if (name.includes(q)) return 4
-    return 5
+    if (qKey && key === qKey) return 1
+    if (sym.startsWith(q)) return 2
+    if (qKey && key.startsWith(qKey)) return 3
+    if (name.startsWith(q)) return 4
+    if (sym.includes(q)) return 5
+    if (name.includes(q)) return 6
+    return 7
   }
 
   /* Rows the query does not appear in at all are dropped rather than ranked
@@ -253,7 +292,7 @@ export function rankSecurities(query: string, rows: SecurityIdentity[]): Securit
      misspelling than an unrelated company. */
   const ranked = rows
     .map((s, i) => ({ s, r: score(s), i }))
-    .filter((x) => x.r < 5)
+    .filter((x) => x.r < 7)
     .sort((a, b) => a.r - b.r || a.i - b.i)
     .map((x) => x.s)
 

@@ -112,15 +112,50 @@ WELL_KNOWN_SYMBOLS: dict[str, str] = {
 }
 
 
+# A root and one share-class letter, however a person or a vendor spells it:
+# "BRK B", "BRK/B", "BRK-B", "BRK.B".
+_SHARE_CLASS_SPELLING = re.compile(r"^([A-Za-z]{1,5})([\s./-])([A-Za-z])$")
+
+
+def _lookup_spellings(query: str) -> list[str]:
+    """The strings to try, in order, for one query.
+
+    Symbol databases do not agree on how a share class is written — Berkshire's
+    B shares are BRK.B at one vendor and BRK-B at another — and people type a
+    third form with a space. Passing "BRK B" through verbatim leaves the answer
+    to each vendor's fuzziness, which is how a plain, unambiguous symbol came
+    back as "nothing found".
+
+    Spaced and slashed forms are not symbols at any vendor, so their dotted and
+    hyphenated spellings are tried before the query as typed. A dotted or
+    hyphenated query is already a symbol: it goes first, and the sibling
+    spelling is only a fallback. Anything else is not a share class and is
+    searched exactly as typed — this adds vendor calls only for queries of the
+    one shape that needs them.
+    """
+    typed = query.strip()
+    match = _SHARE_CLASS_SPELLING.match(typed)
+    if not match:
+        return [typed]
+    root, separator, letter = match.group(1).upper(), match.group(2), match.group(3).upper()
+    dotted, hyphenated = f"{root}.{letter}", f"{root}-{letter}"
+    if separator in ".-":
+        siblings = [hyphenated if separator == "." else dotted]
+        return [typed, *siblings]
+    return [dotted, hyphenated, typed]
+
+
 def _resolve_well_known(query: str) -> list[dict[str, Any]]:
     """Exact-symbol or name-substring hit against the static anchor table.
     Zero network calls — the last step of _resolve_direct's waterfall."""
+    for spelling in _lookup_spellings(query):
+        upper = spelling.upper()
+        if upper in WELL_KNOWN_SYMBOLS:
+            return [{
+                "symbol": upper, "name": WELL_KNOWN_SYMBOLS[upper],
+                "via": "known symbol", "snippet": None, "url": None,
+            }]
     upper = query.upper()
-    if upper in WELL_KNOWN_SYMBOLS:
-        return [{
-            "symbol": upper, "name": WELL_KNOWN_SYMBOLS[upper],
-            "via": "known symbol", "snippet": None, "url": None,
-        }]
     lowered = query.lower()
     hits = [
         {"symbol": symbol, "name": name, "via": "known symbol", "snippet": None, "url": None}
@@ -159,21 +194,22 @@ def _did_you_mean(query: str) -> list[dict[str, Any]]:
 
 def _resolve_direct(query: str) -> list[dict[str, Any]]:
     """Ticker or company-name lookup through the symbol-search chain."""
-    for vendor in (providers.fundamentals.finnhub, providers.fundamentals.fmp,
-                   providers.market_data.yfinance):
-        if not vendor.healthy:
-            continue
-        try:
-            rows = vendor.search_symbols(query, limit=MAX_RESULTS)
-        except Exception:  # noqa: BLE001 — chain semantics, next vendor
-            logger.info("symbol search failed on %s", vendor.NAME)
-            continue
-        if rows:
-            return [
-                {"symbol": row["symbol"], "name": row["name"],
-                 "via": f"{vendor.NAME} symbol search", "snippet": None, "url": None}
-                for row in rows
-            ]
+    for spelling in _lookup_spellings(query):
+        for vendor in (providers.fundamentals.finnhub, providers.fundamentals.fmp,
+                       providers.market_data.yfinance):
+            if not vendor.healthy:
+                continue
+            try:
+                rows = vendor.search_symbols(spelling, limit=MAX_RESULTS)
+            except Exception:  # noqa: BLE001 — chain semantics, next vendor
+                logger.info("symbol search failed on %s", vendor.NAME)
+                continue
+            if rows:
+                return [
+                    {"symbol": row["symbol"], "name": row["name"],
+                     "via": f"{vendor.NAME} symbol search", "snippet": None, "url": None}
+                    for row in rows
+                ]
     # Every keyed/live vendor missed or is unhealthy — the keyless anchor
     # still resolves unambiguous large-cap tickers like NVDA. This is the
     # fix for "NVDA -> Nothing Found" while NVDA was already sitting in the

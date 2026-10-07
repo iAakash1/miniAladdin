@@ -19,6 +19,8 @@
  * actually holds.
  */
 
+import { symbolKey } from './security'
+
 export interface LocalMatch {
   symbol: string
   /** Why this row is here — "Watchlist", "Recent". Never invented. */
@@ -42,6 +44,9 @@ export function localMatches(
 ): LocalMatch[] {
   const needle = value.trim().toUpperCase()
   if (!needle) return []
+  // "BRK B" and "BRK-B" are how a reader types the symbol a list holds as
+  // BRK.B; compare spellings without punctuation as well as literally.
+  const needleKey = symbolKey(needle)
 
   const out: LocalMatch[] = []
   const seen = new Set<string>()
@@ -50,7 +55,8 @@ export function localMatches(
   for (const [list, context] of [[watched, 'Watchlist'], [recent, 'Recent']] as const) {
     for (const ticker of list) {
       const symbol = ticker.toUpperCase()
-      if (seen.has(symbol) || !symbol.startsWith(needle)) continue
+      if (seen.has(symbol)) continue
+      if (!symbol.startsWith(needle) && !(needleKey && symbolKey(symbol).startsWith(needleKey))) continue
       seen.add(symbol)
       out.push({ symbol, context })
       if (out.length >= MAX_LOCAL_MATCHES) return out
