@@ -80,7 +80,7 @@ export default function TechnicalIntelligence({ block }: { block: TechBlock | nu
         {' · '}Resistance {fmtPrice(levels.resistance)} ({levels.resistance_distance_pct}% above)
         {' · '}{levels.lookback_days}-day swing window
         <Tooltip label="How support and resistance are computed">
-          <p style={{ margin: 0 }}>{TECHNICAL_GLOSSARY.levels.short}</p>
+          <span style={{ display: 'block', margin: 0 }}>{TECHNICAL_GLOSSARY.levels.short}</span>
         </Tooltip>
       </p>
 
