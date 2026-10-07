@@ -16,7 +16,7 @@ export default function TerminalLayout({ children }: { children: React.ReactNode
     <ClerkProvider>
       {/* Theme comes from html[data-theme]: dark by default on this route,
           light if the user has explicitly chosen it. */}
-      <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--p-base)', color: 'var(--ink)' }}>
         {/* Session, usage and the upgrade flow, mounted once for every
             workspace. These used to live inside the old shell, which is the
             only reason the one route needing them could not be ported. */}

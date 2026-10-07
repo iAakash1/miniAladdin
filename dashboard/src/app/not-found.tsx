@@ -13,15 +13,15 @@ export default function NotFound() {
         gap: 18,
         padding: 24,
         textAlign: 'center',
-        background: 'var(--paper)',
+        background: 'var(--p-base)',
       }}
     >
       <Logo size={22} />
-      <p className="num" style={{ fontSize: 'var(--t-body)', color: 'var(--faint)', letterSpacing: 'var(--tracking-label)' }}>
+      <p className="num" style={{ fontSize: 'var(--t-body)', color: 'var(--ink-faint)', letterSpacing: 'var(--tracking-label)' }}>
         404
       </p>
       <h1 className="h-section">This page doesn&apos;t exist</h1>
-      <p style={{ fontSize: 'var(--t-value)', color: 'var(--muted)', maxWidth: 380, lineHeight: 1.6 }}>
+      <p style={{ fontSize: 'var(--t-value)', color: 'var(--ink-muted)', maxWidth: 380, lineHeight: 1.6 }}>
         The address may have changed. Everything OmniSignal does starts from the
         home page or the terminal.
       </p>

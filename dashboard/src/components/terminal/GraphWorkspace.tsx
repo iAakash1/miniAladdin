@@ -42,21 +42,21 @@ interface Workspace {
 }
 
 const TYPE_COLOR: Record<string, string> = {
-  company: 'var(--accent)', person: 'var(--warn)', product: 'var(--pos)',
-  subsidiary: 'var(--muted)', industry: 'var(--muted)', technology: 'var(--pos)',
-  country: 'var(--faint)', exchange: 'var(--faint)',
+  company: 'var(--accent)', person: 'var(--e-warn)', product: 'var(--e-pos)',
+  subsidiary: 'var(--ink-muted)', industry: 'var(--ink-muted)', technology: 'var(--e-pos)',
+  country: 'var(--ink-faint)', exchange: 'var(--ink-faint)',
 }
-const color = (type: string) => TYPE_COLOR[type] ?? 'var(--muted)'
+const color = (type: string) => TYPE_COLOR[type] ?? 'var(--ink-muted)'
 
 /** Entity type is carried by shape as well as colour, so it survives a
  *  colour-blind reader and a monochrome print: companies are circles,
  *  people rings, products and technologies squares, places and categories
  *  diamonds. */
 function NodeShape({ type, r, fill, selected }: { type: string; r: number; fill: string; selected: boolean }) {
-  const stroke = selected ? 'var(--text)' : 'none'
+  const stroke = selected ? 'var(--ink)' : 'none'
   const opacity = selected ? 1 : 0.85
   if (type === 'person') {
-    return <circle r={r} fill="var(--bg)" stroke={fill} strokeWidth={Math.max(1.5, r * 0.45)} opacity={opacity} />
+    return <circle r={r} fill="var(--p-base)" stroke={fill} strokeWidth={Math.max(1.5, r * 0.45)} opacity={opacity} />
   }
   if (type === 'product' || type === 'technology') {
     return <rect x={-r} y={-r} width={r * 2} height={r * 2} rx={r * 0.3} fill={fill} opacity={opacity} stroke={stroke} strokeWidth={1.5} />
@@ -65,7 +65,7 @@ function NodeShape({ type, r, fill, selected }: { type: string; r: number; fill:
     return <rect x={-r * 0.85} y={-r * 0.85} width={r * 1.7} height={r * 1.7} fill={fill} opacity={opacity} transform="rotate(45)" stroke={stroke} strokeWidth={1.5} />
   }
   if (type === 'subsidiary') {
-    return <circle r={r} fill="var(--bg)" stroke={fill} strokeWidth={1.4} strokeDasharray="2 1.5" opacity={opacity} />
+    return <circle r={r} fill="var(--p-base)" stroke={fill} strokeWidth={1.4} strokeDasharray="2 1.5" opacity={opacity} />
   }
   return <circle r={r} fill={fill} opacity={opacity} stroke={stroke} strokeWidth={1.5} />
 }
@@ -296,12 +296,12 @@ export default function GraphWorkspace() {
               {saving ? 'Saving…' : 'All changes saved'}
             </span>
             <button type="button" className="sys-btn sys-btn--ghost sys-btn--xs"
-                    style={{ border: '1px solid var(--line)' }}
+                    style={{ border: '1px solid var(--rule)' }}
                     onClick={() => persist((current) => captureSnapshot(current, `${symbols} view`))}>
               Snapshot ({state.snapshots.length})
             </button>
             <Link href="/terminal/sessions" className="sys-btn sys-btn--ghost sys-btn--xs"
-                  style={{ border: '1px solid var(--line)' }}>
+                  style={{ border: '1px solid var(--rule)' }}>
               All investigations
             </Link>
           </>
@@ -314,7 +314,7 @@ export default function GraphWorkspace() {
               Start investigation
             </button>
             <Link href="/terminal/sessions" className="sys-btn sys-btn--ghost sys-btn--xs"
-                  style={{ border: '1px solid var(--line)' }}>
+                  style={{ border: '1px solid var(--rule)' }}>
               Open existing
             </Link>
           </>
@@ -423,7 +423,7 @@ export default function GraphWorkspace() {
                     // the old layout packed every neighbour into a tight
                     // starburst where the lines overlapped. Matches
                     // GraphExplorer, which already used the stronger token.
-                    stroke={active ? 'var(--accent)' : 'var(--line-strong)'}
+                    stroke={active ? 'var(--accent)' : 'var(--rule-strong)'}
                     strokeWidth={active ? 1.8 : 1}
                     opacity={active ? 1 : 0.75}
                   />
@@ -465,7 +465,7 @@ export default function GraphWorkspace() {
                        setMenu({ id: node.id, x: event.clientX, y: event.clientY })
                      }}
                      style={{ cursor: 'pointer' }}>
-                    {isPinned && <circle r={radius + 4} fill="none" stroke="var(--warn)" strokeWidth={1.2} />}
+                    {isPinned && <circle r={radius + 4} fill="none" stroke="var(--e-warn)" strokeWidth={1.2} />}
                     <NodeShape type={node.type} r={radius} fill={color(node.type)} selected={isSelected} />
                     {/* Company nodes carry their real logo, clipped to the
                         node circle. Deliberately restricted to the nodes big
@@ -499,7 +499,7 @@ export default function GraphWorkspace() {
                     {(isRoot || isSelected || node.degree > 3 || node.depth <= 1) && (
                       <text y={-radius - 5} textAnchor="middle"
                             style={{ fontSize: isRoot ? 11 : 10, fontWeight: isRoot || isSelected ? 600 : 400,
-                                     fill: isSelected ? 'var(--text)' : 'var(--muted)' }}>
+                                     fill: isSelected ? 'var(--ink)' : 'var(--ink-muted)' }}>
                         {node.label.length > 20 ? `${node.label.slice(0, 19)}…` : node.label}
                       </text>
                     )}
@@ -559,7 +559,7 @@ export default function GraphWorkspace() {
             </p>
           )}
           {data && (
-            <p className="num" style={{ fontSize: 'var(--t-meta)', color: 'var(--faint)', marginTop: 8 }}>
+            <p className="num" style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-faint)', marginTop: 8 }}>
               {data.analytics.nodes} entities · {data.analytics.edges} relationships ·
               density {data.analytics.density} · avg confidence {data.analytics.avg_confidence}
             </p>
@@ -587,19 +587,19 @@ export default function GraphWorkspace() {
                   {selectedNode.label}
                 </p>
                 {selectedNode.description && (
-                  <p style={{ fontSize: 'var(--t-small)', color: 'var(--muted)', marginTop: 4 }}>{selectedNode.description}</p>
+                  <p style={{ fontSize: 'var(--t-small)', color: 'var(--ink-muted)', marginTop: 4 }}>{selectedNode.description}</p>
                 )}
               </div>
 
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <button type="button" className="sys-btn sys-btn--ghost sys-btn--xs"
-                        style={{ border: '1px solid var(--line)' }}
+                        style={{ border: '1px solid var(--rule)' }}
                         onClick={() => togglePin(selectedNode.id)}>
                   {pinned.includes(selectedNode.id) ? 'Unpin' : 'Pin'}
                 </button>
                 {selectedNode.route?.startsWith('/company/') && (
                   <Link href={selectedNode.route} className="sys-btn sys-btn--ghost sys-btn--xs"
-                        style={{ border: '1px solid var(--line)' }}>
+                        style={{ border: '1px solid var(--rule)' }}>
                     Open company research
                   </Link>
                 )}
@@ -617,10 +617,10 @@ export default function GraphWorkspace() {
                     return (
                       <li key={`${otherId}-${i}`} style={{ fontSize: 'var(--t-small)' }}>
                         <button type="button" onClick={() => setSelected(otherId)}
-                                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', color: 'var(--text)', fontWeight: 600 }}>
+                                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', color: 'var(--ink)', fontWeight: 600 }}>
                           {other.label}
                         </button>
-                        <span style={{ color: 'var(--faint)' }}>
+                        <span style={{ color: 'var(--ink-faint)' }}>
                           {' · '}{EDGE_LABELS[edge.type] ?? edge.type}
                           {' · '}{edge.provider}
                           {' · '}{edge.confidence.toFixed(2)}
@@ -632,7 +632,7 @@ export default function GraphWorkspace() {
               </div>
             </div>
           ) : (
-            <p style={{ fontSize: 'var(--t-body)', color: 'var(--faint)' }}>Select a node to inspect it.</p>
+            <p style={{ fontSize: 'var(--t-body)', color: 'var(--ink-faint)' }}>Select a node to inspect it.</p>
           )}
 
           {/* Multi-select: what the compared companies share */}
@@ -644,7 +644,7 @@ export default function GraphWorkspace() {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {data.shared.slice(0, 12).map((row) => (
                   <button key={row.node.id} type="button" className="sys-btn sys-btn--ghost sys-btn--xs"
-                          style={{ border: '1px solid var(--line)' }}
+                          style={{ border: '1px solid var(--rule)' }}
                           onClick={() => setSelected(row.node.id)}>
                     {row.node.label}
                   </button>
@@ -656,7 +656,7 @@ export default function GraphWorkspace() {
           {/* Analytics */}
           {data && data.analytics.most_connected.length > 0 && (
             <details className="disclosure" style={{ marginTop: 14 }}>
-              <summary style={{ fontSize: 'var(--t-small)', fontWeight: 600, color: 'var(--muted)' }}>
+              <summary style={{ fontSize: 'var(--t-small)', fontWeight: 600, color: 'var(--ink-muted)' }}>
                 Graph analytics
               </summary>
               <div style={{ marginTop: 10 }}>
@@ -665,14 +665,14 @@ export default function GraphWorkspace() {
                   {data.analytics.most_connected.slice(0, 6).map((row) => (
                     <li key={row.id} className="u-note">
                       <button type="button" onClick={() => setSelected(row.id)}
-                              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--text)' }}>
+                              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--ink)' }}>
                         {row.label}
                       </button>
-                      <span className="num" style={{ color: 'var(--faint)' }}> · {row.degree} links</span>
+                      <span className="num" style={{ color: 'var(--ink-faint)' }}> · {row.degree} links</span>
                     </li>
                   ))}
                 </ul>
-                <p className="num" style={{ fontSize: 'var(--t-meta)', color: 'var(--faint)', marginTop: 8 }}>
+                <p className="num" style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-faint)', marginTop: 8 }}>
                   Providers: {Object.entries(data.analytics.provider_coverage).map(([p, n]) => `${p} ${n}`).join(' · ')}
                 </p>
               </div>
@@ -706,7 +706,7 @@ export default function GraphWorkspace() {
             <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
               {session.notes.slice(0, 8).map((note) => (
                 <li key={note.id} style={{ fontSize: 'var(--t-body)', lineHeight: 1.5 }}>
-                  <span style={{ color: 'var(--text)' }}>{note.body}</span>
+                  <span style={{ color: 'var(--ink)' }}>{note.body}</span>
                   {note.refs.length > 0 && (
  <span className="num u-meta">
                       {' · '}{note.refs.map((r) => r.id.split(':')[1] ?? r.id).join(', ')}

@@ -19,7 +19,7 @@ import {
 } from 'recharts'
 import type { BacktestData } from '@/lib/backtest'
 
-const AXIS_TICK = { fill: 'var(--faint)', fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)' }
+const AXIS_TICK = { fill: 'var(--ink-faint)', fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)' }
 
 interface TooltipRow {
   name: string
@@ -31,13 +31,13 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
   if (!active || !payload?.length) return null
   return (
     <div style={{
-      background: 'var(--surface-2)', border: '1px solid var(--line-strong)',
+      background: 'var(--p-raised)', border: '1px solid var(--rule-strong)',
       borderRadius: 'var(--r-md)', padding: '8px 12px', fontSize: 'var(--t-small)',
       boxShadow: 'var(--shadow-2)',
     }}>
-      <div style={{ color: 'var(--faint)', marginBottom: 3 }}>{label}</div>
+      <div style={{ color: 'var(--ink-faint)', marginBottom: 3 }}>{label}</div>
       {payload.map((row) => (
-        <div key={row.name} className="num" style={{ color: row.color ?? 'var(--text)' }}>
+        <div key={row.name} className="num" style={{ color: row.color ?? 'var(--ink)' }}>
           {row.name}: {typeof row.value === 'number' ? row.value.toFixed(3) : row.value}
         </div>
       ))}
@@ -65,7 +65,7 @@ export function EquityCurveChart({ data }: { data: BacktestData }) {
             did the strategy actually do" without a second chart. Checkbox
             semantics so it is operable and announced as a toggle. */}
         <div className="chart-legend" role="group" aria-label="Series shown">
-          {([['strategy', 'Strategy', 'var(--accent)'], ['buy_hold', 'Buy & hold', 'var(--faint)']] as const).map(
+          {([['strategy', 'Strategy', 'var(--accent)'], ['buy_hold', 'Buy & hold', 'var(--ink-faint)']] as const).map(
             ([key, text, colour]) => (
               <button
                 key={key}
@@ -82,24 +82,24 @@ export function EquityCurveChart({ data }: { data: BacktestData }) {
           )}
         </div>
       </div>
-      <p style={{ fontSize: 'var(--t-meta)', color: 'var(--faint)', marginBottom: 10, lineHeight: 1.6 }}>
+      <p style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-faint)', marginBottom: 10, lineHeight: 1.6 }}>
         The long/flat strategy holds only when the composite score clears +0.15. Tracking below
         buy &amp; hold with lower drawdown is the expected profile of a dampening signal.
       </p>
       <ResponsiveContainer width="100%" height={220}>
         <LineChart data={data.equity_curve} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-          <CartesianGrid stroke="var(--line)" vertical={false} />
+          <CartesianGrid stroke="var(--rule)" vertical={false} />
           <XAxis dataKey="date" tick={AXIS_TICK} axisLine={false} tickLine={false} minTickGap={64} />
           <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} width={44}
                  domain={['auto', 'auto']} tickFormatter={(value: number) => value.toFixed(1)} />
-          <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'var(--line-strong)', strokeWidth: 1 }} />
-          <ReferenceLine y={1} stroke="var(--line-strong)" strokeDasharray="4 4" />
+          <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'var(--rule-strong)', strokeWidth: 1 }} />
+          <ReferenceLine y={1} stroke="var(--rule-strong)" strokeDasharray="4 4" />
           {show.strategy && (
             <Line type="monotone" dataKey="strategy" name="strategy" stroke="var(--accent)"
                   strokeWidth={1.6} dot={false} />
           )}
           {show.buy_hold && (
-            <Line type="monotone" dataKey="buy_hold" name="buy & hold" stroke="var(--faint)"
+            <Line type="monotone" dataKey="buy_hold" name="buy & hold" stroke="var(--ink-faint)"
                   strokeWidth={1.2} dot={false} />
           )}
         </LineChart>
@@ -155,7 +155,7 @@ export function RollingIcChart({ data }: { data: BacktestData }) {
           ))}
         </div>
       </div>
-      <p style={{ fontSize: 'var(--t-meta)', color: 'var(--faint)', marginBottom: 10, lineHeight: 1.6 }}>
+      <p style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-faint)', marginBottom: 10, lineHeight: 1.6 }}>
         Signal quality over time. IC decays and revives with market regime — sustained
         readings above zero matter more than the average.
         {series.length !== data.rolling_ic.length && (
@@ -164,12 +164,12 @@ export function RollingIcChart({ data }: { data: BacktestData }) {
       </p>
       <ResponsiveContainer width="100%" height={220}>
         <LineChart data={series} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-          <CartesianGrid stroke="var(--line)" vertical={false} />
+          <CartesianGrid stroke="var(--rule)" vertical={false} />
           <XAxis dataKey="date" tick={AXIS_TICK} axisLine={false} tickLine={false} minTickGap={64} />
           <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} width={44} domain={[-1, 1]} />
-          <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'var(--line-strong)', strokeWidth: 1 }} />
-          <ReferenceLine y={0} stroke="var(--line-strong)" strokeDasharray="4 4" />
-          <Line type="monotone" dataKey="ic" name="rolling IC" stroke="var(--pos)"
+          <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'var(--rule-strong)', strokeWidth: 1 }} />
+          <ReferenceLine y={0} stroke="var(--rule-strong)" strokeDasharray="4 4" />
+          <Line type="monotone" dataKey="ic" name="rolling IC" stroke="var(--e-pos)"
                 strokeWidth={1.6} dot={false} />
         </LineChart>
       </ResponsiveContainer>

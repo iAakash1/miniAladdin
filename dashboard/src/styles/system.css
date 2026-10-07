@@ -2584,12 +2584,12 @@ a.tape:hover .tape__sym { color: var(--accent); }
   transition: color var(--t-fast), background var(--t-fast);
 }
 
-.xp__tab:hover { color: var(--ink); background: var(--surface-2); }
+.xp__tab:hover { color: var(--ink); background: var(--p-raised); }
 .xp__tab:focus-visible { outline: 2px solid var(--rule-focus); outline-offset: -2px; }
 
 .xp__tab[data-active='true'] {
   color: var(--ink);
-  background: var(--surface);
+  background: var(--p-panel);
   border-color: var(--rule);
   font-weight: 500;
 }
@@ -2615,7 +2615,7 @@ a.tape:hover .tape__sym { color: var(--accent); }
   font: inherit;
   font-size: var(--t-meta);
   color: var(--ink);
-  background: var(--surface);
+  background: var(--p-panel);
   border: 1px solid var(--rule);
   border-radius: var(--r-sm);
   padding: 5px 8px;
@@ -2658,8 +2658,8 @@ a.tape:hover .tape__sym { color: var(--accent); }
   white-space: nowrap;
 }
 
-.xp__signal[data-tone='positive'] { color: var(--pos, var(--accent)); }
-.xp__signal[data-tone='negative'] { color: var(--neg); }
+.xp__signal[data-tone='positive'] { color: var(--e-pos, var(--accent)); }
+.xp__signal[data-tone='negative'] { color: var(--e-neg); }
 .xp__signal[data-tone='neutral']  { color: var(--ink-muted); }
 
 .xp__why {
@@ -2692,7 +2692,7 @@ a.tape:hover .tape__sym { color: var(--accent); }
   font: inherit;
   font-size: var(--t-body);
   color: var(--ink);
-  background: var(--surface);
+  background: var(--p-panel);
   border: 1px solid var(--rule);
   border-radius: var(--r-sm);
   padding: 8px 10px;
@@ -2706,7 +2706,7 @@ a.tape:hover .tape__sym { color: var(--accent); }
   appearance: none;
   font: inherit;
   font-size: var(--t-meta);
-  color: var(--surface);
+  color: var(--p-panel);
   background: var(--accent);
   border: 1px solid var(--accent);
   border-radius: var(--r-sm);
@@ -2729,7 +2729,7 @@ a.tape:hover .tape__sym { color: var(--accent); }
 .bg__card {
   border: 1px solid var(--rule);
   border-radius: var(--r-md);
-  background: var(--surface);
+  background: var(--p-panel);
   padding: var(--gap);
   display: flex;
   flex-direction: column;
@@ -2809,8 +2809,8 @@ a.tape:hover .tape__sym { color: var(--accent); }
 
 /* A glyph rather than colour alone, for the same reason the signal keeps its
    label: the distinction has to survive without hue. */
-.bg__reason[data-tone='positive']::before { content: '+'; color: var(--pos, var(--accent)); }
-.bg__reason[data-tone='negative']::before { content: '!'; color: var(--neg); }
+.bg__reason[data-tone='positive']::before { content: '+'; color: var(--e-pos, var(--accent)); }
+.bg__reason[data-tone='negative']::before { content: '!'; color: var(--e-neg); }
 
 .bg__reason[data-tone]::before {
   position: absolute;
@@ -2838,7 +2838,7 @@ a.tape:hover .tape__sym { color: var(--accent); }
   border-radius: var(--r-md);
   padding: 10px 12px;
   text-decoration: none;
-  background: var(--surface);
+  background: var(--p-panel);
 }
 
 .bg__cat:hover { border-color: var(--rule-strong); }
@@ -2861,7 +2861,7 @@ a.tape:hover .tape__sym { color: var(--accent); }
   font: inherit;
   border: 1px solid var(--rule);
   border-radius: var(--r-md);
-  background: var(--surface);
+  background: var(--p-panel);
   padding: var(--gap);
   cursor: pointer;
   display: flex;
@@ -2882,7 +2882,7 @@ a.tape:hover .tape__sym { color: var(--accent); }
   font: inherit;
   font-size: var(--t-meta);
   color: var(--ink);
-  background: var(--surface);
+  background: var(--p-panel);
   border: 1px solid var(--rule);
   border-radius: var(--r-sm);
   padding: 6px 12px;
@@ -2905,7 +2905,7 @@ a.tape:hover .tape__sym { color: var(--accent); }
   display: grid;
   place-items: center;
   padding: var(--gap);
-  background: var(--bg);
+  background: var(--p-base);
 }
 
 .xc__inner { width: 100%; max-width: 78rem; text-align: center; }
@@ -2944,7 +2944,7 @@ a.tape:hover .tape__sym { color: var(--accent); }
 .xc__card {
   border: 1px solid var(--rule);
   border-radius: var(--r-md);
-  background: var(--surface);
+  background: var(--p-panel);
   padding: calc(var(--gap) * 1.25);
   display: flex;
   flex-direction: column;
@@ -2985,7 +2985,7 @@ a.tape:hover .tape__sym { color: var(--accent); }
   border-radius: var(--r-sm);
   border: 1px solid var(--accent);
   background: var(--accent);
-  color: var(--surface);
+  color: var(--p-panel);
   cursor: pointer;
 }
 
@@ -2993,7 +2993,7 @@ a.tape:hover .tape__sym { color: var(--accent); }
 .xc__cta:focus-visible { outline: 2px solid var(--rule-focus); outline-offset: 2px; }
 .xc__cta:disabled { opacity: 0.6; cursor: default; }
 
-.xc__error { font-size: var(--t-meta); color: var(--neg); margin-top: var(--gap); }
+.xc__error { font-size: var(--t-meta); color: var(--e-neg); margin-top: var(--gap); }
 .xc__note { font-size: var(--t-meta); color: var(--ink-muted); margin-top: var(--gap); }
 
 @media (max-width: 640px) {
@@ -3073,7 +3073,7 @@ a.tape:hover .tape__sym { color: var(--accent); }
   font: inherit;
   font-size: var(--t-micro);
   color: var(--ink);
-  background: var(--surface-2);
+  background: var(--p-raised);
   border: 1px solid var(--rule);
   border-radius: 999px;
   padding: 5px 11px;
@@ -3091,7 +3091,7 @@ a.tape:hover .tape__sym { color: var(--accent); }
   border: 1px solid var(--rule);
   border-left: 2px solid var(--accent);
   border-radius: var(--r-sm);
-  background: var(--surface);
+  background: var(--p-panel);
 }
 
 .ask__meta { margin: 8px 0 0; font-size: var(--t-micro); color: var(--ink-muted); line-height: 1.5; }
@@ -3105,9 +3105,9 @@ a.tape:hover .tape__sym { color: var(--accent); }
   margin-top: var(--gap);
   padding: var(--gap);
   border: 1px solid var(--rule);
-  border-left: 2px solid var(--warn, var(--accent));
+  border-left: 2px solid var(--e-warn, var(--accent));
   border-radius: var(--r-sm);
-  background: var(--surface);
+  background: var(--p-panel);
 }
 
 .whatif__table { width: 100%; }
@@ -3121,7 +3121,7 @@ a.tape:hover .tape__sym { color: var(--accent); }
 }
 .whatif__table tbody td[data-changed='true'] {
   font-weight: 600;
-  box-shadow: inset 2px 0 0 var(--warn, var(--accent));
+  box-shadow: inset 2px 0 0 var(--e-warn, var(--accent));
 }
 
 .whatif__verdict {
@@ -3155,12 +3155,12 @@ a.tape:hover .tape__sym { color: var(--accent); }
   border-radius: var(--r-sm);
   padding: var(--d-2);
   margin-bottom: var(--d-2);
-  background: var(--surface);
+  background: var(--p-panel);
 }
 
 /* Stale is marked with a rule as well as the badge, so the record reads as
    qualified even where the badge scrolls out of view. */
-.ci__record[data-stale='true'] { border-left: 2px solid var(--warn, var(--accent)); }
+.ci__record[data-stale='true'] { border-left: 2px solid var(--e-warn, var(--accent)); }
 
 .ci__record-head {
   display: flex;
@@ -3188,7 +3188,7 @@ a.tape:hover .tape__sym { color: var(--accent); }
   border-left: 2px solid var(--accent);
   border-radius: var(--r-sm);
   padding: var(--d-2);
-  background: var(--surface);
+  background: var(--p-panel);
 }
 
 /* Rank attribution. Each term's reading sits below the table rather than in a
@@ -3257,9 +3257,9 @@ a.tape:hover .tape__sym { color: var(--accent); }
   margin-left: var(--d-2);
 }
 .dq__grade[data-grade='STRONG']       { color: var(--accent); background: var(--accent-wash, transparent); border: 1px solid var(--accent); }
-.dq__grade[data-grade='ACCEPTABLE']   { color: var(--ink); background: var(--surface-2); border: 1px solid var(--rule); }
-.dq__grade[data-grade='WEAK']         { color: var(--warn); background: var(--warn-wash, transparent); border: 1px solid var(--warn); }
-.dq__grade[data-grade='INSUFFICIENT'] { color: var(--ink-faint); background: var(--surface-2); border: 1px solid var(--rule); }
+.dq__grade[data-grade='ACCEPTABLE']   { color: var(--ink); background: var(--p-raised); border: 1px solid var(--rule); }
+.dq__grade[data-grade='WEAK']         { color: var(--e-warn); background: var(--e-warn-wash, transparent); border: 1px solid var(--e-warn); }
+.dq__grade[data-grade='INSUFFICIENT'] { color: var(--ink-faint); background: var(--p-raised); border: 1px solid var(--rule); }
 
 .dq__summary { margin: 4px 0 0; font-size: var(--t-meta); color: var(--ink-muted); }
 .dq__reasons {

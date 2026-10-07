@@ -48,7 +48,7 @@ export default function SeriesIntegrityPanel({ integrity }: { integrity: SeriesI
         <span className="sint__stat">
           <strong
             className="num"
-            style={{ color: clean ? 'var(--pos)' : agreement_pct >= 95 ? 'var(--text)' : 'var(--warn)' }}
+            style={{ color: clean ? 'var(--e-pos)' : agreement_pct >= 95 ? 'var(--ink)' : 'var(--e-warn)' }}
           >
             {agreement_pct.toFixed(1)}%
           </strong>
@@ -103,7 +103,7 @@ export default function SeriesIntegrityPanel({ integrity }: { integrity: SeriesI
               {integrity.conflicts.map((c) => (
                 <tr key={c.date}>
                   <td className="num">{c.date}</td>
-                  <td className="num" style={{ textAlign: 'right', color: 'var(--warn)' }}>
+                  <td className="num" style={{ textAlign: 'right', color: 'var(--e-warn)' }}>
                     {c.divergence_pct.toFixed(2)}%
                   </td>
                   <td className="num u-note">

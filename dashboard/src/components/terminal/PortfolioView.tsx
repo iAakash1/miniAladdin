@@ -48,13 +48,13 @@ function freshness(ts: string | null | undefined): string {
 }
 
 function ChangeCell({ value }: { value: number | null | undefined }) {
-  if (value === null || value === undefined) return <span style={{ color: 'var(--faint)' }}>—</span>
+  if (value === null || value === undefined) return <span style={{ color: 'var(--ink-faint)' }}>—</span>
   // Fixed precision, via the shared formatter. Rendering `{value}%` raw meant
   // the 1D and 1W columns of the same row disagreed about decimals — "-1.62%"
   // next to "+1.6%" — and a change that rounds to zero kept its minus sign.
   const text = fmtPctRaw(value, 2, true)
   const signed = parseFloat(text)
-  const tone = signed > 0 ? 'var(--pos)' : signed < 0 ? 'var(--neg)' : 'var(--muted)'
+  const tone = signed > 0 ? 'var(--e-pos)' : signed < 0 ? 'var(--e-neg)' : 'var(--ink-muted)'
   // The mark is keyed to the *rounded* figure, not the raw one, so a move
   // that displays as 0.00% cannot show an arrow contradicting its own text.
   return (
@@ -86,17 +86,17 @@ const STORAGE_ROWS: StorageRow[] = [
 function StorageStatus() {
   return (
     <details className="panel disclosure panel--compact">
-      <summary style={{ fontSize: 'var(--t-body)', fontWeight: 600, color: 'var(--text)' }}>
+      <summary style={{ fontSize: 'var(--t-body)', fontWeight: 600, color: 'var(--ink)' }}>
         Where is this stored?
       </summary>
       <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
         {STORAGE_ROWS.map((row) => (
           <div key={row.label} style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-            <span style={{ width: 190, flexShrink: 0, fontSize: 'var(--t-small)', fontWeight: 600, color: 'var(--text)' }}>
+            <span style={{ width: 190, flexShrink: 0, fontSize: 'var(--t-small)', fontWeight: 600, color: 'var(--ink)' }}>
               {row.label}
             </span>
             <Badge>{row.location}</Badge>
-            <span style={{ fontSize: 'var(--t-small)', color: 'var(--muted)', lineHeight: 1.5, flex: '1 1 320px' }}>
+            <span style={{ fontSize: 'var(--t-small)', color: 'var(--ink-muted)', lineHeight: 1.5, flex: '1 1 320px' }}>
               {row.detail}
             </span>
           </div>
@@ -296,7 +296,7 @@ export default function PortfolioView() {
               type="button"
               className="panel panel--pad"
               onClick={() => void createWatchlist(suggestion.name, suggestion.tickers)}
-              style={{ textAlign: 'left', cursor: 'pointer', background: 'var(--surface)' }}>
+              style={{ textAlign: 'left', cursor: 'pointer', background: 'var(--p-panel)' }}>
               <p className="h-panel" style={{ marginBottom: 8 }}>{suggestion.name}</p>
               {/* The names themselves, not a comma-joined string of them. A
                   suggestion is chosen on what is *in* it, and a row of real
@@ -309,7 +309,7 @@ export default function PortfolioView() {
                   <span className="sugg-marks__more num">+{suggestion.tickers.length - 6}</span>
                 )}
               </span>
-              <p className="num" style={{ fontSize: 'var(--t-meta)', color: 'var(--muted)', marginTop: 8 }}>
+              <p className="num" style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-muted)', marginTop: 8 }}>
                 {suggestion.tickers.join(' · ')}
               </p>
             </button>
@@ -505,7 +505,7 @@ export default function PortfolioView() {
                       </td>
                       <td className="num">
                         {loadingQuotes && !quote ? <Skeleton width={54} height={14} /> :
-                          quote?.price !== undefined ? quote.price : <span style={{ color: 'var(--faint)' }}>—</span>}
+                          quote?.price !== undefined ? quote.price : <span style={{ color: 'var(--ink-faint)' }}>—</span>}
                       </td>
                       <td style={{ textAlign: 'right' }}><ChangeCell value={quote?.change_1d} /></td>
                       <td style={{ textAlign: 'right' }}><ChangeCell value={quote?.change_1w} /></td>
@@ -514,16 +514,16 @@ export default function PortfolioView() {
                         {latest ? (
                           <Badge tone={verdictBadgeTone(latest.verdict)}>{latest.verdict}</Badge>
                         ) : (
-                          <span style={{ fontSize: 'var(--t-small)', color: 'var(--faint)' }}>not analyzed</span>
+                          <span style={{ fontSize: 'var(--t-small)', color: 'var(--ink-faint)' }}>not analyzed</span>
                         )}
                       </td>
-                      <td style={{ fontSize: 'var(--t-small)', color: 'var(--faint)' }}>
+                      <td style={{ fontSize: 'var(--t-small)', color: 'var(--ink-faint)' }}>
                         {previous ? previous.verdict : '—'}
                       </td>
                       <td>
                         {diff && (diff.verdictChanged || Math.abs(diff.confidenceDelta) >= 3) ? (
                           <Tooltip label={`Why ${ticker} changed`}>
-                            <p style={{ margin: 0, fontWeight: 600, color: 'var(--text)' }}>
+                            <p style={{ margin: 0, fontWeight: 600, color: 'var(--ink)' }}>
                               Confidence {fmtSigned(diff.confidenceDelta, 0)}pp
                               {diff.scoreDelta !== null && ` · composite ${fmtSigned(diff.scoreDelta, 3)}`}
                             </p>
@@ -543,7 +543,7 @@ export default function PortfolioView() {
                             {diff.direction === 'upgrade' ? '▲ upgrade' : '▼ downgrade'}
                           </Badge>
                         ) : latest ? (
-                          <span style={{ fontSize: 'var(--t-small)', color: 'var(--faint)' }}>unchanged</span>
+                          <span style={{ fontSize: 'var(--t-small)', color: 'var(--ink-faint)' }}>unchanged</span>
                         ) : null}
                       </td>
                       <td className="num">

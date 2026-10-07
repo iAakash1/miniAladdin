@@ -30,7 +30,7 @@ export default function EventsTimeline({ events }: { events: EventRow[] }) {
                 <Badge tone={event.importance === 'high' ? 'warn' : 'muted'}>{event.type}</Badge>
                 <span style={{ fontSize: 'var(--t-body)', flex: 1, minWidth: 160 }}>{event.title}</span>
                 {event.historical_move !== null && (
-                  <span className="num" title={event.explain} style={{ fontSize: 'var(--t-meta)', color: 'var(--muted)' }}>
+                  <span className="num" title={event.explain} style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-muted)' }}>
                     ±{event.historical_move}% typical
                   </span>
                 )}

@@ -20,7 +20,7 @@ const TABS: Array<{ value: CategoryFilter; label: string }> = [
 function ListSkeleton() {
   return (
     <div aria-hidden="true">
-      <div style={{ paddingBottom: 28, borderBottom: '1px solid var(--line)' }}>
+      <div style={{ paddingBottom: 28, borderBottom: '1px solid var(--rule)' }}>
         <Skeleton height={200} style={{ marginBottom: 18 }} />
         <Skeleton height={14} width={140} style={{ marginBottom: 10 }} />
         <Skeleton height={26} width="70%" />
@@ -32,7 +32,7 @@ function ListSkeleton() {
             display: 'flex',
             gap: 20,
             padding: '20px 0',
-            borderBottom: '1px solid var(--line)',
+            borderBottom: '1px solid var(--rule)',
           }}
         >
           <div style={{ flex: 1 }}>
@@ -197,11 +197,11 @@ export default function NewsExplorer() {
           gap: 12,
           flexWrap: 'wrap',
           padding: '10px 0 14px',
-          borderBottom: '1px solid var(--line-strong)',
+          borderBottom: '1px solid var(--rule-strong)',
           marginBottom: 4,
         }}
       >
-        <span style={{ fontSize: 'var(--t-body)', color: 'var(--muted)' }}>
+        <span style={{ fontSize: 'var(--t-body)', color: 'var(--ink-muted)' }}>
           {status === 'loading' && 'Loading stories…'}
           {status === 'ready' && data && (
             <>
@@ -233,7 +233,7 @@ export default function NewsExplorer() {
           {status === 'error' && 'Could not load stories.'}
         </span>
         {status === 'ready' && data && (
-          <span style={{ fontSize: 'var(--t-body)', color: 'var(--faint)' }}>
+          <span style={{ fontSize: 'var(--t-body)', color: 'var(--ink-faint)' }}>
             Updated {timeAgo(data.updatedAt)}
           </span>
         )}
@@ -300,7 +300,7 @@ export default function NewsExplorer() {
               >
                 ← Newer
               </button>
-              <span className="num" style={{ fontSize: 'var(--t-body)', color: 'var(--muted)' }}>
+              <span className="num" style={{ fontSize: 'var(--t-body)', color: 'var(--ink-muted)' }}>
                 Page {data.page} of {data.totalPages}
               </span>
               <button

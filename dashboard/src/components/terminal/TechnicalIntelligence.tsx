@@ -8,9 +8,9 @@ import { fmtPrice } from '@/lib/format'
 import type { TechnicalIntelligence as TechBlock, TechRegime, TechTone } from '@/lib/types'
 
 const TONE_COLOR: Record<TechTone, string> = {
-  pos: 'var(--pos)',
-  neg: 'var(--neg)',
-  neutral: 'var(--muted)',
+  pos: 'var(--e-pos)',
+  neg: 'var(--e-neg)',
+  neutral: 'var(--ink-muted)',
 }
 const TONE_BADGE: Record<TechTone, Tone> = {
   pos: 'pass',
@@ -23,7 +23,7 @@ function RegimeCell({ title, regime }: { title: string; regime: TechRegime }) {
     <div>
       <p className="sys-label" style={{ marginBottom: 6 }}>{title}</p>
       <Badge tone={TONE_BADGE[regime.tone]}>{regime.label}</Badge>
-      <p style={{ fontSize: 'var(--t-meta)', color: 'var(--faint)', marginTop: 6, lineHeight: 1.5 }}>
+      <p style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-faint)', marginTop: 6, lineHeight: 1.5 }}>
         {regime.note}
       </p>
     </div>
@@ -48,7 +48,7 @@ export default function TechnicalIntelligence({ block }: { block: TechBlock | nu
  <span className="num u-meta">
           {block.bars} sessions · as of {block.as_of}
         </span>
-        <span style={{ marginLeft: 'auto', fontSize: 'var(--t-meta)', color: 'var(--faint)' }}>
+        <span style={{ marginLeft: 'auto', fontSize: 'var(--t-meta)', color: 'var(--ink-faint)' }}>
           Computed from price history — not a scoring input
         </span>
       </div>
@@ -64,7 +64,7 @@ export default function TechnicalIntelligence({ block }: { block: TechBlock | nu
       {/* Findings: deterministic sentences, most load-bearing first */}
       <ul style={{ listStyle: 'none', margin: '0 0 18px', padding: 0, display: 'flex', flexDirection: 'column', gap: 7 }}>
         {findings.map((finding) => (
-          <li key={finding.text} style={{ display: 'flex', gap: 9, fontSize: 'var(--t-body)', lineHeight: 1.55, color: 'var(--text)' }}>
+          <li key={finding.text} style={{ display: 'flex', gap: 9, fontSize: 'var(--t-body)', lineHeight: 1.55, color: 'var(--ink)' }}>
             <span
               aria-hidden="true"
               style={{ flexShrink: 0, marginTop: 7, width: 6, height: 6, borderRadius: 1, background: TONE_COLOR[finding.tone] }}
@@ -75,7 +75,7 @@ export default function TechnicalIntelligence({ block }: { block: TechBlock | nu
       </ul>
 
       {/* Levels */}
-      <p className="num" style={{ fontSize: 'var(--t-small)', color: 'var(--muted)', marginBottom: 16 }}>
+      <p className="num" style={{ fontSize: 'var(--t-small)', color: 'var(--ink-muted)', marginBottom: 16 }}>
         Support {fmtPrice(levels.support)} ({levels.support_distance_pct}% below price)
         {' · '}Resistance {fmtPrice(levels.resistance)} ({levels.resistance_distance_pct}% above)
         {' · '}{levels.lookback_days}-day swing window
@@ -111,7 +111,7 @@ export default function TechnicalIntelligence({ block }: { block: TechBlock | nu
                     </span>
                   </td>
                   <td className="num">{row.value}</td>
-                  <td style={{ color: 'var(--muted)', fontSize: 'var(--t-body)' }}>{row.detail}</td>
+                  <td style={{ color: 'var(--ink-muted)', fontSize: 'var(--t-body)' }}>{row.detail}</td>
                   <td>
                     <span style={{ fontSize: 'var(--t-body)', fontWeight: 600, color: TONE_COLOR[row.tone] }}>
                       {row.state}
@@ -126,7 +126,7 @@ export default function TechnicalIntelligence({ block }: { block: TechBlock | nu
 
       {/* Learn More: the full education layer, collapsed by default */}
       <details className="disclosure" style={{ marginTop: 16 }}>
-        <summary style={{ fontSize: 'var(--t-body)', fontWeight: 600, color: 'var(--muted)' }}>
+        <summary style={{ fontSize: 'var(--t-body)', fontWeight: 600, color: 'var(--ink-muted)' }}>
           Learn more about these indicators
         </summary>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(20px, 4vw, 44px)', marginTop: 14 }}>

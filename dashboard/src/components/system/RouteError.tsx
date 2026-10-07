@@ -47,8 +47,8 @@ export default function RouteError({
         justifyContent: 'center',
         gap: 20,
         padding: 24,
-        background: 'var(--bg, var(--paper))',
-        color: 'var(--text, var(--ink))',
+        background: 'var(--p-base, var(--p-base))',
+        color: 'var(--ink, var(--ink))',
       }}
     >
       <Logo size={22} />

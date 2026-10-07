@@ -52,7 +52,7 @@ export default function MarketHero({ data }: { data: DashboardData }) {
       </div>
 
       {summary && (
-        <p style={{ fontSize: 'var(--t-value)', color: 'var(--muted)', lineHeight: 1.65, maxWidth: '68ch', marginBottom: 22 }}>
+        <p style={{ fontSize: 'var(--t-value)', color: 'var(--ink-muted)', lineHeight: 1.65, maxWidth: '68ch', marginBottom: 22 }}>
           {summary}
         </p>
       )}

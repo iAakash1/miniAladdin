@@ -15,7 +15,7 @@ export const dynamic = 'force-dynamic'
 export default function BeginnerLayout({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider>
-      <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--p-base)', color: 'var(--ink)' }}>
         <EntitlementProvider>{children}</EntitlementProvider>
       </div>
     </ClerkProvider>

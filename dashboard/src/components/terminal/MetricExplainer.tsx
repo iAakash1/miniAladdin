@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 import Tooltip from '@/components/ui/Tooltip'
 import type { MetricEntry } from '@/lib/metricGlossary'
 
-const TONE_COLOR = { pos: 'var(--pos)', neg: 'var(--neg)', neutral: 'var(--text)' } as const
+const TONE_COLOR = { pos: 'var(--e-pos)', neg: 'var(--e-neg)', neutral: 'var(--ink)' } as const
 
 function ExplainRow({ label, text, tone }: { label: string; text: string; tone?: 'pos' | 'neg' }) {
   if (!text) return null
@@ -13,7 +13,7 @@ function ExplainRow({ label, text, tone }: { label: string; text: string; tone?:
       <p className="sys-label" style={{ marginBottom: 3, color: tone ? TONE_COLOR[tone] : undefined }}>
         {label}
       </p>
-      <p style={{ fontSize: 'var(--t-small)', lineHeight: 1.55, color: 'var(--muted)' }}>{text}</p>
+      <p style={{ fontSize: 'var(--t-small)', lineHeight: 1.55, color: 'var(--ink-muted)' }}>{text}</p>
     </div>
   )
 }
@@ -46,7 +46,7 @@ export default function MetricExplainer({
         </span>
         <Tooltip label={`What is ${entry.label}`}>
           <p style={{ margin: 0 }}>{entry.short}</p>
-          <p style={{ margin: '6px 0 0', color: 'var(--faint)', fontSize: 'var(--t-meta)' }}>Good: {entry.good}</p>
+          <p style={{ margin: '6px 0 0', color: 'var(--ink-faint)', fontSize: 'var(--t-meta)' }}>Good: {entry.good}</p>
         </Tooltip>
       </div>
       {value !== undefined && value !== '' && (
@@ -55,7 +55,7 @@ export default function MetricExplainer({
         </p>
       )}
       <details>
-        <summary style={{ cursor: 'pointer', fontSize: 'var(--t-meta)', fontWeight: 600, color: 'var(--faint)', userSelect: 'none' }}>
+        <summary style={{ cursor: 'pointer', fontSize: 'var(--t-meta)', fontWeight: 600, color: 'var(--ink-faint)', userSelect: 'none' }}>
           Explain
         </summary>
         <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8, maxWidth: '58ch' }}>

@@ -238,3 +238,16 @@ test('stacking layers are named, and ordered so the right thing is on top', () =
   assert.ok(z['dialog'] >= z.drawer, 'a dialog opens over a drawer')
   assert.ok(z.overlay > z.toast, 'the palette is above a toast')
 })
+
+test('every class that sets figures in mono does so the same way', () => {
+  // `.num` (493 uses) drew a plain zero with display tracking while `.sys-num`
+  // drew a slashed one with none, so the same 0 changed shape between panels
+  // and a column mixing the two drifted by a fraction of a pixel per digit.
+  const css = ['app/globals.css', 'styles/system.css'].map((f) => code(join(SRC, f))).join('\n')
+  for (const cls of ['num', 'mono', 'sys-num', 'sys-mono']) {
+    const rules = [...css.matchAll(new RegExp(`(?:^|[,\\s])\\.${cls}\\s*(?:,[^{]*)?\\{([^}]*)\\}`, 'gm'))].map((m) => m[1]).join(';')
+    assert.match(rules, /font-family:\s*var\(--font-mono\)/, `.${cls} is not set in the mono face`)
+    assert.match(rules, /tabular-nums slashed-zero/, `.${cls} lacks tabular, slashed-zero figures`)
+    assert.doesNotMatch(rules, /letter-spacing/, `.${cls} tracks its figures`)
+  }
+})

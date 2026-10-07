@@ -10,7 +10,7 @@ const RISK_BADGE: Record<RiskLevel, Tone> = {
   HIGH: 'fail',
 }
 
-const DOT_COLOR = { pos: 'var(--pos)', neg: 'var(--neg)', neutral: 'var(--warn)' } as const
+const DOT_COLOR = { pos: 'var(--e-pos)', neg: 'var(--e-neg)', neutral: 'var(--e-warn)' } as const
 
 function FactorList({
   title,
@@ -29,7 +29,7 @@ function FactorList({
       </p>
       <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 7 }}>
         {items.map((item) => (
-          <li key={item} style={{ display: 'flex', gap: 9, fontSize: 'var(--t-body)', lineHeight: 1.55, color: 'var(--muted)' }}>
+          <li key={item} style={{ display: 'flex', gap: 9, fontSize: 'var(--t-body)', lineHeight: 1.55, color: 'var(--ink-muted)' }}>
             <span
               aria-hidden="true"
               style={{
@@ -55,11 +55,11 @@ function CaseColumn({ title, text, tone }: { title: string; text: string; tone: 
     <div style={{ flex: '1 1 260px', minWidth: 0 }}>
       <p
         className="sys-label"
-        style={{ marginBottom: 6, color: tone === 'pos' ? 'var(--pos)' : 'var(--neg)' }}
+        style={{ marginBottom: 6, color: tone === 'pos' ? 'var(--e-pos)' : 'var(--e-neg)' }}
       >
         {title}
       </p>
-      <p style={{ fontSize: 'var(--t-body)', lineHeight: 1.6, color: 'var(--text)' }}>{text}</p>
+      <p style={{ fontSize: 'var(--t-body)', lineHeight: 1.6, color: 'var(--ink)' }}>{text}</p>
     </div>
   )
 }
@@ -85,11 +85,11 @@ function ImpactRow({
         flexWrap: 'wrap',
         gap: '4px 14px',
         padding: '9px 0',
-        borderBottom: '1px solid var(--line)',
+        borderBottom: '1px solid var(--rule)',
         alignItems: 'baseline',
       }}
     >
-      <span style={{ width: 108, flexShrink: 0, fontSize: 'var(--t-small)', fontWeight: 600, color: 'var(--text)' }}>
+      <span style={{ width: 108, flexShrink: 0, fontSize: 'var(--t-small)', fontWeight: 600, color: 'var(--ink)' }}>
         {label}
       </span>
       <span
@@ -100,7 +100,7 @@ function ImpactRow({
       </span>
       {/* Wraps under the label/value pair on narrow screens instead of
           squeezing into a few characters per line. */}
-      <span style={{ flex: '1 1 260px', minWidth: 0, fontSize: 'var(--t-body)', lineHeight: 1.55, color: 'var(--muted)' }}>
+      <span style={{ flex: '1 1 260px', minWidth: 0, fontSize: 'var(--t-body)', lineHeight: 1.55, color: 'var(--ink-muted)' }}>
         {narrative}
       </span>
     </div>
@@ -198,11 +198,11 @@ export default function AiPanel({ analysis }: { analysis: Analysis }) {
           style={{
             fontSize: 'var(--t-body)',
             fontWeight: 600,
-            color: 'var(--text)',
+            color: 'var(--ink)',
             marginBottom: 12,
             padding: '10px 12px',
-            background: 'var(--surface-2)',
-            border: '1px solid var(--line)',
+            background: 'var(--p-raised)',
+            border: '1px solid var(--rule)',
             borderRadius: 'var(--r-md)',
           }}
         >
@@ -217,7 +217,7 @@ export default function AiPanel({ analysis }: { analysis: Analysis }) {
           fontFamily: 'var(--font-serif)',
           fontSize: 'var(--t-lead)',
           lineHeight: 1.65,
-          color: 'var(--text)',
+          color: 'var(--ink)',
           maxWidth: '68ch',
           letterSpacing: '0.002em',
         }}
@@ -232,7 +232,7 @@ export default function AiPanel({ analysis }: { analysis: Analysis }) {
             fontFamily: 'var(--font-serif)',
             fontSize: 'var(--t-value)',
             lineHeight: 1.65,
-            color: 'var(--text)',
+            color: 'var(--ink)',
             maxWidth: '68ch',
             marginTop: 12,
             paddingLeft: 14,
@@ -247,14 +247,14 @@ export default function AiPanel({ analysis }: { analysis: Analysis }) {
       {(ai.confidenceReason || ai.riskReasoning) && (
         <div className="hairline-top" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 40px', paddingTop: 14, marginTop: 14 }}>
           {ai.confidenceReason && (
-            <p style={{ fontSize: 'var(--t-body)', lineHeight: 1.6, color: 'var(--muted)', maxWidth: '36ch', flex: '1 1 320px' }}>
-              <span style={{ fontWeight: 600, color: 'var(--text)' }}>Why {ai.confidence}%: </span>
+            <p style={{ fontSize: 'var(--t-body)', lineHeight: 1.6, color: 'var(--ink-muted)', maxWidth: '36ch', flex: '1 1 320px' }}>
+              <span style={{ fontWeight: 600, color: 'var(--ink)' }}>Why {ai.confidence}%: </span>
               {ai.confidenceReason}
             </p>
           )}
           {ai.riskReasoning && (
-            <p style={{ fontSize: 'var(--t-body)', lineHeight: 1.6, color: 'var(--muted)', maxWidth: '36ch', flex: '1 1 320px' }}>
-              <span style={{ fontWeight: 600, color: 'var(--text)' }}>Why {ai.risk.toLowerCase()} risk: </span>
+            <p style={{ fontSize: 'var(--t-body)', lineHeight: 1.6, color: 'var(--ink-muted)', maxWidth: '36ch', flex: '1 1 320px' }}>
+              <span style={{ fontWeight: 600, color: 'var(--ink)' }}>Why {ai.risk.toLowerCase()} risk: </span>
               {ai.riskReasoning}
             </p>
           )}
@@ -284,12 +284,12 @@ export default function AiPanel({ analysis }: { analysis: Analysis }) {
 
       {hasAttribution && (
         <details className="disclosure" style={{ marginTop: 16 }}>
-          <summary style={{ fontSize: 'var(--t-body)', fontWeight: 600, color: 'var(--muted)' }}>
+          <summary style={{ fontSize: 'var(--t-body)', fontWeight: 600, color: 'var(--ink-muted)' }}>
             Factor attribution
           </summary>
           <div style={{ marginTop: 10 }}>
             {(ai.topPositiveNarrative || ai.topNegativeNarrative) && (
-              <p style={{ fontSize: 'var(--t-body)', lineHeight: 1.6, color: 'var(--muted)', marginBottom: 10 }}>
+              <p style={{ fontSize: 'var(--t-body)', lineHeight: 1.6, color: 'var(--ink-muted)', marginBottom: 10 }}>
                 {ai.topPositiveNarrative}
                 {ai.topPositiveNarrative && ai.topNegativeNarrative ? ' ' : ''}
                 {ai.topNegativeNarrative}
@@ -368,7 +368,7 @@ export default function AiPanel({ analysis }: { analysis: Analysis }) {
               fontFamily: 'var(--font-serif)',
               fontSize: 'var(--t-value)',
               lineHeight: 1.65,
-              color: 'var(--text)',
+              color: 'var(--ink)',
               maxWidth: '68ch',
             }}
           >

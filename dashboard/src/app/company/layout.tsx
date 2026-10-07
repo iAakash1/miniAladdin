@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic'
 export default function CompanyLayout({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider>
-      <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--p-base)', color: 'var(--ink)' }}>
         {/* Same provider the terminal mounts. One implementation of session,
             usage and the upgrade flow across both route trees. */}
         <EntitlementProvider>{children}</EntitlementProvider>

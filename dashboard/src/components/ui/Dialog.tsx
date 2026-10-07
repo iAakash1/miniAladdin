@@ -89,8 +89,8 @@ export default function Dialog({ open, onClose, labelledBy, children, maxWidth =
           maxWidth,
           maxHeight: 'calc(100vh - 40px)',
           overflowY: 'auto',
-          background: 'var(--surface-3)',
-          border: '1px solid var(--line)',
+          background: 'var(--p-overlay)',
+          border: '1px solid var(--rule)',
           borderRadius: 'var(--r-lg)',
           boxShadow: 'var(--shadow-dialog)',
         }}

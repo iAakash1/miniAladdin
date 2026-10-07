@@ -5,7 +5,7 @@ import { diffMarketSnapshots, recordMarketSnapshot, useMarketHistory } from '@/l
 import { timeAgo } from '@/lib/format'
 import type { DashboardData } from '@/lib/dashboardInsights'
 
-const TONE_COLOR = { pos: 'var(--pos)', neg: 'var(--neg)', warn: 'var(--warn)', neutral: 'var(--muted)' } as const
+const TONE_COLOR = { pos: 'var(--e-pos)', neg: 'var(--e-neg)', warn: 'var(--e-warn)', neutral: 'var(--ink-muted)' } as const
 
 /**
  * "What changed since your last visit" — the market-level counterpart to
@@ -40,18 +40,18 @@ export default function MarketWhatChanged({ data }: { data: DashboardData }) {
       </div>
 
       {!before || !after ? (
-        <p style={{ fontSize: 'var(--t-body)', color: 'var(--faint)' }}>
+        <p style={{ fontSize: 'var(--t-body)', color: 'var(--ink-faint)' }}>
           This is your first snapshot of the market on this device — nothing to compare yet. Check
           back after the next update to see what moved.
         </p>
       ) : changes.length === 0 ? (
-        <p style={{ fontSize: 'var(--t-body)', color: 'var(--muted)' }}>
+        <p style={{ fontSize: 'var(--t-body)', color: 'var(--ink-muted)' }}>
           No material change in regime, breadth, or headline macro readings since your last visit.
         </p>
       ) : (
         <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
           {changes.map((change) => (
-            <li key={change.id} style={{ display: 'flex', gap: 9, fontSize: 'var(--t-body)', lineHeight: 1.55, color: 'var(--text)' }}>
+            <li key={change.id} style={{ display: 'flex', gap: 9, fontSize: 'var(--t-body)', lineHeight: 1.55, color: 'var(--ink)' }}>
               <span
                 aria-hidden="true"
                 style={{ flexShrink: 0, marginTop: 7, width: 6, height: 6, borderRadius: 1, background: TONE_COLOR[change.tone] }}

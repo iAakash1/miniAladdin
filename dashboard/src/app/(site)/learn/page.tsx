@@ -41,7 +41,7 @@ export default function LearnIndexPage() {
                   className="panel panel--compact"
                   style={{ textDecoration: 'none', display: 'block' }}>
                   <p style={{ fontSize: 'var(--t-body-lg)', fontWeight: 600, marginBottom: 4 }}>{topic.entry.label}</p>
-                  <p style={{ fontSize: 'var(--t-small)', color: 'var(--muted)', lineHeight: 1.5 }}>
+                  <p style={{ fontSize: 'var(--t-small)', color: 'var(--ink-muted)', lineHeight: 1.5 }}>
                     {topic.entry.short}
                   </p>
                 </Link>

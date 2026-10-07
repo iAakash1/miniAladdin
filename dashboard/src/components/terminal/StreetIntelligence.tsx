@@ -5,7 +5,7 @@ import MetricExplainer from './MetricExplainer'
 import { STREET_GLOSSARY } from '@/lib/technicalGlossary'
 import type { StreetIntelligence as StreetBlock, TechTone } from '@/lib/types'
 
-const TONE_COLOR: Record<TechTone, string> = { pos: 'var(--pos)', neg: 'var(--neg)', neutral: 'var(--muted)' }
+const TONE_COLOR: Record<TechTone, string> = { pos: 'var(--e-pos)', neg: 'var(--e-neg)', neutral: 'var(--ink-muted)' }
 
 /**
  * v4.5 P0-B: analyst recommendation trends, EPS-surprise history and insider
@@ -20,7 +20,7 @@ export default function StreetIntelligence({ block }: { block: StreetBlock | nul
     <section aria-label="Street and insider intelligence" className="panel panel--pad">
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 10, marginBottom: 14 }}>
         <h3 className="h-panel">Street &amp; insiders</h3>
-        <span style={{ marginLeft: 'auto', fontSize: 'var(--t-meta)', color: 'var(--faint)' }}>
+        <span style={{ marginLeft: 'auto', fontSize: 'var(--t-meta)', color: 'var(--ink-faint)' }}>
           Analyst and insider data — not a scoring input
         </span>
       </div>
@@ -35,7 +35,7 @@ export default function StreetIntelligence({ block }: { block: StreetBlock | nul
  <p className="num u-meta">
               {recs.strong_buy + recs.buy} buy · {recs.hold} hold · {recs.sell + recs.strong_sell} sell
               {' · '}
-              <span style={{ color: recs.trend === 'improving' ? 'var(--pos)' : recs.trend === 'deteriorating' ? 'var(--neg)' : 'var(--faint)' }}>
+              <span style={{ color: recs.trend === 'improving' ? 'var(--e-pos)' : recs.trend === 'deteriorating' ? 'var(--e-neg)' : 'var(--ink-faint)' }}>
                 {recs.trend}
               </span>
             </p>
@@ -57,7 +57,7 @@ export default function StreetIntelligence({ block }: { block: StreetBlock | nul
             <span className="sys-label">Insider sentiment</span>
             <p className="num" style={{
               fontSize: 'var(--t-lead)', fontWeight: 600,
-              color: insider.read === 'buying' ? 'var(--pos)' : insider.read === 'selling' ? 'var(--neg)' : 'var(--text)',
+              color: insider.read === 'buying' ? 'var(--e-pos)' : insider.read === 'selling' ? 'var(--e-neg)' : 'var(--ink)',
             }}>
               {insider.read}
             </p>
@@ -69,7 +69,7 @@ export default function StreetIntelligence({ block }: { block: StreetBlock | nul
       {findings.length > 0 && (
         <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 7 }}>
           {findings.map((finding) => (
-            <li key={finding.text} style={{ display: 'flex', gap: 9, fontSize: 'var(--t-body)', lineHeight: 1.55, color: 'var(--text)' }}>
+            <li key={finding.text} style={{ display: 'flex', gap: 9, fontSize: 'var(--t-body)', lineHeight: 1.55, color: 'var(--ink)' }}>
               <span aria-hidden="true" style={{ flexShrink: 0, marginTop: 7, width: 6, height: 6, borderRadius: 1, background: TONE_COLOR[finding.tone] }} />
               {finding.text}
             </li>
@@ -78,7 +78,7 @@ export default function StreetIntelligence({ block }: { block: StreetBlock | nul
       )}
 
       <details className="disclosure" style={{ marginTop: 14 }}>
-        <summary style={{ fontSize: 'var(--t-body)', fontWeight: 600, color: 'var(--muted)' }}>
+        <summary style={{ fontSize: 'var(--t-body)', fontWeight: 600, color: 'var(--ink-muted)' }}>
           Learn more about these readings
         </summary>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(20px, 4vw, 44px)', marginTop: 14 }}>

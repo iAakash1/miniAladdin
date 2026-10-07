@@ -7,9 +7,9 @@
  */
 
 const control = {
-  background: 'var(--surface)',
-  border: '1px solid var(--line-strong)',
-  color: 'var(--text)',
+  background: 'var(--p-panel)',
+  border: '1px solid var(--rule-strong)',
+  color: 'var(--ink)',
   borderRadius: '6px',
 }
 
@@ -46,17 +46,17 @@ export const clerkAppearance = {
       fontWeight: 500,
       fontSize: '1.4rem',
       letterSpacing: '-0.01em',
-      color: 'var(--text)',
+      color: 'var(--ink)',
     },
-    headerSubtitle: { color: 'var(--muted)' },
+    headerSubtitle: { color: 'var(--ink-muted)' },
     socialButtonsBlockButton: {
       ...control,
       transition: 'border-color 120ms ease-out, background 120ms ease-out',
     },
-    socialButtonsBlockButtonText: { color: 'var(--text)', fontWeight: 550 },
-    dividerLine: { background: 'var(--line)' },
-    dividerText: { color: 'var(--faint)' },
-    formFieldLabel: { color: 'var(--muted)', fontWeight: 550 },
+    socialButtonsBlockButtonText: { color: 'var(--ink)', fontWeight: 550 },
+    dividerLine: { background: 'var(--rule)' },
+    dividerText: { color: 'var(--ink-faint)' },
+    formFieldLabel: { color: 'var(--ink-muted)', fontWeight: 550 },
     formFieldInput: control,
     formButtonPrimary: {
       background: 'var(--accent)',
@@ -67,18 +67,18 @@ export const clerkAppearance = {
       borderRadius: '6px',
     },
     footer: { background: 'transparent' },
-    footerActionText: { color: 'var(--muted)' },
+    footerActionText: { color: 'var(--ink-muted)' },
     footerActionLink: { color: 'var(--accent-strong)', fontWeight: 550 },
     identityPreview: control,
-    identityPreviewText: { color: 'var(--text)' },
+    identityPreviewText: { color: 'var(--ink)' },
     otpCodeFieldInput: control,
     formResendCodeLink: { color: 'var(--accent-strong)' },
     // Clerk's development-instance badge: keep it, but as a quiet status
     // chip rather than a warning ("Development Preview", not an error).
     badge: {
-      background: 'var(--surface-2)',
-      color: 'var(--muted)',
-      border: '1px solid var(--line)',
+      background: 'var(--p-raised)',
+      color: 'var(--ink-muted)',
+      border: '1px solid var(--rule)',
       borderRadius: '4px',
       fontWeight: 550,
       letterSpacing: '0.04em',
@@ -90,18 +90,18 @@ export const clerkAppearance = {
     // Clerk's own light-mode default card and overrode the surrounding
     // dark theme whenever it opened.
     userButtonPopoverCard: {
-      background: 'var(--surface-3)',
-      border: '1px solid var(--line-strong)',
+      background: 'var(--p-overlay)',
+      border: '1px solid var(--rule-strong)',
       boxShadow: 'var(--shadow-2)',
     },
-    userButtonPopoverMain: { background: 'var(--surface-3)' },
-    userButtonPopoverActionButton: { color: 'var(--text)' },
-    userButtonPopoverActionButtonText: { color: 'var(--text)', fontWeight: 500 },
-    userButtonPopoverActionButtonIcon: { color: 'var(--muted)' },
-    userButtonPopoverFooter: { background: 'var(--surface-2)' },
-    userPreviewMainIdentifier: { color: 'var(--text)' },
-    userPreviewSecondaryIdentifier: { color: 'var(--muted)' },
-    menuList: { background: 'var(--surface-3)', border: '1px solid var(--line-strong)' },
-    menuItem: { color: 'var(--text)' },
+    userButtonPopoverMain: { background: 'var(--p-overlay)' },
+    userButtonPopoverActionButton: { color: 'var(--ink)' },
+    userButtonPopoverActionButtonText: { color: 'var(--ink)', fontWeight: 500 },
+    userButtonPopoverActionButtonIcon: { color: 'var(--ink-muted)' },
+    userButtonPopoverFooter: { background: 'var(--p-raised)' },
+    userPreviewMainIdentifier: { color: 'var(--ink)' },
+    userPreviewSecondaryIdentifier: { color: 'var(--ink-muted)' },
+    menuList: { background: 'var(--p-overlay)', border: '1px solid var(--rule-strong)' },
+    menuItem: { color: 'var(--ink)' },
   },
 }

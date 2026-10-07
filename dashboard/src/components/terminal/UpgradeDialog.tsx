@@ -124,7 +124,7 @@ export default function UpgradeDialog({ open, onClose, reason }: UpgradeDialogPr
           </button>
         </div>
 
-        <p style={{ fontSize: 'var(--t-body-lg)', color: 'var(--muted)', marginBottom: 22, lineHeight: 1.6 }}>
+        <p style={{ fontSize: 'var(--t-body-lg)', color: 'var(--ink-muted)', marginBottom: 22, lineHeight: 1.6 }}>
           {reason === 'limit'
             ? "You've used today's five free analyses."
             : reason === 'feature'
@@ -138,8 +138,8 @@ export default function UpgradeDialog({ open, onClose, reason }: UpgradeDialogPr
             alignItems: 'baseline',
             gap: 8,
             padding: '16px 18px',
-            background: 'var(--surface-2)',
-            border: '1px solid var(--line)',
+            background: 'var(--p-raised)',
+            border: '1px solid var(--rule)',
             borderRadius: 'var(--r-md)',
             marginBottom: 22,
           }}
@@ -147,7 +147,7 @@ export default function UpgradeDialog({ open, onClose, reason }: UpgradeDialogPr
           <span className="num" style={{ fontSize: 'var(--t-figure)', fontWeight: 600 }}>
             ₹100
           </span>
-          <span style={{ fontSize: 'var(--t-body)', color: 'var(--faint)' }}>one-time · no recurring charge</span>
+          <span style={{ fontSize: 'var(--t-body)', color: 'var(--ink-faint)' }}>one-time · no recurring charge</span>
         </div>
 
         <ul
@@ -165,8 +165,8 @@ export default function UpgradeDialog({ open, onClose, reason }: UpgradeDialogPr
             'All chart timeframes — 1M to 5Y',
             'Article links in sentiment readouts',
           ].map((f) => (
-            <li key={f} style={{ display: 'flex', gap: 10, fontSize: 'var(--t-body-lg)', color: 'var(--text)' }}>
-              <span aria-hidden="true" style={{ color: 'var(--pos)', fontWeight: 600 }}>
+            <li key={f} style={{ display: 'flex', gap: 10, fontSize: 'var(--t-body-lg)', color: 'var(--ink)' }}>
+              <span aria-hidden="true" style={{ color: 'var(--e-pos)', fontWeight: 600 }}>
                 ✓
               </span>
               {f}
@@ -175,7 +175,7 @@ export default function UpgradeDialog({ open, onClose, reason }: UpgradeDialogPr
         </ul>
 
         {error && (
-          <p role="alert" style={{ fontSize: 'var(--t-body)', color: 'var(--neg)', marginBottom: 14 }}>
+          <p role="alert" style={{ fontSize: 'var(--t-body)', color: 'var(--e-neg)', marginBottom: 14 }}>
             {error}
           </p>
         )}
@@ -190,7 +190,7 @@ export default function UpgradeDialog({ open, onClose, reason }: UpgradeDialogPr
           {busy ? 'Opening payment…' : 'Continue to payment'}
         </button>
 
-        <p style={{ fontSize: 'var(--t-meta)', color: 'var(--faint)', textAlign: 'center', marginTop: 12 }}>
+        <p style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-faint)', textAlign: 'center', marginTop: 12 }}>
           Secured by Razorpay
         </p>
       </div>

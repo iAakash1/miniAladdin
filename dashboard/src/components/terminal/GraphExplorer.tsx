@@ -36,20 +36,20 @@ interface GraphSlice {
    palette stays within the existing token vocabulary. */
 const TYPE_COLOR: Record<string, string> = {
   company: 'var(--accent)',
-  person: 'var(--warn)',
-  product: 'var(--pos)',
-  industry: 'var(--muted)',
-  country: 'var(--faint)',
-  exchange: 'var(--faint)',
-  subsidiary: 'var(--muted)',
-  technology: 'var(--pos)',
+  person: 'var(--e-warn)',
+  product: 'var(--e-pos)',
+  industry: 'var(--ink-muted)',
+  country: 'var(--ink-faint)',
+  exchange: 'var(--ink-faint)',
+  subsidiary: 'var(--ink-muted)',
+  technology: 'var(--e-pos)',
 }
 
 const RADIUS = 148
 const NODE_R = 6
 
 function nodeColor(type: string): string {
-  return TYPE_COLOR[type] ?? 'var(--muted)'
+  return TYPE_COLOR[type] ?? 'var(--ink-muted)'
 }
 
 /**
@@ -198,12 +198,12 @@ export default function GraphExplorer() {
         <nav aria-label="Exploration trail" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
           {trail.map((node, index) => (
             <span key={`${node.id}-${index}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              {index > 0 && <span style={{ color: 'var(--faint)', fontSize: 'var(--t-small)' }}>›</span>}
+              {index > 0 && <span style={{ color: 'var(--ink-faint)', fontSize: 'var(--t-small)' }}>›</span>}
               <button
                 type="button"
                 className="sys-btn sys-btn--ghost sys-btn--xs"
                 onClick={() => recenter(node)}
-                style={{ border: index === trail.length - 1 ? '1px solid var(--line-strong)' : '1px solid var(--line)' }}
+                style={{ border: index === trail.length - 1 ? '1px solid var(--rule-strong)' : '1px solid var(--rule)' }}
               >
                 {node.label}
               </button>
@@ -256,7 +256,7 @@ export default function GraphExplorer() {
                       : Math.cos(group.midAngle) > 0 ? 'start' : 'end'}
                     style={{
                       fontSize: 'var(--t-micro)', letterSpacing: 'var(--tracking-label)', textTransform: 'uppercase',
-                      fill: 'var(--faint)',
+                      fill: 'var(--ink-faint)',
                     }}
                   >
                     {EDGE_LABELS[group.type] ?? group.type} ({group.count})
@@ -269,7 +269,7 @@ export default function GraphExplorer() {
                 <line
                   key={`line-${edge.node.id}-${index}`}
                   x1={0} y1={0} x2={x} y2={y}
-                  stroke={index === active ? 'var(--accent)' : 'var(--line-strong)'}
+                  stroke={index === active ? 'var(--accent)' : 'var(--rule-strong)'}
                   strokeWidth={index === active ? 1.5 : 1}
                 />
               ))}
@@ -278,7 +278,7 @@ export default function GraphExplorer() {
               <circle r={NODE_R + 3} fill={nodeColor(slice?.center.type ?? 'company')} />
               <text
                 y={-16} textAnchor="middle"
-                style={{ fontSize: 'var(--t-body)', fontWeight: 600, fill: 'var(--text)' }}
+                style={{ fontSize: 'var(--t-body)', fontWeight: 600, fill: 'var(--ink)' }}
               >
                 {slice?.center.label}
               </text>
@@ -306,7 +306,7 @@ export default function GraphExplorer() {
                       textAnchor="middle"
                       style={{
                         fontSize: 'var(--t-meta)',
-                        fill: isActive ? 'var(--text)' : 'var(--muted)',
+                        fill: isActive ? 'var(--ink)' : 'var(--ink-muted)',
                         fontWeight: isActive ? 600 : 400,
                       }}
                     >
@@ -317,7 +317,7 @@ export default function GraphExplorer() {
               })}
             </svg>
           )}
-          <p style={{ fontSize: 'var(--t-meta)', color: 'var(--faint)', marginTop: 10 }}>
+          <p style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-faint)', marginTop: 10 }}>
             ↑↓ move · ↵ re-center · ⌫ back · click any node to explore
           </p>
         </section>
@@ -330,11 +330,11 @@ export default function GraphExplorer() {
               <div>
                 <p className="sys-label" style={{ marginBottom: 4 }}>Entity</p>
                 <p style={{ fontSize: 'var(--t-value)', fontWeight: 600 }}>{edges[active].node.label}</p>
-                <p style={{ fontSize: 'var(--t-small)', color: 'var(--faint)' }}>{edges[active].node.type}</p>
+                <p style={{ fontSize: 'var(--t-small)', color: 'var(--ink-faint)' }}>{edges[active].node.type}</p>
               </div>
               <div>
                 <p className="sys-label" style={{ marginBottom: 4 }}>Connection</p>
-                <p style={{ fontSize: 'var(--t-body)', color: 'var(--text)' }}>
+                <p style={{ fontSize: 'var(--t-body)', color: 'var(--ink)' }}>
                   {edges[active].types.map((t) => EDGE_LABELS[t] ?? t).join(' · ')}
                 </p>
               </div>
@@ -356,7 +356,7 @@ export default function GraphExplorer() {
               </div>
             </div>
           ) : (
-            <p style={{ fontSize: 'var(--t-body)', color: 'var(--faint)' }}>
+            <p style={{ fontSize: 'var(--t-body)', color: 'var(--ink-faint)' }}>
               Select a node to see what connects it and which provider asserted the link.
             </p>
           )}

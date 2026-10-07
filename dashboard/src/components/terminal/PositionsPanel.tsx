@@ -115,11 +115,11 @@ export default function PositionsPanel() {
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
         <h2 id="positions-h" className="h-panel">Positions</h2>
         {positions.length > 0 && (
-          <span className="num" style={{ fontSize: 'var(--t-small)', color: 'var(--faint)' }}>
+          <span className="num" style={{ fontSize: 'var(--t-small)', color: 'var(--ink-faint)' }}>
             {positions.length} · cost basis {fmtPrice(totalCost)}
           </span>
         )}
-        <span style={{ marginLeft: 'auto', fontSize: 'var(--t-meta)', color: 'var(--faint)' }}>
+        <span style={{ marginLeft: 'auto', fontSize: 'var(--t-meta)', color: 'var(--ink-faint)' }}>
           Synced to your account
         </span>
       </div>

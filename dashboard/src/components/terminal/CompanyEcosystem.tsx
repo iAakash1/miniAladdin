@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import Skeleton from '@/components/ui/Skeleton'
 import { EDGE_LABELS, fetchKnowledge, type CompanyKnowledge } from '@/lib/knowledge'
 
-const TONE_COLOR = { pos: 'var(--pos)', neg: 'var(--neg)', neutral: 'var(--muted)' } as const
+const TONE_COLOR = { pos: 'var(--e-pos)', neg: 'var(--e-neg)', neutral: 'var(--ink-muted)' } as const
 
 /**
  * Company ecosystem — leadership, corporate structure, products, industry
@@ -59,7 +59,7 @@ export default function CompanyEcosystem({ ticker }: { ticker: string }) {
  <span className="num u-meta">
           {data.graph.nodes} entities · {data.graph.edges} relationships
         </span>
-        <span style={{ marginLeft: 'auto', fontSize: 'var(--t-meta)', color: 'var(--faint)' }}>
+        <span style={{ marginLeft: 'auto', fontSize: 'var(--t-meta)', color: 'var(--ink-faint)' }}>
           {data.graph.providers.join(' · ') || 'no sources'}
         </span>
       </div>
@@ -75,7 +75,7 @@ export default function CompanyEcosystem({ ticker }: { ticker: string }) {
                   const content = (
                     <>
                       {member.label}
-                      <span className="sys-label" style={{ color: 'var(--faint)' }}>{roles}</span>
+                      <span className="sys-label" style={{ color: 'var(--ink-faint)' }}>{roles}</span>
                     </>
                   )
                   return member.route ? (
@@ -83,7 +83,7 @@ export default function CompanyEcosystem({ ticker }: { ticker: string }) {
                       key={member.id}
                       href={member.route}
                       className="sys-btn sys-btn--ghost sys-btn--xs"
-                      style={{ border: '1px solid var(--line)' }}
+                      style={{ border: '1px solid var(--rule)' }}
                     >
                       {content}
                     </Link>
@@ -91,7 +91,7 @@ export default function CompanyEcosystem({ ticker }: { ticker: string }) {
                     <span
                       key={member.id}
                       className="sys-btn sys-btn--ghost sys-btn--xs"
-                      style={{ border: '1px solid var(--line)', cursor: 'default' }}
+                      style={{ border: '1px solid var(--rule)', cursor: 'default' }}
                     >
                       {content}
                     </span>
@@ -105,7 +105,7 @@ export default function CompanyEcosystem({ ticker }: { ticker: string }) {
 
       {data.findings.length > 0 && (
         <details className="disclosure">
-          <summary style={{ fontSize: 'var(--t-body)', fontWeight: 600, color: 'var(--muted)' }}>
+          <summary style={{ fontSize: 'var(--t-body)', fontWeight: 600, color: 'var(--ink-muted)' }}>
             Reported financials from SEC filings ({data.findings.length})
           </summary>
           <ul style={{ listStyle: 'none', margin: '12px 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -116,7 +116,7 @@ export default function CompanyEcosystem({ ticker }: { ticker: string }) {
                   style={{ flexShrink: 0, marginTop: 7, width: 6, height: 6, borderRadius: 1, background: TONE_COLOR[finding.tone] }}
                 />
                 <span>
-                  <span style={{ color: 'var(--text)' }}>{finding.text}</span>
+                  <span style={{ color: 'var(--ink)' }}>{finding.text}</span>
                   {finding.evidence[0]?.source.url && (
                     <>
                       {' '}
@@ -139,12 +139,12 @@ export default function CompanyEcosystem({ ticker }: { ticker: string }) {
 
       {data.claims.length > 0 && (
         <details className="disclosure" style={{ marginTop: 10 }}>
-          <summary style={{ fontSize: 'var(--t-body)', fontWeight: 600, color: 'var(--muted)' }}>
+          <summary style={{ fontSize: 'var(--t-body)', fontWeight: 600, color: 'var(--ink-muted)' }}>
             Web research ({data.claims.length}) — corroborating context, every claim sourced
           </summary>
           <ul style={{ listStyle: 'none', margin: '12px 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {data.claims.map((claim) => (
-              <li key={claim.id} style={{ fontSize: 'var(--t-body)', lineHeight: 1.55, color: 'var(--muted)' }}>
+              <li key={claim.id} style={{ fontSize: 'var(--t-body)', lineHeight: 1.55, color: 'var(--ink-muted)' }}>
                 {claim.statement}
                 <span style={{ display: 'block', marginTop: 3 }}>
                   {claim.evidence.slice(0, 3).map((evidence) =>
@@ -169,17 +169,17 @@ export default function CompanyEcosystem({ ticker }: { ticker: string }) {
 
       {data.timeline.length > 0 && (
         <details className="disclosure" style={{ marginTop: 10 }}>
-          <summary style={{ fontSize: 'var(--t-body)', fontWeight: 600, color: 'var(--muted)' }}>
+          <summary style={{ fontSize: 'var(--t-body)', fontWeight: 600, color: 'var(--ink-muted)' }}>
             Filing timeline ({data.timeline.length})
           </summary>
           <ul style={{ listStyle: 'none', margin: '12px 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
             {data.timeline.map((event) => (
               <li key={event.id} style={{ display: 'flex', gap: 12, fontSize: 'var(--t-body)', alignItems: 'baseline' }}>
-                <span className="num" style={{ fontSize: 'var(--t-small)', color: 'var(--faint)', width: 84, flexShrink: 0 }}>
+                <span className="num" style={{ fontSize: 'var(--t-small)', color: 'var(--ink-faint)', width: 84, flexShrink: 0 }}>
                   {event.date}
                 </span>
-                <span style={{ color: 'var(--text)', fontWeight: 600, width: 110, flexShrink: 0 }}>{event.title}</span>
-                <span style={{ color: 'var(--muted)', flex: 1, minWidth: 0 }}>{event.detail}</span>
+                <span style={{ color: 'var(--ink)', fontWeight: 600, width: 110, flexShrink: 0 }}>{event.title}</span>
+                <span style={{ color: 'var(--ink-muted)', flex: 1, minWidth: 0 }}>{event.detail}</span>
                 {event.source?.url && (
                   <a
                     href={event.source.url}

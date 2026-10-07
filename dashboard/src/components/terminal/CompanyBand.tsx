@@ -17,8 +17,8 @@ const VERDICT_TONE: Record<Verdict, 'pos' | 'warn' | 'neg'> = {
   'Strong Sell': 'neg',
 }
 
-const TONE_VAR = { pos: 'var(--pos)', warn: 'var(--warn)', neg: 'var(--neg)' }
-const WASH_VAR = { pos: 'var(--pos-wash)', warn: 'var(--warn-wash)', neg: 'var(--neg-wash)' }
+const TONE_VAR = { pos: 'var(--e-pos)', warn: 'var(--e-warn)', neg: 'var(--e-neg)' }
+const WASH_VAR = { pos: 'var(--e-pos-wash)', warn: 'var(--e-warn-wash)', neg: 'var(--e-neg-wash)' }
 
 export function VerdictChip({ verdict, size = 'md' }: { verdict: Verdict; size?: 'md' | 'lg' }) {
   const tone = VERDICT_TONE[verdict]
@@ -66,7 +66,7 @@ function SaveReportButton({ historyId }: { historyId: string }) {
       onClick={save}
       disabled={state === 'saving'}
       title="Bookmark this analysis in your Vault"
-      style={{ border: '1px solid var(--line)' }}
+      style={{ border: '1px solid var(--rule)' }}
     >
       {state === 'saving' ? 'Saving…' : state === 'failed' ? 'Retry save' : '☆ Save report'}
     </button>
@@ -175,7 +175,7 @@ export default function CompanyBand({ analysis }: { analysis: Analysis }) {
                 it goes into notes, spreadsheets and messages constantly, and
                 the alternative is selecting monospace text by hand. */}
             <CopyButton value={analysis.ticker} label="Copy" title={`Copy ticker ${analysis.ticker}`} />
-            <span style={{ fontSize: 'var(--t-base)', color: 'var(--muted)', fontWeight: 500 }}>
+            <span style={{ fontSize: 'var(--t-base)', color: 'var(--ink-muted)', fontWeight: 500 }}>
               {analysis.companyName}
             </span>
           </div>
@@ -184,7 +184,7 @@ export default function CompanyBand({ analysis }: { analysis: Analysis }) {
               symbol the breadth map on Market already trades on, so the two
               surfaces name the sector the same way. A sector with no proxy
               simply renders as text. */}
-          <p style={{ fontSize: 'var(--t-body)', color: 'var(--faint)', display: 'flex', alignItems: 'center', gap: 7 }}>
+          <p style={{ fontSize: 'var(--t-body)', color: 'var(--ink-faint)', display: 'flex', alignItems: 'center', gap: 7 }}>
             {sectorProxy(analysis.sector) && (
               <CompanyMark ticker={sectorProxy(analysis.sector)} name={`${analysis.sector} sector`} size={16} />
             )}
@@ -197,7 +197,7 @@ export default function CompanyBand({ analysis }: { analysis: Analysis }) {
             <span className="num" style={{ fontSize: 'clamp(1.9rem, 4vw, 2.4rem)', fontWeight: 600, lineHeight: 1 }}>
               {fmtPrice(analysis.price)}
             </span>
-            <span style={{ fontSize: 'var(--t-body)', color: 'var(--faint)' }}>last close</span>
+            <span style={{ fontSize: 'var(--t-body)', color: 'var(--ink-faint)' }}>last close</span>
           </div>
 
           {/* Cross-vendor agreement. Every vendor that could quote this
@@ -229,11 +229,11 @@ export default function CompanyBand({ analysis }: { analysis: Analysis }) {
             <p className="sys-label">Risk-adjusted verdict</p>
           </div>
           <VerdictChip verdict={analysis.riskAdjusted} size="lg" />
-          <p style={{ fontSize: 'var(--t-body)', color: 'var(--muted)', marginTop: 12, maxWidth: 240 }}>
+          <p style={{ fontSize: 'var(--t-body)', color: 'var(--ink-muted)', marginTop: 12, maxWidth: 240 }}>
             {wasDampened ? (
               <>
                 Raw signal{' '}
-                <strong style={{ fontWeight: 600, color: 'var(--text)' }}>{analysis.verdict}</strong>, dampened
+                <strong style={{ fontWeight: 600, color: 'var(--ink)' }}>{analysis.verdict}</strong>, dampened
                 under macro regime{' '}
                 <span className="num">
                   {analysis.macro.srm === null ? 'SRM unavailable' : `SRM ${analysis.macro.srm.toFixed(2)}`}

@@ -10,10 +10,10 @@ interface MetricProps {
 }
 
 const TONE_COLOR: Record<Tone, string> = {
-  pos: 'var(--pos)',
-  neg: 'var(--neg)',
-  warn: 'var(--warn)',
-  neutral: 'var(--text)',
+  pos: 'var(--e-pos)',
+  neg: 'var(--e-neg)',
+  warn: 'var(--e-warn)',
+  neutral: 'var(--ink)',
 }
 
 /**
@@ -38,10 +38,10 @@ export default function Metric({ label, value, unit, tone = 'neutral', size = 'm
         >
           {value}
         </span>
-        {unit && <span style={{ fontSize: 'var(--t-small)', color: 'var(--faint)' }}>{unit}</span>}
+        {unit && <span style={{ fontSize: 'var(--t-small)', color: 'var(--ink-faint)' }}>{unit}</span>}
       </div>
       {change && (
-        <div className="num" style={{ fontSize: 'var(--t-meta)', color: 'var(--muted)', marginTop: 3 }}>
+        <div className="num" style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-muted)', marginTop: 3 }}>
           {change}
         </div>
       )}

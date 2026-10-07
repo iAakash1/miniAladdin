@@ -100,27 +100,27 @@ function RebasedChart({ benchmark }: { benchmark: PortfolioBenchmark }) {
       <div className="pfchart__frame">
         <ResponsiveContainer width="100%" height={200}>
           <AreaChart data={data} margin={{ top: 6, right: 4, bottom: 0, left: 4 }}>
-            <CartesianGrid stroke="var(--line)" strokeDasharray="2 4" vertical={false} />
-            <XAxis dataKey="dateLabel" tick={{ fill: 'var(--faint)', fontSize: 'var(--t-micro)' }}
-                   tickLine={false} axisLine={{ stroke: 'var(--line)' }} minTickGap={44} />
+            <CartesianGrid stroke="var(--rule)" strokeDasharray="2 4" vertical={false} />
+            <XAxis dataKey="dateLabel" tick={{ fill: 'var(--ink-faint)', fontSize: 'var(--t-micro)' }}
+                   tickLine={false} axisLine={{ stroke: 'var(--rule)' }} minTickGap={44} />
             <YAxis domain={[low - pad, high + pad]} width={44}
-                   tick={{ fill: 'var(--faint)', fontSize: 'var(--t-micro)' }} tickLine={false} axisLine={false}
+                   tick={{ fill: 'var(--ink-faint)', fontSize: 'var(--t-micro)' }} tickLine={false} axisLine={false}
                    tickFormatter={(v: number) => v.toFixed(0)} />
             <Tooltip content={<RebasedTooltip label={benchmark.label} />}
-                     cursor={{ stroke: 'var(--line-strong)', strokeWidth: 1 }} />
+                     cursor={{ stroke: 'var(--rule-strong)', strokeWidth: 1 }} />
             {/* 100 is the shared starting point, so the reference line is
                 literally "where both began". */}
-            <ReferenceLine y={100} stroke="var(--muted)" strokeDasharray="4 4" />
+            <ReferenceLine y={100} stroke="var(--ink-muted)" strokeDasharray="4 4" />
             {/* The benchmark is drawn first and unfilled: it is the yardstick,
                 not the subject, and a filled index would compete with the
                 portfolio for the eye. */}
-            <Area type="monotone" dataKey="benchmark" stroke="var(--muted)" strokeWidth={1.25}
+            <Area type="monotone" dataKey="benchmark" stroke="var(--ink-muted)" strokeWidth={1.25}
                   fill="none" strokeDasharray="3 3" dot={false} isAnimationActive={false} />
             <Area type="monotone" dataKey="portfolio"
-                  stroke={ahead ? 'var(--pos)' : 'var(--neg)'} strokeWidth={1.75}
+                  stroke={ahead ? 'var(--e-pos)' : 'var(--e-neg)'} strokeWidth={1.75}
                   fill="none" dot={false} isAnimationActive={false}
-                  activeDot={{ r: 3, fill: ahead ? 'var(--pos)' : 'var(--neg)',
-                               stroke: 'var(--surface)', strokeWidth: 2 }} />
+                  activeDot={{ r: 3, fill: ahead ? 'var(--e-pos)' : 'var(--e-neg)',
+                               stroke: 'var(--p-panel)', strokeWidth: 2 }} />
           </AreaChart>
         </ResponsiveContainer>
       </div>
@@ -149,11 +149,11 @@ function RebasedTooltip({
     <div className="pfchart__tip">
       <div className="pfchart__tip-date">{p.dateLabel}</div>
       <div className="num pfchart__tip-value">Portfolio {p.portfolio.toFixed(1)}</div>
-      <div className="num pfchart__tip-delta" style={{ color: 'var(--muted)' }}>
+      <div className="num pfchart__tip-delta" style={{ color: 'var(--ink-muted)' }}>
         {label} {p.benchmark.toFixed(1)}
       </div>
       <div className="num pfchart__tip-delta"
-           style={{ color: gap >= 0 ? 'var(--pos)' : 'var(--neg)' }}>
+           style={{ color: gap >= 0 ? 'var(--e-pos)' : 'var(--e-neg)' }}>
         {gap >= 0 ? '+' : '−'}{Math.abs(gap).toFixed(1)} pts
       </div>
     </div>
@@ -171,7 +171,7 @@ function ChartTooltip({
 }) {
   if (!active || !payload?.length) return null
   const point = payload[0].payload
-  const tone = point.delta > 0 ? 'var(--pos)' : point.delta < 0 ? 'var(--neg)' : 'var(--muted)'
+  const tone = point.delta > 0 ? 'var(--e-pos)' : point.delta < 0 ? 'var(--e-neg)' : 'var(--ink-muted)'
   return (
     <div className="pfchart__tip">
       <div className="pfchart__tip-date">{point.dateLabel}</div>
@@ -209,7 +209,7 @@ export default function PortfolioPerformanceChart({
 
   const last = data[data.length - 1]
   const up = last.delta >= 0
-  const stroke = up ? 'var(--pos)' : 'var(--neg)'
+  const stroke = up ? 'var(--e-pos)' : 'var(--e-neg)'
 
   // The domain is padded around *both* the series and the cost line, so the
   // baseline is always on screen. Without it, a book far above cost would
@@ -229,26 +229,26 @@ export default function PortfolioPerformanceChart({
               {/* Two gradients, one per direction, rather than one recoloured:
                   a fill that changes hue mid-transition reads as a glitch. */}
               <linearGradient id="pf-fill-up" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="var(--pos)" stopOpacity={0.28} />
-                <stop offset="100%" stopColor="var(--pos)" stopOpacity={0.02} />
+                <stop offset="0%" stopColor="var(--e-pos)" stopOpacity={0.28} />
+                <stop offset="100%" stopColor="var(--e-pos)" stopOpacity={0.02} />
               </linearGradient>
               <linearGradient id="pf-fill-down" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="var(--neg)" stopOpacity={0.28} />
-                <stop offset="100%" stopColor="var(--neg)" stopOpacity={0.02} />
+                <stop offset="0%" stopColor="var(--e-neg)" stopOpacity={0.28} />
+                <stop offset="100%" stopColor="var(--e-neg)" stopOpacity={0.02} />
               </linearGradient>
             </defs>
 
-            <CartesianGrid stroke="var(--line)" strokeDasharray="2 4" vertical={false} />
+            <CartesianGrid stroke="var(--rule)" strokeDasharray="2 4" vertical={false} />
             <XAxis
               dataKey="dateLabel"
-              tick={{ fill: 'var(--faint)', fontSize: 'var(--t-micro)' }}
+              tick={{ fill: 'var(--ink-faint)', fontSize: 'var(--t-micro)' }}
               tickLine={false}
-              axisLine={{ stroke: 'var(--line)' }}
+              axisLine={{ stroke: 'var(--rule)' }}
               minTickGap={44}
             />
             <YAxis
               domain={[low - pad, high + pad]}
-              tick={{ fill: 'var(--faint)', fontSize: 'var(--t-micro)' }}
+              tick={{ fill: 'var(--ink-faint)', fontSize: 'var(--t-micro)' }}
               tickLine={false}
               axisLine={false}
               width={62}
@@ -256,17 +256,17 @@ export default function PortfolioPerformanceChart({
             />
             <Tooltip
               content={<ChartTooltip currency={currency} />}
-              cursor={{ stroke: 'var(--line-strong)', strokeWidth: 1 }}
+              cursor={{ stroke: 'var(--rule-strong)', strokeWidth: 1 }}
             />
             {/* Cost. The whole chart is a comparison against this line. */}
             <ReferenceLine
               y={baseline}
-              stroke="var(--muted)"
+              stroke="var(--ink-muted)"
               strokeDasharray="4 4"
               label={{
                 value: 'cost',
                 position: 'insideTopLeft',
-                fill: 'var(--faint)',
+                fill: 'var(--ink-faint)',
                 fontSize: 'var(--t-micro)',
               }}
             />
@@ -279,7 +279,7 @@ export default function PortfolioPerformanceChart({
               // A dot per day turns a 60-session window into a beaded line;
               // the hover dot is what a reader actually needs.
               dot={false}
-              activeDot={{ r: 3, fill: stroke, stroke: 'var(--surface)', strokeWidth: 2 }}
+              activeDot={{ r: 3, fill: stroke, stroke: 'var(--p-panel)', strokeWidth: 2 }}
               isAnimationActive={false}
             />
           </AreaChart>

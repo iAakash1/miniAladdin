@@ -17,7 +17,7 @@ export default function NewsPage() {
         <header style={{ marginBottom: 'clamp(24px, 4vw, 40px)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
             <span className="live-dot" aria-hidden="true" />
-            <p className="eyebrow" style={{ color: 'var(--muted)' }}>
+            <p className="eyebrow" style={{ color: 'var(--ink-muted)' }}>
               Live feed
             </p>
           </div>

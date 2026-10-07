@@ -39,10 +39,10 @@ export default function SiteHeader() {
         position: 'sticky',
         top: 0,
         zIndex: 'var(--z-header)',
-        background: 'color-mix(in srgb, var(--paper) 92%, transparent)',
+        background: 'color-mix(in srgb, var(--p-base) 92%, transparent)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
-        borderBottom: '1px solid var(--line)',
+        borderBottom: '1px solid var(--rule)',
       }}
     >
       <div
@@ -60,7 +60,7 @@ export default function SiteHeader() {
               href={item.href}
               className="sys-btn sys-btn--ghost"
               style={{
-                color: pathname === item.href ? 'var(--text)' : undefined,
+                color: pathname === item.href ? 'var(--ink)' : undefined,
                 fontWeight: 500,
               }}
             >
@@ -104,8 +104,8 @@ export default function SiteHeader() {
           aria-label="Mobile"
           className="fade-in"
           style={{
-            borderTop: '1px solid var(--line)',
-            background: 'var(--paper)',
+            borderTop: '1px solid var(--rule)',
+            background: 'var(--p-base)',
             padding: '8px 20px 16px',
             display: 'flex',
             flexDirection: 'column',
@@ -122,8 +122,8 @@ export default function SiteHeader() {
                 textDecoration: 'none',
                 fontSize: 'var(--t-value)',
                 fontWeight: 500,
-                color: 'var(--text)',
-                borderBottom: '1px solid var(--line)',
+                color: 'var(--ink)',
+                borderBottom: '1px solid var(--rule)',
               }}
             >
               {item.label}

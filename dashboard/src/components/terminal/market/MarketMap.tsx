@@ -102,7 +102,7 @@ export function readScore(score: number | null, positive21: number, count: numbe
 }
 
 const TONE: Record<Verdict['tone'], string> = {
-  pos: 'var(--pos)', warn: 'var(--warn)', neg: 'var(--neg)', neutral: 'var(--muted)',
+  pos: 'var(--e-pos)', warn: 'var(--e-warn)', neg: 'var(--e-neg)', neutral: 'var(--ink-muted)',
 }
 
 const signed = (v: number | null, digits = 1) =>
@@ -144,14 +144,14 @@ function BreadthRead({ breadth, verdict, positive21, positive63, total }: {
                preserveAspectRatio="none" role="img"
                aria-label={`Breadth over ${history.length} trading days, ${history[0].score} to ${history[history.length - 1].score}`}>
             <line x1="0" y1={path.y50} x2={path.w} y2={path.y50}
-                  stroke="var(--line)" strokeWidth="1" strokeDasharray="2 4" />
+                  stroke="var(--rule)" strokeWidth="1" strokeDasharray="2 4" />
             <polygon points={path.area} fill={TONE[verdict.tone]} opacity="0.09" />
             <polyline points={path.line} fill="none" stroke={TONE[verdict.tone]}
                       strokeWidth="1.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
           </svg>
           <div className="mm-read__trendfoot">
             <span>{history.length} sessions</span>
-            <span style={{ color: change !== null && change >= 0 ? 'var(--pos)' : 'var(--neg)' }}>
+            <span style={{ color: change !== null && change >= 0 ? 'var(--e-pos)' : 'var(--e-neg)' }}>
               {change !== null ? `${fmtSigned(change, 0)} pts` : ''}
             </span>
           </div>
@@ -190,9 +190,9 @@ function Spark({ points, positive, active }: {
   return (
     <svg className="mm-spark" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" aria-hidden>
       <line x1="0" y1={y(points[0])} x2={w} y2={y(points[0])}
-            stroke="var(--line)" strokeWidth="0.75" strokeDasharray="2 3" />
+            stroke="var(--rule)" strokeWidth="0.75" strokeDasharray="2 3" />
       <polyline points={d} fill="none" strokeWidth={active ? 2 : 1.25}
-                stroke={positive ? 'var(--pos)' : 'var(--neg)'}
+                stroke={positive ? 'var(--e-pos)' : 'var(--e-neg)'}
                 vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
     </svg>
   )
@@ -305,7 +305,7 @@ function SectorMap({ sectors, active, onActive }: {
             <span className="mm-map__sparkcell">
               <Spark points={s.history ?? []} positive={up} active={isActive} />
             </span>
-            <span className="mm-num mm-map__lead" style={{ color: s.strength_21d === null ? 'var(--faint)' : up ? 'var(--pos)' : 'var(--neg)' }}>
+            <span className="mm-num mm-map__lead" style={{ color: s.strength_21d === null ? 'var(--ink-faint)' : up ? 'var(--e-pos)' : 'var(--e-neg)' }}>
               {signed(s.strength_21d)}
             </span>
             <span className="mm-num mm-map__muted">{signed(s.momentum_63d)}</span>
@@ -365,7 +365,7 @@ export default function MarketMap({ breadth, sectors }: {
               <span className="mm-tape__sym">{i.symbol}</span>
               <span className="mm-tape__px">{i.price}</span>
               {typeof i.change_1d === 'number' && (
-                <span style={{ color: i.change_1d >= 0 ? 'var(--pos)' : 'var(--neg)' }}>
+                <span style={{ color: i.change_1d >= 0 ? 'var(--e-pos)' : 'var(--e-neg)' }}>
                   {signed(i.change_1d, 2)}
                 </span>
               )}
