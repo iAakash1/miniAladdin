@@ -44,6 +44,9 @@
   --accent: #5b9ae0;
   --accent-strong: #7cb0ea;
   --accent-wash: rgb(91 154 224 / 0.12);
+  /* Text on an accent fill: the panel colour, which is dark in the dark theme
+     and white in the light one, so it clears 4.5:1 on the accent in both. */
+  --on-accent: var(--p-panel);
   --accent-line: rgb(91 154 224 / 0.45);
 
   /* Semantic */
@@ -190,7 +193,7 @@
 
   --ink: #14171b;
   --ink-muted: #4d5561;
-  --ink-faint: #69717d;
+  --ink-faint: #656c78;
   --ink-disabled: #a2a9b2;
 
   --accent: #2566b0;
@@ -200,8 +203,8 @@
 
   --e-pos: #16784f;
   --e-neg: #bf3a2f;
-  --e-warn: #93650c;
-  --e-null: #69717d;
+  --e-warn: #90630c;
+  --e-null: #656c78;
   --e-pos-wash: rgb(22 120 79 / 0.08);
   --e-neg-wash: rgb(191 58 47 / 0.08);
   --e-warn-wash: rgb(147 101 12 / 0.09);

@@ -30,7 +30,7 @@ a { color: inherit; }
 button { font: inherit; color: inherit; }
 img { max-width: 100%; display: block; }
 
-::selection { background: var(--accent); color: #fff; }
+::selection { background: var(--accent); color: var(--on-accent); }
 
 .visually-hidden {
   position: absolute;
