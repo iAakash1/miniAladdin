@@ -22,6 +22,7 @@ function TerminalBoot({
 }) {
   return (
     <main
+      id="main"
       className="terminal-boot"
       role="status"
       aria-live="polite"

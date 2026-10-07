@@ -106,7 +106,7 @@ export default function ExperienceChooser({ onChosen }: { onChosen?: () => void 
   }
 
   return (
-    <main className="xc">
+    <main id="main" className="xc">
       <div className="xc__inner">
         <p className="xc__brand">OMNISIGNAL</p>
         <h1 className="xc__title">How much detail would you like to see?</h1>

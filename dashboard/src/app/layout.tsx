@@ -6,6 +6,7 @@ import '@fontsource/ibm-plex-mono/400.css'
 import '@fontsource/ibm-plex-mono/500.css'
 import '@fontsource/ibm-plex-mono/600.css'
 import './globals.css'
+import { THEME_COLOR } from '@/lib/theme'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://omnisignalterminal.vercel.app'
 
@@ -36,13 +37,13 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#0a0b0d',
+  themeColor: THEME_COLOR.dark,
   width: 'device-width',
   initialScale: 1,
 }
 
 /** Runs before paint. Dark is the default; an explicit light choice wins. */
-const THEME_SCRIPT = `(function(){try{var t=localStorage.getItem('omni-theme');document.documentElement.dataset.theme=t==='light'?'light':'dark'}catch(e){document.documentElement.dataset.theme='dark'}})()`
+const THEME_SCRIPT = `(function(){var l=false;try{l=localStorage.getItem('omni-theme')==='light'}catch(e){}document.documentElement.dataset.theme=l?'light':'dark';var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',l?'${THEME_COLOR.light}':'${THEME_COLOR.dark}')})()`
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

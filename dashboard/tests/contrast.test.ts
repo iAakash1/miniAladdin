@@ -9,9 +9,11 @@
    under 4.5:1 on its sunken and hover surfaces. */
 
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import test from 'node:test'
+
+import { THEME_COLOR } from '../src/lib/theme'
 
 const SRC = join(__dirname, '..', 'src')
 const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, '')
@@ -99,4 +101,31 @@ test('no rule hard-codes the colour of text on an accent fill', () => {
     .map((m) => m[1].trim().replace(/\s+/g, ' '))
   assert.deepEqual(bad, [])
   assert.match(GLOBALS, /::selection\s*\{[^}]*color:\s*var\(--on-accent\)/)
+})
+
+test('the browser-chrome colour of each theme is that theme\'s page background', () => {
+  assert.equal(THEME_COLOR.dark.toLowerCase(), resolve(DARK, '--p-base')?.toLowerCase())
+  assert.equal(THEME_COLOR.light.toLowerCase(), resolve(LIGHT, '--p-base')?.toLowerCase())
+  const layout = readFileSync(join(SRC, 'app', 'layout.tsx'), 'utf8')
+  assert.match(layout, /themeColor:\s*THEME_COLOR\.dark/)
+  assert.match(layout, /meta\[name="theme-color"\]/, 'the pre-paint script must set the colour for a returning light-theme reader')
+  assert.match(readFileSync(join(SRC, 'components', 'ui', 'ThemeToggle.tsx'), 'utf8'), /setThemeColor\(theme\)/)
+})
+
+test('every main landmark is the skip link\'s target', () => {
+  const missing: string[] = []
+  const walk = (dir: string) => {
+    for (const name of readdirSync(dir)) {
+      const full = join(dir, name)
+      if (statSync(full).isDirectory()) walk(full)
+      else if (name.endsWith('.tsx')) {
+        for (const m of readFileSync(full, 'utf8').matchAll(/<main\b([^>]*)>/g)) if (!/\bid="main"/.test(m[1])) missing.push(full.slice(SRC.length + 1))
+        // a <main> with a multi-line opening tag
+        const text = readFileSync(full, 'utf8')
+        for (const m of text.matchAll(/<main\s*\n([\s\S]*?)>/g)) if (!/\bid="main"/.test(m[1]) && !missing.includes(full.slice(SRC.length + 1))) missing.push(full.slice(SRC.length + 1))
+      }
+    }
+  }
+  walk(SRC)
+  assert.deepEqual(missing, [])
 })

@@ -2,10 +2,13 @@
 
 import { useSyncExternalStore } from 'react'
 
+import { setThemeColor } from '@/lib/theme'
+
 export type Theme = 'light' | 'dark'
 
 export function applyTheme(theme: Theme, persist: boolean) {
   document.documentElement.dataset.theme = theme
+  setThemeColor(theme)
   if (persist) {
     try {
       localStorage.setItem('omni-theme', theme)
