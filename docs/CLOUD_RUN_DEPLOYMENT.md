@@ -269,6 +269,15 @@ curl -s https://omnisignalterminal.vercel.app/api/build
 #   commit, ref, environment, deployment (Vercel id), built_at
 ```
 
+Both checks are scripted. `scripts/smoke_cloud_run.py <url> <commit-prefix>
+<revision>` runs ~40 probes against a private URL with your own identity token
+(identity, research truth, search, chart and quote semantics, FRED, and every
+paper-trading mutation refused); run it on the tagged zero-traffic revision
+before moving traffic and on the service URL after.
+`scripts/smoke_credential_free.py` starts the API with an empty environment and
+no `.env`, from a clean `git archive`, and proves nothing needs a credential
+to start or to refuse.
+
 The chain is only proven when all of these agree:
 
 1. `git rev-parse HEAD` equals `git ls-remote origin refs/heads/main`.
