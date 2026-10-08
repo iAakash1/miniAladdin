@@ -26,7 +26,7 @@ export default function GatesPage() {
           <Panel title="Why the column totals matter">
             <p style={{ margin: 0, fontSize: 'var(--t-meta)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
               A gate no model has ever cleared is a statement about the research
-              programme, not about any model in it. More search cannot move a
+              program, not about any model in it. More search cannot move a
               threshold that nothing has met; either the measurement is missing or
               the bar is where it should be and the answer is no.
             </p>

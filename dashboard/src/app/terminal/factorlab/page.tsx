@@ -30,7 +30,7 @@ export default function FactorLabPage() {
           <Panel title="Overlap inflation">
             <p style={{ margin: 0, fontSize: 'var(--t-meta)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
               A 21-session label sampled every 5 sessions shares information with
-              its four neighbours. A t-statistic that ignores that counts the same
+              its four neighbors. A t-statistic that ignores that counts the same
               evidence more than once. Both figures are shown, so how close the
               naive reading came to a false positive is visible.
             </p>

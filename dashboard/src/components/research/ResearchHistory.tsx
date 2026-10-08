@@ -178,8 +178,8 @@ export default function ResearchHistory({ ticker, mode = 'beginner' }: { ticker:
   if (!signedIn) return null
   if (failed) {
     return (
-      <Panel title="Research history" subtitle={`your past analyses of ${ticker}`}>
-        <StateBlock state="unavailable" title="Could not be read" detail="History is temporarily unavailable." />
+      <Panel title="Research log" subtitle={`your past analyses of ${ticker}`}>
+        <StateBlock state="unavailable" title="Could not be read" detail="Your research log is temporarily unavailable." />
       </Panel>
     )
   }
@@ -187,9 +187,9 @@ export default function ResearchHistory({ ticker, mode = 'beginner' }: { ticker:
 
   return (
     <Panel
-      title="Research history"
+      title="Research log"
       subtitle={`your past analyses of ${ticker}`}
-      actions={<Link href="/terminal/vault" className="sys-meta sys-meta--strong">Open vault →</Link>}
+      actions={<Link href="/terminal/vault" className="sys-meta sys-meta--strong">Open research log →</Link>}
     >
       {items.length === 0 ? (
         <EmptyLine label="First analysis">

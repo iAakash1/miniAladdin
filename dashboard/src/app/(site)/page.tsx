@@ -38,7 +38,7 @@ const FAQ = [
   },
   {
     q: 'Is this investment advice?',
-    a: 'No. OmniSignal is a research and education tool. It summarises public data into a structured, repeatable readout; it does not know your situation, and a signal is a summary of evidence, not a recommendation. Decisions and their consequences remain yours.',
+    a: 'No. OmniSignal is a research and education tool. It summarizes public data into a structured, repeatable readout; it does not know your situation, and a signal is a summary of evidence, not a recommendation. Decisions and their consequences remain yours.',
   },
   {
     q: 'Is Pro a subscription?',
@@ -111,10 +111,10 @@ export default function LandingPage() {
             <p className="lp-eyebrow">Methodology · {q?.modelVersion}</p>
             <h2 className="lp-h2">Five families, one composite, a gated sleeve</h2>
             <p className="lp-section__lede">
-              Each factor is normalised with outlier-resistant statistics against the company’s own history
+              Each factor is normalized with outlier-resistant statistics against the company’s own history
               and volatility, then weighted into its family; the families are weighted into one composite.
               Macro stress scales only the momentum sleeve — value, quality and news are never
-              macro-suppressed — and in high-volatility regimes momentum is halved in favour of reversal.
+              macro-suppressed — and in high-volatility regimes momentum is halved in favor of reversal.
             </p>
           </header>
 
@@ -150,7 +150,7 @@ export default function LandingPage() {
               </div>
               <ul className="lp-rules">
                 <li><b>Unknown is not zero.</b> A factor that could not be computed is reported as missing and costs confidence.</li>
-                <li><b>One source is not agreement.</b> Readings from a single vendor are labelled single-source.</li>
+                <li><b>One source is not agreement.</b> Readings from a single vendor are labeled single-source.</li>
                 <li><b>Disagreement is shown, not averaged.</b> Conflicting vendor figures appear side by side.</li>
                 <li><b>Stale is not current.</b> Every observation carries its own date.</li>
               </ul>

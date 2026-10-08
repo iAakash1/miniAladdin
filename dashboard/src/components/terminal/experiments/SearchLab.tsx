@@ -100,7 +100,7 @@ const STAGE_LABEL: Record<string, string> = {
   screen: 'screen — every family, coarse',
   tune: 'tune — the families that competed',
   context: 'context — arms × targets',
-  robustness: 'robustness — neighbours of each finalist',
+  robustness: 'robustness — neighbors of each finalist',
 }
 
 /**
@@ -334,7 +334,7 @@ export default function SearchLab({ experimentId = 'EXP-007' }: { experimentId?:
           badgeTone="warn"
         >
           <Prose size="tight">
-            Sorted by information coefficient, coloured by diagnosis. Those two
+            Sorted by information coefficient, colored by diagnosis. Those two
             orderings disagree, and where they disagree the diagnosis is the one
             to read.
           </Prose>

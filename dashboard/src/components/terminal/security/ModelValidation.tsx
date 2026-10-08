@@ -174,7 +174,7 @@ export default function ModelValidation({ ticker }: { ticker: string }) {
             <Prose caution>
               The most recent window is running materially below the lifetime
               average. A single lifetime figure would hide that, which is the
-              reason both are shown together rather than one summarising the other.
+              reason both are shown together rather than one summarizing the other.
             </Prose>
           ) : null}
         </Panel>

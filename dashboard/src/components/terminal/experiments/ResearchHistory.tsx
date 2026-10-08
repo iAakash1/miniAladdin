@@ -70,24 +70,24 @@ export default function ResearchHistory() {
 
   if (error) {
     return (
-      <Panel title="Research history" state="unavailable">
-        <StateBlock state="unavailable" title="The research history could not be read" detail={`${readerError(error)}. No list is shown in its place.`} />
+      <Panel title="Study history" state="unavailable">
+        <StateBlock state="unavailable" title="The study history could not be read" detail={`${readerError(error)}. No list is shown in its place.`} />
       </Panel>
     )
   }
   if (!data) {
-    return <Panel title="Research history" state="waking" flush><TableSkeleton rows={6} columns={3} /></Panel>
+    return <Panel title="Study history" state="waking" flush><TableSkeleton rows={6} columns={3} /></Panel>
   }
   if (data.experiments.length === 0) {
     return (
-      <Panel title="Research history">
+      <Panel title="Study history">
         <StateBlock state="unknown" title="No studies recorded" detail="An empty history is reported as empty, not as a clean record." />
       </Panel>
     )
   }
   return (
     <Panel
-      title="Research history"
+      title="Study history"
       // From the rows' own manifest flags, as the status bar reads it. The
       // summary's fixed "SEALED" claims more than any study records: every
       // manifest says untouched, and nothing verifies a seal.

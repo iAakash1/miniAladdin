@@ -15,7 +15,7 @@ const VIEWS = [
     key: 'signal',
     label: 'Signal',
     title: 'The verdict, decomposed',
-    lede: 'Five factor families, their weights, and every factor the engine computed — its value, its standardised score and what it contributed.',
+    lede: 'Five factor families, their weights, and every factor the engine computed — its value, its standardized score and what it contributed.',
   },
   {
     key: 'evidence',
@@ -73,7 +73,7 @@ export default function ProductTour() {
               <header className="sys-panel-head">
                 <div className="sys-panel-head__title">
                   <h2 className="sys-panel-title">Every factor</h2>
-                  <span className="sys-panel-sub">value, standardised score and contribution to the composite</span>
+                  <span className="sys-panel-sub">value, standardized score and contribution to the composite</span>
                 </div>
               </header>
               <div className="sys-panel-body sys-panel-body--flush">

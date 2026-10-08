@@ -221,7 +221,7 @@ export default function MarketStats({ symbol }: { symbol: string }) {
     method: 'last close ÷ close twenty-one sessions earlier − 1. A price return, excluding dividends.',
     failsWhen: ['The window spans a split the series was not adjusted for.'],
   })
-  add('Realised volatility', pct(t.volatility), 'percent', {
+  add('Realized volatility', pct(t.volatility), 'percent', {
     digits: 1,
     claim: 'Daily returns varied this much, expressed at an annual rate.',
     method: `Standard deviation of daily returns × √252, over ${WINDOW}.`,

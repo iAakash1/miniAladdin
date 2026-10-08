@@ -32,7 +32,7 @@ export default function RoutingFigure() {
       </div>
       <div className="rt-panel">
         <p className="rt-k">Research evidence · fan-out and reconcile</p>
-        <svg viewBox="0 0 300 120" className="rt-svg" role="img" aria-label="A request goes to vendors A to E in parallel; their answers are normalised and reconciled into one evidence record with agreement and conflicts kept">
+        <svg viewBox="0 0 300 120" className="rt-svg" role="img" aria-label="A request goes to vendors A to E in parallel; their answers are normalized and reconciled into one evidence record with agreement and conflicts kept">
           <rect className="rt-req" x="6" y="44" width="58" height="32" rx="6" />
           <text className="rt-t" x="35" y="64" textAnchor="middle">request</text>
           {[14, 36, 58, 80, 102].map((y, i) => (
@@ -44,7 +44,7 @@ export default function RoutingFigure() {
             </g>
           ))}
           <rect className="rt-rec" x="178" y="40" width="114" height="40" rx="7" />
-          <text className="rt-t rt-t--sm" x="235" y="56" textAnchor="middle">normalise · reconcile</text>
+          <text className="rt-t rt-t--sm" x="235" y="56" textAnchor="middle">normalize · reconcile</text>
           <text className="rt-t rt-t--xs rt-t--dim" x="235" y="70" textAnchor="middle">agree · single · conflict</text>
         </svg>
         <p className="rt-note">Used for the evidence behind a signal. Disagreement is kept side by side; a vendor that fails is named.</p>

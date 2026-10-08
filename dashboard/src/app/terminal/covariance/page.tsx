@@ -30,7 +30,7 @@ export default function CovariancePage() {
             <p style={{ margin: 0, fontSize: 'var(--t-meta)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
               The ratio of largest to smallest eigenvalue. Large means the matrix
               is nearly singular in some direction — and that direction is exactly
-              where an unconstrained optimiser puts its largest, least justified
+              where an unconstrained optimizer puts its largest, least justified
               position.
             </p>
           </Panel>

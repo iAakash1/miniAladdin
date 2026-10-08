@@ -61,7 +61,7 @@ export interface QuantSuccess<T> {
 
 export type QuantResult<T> = QuantSuccess<T> | QuantFailure
 
-/** Default ceiling. Render's free tier cold-starts, so this is generous. */
+/** Default ceiling. The first request after a release meets a fresh container, so this is generous. */
 const DEFAULT_TIMEOUT_MS = 30_000
 
 /**
@@ -113,24 +113,22 @@ function remedyFor(kind: QuantFailureKind, path: string): string {
   switch (kind) {
     case 'network':
       return (
-        'The request never reached a server. Usually the backend is asleep ' +
-        '(Render free tier cold-starts) or the deployment is mid-rollout. ' +
-        'Retry in a few seconds.'
+        'The request never reached the service. It is usually starting up or ' +
+        'being updated. Retry in a few seconds.'
       )
     case 'timeout':
-      return 'The backend did not answer in time — most likely a cold start. Retry.'
+      return 'The service did not answer in time — most likely it was starting up. Retry.'
     case 'auth':
       return 'Sign in again; the session was rejected.'
     case 'not_found':
       return (
-        `${path} was not found. Either the session is signed out (Clerk answers ` +
-        'unauthenticated API calls with a 404 rewrite, not a 401), or the ' +
-        'deployed backend build predates this endpoint.'
+        `${path} was not found. The service has no such page or record, ` +
+        'or it is being updated and does not have it yet.'
       )
     case 'malformed':
-      return 'The backend answered, but not with JSON. It is likely serving an error page.'
+      return 'The service answered, but not with data this page can read. It may be showing an error page.'
     default:
-      return 'The backend returned an error. Check the service logs.'
+      return 'The service returned an error. Try again in a moment.'
   }
 }
 

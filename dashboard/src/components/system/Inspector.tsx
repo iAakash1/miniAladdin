@@ -109,8 +109,8 @@ export default function Inspector({
             ))}
           </div>
           <p style={{ margin: 'var(--d-2) 0 0', fontSize: 'var(--t-micro)', color: 'var(--ink-faint)', lineHeight: 'var(--lh-body)' }}>
-            Relations come from the research pipeline, not from this payload, so
-            they are offered even when the response does not mention them.
+            Relations come from the research pipeline, not from this record, so
+            they are offered even when the record does not mention them.
           </p>
         </section>
 

@@ -93,7 +93,7 @@ export default function CrossSection({
     { key: 'score', header: 'Score', unit: 'factor score', numeric: true, sort: (r) => n(r.score), render: (r) => <Value value={n(r.score)} digits={4} signed tone /> },
     { key: 'pct', header: 'Percentile', unit: 'in the universe', numeric: true, sort: (r) => n(r.percentile), render: (r) => <Value value={n(r.percentile)} digits={3} /> },
     {
-      key: 'fwd', header: 'Forward return', unit: 'realised', numeric: true, sort: (r) => n(r.forward_return),
+      key: 'fwd', header: 'Forward return', unit: 'realized', numeric: true, sort: (r) => n(r.forward_return),
       render: (r) => (
         <Value
           value={n(r.forward_return)}
@@ -165,7 +165,7 @@ export default function CrossSection({
           <Panel title="Score distribution" subtitle={active ?? undefined}>
             <Histogram values={ranks.map((r) => r.score)} unit="factor score" title="" marks={[{ at: 0, label: '0', color: 'var(--rule-focus)' }]} />
           </Panel>
-          <Panel title="Score against realised return" subtitle="one date, not evidence">
+          <Panel title="Score against realized return" subtitle="one date, not evidence">
             {ranks.some((r) => r.forward_return !== null) ? (
               <>
                 <Scatter

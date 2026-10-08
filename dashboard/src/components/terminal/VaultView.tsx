@@ -126,7 +126,7 @@ export default function VaultView() {
         <PageHeader
           nested
           eyebrow="Workspace"
-          title="Research Vault"
+          title="Research log"
           lede="Every analysis you run is recorded to your account automatically. Reopen any past report exactly as it was, or compare two runs to see which factors moved the verdict."
         />
       </div>
@@ -138,7 +138,7 @@ export default function VaultView() {
               up on its own — see ui/Controls `Segmented`. */}
           <span style={{ alignSelf: 'flex-start' }}>
             <Segmented
-              label="Vault section"
+              label="Research log section"
               value={mode.view}
               onChange={(view) => setMode({ view })}
               options={[
@@ -302,7 +302,7 @@ function HistoryBrowser({ onOpen }: { onOpen: (mode: Mode) => void }) {
 
       {failed && (
         <EmptyState
-          title="Your research history couldn't be loaded"
+          title="Your research log couldn't be loaded"
           description="The persistence service didn't respond — nothing is lost. Try again in a moment."
           action={
             <button type="button" className="sys-btn" onClick={() => setReloadKey((k) => k + 1)}>

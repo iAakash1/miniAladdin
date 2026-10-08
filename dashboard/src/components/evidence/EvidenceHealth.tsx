@@ -41,7 +41,7 @@ export default function EvidenceHealth({
       ]} />
       <Prose size="fine">
         Completeness is the engine&apos;s coverage measure. Source count and
-        conflicts come from the same provenance payload used to build this
+        conflicts come from the same provenance record used to build this
         analysis; missing values stay unreported rather than being treated as
         clean.
       </Prose>

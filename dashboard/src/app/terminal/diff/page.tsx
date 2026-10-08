@@ -26,7 +26,7 @@ export default function DiffPage() {
             <p style={{ margin: 0, fontSize: 'var(--t-meta)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
               Why a result moved. Two experiments differ in many ways at once, so
               attributing a change to any single one of them is not something a
-              diff can support. Nothing here is labelled a cause.
+              diff can support. Nothing here is labeled a cause.
             </p>
           </Panel>
           <Panel title="The trial count">

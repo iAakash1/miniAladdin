@@ -53,7 +53,7 @@ test('the interface says "sign in" for a 401 and does not say "nothing found"', 
 
 test('a research run that ended on a 401 or a 503 is not described as an unknown symbol', () => {
   const state = readFileSync(join(SRC, 'components', 'company', 'SignalState.tsx'), 'utf8')
-  assert.match(state, /run\.code === 404 \? 'No provider recognised this symbol\.'/)
+  assert.match(state, /run\.code === 404 \? 'No provider recognized this symbol\.'/)
   assert.match(state, /run\.code === 401 \? 'Your session ended/)
   assert.match(state, /run\.code === 503 \? 'The price providers did not answer\. This is an outage, not a missing symbol\./)
 })

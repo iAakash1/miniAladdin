@@ -488,7 +488,7 @@ export default function SessionsView() {
             {[
               ['/terminal/graph', 'Knowledge graph', 'Entities and how they connect'],
               ['/terminal/factors', 'Factor Lab', 'Does the engine’s ranking predict anything?'],
-              ['/terminal/vault', 'Research Vault', 'Every analysis you have run'],
+              ['/terminal/vault', 'Research log', 'Every analysis you have run'],
               ['/terminal/validation', 'Validation', 'How well the model performs'],
             ].map(([href, label, description]) => (
               <Link key={href} href={href} className="ws-jump__item">

@@ -174,7 +174,7 @@ function Masthead({ a }: { a: Analysis }) {
     // 23 Sep bar while three vendors agreed on 224.58 for 24 Sep), so an
     // undated figure here read as the current price. The vendor consensus
     // records no basis for how it was chosen and stays beside its readings.
-    [a.technicalIntelligence?.as_of ? `Close ${a.technicalIntelligence.as_of}` : 'Analysed price',
+    [a.technicalIntelligence?.as_of ? `Close ${a.technicalIntelligence.as_of}` : 'Analyzed price',
       a.price !== null ? a.price.toFixed(2) : '—', undefined],
   ]
   return (

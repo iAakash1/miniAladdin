@@ -19,7 +19,7 @@ export default function TimelinePage() {
         <>
           <Panel title="What this answers">
             <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
-              What has happened in the research programme recently, and in what
+              What has happened in the research program recently, and in what
               order.
             </p>
           </Panel>

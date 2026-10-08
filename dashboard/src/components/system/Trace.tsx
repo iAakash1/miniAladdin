@@ -157,7 +157,7 @@ export function Trace({ label = 'fwd_rank_21', model = 'gradient_boosting' }: {
           <StateBlock
             state="unavailable"
             title="No lineage is recorded for this model"
-            detail="The provenance endpoint answered and named no stages. A model with no recorded lineage cannot be traced, which is a fact about the record rather than about this page."
+            detail="The provenance service answered and named no stages. A model with no recorded lineage cannot be traced, which is a fact about the record rather than about this page."
           />
         ) : (
           <ol className="sys-trace">

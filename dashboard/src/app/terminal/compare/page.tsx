@@ -34,13 +34,13 @@ function SecurityContext() {
         <Prose size="tight">
           Vendor fundamentals, read fresh for each company and shared with
           their security pages. No model scores either side: nothing in the
-          research programme is deployed, and a comparison is not a view.
+          research program is deployed, and a comparison is not a view.
         </Prose>
       </Panel>
       <Panel title="Reading a difference">
         <Prose size="tight">
           A difference in a percentage is percentage points; a difference
-          between two multiples is a ratio. Colour appears only where the
+          between two multiples is a ratio. Color appears only where the
           measure declares which direction is better — a lower price-to-earnings
           is the cheaper one, a lower current ratio is the weaker one.
         </Prose>
@@ -55,11 +55,11 @@ function ModelContext() {
       <Panel title="What this answers">
         <Prose>How two or more models differ, field by field, against a baseline.</Prose>
       </Panel>
-      <Panel title="Why most deltas are grey">
+      <Panel title="Why most deltas are gray">
         <Prose size="tight">
-          A difference is coloured only where the metric declares a direction.
+          A difference is colored only where the metric declares a direction.
           Turnover of 18× is not worse than 6× without knowing the strategy,
-          and colouring it red would be an opinion dressed as a measurement.
+          and coloring it red would be an opinion dressed as a measurement.
         </Prose>
       </Panel>
       <Panel title="Not comparable">
@@ -112,7 +112,7 @@ export default async function ComparePage({
               The research archive holds a model comparison over the same
               fields for all registered models.{' '}
               <a href="/terminal/compare">Open it</a> — it is about the
-              research programme, not about {a} or {b}.
+              research program, not about {a} or {b}.
             </Prose>
           </Panel>
         </>

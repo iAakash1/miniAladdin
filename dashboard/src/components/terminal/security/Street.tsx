@@ -224,7 +224,7 @@ export default function Street({ symbol }: { symbol: string }) {
                   failsWhen: [
                     'Read as a forecast rather than as a summary of opinion.',
                     targetSpread !== null
-                      ? `The high is ${targetSpread.toFixed(0)}% above the low, so the mean summarises a wide disagreement rather than a settled view.`
+                      ? `The high is ${targetSpread.toFixed(0)}% above the low, so the mean summarizes a wide disagreement rather than a settled view.`
                       : 'The spread of contributing targets is unknown.',
                     'Compared with another vendor’s mean — the two are means of different panels.',
                   ],

@@ -64,7 +64,7 @@ export default function BeginnerHome() {
             autoComplete="off"
             spellCheck={false}
           />
-          <button type="submit">Analyse</button>
+          <button type="submit">Analyze</button>
         </form>
       </Panel>
 

@@ -85,7 +85,7 @@ export default function CovarianceLab() {
     },
     {
       key: 'cond', header: 'Condition', unit: 'λmax/λmin', numeric: true, sort: (r) => r.condition_number,
-      render: (r) => <Value value={r.condition_number} kind="count" title="Large means near-singular in some direction, where an optimiser puts its least justified bets" />,
+      render: (r) => <Value value={r.condition_number} kind="count" title="Large means near-singular in some direction, where an optimizer puts its least justified bets" />,
     },
     {
       key: 'shrink', header: 'Shrinkage', unit: 'intensity 0 to 1', numeric: true, sort: (r) => r.shrinkage,

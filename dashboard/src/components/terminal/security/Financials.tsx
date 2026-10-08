@@ -284,7 +284,7 @@ export default function Financials({ symbol }: { symbol: string }) {
           </ul>
           <p>
             Each figure above is a real filed fact. Together they are not a
-            reconciled statement, which means the concepts for one labelled
+            reconciled statement, which means the concepts for one labeled
             year are not all drawn from the same context. Read them
             individually; do not compute across them.
           </p>

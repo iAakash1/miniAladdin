@@ -327,7 +327,7 @@ export default function EvidenceChain() {
           <StateBlock
             state="unknown"
             title="No model selected"
-            detail="Choose a row above. The workspace then shows the evidence chain for that model — its data, its validation geometry, its behaviour after costs, its multiple-testing correction, and the specific gates standing between it and promotion."
+            detail="Choose a row above. The workspace then shows the evidence chain for that model — its data, its validation geometry, its behavior after costs, its multiple-testing correction, and the specific gates standing between it and promotion."
           />
         </Panel>
       ) : (

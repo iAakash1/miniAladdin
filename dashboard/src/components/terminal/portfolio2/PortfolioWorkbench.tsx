@@ -385,7 +385,7 @@ export default function PortfolioWorkbench() {
           ) : <StateBlock
               state="unavailable"
               title="No allocation diagnostics recorded"
-              detail="The optimiser returned weights without its constraint report, so which constraints bound and which were slack is unknown for this book."
+              detail="The optimizer returned weights without its constraint report, so which constraints bound and which were slack is unknown for this book."
             />}
         </Panel>
       </Grid>

@@ -125,7 +125,7 @@ export default function GateMatrix() {
       <ObjectHeader
         glyph="⊟"
         name="Gates"
-        kind="what blocks promotion, across the programme"
+        kind="what blocks promotion, across the program"
         state={universal.length ? 'blocked' : 'recorded'}
         detail={universal.length ? `${universal.length} gates no model has cleared` : 'every gate cleared by at least one model'}
         facts={[
@@ -144,7 +144,7 @@ export default function GateMatrix() {
         <Panel title="Blocked for everyone" state="blocked">
           <p style={{ margin: '0 0 var(--d-2)', fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)', maxWidth: '86ch' }}>
             No registered model has met {universal.length === 1 ? 'this gate' : 'these gates'}.
-            That is a statement about the research programme rather than about any
+            That is a statement about the research program rather than about any
             model in it: more search will not move a threshold that nothing has
             ever cleared.
           </p>

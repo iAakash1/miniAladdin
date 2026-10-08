@@ -146,10 +146,10 @@ export default function DataWorkbench() {
 
   if (error) {
     return (
-      <Panel title="Data catalogue" state="unavailable">
+      <Panel title="Data catalog" state="unavailable">
         <StateBlock
           state="unavailable"
-          title="The catalogue could not be read"
+          title="The catalog could not be read"
           detail={`${readerError(error)}. No values are shown in its place, because a data contract that cannot be read is not a data contract that is empty.`}
         />
       </Panel>
@@ -160,7 +160,7 @@ export default function DataWorkbench() {
     return (
       <>
         <StripSkeleton items={7} />
-        <Panel title="Catalogue" state="waking" flush><TableSkeleton rows={10} columns={6} /></Panel>
+        <Panel title="Catalog" state="waking" flush><TableSkeleton rows={10} columns={6} /></Panel>
       </>
     )
   }
@@ -271,7 +271,7 @@ export default function DataWorkbench() {
       </Toolbar>
 
       <Panel
-        title="Catalogue"
+        title="Catalog"
         subtitle={tab === 'datasets' ? `${datasets.total} datasets` : `${features.feature_count} features`}
         flush
         actions={

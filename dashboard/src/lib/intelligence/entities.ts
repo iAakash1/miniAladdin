@@ -46,7 +46,7 @@ export const TYPE_LABELS: Record<EntityType, string> = {
   answer: 'Answers',
   company: 'Companies',
   route: 'Go to',
-  vault: 'Research Vault',
+  vault: 'Research log',
   watchlist: 'Watchlists',
   holding: 'Portfolio',
   glossary: 'Learn',

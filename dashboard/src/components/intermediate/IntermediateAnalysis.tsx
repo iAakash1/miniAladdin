@@ -66,10 +66,10 @@ export default function IntermediateAnalysis({ ticker }: { ticker: string }) {
   }, [ticker])
 
   if (load.kind === 'loading') {
-    return <StateBlock state="waking" title={`Analysing ${ticker}`} detail="providers, scoring and evidence" />
+    return <StateBlock state="waking" title={`Analyzing ${ticker}`} detail="providers, scoring and evidence" />
   }
   if (load.kind === 'error') {
-    return <StateBlock state="unavailable" title={`${ticker} could not be analysed`} detail={load.detail} />
+    return <StateBlock state="unavailable" title={`${ticker} could not be analyzed`} detail={load.detail} />
   }
 
   const a = load.analysis

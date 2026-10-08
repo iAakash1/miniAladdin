@@ -218,7 +218,7 @@ export default function SignalState({ run, onRetry, onUpgrade }: {
           state="error"
           title="The research run did not complete"
           detail={`${
-            run.code === 404 ? 'No provider recognised this symbol.'
+            run.code === 404 ? 'No provider recognized this symbol.'
               : run.code === 401 ? 'Your session ended before the run could be read; sign in again.'
                 : run.code === 503 ? 'The price providers did not answer. This is an outage, not a missing symbol.'
                   : 'An upstream provider or the research service failed before a result was produced.'

@@ -406,7 +406,7 @@ export default function GraphWorkspace() {
           ) : !layout || layout.nodes.length === 0 ? (
             <EmptyState
               title={`No relationships recorded for ${symbols}`}
-              description="The graph is assembled from SEC filings and Wikidata, which cover large US issuers best. Nothing is inferred, so a company with no filed or catalogued relationships shows an empty graph rather than a guessed one."
+              description="The graph is assembled from SEC filings and Wikidata, which cover large US issuers best. Nothing is inferred, so a company with no filed or cataloged relationships shows an empty graph rather than a guessed one."
               action={
                 symbols !== 'AAPL' ? (
                   <button
@@ -556,7 +556,7 @@ export default function GraphWorkspace() {
                 <button type="button" role="menuitem" className="ctxmenu__item"
                         onClick={() => { setParam('symbols', menu.id.split(':')[1] ?? ''); setMenu(null) }}
                         disabled={node.type !== 'company'}>
-                  Centre the graph here
+                  Center the graph here
                 </button>
               </div>
             )

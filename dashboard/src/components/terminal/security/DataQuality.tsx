@@ -506,7 +506,7 @@ export default function DataQuality({ symbol }: { symbol: string }) {
                 {format(lowest.price, 'currency').text} and {highest.provider}{' '}
                 at {format(highest.price, 'currency').text}
                 {typeof consensus?.dispersion_pct === 'number'
-                  ? `, which the payload reports as a dispersion of ${consensus.dispersion_pct}%`
+                  ? `, which the research run reports as a dispersion of ${consensus.dispersion_pct}%`
                   : ''}. Those two figures are {extremes.reason}, so
                 differencing them measures the change of basis, not a
                 disagreement about price.
@@ -533,11 +533,11 @@ export default function DataQuality({ symbol }: { symbol: string }) {
 
           {typeof consensus?.consensus === 'number' ? (
             <Prose size="fine">
-              The payload also carries a single consensus figure of{' '}
+              The run also carries a single consensus figure of{' '}
               {format(consensus.consensus, 'currency').text} and does not
               record how it was chosen. It is shown here rather than in the
               price above the chart, and it is not used to compute anything:
-              an unlabelled aggregation of readings on different bases is not
+              an unlabeled aggregation of readings on different bases is not
               a price this product is willing to assert.
             </Prose>
           ) : null}
