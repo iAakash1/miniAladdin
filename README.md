@@ -29,17 +29,29 @@ The design premise here is that **the evidence is the product**:
 | What is revenue? | Which vendor, for which fiscal period, under which definition — and does the 10-K it was extracted from still say that? |
 | What is the sentiment? | Which vendor scored it, on what scale, over how many articles, and did anyone independently corroborate the story? |
 
-## The product
+## The evidence model, as it first appeared
 
-Every image below was captured from the **production deployment** at
-[omnisignalterminal.vercel.app](https://omnisignalterminal.vercel.app) against
-AAPL on 2026-08-25. Nothing here is a mockup, but the terminal has been rebuilt
-since (a new shell, navigation and design system), so these show the earlier
-interface and are due to be recaptured. Full capture metadata, including which
-panels production did *not* yet have, is in
-[docs/screenshots/README.md](docs/screenshots/README.md).
+> **Historical captures — not the current interface.** Every image in this
+> section was taken from the production deployment on **2026-08-25**, against
+> AAPL, before the terminal was rebuilt (a new shell, navigation, design system
+> and component set, October 2026). Nothing in them is a mockup, and they are
+> kept because they show the *evidence model* working on real vendors, which has
+> not changed: every number carries its sources, disagreement is preserved, and a
+> failure is a named state. They do not show today's layout, spacing, controls or
+> panels, and several panels shown here have since been rebuilt or removed.
+> Capture metadata, including which panels production did not yet have, is in
+> [docs/screenshots/README.md](docs/screenshots/README.md).
+>
+> **The interface today** is a workbench at `/terminal/*`: a navigation rail
+> grouped by question, a status footer that names provider health, macro regime
+> and governance state, and per-workspace views for the company, the market, the
+> evidence behind a verdict, models, experiments, factors and the book. There are
+> no current screenshots in this repository: a faithful capture needs a signed-in
+> browser session, which the build and test pipeline does not have, and a
+> screenshot that is not of the current build would repeat the mistake this note
+> corrects.
 
-### Company overview
+### Company overview (2026-08-25 capture)
 
 Identity from Logo.dev, last close, and — the part a single-vendor dashboard
 cannot print — how many independent vendors agreed and how far apart they were.
@@ -151,7 +163,7 @@ flowchart TB
         end
 
         CHAIN["FallbackChain"]
-        ADAPT["15 vendor adapters"]
+        ADAPT["31 vendor adapters"]
         CACHE["Cache + SingleFlight"]
     end
 
@@ -159,9 +171,9 @@ flowchart TB
     PIT["point-in-time dataset"]
     STUDY["study + registry"]
     SUPA[("Supabase Postgres")]
-    EXT{{"17 external APIs"}}
+    EXT{{"external data APIs"}}
 
-    U --> NEXT -->|"/api/* rewrite"| API
+    U --> NEXT -->|"/api/* server-side proxy<br/>(Google-signed identity)"| API
     API --> RESEARCH & PORT & ML
     RESEARCH --> FABRIC & CHAIN & VIS & PROV
     PORT --> CHAIN
@@ -608,22 +620,25 @@ not support is worse than no prediction.
 * **Gated promotion** — evidence must exist *and* say the right thing. A model
   with a complete evidence bundle showing it loses money is refused candidacy.
 
-### The research terminal
+### The research workbench
 
-`/quant` renders all of it — twelve sections and seven charts, every scientific
-number computed in Python and merely displayed by the frontend. It is built to
-read the same whether the research succeeded or failed:
+The research results are read in the terminal: **Evidence** (the verdict and what
+it rests on), **Gates** (the holdout preflight), **Models**, **Experiments** and
+**Factors** (the ablation), and **Book** (the allocators), under `/terminal/*`.
+Every scientific number is computed in Python and merely displayed by the
+frontend, and the workbench reads the same whether the research succeeded or
+failed. `/quant`, the page that once rendered all of this on one screen, now
+redirects to Evidence.
 
-![Quant research overview](docs/screenshots/quant/01-overview-LOCAL.png)
+`NO_MODEL` is read from the model registry, not from the leaderboard beside it,
+so nothing measured on the page can change it. Regime rows carry their date
+counts. Every ablation contrast reads `NO IMPROVEMENT`. The void study stays
+listed.
 
-`NO_MODEL` is read from the model registry, not from the leaderboard below it, so
-nothing measured on the page can change it. Regime rows carry their date counts.
-Every ablation contrast reads `NO IMPROVEMENT`. The void study stays listed.
-
-![Feature-family ablation](docs/screenshots/quant/04-ablation-LOCAL.png)
-
-Screenshots are **LOCAL** and unverified in production — see
-[`docs/screenshots/quant/README.md`](docs/screenshots/quant/README.md).
+The earlier `/quant` page was captured locally in 2026-08 and was never verified
+in production; those images are kept for the record in
+[`docs/screenshots/quant/`](docs/screenshots/quant/README.md) and are not shown
+here, because they depict a page that no longer exists.
 
 ### Packaged, but not promoted
 
@@ -804,7 +819,7 @@ reason. The ones that came from a measured failure rather than a preference:
 |---|---|---|
 | `FRED_API_KEY` | yes | Macro series (free: fred.stlouisfed.org) |
 | `ALPHA_VANTAGE_KEY` | optional | Fundamentals (free tier: 25 req/day) |
-| `NEWSAPI_KEY` | optional | Premium headlines (falls back to Yahoo RSS) |
+| `NEWSAPI_KEY` | optional | One of several news vendors. A key NewsAPI rejects is reported as `AUTH_FAILURE`, left alone for 15 minutes between probes, and the other vendors serve the news; it never blocks the news surface |
 | `DEEPSEEK_API_KEY` | optional | Grounded final Research writer |
 | `DEEPSEEK_FAST_MODEL` | optional | Fast-mode writer; default `deepseek-flash` |
 | `DEEPSEEK_PRO_MODEL` | optional | Deep-mode writer after Groq analysis; default `deepseek-v4-pro` |
@@ -829,6 +844,7 @@ the signal; the macro board and the official record show them as context.
 | `SUPABASE_SERVICE_ROLE_KEY` | optional | Persistence: server-only key (bypasses RLS by design — never ships to a browser) |
 | `CLERK_JWKS_URL` | optional | Verify Clerk session JWTs (`https://<instance>.clerk.accounts.dev/.well-known/jwks.json`) |
 | `CLERK_ISSUER` | optional | Expected `iss` claim (`https://<instance>.clerk.accounts.dev`) |
+| `CLERK_AUTHORIZED_PARTIES` | optional | Origins whose Clerk sessions are accepted, comma-separated (checked against the token's `azp`). Unset checks nothing; set it to the production origin(s) once a live token's `azp` has been confirmed |
 | `ALLOWED_ORIGINS` | optional | CORS allowlist, comma-separated |
 | `LOG_LEVEL` | optional | Default `INFO` |
 
@@ -847,6 +863,7 @@ with persistence disabled and analysis fully functional.
 | `BACKEND_AUTH_MODE` | required | `google_oidc` for private Cloud Run; `none` for Render rollback |
 | `GCP_PROJECT_NUMBER` · `GCP_WORKLOAD_IDENTITY_POOL_ID` · `GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID` · `GCP_SERVICE_ACCOUNT_EMAIL` · `CLOUD_RUN_AUDIENCE` | Cloud Run only | Non-secret identifiers for keyless Vercel OIDC federation |
 | `NEXT_PUBLIC_SITE_URL` | optional | Canonical URL for metadata |
+| `CSP_MODE` | optional | `enforce` (default; anything unrecognised also enforces), `report-only` (the browser reports but does not block) or `off`. See [docs/CONTENT_SECURITY_POLICY.md](docs/CONTENT_SECURITY_POLICY.md) |
 
 Keys live **only** in hosting dashboards and local `.env` files (gitignored).
 CI runs gitleaks on full history; `pre-commit install` adds the same scan locally.

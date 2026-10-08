@@ -97,3 +97,53 @@ def test_the_alpaca_host_is_documented_as_fixed():
     """It is a security control, and a reader must not think it is a knob."""
     assert "paper-api.alpaca.markets" in ENV_EXAMPLE
     assert "not configurable" in ENV_EXAMPLE.lower()
+
+
+README = (ROOT / "README.md").read_text()
+SCREENSHOTS = (ROOT / "docs" / "screenshots" / "README.md").read_text()
+
+
+def _vendor_adapters() -> int:
+    """Every concrete adapter: a class that subclasses VendorClient directly."""
+    count = 0
+    for path in (ROOT / "src").rglob("*.py"):
+        count += len(re.findall(r"^class \w+\(VendorClient\)", path.read_text(), re.M))
+    return count
+
+
+def test_the_readme_adapter_count_is_the_real_count():
+    """The README said 15 adapters when there were 31. A number in prose has no
+    owner, so it is counted from the source instead."""
+    claimed = re.findall(r"(\d+) vendor adapters", README)
+    assert claimed, "the README no longer states an adapter count; update this test"
+    assert {int(n) for n in claimed} == {_vendor_adapters()}, (
+        f"README says {claimed}; the source defines {_vendor_adapters()} "
+        "VendorClient subclasses"
+    )
+
+
+def test_screenshots_are_not_presented_as_the_current_interface():
+    """The images are dated captures of an interface that has since been rebuilt.
+    They stay as history, but only while they say so."""
+    prose = re.sub(r"\s*\n>?\s*", " ", README).lower()
+    assert "2026-08-25" in prose
+    assert "historical captures \u2014 not the current interface" in prose
+    assert "historical" in SCREENSHOTS.lower()
+    # No claim that the retired page renders the research views.
+    assert "`/quant` renders" not in README
+
+
+def test_the_deployment_story_names_neither_a_retired_host_as_live():
+    """Render is rollback-only. A reader following the README must not be sent
+    to the retired host as if it were the product's backend."""
+    live_claim = re.search(r"(?im)^.*\b(backend|api)\b.*\bhosted on render\b.*$", README)
+    assert live_claim is None, live_claim.group(0) if live_claim else ""
+
+
+def test_the_pages_linked_from_the_readme_exist():
+    """The README links `docs/CONTENT_SECURITY_POLICY.md` for CSP_MODE and the
+    Clerk instance document for the auth dependency; a link to nothing is the
+    same defect as a claim about nothing."""
+    links = set(re.findall(r"\]\((docs/[\w./-]+\.md)(?:#[\w-]*)?\)", README))
+    missing = sorted(link for link in links if not (ROOT / link).is_file())
+    assert not missing, f"README links to files that do not exist: {missing}"

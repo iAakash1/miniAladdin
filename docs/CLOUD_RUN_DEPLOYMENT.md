@@ -37,7 +37,7 @@ credential-parity gate is therefore **closed**. The intended mappings are:
 | `groq-api-key` | `GROQ_API_KEY` | Analyst stage and bounded fallback |
 | `alpha-vantage-key` | `ALPHA_VANTAGE_KEY` | Fundamentals and provider fallback |
 | `fred-api-key` | `FRED_API_KEY` | Macro regime inputs |
-| `newsapi-key` | `NEWSAPI_KEY` | Primary news provider |
+| `newsapi-key` | `NEWSAPI_KEY` | Optional news vendor (one of several; the stored value is currently rejected by NewsAPI - see "News providers" below) |
 | `supabase-service-role-key` | `SUPABASE_SERVICE_ROLE_KEY` | Server-only persistence |
 
 `SUPABASE_URL`, `CLERK_JWKS_URL`, and `CLERK_ISSUER` are configuration rather
@@ -211,6 +211,22 @@ Set Vercel `BACKEND_ORIGIN` to the existing Render service,
 `BACKEND_AUTH_MODE=none`, and redeploy the
 frontend. Cloud Run revisions are immutable; route traffic back to the last
 known-good revision if the failure is isolated to a new backend revision.
+
+**Warm Render first.** Nothing keeps the Render services awake (the scheduled
+keep-alive workflow was retired on 2026-10-08: GitHub throttled its `*/10` cron
+to a median gap of ~286 minutes, so it never kept anything warm, and production
+uses neither Render service). A free-tier service that has slept answers its
+first request in roughly 43 seconds. Before pointing Vercel at it, wake it and
+wait for a `200`:
+
+```bash
+curl -sS -o /dev/null -w '%{http_code}\n' --max-time 120 --retry 3 --retry-all-errors \
+  https://minialaddin-d8oe.onrender.com/api/health
+```
+
+The Render backend is not configured with the inference service's URL in this
+deployment, so the model panel reports itself unavailable there, as it does on
+Cloud Run.
 
 ## Release procedure and provenance (2026-10-07)
 

@@ -1,5 +1,10 @@
 # Screenshots
 
+> **Historical captures of the earlier interface.** Taken 2026-08-25, before the
+> terminal was rebuilt in October 2026. They document the evidence model on real
+> vendors; they are not the current layout, and some panels shown have since been
+> rebuilt or removed.
+
 Every image in this directory is a capture of the **live production
 deployment**. None is a mockup, a local build, or a composite.
 

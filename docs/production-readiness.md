@@ -5,6 +5,14 @@ repository. Written to be falsifiable: every "verified" line names how.
 
 **Last reviewed:** 2026-09-17
 
+> **Update 2026-10-08.** Production no longer runs on Render: it is Vercel in
+> front of a private Google Cloud Run service (`CLOUD_RUN_DEPLOYMENT.md`), and
+> the Render services are a documented rollback target only. The keep-alive
+> workflow described in section 0 below was retired the same day, because it
+> never worked as designed (GitHub throttled it ~29×, section 0, cause 1) and
+> production uses neither service. Section 0 is kept as the record of that
+> investigation; its fix table describes what was done then, not what runs now.
+
 ---
 
 ## 0. Incident 2026-09-01 — "Render is unreachable"

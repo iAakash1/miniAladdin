@@ -13,11 +13,16 @@ dishonest thing this system could do about itself.
 | **Rate limited** | Vendor answered 429 |
 | **Fixture only** | Tested against payloads built from the documented contract. Never executed |
 
-## Observed in production
+## Observed in production (2026-08-25, historical)
+
+> This section is a dated record, not the current deployment. It was taken when
+> the backend ran on Render; production now serves from a private Google Cloud
+> Run service (`CLOUD_RUN_DEPLOYMENT.md`), and `/api/build` and `/api/health`
+> name the commit that is running today.
 
 Measured from one `/api/research/AAPL` call against
 `minialaddin-d8oe.onrender.com`, reading the provenance ledger's per-vendor
-roster. Production runs commit `61c732e`.
+roster. Production then ran commit `61c732e`.
 
 | Provider | Capabilities contributed | Status | Latency |
 |---|---|---|---|

@@ -1,5 +1,10 @@
 # /quant screenshots
 
+> **Historical.** The `/quant` page these images depict was replaced in October
+> 2026 by the workbench under `/terminal/*`; `/quant` now redirects to
+> `/terminal/evidence`. The images are kept as a record of the 2026-08 research
+> output and are not a picture of the current interface.
+
 **Environment: LOCAL — `UNVERIFIED IN PRODUCTION`.**
 
 Captured from `next dev` on `localhost:3000` against the FastAPI backend on

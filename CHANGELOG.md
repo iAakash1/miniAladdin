@@ -6,6 +6,59 @@ test that has been shown capable of failing.
 
 ## V15 — research platform (in progress)
 
+### Failure semantics, content security and accessibility (2026-10-08)
+
+A pass whose only rule was that a failure must never look like an answer.
+
+**Providers.** Every one of the 31 vendor adapters now reports a wrong-shaped
+body, an error envelope delivered with HTTP 200, a `null` or scalar body, `NaN`
+and `Infinity`, zero or negative prices and market caps, and one unreadable row
+as what each is, instead of crashing, returning `[]`, or passing the value on.
+One bad row costs one row. A partial batch keeps its successes. Finnhub's street
+data raises on a total failure and names the sections it lacks on a partial one.
+Generated cases in `tests/test_provider_failure_matrix.py`,
+`tests/test_provider_value_corruption.py` and `tests/test_library_vendor_failures.py`
+(1,858 in all) cover timeout, 401/403/404/429, malformed, empty, null,
+non-finite and outage for every adapter. Yahoo's RSS adapter no longer reports a
+200 that is not a feed (a consent or captcha page) as "no headlines".
+
+**API.** An outage is a 503, not a 404 "unknown symbol". The chain returns copies,
+so one caller can no longer change what the next is served from the cache. A
+price cached as validated is not served to a request for a single-vendor read. A
+macro observation older than its limit is not "current". A partial dashboard
+snapshot is kept five minutes, and a degraded graph or company snapshot, or a
+macro-stress snapshot with an input missing, one minute, rather than the quarter
+hour a complete one keeps. The research route's provenance
+table now lists a block that failed unexpectedly as missing instead of leaving it
+out. A sentiment aggregate over no headlines is no score, not a neutral one.
+
+**Content-Security-Policy.** Every response carries a per-request nonce policy
+with `'strict-dynamic'` and no `'unsafe-eval'`, no `'unsafe-inline'` for scripts
+and no wildcard script host. Pages render per request so the nonce can be stamped.
+An anonymous request to `/api/*` is answered 401 at the edge (the news, macro, build and report routes stay public). Violations are
+reported to `/api/csp-report`. `CSP_MODE=report-only` is the rollback. See
+`docs/CONTENT_SECURITY_POLICY.md`.
+
+**Authentication.** `CLERK_AUTHORIZED_PARTIES` (opt-in) refuses a token minted for
+another origin. The Clerk instance is still a development instance; what moving
+to production needs from the owner is in `docs/CLERK_PRODUCTION.md`.
+
+**Interface.** The state vocabulary is explained in text on the page, not only in
+a tooltip, and linked from the footer. Movement on hover is for pointers that can
+hover. The 15 distinct `max-width` breakpoints became 11, written down as a ladder that
+a test holds; off-grid spacing was snapped. A source audit finds no button, link, input, image or landmark without
+an accessible name (rendered behaviour is not verified). A chart that failed to
+load is no longer an empty chart; an investigation whose contents were not read
+is no longer "Empty"; a date with no time reads as that day in every time zone;
+an undated headline is no longer stamped with the time it was fetched. Six
+files nothing imported (about 680 lines) and the CSS only they used were removed.
+
+**Housekeeping.** The Render keep-alive workflow is gone (Render is a documented
+rollback target only). The README no longer presents the August captures as the
+current interface.
+
+Tests: backend 5,323 passed, 0 failed in two consecutive full runs (the live-network smoke file, which needs the real internet, is excluded); frontend 808 passed, 0 failed; typecheck, lint and production build clean.
+
 ### UI polish pass
 
 Uiverse was used for implementation patterns, not visual identity. Three
