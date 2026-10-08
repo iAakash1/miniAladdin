@@ -41,7 +41,7 @@ export default function Metric({ label, value, unit, tone = 'neutral', size = 'm
         {unit && <span style={{ fontSize: 'var(--t-small)', color: 'var(--ink-faint)' }}>{unit}</span>}
       </div>
       {change && (
-        <div className="num" style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-muted)', marginTop: 3 }}>
+        <div className="num" style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-muted)', marginTop: 4 }}>
           {change}
         </div>
       )}

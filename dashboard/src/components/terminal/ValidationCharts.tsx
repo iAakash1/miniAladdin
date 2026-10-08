@@ -35,7 +35,7 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
       borderRadius: 'var(--r-md)', padding: '8px 12px', fontSize: 'var(--t-small)',
       boxShadow: 'var(--shadow-2)',
     }}>
-      <div style={{ color: 'var(--ink-faint)', marginBottom: 3 }}>{label}</div>
+      <div style={{ color: 'var(--ink-faint)', marginBottom: 4 }}>{label}</div>
       {payload.map((row) => (
         <div key={row.name} className="num" style={{ color: row.color ?? 'var(--ink)' }}>
           {row.name}: {typeof row.value === 'number' ? row.value.toFixed(3) : row.value}

@@ -229,7 +229,7 @@ function DataSourceCard({ source }: { source: DataSource }) {
           <span
             key={vendor}
             className="num"
-            style={{ fontSize: 'var(--t-meta)', padding: '3px 8px', borderRadius: 'var(--r-sm)', background: 'var(--p-raised)', color: 'var(--ink-muted)' }}
+            style={{ fontSize: 'var(--t-meta)', padding: '4px 8px', borderRadius: 'var(--r-sm)', background: 'var(--p-raised)', color: 'var(--ink-muted)' }}
           >
             {vendor}
           </span>
@@ -412,8 +412,8 @@ export default function MethodologyView() {
       <Section id="meth-limitations" title="Limitations" defaultOpen>
         <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
           {LIMITATIONS.map((item) => (
-            <li key={item} style={{ display: 'flex', gap: 9, fontSize: 'var(--t-body)', lineHeight: 1.55, color: 'var(--ink-muted)' }}>
-              <span aria-hidden="true" style={{ flexShrink: 0, marginTop: 7, width: 6, height: 6, borderRadius: 1, background: 'var(--ink-faint)' }} />
+            <li key={item} style={{ display: 'flex', gap: 8, fontSize: 'var(--t-body)', lineHeight: 1.55, color: 'var(--ink-muted)' }}>
+              <span aria-hidden="true" style={{ flexShrink: 0, marginTop: 8, width: 6, height: 6, borderRadius: 1, background: 'var(--ink-faint)' }} />
               {item}
             </li>
           ))}

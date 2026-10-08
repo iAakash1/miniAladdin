@@ -117,6 +117,31 @@
      margins resolved to nothing. */
   --gap: var(--d-4);
 
+  /* Breakpoints. A custom property cannot be used inside @media, so the ladder
+     is written here and held by tests/breakpoints.test.ts: a width query must
+     use one of these values, and two may not sit within 30px of each other (the
+     stylesheets had both 1279 and 1280, 700 and 720, 820 and 860 - the same
+     decision made three times by three authors).
+
+     Layout tiers - where the page's structure changes:
+       640   phone    : the shell drops its brand name and search text, the
+                        workspace header stacks
+       760   tablet   : workspace grids go to one column
+       1023  compact  : the navigation rail becomes an overlay
+       1280  wide     : density and the signal grid tighten
+
+     Content thresholds - where one component's own content stops fitting:
+       480   the dashboard hero's metric strip
+       560   four-up grids drop to two, trail items stack
+       720   the marketing nav becomes a menu; the experiment filter bar wraps
+       860   the market band, object facts and result tables reflow
+       900   the market map and mover sparklines
+       980   the main/side grids and the report columns collapse
+       1100  the landing hero, pipeline and architecture diagram
+       1180  the company workspace grids
+
+     Add a value only for a content reason, here and in the test together. */
+
   /* Stacking layers, lowest to highest. Anything above 3 is a layer of the
      page and takes a name from here; 0 to 3 is local stacking inside one
      component (a sticky table head over its rows) and may stay a number. */

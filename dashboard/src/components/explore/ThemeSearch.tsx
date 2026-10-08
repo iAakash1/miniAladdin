@@ -45,6 +45,7 @@ export default function ThemeSearch({ companyHref }: { companyHref: (symbol: str
       <form
         className="xs-form"
         role="search"
+        aria-label="Search by company or theme"
         onSubmit={(e) => {
           e.preventDefault()
           const next = draft.trim()

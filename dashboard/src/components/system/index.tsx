@@ -10,9 +10,10 @@
 'use client'
 
 import { fmtSigned } from '@/lib/format'
-import type { ReactNode } from 'react'
+import { useId, type ReactNode } from 'react'
 
 import { useMetrics, type MetricRef } from './MetricContext'
+import { STATE_LABEL, STATE_TITLE, stateMeaningId, type ResearchState } from './state-meaning'
 import { format, type Kind } from '@/lib/quantity'
 
 /* ── research state ───────────────────────────────────────────────────────
@@ -21,51 +22,32 @@ import { format, type Kind } from '@/lib/quantity'
 
 export type Tone = 'pass' | 'fail' | 'warn' | 'info' | 'muted'
 
-export type ResearchState =
-  | 'live' | 'recorded' | 'stale' | 'waking' | 'unavailable'
-  | 'blocked' | 'experimental' | 'candidate' | 'production' | 'unknown'
-  | 'retired' | 'paper' | 'error' | 'warning' | 'info'
+export type { ResearchState }
 
-const STATE_TITLE: Record<ResearchState, string> = {
-  live:         'Observed now, inside its freshness window',
-  recorded:     'A fact read from a stored artifact — it cannot go stale',
-  stale:        'Real, but past its freshness window',
-  waking:       'Being retrieved; no value yet',
-  unavailable:  'Refused or absent. No value is being shown in its place',
-  blocked:      'A research constraint prevents this, not an error',
-  experimental: 'Exists and is measured, but is not promotable',
-  candidate:    'Cleared the development gates; holdout not yet spent',
-  production:   'Armed and serving',
-  unknown:      'State could not be determined',
-  retired:      'Withdrawn from use. Kept in the record, never served',
-  paper:        'Simulated. No real order, money or position is involved',
-  error:        'The request failed. The cause is shown with it',
-  warning:      'Usable, but something about it needs a second look',
-  info:         'For the reader’s information; nothing needs doing',
-}
-
-const STATE_LABEL: Record<ResearchState, string> = {
-  live: 'live',
-  recorded: 'recorded',
-  stale: 'stale',
-  waking: 'loading',
-  unavailable: 'unavailable',
-  blocked: 'blocked',
-  experimental: 'experimental',
-  candidate: 'candidate',
-  production: 'production',
-  unknown: 'unknown',
-  retired: 'retired',
-  paper: 'paper',
-  error: 'error',
-  warning: 'warning',
-  info: 'info',
-}
-
+/**
+ * A provenance state: a dot and a word.
+ *
+ * What the state *means* used to live only in `title`, which a touch screen
+ * cannot show, a keyboard cannot reach, and a screen reader announces
+ * unreliably - so "stale" and "blocked" were explained to the one input method
+ * least likely to need it. The meaning now travels with the chip as an
+ * accessible description: the generic definitions are one hidden block for the
+ * whole page (`StateMeanings`, mounted once in the root layout) that every chip
+ * points at, so nothing is repeated per chip; a caller-supplied explanation is
+ * hidden inside its own chip. `title` stays as the mouse convenience, and the
+ * handbook carries the visible key to the vocabulary (`StateKey`).
+ */
 export function Status({ state, label, title }: { state: ResearchState; label?: string; title?: string }) {
+  const own = useId()
   return (
-    <span className="sys-status" data-state={state} title={title ?? STATE_TITLE[state]}>
+    <span
+      className="sys-status"
+      data-state={state}
+      title={title ?? STATE_TITLE[state]}
+      aria-describedby={title ? own : stateMeaningId(state)}
+    >
       {label ?? STATE_LABEL[state]}
+      {title ? <span id={own} hidden>{title}</span> : null}
     </span>
   )
 }
@@ -87,7 +69,15 @@ export function Badge({
   children: ReactNode
 }) {
   const cls = `sys-badge${large ? ' sys-badge--lg' : ''}${literal ? ' sys-badge--literal' : ''}`
-  return <span className={cls} data-tone={tone} title={title}>{children}</span>
+  const own = useId()
+  // Same rule as Status: an explanation that exists only as a hover title is
+  // not an explanation for a touch screen, a keyboard or a screen reader.
+  return (
+    <span className={cls} data-tone={tone} title={title} aria-describedby={title ? own : undefined}>
+      {children}
+      {title ? <span id={own} hidden>{title}</span> : null}
+    </span>
+  )
 }
 
 /* ── value ────────────────────────────────────────────────────────────────
@@ -146,7 +136,7 @@ export function Value({
   const body = (
     <>
       {q.text}
-      {q.unit ? <span className="u" style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-faint)', marginLeft: 3 }}>{q.unit}</span> : null}
+      {q.unit ? <span className="u" style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-faint)', marginLeft: 4 }}>{q.unit}</span> : null}
     </>
   )
 
@@ -502,7 +492,7 @@ export function Provenance({ steps }: { steps: ProvenanceStep[] }) {
           }}
         >
           <div style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
-            <span style={{ width: 5, height: 5, background: 'var(--ink-faint)', marginTop: 5, flex: 'none' }} />
+            <span style={{ width: 5, height: 5, background: 'var(--ink-faint)', marginTop: 4, flex: 'none' }} />
             {i < steps.length - 1 ? (
               <span style={{ position: 'absolute', top: 12, bottom: -4, width: 1, background: 'var(--rule)' }} />
             ) : null}

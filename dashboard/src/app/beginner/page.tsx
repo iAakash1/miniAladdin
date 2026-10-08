@@ -51,7 +51,7 @@ export default function BeginnerHome() {
   return (
     <SimpleShell title="OmniSignal" subtitle="what to look at, and why">
       <Panel title="Look up a company">
-        <form onSubmit={search} className="bg__search" role="search">
+        <form onSubmit={search} className="bg__search" role="search" aria-label="Look up a company">
           <label htmlFor="bg-symbol" className="visually-hidden">
             Company or ticker symbol
           </label>

@@ -69,7 +69,7 @@ export default function ChainPicker({ label, model }: { label: string; model: st
         rows?.length ? (
           <div style={{ display: 'flex', gap: 'var(--d-2)', alignItems: 'center' }}>
             <select
-              className="sys-input" value={label} aria-label="Label"
+              className="sys-input" value={label} aria-label="Prediction target to trace"
               onChange={(e) => {
                 const nextLabel = e.target.value
                 const first = (rows ?? []).find((r) => r.label === nextLabel)?.model_id
@@ -79,7 +79,7 @@ export default function ChainPicker({ label, model }: { label: string; model: st
               {labels.map((l) => <option key={l} value={l}>{l}</option>)}
             </select>
             <select
-              className="sys-input" value={models.includes(model) ? model : ''} aria-label="Model"
+              className="sys-input" value={models.includes(model) ? model : ''} aria-label="Model to trace"
               onChange={(e) => go(label, e.target.value)}
             >
               {!models.includes(model) ? <option value="">{model}</option> : null}

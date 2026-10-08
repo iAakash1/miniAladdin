@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import Workbench from '@/components/system/Workbench'
 import Handbook from '@/components/terminal/methodology/Handbook'
 import { Panel } from '@/components/system'
+import StateKey from '@/components/system/StateKey'
 
 export const metadata: Metadata = {
   title: 'Handbook',
@@ -45,6 +46,7 @@ export default async function HandbookPage({
       }
     >
       <Handbook initialMeasure={params.measure} />
+      <StateKey />
     </Workbench>
   )
 }

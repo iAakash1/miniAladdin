@@ -157,7 +157,7 @@ export default function UpgradeDialog({ open, onClose, reason }: UpgradeDialogPr
             padding: 0,
             display: 'flex',
             flexDirection: 'column',
-            gap: 11,
+            gap: 12,
           }}
         >
           {[

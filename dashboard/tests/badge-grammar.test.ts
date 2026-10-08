@@ -22,6 +22,9 @@ const code = (f: string) => read(f).replace(/\/\*[\s\S]*?\*\//g, '')
 const SYSTEM = code(join(SRC, 'styles', 'system.css'))
 const GLOBALS = code(join(SRC, 'app', 'globals.css'))
 const INDEX = read(join(SRC, 'components', 'system', 'index.tsx'))
+/* The state tables are plain TypeScript, not part of the client module, so a
+   server component can read the same words the chip carries. */
+const MEANING = read(join(SRC, 'components', 'system', 'state-meaning.ts'))
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
@@ -42,7 +45,7 @@ const staticClassTokens = (file: string) => {
 }
 
 const states = (() => {
-  const union = INDEX.match(/export type ResearchState =([\s\S]*?)\n\nconst STATE_TITLE/)
+  const union = MEANING.match(/export type ResearchState =([\s\S]*?)\n\nexport const STATE_TITLE/)
   assert.ok(union, 'ResearchState union not found')
   return [...union[1].matchAll(/'([a-z]+)'/g)].map((m) => m[1])
 })()
@@ -54,8 +57,8 @@ test('the status vocabulary covers live, stale, unavailable, experimental, retir
 })
 
 test('every status has a tooltip, a label and a style', () => {
-  const title = INDEX.match(/const STATE_TITLE[^{]*\{([\s\S]*?)\n\}/)?.[1] ?? ''
-  const label = INDEX.match(/const STATE_LABEL[^{]*\{([\s\S]*?)\n\}/)?.[1] ?? ''
+  const title = MEANING.match(/const STATE_TITLE[^{]*\{([\s\S]*?)\n\}/)?.[1] ?? ''
+  const label = MEANING.match(/const STATE_LABEL[^{]*\{([\s\S]*?)\n\}/)?.[1] ?? ''
   const missing: string[] = []
   for (const s of states) {
     if (!new RegExp(`\\b${s}:\\s*'`).test(title)) missing.push(`${s}: tooltip`)

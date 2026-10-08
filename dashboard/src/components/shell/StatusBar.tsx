@@ -169,6 +169,7 @@ export default function StatusBar({ pageFacts }: {
       {pageFacts?.map((f) => (
         <Fact key={f.label} tone={STATE_TONE[f.state]} label={f.label} value={f.detail ?? f.state} />
       ))}
+      <Link href="/terminal/handbook#states" className="status-fact status-key-link">Key to states</Link>
       <span className="status-build" title="Frontend build">build {build}</span>
     </footer>
   )

@@ -191,7 +191,7 @@ export function ChartSkeleton({ height = 180 }: { height?: number }) {
   return (
     <div
       aria-busy="true"
-      style={{ height, display: 'flex', alignItems: 'flex-end', gap: 3, padding: 'var(--d-2)' }}
+      style={{ height, display: 'flex', alignItems: 'flex-end', gap: 4, padding: 'var(--d-2)' }}
     >
       <span className="visually-hidden">Loading chart</span>
       {Array.from({ length: 40 }, (_, i) => (
@@ -216,7 +216,7 @@ export function StripSkeleton({ items = 6 }: { items?: number }) {
       <span className="visually-hidden">Loading metrics</span>
       {Array.from({ length: items }, (_, i) => (
         <div className="sys-strip-item" key={i}>
-          <span className="sys-skeleton" style={{ display: 'block', height: 7, width: '58%', marginBottom: 7 }} />
+          <span className="sys-skeleton" style={{ display: 'block', height: 7, width: '58%', marginBottom: 8 }} />
           <span className="sys-skeleton" style={{ display: 'block', height: 12, width: '76%' }} />
         </div>
       ))}

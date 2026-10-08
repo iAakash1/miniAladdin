@@ -209,7 +209,7 @@ export function Compare({
                           {!isBase && !commensurable ? null : deltaValue !== null ? (
                             <span
                               className="sys-meta"
-                              style={{ marginLeft: 5, color: o === 'better' ? 'var(--e-pos)' : o === 'worse' ? 'var(--e-neg)' : 'var(--ink-faint)' }}
+                              style={{ marginLeft: 4, color: o === 'better' ? 'var(--e-pos)' : o === 'worse' ? 'var(--e-neg)' : 'var(--ink-faint)' }}
                               title={f.direction && f.direction !== 'none'
                                 ? `${o} than the baseline`
                                 : 'no declared direction: this difference is not better or worse'}
@@ -222,7 +222,7 @@ export function Compare({
                               {diff?.unit ? <span className="unit">{diff.unit}</span> : null}
                             </span>
                           ) : !isBase && (v === null || base === null) ? (
-                            <span className="sys-meta sys-null" style={{ marginLeft: 5 }} title="one side did not record this; an absent value is not a match and not a zero">
+                            <span className="sys-meta sys-null" style={{ marginLeft: 4 }} title="one side did not record this; an absent value is not a match and not a zero">
                               n/c
                             </span>
                           ) : null}

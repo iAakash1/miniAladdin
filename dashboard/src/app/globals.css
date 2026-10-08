@@ -146,7 +146,7 @@ img { max-width: 100%; display: block; }
 .seg__btn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   height: 24px;
   padding: 0 10px;
   border: none;
@@ -188,7 +188,7 @@ img { max-width: 100%; display: block; }
   justify-content: space-between;
   align-items: baseline;
   gap: 12px;
-  padding: 7px 0;
+  padding: 8px 0;
   border-bottom: 1px solid var(--rule);
 }
 .metric-row:last-child { border-bottom: none; }
@@ -313,20 +313,6 @@ img { max-width: 100%; display: block; }
 }
 @media (max-width: 560px) {
   .terminal-grid-four { grid-template-columns: 1fr; }
-}
-
-/* ---------- Market dashboard: hero ---------- */
-.dash-hero { padding: clamp(20px, 3vw, 28px); }
-.dash-hero__metrics {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: clamp(14px, 2.5vw, 24px);
-}
-@media (max-width: 860px) {
-  .dash-hero__metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 18px; }
-}
-@media (max-width: 480px) {
-  .dash-hero__metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 /* ---------- Info tooltip ---------- */
@@ -491,7 +477,7 @@ img { max-width: 100%; display: block; }
   font-size: var(--t-micro);
   color: var(--ink-faint);
   line-height: 1.3;
-  padding-top: 5px;
+  padding-top: 4px;
 }
 .mm-read__verdict {
   display: block;
@@ -501,7 +487,7 @@ img { max-width: 100%; display: block; }
   letter-spacing: var(--tracking-display);
 }
 .mm-read__detail {
-  margin-top: 5px;
+  margin-top: 4px;
   font-size: var(--t-small);
   line-height: 1.55;
   color: var(--ink-muted);
@@ -510,7 +496,7 @@ img { max-width: 100%; display: block; }
 .mm-read__trendfoot {
   display: flex;
   justify-content: space-between;
-  margin-top: 3px;
+  margin-top: 4px;
   font-size: var(--t-micro);
   color: var(--ink-faint);
   font-variant-numeric: tabular-nums;
@@ -520,7 +506,7 @@ img { max-width: 100%; display: block; }
   padding-top: 14px;
   border-top: 1px solid var(--rule);
   display: grid;
-  gap: 7px;
+  gap: 8px;
 }
 .mm-read__stat { display: flex; justify-content: space-between; align-items: baseline; }
 .mm-read__stat dt { font-size: var(--t-meta); color: var(--ink-muted); }
@@ -548,7 +534,7 @@ img { max-width: 100%; display: block; }
 .mm-map__sparkh, .mm-map__mah { text-align: center; }
 
 .mm-map__row {
-  padding: 9px 10px;
+  padding: 8px 10px;
   border-radius: var(--r-sm);
   border-bottom: 1px solid color-mix(in srgb, var(--rule) 55%, transparent);
   transition: background var(--t-fast) var(--ease);
@@ -592,29 +578,6 @@ img { max-width: 100%; display: block; }
   }
   .mm-map__muted:last-of-type, .mm-map__ma, .mm-map__mah { display: none; }
 }
-
-/* ---------- Events timeline ---------- */
-.dash-events { padding: clamp(16px, 2.5vw, 22px); }
-.events-timeline { list-style: none; margin: 0; padding: 0; }
-.events-timeline__row { padding-top: 12px; }
-.events-timeline__row:first-child { padding-top: 0; }
-.events-timeline__bucket {
-  display: block;
-  font-size: var(--t-micro);
-  color: var(--ink-faint);
-  margin-bottom: 8px;
-}
-.events-timeline__item {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--rule);
-}
-.events-timeline__row:last-child .events-timeline__item { border-bottom: none; padding-bottom: 0; }
-.events-timeline__countdown { margin-left: auto; font-size: var(--t-small); color: var(--ink-muted); }
-.events-timeline__countdown[data-soon] { color: var(--e-warn); }
 
 /* ---------- Auth shell (login/signup) ---------- */
 .auth-shell {
@@ -738,7 +701,7 @@ footer a:hover { color: var(--ink) !important; }
   grid-template-columns: 96px minmax(0, 1fr);
   gap: 14px;
   align-items: baseline;
-  padding: 11px 14px;
+  padding: 12px 14px;
   border-radius: var(--r-sm);
   text-decoration: none;
   color: inherit;
@@ -763,7 +726,7 @@ footer a:hover { color: var(--ink) !important; }
 .ws-resume {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 8px;
   padding: clamp(20px, 3vw, 28px);
   border: 1px solid var(--rule);
   border-radius: var(--r-lg);
@@ -774,7 +737,13 @@ footer a:hover { color: var(--ink) !important; }
 }
 .ws-resume:hover, .ws-resume:focus-visible {
   border-color: var(--rule-strong, var(--rule));
-  transform: translateY(-1px);
+}
+/* The lift is a pointer affordance. On a touch screen `:hover` is sticky - the
+   card would stay raised after the tap - so only a device that can really hover
+   gets it; keyboard focus keeps its own. */
+.ws-resume:focus-visible { transform: translateY(-1px); }
+@media (hover: hover) and (pointer: fine) {
+  .ws-resume:hover { transform: translateY(-1px); }
 }
 .ws-resume__eyebrow {
   display: flex;
@@ -810,12 +779,12 @@ footer a:hover { color: var(--ink) !important; }
 .ws-counts__item { font-size: var(--t-meta); color: var(--ink-muted); }
 .ws-counts__item strong { font-variant-numeric: tabular-nums; color: var(--ink); }
 
-.ws-symbols { display: flex; flex-wrap: wrap; gap: 5px; margin: 2px 0; }
+.ws-symbols { display: flex; flex-wrap: wrap; gap: 4px; margin: 2px 0; }
 .ws-symbols__chip {
   font-size: var(--t-micro);
   font-weight: 600;
   letter-spacing: 0.02em;
-  padding: 2px 7px;
+  padding: 2px 8px;
   border-radius: var(--r-sm);
   background: var(--p-panel);
   border: 1px solid var(--rule);
@@ -844,11 +813,15 @@ footer a:hover { color: var(--ink) !important; }
   background: var(--p-panel);
   transition: border-color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
 }
-.ws-card:hover, .ws-card:focus-within { border-color: var(--rule-strong, var(--rule)); transform: translateY(-1px); }
+.ws-card:hover, .ws-card:focus-within { border-color: var(--rule-strong, var(--rule)); }
+.ws-card:focus-within { transform: translateY(-1px); }
+@media (hover: hover) and (pointer: fine) {
+  .ws-card:hover { transform: translateY(-1px); }
+}
 .ws-card__link {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 8px;
   padding: 16px 18px 14px;
   text-decoration: none;
   color: inherit;
@@ -868,7 +841,7 @@ footer a:hover { color: var(--ink) !important; }
   justify-content: space-between;
   align-items: center;
   gap: 10px;
-  padding: 9px 18px;
+  padding: 8px 18px;
   border-top: 1px solid var(--rule);
   font-size: var(--t-meta);
   color: var(--ink-faint);
@@ -892,7 +865,7 @@ footer a:hover { color: var(--ink) !important; }
 .ws-jump__item {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
   padding: 14px 16px;
   background: var(--p-panel);
   text-decoration: none;
@@ -930,7 +903,7 @@ footer a:hover { color: var(--ink) !important; }
   letter-spacing: var(--tracking-eyebrow);
   text-transform: uppercase;
   color: var(--ink-faint);
-  margin-bottom: 7px;
+  margin-bottom: 8px;
 }
 .page-head__title {
   font-size: clamp(1.375rem, 2.6vw, 1.75rem);
@@ -940,7 +913,7 @@ footer a:hover { color: var(--ink) !important; }
   margin: 0;
 }
 .page-head__lede {
-  margin: 9px 0 0;
+  margin: 8px 0 0;
   font-size: var(--t-body-lg);
   line-height: 1.65;
   color: var(--ink-muted);
@@ -1018,11 +991,11 @@ footer a:hover { color: var(--ink) !important; }
   margin: 0;
 }
 
-.ws-notes { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 5px; }
+.ws-notes { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; }
 .ws-note {
   display: flex;
   align-items: baseline;
-  gap: 7px;
+  gap: 8px;
   font-size: var(--t-small);
   line-height: 1.5;
   color: var(--ink-muted);
@@ -1292,7 +1265,10 @@ footer a:hover { color: var(--ink) !important; }
 /* Hover and keyboard focus are the same state, so they read the same. */
 .pick:hover, .pick:focus-visible { --pick-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
 /* The preview: what checking would do, at half strength. */
-.pick:hover::after, .pick:focus-visible::after { opacity: 0.6; transform: scale(1); }
+.pick:focus-visible::after { opacity: 0.6; transform: scale(1); }
+@media (hover: hover) and (pointer: fine) {
+  .pick:hover::after { opacity: 0.6; transform: scale(1); }
+}
 .pick:checked { --pick-color: var(--accent); }
 .pick:checked::after { opacity: 1; transform: scale(1); }
 .pick:focus-visible { outline: none; box-shadow: var(--ring); }
@@ -1433,7 +1409,7 @@ tr:focus-within .reveal,
 .th-sort {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   background: none;
   border: none;
   padding: 0;
@@ -1496,7 +1472,7 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
 .chart-legend__item {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   padding: 4px 10px;
   border: 1px solid var(--rule-strong);
   border-radius: 999px;
@@ -1528,7 +1504,7 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
   position: fixed;
   z-index: var(--z-menu);
   min-width: 176px;
-  padding: 5px;
+  padding: 4px;
   background: var(--p-overlay);
   border: 1px solid var(--rule);
   border-radius: var(--r-md);
@@ -1542,15 +1518,15 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
   color: var(--ink-faint);
-  padding: 5px 9px 6px;
+  padding: 4px 8px 6px;
   border-bottom: 1px solid var(--rule);
-  margin-bottom: 3px;
+  margin-bottom: 4px;
 }
 .ctxmenu__item {
   display: block;
   width: 100%;
   text-align: left;
-  padding: 6px 9px;
+  padding: 6px 8px;
   border: none;
   border-radius: var(--r-sm);
   background: none;
@@ -1580,7 +1556,7 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
 /* Vault group header. A row that is a label, not data — flush with the table
    but visually subordinate to the runs beneath it. */
 .vault-group th {
-  padding: 12px 10px 5px;
+  padding: 12px 10px 4px;
   border-bottom: 1px solid var(--rule);
   text-align: left;
   font-weight: 600;
@@ -1610,7 +1586,7 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
   gap: 12px;
   min-width: 220px;
   max-width: 360px;
-  padding: 9px 10px 9px 13px;
+  padding: 8px 10px 8px 12px;
   border: 1px solid var(--rule-strong);
   border-left-width: 2px;
   border-radius: var(--r-md);
@@ -1719,9 +1695,11 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
   left: 22px; right: 22px;
   transform: translateY(10px);
 }
-.ws-resume[data-depth='1']:hover::before,
-.ws-resume[data-depth='2']:hover::before { transform: translateY(7px); }
-.ws-resume[data-depth='2']:hover::after { transform: translateY(14px); }
+@media (hover: hover) and (pointer: fine) {
+  .ws-resume[data-depth='1']:hover::before,
+  .ws-resume[data-depth='2']:hover::before { transform: translateY(7px); }
+  .ws-resume[data-depth='2']:hover::after { transform: translateY(14px); }
+}
 @media (prefers-reduced-motion: reduce) {
   .ws-resume::before, .ws-resume::after { transition: none; }
 }
@@ -1861,8 +1839,10 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
   transform: rotate(-45deg);
   transition: right var(--t-med) var(--ease);
 }
-.sys-btn--go:hover:not(:disabled) .go-arrow,
 .sys-btn--go:focus-visible .go-arrow { background: currentColor; transform: translateX(2px); }
+@media (hover: hover) and (pointer: fine) {
+  .sys-btn--go:hover:not(:disabled) .go-arrow { background: currentColor; transform: translateX(2px); }
+}
 @media (prefers-reduced-motion: reduce) {
   .sys-btn--go .go-arrow, .sys-btn--go .go-arrow::before { transition: none; }
 }
@@ -1981,7 +1961,7 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
 .confbar {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   font-variant-numeric: tabular-nums;
 }
 .confbar__track {
@@ -2046,7 +2026,7 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
 .mm-map__name {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  column-gap: 9px;
+  column-gap: 8px;
   align-items: center;
   min-width: 0;
 }
@@ -2054,7 +2034,7 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
 .mm-map__symbol, .mm-map__label { grid-column: 2; }
 
 /* Entity chips carry a mark, so the chip aligns on the centre line. */
-.ws-symbols__chip { display: inline-flex; align-items: center; gap: 5px; }
+.ws-symbols__chip { display: inline-flex; align-items: center; gap: 4px; }
 /* ══════════════════════════════════════════════════════════════════════════
    IDENTITY & CONTROLS
    Marks that say who, and controls that say which. Every value below
@@ -2122,7 +2102,7 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
   align-items: center;
   gap: 6px;
   height: 20px;
-  padding: 0 8px 0 7px;
+  padding: 0 8px 0 8px;
   border-radius: 999px;
   background: var(--p-raised);
   box-shadow: inset 0 0 0 1px var(--rule);
@@ -2159,7 +2139,7 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
    Uiverse `alexruix/silent-otter-72`. The check glyph slides out from behind
    the knob as the state turns on, so position and meaning arrive together
    rather than the position alone having to be interpreted. */
-.uswitch-row { display: inline-flex; align-items: center; gap: 9px; }
+.uswitch-row { display: inline-flex; align-items: center; gap: 8px; }
 .uswitch {
   position: relative;
   display: inline-block;
@@ -2363,7 +2343,9 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
   box-shadow: 0 0 0 2px var(--p-panel);
   transition: transform var(--t-fast) var(--ease);
 }
-.panel:hover .sugg-marks .cmark { transform: translateY(-1px); }
+@media (hover: hover) and (pointer: fine) {
+  .panel:hover .sugg-marks .cmark { transform: translateY(-1px); }
+}
 .sugg-marks__more {
   margin-left: 10px;
   font-size: var(--t-meta);
@@ -2390,7 +2372,7 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
   flex-wrap: wrap;
 }
 .pf__lede {
-  margin-top: 5px;
+  margin-top: 4px;
   font-size: var(--t-body);
   line-height: 1.6;
   color: var(--ink-muted);
@@ -2402,7 +2384,7 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
    down a stack of three where a dot is not. */
 .pf__notes { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .pf__note {
-  padding: 9px 12px 9px 13px;
+  padding: 8px 12px 8px 12px;
   border-radius: var(--r-md);
   background: var(--p-raised);
   font-size: var(--t-body);
@@ -2457,7 +2439,7 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
   display: grid;
   grid-template-columns: auto minmax(0, max-content) minmax(32px, 1fr) max-content;
   column-gap: 10px;
-  row-gap: 7px;
+  row-gap: 8px;
   min-width: 0;
 }
 .pf__rows--tall { row-gap: 8px; }
@@ -2537,7 +2519,7 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
 .pf__legend-item {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   font-size: var(--t-meta);
   color: var(--ink-muted);
   text-transform: capitalize;
@@ -2566,7 +2548,7 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
 .pf-sum {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
   min-width: 0;
   padding: 12px 14px;
   background: var(--p-raised);
@@ -2595,7 +2577,7 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
   font-size: var(--t-small);
   line-height: 1.6;
   color: var(--e-warn);
-  padding: 9px 12px 9px 13px;
+  padding: 8px 12px 8px 12px;
   border-radius: var(--r-md);
   background: var(--e-warn-wash);
   box-shadow: inset 3px 0 0 var(--e-warn);
@@ -2616,11 +2598,11 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
   background: var(--p-overlay);
   border: 1px solid var(--rule-strong);
   border-radius: var(--r-md);
-  padding: 8px 11px;
+  padding: 8px 12px;
   box-shadow: var(--shadow-2);
   font-size: var(--t-small);
 }
-.pfchart__tip-date { color: var(--ink-faint); margin-bottom: 3px; }
+.pfchart__tip-date { color: var(--ink-faint); margin-bottom: 4px; }
 .pfchart__tip-value { font-size: var(--t-value); font-weight: 600; color: var(--ink); }
 .pfchart__tip-delta { margin-top: 2px; font-size: var(--t-meta); }
 
@@ -2639,7 +2621,7 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
   gap: 14px;
   flex-wrap: wrap;
   margin-top: 12px;
-  padding: 7px 11px;
+  padding: 8px 12px;
   border-radius: var(--r-md);
   background: var(--p-raised);
   box-shadow: inset 0 0 0 1px var(--rule);
@@ -2647,7 +2629,7 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
   color: var(--ink-muted);
 }
 .cons--conflict { box-shadow: inset 0 0 0 1px var(--e-warn); }
-.cons__agree { display: inline-flex; align-items: center; gap: 7px; }
+.cons__agree { display: inline-flex; align-items: center; gap: 8px; }
 /* One tick per vendor asked, filled for each that agreed. A count of four
    is read faster as four marks than as the string "4/4". */
 .cons__bar { display: inline-flex; gap: 2px; }
@@ -2689,7 +2671,7 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
   flex-direction: column;
   gap: 2px;
   min-width: 0;
-  padding: 9px 12px;
+  padding: 8px 12px;
   background: var(--p-raised);
 }
 .pf__bench-label {
@@ -2758,7 +2740,7 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
   display: flex;
   flex-direction: column;
   gap: 1px;
-  padding: 6px 11px;
+  padding: 6px 12px;
   background: var(--p-raised);
   flex: 1 1 auto;
   min-width: 74px;
@@ -2834,7 +2816,7 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
   white-space: nowrap;
 }
 .sint__table td {
-  padding: 5px 10px 5px 0;
+  padding: 4px 10px 4px 0;
   border-bottom: 1px solid var(--rule);
   white-space: nowrap;
 }

@@ -27,14 +27,14 @@ function FactorList({
       <p className="sys-label" style={{ marginBottom: 8 }}>
         {title}
       </p>
-      <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 7 }}>
+      <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
         {items.map((item) => (
-          <li key={item} style={{ display: 'flex', gap: 9, fontSize: 'var(--t-body)', lineHeight: 1.55, color: 'var(--ink-muted)' }}>
+          <li key={item} style={{ display: 'flex', gap: 8, fontSize: 'var(--t-body)', lineHeight: 1.55, color: 'var(--ink-muted)' }}>
             <span
               aria-hidden="true"
               style={{
                 flexShrink: 0,
-                marginTop: 7,
+                marginTop: 8,
                 width: 6,
                 height: 6,
                 borderRadius: 1,
@@ -84,7 +84,7 @@ function ImpactRow({
         display: 'flex',
         flexWrap: 'wrap',
         gap: '4px 14px',
-        padding: '9px 0',
+        padding: '8px 0',
         borderBottom: '1px solid var(--rule)',
         alignItems: 'baseline',
       }}
@@ -116,7 +116,7 @@ function EvidenceRefs({ analysis, section }: { analysis: Analysis; section: stri
   if (!Array.isArray(refs) || refs.length === 0 || Array.isArray(refs[0])) return null
   const evidence = new Map((analysis.ai?.evidence ?? []).map((item) => [item.id, item]))
   return (
-    <span role="group" aria-label={`Evidence supporting ${section}`} style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 7 }}>
+    <span role="group" aria-label={`Evidence supporting ${section}`} style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
       {(refs as string[]).slice(0, 6).map((id) => {
         const item = evidence.get(id)
         const detail = item

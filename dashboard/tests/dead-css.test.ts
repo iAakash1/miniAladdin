@@ -13,6 +13,7 @@ import assert from 'node:assert/strict'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import test from 'node:test'
+import { CSS_FILES, loadAllCss, stripComments } from './css-scan'
 
 const SRC = join(__dirname, '..', 'src')
 
@@ -110,4 +111,29 @@ test('every animation a rule names has a keyframes definition', () => {
     }
   }
   assert.deepEqual([...new Set(missing)], [])
+})
+
+test('every stylesheet closes every block it opens, and parses into rules the scanner can read', () => {
+  // A missing brace swallows the rule after it, which is how a header lost its
+  // layout once. Counted outside strings and comments, per file.
+  for (const file of CSS_FILES) {
+    const text = stripComments(readFileSync(file, 'utf8'))
+    let depth = 0
+    let quote: string | null = null
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i]
+      if (quote) {
+        if (c === '\\') i++
+        else if (c === quote) quote = null
+      } else if (c === '"' || c === "'") quote = c
+      else if (c === '{') depth++
+      else if (c === '}') {
+        depth--
+        assert.ok(depth >= 0, `${file}: a closing brace has no opening one`)
+      }
+    }
+    assert.equal(depth, 0, `${file}: ${depth} block(s) never closed`)
+    assert.equal(quote, null, `${file}: a string is never closed`)
+  }
+  assert.ok(loadAllCss().length > 1000, 'the scanner read almost nothing')
 })

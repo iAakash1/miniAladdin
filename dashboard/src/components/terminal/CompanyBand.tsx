@@ -184,7 +184,7 @@ export default function CompanyBand({ analysis }: { analysis: Analysis }) {
               symbol the breadth map on Market already trades on, so the two
               surfaces name the sector the same way. A sector with no proxy
               simply renders as text. */}
-          <p style={{ fontSize: 'var(--t-body)', color: 'var(--ink-faint)', display: 'flex', alignItems: 'center', gap: 7 }}>
+          <p style={{ fontSize: 'var(--t-body)', color: 'var(--ink-faint)', display: 'flex', alignItems: 'center', gap: 8 }}>
             {sectorProxy(analysis.sector) && (
               <CompanyMark ticker={sectorProxy(analysis.sector)} name={`${analysis.sector} sector`} size={16} />
             )}

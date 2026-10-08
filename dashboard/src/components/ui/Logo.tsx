@@ -30,7 +30,7 @@ export default function Logo({ size = 20, withWordmark = true, className }: Logo
   return (
     <span
       className={className}
-      style={{ display: 'inline-flex', alignItems: 'center', gap: 9, color: 'var(--ink)' }}
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: 'var(--ink)' }}
     >
       <LogoMark size={size} />
       {withWordmark && (

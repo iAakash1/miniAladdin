@@ -60,7 +60,7 @@ export default function Shortcuts() {
       <div className="pal pal--wide" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
         <div className="pal-title">
           <h2>Keyboard</h2>
-          <button type="button" className="sys-btn sys-btn--icon" onClick={() => setOpen(false)} aria-label="Close">
+          <button type="button" className="sys-btn sys-btn--icon" onClick={() => setOpen(false)} aria-label="Close keyboard shortcuts">
             <Icon name="close" size={14} />
           </button>
         </div>

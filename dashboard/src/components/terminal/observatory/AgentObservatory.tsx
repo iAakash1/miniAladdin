@@ -138,7 +138,7 @@ export default function AgentObservatory({ initialSymbol = '' }: { initialSymbol
           Every latency and status below is measured from the run — nothing here
           is simulated.
         </Prose>
-        <form onSubmit={go} className="bg__search" role="search">
+        <form onSubmit={go} className="bg__search" role="search" aria-label="Observe a research run">
           <label htmlFor="obs-symbol" className="visually-hidden">Ticker symbol</label>
           <input
             id="obs-symbol"

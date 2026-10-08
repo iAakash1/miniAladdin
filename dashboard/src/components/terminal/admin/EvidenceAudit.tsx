@@ -130,7 +130,7 @@ export default function EvidenceAudit({
         signal is the scoring engine&apos;s and travels alongside.
       </Prose>
 
-      <form onSubmit={run} className="bg__search" role="search">
+      <form onSubmit={run} className="bg__search" role="search" aria-label="Audit a ticker">
         <label htmlFor="audit-symbol" className="visually-hidden">Ticker symbol</label>
         <input
           id="audit-symbol"

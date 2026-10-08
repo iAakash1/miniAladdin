@@ -55,7 +55,7 @@ export default function MetricInspector() {
           </div>
         </div>
         {current.status ? <Status state={STATUS_MAP[current.status] ?? 'unknown'} /> : null}
-        <button className="sys-btn" onClick={close} aria-label="Close">esc</button>
+        <button className="sys-btn" onClick={close} aria-label="Close metric details">esc</button>
       </header>
 
       <div className="sys-drawer-body">

@@ -24,7 +24,7 @@ export default function IntermediateHome() {
   return (
     <IntermediateShell title="OmniSignal" subtitle="signals, factors and evidence">
       <Panel title="Analyze a company">
-        <form onSubmit={search} className="bg__search" role="search">
+        <form onSubmit={search} className="bg__search" role="search" aria-label="Analyze a company">
           <label htmlFor="int-symbol" className="visually-hidden">Ticker symbol</label>
           <input
             id="int-symbol"

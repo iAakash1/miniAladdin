@@ -222,7 +222,7 @@ export default function PositionsPanel() {
                 return (
                   <tr key={position.id}>
                     <td className="mono" style={{ fontWeight: 600 }}>
-                      <span className="u-row" style={{ gap: 7, flexWrap: 'nowrap' }}>
+                      <span className="u-row" style={{ gap: 8, flexWrap: 'nowrap' }}>
                         <CompanyMark ticker={position.ticker} size={18} />
                         {position.ticker}
                       </span>

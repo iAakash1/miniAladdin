@@ -242,6 +242,10 @@ export function DataTable<T>({
                   <tr
                     key={key}
                     data-selected={selectedKey === key}
+                    // A selectable row says which one is selected; the data
+                    // attribute only styled it, so a screen reader heard a
+                    // list of identical rows.
+                    aria-current={onSelect && selectedKey === key ? 'true' : undefined}
                     data-focus={focus !== null && focus === cursor.focus ? '' : undefined}
                     onPointerEnter={focus === null ? undefined : () => cursor.setFocus(focus)}
                     onPointerLeave={focus === null ? undefined : () => cursor.setFocus(null)}

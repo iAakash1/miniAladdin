@@ -67,10 +67,10 @@ export default function StreetIntelligence({ block }: { block: StreetBlock | nul
       </div>
 
       {findings.length > 0 && (
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 7 }}>
+        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
           {findings.map((finding) => (
-            <li key={finding.text} style={{ display: 'flex', gap: 9, fontSize: 'var(--t-body)', lineHeight: 1.55, color: 'var(--ink)' }}>
-              <span aria-hidden="true" style={{ flexShrink: 0, marginTop: 7, width: 6, height: 6, borderRadius: 1, background: TONE_COLOR[finding.tone] }} />
+            <li key={finding.text} style={{ display: 'flex', gap: 8, fontSize: 'var(--t-body)', lineHeight: 1.55, color: 'var(--ink)' }}>
+              <span aria-hidden="true" style={{ flexShrink: 0, marginTop: 8, width: 6, height: 6, borderRadius: 1, background: TONE_COLOR[finding.tone] }} />
               {finding.text}
             </li>
           ))}
