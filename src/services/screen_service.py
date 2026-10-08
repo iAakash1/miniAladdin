@@ -117,6 +117,25 @@ WELL_KNOWN_SYMBOLS: dict[str, str] = {
 _SHARE_CLASS_SPELLING = re.compile(r"^([A-Za-z]{1,5})([\s./-])([A-Za-z])$")
 
 
+#: "BRKB" for BRK.B: the dotted anchor symbols with the dot removed. A symbol database matches the
+#: concatenated form against fund names ("Direxion Daily BRKB Bull"), so without this the leveraged
+#: fund outranks Berkshire for a query a person plainly meant as the share class.
+_UNSEPARATED_SHARE_CLASSES = {symbol.replace(".", ""): symbol for symbol in WELL_KNOWN_SYMBOLS if "." in symbol}
+
+
+def _share_class(query: str) -> Optional[tuple[str, str]]:
+    """(root, class letter) when the query is one security's share class, however spelled."""
+    typed = query.strip()
+    match = _SHARE_CLASS_SPELLING.match(typed)
+    if match:
+        return match.group(1).upper(), match.group(3).upper()
+    alias = _UNSEPARATED_SHARE_CLASSES.get(typed.upper())
+    if alias:
+        root, letter = alias.split(".")
+        return root, letter
+    return None
+
+
 def _lookup_spellings(query: str) -> list[str]:
     """The strings to try, in order, for one query.
 
@@ -126,23 +145,26 @@ def _lookup_spellings(query: str) -> list[str]:
     to each vendor's fuzziness, which is how a plain, unambiguous symbol came
     back as "nothing found".
 
-    Spaced and slashed forms are not symbols at any vendor, so their dotted and
-    hyphenated spellings are tried before the query as typed. A dotted or
-    hyphenated query is already a symbol: it goes first, and the sibling
-    spelling is only a fallback. Anything else is not a share class and is
-    searched exactly as typed — this adds vendor calls only for queries of the
-    one shape that needs them.
+    Spaced, slashed and concatenated forms are not symbols at any vendor, and
+    "BRK-B" and "BRK.B" are the same security under two spellings, so for a
+    share class the dotted spelling is always tried first, then the hyphenated
+    one, then the query as typed. Which spelling answers decides which vendors
+    serve the security afterwards, so leaving it to the order a person typed
+    it gave one company two cache entries and two slightly different quotes.
+    The hyphenated spelling stays as the fallback because some sources know
+    only that form. Anything else is not a share class and is searched exactly
+    as typed — this adds vendor calls only for queries of the one shape that
+    needs them.
     """
     typed = query.strip()
-    match = _SHARE_CLASS_SPELLING.match(typed)
-    if not match:
+    share = _share_class(typed)
+    if not share:
         return [typed]
-    root, separator, letter = match.group(1).upper(), match.group(2), match.group(3).upper()
-    dotted, hyphenated = f"{root}.{letter}", f"{root}-{letter}"
-    if separator in ".-":
-        siblings = [hyphenated if separator == "." else dotted]
-        return [typed, *siblings]
-    return [dotted, hyphenated, typed]
+    root, letter = share
+    spellings = [f"{root}.{letter}", f"{root}-{letter}"]
+    if typed.upper() not in spellings:
+        spellings.append(typed)
+    return spellings
 
 
 def _resolve_well_known(query: str) -> list[dict[str, Any]]:
@@ -192,8 +214,36 @@ def _did_you_mean(query: str) -> list[dict[str, Any]]:
     return out
 
 
+def _tidy(rows: list[dict[str, Any]], share: Optional[tuple[str, str]]) -> list[dict[str, Any]]:
+    """One row per symbol, and for a share class the exact listing alone.
+
+    Vendors list one symbol more than once (a cross-listing under the same
+    ticker, a name spelled two ways), so the same security appeared twice in
+    the results. And a share class searched as "BRK-B" came back with a
+    leveraged fund and a London product beneath it: when the security itself is
+    in the answer, text-similar instruments are noise, so they are dropped.
+    """
+    seen: set[str] = set()
+    unique: list[dict[str, Any]] = []
+    for row in rows:
+        symbol = str(row.get("symbol") or "").upper()
+        if symbol and symbol not in seen:
+            seen.add(symbol)
+            unique.append(row)
+    if share:
+        root, letter = share
+        spellings = (f"{root}.{letter}", f"{root}-{letter}")
+        exact = [row for row in unique if str(row["symbol"]).upper() in spellings]
+        if exact:
+            # Both spellings of the same security: keep the dotted one.
+            exact.sort(key=lambda row: str(row["symbol"]).upper() != spellings[0])
+            return exact[:1]
+    return unique
+
+
 def _resolve_direct(query: str) -> list[dict[str, Any]]:
     """Ticker or company-name lookup through the symbol-search chain."""
+    share = _share_class(query)
     for spelling in _lookup_spellings(query):
         for vendor in (providers.fundamentals.finnhub, providers.fundamentals.fmp,
                        providers.market_data.yfinance):
@@ -204,6 +254,7 @@ def _resolve_direct(query: str) -> list[dict[str, Any]]:
             except Exception:  # noqa: BLE001 — chain semantics, next vendor
                 logger.info("symbol search failed on %s", vendor.NAME)
                 continue
+            rows = _tidy(rows or [], share)
             if rows:
                 return [
                     {"symbol": row["symbol"], "name": row["name"],
@@ -246,10 +297,36 @@ def _validate_symbol(symbol: str) -> Optional[str]:
     return WELL_KNOWN_SYMBOLS.get(symbol.upper())
 
 
+#: Words that describe the kind of question rather than its subject.
+_GENERIC_WORDS = frozenset({
+    "stock", "stocks", "ticker", "tickers", "company", "companies", "share", "shares", "best", "top",
+    "the", "and", "for", "with", "from", "that", "are", "how", "what", "which", "most", "largest",
+    "biggest", "list", "of", "to", "in", "on", "by", "watch", "buy", "invest", "investing",
+})
+
+
+def _results_are_about(query: str, rows: list[Any]) -> bool:
+    """Whether the pages a web search returned have anything to do with the query.
+
+    A search engine asked for "qzxwqzxw stocks tickers" ignores the word it has
+    never seen and answers with the best-ranked stock pages there are; every
+    ticker extracted from those pages then looked like an answer to the query.
+    The query's own distinctive terms must appear somewhere in what came back.
+    A query made only of generic words has nothing to check.
+    """
+    terms = [t for t in re.findall(r"[a-z0-9]{2,}", query.lower()) if t not in _GENERIC_WORDS]
+    if not terms:
+        return True
+    text = " ".join(f"{row.title} {row.snippet} {row.url}" for row in rows).lower()
+    return any(term in text for term in terms)
+
+
 def _thematic(query: str) -> list[dict[str, Any]]:
     """Web search → ticker extraction → validation. Attribution preserved."""
     search_result = providers.search.search(f"{query} stocks tickers", limit=8)
     if not search_result.ok or not search_result.data:
+        return []
+    if not _results_are_about(query, search_result.data):
         return []
 
     seen: set[str] = set()

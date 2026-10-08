@@ -306,3 +306,128 @@ class TestShareClassSpellings:
         out = screen("QZXW")
 
         assert out["results"] == []
+
+
+# ── what the live search matrix found ────────────────────────────────────────
+
+class _RowsVendor(_FakeVendor):
+    """Answers each exact query string with its own rows, as a symbol database does."""
+
+    def __init__(self, name: str, answers: dict[str, list[dict]]):
+        super().__init__(name)
+        self._answers = answers
+        self.queries: list[str] = []
+
+    def search_symbols(self, query: str, limit: int = 8) -> Optional[list[dict]]:
+        self.queries.append(query)
+        self.calls += 1
+        return self._answers.get(query.upper())
+
+
+class TestOneResultPerSecurity:
+    def test_a_symbol_a_vendor_lists_twice_is_one_result(self, monkeypatch):
+        # META came back twice: a US listing and a cross-listing under the same ticker.
+        finnhub = _RowsVendor("finnhub", {"META": [
+            {"symbol": "META", "name": "META PLATFORMS INC-CLA"},
+            {"symbol": "META", "name": "Meta Platforms Inc"},
+            {"symbol": "CMC", "name": "Commercial Metals Co"},
+        ]})
+        _patch_vendors(monkeypatch, finnhub=finnhub)
+        _patch_search(monkeypatch, data=[])
+        out = screen("META")
+        assert [r["symbol"] for r in out["results"]] == ["META", "CMC"]
+        assert out["results"][0]["name"] == "META PLATFORMS INC-CLA"
+
+    def test_symbols_are_compared_without_regard_to_case(self, monkeypatch):
+        finnhub = _RowsVendor("finnhub", {"MSFT": [
+            {"symbol": "MSFT", "name": "Microsoft Corp"}, {"symbol": "msft", "name": "microsoft corp"},
+        ]})
+        _patch_vendors(monkeypatch, finnhub=finnhub)
+        _patch_search(monkeypatch, data=[])
+        assert len(screen("MSFT")["results"]) == 1
+
+
+BERKSHIRE_NOISE = [
+    {"symbol": "BRKU", "name": "Direxion Daily BRKB Bull 2X Shares"},
+    {"symbol": "BRK2.L", "name": "LEVERAGE SHARES PUBLIC LIMITED COMPANY"},
+]
+
+
+class TestShareClassIsOneSecurity:
+    @pytest.mark.parametrize("typed", ["BRK.B", "BRK-B", "BRK B", "BRK/B", "brk-b", "BRKB", "brkb"])
+    def test_every_spelling_lands_on_the_dotted_symbol(self, monkeypatch, typed):
+        finnhub = _RowsVendor("finnhub", {
+            "BRK.B": [{"symbol": "BRK.B", "name": "BERKSHIRE HATHAWAY INC"}],
+            "BRK-B": [{"symbol": "BRK-B", "name": "Berkshire Hathaway Inc"}, *BERKSHIRE_NOISE],
+            "BRKB": list(BERKSHIRE_NOISE),
+        })
+        _patch_vendors(monkeypatch, finnhub=finnhub)
+        _patch_search(monkeypatch, data=[])
+        out = screen(typed)
+        assert [r["symbol"] for r in out["results"]] == ["BRK.B"], (typed, out["results"])
+        assert finnhub.queries[0] == "BRK.B", "the dotted spelling must be asked first"
+
+    def test_fuzzy_funds_are_dropped_when_the_security_itself_answered(self, monkeypatch):
+        # A source that knows only the hyphenated form, and pads its answer with text-similar funds.
+        yfinance = _RowsVendor("yfinance", {"BRK-B": [{"symbol": "BRK-B", "name": "Berkshire Hathaway Inc"}, *BERKSHIRE_NOISE]})
+        _patch_vendors(monkeypatch, yfinance=yfinance)
+        _patch_search(monkeypatch, data=[])
+        out = screen("BRK-B")
+        assert [r["symbol"] for r in out["results"]] == ["BRK-B"]
+        assert yfinance.queries == ["BRK.B", "BRK-B"], "the hyphenated spelling is still the fallback"
+
+    def test_both_spellings_in_one_answer_collapse_to_the_dotted_one(self, monkeypatch):
+        finnhub = _RowsVendor("finnhub", {"BRK.B": [
+            {"symbol": "BRK-B", "name": "Berkshire Hathaway Inc"}, {"symbol": "BRK.B", "name": "BERKSHIRE HATHAWAY INC"},
+        ]})
+        _patch_vendors(monkeypatch, finnhub=finnhub)
+        _patch_search(monkeypatch, data=[])
+        assert [r["symbol"] for r in screen("BRK.B")["results"]] == ["BRK.B"]
+
+    def test_the_concatenated_form_resolves_from_the_keyless_anchor_too(self, monkeypatch):
+        _patch_vendors(monkeypatch)
+        _patch_search(monkeypatch, data=[])
+        out = screen("BRKB")
+        assert [r["symbol"] for r in out["results"]] == ["BRK.B"]
+        assert out["results"][0]["via"] == "known symbol"
+
+    def test_only_the_anchor_share_classes_are_recognised_without_a_separator(self):
+        assert screen_service._lookup_spellings("BRKB") == ["BRK.B", "BRK-B", "BRKB"]
+        for ordinary in ("AAPL", "MSFT", "NVDA", "META", "GOOGL", "BRKU"):
+            assert screen_service._lookup_spellings(ordinary) == [ordinary]
+
+    def test_a_query_that_is_not_a_share_class_keeps_every_fuzzy_hit(self, monkeypatch):
+        finnhub = _RowsVendor("finnhub", {"APPLE": [
+            {"symbol": "AAPL", "name": "Apple Inc"}, {"symbol": "APLE", "name": "Apple Hospitality REIT"},
+        ]})
+        _patch_vendors(monkeypatch, finnhub=finnhub)
+        _patch_search(monkeypatch, data=[])
+        assert [r["symbol"] for r in screen("apple")["results"]] == ["AAPL", "APLE"]
+
+
+class TestThematicSearchMustBeAboutTheQuery:
+    PAGES = [SearchResult(title="Best dividend stocks to buy now", url="https://example.com/dividends",
+                          snippet="$KO $PEP $JNJ lead the list")]
+
+    def test_a_term_no_page_contains_gets_no_tickers(self, monkeypatch):
+        _patch_vendors(monkeypatch)
+        _patch_search(monkeypatch, data=self.PAGES)
+        out = screen("QZXWQZXW")
+        assert out["results"] == []
+        assert "suggestions" in out
+
+    def test_a_theme_the_pages_do_discuss_still_resolves(self, monkeypatch):
+        _patch_vendors(monkeypatch)
+        _patch_search(monkeypatch, data=self.PAGES)
+        out = screen("dividend stocks to buy")
+        assert {r["symbol"] for r in out["results"]} == {"KO", "PEP", "JNJ"}
+
+    @pytest.mark.parametrize("query,expected", [
+        ("QZXWQZXW", False),
+        ("blockchain stocks", False),
+        ("dividend stocks", True),
+        ("AI companies to watch", False),   # no page mentions "ai" in PAGES
+        ("best stocks", True),               # nothing but generic words: nothing to check
+    ])
+    def test_results_are_about_truth_table(self, query, expected):
+        assert screen_service._results_are_about(query, self.PAGES) is expected
