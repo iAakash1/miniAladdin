@@ -53,7 +53,9 @@ a test holds; off-grid spacing was snapped. A source audit finds no button, link
 an accessible name (rendered behaviour is not verified). A chart that failed to
 load is no longer an empty chart; an investigation whose contents were not read
 is no longer "Empty"; a date with no time reads as that day in every time zone;
-an undated headline is no longer stamped with the time it was fetched. Six
+an undated headline is no longer stamped with the time it was fetched; a failed request in
+the browser's request caches drops only its own entry, so an older failure cannot evict a newer
+healthy request for the same URL. Six
 files nothing imported (about 680 lines) and the CSS only they used were removed.
 
 **Dependencies.** `npm audit` for production dependencies went from one critical and two
@@ -69,7 +71,7 @@ unchanged, with the reasoning in `docs/DEPENDENCY_AUDIT.md`.
 rollback target only). The README no longer presents the August captures as the
 current interface.
 
-Tests: backend 5,357 passed, 0 failed in two consecutive full runs (the live-network smoke file, which needs the real internet, is excluded); frontend 811 passed, 0 failed; typecheck, lint and production build clean.
+Tests: backend 5,357 passed, 0 failed in two consecutive full runs (the live-network smoke file, which needs the real internet, is excluded); frontend 814 passed, 0 failed; typecheck, lint and production build clean.
 
 ### UI polish pass
 
