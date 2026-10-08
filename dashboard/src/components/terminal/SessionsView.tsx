@@ -100,7 +100,10 @@ function isEmpty(s: Substance) {
  * three shapes the substance can take, so this reports the record rather
  * than scoring it.
  */
-function stage(s: Substance): { tone: 'muted' | 'accent' | 'pos'; label: string } {
+function stage(s: Substance | null): { tone: 'muted' | 'accent' | 'pos'; label: string } {
+  // Contents that were not read (still loading, past the cards that are
+  // hydrated, or the read failed) are not contents that are absent.
+  if (s === null) return { tone: 'muted', label: 'Not loaded' }
   if (isEmpty(s)) return { tone: 'muted', label: 'Empty' }
   if (s.notes.length || s.snapshots.length) return { tone: 'pos', label: 'In progress' }
   return { tone: 'accent', label: 'Scoped' }
@@ -239,11 +242,16 @@ function InvestigationSkeleton() {
 
 export default function SessionsView() {
   const [sessions, setSessions] = useState<SessionSummary[] | null>(null)
-  const [detail, setDetail] = useState<Record<string, Substance>>({})
+  /* `null` is a session whose contents could not be read; a missing key is one
+     that was not asked for. Neither is an empty investigation. */
+  const [detail, setDetail] = useState<Record<string, Substance | null>>({})
   const [failed, setFailed] = useState(false)
   const [title, setTitle] = useState('')
   const [query, setQuery] = useState('')
   const [hits, setHits] = useState<{ sessions: SessionSummary[]; notes: SessionNote[] } | null>(null)
+  // A search that failed is its own state. It used to leave `hits` null, which
+  // the screen reads as "still searching", so a failure looked like an endless wait.
+  const [searchFailed, setSearchFailed] = useState(false)
 
   const refresh = useCallback(() => {
     listSessions()
@@ -256,7 +264,7 @@ export default function SessionsView() {
         const loaded = await Promise.all(
           list.slice(0, 12).map(async (s) => {
             const full = await openSession(s.id).catch(() => null)
-            return [s.id, full ? readSubstance(full) : EMPTY] as const
+            return [s.id, full ? readSubstance(full) : null] as const
           }),
         )
         setDetail(Object.fromEntries(loaded))
@@ -269,15 +277,24 @@ export default function SessionsView() {
   useEffect(() => {
     const term = query.trim()
     if (!term) return
+    // `alive` is what keeps answers in order: type "ab", then "abc", and the
+    // reply for "ab" may land after the reply for "abc". Without the guard it
+    // overwrote the newer one, and the list showed matches for words the box no
+    // longer held.
+    let alive = true
     const timer = setTimeout(() => {
-      searchSessions(term).then(setHits).catch(() => setHits(null))
+      setSearchFailed(false)
+      searchSessions(term)
+        .then((found) => { if (alive) setHits(found) })
+        .catch(() => { if (alive) { setHits(null); setSearchFailed(true) } })
     }, 250)
-    return () => clearTimeout(timer)
+    return () => { alive = false; clearTimeout(timer) }
   }, [query])
 
   const searching = query.trim().length > 0
   const [resume, ...rest] = sessions ?? []
-  const resumeSubstance = resume ? detail[resume.id] ?? EMPTY : EMPTY
+  const resumeRead = resume ? detail[resume.id] ?? null : null
+  const resumeSubstance = resumeRead ?? EMPTY
 
   const start = async () => {
     const created = await createSession(title.trim() || 'New investigation')
@@ -325,12 +342,19 @@ export default function SessionsView() {
         </span>
         {searching && (
           <span className="ws-search__count">
-            {hits ? `${matchCount} match${matchCount === 1 ? '' : 'es'}` : 'searching…'}
+            {searchFailed ? 'search unavailable'
+              : hits ? `${matchCount} match${matchCount === 1 ? '' : 'es'}` : 'searching…'}
           </span>
         )}
       </div>
 
-      {searching && hits && (
+      {searching && searchFailed && (
+        <p className="ws-empty-line" role="status">
+          Search is unavailable right now, so nothing is shown here. Your investigations below are unaffected.
+        </p>
+      )}
+
+      {searching && hits && !searchFailed && (
         <section className="ws-results" aria-label="Search results">
           {matchCount === 0 && (
             <p className="ws-empty-line">
@@ -403,7 +427,7 @@ export default function SessionsView() {
               >
                 <span className="ws-resume__eyebrow">
                   Continue where you left off
-                  <StatusPill {...stage(resumeSubstance)} />
+                  <StatusPill {...stage(resumeRead)} />
                 </span>
                 <span className="ws-resume__title">{resume.title}</span>
                 {resume.description && <span className="ws-resume__desc">{resume.description}</span>}
@@ -422,19 +446,22 @@ export default function SessionsView() {
                   <h2 className="ws-section">Other investigations</h2>
                   <div className="ws-grid">
                     {rest.map((s) => {
-                      const substance = detail[s.id] ?? EMPTY
+                      const read = detail[s.id] ?? null
+                      const substance = read ?? EMPTY
                       return (
                         <article key={s.id} className="ws-card">
                           <Link href={`/terminal/graph?session=${s.id}`} className="ws-card__link">
                             <span className="ws-card__head">
                               <span className="ws-card__title">{s.title}</span>
-                              <StatusPill {...stage(substance)} />
+                              <StatusPill {...stage(read)} />
                             </span>
                             {s.description && <span className="ws-card__desc">{s.description}</span>}
                             <Symbols symbols={substance.entities} />
-                            {isEmpty(substance)
-                              ? <span className="ws-card__blank">Nothing captured yet — open it to begin.</span>
-                              : <Counts substance={substance} />}
+                            {read === null
+                              ? <span className="ws-card__blank">Contents not loaded — open it to read them.</span>
+                              : isEmpty(substance)
+                                ? <span className="ws-card__blank">Nothing captured yet — open it to begin.</span>
+                                : <Counts substance={substance} />}
                           </Link>
                           <div className="ws-card__foot">
                             <span>{s.tags.length ? s.tags.join(' · ') : timeAgo(s.last_opened_at)}</span>

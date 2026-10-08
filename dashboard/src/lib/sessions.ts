@@ -72,9 +72,12 @@ export function emptyWorkspaceState(): WorkspaceState {
 
 /* ---------- API ---------- */
 
+/** A failed request throws. It used to return `[]`, which is also the answer to
+ *  "you have no investigations" - so a 5xx showed the first-run empty state, and
+ *  the caller's `.catch(() => setFailed(true))` could never run. */
 export async function listSessions(status?: string): Promise<SessionSummary[]> {
   const res = await authFetch(`/api/sessions${status ? `?status=${status}` : ''}`)
-  if (!res.ok) return []
+  if (!res.ok) throw new Error(`the investigations request returned ${res.status}`)
   return ((await res.json()) as { sessions: SessionSummary[] }).sessions
 }
 
@@ -115,7 +118,8 @@ export async function deleteNote(noteId: string): Promise<boolean> {
 
 export async function searchSessions(term: string): Promise<{ sessions: SessionSummary[]; notes: SessionNote[] }> {
   const res = await authFetch(`/api/sessions/search?q=${encodeURIComponent(term)}`)
-  if (!res.ok) return { sessions: [], notes: [] }
+  // Throws, so a search that failed is not "0 matches".
+  if (!res.ok) throw new Error(`the investigations search returned ${res.status}`)
   return (await res.json()) as { sessions: SessionSummary[]; notes: SessionNote[] }
 }
 

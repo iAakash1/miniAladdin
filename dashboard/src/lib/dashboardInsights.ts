@@ -89,12 +89,55 @@ export interface EventRow {
   explain: string
 }
 
+/** What the backend asked for and what came back, per section. */
+export interface DashboardCoverage {
+  macro_cards: { available: number; expected: number }
+  sectors: { available: number; expected: number }
+  indexes: { available: number; expected: number }
+  regime: boolean
+}
+
 export interface DashboardData {
   macro: { cards: MacroCard[]; regime: Regime; note: string }
   breadth: Breadth
   sectors: SectorRow[]
   events: EventRow[]
   generated_at: string
+  /** `complete`: every section arrived. `partial`: some did not. `unavailable`:
+   *  none could be read. Absent on an older backend, read as `complete`. */
+  status?: 'complete' | 'partial' | 'unavailable'
+  coverage?: DashboardCoverage
+}
+
+export type SectionState = 'live' | 'warning' | 'unavailable'
+
+/**
+ * The state a section of the market snapshot may claim.
+ *
+ * Panels were marked "live" whatever arrived: a breadth panel built from 7 of 11
+ * sectors, or a macro panel with 11 of 19 series, said the same as a whole one.
+ * "Live" is a claim that the figures are complete and inside their window, so a
+ * section that arrived short says `warning` and one that did not arrive says
+ * `unavailable`. No coverage block (an older backend) is read as whole, which is
+ * all it ever reported.
+ */
+export function sectionState(
+  data: Pick<DashboardData, 'coverage'>,
+  section: 'macro_cards' | 'sectors' | 'indexes',
+): SectionState {
+  const c = data.coverage?.[section]
+  if (!c) return 'live'
+  if (c.available <= 0) return 'unavailable'
+  return c.available < c.expected ? 'warning' : 'live'
+}
+
+/** "7 of 11" when a section arrived short, otherwise null. */
+export function shortfall(
+  data: Pick<DashboardData, 'coverage'>,
+  section: 'macro_cards' | 'sectors' | 'indexes',
+): string | null {
+  const c = data.coverage?.[section]
+  return c && c.available > 0 && c.available < c.expected ? `${c.available} of ${c.expected}` : null
 }
 
 /* ── FRED series ids (src/services/dashboard_service.py MACRO_SERIES) ────── */

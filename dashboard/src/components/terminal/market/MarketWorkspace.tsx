@@ -27,7 +27,7 @@ import { recordVisit } from '@/lib/research/history'
 import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
 import WhatChanged from './WhatChanged'
 import MarketMap from './MarketMap'
-import type { SectorRow } from '@/lib/dashboardInsights'
+import { sectionState, shortfall, type DashboardCoverage, type SectorRow } from '@/lib/dashboardInsights'
 import type { MapBreadth } from './MarketMap'
 import { readResource } from '@/lib/resource'
 
@@ -78,6 +78,9 @@ interface Dashboard {
   events?: { date: string; type?: string; title?: string; importance?: string; days_away?: number; explain?: string }[]
   generated_at?: string
   cached?: boolean
+  /** Which parts of the snapshot arrived; see lib/dashboardInsights. */
+  status?: 'complete' | 'partial' | 'unavailable'
+  coverage?: DashboardCoverage
 }
 
 const n = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null)
@@ -235,7 +238,7 @@ export default function MarketWorkspace() {
         glyph="M"
         name="Market"
         kind="live vendor data, not point-in-time"
-        state="live"
+        state={data.status === 'unavailable' ? 'unavailable' : data.status === 'partial' ? 'warning' : 'live'}
         detail={data.generated_at ? `generated ${data.generated_at.slice(0, 19)}${data.cached ? ', cached' : ''}` : undefined}
         facts={[
           { label: 'Breadth', value: n(b.breadth_score), kind: 'percent', digits: 0, title: b.explain ?? undefined },
@@ -266,7 +269,11 @@ export default function MarketWorkspace() {
       {mappable ? <MarketMap breadth={mappable.breadth} sectors={mappable.sectors} /> : null}
 
       <div style={{ display: 'grid', gap: 'var(--d-4)', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)' }}>
-        <Panel title="Breadth" subtitle={b.explain ? undefined : 'share of sectors above their 50-day average'} state="live">
+        <Panel
+          title="Breadth"
+          subtitle={shortfall(data, 'sectors') ? `${shortfall(data, 'sectors')} sectors reported` : b.explain ? undefined : 'share of sectors above their 50-day average'}
+          state={sectionState(data, 'sectors')}
+        >
           {history.length > 1 ? (
             <TimeSeries
               series={[{ name: 'breadth', points: history, color: 'var(--ink)' }]}
@@ -288,7 +295,7 @@ export default function MarketWorkspace() {
           </p>
         </Panel>
 
-        <Panel title="Leadership" state="live">
+        <Panel title="Leadership" subtitle={shortfall(data, 'sectors') ? `${shortfall(data, 'sectors')} sectors reported` : undefined} state={sectionState(data, 'sectors')}>
           <table className="sys-table sys-table--compact">
             <tbody>
               <tr><td>Leading</td><td className="num" style={{ textAlign: 'left' }}>{b.leadership ?? <span className="sys-null">—</span>}</td></tr>
@@ -369,7 +376,11 @@ export default function MarketWorkspace() {
       </Grid>
 
       {data.macro?.cards?.length || regimeObj ? (
-        <Panel title="Macro" state="live" subtitle={data.macro?.note ?? undefined}>
+        <Panel
+          title="Macro"
+          state={sectionState(data, 'macro_cards')}
+          subtitle={shortfall(data, 'macro_cards') ? `${shortfall(data, 'macro_cards')} series reported` : data.macro?.note ?? undefined}
+        >
           {/* The regime is a composite the backend already explains. Showing
               only its one-word verdict in the header discards the curve
               reading, the recession flag and the rule that produced it. */}

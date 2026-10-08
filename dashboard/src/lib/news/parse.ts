@@ -10,7 +10,8 @@ export interface ParsedItem {
   title: string
   url: string
   summary: string
-  publishedAt: string // ISO
+  /** ISO, or '' when the feed gave no readable date: an undated story is not new. */
+  publishedAt: string
   image: string | null
   author: string | null
 }
@@ -106,7 +107,7 @@ function parseRssItem(item: XmlNode): ParsedItem | null {
     title,
     url,
     summary: truncate(cleanText(text(item.description))),
-    publishedAt: toIso(text(item.pubDate) || text(item['dc:date'])) ?? new Date().toISOString(),
+    publishedAt: toIso(text(item.pubDate) || text(item['dc:date'])) ?? '',
     image: extractImage(item),
     author: cleanText(text(item['dc:creator']) || text(item.author)) || null,
   }
@@ -123,7 +124,7 @@ function parseAtomEntry(entry: XmlNode): ParsedItem | null {
     title,
     url,
     summary: truncate(cleanText(text(entry.summary) || text(entry.content))),
-    publishedAt: toIso(text(entry.published) || text(entry.updated)) ?? new Date().toISOString(),
+    publishedAt: toIso(text(entry.published) || text(entry.updated)) ?? '',
     image: extractImage(entry),
     author: authorNode ? cleanText(text(authorNode.name)) || null : null,
   }

@@ -59,6 +59,15 @@ export interface KnowledgeClaim {
   }>
 }
 
+/** What one source did for this company. `empty` means it answered and had
+ *  nothing; `unavailable` means it could not be asked. Only the first is a
+ *  statement about the company. */
+export type KnowledgeSourceState = 'ok' | 'empty' | 'unavailable'
+
+/** `complete`: every source answered. `partial`: at least one could not be
+ *  asked. `unavailable`: none could, so an empty ecosystem says nothing. */
+export type KnowledgeStatus = 'complete' | 'partial' | 'unavailable'
+
 export interface CompanyKnowledge {
   symbol: string
   ecosystem: EcosystemGroup[]
@@ -66,6 +75,24 @@ export interface CompanyKnowledge {
   timeline: KnowledgeTimelineEvent[]
   findings: KnowledgeFinding[]
   graph: { nodes: number; edges: number; providers: string[] }
+  /** Absent from an older backend, which is read as `complete` - the only
+   *  thing it could ever have meant. */
+  status?: KnowledgeStatus
+  sources?: Record<string, KnowledgeSourceState>
+}
+
+const SOURCE_NAME: Record<string, string> = {
+  sec: 'SEC EDGAR',
+  wikidata: 'Wikidata',
+  research: 'web research',
+  openfigi: 'OpenFIGI',
+}
+
+/** The sources that could not be asked, in the reader's words. */
+export function unavailableSources(knowledge: Pick<CompanyKnowledge, 'sources'>): string[] {
+  return Object.entries(knowledge.sources ?? {})
+    .filter(([, state]) => state === 'unavailable')
+    .map(([name]) => SOURCE_NAME[name] ?? name)
 }
 
 /** Human labels for edge types — the graph's vocabulary, shown as roles. */
@@ -85,13 +112,17 @@ export const EDGE_LABELS: Record<string, string> = {
   supplies: 'Supplier',
 }
 
+/** The ecosystem, or null when the request itself failed. Null is "could not
+ *  ask", never "nothing found": a company with an empty ecosystem comes back as
+ *  an object with `status: 'complete'` and empty lists. Analysis never depends
+ *  on this call, which is why a failure is reported as null rather than thrown. */
 export async function fetchKnowledge(ticker: string): Promise<CompanyKnowledge | null> {
   try {
     const res = await fetch(`/api/knowledge/${encodeURIComponent(ticker)}`)
     if (!res.ok) return null
     return (await res.json()) as CompanyKnowledge
   } catch {
-    return null // research is always optional — analysis never depends on it
+    return null
   }
 }
 

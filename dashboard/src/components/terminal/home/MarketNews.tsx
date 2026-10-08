@@ -49,7 +49,7 @@ export default function MarketNews({ count = 5 }: { count?: number }) {
             {leadPictured ? (
               <Thumb src={lead.image} source={lead.source} url={lead.url} width="100%" ratio="16 / 9" />
             ) : null}
-            <span className="home-news__meta">{lead.source} · {timeAgo(lead.publishedAt)}</span>
+            <span className="home-news__meta">{lead.source}{lead.publishedAt ? ` · ${timeAgo(lead.publishedAt)}` : ''}</span>
             <span className="home-news__title home-news__title--lead">{lead.title}</span>
             {!leadPictured && lead.summary && lead.summary !== lead.title ? (
               <span className="home-news__summary">{lead.summary}</span>
@@ -62,7 +62,7 @@ export default function MarketNews({ count = 5 }: { count?: number }) {
                   <Thumb src={n.image} source={n.source} url={n.url} width={88} ratio="16 / 10" />
                   <span className="home-news__text">
                     <span className="home-news__title">{n.title}</span>
-                    <span className="home-news__meta">{n.source} · {timeAgo(n.publishedAt)}</span>
+                    <span className="home-news__meta">{n.source}{n.publishedAt ? ` · ${timeAgo(n.publishedAt)}` : ''}</span>
                   </span>
                 </a>
               </li>

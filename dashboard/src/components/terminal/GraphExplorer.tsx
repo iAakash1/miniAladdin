@@ -26,6 +26,9 @@ interface GraphEdgeRow {
 }
 
 interface GraphSlice {
+  /** `unavailable`: the relationship sources could not be asked, so an empty
+   *  edge list is not an answer. `partial`: some could not. */
+  status?: 'complete' | 'partial' | 'unavailable'
   center: GraphNodeRef
   edges: GraphEdgeRow[]
   timeline: Array<{ id: string; date: string; title: string; detail: string | null }>
@@ -75,6 +78,7 @@ export default function GraphExplorer() {
   const slice = settled?.node === nodeId ? settled.slice : null
   const loading = settled === null || settled.node !== nodeId
   const [active, setActive] = useState(0)
+  const [attempt, setAttempt] = useState(0)
   const [trail, setTrail] = useState<GraphNodeRef[]>([])
   const svgRef = useRef<SVGSVGElement>(null)
 
@@ -102,7 +106,12 @@ export default function GraphExplorer() {
     return () => {
       alive = false
     }
-  }, [nodeId, label])
+  }, [nodeId, label, attempt])
+
+  // A request that failed (slice null) and a lookup the backend says it could
+  // not run (`unavailable`) are the same thing to a reader: the graph was not
+  // read. Neither is "no connections recorded".
+  const unreadable = !loading && (slice === null || slice.status === 'unavailable')
 
   const recenter = useCallback(
     (node: GraphNodeRef) => {
@@ -215,11 +224,26 @@ export default function GraphExplorer() {
       <div className="terminal-grid-main">
         {/* The graph */}
         <section aria-label="Graph view" className="panel panel--pad">
+          {slice?.status === 'partial' && (
+            <p className="sys-state__detail" role="status" style={{ marginBottom: 12 }}>
+              Some relationship sources did not answer, so this view may be missing connections.
+            </p>
+          )}
           {loading ? (
             <WorkBoot
               compact
               label="Tracing connections"
               hint="walking asserted relationships outward from this entity"
+            />
+          ) : unreadable ? (
+            <EmptyState
+              title="The graph could not be read"
+              description="The relationship sources did not answer, so this is not a finding that there are no connections. Try again in a moment."
+              action={
+                <button type="button" className="sys-btn" onClick={() => setAttempt((n) => n + 1)}>
+                  Try again
+                </button>
+              }
             />
           ) : edges.length === 0 ? (
             <EmptyState

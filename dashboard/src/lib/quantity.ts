@@ -228,6 +228,21 @@ export function formatTimestamp(v: string | null | undefined): string {
   return v.slice(0, 19).replace('T', ' ')
 }
 
+/** The calendar date of an ISO timestamp, or an em dash where the text is not one. */
+export function formatDay(v: string | null | undefined): string {
+  return v && /^\d{4}-\d{2}-\d{2}/.test(v) ? v.slice(0, 10) : '—'
+}
+
+/** An instant as "Oct 7, 14:30 UTC": the same zone as every other timestamp here, and named. */
+export function formatMoment(v: string | null | undefined): string {
+  const t = v ? Date.parse(v) : Number.NaN
+  if (!Number.isFinite(t)) return '—'
+  const when = new Date(t).toLocaleString('en-US', {
+    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'UTC',
+  })
+  return `${when} UTC`
+}
+
 /**
  * A duration in whole days between two dates, or null where either is missing.
  * Used for filing lags and coverage windows, which were each computing this

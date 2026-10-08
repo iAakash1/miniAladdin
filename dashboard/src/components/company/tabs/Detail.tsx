@@ -80,7 +80,7 @@ export function NewsTab({ analysis: a, isPro, requestUpgrade }: {
 }) {
   return (
     <div className="cw-stack">
-      <News headlines={a.headlines} stream={a.newsStream} isPro={isPro} onUpgrade={() => requestUpgrade('feature')} />
+      <News headlines={a.headlines} stream={a.newsStream} status={a.newsStatus} failed={a.newsSourcesFailed} isPro={isPro} onUpgrade={() => requestUpgrade('feature')} />
     </div>
   )
 }

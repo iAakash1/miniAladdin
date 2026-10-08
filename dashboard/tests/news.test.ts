@@ -123,3 +123,44 @@ test('classifier routes by keyword with correct precedence', () => {
   // Crypto beats companies when both match
   assert.equal(classify('Coinbase earnings: crypto exchange beats', '', null), 'crypto')
 })
+
+/* ---------- a story with no date is not new ---------- */
+
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
+import NewsCard from '../src/components/news/NewsCard'
+import { byNewest } from '../src/lib/news/order'
+
+const UNDATED_RSS = `<?xml version="1.0"?><rss version="2.0"><channel><title>t</title>
+  <item><title>Undated headline</title><link>https://example.com/a</link></item>
+  <item><title>Garbled date</title><link>https://example.com/b</link><pubDate>last Tuesday-ish</pubDate></item>
+</channel></rss>`
+const UNDATED_ATOM = `<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom"><title>t</title>
+  <entry><title>Undated entry</title><link rel="alternate" href="https://example.com/c"/></entry></feed>`
+
+test('a feed item with no readable date is not given the time it was fetched', () => {
+  for (const item of [...parseFeedXml(UNDATED_RSS), ...parseFeedXml(UNDATED_ATOM)]) {
+    assert.equal(item.publishedAt, '', `${item.title} was dated`)
+  }
+  assert.equal(parseFeedXml(UNDATED_RSS).length, 2, 'undated stories are kept, not dropped')
+})
+
+test('undated stories sort after every dated one', () => {
+  const items = [
+    { id: 'u1', publishedAt: '' },
+    { id: 'old', publishedAt: '2026-07-01T10:00:00.000Z' },
+    { id: 'bad', publishedAt: 'not a date' },
+    { id: 'new', publishedAt: '2026-07-02T10:00:00.000Z' },
+  ]
+  assert.deepEqual([...items].sort(byNewest).map((i) => i.id), ['new', 'old', 'u1', 'bad'])
+})
+
+test('a card for an undated story shows no age', () => {
+  const item = {
+    id: 'x', title: 'Undated', summary: 's', url: 'https://example.com/x', source: 'Example',
+    category: 'markets' as const, publishedAt: '', image: null, author: null,
+  }
+  const html = renderToStaticMarkup(createElement(NewsCard, { item }))
+  assert.doesNotMatch(html, /<time/)
+  assert.doesNotMatch(html, /just now|ago/)
+})

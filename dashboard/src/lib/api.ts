@@ -234,6 +234,13 @@ export function normalizeAnalysis(raw: RawResearchResponse): Analysis {
     sentimentScore: s?.average_score ?? null,
     sentimentLabel: s?.dominant_label ?? null,
     headlineCount: s?.headline_count ?? 0,
+    // Three different reasons for an empty list, which the count alone cannot
+    // tell apart: never asked (no sentiment block at all), asked and nothing
+    // there, asked and nobody could answer.
+    newsStatus: s === null
+      ? 'not_requested'
+      : s.status ?? (s.error ? 'unavailable' : s.headline_count ? 'ok' : 'no_headlines'),
+    newsSourcesFailed: s?.sources_failed ?? [],
     headlines: (s?.headlines ?? []).map((h) => ({
       title: h.title ?? '',
       score: h.score ?? 0,
@@ -380,7 +387,13 @@ export async function fetchAnalysis(ticker: string, fast: boolean, depth: Report
 
 export async function fetchChart(ticker: string, period: string): Promise<RawChartResponse> {
   const res = await fetch(`/api/chart/${encodeURIComponent(ticker)}?period=${encodeURIComponent(period)}`)
-  if (!res.ok) return { prices: [] }
+  // A failed request is a failure, not an empty history. This returned
+  // `{ prices: [] }` here, which `normalizeChartSeries` labels "empty" - "no
+  // sessions returned for this security" - for a 502 from a cold backend or a
+  // 401 from a lapsed session. The route's own four outcomes (ok, stale, empty,
+  // unavailable) arrive in a 200 body and are kept; only a response that is not
+  // one of them throws.
+  if (!res.ok) throw new ApiError(`The price service returned ${res.status}.`, res.status)
   return res.json()
 }
 

@@ -120,7 +120,7 @@ export default function SystemHealthBoard({ compact = false }: { compact?: boole
         <Panel
           title="Process memory"
           subtitle={health.process_memory?.rss_source ?? 'runtime measurement'}
-          state={(health.process_memory?.memory_utilization_percent ?? 0) >= 85 ? 'blocked' : 'live'}
+          state={!health.process_memory ? 'unavailable' : (health.process_memory.memory_utilization_percent ?? 0) >= 85 ? 'blocked' : 'live'}
           badge={health.process_memory?.memory_limit_mb ? 'MEASURED' : 'LIMIT UNKNOWN'}
           badgeTone={health.process_memory?.memory_limit_mb ? 'pass' : 'muted'}
         >

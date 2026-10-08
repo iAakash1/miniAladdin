@@ -37,6 +37,10 @@ interface Analytics {
   most_connected: Array<{ id: string; label: string; type: string; degree: number }>
 }
 interface Workspace {
+  /** `unavailable`: no requested company could be looked up, so an empty graph
+   *  says nothing. `partial`: some could not (named in `unavailable_symbols`). */
+  status?: 'complete' | 'partial' | 'unavailable'
+  unavailable_symbols?: string[]
   roots: string[]; nodes: RawNode[]; edges: RawEdge[]; analytics: Analytics
   shared: Array<{ node: RawNode; connects_to: string[] }>
 }
@@ -114,6 +118,8 @@ export default function GraphWorkspace() {
   const sessionId = params.get('session') || ''
   const [data, setData] = useState<Workspace | null>(null)
   const [loading, setLoading] = useState(true)
+  // The request itself failed (distinct from a graph that is genuinely empty).
+  const [failed, setFailed] = useState(false)
   const [selected, setSelected] = useState<string | null>(null)
   const [pinned, setPinned] = useState<string[]>([])
   const [session, setSession] = useState<ResearchSession | null>(null)
@@ -205,14 +211,18 @@ export default function GraphWorkspace() {
     if (minConfidence) query.set('min_confidence', minConfidence)
     if (before) query.set('before', before)
     fetch(`/api/graph/workspace?${query}`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((json: Workspace | null) => {
+      .then((res) => {
+        if (!res.ok) throw new Error(`the graph request returned ${res.status}`)
+        return res.json()
+      })
+      .then((json: Workspace) => {
         if (!alive) return
+        setFailed(false)
         setData(json)
         setSelected(json?.roots[0] ?? null)
         setLoading(false)
       })
-      .catch(() => alive && setLoading(false))
+      .catch(() => { if (alive) { setFailed(true); setData(null); setLoading(false) } })
     return () => { alive = false }
   }, [symbols, hops, typeFilter, minConfidence, before])
 
@@ -375,11 +385,23 @@ export default function GraphWorkspace() {
       <div className="terminal-grid-main">
         {/* Graph */}
         <section aria-label="Graph" className="panel panel--compact">
+          {data?.status === 'partial' && (
+            <p className="sys-state__detail" role="status" style={{ padding: '8px 12px 0' }}>
+              {data.unavailable_symbols?.length
+                ? `${data.unavailable_symbols.join(', ')} could not be looked up, so the graph below leaves ${data.unavailable_symbols.length === 1 ? 'it' : 'them'} out.`
+                : 'Some sources did not answer, so this graph may be missing relationships.'}
+            </p>
+          )}
           {loading ? (
             <WorkBoot
               compact
               label="Building the graph"
               hint="entities and relationships from SEC filings and Wikidata"
+            />
+          ) : failed || data?.status === 'unavailable' ? (
+            <EmptyState
+              title="The graph could not be built"
+              description={`The relationship sources did not answer for ${symbols}, so this is not a finding that it has none. Change the selection or try again in a moment.`}
             />
           ) : !layout || layout.nodes.length === 0 ? (
             <EmptyState
@@ -576,7 +598,7 @@ export default function GraphWorkspace() {
                     scanned, and it is the one place in this view with room
                     for a mark at a size that resolves — a node circle is
                     four screen pixels across. */}
-                <p style={{ fontSize: 'var(--t-base)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 9 }}>
+                <p style={{ fontSize: 'var(--t-base)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
                   {selectedNode.type === 'company' && selectedNode.id.split(':')[1] && (
                     <CompanyMark
                       ticker={selectedNode.id.split(':')[1]}

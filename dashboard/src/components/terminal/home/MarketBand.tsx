@@ -41,12 +41,15 @@ interface Dashboard {
     breadth_score?: number | null
     sectors_above_50d?: number | null
     sector_count?: number | null
+    sector_expected?: number | null
     leadership?: string | null
     laggard?: string | null
     indexes?: Index[]
   }
   macro?: { regime?: { status?: string; available?: boolean } | string | null }
   generated_at?: string
+  /** `unavailable`: nothing in the snapshot could be read. `partial`: some of it. */
+  status?: 'complete' | 'partial' | 'unavailable'
 }
 
 /** Tagged with nothing: home reads one market, and there is only ever one. */
@@ -64,7 +67,12 @@ export default function MarketBand() {
   }, [])
 
   const d = answer && 'd' in answer ? answer.d : null
-  const failed = answer && 'error' in answer ? answer.error : null
+  // A snapshot with nothing in it is a failure to read the market, not a quiet
+  // market: it used to arrive here as an object with null scores and render as
+  // a row of dashes beside an "as of" time, as though it had been read.
+  const failed = answer && 'error' in answer
+    ? answer.error
+    : d?.status === 'unavailable' ? 'the market feeds did not answer' : null
   const b = d?.breadth
   const regimeRaw = d?.macro?.regime
   const regime = typeof regimeRaw === 'string'
@@ -79,7 +87,7 @@ export default function MarketBand() {
         <h2 className="band__title">Market</h2>
         <span className="band__when">
           {failed ? 'unavailable'
-            : d?.generated_at ? `as of ${d.generated_at.slice(0, 16).replace('T', ' ')}`
+            : d?.generated_at ? `as of ${d.generated_at.slice(0, 16).replace('T', ' ')} UTC${d.status === 'partial' ? ' · partial' : ''}`
               : 'reading…'}
         </span>
         <Link href="/terminal/market" className="band__more">open market</Link>
@@ -137,7 +145,14 @@ export default function MarketBand() {
             </Fact>
             <Fact k="Above 50-day">
               {b?.sectors_above_50d != null && b?.sector_count != null
-                ? <span className="band__num">{b.sectors_above_50d} of {b.sector_count}</span>
+                ? (
+                  <span className="band__num">
+                    {b.sectors_above_50d} of {b.sector_count}
+                    {b.sector_expected != null && b.sector_count < b.sector_expected
+                      ? <span className="band__none"> ({b.sector_expected - b.sector_count} not reported)</span>
+                      : null}
+                  </span>
+                )
                 : <span className="band__none">—</span>}
             </Fact>
             <Fact k="Leading">{b?.leadership ?? <span className="band__none">—</span>}</Fact>

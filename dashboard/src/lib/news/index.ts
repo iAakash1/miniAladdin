@@ -6,6 +6,7 @@
    ============================================================ */
 
 import { classify } from './classify'
+import { byNewest } from './order'
 import { parseFeedXml } from './parse'
 import { FEED_SOURCES } from './sources'
 import type { NewsCategory, NewsItem, NewsResponse } from '../types'
@@ -89,7 +90,7 @@ async function aggregate(): Promise<Aggregated> {
     }
   })
 
-  items.sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt))
+  items.sort(byNewest)
 
   return {
     items: items.slice(0, MAX_ITEMS),

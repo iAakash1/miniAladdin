@@ -138,8 +138,19 @@ export function timeAgo(iso: string | null | undefined): string {
   return `${Math.round(d / 365)}y ago`
 }
 
+/** A calendar date with no time of day, as an exchange or filing reports it. */
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/
+
 export function fmtDate(iso: string, opts?: Intl.DateTimeFormatOptions): string {
-  return new Date(iso).toLocaleDateString('en-US', opts ?? { month: 'short', day: 'numeric' })
+  const options = opts ?? { month: 'short', day: 'numeric' }
+  // `new Date('2026-10-07')` is midnight UTC. Formatted in the reader's own zone
+  // that is the evening of the 6th for anyone west of Greenwich, so a trading
+  // date would read a day early. A date with no time has no zone to convert:
+  // read it and print it in UTC. A full timestamp is an instant, and is shown
+  // in the reader's day as before.
+  return DATE_ONLY.test(iso)
+    ? new Date(iso).toLocaleDateString('en-US', { ...options, timeZone: 'UTC' })
+    : new Date(iso).toLocaleDateString('en-US', options)
 }
 
 /**

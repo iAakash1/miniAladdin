@@ -82,10 +82,16 @@ export interface RawHeadline {
 }
 
 export interface RawSentiment {
-  average_score?: number
-  dominant_label?: string
+  /** Null when no headline was read: an aggregate of nothing is not a score. */
+  average_score?: number | null
+  dominant_label?: string | null
   headline_count?: number
   headlines?: RawHeadline[]
+  /** `no_headlines`: a source answered and had none. `unavailable`: none could
+   *  be asked. Absent on an older backend, where a count of 0 meant the former. */
+  status?: 'ok' | 'no_headlines' | 'unavailable'
+  sources_failed?: string[]
+  error?: string
 }
 
 /** Raw AI explanation block (additive; null in fast mode). Narrative fields
@@ -683,6 +689,8 @@ export interface MacroStress {
 export interface MacroContext {
   rates: MacroRate[]
   stress: MacroStress[]
+  /** Readings that could not be taken for this run; the note names them too. */
+  unavailable?: string[]
   note: string
 }
 
@@ -950,6 +958,10 @@ export interface Analysis {
   sentimentLabel: string | null
   headlineCount: number
   headlines: Headline[]
+  /** Why there are no headlines, when there are none. `not_requested` is fast
+   *  mode: news was never asked for, which is neither "no news" nor an outage. */
+  newsStatus: 'ok' | 'no_headlines' | 'unavailable' | 'not_requested'
+  newsSourcesFailed: string[]
 
   macro: Macro
   mode: string
@@ -986,7 +998,8 @@ export interface NewsItem {
   url: string
   source: string
   category: NewsCategory
-  publishedAt: string // ISO
+  /** ISO, or '' when the source gave no readable date. */
+  publishedAt: string
   image: string | null
   author: string | null
 }

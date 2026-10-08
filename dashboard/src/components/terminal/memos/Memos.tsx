@@ -22,6 +22,10 @@ import { addReference, createMemo, deleteMemo, removeReference, updateMemo, useM
 import { usePinnedObjects, useRecentObjects } from '@/lib/research/history'
 import { KINDS, href as objectHref, type ResearchObject } from '@/lib/research/objects'
 
+/** Epoch milliseconds as the front of an ISO string (UTC); a value that is not a time is no value, not an exception. */
+const isoPrefix = (ms: number, length: number) =>
+  Number.isFinite(ms) ? new Date(ms).toISOString().slice(0, length) : '—'
+
 const FIELDS: { key: keyof Pick<Memo, 'thesis' | 'evidence' | 'risks' | 'conclusion'>; label: string; hint: string; rows: number }[] = [
   { key: 'thesis', label: 'Thesis', hint: 'What you think is true, stated so it could be wrong.', rows: 3 },
   { key: 'evidence', label: 'Evidence', hint: 'What supports it, and how strong that support is.', rows: 5 },
@@ -113,7 +117,7 @@ export default function Memos({ initialId }: { initialId?: string }) {
                   >
                     <span style={{ fontSize: 'var(--t-body)', color: 'var(--ink)' }}>{m.title || 'Untitled'}</span>
                     <span className="sys-meta">
-                      {m.status} · {m.references.length} refs · {new Date(m.updatedAt).toISOString().slice(0, 10)}
+                      {m.status} · {m.references.length} refs · {isoPrefix(m.updatedAt, 10)}
                     </span>
                   </button>
                 </li>
@@ -126,7 +130,7 @@ export default function Memos({ initialId }: { initialId?: string }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--d-4)', minWidth: 0 }}>
             <Panel
               title="Memo"
-              subtitle={new Date(selected.updatedAt).toISOString().slice(0, 16).replace('T', ' ')}
+              subtitle={isoPrefix(selected.updatedAt, 16).replace('T', ' ')}
               state={selected.status === 'resolved' ? 'recorded' : selected.status === 'open' ? 'experimental' : 'unknown'}
               actions={
                 <div style={{ display: 'flex', gap: 'var(--d-1)' }}>

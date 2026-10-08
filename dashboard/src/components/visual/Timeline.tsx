@@ -30,13 +30,21 @@ const KIND_LABEL: Record<TimelineKind, string> = {
   filing: 'Filing', news: 'News', research: 'Research run', earnings: 'Earnings', insider: 'Insider',
 }
 
+/** A date with no time is that calendar day in the reader's zone, not midnight UTC. */
+const when = (iso: string) => Date.parse(iso.length <= 10 ? `${iso}T00:00:00` : iso)
+
 function day(iso: string): { key: string; label: string; year: string } {
-  const d = new Date(iso.length <= 10 ? `${iso}T00:00:00` : iso)
+  const d = new Date(when(iso))
   if (Number.isNaN(d.getTime())) return { key: iso, label: iso, year: '' }
+  // The key is the same day the label shows. It used to be the UTC date, so a
+  // dated filing (local midnight) and a same-day timestamp landed in different
+  // groups, under two headings that both read "Oct 7", for anyone east of UTC.
+  const year = String(d.getFullYear())
+  const key = `${year}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   return {
-    key: d.toISOString().slice(0, 10),
+    key,
     label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    year: String(d.getFullYear()),
+    year,
   }
 }
 
@@ -47,8 +55,8 @@ export default function Timeline({ items, limit, empty }: {
   empty?: ReactNode
 }) {
   const sorted = items
-    .filter((i) => i.date && !Number.isNaN(Date.parse(i.date.length <= 10 ? `${i.date}T00:00:00` : i.date)))
-    .sort((a, b) => Date.parse(b.date) - Date.parse(a.date))
+    .filter((i) => i.date && !Number.isNaN(when(i.date)))
+    .sort((a, b) => when(b.date) - when(a.date))
     .slice(0, limit ?? items.length)
   if (!sorted.length) return <>{empty ?? null}</>
 

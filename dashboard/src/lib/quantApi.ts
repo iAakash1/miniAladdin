@@ -103,10 +103,8 @@ export function apiBase(): string {
 
 function classify(status: number): QuantFailureKind {
   if (status === 401 || status === 403) return 'auth'
-  // Clerk's middleware answers an unauthenticated API request with a 404
-  // rewrite (`x-clerk-auth-reason: protect-rewrite`) rather than a 401, so a
-  // 404 here is ambiguous between "route missing" and "not signed in". The
-  // remedy text says both rather than guessing.
+  // A signed-out request is a 401 (the proxy answers it itself), so a 404 is
+  // what it says: the route, or the object, is not there.
   if (status === 404) return 'not_found'
   return 'server'
 }

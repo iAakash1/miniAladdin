@@ -74,9 +74,11 @@ export default function NewsCard({ item, lead = false }: NewsCardProps) {
             <span className="sys-label" style={{ color: 'var(--ink-faint)', textTransform: 'none', letterSpacing: 0 }}>
               {CATEGORY_LABEL[item.category]}
             </span>
-            <span style={{ fontSize: 'var(--t-small)', color: 'var(--ink-faint)' }}>
-              <time dateTime={item.publishedAt}>{timeAgo(item.publishedAt)}</time>
-            </span>
+            {item.publishedAt ? (
+              <span style={{ fontSize: 'var(--t-small)', color: 'var(--ink-faint)' }}>
+                <time dateTime={item.publishedAt}>{timeAgo(item.publishedAt)}</time>
+              </span>
+            ) : null}
           </div>
 
           <h3

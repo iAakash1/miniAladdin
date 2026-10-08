@@ -121,12 +121,21 @@ export function usePriceSeries(ticker: string, range: Range): {
     let alive = true
     fetchChart(ticker, range)
       .then((raw) => { if (alive) setState({ for: want, series: normalizeChartSeries(raw) }) })
-      .catch(() => {
+      .catch((e: unknown) => {
         if (!alive) return
-        // A transport failure has no reason worth quoting; say what did not happen.
+        // A failed request has no reason worth quoting beyond what happened:
+        // the service did not answer. It is `error`, never `empty` - an empty
+        // history is a fact about the security, this is a fact about the call.
         setState({
           for: want,
-          series: { points: [], status: 'error', reason: 'The chart service did not answer.', source: null },
+          series: {
+            points: [],
+            status: 'error',
+            reason: e instanceof ApiError && e.status === 401
+              ? 'Your session ended; sign in again to load price history.'
+              : 'The chart service did not answer.',
+            source: null,
+          },
         })
       })
     return () => { alive = false }

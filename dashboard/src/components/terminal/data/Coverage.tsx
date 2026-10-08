@@ -52,7 +52,10 @@ export default function Coverage() {
   }, [])
 
   const dated = useMemo(
-    () => (sources ?? []).filter((s) => s.min_date && s.max_date),
+    // A date that cannot be read cannot bound a window: it would turn every
+    // limit below into NaN and the panel into an exception.
+    () => (sources ?? []).filter((s) => s.min_date && s.max_date
+      && Number.isFinite(Date.parse(s.min_date)) && Number.isFinite(Date.parse(s.max_date))),
     [sources],
   )
 

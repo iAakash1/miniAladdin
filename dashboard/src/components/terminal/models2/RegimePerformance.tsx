@@ -136,7 +136,7 @@ export default function RegimePerformance({
             rows={rows.map((r) => ({
               label: r.regime.replace(/_/g, ' '),
               value: n(r.mean_ic),
-              note: `${((n(r.share) ?? 0) * 100).toFixed(1)}% of the sample, ${r.dates ?? '—'} dates`,
+              note: `${n(r.share) === null ? 'share not reported' : `${(n(r.share)! * 100).toFixed(1)}% of the sample`}, ${r.dates ?? '—'} dates`,
             }))}
           />
         </Panel>

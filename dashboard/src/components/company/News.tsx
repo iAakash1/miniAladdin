@@ -65,21 +65,43 @@ function Story({ h, lead, linked }: { h: Headline; lead?: boolean; linked: boole
  * Company news from the provider fan-out. Publisher images only — a story
  * without one shows its publisher's mark, never a stock photograph.
  */
-export default function News({ headlines, stream, isPro, onUpgrade }: {
+export default function News({ headlines, stream, status = 'ok', failed = [], isPro, onUpgrade }: {
   headlines: Headline[]
   stream: NewsStream | null
+  /** Why the list is empty, when it is. */
+  status?: 'ok' | 'no_headlines' | 'unavailable' | 'not_requested'
+  failed?: string[]
   isPro: boolean
   onUpgrade: () => void
 }) {
   if (!headlines.length) {
+    // Three different facts that used to share one sentence. "No stories"
+    // while the news vendors were down told the reader the company was quiet.
+    const copy = status === 'unavailable'
+      ? {
+        chip: 'unavailable',
+        title: 'News sources did not answer for this run',
+        detail: `${failed.length ? `${failed.join(', ')} could not be reached. ` : ''}This is not a finding that there is no news. The news factor contributes nothing, and is not read as neutral.`,
+      }
+      : status === 'not_requested'
+        ? {
+          chip: 'skipped',
+          title: 'News was not requested for this run',
+          detail: 'Quick runs skip headlines and the news factor. Run the full analysis to read them.',
+        }
+        : {
+          chip: 'no stories',
+          title: 'No company headlines were returned for this run',
+          detail: 'The news factor contributes nothing when there are no stories; it is not read as neutral news.',
+        }
     return (
       <section className="sys-panel">
         <div className="sys-state">
           <div className="sys-state__head">
-            <span className="sys-status" data-state="unavailable">no stories</span>
-            <span className="sys-state__title">No company headlines were returned for this run</span>
+            <span className="sys-status" data-state="unavailable">{copy.chip}</span>
+            <span className="sys-state__title">{copy.title}</span>
           </div>
-          <p className="sys-state__detail">The news factor contributes nothing when there are no stories; it is not read as neutral news.</p>
+          <p className="sys-state__detail">{copy.detail}</p>
         </div>
       </section>
     )

@@ -7,6 +7,7 @@ import type { ResearchRun } from './useCompany'
 import { providerSet, signalTone, verdictWord } from './derive'
 import { StateBlock } from '@/components/system'
 import { ordinal, fmtSigned } from '@/lib/format'
+import { formatMoment } from '@/lib/quantity'
 import { FREE_DAILY_LIMIT } from '@/lib/usage'
 import type { Analysis } from '@/lib/types'
 
@@ -164,8 +165,8 @@ export default function SignalState({ run, onRetry, onUpgrade }: {
           Deterministic engine{a?.quant?.modelVersion ? ` ${a.quant.modelVersion}` : ''} · no model or LLM sets these values
         </span>
         <span className="sig-head__end">
-          {run.status === 'ready' && a?.provenance?.generated_at
-            ? <>computed {new Date(a.provenance.generated_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</>
+          {run.status === 'ready' && formatMoment(a?.provenance?.generated_at) !== '—'
+            ? <>computed {formatMoment(a?.provenance?.generated_at)}</>
             : null}
           <Link href="/terminal/methodology" className="sig-link">How it is computed</Link>
         </span>
@@ -216,7 +217,12 @@ export default function SignalState({ run, onRetry, onUpgrade }: {
         <StateBlock
           state="error"
           title="The research run did not complete"
-          detail={`${run.code === 404 ? 'No provider recognised this symbol.' : 'An upstream provider or the research service failed before a result was produced.'} No partial signal is shown in its place.`}
+          detail={`${
+            run.code === 404 ? 'No provider recognised this symbol.'
+              : run.code === 401 ? 'Your session ended before the run could be read; sign in again.'
+                : run.code === 503 ? 'The price providers did not answer. This is an outage, not a missing symbol.'
+                  : 'An upstream provider or the research service failed before a result was produced.'
+          } No partial signal is shown in its place.`}
         >
           <details className="sig-state__diag">
             <summary>Diagnostics</summary>
