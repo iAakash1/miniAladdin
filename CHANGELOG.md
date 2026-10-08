@@ -30,7 +30,10 @@ snapshot is kept five minutes, and a degraded graph or company snapshot, or a
 macro-stress snapshot with an input missing, one minute, rather than the quarter
 hour a complete one keeps. The research route's provenance
 table now lists a block that failed unexpectedly as missing instead of leaving it
-out. A sentiment aggregate over no headlines is no score, not a neutral one.
+out. A sentiment aggregate over no headlines is no score, not a neutral one. The quality
+and earnings-surprise inputs to the verdict, and a company's official record, are kept for
+minutes (not the six hours a complete answer keeps) when a source could not be asked, so one
+transient outage no longer removes a factor from a ticker's verdict until the next day.
 
 **Content-Security-Policy.** Every response carries a per-request nonce policy
 with `'strict-dynamic'` and no `'unsafe-eval'`, no `'unsafe-inline'` for scripts
@@ -66,7 +69,7 @@ unchanged, with the reasoning in `docs/DEPENDENCY_AUDIT.md`.
 rollback target only). The README no longer presents the August captures as the
 current interface.
 
-Tests: backend 5,342 passed, 0 failed in two consecutive full runs (the live-network smoke file, which needs the real internet, is excluded); frontend 811 passed, 0 failed; typecheck, lint and production build clean.
+Tests: backend 5,357 passed, 0 failed in two consecutive full runs (the live-network smoke file, which needs the real internet, is excluded); frontend 811 passed, 0 failed; typecheck, lint and production build clean.
 
 ### UI polish pass
 

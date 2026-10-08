@@ -33,12 +33,13 @@ Last updated: 2026-10-08 (the kill-list pass, resumed after a usage limit).
 | `fbf574b` | Status key in text, hover gating, breakpoints, spacing, accessible names, dead code removed |
 | `51fab09` | CSP and Clerk documents, keep-alive removed, README and docs made true |
 | `8a8aeee` | Next 16.3.8 for the published security fixes |
-| later | Patched PyJWT and aiohttp, token verification fails closed; CSP usable under `next dev`; this checkpoint |
+| `d3eb831`, `c1d5051` | Patched PyJWT and aiohttp with token verification failing closed; the CSP made usable under `next dev` |
+| later | A transient outage no longer pins the quality / earnings-surprise inputs or a partly failed official record for six hours; this checkpoint |
 
 ## What was verified, and how
 
 **Backend.** The full suite (`tests/`, excluding `test_live_smoke.py`, which needs the real internet) ran twice in a row
-on the final tree, from a snapshot whose file hash equalled the tree on disk: **5,342 passed, 0 failed**, both times.
+on the final tree, from a snapshot whose file hash equalled the tree on disk: **5,357 passed, 0 failed**, both times.
 
 **Frontend.** `tsc --noEmit` clean, ESLint clean, **811 tests passed, 0 failed**, production build succeeds.
 Every commit in the series was also checked on its own in a throwaway worktree (typecheck and the frontend suite for the
