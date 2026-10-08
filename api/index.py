@@ -190,6 +190,15 @@ async def request_logging(request, call_next):
         observability.clear()
     assert response is not None
     response.headers["X-Request-Id"] = request_id
+    # Which build answered. The frontend proxy forwards response headers, so a public route read
+    # through the website (`GET /api/macro`) names the backend revision the website is really
+    # calling. That is not the service's traffic split: the proxy once called a pinned candidate
+    # tag for weeks while every release moved traffic to a different revision, and nothing on the
+    # website could show it. Both values are already public on /api/health.
+    response.headers["X-Backend-Commit"] = _build_commit()
+    revision = os.getenv("K_REVISION")
+    if revision:
+        response.headers["X-Backend-Revision"] = revision
     return response
 
 

@@ -243,3 +243,20 @@ test('a failed proxy request carries its id to the route boundary', async (t) =>
     return true
   })
 })
+
+test('the headers that name the backend build reach the browser', async (t) => {
+  /* `GET /api/macro` read through the website is how an operator learns which backend revision the
+     website really calls (the proxy once called a pinned candidate tag while every release moved
+     traffic to another revision). That only works while the proxy passes the headers through. */
+  arrange(t, async () => new Response('{}', {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Backend-Commit': '0123456789ab',
+      'X-Backend-Revision': 'omnisignal-api-poc-release-0123456',
+    },
+  }))
+  const response = await proxyBackend(request(), ['macro'])
+  assert.equal(response.headers.get('x-backend-commit'), '0123456789ab')
+  assert.equal(response.headers.get('x-backend-revision'), 'omnisignal-api-poc-release-0123456')
+})
