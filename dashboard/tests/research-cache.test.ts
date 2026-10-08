@@ -8,7 +8,7 @@
 import { strict as assert } from 'node:assert'
 import test, { beforeEach } from 'node:test'
 
-import { clearResearchCache, fetchResearch, researchCacheSize } from '../src/lib/research-cache'
+import { clearResearchCache, fetchResearch, researchCacheSize, shareResearch } from '../src/lib/research-cache'
 
 let calls: string[] = []
 
@@ -69,4 +69,37 @@ test('the cache stays small', async () => {
     await fetchResearch(s)
   }
   assert.ok(researchCacheSize() <= 8, `cache grew to ${researchCacheSize()}; this is a browsing session, not a database`)
+})
+
+test('an older failure does not evict a newer healthy request for the same symbol', async () => {
+  // A request starts and is still in flight when the workspace registers its own run for the
+  // same symbol, replacing the entry. When the first one then fails, it must drop only itself.
+  let rejectFirst: (value: unknown) => void = () => {}
+  stubFetch(() => new Promise((resolve) => { rejectFirst = resolve }))
+  const first = fetchResearch('AAPL')
+  first.catch(() => {})
+
+  const newer = Promise.resolve({ profile: { name: 'the newer run' } } as never)
+  shareResearch('AAPL', newer)
+  assert.equal(researchCacheSize(), 1)
+
+  rejectFirst({ ok: false, status: 503 })
+  await assert.rejects(first, /503/)
+
+  assert.equal(researchCacheSize(), 1, 'the older failure evicted the newer entry')
+  const before = calls.length
+  const got = await fetchResearch('AAPL')
+  assert.equal(calls.length, before, 'the healthy newer run was refetched')
+  assert.deepEqual(got, { profile: { name: 'the newer run' } })
+})
+
+test('a failure still drops its own entry when nothing has replaced it', async () => {
+  stubFetch(async () => ({ ok: false, status: 502 }))
+  await assert.rejects(fetchResearch('AAPL'), /502/)
+  assert.equal(researchCacheSize(), 0)
+  const request = Promise.reject(new Error('shared run failed'))
+  shareResearch('MSFT', request)
+  await assert.rejects(request, /shared run failed/)
+  await new Promise((r) => setTimeout(r, 0))
+  assert.equal(researchCacheSize(), 0)
 })

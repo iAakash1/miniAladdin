@@ -7,7 +7,7 @@
 import { strict as assert } from 'node:assert'
 import test, { beforeEach } from 'node:test'
 
-import { clearResourceCache, readResource, resourceCacheSize } from '../src/lib/resource'
+import { clearResourceCache, clearResourceCachePrefix, readResource, resourceCacheSize } from '../src/lib/resource'
 
 let calls: string[] = []
 
@@ -74,4 +74,30 @@ test("a live policy caches nothing — the quote hub owns liveness", async () =>
   await readResource('/api/quotes?symbols=AAPL', 'live')
   await readResource('/api/quotes?symbols=AAPL', 'live')
   assert.equal(calls.length, 2, 'a price was served from cache')
+})
+
+test('a failure from before a sign-out does not evict the new session\'s entry for the same URL', async () => {
+  // The first request is still in flight when its namespace is cleared (a sign-out) and a new
+  // request for the same URL takes the slot. The old one then fails; it may drop only itself.
+  let failFirst: (value: unknown) => void = () => {}
+  let n = 0
+  stubFetch(() => {
+    n += 1
+    if (n === 1) return new Promise((resolve) => { failFirst = resolve })
+    return Promise.resolve({ ok: true, json: async () => ({ owner: 'the new session' }) })
+  })
+  const first = readResource('/api/watchlists', 'snapshot')
+  first.catch(() => {})
+  clearResourceCachePrefix('/api/watchlists')
+  const second = await readResource('/api/watchlists', 'snapshot')
+  assert.deepEqual(second, { owner: 'the new session' })
+  assert.equal(resourceCacheSize(), 1)
+
+  failFirst({ ok: false, status: 503, json: async () => ({}) })
+  await assert.rejects(first, /503/)
+
+  assert.equal(resourceCacheSize(), 1, 'the older failure evicted the newer entry')
+  const before = calls.length
+  assert.deepEqual(await readResource('/api/watchlists', 'snapshot'), { owner: 'the new session' })
+  assert.equal(calls.length, before, 'the newer entry was refetched')
 })

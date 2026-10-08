@@ -78,8 +78,10 @@ export function fetchResearch(symbol: string): Promise<ResearchPayload> {
     .catch((e: unknown) => {
       // A failure is not cached. The next panel to ask should get a fresh
       // attempt rather than a remembered error, and a transient vendor outage
-      // should not persist for five minutes after it ends.
-      cache.delete(key)
+      // should not persist for five minutes after it ends. Only this request's
+      // own entry is dropped: a newer request for the same symbol may have
+      // replaced it, and an older failure must not evict a healthy newer run.
+      if (cache.get(key)?.promise === promise) cache.delete(key)
       throw e
     })
 
@@ -101,7 +103,7 @@ export function fetchResearch(symbol: string): Promise<ResearchPayload> {
 export function shareResearch(symbol: string, request: Promise<ResearchPayload>): void {
   const key = symbol.trim().toUpperCase()
   const promise = request.catch((e: unknown) => {
-    cache.delete(key)
+    if (cache.get(key)?.promise === promise) cache.delete(key)
     throw e
   })
   // Consumers still see the rejection; an unobserved one is not unhandled.

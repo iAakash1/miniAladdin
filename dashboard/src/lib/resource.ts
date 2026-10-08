@@ -97,7 +97,10 @@ export function readResource<T>(
       return r.json() as Promise<T>
     })
     .catch((e: unknown) => {
-      if (key !== null) cache.delete(key)
+      // Drop only this request's own entry. After a sign-out clears a namespace, a newer
+      // request for the same URL may already hold the slot, and an older failure must not
+      // evict it.
+      if (key !== null && cache.get(key)?.promise === promise) cache.delete(key)
       throw e
     })
 
