@@ -1,4 +1,4 @@
-import { ClerkProvider } from '@clerk/nextjs'
+import NonceClerkProvider from '@/components/auth/NonceClerkProvider'
 import type { Metadata } from 'next'
 
 import { EntitlementProvider } from '@/components/system/Entitlement'
@@ -12,8 +12,8 @@ export const dynamic = 'force-dynamic'
 
 export default function EvidenceLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider>
+    <NonceClerkProvider>
       <EntitlementProvider>{children}</EntitlementProvider>
-    </ClerkProvider>
+    </NonceClerkProvider>
   )
 }

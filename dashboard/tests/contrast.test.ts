@@ -108,7 +108,11 @@ test('the browser-chrome colour of each theme is that theme\'s page background',
   assert.equal(THEME_COLOR.light.toLowerCase(), resolve(LIGHT, '--p-base')?.toLowerCase())
   const layout = readFileSync(join(SRC, 'app', 'layout.tsx'), 'utf8')
   assert.match(layout, /themeColor:\s*THEME_COLOR\.dark/)
-  assert.match(layout, /meta\[name="theme-color"\]/, 'the pre-paint script must set the colour for a returning light-theme reader')
+  // The pre-paint script is shared with the Content-Security-Policy (which allows it by
+  // hash), so it lives in lib/theme.ts and the layout only embeds it.
+  const bootstrap = readFileSync(join(SRC, 'lib', 'theme.ts'), 'utf8')
+  assert.match(layout, /__html:\s*THEME_SCRIPT/, 'the layout must embed the shared pre-paint script')
+  assert.match(bootstrap, /meta\[name="theme-color"\]/, 'the pre-paint script must set the colour for a returning light-theme reader')
   assert.match(readFileSync(join(SRC, 'components', 'ui', 'ThemeToggle.tsx'), 'utf8'), /setThemeColor\(theme\)/)
 })
 

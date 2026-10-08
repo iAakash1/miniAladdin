@@ -1,4 +1,4 @@
-import { ClerkProvider } from '@clerk/nextjs'
+import NonceClerkProvider from '@/components/auth/NonceClerkProvider'
 import type { Metadata } from 'next'
 
 import { EntitlementProvider } from '@/components/system/Entitlement'
@@ -13,12 +13,12 @@ export const dynamic = 'force-dynamic'
 
 export default function CompanyLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider>
+    <NonceClerkProvider>
       <div style={{ minHeight: '100vh', background: 'var(--p-base)', color: 'var(--ink)' }}>
         {/* Same provider the terminal mounts. One implementation of session,
             usage and the upgrade flow across both route trees. */}
         <EntitlementProvider>{children}</EntitlementProvider>
       </div>
-    </ClerkProvider>
+    </NonceClerkProvider>
   )
 }

@@ -1,4 +1,5 @@
-import { ClerkProvider, SignIn } from '@clerk/nextjs'
+import { SignIn } from '@clerk/nextjs'
+import NonceClerkProvider from '@/components/auth/NonceClerkProvider'
 import type { Metadata } from 'next'
 import AuthShell from '@/components/marketing/AuthShell'
 import { clerkAppearance } from '@/lib/clerk-appearance'
@@ -12,10 +13,10 @@ export const dynamic = 'force-dynamic'
 
 export default function SignInPage() {
   return (
-    <ClerkProvider>
+    <NonceClerkProvider>
       <AuthShell>
         <SignIn appearance={clerkAppearance} />
       </AuthShell>
-    </ClerkProvider>
+    </NonceClerkProvider>
   )
 }

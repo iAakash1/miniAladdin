@@ -1,4 +1,4 @@
-import { ClerkProvider } from '@clerk/nextjs'
+import NonceClerkProvider from '@/components/auth/NonceClerkProvider'
 import type { Metadata } from 'next'
 
 import { EntitlementProvider } from '@/components/system/Entitlement'
@@ -15,8 +15,8 @@ export const dynamic = 'force-dynamic'
    waited out a ten-second timeout and then went out unauthenticated. */
 export default function StartLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider>
+    <NonceClerkProvider>
       <EntitlementProvider>{children}</EntitlementProvider>
-    </ClerkProvider>
+    </NonceClerkProvider>
   )
 }

@@ -1,4 +1,4 @@
-import { ClerkProvider } from '@clerk/nextjs'
+import NonceClerkProvider from '@/components/auth/NonceClerkProvider'
 import type { Metadata } from 'next'
 
 import { EntitlementProvider } from '@/components/system/Entitlement'
@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic'
 
 export default function TerminalLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider>
+    <NonceClerkProvider>
       {/* Theme comes from html[data-theme]: dark by default on this route,
           light if the user has explicitly chosen it. */}
       <div style={{ minHeight: '100vh', background: 'var(--p-base)', color: 'var(--ink)' }}>
@@ -22,6 +22,6 @@ export default function TerminalLayout({ children }: { children: React.ReactNode
             only reason the one route needing them could not be ported. */}
         <EntitlementProvider>{children}</EntitlementProvider>
       </div>
-    </ClerkProvider>
+    </NonceClerkProvider>
   )
 }

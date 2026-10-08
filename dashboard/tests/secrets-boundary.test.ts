@@ -68,6 +68,7 @@ const PUBLIC_ALLOWED = new Set([
   'NEXT_PUBLIC_BUILD_DEPLOYMENT', 'NEXT_PUBLIC_BUILD_TIME',
   'NEXT_PUBLIC_RAZORPAY_KEY_ID',   // the publishable key id; the secret is server-side
   'NEXT_PUBLIC_LOGO_DEV_KEY',      // logo.dev publishable key
+  'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY', // pk_*: public by design; the secret is CLERK_SECRET_KEY
 ])
 
 test('no NEXT_PUBLIC variable is named like a secret, and each is one we expect', () => {
@@ -78,7 +79,15 @@ test('no NEXT_PUBLIC variable is named like a secret, and each is one we expect'
   assert.ok(used.size >= 5, [...used].join(', '))
   for (const name of used) {
     assert.doesNotMatch(name, /SECRET|PRIVATE|PASSWORD|TOKEN|SERVICE_ROLE/, `${name} would ship a secret to every browser`)
-    // Clerk's publishable key is read by the SDK itself, not by this source.
+    // Clerk's publishable key is also read here, to derive the Clerk host the
+    // Content-Security-Policy allows (src/proxy.ts); it is a public identifier.
     assert.ok(PUBLIC_ALLOWED.has(name), `${name} is new: confirm it is safe to publish, then add it here`)
+  }
+})
+
+test('the Content-Security-Policy reads the Clerk publishable key and never the secret key', () => {
+  for (const file of ['proxy.ts', 'lib/csp.ts']) {
+    const text = read(join(SRC, file))
+    assert.doesNotMatch(text, /CLERK_SECRET_KEY/, `${file} must not touch the Clerk secret key`)
   }
 })

@@ -14,3 +14,15 @@ export type ThemeName = keyof typeof THEME_COLOR
 export function setThemeColor(theme: ThemeName): void {
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_COLOR[theme])
 }
+
+/**
+ * Runs before first paint, inline in the document head. Dark is the default; an
+ * explicit light choice wins.
+ *
+ * It lives here, and not in the layout, because the Content-Security-Policy has
+ * to allow exactly this text: the policy carries its SHA-256 hash, so that the
+ * one inline script the app writes itself is allowed without making the whole
+ * document depend on a per-request nonce, and without `'unsafe-inline'`. A test
+ * hashes what the layout renders and compares it with what the policy allows.
+ */
+export const THEME_SCRIPT = `(function(){var l=false;try{l=localStorage.getItem('omni-theme')==='light'}catch(e){}document.documentElement.dataset.theme=l?'light':'dark';var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',l?'${THEME_COLOR.light}':'${THEME_COLOR.dark}')})()`

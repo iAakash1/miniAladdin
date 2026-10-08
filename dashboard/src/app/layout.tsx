@@ -6,7 +6,8 @@ import '@fontsource/ibm-plex-mono/400.css'
 import '@fontsource/ibm-plex-mono/500.css'
 import '@fontsource/ibm-plex-mono/600.css'
 import './globals.css'
-import { THEME_COLOR } from '@/lib/theme'
+import StateMeanings from '@/components/system/StateMeanings'
+import { THEME_COLOR, THEME_SCRIPT } from '@/lib/theme'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://omnisignalterminal.vercel.app'
 
@@ -42,8 +43,16 @@ export const viewport: Viewport = {
   initialScale: 1,
 }
 
-/** Runs before paint. Dark is the default; an explicit light choice wins. */
-const THEME_SCRIPT = `(function(){var l=false;try{l=localStorage.getItem('omni-theme')==='light'}catch(e){}document.documentElement.dataset.theme=l?'light':'dark';var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',l?'${THEME_COLOR.light}':'${THEME_COLOR.dark}')})()`
+/* Every page is rendered per request.
+
+   The Content-Security-Policy carries a fresh nonce for each response, and Next
+   can stamp a nonce only on markup it renders for that request. A prerendered
+   page is the same bytes for everyone, so its inline bootstrap scripts could not
+   carry one and the policy would have to allow any inline script instead - the
+   one thing a script policy exists to refuse. The marketing and learning pages
+   were the only static routes; they are small, and rendering them on demand
+   costs milliseconds against a policy that holds for every route. */
+export const dynamic = 'force-dynamic'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -54,6 +63,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Skip to content
         </a>
         {children}
+        <StateMeanings />
       </body>
     </html>
   )
