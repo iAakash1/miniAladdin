@@ -53,6 +53,11 @@ blocked.) A test fails if `ClerkProvider` is used directly.
 An environment change applies to the next deployment; Vercel's instant rollback
 restores the previous deployment immediately.
 
+`next dev` is the one exception to "no `unsafe-eval`": React rebuilds call stacks with
+`eval` in development, so a development server (and only `NODE_ENV=development`) adds
+`'unsafe-eval'` and omits `upgrade-insecure-requests`. Everything else in the policy is the
+production policy, a test holds that, and a production build never sets the flag.
+
 To see what the policy is refusing, search the Vercel runtime logs for
 `csp-violation`. Each line carries the blocked URL (origin and path only), the
 violated directive and the page.

@@ -53,11 +53,20 @@ is no longer "Empty"; a date with no time reads as that day in every time zone;
 an undated headline is no longer stamped with the time it was fetched. Six
 files nothing imported (about 680 lines) and the CSS only they used were removed.
 
+**Dependencies.** `npm audit` for production dependencies went from one critical and two
+high findings to none: Next 16.3.5 to 16.3.8 (the `next/og` remote-code-execution advisory was not
+reachable here, since the app has no `ImageResponse`, but the version was inside the range), with
+`sharp` and `source-map-js`. `pip-audit` led to PyJWT 2.13.0 to 2.15.0 and aiohttp 3.14.1 to 3.14.3,
+and token verification now fails closed on any exception (a deeply nested token header raised
+`RecursionError` past the handler and became a 500 on PyJWT 2.13.0). Two advisories (`cryptography`
+PKCS#7 decryption, `pyarrow` Arrow IPC files) cover features the service does not call and are left
+unchanged, with the reasoning in `docs/DEPENDENCY_AUDIT.md`.
+
 **Housekeeping.** The Render keep-alive workflow is gone (Render is a documented
 rollback target only). The README no longer presents the August captures as the
 current interface.
 
-Tests: backend 5,323 passed, 0 failed in two consecutive full runs (the live-network smoke file, which needs the real internet, is excluded); frontend 808 passed, 0 failed; typecheck, lint and production build clean.
+Tests: backend 5,342 passed, 0 failed in two consecutive full runs (the live-network smoke file, which needs the real internet, is excluded); frontend 811 passed, 0 failed; typecheck, lint and production build clean.
 
 ### UI polish pass
 
