@@ -53,6 +53,11 @@ class ProviderResult(BaseModel, Generic[T]):
     stale: bool = False
     fetched_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     error: Optional[str] = None            # set only when data is None
+    #: True when `data` is None because the vendors could not be asked or all
+    #: failed - an outage, as opposed to every vendor answering that it holds
+    #: nothing for this request. The two used to read the same ("all vendors
+    #: failed"), so an outage was reported as an unknown symbol.
+    outage: bool = False
 
     @property
     def ok(self) -> bool:
@@ -121,6 +126,21 @@ class PriceQuote(BaseModel):
     # "previous close". A mid and a stale previous close are not the same
     # claim, and a consumer that cannot tell them apart will treat them alike.
     price_basis: Optional[str] = None
+
+    @field_validator("price")
+    @classmethod
+    def _price_is_a_price(cls, value: float) -> float:
+        """A quote's price is finite and strictly positive, or it is not a quote.
+
+        `PriceSeries` has always refused an impossible bar at construction so no
+        adapter could route around it; a single quote had no such guard, and
+        each adapter's own `if not price` was the only thing between a vendor's
+        `0`, `-1` or `NaN` and a consensus, a P&L line and a portfolio value.
+        A guard per adapter is a guard someone forgets (two of them did).
+        """
+        if not math.isfinite(value) or value <= 0:
+            raise ValueError(f"not a usable price: {value!r}")
+        return value
 
     @property
     def spread_bps(self) -> Optional[float]:
@@ -214,7 +234,9 @@ class PriceSeries(BaseModel):
         if self.quality.bars_received:
             return self
 
-        kept, quality = sanitize_bars(self.bars)
+        # An adapter that skipped unreadable rows says so on the quality record
+        # it passes in; validation keeps that count and adds its own.
+        kept, quality = sanitize_bars(self.bars, unreadable=self.quality.dropped_unreadable)
         if quality.dropped:
             logger.warning(
                 "%s: dropped %d of %d bars — %s",
@@ -398,6 +420,10 @@ class StreetData(BaseModel):
     surprises: list[EarningsSurprise] = []           # newest first
     insider_mspr: Optional[float] = None             # monthly share purchase ratio, −100…100
     insider_net_shares: Optional[float] = None       # net insider share change, same window
+    #: Sections whose request failed ("recommendations", "surprises",
+    #: "insider"). Distinct from a section that answered with nothing: an empty
+    #: list means the vendor has none, a name here means we do not know.
+    missing_sections: list[str] = []
 
 
 # ── News ──────────────────────────────────────────────────────────────────────

@@ -7,7 +7,7 @@ import re
 from datetime import date
 from typing import Optional
 
-from src.providers.base import FailureClass, VendorClient, VendorError
+from src.providers.base import FailureClass, VendorClient, VendorError, classify_api_error
 
 
 class BlsVendor(VendorClient):
@@ -20,10 +20,15 @@ class BlsVendor(VendorClient):
     SERIES = {"CPIAUCSL": "CUSR0000SA0", "UNRATE": "LNS14000000"}
 
     def _validate_payload(self, payload) -> None:
+        super()._validate_payload(payload)
         if not isinstance(payload, dict) or payload.get("status") != "REQUEST_SUCCEEDED":
+            # REQUEST_NOT_PROCESSED carries its reason in `message` - most often
+            # the daily threshold, which is a limit and not an outage.
+            messages = payload.get("message") if isinstance(payload, dict) else None
+            text = " ".join(str(m) for m in messages) if isinstance(messages, list) else ""
             raise VendorError(
                 "BLS returned an API-level error", transient=False,
-                failure_class=FailureClass.UNAVAILABLE,
+                failure_class=classify_api_error(None, text),
             )
 
     def get_official_series(self, series_id: str, count: int = 15) -> Optional[list[tuple[str, float]]]:
@@ -66,6 +71,7 @@ class BeaVendor(VendorClient):
     SERIES = "A191RL1Q225SBEA"
 
     def _validate_payload(self, payload) -> None:
+        super()._validate_payload(payload)
         if not isinstance(payload, dict):
             raise VendorError(
                 "BEA returned an invalid response", transient=False,

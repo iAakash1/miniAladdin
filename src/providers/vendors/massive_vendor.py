@@ -30,9 +30,17 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
-from ..base import VendorClient
+from ..base import READ_ERRORS, VendorClient, read_rows
 from ..schemas import CompanyProfile, OHLCVBar, OptionChain, OptionContract, PriceQuote, PriceSeries
-from .market_vendors import PERIOD_DAYS, _registrable_domain, _safe_float
+from .market_vendors import (
+    PERIOD_DAYS,
+    _iso_from_epoch,
+    _positive_float,
+    _registrable_domain,
+    _safe_float,
+    _series_of,
+    _volume,
+)
 
 
 class MassiveVendor(VendorClient):
@@ -64,16 +72,16 @@ class MassiveVendor(VendorClient):
             params={"adjusted": "true"},
             headers=self._auth,
             operation="price",
+            expect=dict,
         )
-        results = (data or {}).get("results") or []
+        results = data.get("results") or []
         if not results:
             return None
         row = results[0]
-        close = _safe_float(row.get("c"))
+        close = _positive_float(row.get("c"))
         if close is None:
             return None
 
-        stamp = _safe_float(row.get("t"))
         return PriceQuote(
             symbol=symbol,
             price=close,
@@ -83,10 +91,7 @@ class MassiveVendor(VendorClient):
             volume=_safe_float(row.get("v")),
             vwap=_safe_float(row.get("vw")),
             trade_count=int(row["n"]) if isinstance(row.get("n"), (int, float)) else None,
-            as_of=(
-                datetime.fromtimestamp(stamp / 1000, tz=timezone.utc).isoformat()
-                if stamp else None
-            ),
+            as_of=_iso_from_epoch(row.get("t"), 1000.0),
             # The same caveat the Polygon adapter carries, for the same reason:
             # `/prev` is the previous session's aggregate, not a live tick, and
             # a consumer that reads it as current is reading it wrong.
@@ -108,31 +113,28 @@ class MassiveVendor(VendorClient):
             params={"adjusted": "true", "sort": "asc", "limit": 50000},
             headers=self._auth,
             operation="series",
+            expect=dict,
         )
-        rows = (data or {}).get("results") or []
-        if not rows:
-            return None
 
-        bars: list[OHLCVBar] = []
-        for row in rows:
+        def make_bar(row: dict) -> OHLCVBar:
             close = _safe_float(row.get("c"))
             stamp = _safe_float(row.get("t"))
             if close is None or stamp is None:
-                # A bar with no close is not a bar. PriceSeries validates on
-                # construction and records what it dropped; skipping here keeps
-                # the reason legible rather than handing it a null to reject.
-                continue
-            volume = _safe_float(row.get("v"))
-            bars.append(OHLCVBar(
+                # A bar with no close is not a bar. It is counted as unreadable
+                # so the shortfall is visible, rather than dropped without trace.
+                raise ValueError("bar has no readable close or time")
+            return OHLCVBar(
                 date=datetime.fromtimestamp(stamp / 1000, tz=timezone.utc).date().isoformat(),
                 open=_safe_float(row.get("o")),
                 high=_safe_float(row.get("h")),
                 low=_safe_float(row.get("l")),
                 close=close,
-                volume=int(volume) if volume is not None else None,
-            ))
+                volume=_volume(row.get("v")),
+            )
 
-        return PriceSeries(symbol=symbol, bars=bars) if bars else None
+        bars, unreadable = read_rows(data.get("results") or [], make_bar)
+        self._note_unreadable("series", unreadable)
+        return _series_of(symbol, bars, unreadable)
 
     # ── reference ────────────────────────────────────────────────────────────
 
@@ -141,8 +143,9 @@ class MassiveVendor(VendorClient):
             f"{self.BASE}/v3/reference/tickers/{symbol}",
             headers=self._auth,
             operation="company",
+            expect=dict,
         )
-        result = (data or {}).get("results")
+        result = data.get("results")
         if not isinstance(result, dict) or not result.get("name"):
             return None
 
@@ -154,13 +157,13 @@ class MassiveVendor(VendorClient):
             # SIC is a description, not a GICS sector, so it lands in
             # `industry` — which is what it actually is.
             industry=str(result.get("sic_description") or ""),
-            market_cap=_safe_float(result.get("market_cap")),
+            market_cap=_positive_float(result.get("market_cap")),
             currency=str(result.get("currency_name") or "USD").upper(),
             exchange=str(result.get("primary_exchange") or ""),
             website=website,
             domain=_registrable_domain(website),
             description=str(result.get("description") or "")[:1200],
-            employees=int(employees) if isinstance(employees, (int, float)) else None,
+            employees=int(employees) if isinstance(employees, (int, float)) and employees >= 0 else None,
         )
 
     # ── options ──────────────────────────────────────────────────────────────
@@ -200,71 +203,80 @@ class MassiveVendor(VendorClient):
             params=params,
             headers=self._auth,
             operation="options",
+            expect=dict,
         )
-        rows = (data or {}).get("results") or []
+        rows = [row for row in (data.get("results") or []) if isinstance(row, dict)]
         if not rows:
             return None
 
         contracts: list[OptionContract] = []
         delayed: Optional[bool] = None
 
+        unreadable = 0
         for row in rows:
-            details = row.get("details") or {}
-            ticker = details.get("ticker")
-            strike = _safe_float(details.get("strike_price"))
-            expiry = details.get("expiration_date")
-            kind = details.get("contract_type")
+            try:
+                details = row.get("details") or {}
+                ticker = details.get("ticker")
+                strike = _safe_float(details.get("strike_price"))
+                expiry = details.get("expiration_date")
+                kind = details.get("contract_type")
 
-            # Identity is not optional. A contract missing any of these is not
-            # a contract with holes, it is an unidentifiable row, and putting
-            # it in a chain keyed on strike and expiry would corrupt the axes.
-            if not ticker or strike is None or not expiry or not kind:
+                # Identity is not optional. A contract missing any of these is not
+                # a contract with holes, it is an unidentifiable row, and putting
+                # it in a chain keyed on strike and expiry would corrupt the axes.
+                if not ticker or strike is None or not expiry or not kind:
+                    continue
+
+                quote = row.get("last_quote") or {}
+                trade = row.get("last_trade") or {}
+                day = row.get("day") or {}
+                greeks = row.get("greeks") or {}
+
+                timeframe = quote.get("timeframe")
+                if isinstance(timeframe, str):
+                    # Any delayed quote makes the whole chain delayed; a chain is
+                    # only as current as its least current contract.
+                    delayed = True if timeframe.upper() != "REAL-TIME" else (delayed or False)
+
+                contracts.append(OptionContract(
+                    contract=str(ticker),
+                    underlying=symbol.upper(),
+                    expiration=str(expiry),
+                    strike=strike,
+                    contract_type=str(kind).lower(),
+                    shares_per_contract=(
+                        int(details["shares_per_contract"])
+                        if isinstance(details.get("shares_per_contract"), (int, float)) else None
+                    ),
+                    exercise_style=details.get("exercise_style"),
+                    bid=_safe_float(quote.get("bid")),
+                    ask=_safe_float(quote.get("ask")),
+                    midpoint=_safe_float(quote.get("midpoint")),
+                    last_price=_safe_float(trade.get("price")),
+                    # Volume and open interest are the two places a literal zero is
+                    # the provider's own answer — a contract that did not trade —
+                    # so a present zero is kept and only an absent field is None.
+                    day_volume=(
+                        int(day["volume"]) if isinstance(day.get("volume"), (int, float)) else None
+                    ),
+                    open_interest=(
+                        int(row["open_interest"]) if isinstance(row.get("open_interest"), (int, float)) else None
+                    ),
+                    implied_volatility=_safe_float(row.get("implied_volatility")),
+                    delta=_safe_float(greeks.get("delta")),
+                    gamma=_safe_float(greeks.get("gamma")),
+                    theta=_safe_float(greeks.get("theta")),
+                    vega=_safe_float(greeks.get("vega")),
+                    quote_timeframe=timeframe if isinstance(timeframe, str) else None,
+                    source=self.NAME,
+                ))
+            except READ_ERRORS:
+                # One malformed contract costs that contract; the rest of the
+                # chain is still a chain.
+                unreadable += 1
                 continue
 
-            quote = row.get("last_quote") or {}
-            trade = row.get("last_trade") or {}
-            day = row.get("day") or {}
-            greeks = row.get("greeks") or {}
-
-            timeframe = quote.get("timeframe")
-            if isinstance(timeframe, str):
-                # Any delayed quote makes the whole chain delayed; a chain is
-                # only as current as its least current contract.
-                delayed = True if timeframe.upper() != "REAL-TIME" else (delayed or False)
-
-            contracts.append(OptionContract(
-                contract=str(ticker),
-                underlying=symbol.upper(),
-                expiration=str(expiry),
-                strike=strike,
-                contract_type=str(kind).lower(),
-                shares_per_contract=(
-                    int(details["shares_per_contract"])
-                    if isinstance(details.get("shares_per_contract"), (int, float)) else None
-                ),
-                exercise_style=details.get("exercise_style"),
-                bid=_safe_float(quote.get("bid")),
-                ask=_safe_float(quote.get("ask")),
-                midpoint=_safe_float(quote.get("midpoint")),
-                last_price=_safe_float(trade.get("price")),
-                # Volume and open interest are the two places a literal zero is
-                # the provider's own answer — a contract that did not trade —
-                # so a present zero is kept and only an absent field is None.
-                day_volume=(
-                    int(day["volume"]) if isinstance(day.get("volume"), (int, float)) else None
-                ),
-                open_interest=(
-                    int(row["open_interest"]) if isinstance(row.get("open_interest"), (int, float)) else None
-                ),
-                implied_volatility=_safe_float(row.get("implied_volatility")),
-                delta=_safe_float(greeks.get("delta")),
-                gamma=_safe_float(greeks.get("gamma")),
-                theta=_safe_float(greeks.get("theta")),
-                vega=_safe_float(greeks.get("vega")),
-                quote_timeframe=timeframe if isinstance(timeframe, str) else None,
-                source=self.NAME,
-            ))
-
+        self._note_unreadable("options", unreadable)
         if not contracts:
             return None
 

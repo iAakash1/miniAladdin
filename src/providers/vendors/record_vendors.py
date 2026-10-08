@@ -17,7 +17,7 @@ from __future__ import annotations
 import re
 from typing import Any, Optional
 
-from src.providers.base import VendorClient
+from src.providers.base import READ_ERRORS, FailureClass, VendorClient, VendorError
 
 _DAY = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
@@ -58,9 +58,15 @@ class FederalRegisterVendor(VendorClient):
                 "fields[]": list(self.FIELDS),
             },
             operation="official_actions",
+            expect=dict,
         )
-        if not isinstance(data, dict):
-            return None
+        if "results" not in data and "count" not in data:
+            # The API always states how many documents matched. A body with
+            # neither is not "no documents"; it is not the answer to the query.
+            raise VendorError(
+                "federal register reply carries neither results nor a count",
+                transient=False, failure_class=FailureClass.PARSE,
+            )
         documents, routine = [], 0
         for row in data.get("results") or []:
             if not isinstance(row, dict):
@@ -123,12 +129,18 @@ class OpenFdaVendor(VendorClient):
                 "api_key": self.api_key,
             },
             operation="regulatory_recalls",
+            expect=dict,
         )
         if data is None:
-            # openFDA's own "No matches found!" — answered, nothing on record.
+            # openFDA's own "No matches found!" (404 NOT_FOUND) - answered,
+            # nothing on record. A JSON `null` body can no longer reach here:
+            # the transport layer rejects it as a parse failure.
             return {"kind": kind, "firm": firm, "total": 0, "recalls": []}
-        if not isinstance(data, dict):
-            return None
+        if "results" not in data and "meta" not in data:
+            raise VendorError(
+                "openfda reply carries neither results nor meta",
+                transient=False, failure_class=FailureClass.PARSE,
+            )
         total = ((data.get("meta") or {}).get("results") or {}).get("total")
         recalls = []
         for row in data.get("results") or []:
@@ -170,9 +182,10 @@ class ClinicalTrialsVendor(VendorClient):
             params={"query.lead": sponsor, "filter.overallStatus": self.ACTIVE,
                     "countTotal": "true", "pageSize": 1, "fields": "NCTId", **extra},
             operation="clinical_trials",
+            expect=dict,
         )
-        total = data.get("totalCount") if isinstance(data, dict) else None
-        return total if isinstance(total, int) else None
+        total = data.get("totalCount")
+        return total if isinstance(total, int) and not isinstance(total, bool) else None
 
     def get_trials(self, sponsor: str, limit: int = 6) -> Optional[dict[str, Any]]:
         sponsor = sponsor.strip()
@@ -186,41 +199,53 @@ class ClinicalTrialsVendor(VendorClient):
                 "sort": "LastUpdatePostDate:desc", "fields": self.FIELDS,
             },
             operation="clinical_trials",
+            expect=dict,
         )
-        if not isinstance(data, dict):
-            return None
+        if "studies" not in data and "totalCount" not in data:
+            raise VendorError(
+                "clinicaltrials reply carries neither studies nor a count",
+                transient=False, failure_class=FailureClass.PARSE,
+            )
         wanted = sponsor.lower()
         trials = []
         for study in data.get("studies") or []:
-            section = (study or {}).get("protocolSection") or {}
-            ident = section.get("identificationModule") or {}
-            status = section.get("statusModule") or {}
-            lead = ((section.get("sponsorCollaboratorsModule") or {}).get("leadSponsor") or {}).get("name") or ""
-            nct = str(ident.get("nctId") or "")
-            # Full-text matching can return a study another sponsor leads; a
-            # trial is attributed only when its lead sponsor carries the name.
-            if not re.fullmatch(r"NCT\d{8}", nct) or wanted not in lead.lower():
+            try:
+                section = (study or {}).get("protocolSection") or {}
+                ident = section.get("identificationModule") or {}
+                status = section.get("statusModule") or {}
+                lead = ((section.get("sponsorCollaboratorsModule") or {}).get("leadSponsor") or {}).get("name") or ""
+                nct = str(ident.get("nctId") or "")
+                # Full-text matching can return a study another sponsor leads; a
+                # trial is attributed only when its lead sponsor carries the name.
+                if not re.fullmatch(r"NCT\d{8}", nct) or wanted not in lead.lower():
+                    continue
+                trials.append({
+                    "id": nct,
+                    "title": _clip(ident.get("briefTitle"), 180),
+                    "phases": [str(p) for p in (section.get("designModule") or {}).get("phases") or []],
+                    "status": str(status.get("overallStatus") or ""),
+                    "sponsor": _clip(lead, 90),
+                    "started": (status.get("startDateStruct") or {}).get("date"),
+                    "updated": (status.get("lastUpdatePostDateStruct") or {}).get("date"),
+                    "url": f"https://clinicaltrials.gov/study/{nct}",
+                })
+            except READ_ERRORS:
                 continue
-            trials.append({
-                "id": nct,
-                "title": _clip(ident.get("briefTitle"), 180),
-                "phases": [str(p) for p in (section.get("designModule") or {}).get("phases") or []],
-                "status": str(status.get("overallStatus") or ""),
-                "sponsor": _clip(lead, 90),
-                "started": (status.get("startDateStruct") or {}).get("date"),
-                "updated": (status.get("lastUpdatePostDateStruct") or {}).get("date"),
-                "url": f"https://clinicaltrials.gov/study/{nct}",
-            })
         total = data.get("totalCount")
-        total = total if isinstance(total, int) else None
+        total = total if isinstance(total, int) and not isinstance(total, bool) else None
+        if total == 0:
+            phase3 = 0
+        else:
+            # One more count, not a page walk: how much of the active programme
+            # is in late-stage (Phase 3) testing. If this second request fails
+            # the trial list is still good; the count is unknown, not zero.
+            try:
+                phase3 = self._count(sponsor, {"filter.advanced": "AREA[Phase]PHASE3"})
+            except VendorError:
+                phase3 = None
         return {
             "sponsor": sponsor,
             "active_total": total,
-            # One more count, not a page walk: how much of the active
-            # programme is in late-stage (Phase 3) testing. Skipped when the
-            # sponsor leads nothing active, where the answer is already known.
-            "phase3_active": (
-                0 if total == 0 else self._count(sponsor, {"filter.advanced": "AREA[Phase]PHASE3"})
-            ),
+            "phase3_active": phase3,
             "trials": trials,
         }

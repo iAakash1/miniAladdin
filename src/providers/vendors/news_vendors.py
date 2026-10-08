@@ -9,8 +9,48 @@ from datetime import datetime, timedelta, timezone
 import math
 from typing import Optional
 
-from src.providers.base import VendorClient
+from src.providers.base import FailureClass, VendorClient, VendorError, read_rows
 from src.providers.schemas import NewsHeadline
+
+
+def _text(value, default: str = "") -> str:
+    """A text field, or TypeError when the vendor sent a container.
+
+    Absent (`null`, `false`) is the default and a scalar is its text, but
+    `str(value)` would turn a list or a dict into a headline's worth of
+    brackets; refusing it makes the article unreadable, which is what it is.
+    """
+    if value is None or value is False:
+        return default
+    if isinstance(value, str):
+        return value
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return str(value)
+    raise TypeError(f"expected text, got {type(value).__name__}")
+
+
+def _name_of(source, default: str) -> str:
+    """A publisher name from `{"name": ...}`, a bare string, or the default."""
+    if isinstance(source, dict):
+        name = source.get("name")
+        return name if isinstance(name, str) and name.strip() else default
+    return source if isinstance(source, str) and source.strip() else default
+
+
+def _headlines_or_failure(vendor: VendorClient, operation: str, rows, make) -> Optional[list[NewsHeadline]]:
+    """Read every article; one unreadable article costs that article only.
+
+    If *nothing* in a non-empty reply could be read, that is a parse failure
+    and not "no news": the vendor answered and we could not understand it.
+    """
+    headlines, unreadable = read_rows(rows, make)
+    vendor._note_unreadable(operation, unreadable)
+    if not headlines and unreadable:
+        raise VendorError(
+            f"{unreadable} article(s) returned, none readable",
+            transient=False, failure_class=FailureClass.PARSE,
+        )
+    return headlines or None
 
 
 class NewsApiVendor(VendorClient):
@@ -46,19 +86,16 @@ class NewsApiVendor(VendorClient):
             },
             headers={"X-Api-Key": self.api_key},
             operation="news",
+            expect=dict,
         )
 
-        headlines: list[NewsHeadline] = []
-
-        for article in (data.get("articles") or [])[:limit]:
-            title = str(article.get("title") or "").strip()
+        def make_headline(article: dict) -> Optional[NewsHeadline]:
+            title = _text(article.get("title")).strip()
 
             if not title or title == "[Removed]" or len(title) < 10:
-                continue
+                return None
 
-            source = str(
-                (article.get("source") or {}).get("name") or "NewsAPI"
-            )
+            source = _name_of(article.get("source"), "NewsAPI")
 
             if " - " in title:
                 title_part, suffix = title.rsplit(" - ", 1)
@@ -67,19 +104,20 @@ class NewsApiVendor(VendorClient):
                 if not source or source == "NewsAPI":
                     source = suffix.strip()
 
-            headlines.append(
-                NewsHeadline(
-                    title=title,
-                    source=source,
-                    url=str(article.get("url") or ""),
-                    published_at=str(article.get("publishedAt") or ""),
-                    summary=str(article.get("description") or "")[:280],
-                    image_url=str(article.get("urlToImage") or ""),
-                    author=str(article.get("author") or ""),
-                )
+            return NewsHeadline(
+                title=title,
+                source=source,
+                url=_text(article.get("url")),
+                published_at=_text(article.get("publishedAt")),
+                summary=_text(article.get("description"))[:280],
+                image_url=_text(article.get("urlToImage")),
+                author=_text(article.get("author")),
             )
 
-        return headlines or None
+        articles = data.get("articles")
+        return _headlines_or_failure(
+            self, "news", articles[:limit] if isinstance(articles, list) else articles, make_headline,
+        )
 
 
 class GNewsVendor(VendorClient):
@@ -112,21 +150,23 @@ class GNewsVendor(VendorClient):
                 "from": (datetime.now(timezone.utc) - timedelta(days=7)).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "apikey": self.api_key,
             },
+            expect=dict,
         )
-        articles = data.get("articles") or []
-        headlines = [
-            NewsHeadline(
-                title=article.get("title", "").strip(),
-                source=(article.get("source") or {}).get("name", "GNews"),
-                url=article.get("url", ""),
-                published_at=article.get("publishedAt", ""),
-                summary=(article.get("description") or "")[:280],
-                image_url=str(article.get("image") or ""),
+
+        def make_headline(article: dict) -> Optional[NewsHeadline]:
+            title = _text(article.get("title")).strip()
+            if not title:
+                return None
+            return NewsHeadline(
+                title=title,
+                source=_name_of(article.get("source"), "GNews"),
+                url=_text(article.get("url")),
+                published_at=_text(article.get("publishedAt")),
+                summary=_text(article.get("description"))[:280],
+                image_url=_text(article.get("image")),
             )
-            for article in articles
-            if article.get("title")
-        ]
-        return headlines or None
+
+        return _headlines_or_failure(self, "news", data.get("articles") or [], make_headline)
 
 
 class MarketauxVendor(VendorClient):
@@ -151,17 +191,17 @@ class MarketauxVendor(VendorClient):
                 "api_token": self.api_key,
             },
             operation="news",
+            expect=dict,
         )
-        if not isinstance(data, dict) or not isinstance(data.get("data"), list):
+        rows = data.get("data")
+        if not isinstance(rows, list):
             return None
-        headlines: list[NewsHeadline] = []
-        for article in data["data"][:limit]:
-            if not isinstance(article, dict):
-                continue
-            title = str(article.get("title") or "").strip()
+
+        def make_headline(article: dict) -> Optional[NewsHeadline]:
+            title = _text(article.get("title")).strip()
             if not title:
-                continue
-            entities = [entity for entity in article.get("entities", [])
+                return None
+            entities = [entity for entity in (article.get("entities") or [])
                         if isinstance(entity, dict)]
             matched = next((entity for entity in entities
                             if str(entity.get("symbol") or "").upper() == symbol), None)
@@ -173,19 +213,20 @@ class MarketauxVendor(VendorClient):
                         score = None
                 except (KeyError, TypeError, ValueError):
                     pass
-            headlines.append(NewsHeadline(
+            return NewsHeadline(
                 title=title,
-                source=str(article.get("source") or "Marketaux"),
-                url=str(article.get("url") or ""),
-                published_at=str(article.get("published_at") or ""),
-                summary=str(article.get("description") or "")[:280],
-                image_url=str(article.get("image_url") or ""),
+                source=_text(article.get("source")) or "Marketaux",
+                url=_text(article.get("url")),
+                published_at=_text(article.get("published_at")),
+                summary=_text(article.get("description"))[:280],
+                image_url=_text(article.get("image_url")),
                 tickers=[str(entity.get("symbol")).upper() for entity in entities
                          if entity.get("symbol")][:8],
                 sentiment_score=score,
                 sentiment_source=self.NAME if score is not None else None,
-            ))
-        return headlines or None
+            )
+
+        return _headlines_or_failure(self, "news", rows[:limit], make_headline)
 
 
 class YahooRssVendor(VendorClient):
@@ -210,6 +251,12 @@ class YahooRssVendor(VendorClient):
 
         content = self.timed_call(_fetch)
         soup = BeautifulSoup(content, "xml")
+        if soup.find(["rss", "feed", "channel"]) is None:
+            # HTTP 200 carrying something that is not a feed (a consent page, a
+            # captcha, an empty body). It has no items for the same reason a
+            # quiet day has none, and the two must not read alike: an empty
+            # channel is "no headlines", this is "we were not given the feed".
+            raise ValueError("reply is not an RSS or Atom feed")
         headlines = []
         for item in soup.find_all("item", limit=limit):
             title_tag = item.find("title")

@@ -10,13 +10,16 @@ from __future__ import annotations
 
 import logging
 
+import math
 import os
+import threading
 import time
 from typing import Optional
 from dataclasses import dataclass, field
 
 import requests
 from dotenv import load_dotenv
+
 
 load_dotenv()
 
@@ -92,6 +95,11 @@ class FundamentalData:
     analyst_strong_sell: Optional[int] = None
 
     error: Optional[str] = None
+    #: Why the data is missing, when the vendor could not be asked or refused.
+    #: None with `error` set means the vendor answered and had nothing; a
+    #: class here means it did not answer - a rate limit, a rejected key, a
+    #: timeout - which is not the same fact and must not read as "no data".
+    failure_class: Optional[str] = None
 
 
 @dataclass
@@ -102,6 +110,7 @@ class MacdSignal:
     histogram: Optional[float] = None
     crossover: Optional[str] = None   # "bullish" | "bearish" | "neutral"
     error: Optional[str] = None
+    failure_class: Optional[str] = None
 
 
 def _safe_float(value, default=None) -> Optional[float]:
@@ -109,9 +118,12 @@ def _safe_float(value, default=None) -> Optional[float]:
     if value is None or value == "None" or value == "-":
         return default
     try:
-        return float(value)
+        result = float(value)
     except (ValueError, TypeError):
         return default
+    # `float("nan")` and `float("inf")` parse happily; a ratio that is not a
+    # number is an absent ratio.
+    return result if math.isfinite(result) else default
 
 
 class AlphaVantageClient:
@@ -126,24 +138,75 @@ class AlphaVantageClient:
         self._session = requests.Session()
         self._session.headers.update({"User-Agent": "OmniSignal/1.0"})
 
+    # The reason the last `_get` on THIS thread produced nothing. Thread-local
+    # because one client is shared by every request thread, and a field on the
+    # instance would hand one request another's failure.
+    _tls = threading.local()
+
+    def _record(self, failure: Optional[str], message: str = "") -> None:
+        self._tls.failure = (failure, message) if failure else None
+
+    def last_failure(self) -> tuple[Optional[str], str]:
+        """`(failure_class, message)` for the last `_get` on this thread, if it failed.
+
+        None for the class means the vendor answered - possibly with nothing.
+        A class means it did not answer: the key was rejected, the daily
+        allowance is spent, the plan excludes the endpoint, the request timed
+        out, the reply was not JSON. `_get` returns None for all of them, and
+        a caller that could not tell them apart reported a rate limit upward
+        as "no fundamental data returned".
+        """
+        return getattr(self._tls, "failure", None) or (None, "")
+
     def _get(self, params: dict, timeout: int = 10) -> Optional[dict]:
-        """Make a GET request to Alpha Vantage. Returns None on any failure."""
+        """Make a GET request to Alpha Vantage. Returns None on any failure;
+        `last_failure()` says which."""
+        # Imported here: `src.providers` builds the vendor registry on import,
+        # which constructs the Alpha Vantage vendor, which imports this module.
+        from src.providers.base import FailureClass, classify_api_error, redact
+
+        self._record(None)
         if not self.available:
+            self._record(FailureClass.UNAVAILABLE.value, "ALPHA_VANTAGE_KEY not configured")
             return None
         try:
             params["apikey"] = self.api_key
             r = self._session.get(BASE_URL, params=params, timeout=timeout)
+            status = getattr(r, "status_code", 200)
+            if status == 401:
+                self._record(FailureClass.AUTH_FAILURE.value, "HTTP 401")
+                return None
+            if status == 403:
+                self._record(FailureClass.NOT_ENTITLED.value, "HTTP 403")
+                return None
+            if status == 429:
+                self._record(FailureClass.RATE_LIMITED.value, "HTTP 429")
+                return None
             r.raise_for_status()
             data = r.json()
-            # AV returns {"Information": "..."} when rate limited
-            if "Information" in data or "Note" in data:
-                msg = data.get("Information") or data.get("Note", "Rate limited")
-                logger.warning("Alpha Vantage rate-limited or informational response: %s", msg[:120])
-                return None
-            return data
-        except Exception as e:
-            logger.warning("Alpha Vantage request failed: %s", e)
+        except requests.Timeout:
+            self._record(FailureClass.TIMEOUT.value, "timeout")
             return None
+        except requests.RequestException as e:
+            message = redact(str(e))
+            logger.warning("Alpha Vantage request failed: %s", message)
+            self._record(FailureClass.UPSTREAM.value, message[:160])
+            return None
+        except ValueError:
+            self._record(FailureClass.PARSE.value, "reply was not JSON")
+            return None
+        if not isinstance(data, dict):
+            self._record(FailureClass.PARSE.value, f"reply was a {type(data).__name__}, not an object")
+            return None
+        # AV answers rate limits, plan limits and bad requests with HTTP 200 and
+        # a message object instead of data.
+        for key in ("Information", "Note", "Error Message"):
+            if data.get(key):
+                msg = str(data[key])
+                logger.warning("Alpha Vantage %s: %s", key, msg[:120])
+                self._record(classify_api_error(None, msg).value, msg[:160])
+                return None
+        return data
 
     def call(self, **params) -> Optional[dict]:
         """Raw call for endpoints beyond the fundamentals overview.
@@ -154,6 +217,12 @@ class AlphaVantageClient:
         independent budgets that each believed they had the whole allowance.
         """
         return self._get(dict(params))
+
+    def call_checked(self, **params) -> tuple[Optional[dict], Optional[str], str]:
+        """`call`, with the reason a call produced nothing."""
+        data = self._get(dict(params))
+        failure, message = self.last_failure()
+        return data, failure, message
 
     def get_fundamentals(self, ticker: str) -> FundamentalData:
         """
@@ -167,7 +236,12 @@ class AlphaVantageClient:
             return result
 
         data = self._get({"function": "OVERVIEW", "symbol": ticker.upper()})
+        failure, message = self.last_failure() if data is None else (None, "")
 
+        if failure is not None:
+            result.error = message or "Alpha Vantage did not answer"
+            result.failure_class = failure
+            return result
         if not data or "Symbol" not in data:
             result.error = "No fundamental data returned"
             return result
@@ -255,7 +329,12 @@ class AlphaVantageClient:
             "interval": "daily",
             "series_type": "close",
         })
+        failure, message = self.last_failure() if data is None else (None, "")
 
+        if failure is not None:
+            result.error = message or "Alpha Vantage did not answer"
+            result.failure_class = failure
+            return result
         if not data or "Technical Analysis: MACD" not in data:
             result.error = "No MACD data returned"
             return result

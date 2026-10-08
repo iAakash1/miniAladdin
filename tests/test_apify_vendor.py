@@ -4,6 +4,10 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
+import pytest
+
+from src.providers.base import VendorError
+
 from src.providers.vendors.apify_vendor import WEB_CLAIM_CONFIDENCE, ApifyVendor
 
 
@@ -63,10 +67,21 @@ class TestAvailability:
         assert vendor.research_company("NVDA", "NVIDIA").claims == []
         assert vendor.search("anything") == []
 
-    def test_actor_failure_degrades_silently(self, monkeypatch):
+    def test_actor_failure_is_visible_and_an_empty_run_is_not_a_failure(self, monkeypatch):
+        """Web research is optional to its caller - the caller decides that.
+
+        A run that could not be made raises, so the engine can report that the
+        source was unavailable. A run that completed and returned nothing is an
+        honest empty. Both used to be `[]`.
+        """
         monkeypatch.setenv("APIFY_API_TOKEN", "test-token")
         vendor = ApifyVendor()
         with patch.object(ApifyVendor, "_run_actor", side_effect=RuntimeError("actor down")):
+            with pytest.raises(VendorError):
+                vendor.research_company("NVDA", "NVIDIA")
+            with pytest.raises(VendorError):
+                vendor.search("x")
+        with patch.object(ApifyVendor, "_run_actor", return_value=[]):
             assert vendor.research_company("NVDA", "NVIDIA").claims == []
             assert vendor.search("x") == []
 

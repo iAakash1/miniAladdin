@@ -34,7 +34,9 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
-from src.providers.base import VendorClient, VendorError
+from src.providers.base import FailureClass, VendorClient, VendorError, read_rows
+from src.providers.validation import SeriesQuality
+from src.providers.vendors.market_vendors import _iso_day
 from src.providers.schemas import (
     CompanyProfile,
     Fundamentals,
@@ -97,8 +99,9 @@ class TiingoVendor(VendorClient):
         """
         rows = self._get_json(
             f"{self.BASE}/iex/{symbol}", headers=self._headers(), operation="quote",
+            expect=list,
         )
-        if not isinstance(rows, list) or not rows:
+        if not rows or not isinstance(rows[0], dict):
             return None
         row = rows[0]
 
@@ -152,39 +155,51 @@ class TiingoVendor(VendorClient):
             params={"startDate": start, "resampleFreq": "daily"},
             headers=self._headers(),
             operation="series",
+            expect=list,
         )
-        if not isinstance(rows, list) or not rows:
-            return None
 
-        bars: list[OHLCVBar] = []
-        for row in rows:
+        def make_bar(row: dict) -> OHLCVBar:
             # Adjusted close, not raw close: an unadjusted series renders a
             # 4-for-1 split as a 75% single-day crash, and a portfolio curve
             # built on that reports a loss that never happened.
             close = _positive(row.get("adjClose")) or _positive(row.get("close"))
-            date = str(row.get("date") or "")[:10]
-            if close is None or not date:
-                continue
-            bars.append(OHLCVBar(
-                date=date,
+            if close is None:
+                raise ValueError("bar has no readable close")
+            adj_volume, raw_volume = _f(row.get("adjVolume")), _f(row.get("volume"))
+            return OHLCVBar(
+                date=_iso_day(row.get("date")),
                 open=_positive(row.get("adjOpen")) or _positive(row.get("open")),
                 high=_positive(row.get("adjHigh")) or _positive(row.get("high")),
                 low=_positive(row.get("adjLow")) or _positive(row.get("low")),
                 close=close,
-                volume=int(row["adjVolume"]) if _f(row.get("adjVolume")) else (
-                    int(row["volume"]) if _f(row.get("volume")) else None
+                volume=(
+                    int(adj_volume) if adj_volume and adj_volume > 0
+                    else int(raw_volume) if raw_volume and raw_volume > 0 else None
                 ),
-            ))
+            )
+
+        bars, unreadable = read_rows(rows, make_bar)
+        self._note_unreadable("series", unreadable)
+        if not bars:
+            if unreadable:
+                raise VendorError(
+                    f"{unreadable} row(s) returned for {symbol}, none readable",
+                    transient=False, failure_class=FailureClass.PARSE,
+                )
+            return None
         bars.sort(key=lambda b: b.date)
-        return PriceSeries(symbol=symbol, bars=bars) if bars else None
+        return PriceSeries(
+            symbol=symbol, bars=bars, quality=SeriesQuality(dropped_unreadable=unreadable),
+        )
 
     # ── reference ────────────────────────────────────────────────────────────
 
     def get_company(self, symbol: str) -> Optional[CompanyProfile]:
         data = self._get_json(
             f"{self.BASE}/tiingo/daily/{symbol}", headers=self._headers(), operation="company",
+            expect=dict,
         )
-        if not isinstance(data, dict) or not data.get("name"):
+        if not data.get("name"):
             return None
         return CompanyProfile(
             symbol=symbol,
@@ -200,15 +215,17 @@ class TiingoVendor(VendorClient):
             params={"tickers": symbol.lower(), "limit": min(limit, 50), "sortBy": "publishedDate"},
             headers=self._headers(),
             operation="news",
+            expect=list,
         )
-        if not isinstance(rows, list):
-            return None
-        out: list[NewsHeadline] = []
-        for row in rows:
-            title = str(row.get("title") or "").strip()
+
+        def make_headline(row: dict) -> Optional[NewsHeadline]:
+            title = row.get("title")
+            if title is not None and not isinstance(title, str):
+                raise TypeError("headline title is not text")
+            title = (title or "").strip()
             if not title:
-                continue
-            out.append(NewsHeadline(
+                return None
+            return NewsHeadline(
                 title=title,
                 source=str(row.get("source") or "tiingo"),
                 url=str(row.get("url") or ""),
@@ -216,7 +233,15 @@ class TiingoVendor(VendorClient):
                 summary=str(row.get("description") or "")[:400],
                 tags=[str(t) for t in (row.get("tags") or [])][:8],
                 tickers=[str(t).upper() for t in (row.get("tickers") or [])][:8],
-            ))
+            )
+
+        out, unreadable = read_rows(rows, make_headline)
+        self._note_unreadable("news", unreadable)
+        if not out and unreadable:
+            raise VendorError(
+                f"{unreadable} article(s) returned, none readable",
+                transient=False, failure_class=FailureClass.PARSE,
+            )
         return out or None
 
     # ── fundamentals (add-on entitlement) ────────────────────────────────────
@@ -236,15 +261,23 @@ class TiingoVendor(VendorClient):
                 params={"asReported": "false"},
                 headers=self._headers(),
                 operation="fundamentals",
+                expect=list,
             )
         except VendorError as exc:
+            # Typed first (what the transport raises); the wording is kept as a
+            # fallback for any error that reached here without a class.
             message = str(exc).lower()
-            if any(code in message for code in ("403", "404", "not permissioned", "not found")):
+            if (
+                exc.failure_class == FailureClass.NOT_ENTITLED.value
+                or exc.status_code == 404
+                or any(code in message for code in ("403", "404", "not permissioned", "not found"))
+            ):
                 logger.debug("tiingo fundamentals not entitled for %s", symbol)
                 return None
             raise
 
-        if not isinstance(rows, list) or not rows:
+        rows = [row for row in rows if isinstance(row, dict)]
+        if not rows:
             return None
 
         # Newest statement first; quarterly preferred over annual because the

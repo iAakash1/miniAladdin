@@ -16,7 +16,10 @@ Provides, per vendor:
 
 from __future__ import annotations
 
+import functools
+import inspect
 import logging
+import math
 import os
 import re
 import threading
@@ -74,6 +77,202 @@ def redact(text: str) -> str:
     forget at the next call site.
     """
     return _SECRET_RE.sub(lambda m: f"{m.group(1)}=<redacted>", text or "")
+
+
+def scrub_non_finite(payload: Any) -> Any:
+    """Replace NaN and +/-Infinity in a parsed JSON payload with None.
+
+    Python's `json` accepts the bare tokens `NaN`, `Infinity` and `-Infinity`,
+    which are not JSON, so a vendor that emits one hands the adapter a float
+    that compares false against everything and survives arithmetic as another
+    non-finite float. Each adapter already guards the fields it reads, but a
+    guard per field is a guard someone forgets (`vendor_metrics` kept every
+    infinite value). Doing it once, at the boundary, makes the property hold
+    for every adapter including the ones not written yet: a non-finite number
+    is an absent number, and absent is what the rest of the system already
+    knows how to carry.
+
+    In place and iterative: the SEC company-facts document holds over a
+    million values, so neither a copy nor recursion is acceptable.
+    """
+    if isinstance(payload, float):
+        return payload if math.isfinite(payload) else None
+    stack = [payload]
+    while stack:
+        node = stack.pop()
+        if isinstance(node, dict):
+            for key, value in list(node.items()):
+                if isinstance(value, float):
+                    if not math.isfinite(value):
+                        node[key] = None
+                elif isinstance(value, (dict, list)):
+                    stack.append(value)
+        elif isinstance(node, list):
+            for index, value in enumerate(node):
+                if isinstance(value, float):
+                    if not math.isfinite(value):
+                        node[index] = None
+                elif isinstance(value, (dict, list)):
+                    stack.append(value)
+    return payload
+
+
+def _may_hold_non_finite(response: Any) -> bool:
+    """Whether the raw body could contain a NaN/Infinity token.
+
+    A substring scan in C is far cheaper than walking a large parsed payload,
+    so the walk only runs when the bytes say it might find something. A body
+    that cannot be inspected (a test double, a streamed response) is walked.
+    """
+    raw = getattr(response, "content", None)
+    if isinstance(raw, (bytes, bytearray)):
+        return b"NaN" in raw or b"Infinity" in raw
+    if isinstance(raw, str):
+        return "NaN" in raw or "Infinity" in raw
+    return True
+
+
+#: Top-level keys that, on their own, mean "the vendor is telling us it could
+#: not answer" rather than "here is data". Deliberately conservative: a payload
+#: that also carries data keys is data.
+_ENVELOPE_KEYS = frozenset({
+    "error", "errors", "code", "message", "status", "tag", "detail", "details",
+    "request_id", "requestId", "timestamp", "path", "Error Message", "Note",
+    "Information", "error_message", "type", "title", "description",
+})
+#: Statuses that always mean refusal. "failed" is left out on purpose: a job
+#: object (an Apify run) legitimately reports `status: FAILED` as data.
+_ERROR_STATUS_WORDS = frozenset({"error", "not_authorized", "unauthorized"})
+
+_RATE_MARKERS = (
+    "ratelimit", "toomanyrequests", "outofapicredits", "outofcredits", "apicredits",
+    "exhaust", "quota", "callfrequency", "callsperminute", "callsperday",
+    "throttl", "limitreach", "limitexceed", "exceededthe", "maximumresults",
+    "requestsper", "dailylimit", "minutelimit",
+)
+_ENTITLEMENT_MARKERS = (
+    "premium", "upgrade", "subscription", "notentitled", "notpermission",
+    "yourplan", "currentplan", "notincluded", "paidplan", "paidplans",
+)
+_AUTH_WORDS = (
+    "invalid", "incorrect", "unknown", "missing", "inactive", "expired",
+    "rejected", "notprovided", "notspecified", "notvalid", "disabled",
+    "wrong", "revoked", "denied",
+)
+_CREDENTIAL_NOUNS = ("apikey", "accesskey", "token", "credential", "authorization", "appid", "userid")
+_NOTHING_HERE = re.compile(
+    r"not\s*found|no\s+data|invalid\s+symbol|unknown\s+symbol|symbol.{0,40}(missing|invalid|not)",
+    re.IGNORECASE,
+)
+
+
+def classify_api_error(code: Any, text: str) -> FailureClass:
+    """The failure class a vendor's own error message describes.
+
+    Several vendors report a bad key, an exhausted quota or a plan boundary as
+    HTTP 200 with an error object instead of a status code. The wording is the
+    only signal, and the wording varies ("Unknown API Key", "apikey parameter
+    is incorrect", "run out of API credits", "Limit Reach"), so this matches
+    stems on the letters alone - case, spacing and punctuation vary freely.
+    A numeric `code`, where there is one, speaks first.
+    """
+    status = int(code) if isinstance(code, (int, float)) and not isinstance(code, bool) else None
+    if status == 401:
+        return FailureClass.AUTH_FAILURE
+    if status in (402, 403):
+        return FailureClass.NOT_ENTITLED
+    if status == 429:
+        return FailureClass.RATE_LIMITED
+    squashed = re.sub(r"[^a-z]", "", (text or "").lower())
+    if any(marker in squashed for marker in _RATE_MARKERS):
+        return FailureClass.RATE_LIMITED
+    if "unauthori" in squashed or "forbidden" in squashed or (
+        any(noun in squashed for noun in _CREDENTIAL_NOUNS)
+        and any(word in squashed for word in _AUTH_WORDS)
+    ):
+        return FailureClass.AUTH_FAILURE
+    if any(marker in squashed for marker in _ENTITLEMENT_MARKERS):
+        return FailureClass.NOT_ENTITLED
+    if status is not None and status >= 500:
+        return FailureClass.UPSTREAM
+    return FailureClass.UNAVAILABLE
+
+
+def api_error_in(payload: Any) -> Optional[tuple[Any, str]]:
+    """(code, text) when a parsed body is a vendor error envelope, else None.
+
+    Looks only at the top level and only at bodies made of nothing but
+    envelope keys, so a data payload that happens to contain the word "error"
+    or "status" somewhere is never mistaken for a refusal.
+    """
+    if not isinstance(payload, dict) or not payload:
+        return None
+    status = payload.get("status")
+    explicit_status = isinstance(status, str) and status.strip().lower() in _ERROR_STATUS_WORDS
+    # A marker only counts when it says something: `"errors": []` beside a
+    # message is a clean response, not a refusal.
+    has_marker = any(
+        payload.get(k) not in (None, "", [], {})
+        for k in ("Error Message", "Note", "Information", "error", "errors")
+    )
+    # A bare {"status": "ok"} / {"message": "..."} is not an error.
+    if not explicit_status and not has_marker:
+        return None
+    if not set(payload) <= _ENVELOPE_KEYS and not explicit_status:
+        # Data keys beside an "error" key: this is data. Only an explicit error
+        # status (Polygon keeps `request_id` and `count` beside it) overrides.
+        return None
+    parts: list[str] = []
+    for key in ("code", "message", "error", "errors", "error_message", "Error Message",
+                "Note", "Information", "detail", "details", "type", "title"):
+        value = payload.get(key)
+        if value in (None, "", [], {}):
+            continue
+        if isinstance(value, dict):
+            parts.extend(str(v) for v in value.values() if isinstance(v, (str, int)))
+        elif isinstance(value, list):
+            parts.extend(str(v) for v in value if isinstance(v, (str, int)))
+        else:
+            parts.append(str(value))
+    if not parts and not explicit_status:
+        return None
+    nested = payload.get("error")
+    code = payload.get("code")
+    if code is None and isinstance(nested, dict):
+        code = nested.get("code")
+    return code, " ".join(parts)[:240]
+
+
+#: What reading one damaged row can raise. Anything else is a bug, not a bad row.
+READ_ERRORS = (AttributeError, KeyError, IndexError, TypeError, ValueError, OverflowError, OSError)
+
+
+def read_rows(rows: Any, parse) -> tuple[list, int]:
+    """Parse each row of a vendor list; one unreadable row costs that row only.
+
+    `parse(row)` returns the parsed item, or `None` for a row that is
+    deliberately left out (a removed article, a placeholder). It raises one of
+    `READ_ERRORS` for a row it cannot make sense of. Those are counted and
+    returned, never swallowed silently: the caller reports them, so "the vendor
+    sent 250 bars and we read 249" stays visible instead of becoming a shorter
+    year.
+
+    A reply that is not a list at all yields nothing, and says nothing was
+    unreadable: the caller has already decided what a wrong container means.
+    """
+    if not isinstance(rows, list):
+        return [], 0
+    parsed: list = []
+    unreadable = 0
+    for row in rows:
+        try:
+            item = parse(row)
+        except READ_ERRORS:
+            unreadable += 1
+            continue
+        if item is not None:
+            parsed.append(item)
+    return parsed, unreadable
 
 
 def _observe(vendor: str, operation: str, outcome: str, latency_ms: float) -> None:
@@ -231,8 +430,57 @@ class VendorError(Exception):
 _CALL_POOL = ThreadPoolExecutor(max_workers=8, thread_name_prefix="vendor-call")
 
 
+def _guard_operation(fn):
+    """Wrap an adapter operation so only a `VendorError` can leave it.
+
+    An adapter reads a vendor's reply by subscripting and calling `.get` on it.
+    When the reply is not the shape the adapter was written for - a list where
+    a dict was expected, a row that is a string, a date that is not a date -
+    that raises `AttributeError`, `KeyError`, `TypeError`, `ValueError` or a
+    pydantic `ValidationError`. Left alone it escapes as a crash, and worse, the
+    HTTP layer has already recorded the request as a *success*, so the vendor
+    stays "HEALTHY" while every answer it gives is discarded.
+
+    Here the surprise is translated once: it becomes a `parse_failure`, it is
+    recorded against the vendor, and repeated surprises trip the same cooldown
+    that repeated timeouts do. Adapters that can skip a single bad row and keep
+    the rest still do so themselves - that is a better outcome than failing the
+    batch - this is the net for what they did not anticipate.
+    """
+
+    @functools.wraps(fn)
+    def guarded(self, *args, **kwargs):
+        try:
+            result = fn(self, *args, **kwargs)
+        except VendorError:
+            raise
+        except Exception as exc:  # noqa: BLE001 - translated, never swallowed
+            if getattr(exc, "vendor_passthrough", False):
+                # A caller error (an unnamed period) raised on purpose, before
+                # any request was made. Not the vendor's fault.
+                raise
+            raise self._unexpected_reply(fn.__name__, exc) from exc
+        self._reply_failures = 0
+        return result
+
+    guarded.__vendor_guarded__ = True
+    return guarded
+
+
 class VendorClient:
     """Base adapter. Subclasses set NAME / KEY_ENV / DEFAULT_RPM and use _get_json."""
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        super().__init_subclass__(**kwargs)
+        for name, attr in list(cls.__dict__.items()):
+            # Public functions defined on a concrete adapter are its
+            # operations. Properties, class/static methods and `_private`
+            # helpers are not wrapped.
+            if name.startswith("_") or not inspect.isfunction(attr):
+                continue
+            if getattr(attr, "__vendor_guarded__", False):
+                continue
+            setattr(cls, name, _guard_operation(attr))
 
     NAME = "vendor"
     KEY_ENV: Optional[str] = None          # None → keyless vendor
@@ -261,8 +509,39 @@ class VendorClient:
         self.rate_limiter = RateLimiter(rpm)
         self.stats = VendorStats()
         self._cooldown_until = 0.0
+        #: Consecutive operations whose reply the adapter could not read. The
+        #: HTTP layer counts a decoded 200 as a success, which resets
+        #: `consecutive_failures`, so a vendor that keeps returning garbage
+        #: would never reach the cooldown on that counter alone.
+        self._reply_failures = 0
         self._session = session or requests.Session()
         self._session.headers.setdefault("User-Agent", "OmniSignal/2.0 (+https://omnisignalterminal.vercel.app)")
+
+    def _note_unreadable(self, operation: str, count: int) -> None:
+        """Make skipped rows observable: a log line and a counter, never silence."""
+        if count <= 0:
+            return
+        logger.warning("%s: %s skipped %d unreadable row(s)", self.NAME, operation, count)
+        _metrics.registry.increment(
+            "vendor.unreadable_rows", count, vendor=self.NAME, operation=operation,
+        )
+
+    def _unexpected_reply(self, operation: str, exc: BaseException) -> "VendorError":
+        """Record that a reply decoded but was not the shape this adapter reads."""
+        self._reply_failures += 1
+        detail = f"unexpected response shape in {operation}: {type(exc).__name__}"
+        self.stats.record(
+            False, 0.0, detail, FailureClass.PARSE.value, operation=operation,
+        )
+        _observe(self.NAME, operation, "error", 0.0)
+        logger.warning("%s: %s (%s)", self.NAME, detail, redact(str(exc))[:160])
+        if self._reply_failures >= self.COOLDOWN_AFTER_FAILURES:
+            self._cooldown_until = time.monotonic() + self.COOLDOWN_SECONDS
+            _metrics.registry.increment("vendor.cooldown", vendor=self.NAME)
+        return VendorError(
+            f"{self.NAME}: {detail}", transient=False,
+            failure_class=FailureClass.PARSE,
+        )
 
     # ── Availability & health ────────────────────────────────────────────────
 
@@ -378,15 +657,17 @@ class VendorClient:
 
     def _get_json(self, url: str, params: Optional[dict[str, Any]] = None,
                   headers: Optional[dict[str, str]] = None,
-                  operation: str = "http") -> Any:
+                  operation: str = "http", *,
+                  expect: Optional[type | tuple[type, ...]] = None) -> Any:
         return self._request_json("GET", url, params=params, headers=headers,
-                                  operation=operation)
+                                  operation=operation, expect=expect)
 
     def _post_json(self, url: str, json_body: Any,
                    headers: Optional[dict[str, str]] = None,
-                   operation: str = "http") -> Any:
+                   operation: str = "http", *,
+                   expect: Optional[type | tuple[type, ...]] = None) -> Any:
         return self._request_json("POST", url, json_body=json_body, headers=headers,
-                                  operation=operation)
+                                  operation=operation, expect=expect)
 
     def timed_call(self, fn, operation: str = "call", timeout: Optional[float] = None):
         """
@@ -456,10 +737,17 @@ class VendorClient:
                       params: Optional[dict[str, Any]] = None,
                       json_body: Optional[Any] = None,
                       headers: Optional[dict[str, str]] = None,
-                      operation: str = "http") -> Any:
+                      operation: str = "http", *,
+                      expect: Optional[type | tuple[type, ...]] = None) -> Any:
         """
         HTTP with rate limiting, timeout, bounded retries + exponential backoff.
         Raises VendorError on terminal failure; records stats either way.
+
+        A reply is accepted only when it is a JSON object or array, is not the
+        vendor's own error envelope, and (when the caller says what it
+        expects) has that shape. Anything else is a failure with a reason, not
+        an empty result: "the vendor said no" and "the vendor said nothing"
+        are different facts and neither is "no data".
         """
         request_started = time.perf_counter()
         last_error: Optional[VendorError] = None
@@ -539,7 +827,22 @@ class VendorClient:
                     )
                 response.raise_for_status()
                 payload = response.json()
+                if _may_hold_non_finite(response):
+                    payload = scrub_non_finite(payload)
+                if not isinstance(payload, (dict, list)):
+                    # `null`, a bare string, a number, a boolean. No endpoint
+                    # here answers with one; it is a proxy page, a maintenance
+                    # string or a truncated reply, never "no results".
+                    raise VendorError(
+                        f"unexpected response ({type(payload).__name__}, not an object or array)",
+                        transient=False, failure_class=FailureClass.PARSE,
+                    )
                 self._validate_payload(payload)
+                if expect is not None and not isinstance(payload, expect):
+                    raise VendorError(
+                        f"unexpected response shape ({type(payload).__name__})",
+                        transient=False, failure_class=FailureClass.PARSE,
+                    )
                 self.stats.record(True, latency, operation=operation)
                 # Total elapsed, not this attempt's: retries and backoff are
                 # time the caller genuinely waited, and hiding them is how a
@@ -601,6 +904,15 @@ class VendorClient:
                              self.NAME, last_error.status_code, self.AUTH_COOLDOWN_SECONDS)
                 _metrics.registry.increment("vendor.credential_rejected", vendor=self.NAME)
             self._cooldown_until = time.monotonic() + self.AUTH_COOLDOWN_SECONDS
+        elif (
+            last_error.failure_class == FailureClass.RATE_LIMITED.value
+            and not last_error.transient
+        ):
+            # The vendor said, in a 200 body, that its quota is spent. Nothing
+            # about an immediate retry changes that, and the next request would
+            # spend what is left of the window finding it out again.
+            self._cooldown_until = time.monotonic() + self.COOLDOWN_SECONDS
+            _metrics.registry.increment("vendor.cooldown", vendor=self.NAME)
         elif self.stats.consecutive_failures >= self.COOLDOWN_AFTER_FAILURES:
             self._cooldown_until = time.monotonic() + self.COOLDOWN_SECONDS
             logger.warning("%s cooling down for %.0fs after %d consecutive failures",
@@ -609,7 +921,34 @@ class VendorClient:
         raise last_error
 
     def _validate_payload(self, payload: Any) -> None:
-        """Adapters may reject an API-level error returned with HTTP 200."""
+        """Reject the vendor's own error envelope, delivered with HTTP 200.
+
+        Overridden by adapters whose API has a specific envelope (BLS, BEA).
+        The default recognises the common shapes - an explicit error status,
+        `Error Message`, `Note`, a top-level `error` - and classifies them by
+        what they say, so a bad key reads as `auth_failure` and an exhausted
+        quota as `rate_limited` rather than both reading as "no data".
+        """
+        found = api_error_in(payload)
+        if found is None:
+            return
+        code, text = found
+        failure_class = classify_api_error(code, text)
+        status = int(code) if isinstance(code, (int, float)) and not isinstance(code, bool) else None
+        status = status if status and 400 <= status < 600 else None
+        if failure_class is FailureClass.UNAVAILABLE and (
+            status in (400, 404, 422) or _NOTHING_HERE.search(text or "")
+        ):
+            # "Symbol not found" is the vendor answering this request, not the
+            # vendor being down. Recording it as a 404 keeps it out of the
+            # consecutive-failure count, exactly as a real 404 is kept out.
+            status = 404
+        raise VendorError(
+            redact(f"{self.NAME} API error: {text}")[:240],
+            transient=False,
+            failure_class=failure_class,
+            status_code=status,
+        )
 
     def _is_empty_answer(self, response: Any) -> bool:
         """Whether an error status is the vendor's way of saying "no matches".

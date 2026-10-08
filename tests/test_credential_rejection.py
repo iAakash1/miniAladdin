@@ -142,11 +142,18 @@ def test_the_research_provider_inventory_says_configured_but_not_available(vendo
 
 
 def test_a_rejected_research_provider_is_not_called_again(vendor):
+    """No request goes out - and the provider says it could not be asked.
+
+    It used to answer `[]`, which the research engine could not tell from
+    "searched and found nothing": a dead key and a quiet news day looked the
+    same. Raising is how the engine learns the difference.
+    """
     provider = NewsApiProvider()
     provider._vendor = vendor
     _reject(vendor)
     with patch.object(vendor._session, "request") as send:
-        assert provider.search("AAPL") == []
+        with pytest.raises(VendorError):
+            provider.search("AAPL")
     send.assert_not_called()
 
 

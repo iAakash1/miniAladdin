@@ -30,6 +30,7 @@ class OpenFigiVendor(VendorClient):
             [{"idType": "TICKER", "idValue": ticker, "exchCode": "US"}],
             headers={"X-OPENFIGI-APIKEY": self.api_key},
             operation="instrument_identity",
+            expect=list,
         )
         if not isinstance(payload, list) or len(payload) != 1 or not isinstance(payload[0], dict):
             return KnowledgeBundle()

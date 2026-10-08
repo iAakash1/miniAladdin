@@ -21,7 +21,7 @@ import re
 from datetime import date
 from typing import Any, Optional
 
-from src.providers.base import VendorClient
+from src.providers.base import READ_ERRORS, FailureClass, VendorClient, VendorError
 from src.services.confidence import for_provider as _confidence_for
 from src.providers.research_schemas import (
     GraphEdge,
@@ -125,15 +125,29 @@ class SECVendor(VendorClient):
         """company_tickers.json, cached for the process lifetime (it changes
         at most daily and is ~1MB)."""
         if self._ticker_map is None:
-            data = self._get_json(f"{self.WWW_BASE}/files/company_tickers.json", headers=self._headers())
+            data = self._get_json(
+                f"{self.WWW_BASE}/files/company_tickers.json", headers=self._headers(),
+                expect=dict,
+            )
             index: dict[str, dict[str, Any]] = {}
-            for row in (data or {}).values():
+            for row in data.values():
+                if not isinstance(row, dict):
+                    continue
                 ticker = str(row.get("ticker", "")).upper()
                 if ticker:
                     index[ticker] = {
                         "cik": str(row.get("cik_str", "")).zfill(10),
                         "name": row.get("title", ""),
                     }
+            if not index:
+                # The real file lists ~10,000 registrants. An empty one is not
+                # "no companies"; and because this map is kept for the life of
+                # the process, accepting it would turn one bad reply into SEC
+                # being silently absent until the next deploy.
+                raise VendorError(
+                    "company_tickers.json held no usable entries",
+                    transient=False, failure_class=FailureClass.PARSE,
+                )
             self._ticker_map = index
         return self._ticker_map
 
@@ -147,9 +161,8 @@ class SECVendor(VendorClient):
             return None
         data = self._get_json(
             f"{self.DATA_BASE}/submissions/CIK{entry['cik']}.json", headers=self._headers(),
+            expect=dict,
         )
-        if not isinstance(data, dict):
-            return None
         sic = str(data.get("sic") or "")
         return {
             "cik": entry["cik"],
@@ -165,28 +178,50 @@ class SECVendor(VendorClient):
         if not entry:
             return []
         cik = entry["cik"]
-        data = self._get_json(f"{self.DATA_BASE}/submissions/CIK{cik}.json", headers=self._headers())
-        recent = ((data or {}).get("filings") or {}).get("recent") or {}
-        forms = recent.get("form") or []
+        data = self._get_json(
+            f"{self.DATA_BASE}/submissions/CIK{cik}.json", headers=self._headers(), expect=dict,
+        )
+        filings = data.get("filings")
+        recent = (filings.get("recent") if isinstance(filings, dict) else None) or {}
+        forms = recent.get("form") if isinstance(recent, dict) else None
+        if not isinstance(forms, list):
+            # No filing list in the reply. For a registrant this is not "has
+            # filed nothing"; every public company has a filing history.
+            if "filings" not in data:
+                raise VendorError(
+                    "submissions reply carries no filings section",
+                    transient=False, failure_class=FailureClass.PARSE,
+                )
+            return []
+
+        def column(key: str, i: int) -> str:
+            # The columns are parallel arrays; a short one is a damaged row,
+            # not an IndexError that discards the other filings.
+            values = recent.get(key)
+            value = values[i] if isinstance(values, list) and i < len(values) else ""
+            return value if isinstance(value, str) else ""
+
         out: list[dict[str, Any]] = []
         for i, form in enumerate(forms):
             if form not in FORM_MEANING:
                 continue
-            accession = (recent.get("accessionNumber") or [""] * len(forms))[i]
-            document = (recent.get("primaryDocument") or [""] * len(forms))[i]
+            accession = column("accessionNumber", i)
+            if not accession:
+                continue
+            document = column("primaryDocument", i)
             naked = accession.replace("-", "")
             out.append({
                 "form": form,
                 "meaning": FORM_MEANING[form],
-                "filed_at": (recent.get("filingDate") or [""] * len(forms))[i],
-                "report_date": (recent.get("reportDate") or [""] * len(forms))[i] or None,
+                "filed_at": column("filingDate", i),
+                "report_date": column("reportDate", i) or None,
                 "accession": accession,
                 "url": (
                     f"{self.WWW_BASE}/Archives/edgar/data/{int(cik)}/{naked}/{document}"
                     if document else
                     f"{self.WWW_BASE}/Archives/edgar/data/{int(cik)}/{naked}"
                 ),
-                "items": (recent.get("items") or [""] * len(forms))[i] or None,
+                "items": column("items", i) or None,
             })
             if len(out) >= limit:
                 break
@@ -236,38 +271,50 @@ class SECVendor(VendorClient):
         if not entry:
             return {}
         data = self._get_json(
-            f"{self.DATA_BASE}/api/xbrl/companyfacts/CIK{entry['cik']}.json", headers=self._headers()
+            f"{self.DATA_BASE}/api/xbrl/companyfacts/CIK{entry['cik']}.json", headers=self._headers(),
+            expect=dict,
         )
-        gaap = ((data or {}).get("facts") or {}).get("us-gaap") or {}
+        facts = data.get("facts")
+        gaap = (facts.get("us-gaap") if isinstance(facts, dict) else None) or {}
+        if not isinstance(gaap, dict):
+            raise VendorError(
+                "companyfacts reply has no readable us-gaap section",
+                transient=False, failure_class=FailureClass.PARSE,
+            )
 
         # label -> best candidate series found so far, by period count.
         best: dict[str, list[dict[str, Any]]] = {}
 
         for concept, label in XBRL_CONCEPTS.items():
             node = gaap.get(concept)
-            if not node:
+            if not isinstance(node, dict) or not node:
                 continue
-            for unit, rows in (node.get("units") or {}).items():
-                annual = [
-                    {
-                        # Derived from the period end, not from the filing's
-                        # `fy`. For every company checked — September, June and
-                        # January fiscal year ends — the calendar year of the
-                        # period end is the year the company itself calls it.
-                        "fiscal_year": int(str(row["end"])[:4]),
-                        "period_start": row.get("start"),
-                        "period_end": row["end"],
-                        "value": row.get("val"),
-                        "unit": unit,
-                        "form": row.get("form"),
-                        "filed": row.get("filed"),
-                        "concept_tag": concept,
-                    }
-                    for row in rows
-                    if row.get("form") == "10-K" and row.get("fp") == "FY"
-                    and row.get("val") is not None and row.get("end")
-                    and _is_annual(row)
-                ]
+            units = node.get("units")
+            for unit, rows in (units.items() if isinstance(units, dict) else ()):
+                annual = []
+                for row in rows if isinstance(rows, list) else ():
+                    try:
+                        if not (row.get("form") == "10-K" and row.get("fp") == "FY"
+                                and row.get("val") is not None and row.get("end")
+                                and _is_annual(row)):
+                            continue
+                        annual.append({
+                            # Derived from the period end, not from the filing's
+                            # `fy`. For every company checked — September, June and
+                            # January fiscal year ends — the calendar year of the
+                            # period end is the year the company itself calls it.
+                            "fiscal_year": int(str(row["end"])[:4]),
+                            "period_start": row.get("start"),
+                            "period_end": row["end"],
+                            "value": row.get("val"),
+                            "unit": unit,
+                            "form": row.get("form"),
+                            "filed": row.get("filed"),
+                            "concept_tag": concept,
+                        })
+                    except READ_ERRORS:
+                        # One damaged fact costs that fact, not the filing.
+                        continue
                 if not annual:
                     continue
 
@@ -322,39 +369,50 @@ class SECVendor(VendorClient):
         data = self._get_json(
             f"{self.DATA_BASE}/api/xbrl/companyfacts/CIK{entry['cik']}.json",
             headers=self._headers(),
+            expect=dict,
         )
-        gaap = ((data or {}).get("facts") or {}).get("us-gaap") or {}
+        facts = data.get("facts")
+        gaap = (facts.get("us-gaap") if isinstance(facts, dict) else None) or {}
+        if not isinstance(gaap, dict):
+            raise VendorError(
+                "companyfacts reply has no readable us-gaap section",
+                transient=False, failure_class=FailureClass.PARSE,
+            )
 
         rows: list[dict[str, Any]] = []
         for concept, label in XBRL_CONCEPTS.items():
             node = gaap.get(concept)
-            if not node:
+            if not isinstance(node, dict) or not node:
                 continue
-            for unit, entries in (node.get("units") or {}).items():
-                for row in entries:
-                    if row.get("form") not in ("10-K", "10-Q"):
+            units = node.get("units")
+            for unit, entries in (units.items() if isinstance(units, dict) else ()):
+                for row in entries if isinstance(entries, list) else ():
+                    try:
+                        if row.get("form") not in ("10-K", "10-Q"):
+                            continue
+                        if row.get("val") is None or not row.get("filed"):
+                            continue
+                        rows.append({
+                            "concept": concept,
+                            "label": label,
+                            "fiscal_year": row.get("fy"),
+                            "fiscal_period": row.get("fp"),
+                            # `start` is what actually distinguishes a fiscal-year
+                            # figure from the fourth quarter that shares its end
+                            # date. Without it, a 10-K's FY revenue and its Q4
+                            # revenue look like the same period reported twice —
+                            # and a naive comparison calls that a 77% restatement.
+                            # Instant concepts (balance-sheet lines) have no start,
+                            # which is itself the distinction from flow concepts.
+                            "period_start": row.get("start"),
+                            "period_end": row.get("end"),
+                            "value": float(row["val"]),
+                            "unit": unit,
+                            "form": row.get("form"),
+                            "filed": str(row["filed"]),
+                        })
+                    except READ_ERRORS:
                         continue
-                    if row.get("val") is None or not row.get("filed"):
-                        continue
-                    rows.append({
-                        "concept": concept,
-                        "label": label,
-                        "fiscal_year": row.get("fy"),
-                        "fiscal_period": row.get("fp"),
-                        # `start` is what actually distinguishes a fiscal-year
-                        # figure from the fourth quarter that shares its end
-                        # date. Without it, a 10-K's FY revenue and its Q4
-                        # revenue look like the same period reported twice —
-                        # and a naive comparison calls that a 77% restatement.
-                        # Instant concepts (balance-sheet lines) have no start,
-                        # which is itself the distinction from flow concepts.
-                        "period_start": row.get("start"),
-                        "period_end": row.get("end"),
-                        "value": float(row["val"]),
-                        "unit": unit,
-                        "form": row.get("form"),
-                        "filed": str(row["filed"]),
-                    })
                 break   # first unit with data wins, as in get_xbrl_facts
         rows.sort(key=lambda r: (r["filed"], r.get("period_end") or ""))
         return rows

@@ -40,7 +40,7 @@ def test_the_key_travels_in_a_header_and_never_in_the_url():
     v = _vendor_with_key()
     seen: dict[str, object] = {}
 
-    def capture(url, params=None, headers=None, operation="http"):
+    def capture(url, params=None, headers=None, operation="http", expect=None):
         seen["url"] = url
         seen["params"] = params or {}
         seen["headers"] = headers or {}
@@ -61,7 +61,7 @@ def test_every_endpoint_authenticates_the_same_way():
     v = _vendor_with_key()
     calls: list[dict] = []
 
-    def capture(url, params=None, headers=None, operation="http"):
+    def capture(url, params=None, headers=None, operation="http", expect=None):
         calls.append({"url": url, "params": params or {}, "headers": headers or {}})
         return {"results": []}
 
@@ -83,7 +83,7 @@ def test_history_is_split_adjusted():
     v = _vendor_with_key()
     seen: dict[str, object] = {}
 
-    def capture(url, params=None, headers=None, operation="http"):
+    def capture(url, params=None, headers=None, operation="http", expect=None):
         seen["params"] = params or {}
         return {"results": []}
 
@@ -266,7 +266,7 @@ def test_an_expiration_filter_is_pushed_to_the_provider():
     v = _vendor_with_key()
     seen = {}
 
-    def capture(url, params=None, headers=None, operation="http"):
+    def capture(url, params=None, headers=None, operation="http", expect=None):
         seen["params"] = params or {}
         seen["url"] = url
         return {"results": []}

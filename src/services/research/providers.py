@@ -12,7 +12,7 @@ import logging
 import os
 from typing import Any, Optional
 
-from src.providers.base import VendorClient
+from src.providers.base import FailureClass, VendorClient, VendorError
 from src.providers.vendors.apify_vendor import ApifyVendor
 from src.providers.vendors.news_vendors import GNewsVendor, NewsApiVendor, YahooRssVendor
 from src.providers.vendors.search_vendors import ExaVendor, TavilyVendor
@@ -24,6 +24,21 @@ from src.services.research.base import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _require_healthy(vendor: VendorClient, name: str) -> None:
+    """Raise when this provider cannot be asked right now.
+
+    These providers used to answer `[]` here, which the engine could not tell
+    from "searched, found nothing". A vendor in its cooldown window (including
+    the long one after a rejected key) has not looked, so it must say so: the
+    engine counts a raise as "could not answer" and an empty list as "answered".
+    """
+    if not vendor.healthy:
+        raise VendorError(
+            f"{name}: not available (cooling down or unconfigured)",
+            transient=True, failure_class=FailureClass.UNAVAILABLE,
+        )
 
 
 class _BraveVendor(VendorClient):
@@ -40,16 +55,20 @@ class _BraveVendor(VendorClient):
             f"{self.BASE}/web/search",
             params={"q": query, "count": min(limit, 20), "freshness": "py"},
             headers={"X-Subscription-Token": self.api_key, "Accept": "application/json"},
+            expect=dict,
         )
-        return ((data or {}).get("web") or {}).get("results") or []
+        web = data.get("web")
+        return [row for row in ((web.get("results") if isinstance(web, dict) else None) or [])
+                if isinstance(row, dict)]
 
     def news_search(self, query: str, limit: int) -> list[dict[str, Any]]:
         data = self._get_json(
             f"{self.BASE}/news/search",
             params={"q": query, "count": min(limit, 20)},
             headers={"X-Subscription-Token": self.api_key, "Accept": "application/json"},
+            expect=dict,
         )
-        return (data or {}).get("results") or []
+        return [row for row in (data.get("results") or []) if isinstance(row, dict)]
 
 
 class BraveProvider(ResearchProvider):
@@ -71,8 +90,7 @@ class BraveProvider(ResearchProvider):
         )
 
     def search(self, query: str, limit: int = 6) -> list[ResearchHit]:
-        if not self._vendor.healthy:
-            return []
+        _require_healthy(self._vendor, self.name)
         rows = self._vendor.web_search(query, limit)
         return [
             ResearchHit(
@@ -127,8 +145,7 @@ class TavilyProvider(ResearchProvider):
                               configured=self._vendor.available, stats=self._vendor.health_snapshot())
 
     def search(self, query: str, limit: int = 6) -> list[ResearchHit]:
-        if not self._vendor.healthy:
-            return []
+        _require_healthy(self._vendor, self.name)
         # advanced depth + raw content: Tavily's value is extracted page
         # text, not snippets. Year window keeps research current.
         results = self._vendor.search(
@@ -162,8 +179,7 @@ class ExaProvider(ResearchProvider):
                               configured=self._vendor.available, stats=self._vendor.health_snapshot())
 
     def search(self, query: str, limit: int = 6, category: Optional[str] = None) -> list[ResearchHit]:
-        if not self._vendor.healthy:
-            return []
+        _require_healthy(self._vendor, self.name)
         results = self._vendor.search(query, limit=limit, category=category) or []
         return [
             ResearchHit(url=r.url, title=r.title, snippet=getattr(r, "snippet", "") or "",
@@ -205,10 +221,7 @@ class NewsProvider(ResearchProvider):
     def _hits_for(self, symbol: str, limit: int) -> list[ResearchHit]:
         if not symbol.isalpha():
             return []
-        try:
-            headlines = self._vendor.get_news(symbol, "", limit=limit) or []
-        except Exception:  # noqa: BLE001 — optional like every research source
-            return []
+        headlines = self._vendor.get_news(symbol, "", limit=limit) or []
         return [
             ResearchHit(url=h.url, title=h.title, snippet=h.title,
                         published_at=h.published_at, provider=self.name)
@@ -236,8 +249,7 @@ class ApifyProvider(ResearchProvider):
                               configured=self._vendor.available, stats=self._vendor.health_snapshot())
 
     def search(self, query: str, limit: int = 6) -> list[ResearchHit]:
-        if not self._vendor.healthy:
-            return []
+        _require_healthy(self._vendor, self.name)
         rows = self._vendor.search(query, limit=limit)
         return [
             ResearchHit(url=row["url"], title=row.get("title", ""),
@@ -274,12 +286,10 @@ class _RssStyleNewsProvider(ResearchProvider):
         # `healthy` also excludes a vendor in cooldown, including the long one
         # after a rejected credential, so a dead key is not called on every
         # search.
-        if not self._vendor.healthy:
-            return []
-        try:
-            headlines = self._vendor.get_news(query, "", limit=limit) or []
-        except Exception:  # noqa: BLE001 — optional like every research source
-            return []
+        _require_healthy(self._vendor, self.name)
+        # A vendor error propagates: the engine records it as "could not
+        # answer", which is a different fact from "answered with nothing".
+        headlines = self._vendor.get_news(query, "", limit=limit) or []
         return [
             ResearchHit(
                 url=h.url, title=h.title,

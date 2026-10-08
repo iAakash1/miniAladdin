@@ -94,8 +94,9 @@ class ApifyVendor(VendorClient):
             "POST", url,
             params={"token": self.api_key, "timeout": timeout_secs},
             json_body=payload,
+            expect=list,
         )
-        return data if isinstance(data, list) else []
+        return [item for item in data if isinstance(item, dict)]
 
     # ── research: sourced claims about a company ─────────────────────────────
     def research_company(self, symbol: str, company_name: str, question: str = "") -> KnowledgeBundle:
@@ -107,19 +108,18 @@ class ApifyVendor(VendorClient):
             f"{subject} ({symbol}) recent business developments, competitive position, "
             f"and key risks — cite sources"
         )
-        try:
-            items = self._run_actor(
-                self.RESEARCH_ACTOR,
-                {
-                    "query": query,
-                    "maxResults": 3,
-                    "outputFormats": ["markdown"],
-                    "scrapingTool": "raw-http",  # fast path; no browser needed for article text
-                },
-            )
-        except Exception:  # noqa: BLE001 — web research is always optional
-            logger.info("apify research run failed for %s", symbol, exc_info=True)
-            return KnowledgeBundle()
+        # A failed run raises (a VendorError, via the transport): web research
+        # is optional to the caller, which decides that, but "the actor could
+        # not be run" must not be indistinguishable from "it found nothing".
+        items = self._run_actor(
+            self.RESEARCH_ACTOR,
+            {
+                "query": query,
+                "maxResults": 3,
+                "outputFormats": ["markdown"],
+                "scrapingTool": "raw-http",  # fast path; no browser needed for article text
+            },
+        )
 
         return self._claims_from_items(symbol, self._normalize_research(items), "apify.web")
 
@@ -182,18 +182,18 @@ class ApifyVendor(VendorClient):
         """Google results as structured rows (title/url/snippet)."""
         if not self.available:
             return []
-        try:
-            items = self._run_actor(
-                self.GOOGLE_SEARCH_ACTOR,
-                {"queries": query, "maxPagesPerQuery": 1, "resultsPerPage": limit},
-                timeout_secs=60,
-            )
-        except Exception:  # noqa: BLE001
-            logger.info("apify google search failed", exc_info=True)
-            return []
+        items = self._run_actor(
+            self.GOOGLE_SEARCH_ACTOR,
+            {"queries": query, "maxPagesPerQuery": 1, "resultsPerPage": limit},
+            timeout_secs=60,
+        )
         out: list[dict[str, str]] = []
         for item in items:
+            if not isinstance(item, dict):
+                continue
             for result in (item.get("organicResults") or [])[:limit]:
+                if not isinstance(result, dict):
+                    continue
                 url = str(result.get("url") or "")
                 if not url.startswith("http"):
                     continue

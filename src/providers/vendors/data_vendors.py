@@ -8,7 +8,7 @@ from __future__ import annotations
 import math
 from typing import Optional
 
-from src.providers.base import VendorClient, VendorError
+from src.providers.base import FailureClass, VendorClient, VendorError
 from src.providers.validation import monthly_yoy
 from src.providers.schemas import (
     AnalystTargets,
@@ -21,9 +21,21 @@ from src.providers.schemas import (
 
 def _av_float(value) -> Optional[float]:
     try:
-        return float(value)
+        result = float(value)
     except (TypeError, ValueError):
         return None
+    return result if math.isfinite(result) else None
+
+
+def _finite_series(series):
+    """A pandas series with NaN *and* infinities removed.
+
+    `dropna()` removes NaN only. An infinite observation survives it, and the
+    next `float()` of it is an infinite spread or an infinite CPI.
+    """
+    import numpy as np
+
+    return series.replace([np.inf, -np.inf], np.nan).dropna()
 
 
 def _av_time(raw: str) -> str:
@@ -47,8 +59,20 @@ class AlphaVantageVendor(VendorClient):
 
         self._client = AlphaVantageClient()
 
+    @staticmethod
+    def _raise_if_refused(raw) -> None:
+        """A reply that carries a failure class is a failure, not "no data"."""
+        failure = getattr(raw, "failure_class", None)
+        if failure:
+            raise VendorError(
+                f"alpha_vantage: {getattr(raw, 'error', None) or failure}",
+                transient=failure in (FailureClass.TIMEOUT.value, FailureClass.UPSTREAM.value),
+                failure_class=failure,
+            )
+
     def get_fundamentals(self, symbol: str) -> Optional[FundamentalsData]:
         raw = self.timed_call(lambda: self._client.get_fundamentals(symbol))
+        self._raise_if_refused(raw)
         if raw.error:
             return None
         return FundamentalsData(
@@ -108,6 +132,7 @@ class AlphaVantageVendor(VendorClient):
 
     def get_analyst_targets(self, symbol: str) -> Optional[AnalystTargets]:
         raw = self.timed_call(lambda: self._client.get_fundamentals(symbol))
+        self._raise_if_refused(raw)
         if raw.error or raw.analyst_target is None:
             return None
         return AnalystTargets(symbol=symbol, target_mean=raw.analyst_target)
@@ -133,13 +158,19 @@ class AlphaVantageVendor(VendorClient):
         while being specifically negative about one name in it, and the
         overall figure would attribute the sector's tone to the company.
         """
-        data = self.timed_call(
-            lambda: self._client.call(
+        data, failure, message = self.timed_call(
+            lambda: self._client.call_checked(
                 function="NEWS_SENTIMENT", tickers=symbol,
                 limit=str(min(limit, 50)), sort="LATEST",
             ),
             operation="news_sentiment",
         )
+        if failure:
+            raise VendorError(
+                f"alpha_vantage: {message or failure}",
+                transient=failure in (FailureClass.TIMEOUT.value, FailureClass.UPSTREAM.value),
+                failure_class=failure,
+            )
         if not isinstance(data, dict):
             return None
         feed = data.get("feed")
@@ -220,7 +251,7 @@ class FredVendor(VendorClient):
             raise VendorError("fred: FRED_API_KEY not configured", transient=False)
 
         def _fetch() -> list[tuple[str, float]]:
-            series = self._client().get_series(series_id).dropna().tail(count)
+            series = _finite_series(self._client().get_series(series_id)).tail(count)
             return [(index.strftime("%Y-%m-%d"), float(value)) for index, value in series.items()
                     if math.isfinite(float(value))]
 
@@ -230,8 +261,8 @@ class FredVendor(VendorClient):
     def get_macro(self) -> Optional[MacroSnapshot]:
         def _fetch() -> MacroSnapshot:
             fred = self._client()
-            spread_series = fred.get_series(self.YIELD_CURVE_SERIES).dropna()
-            cpi = fred.get_series(self.CPI_SERIES).dropna()
+            spread_series = _finite_series(fred.get_series(self.YIELD_CURVE_SERIES))
+            cpi = _finite_series(fred.get_series(self.CPI_SERIES))
             inflation = monthly_yoy([(stamp.strftime("%Y-%m-%d"), float(value))
                                      for stamp, value in cpi.items()])
             observed = {
@@ -239,7 +270,7 @@ class FredVendor(VendorClient):
                 "inflation_rate": cpi.index[-1].strftime("%Y-%m-%d"),
             }
             try:
-                fed_series = fred.get_series(self.FED_FUNDS_SERIES).dropna()
+                fed_series = _finite_series(fred.get_series(self.FED_FUNDS_SERIES))
                 fed_rate = float(fed_series.iloc[-1])
                 observed["fed_funds_rate"] = fed_series.index[-1].strftime("%Y-%m-%d")
             except Exception:  # noqa: BLE001 — optional series

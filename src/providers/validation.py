@@ -33,6 +33,9 @@ So the rules split by *certainty*, not by severity:
   - `close` non-finite (`nan`, `inf`)
   - `close <= 0`
   - `high < low` (an impossible bar)
+  - a row the adapter could not read at all (not an object, a date that is not
+    a date, a close that is not a number). Counted here so that skipping one
+    damaged row, rather than failing the whole batch, is still visible.
 
 **Recorded, not dropped** — suspicious but legitimately produced by real
 vendors:
@@ -82,6 +85,9 @@ class SeriesQuality(BaseModel):
     dropped_non_finite: int = 0
     dropped_non_positive: int = 0
     dropped_impossible_range: int = 0
+    #: Rows the adapter skipped because it could not read them. Set by the
+    #: adapter before validation; folded into `bars_received` by the series.
+    dropped_unreadable: int = 0
     #: Not dropped — see the module docstring on adjusted closes.
     suspicious_close_outside_range: int = 0
 
@@ -91,6 +97,7 @@ class SeriesQuality(BaseModel):
             self.dropped_non_finite
             + self.dropped_non_positive
             + self.dropped_impossible_range
+            + self.dropped_unreadable
         )
 
     @property
@@ -124,6 +131,8 @@ class SeriesQuality(BaseModel):
             parts.append(f"{self.dropped_non_positive} non-positive")
         if self.dropped_impossible_range:
             parts.append(f"{self.dropped_impossible_range} high<low")
+        if self.dropped_unreadable:
+            parts.append(f"{self.dropped_unreadable} unreadable")
         if self.suspicious_close_outside_range:
             parts.append(f"{self.suspicious_close_outside_range} close outside range")
         return f"{self.bars_kept}/{self.bars_received} bars ({', '.join(parts)})"
@@ -133,13 +142,17 @@ def _is_finite(value: Any) -> bool:
     return isinstance(value, (int, float)) and math.isfinite(value)
 
 
-def sanitize_bars(bars: Sequence[Any]) -> tuple[list[Any], SeriesQuality]:
+def sanitize_bars(bars: Sequence[Any], unreadable: int = 0) -> tuple[list[Any], SeriesQuality]:
     """Drop impossible bars, count everything, keep the rest in order.
 
     Order is preserved because every consumer treats bar order as chronological
     and `bars[-1]` as "latest". Returns the surviving bars and what happened.
+    `unreadable` is the number of rows the adapter had to skip before this
+    point; they count as received, so retention reflects them.
     """
-    quality = SeriesQuality(bars_received=len(bars))
+    quality = SeriesQuality(
+        bars_received=len(bars) + unreadable, dropped_unreadable=unreadable,
+    )
     kept: list[Any] = []
 
     for bar in bars:

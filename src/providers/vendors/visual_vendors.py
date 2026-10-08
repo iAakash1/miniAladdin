@@ -73,5 +73,6 @@ class LogoDevVendor(VendorClient):
             params={"q": query},
             headers={"Authorization": f"Bearer {self.secret}"},
             operation="brand_search",
+            expect=list,
         )
-        return data if isinstance(data, list) else None
+        return [row for row in data if isinstance(row, dict)] or None
