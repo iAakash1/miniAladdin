@@ -328,9 +328,8 @@ gcloud run services update-traffic omnisignal-api-poc --region asia-south1 \
 
 An anonymous request to the service must still receive `403`.
 
-**Then warm it.** A revision's minimum instance is *not* kept while the revision
-sits at 0% traffic: the log reads `Starting new instance. Reason:
-DEPLOYMENT_ROLLOUT` at the moment traffic moves. So the first request after a
+**Then warm it.** The log reads `Starting new instance. Reason:
+DEPLOYMENT_ROLLOUT` at the moment traffic moves, so the first request after a
 release meets a fresh container (about 6 s), a cold macro cache on it (about
 3 s) and, if the frontend was deployed too, a new Vercel function. Measured
 once, that was 13 s through Vercel. Make the first request yourself, before
@@ -340,6 +339,53 @@ anyone else does:
 curl -s https://omnisignalterminal.vercel.app/api/macro >/dev/null   # container, FRED cache, function
 python3 scripts/smoke_cloud_run.py <service-url> <commit-prefix> <revision>
 ```
+
+### Release the superseded revisions' instances
+
+**A tagged revision keeps its minimum instance even at 0% traffic.** Every
+release above is deployed with `--min-instances 1` and a `release-<sha>` tag, and
+nothing removed the tag afterwards. Measured on 2026-10-08 from Cloud Monitoring
+(`run.googleapis.com/container/instance_count`, grouped by revision): ten
+revisions each held an instance around the clock, nine of them idle and serving
+nothing, on a service whose whole capacity is one instance. Removing a tag
+released that revision's instance within a minute, and the revision itself stays
+(a rollback names it, not its tag). The idle instances run no background work
+and spend no vendor budget; the cost was money and nothing else.
+
+After a release is verified, keep the tag only on the revision that is the
+instant-rollback target (the one you just replaced) and remove the rest:
+
+```bash
+gcloud run services update-traffic omnisignal-api-poc --region asia-south1 \
+  --project omnisignal-api-aakash-2026 --remove-tags=release-<older-sha>,release-<older-sha>
+```
+
+Rolling back to an untagged revision works the same way
+(`--to-revisions=<revision>=100`); it starts cold, so warm it as above. To audit
+what is running, count instances per revision rather than reading the revision
+list: its `ACTIVE` column says `yes` for revisions that hold none.
+
+```bash
+python3 - <<'PY'
+import json, subprocess, urllib.parse, urllib.request, datetime
+token = subprocess.check_output(['gcloud', 'auth', 'print-access-token'], text=True).strip()
+now = datetime.datetime.now(datetime.timezone.utc)
+query = urllib.parse.urlencode({
+    'filter': 'metric.type="run.googleapis.com/container/instance_count" AND resource.labels.service_name="omnisignal-api-poc"',
+    'interval.startTime': (now - datetime.timedelta(minutes=10)).strftime('%Y-%m-%dT%H:%M:%SZ'),
+    'interval.endTime': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+    'aggregation.alignmentPeriod': '600s', 'aggregation.perSeriesAligner': 'ALIGN_MAX',
+    'aggregation.crossSeriesReducer': 'REDUCE_SUM', 'aggregation.groupByFields': 'resource.labels.revision_name',
+})
+request = urllib.request.Request(
+    'https://monitoring.googleapis.com/v3/projects/omnisignal-api-aakash-2026/timeSeries?' + query,
+    headers={'Authorization': 'Bearer ' + token})
+for series in json.load(urllib.request.urlopen(request)).get('timeSeries', []):
+    print(series['resource']['labels']['revision_name'], series['points'][0]['value'])
+PY
+```
+
+Expect one revision (the one holding traffic) plus at most the one rollback target.
 
 
 ## Hardening pass (2026-10-07)

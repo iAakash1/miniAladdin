@@ -504,10 +504,11 @@ discriminated result carrying the failure *kind* (network, timeout, auth,
 not_found, server, malformed), the endpoint and a remedy, which
 `EngineOffline.tsx` renders as a status board.
 
-One subtlety worth recording: **Clerk answers an unauthenticated `/api/*`
-request with a 404 rewrite, not a 401** (`x-clerk-auth-reason: protect-rewrite`).
-A 404 is therefore ambiguous between "route missing" and "signed out", and the
-remedy text says both rather than guessing.
+One subtlety worth recording: **Clerk used to answer an unauthenticated `/api/*`
+request with a 404 rewrite, not a 401** (`x-clerk-auth-reason: protect-rewrite`),
+which made a 404 ambiguous between "route missing" and "signed out". Since
+2026-10-08 the edge answers a signed-out `/api/*` request with a `401`, so a 404
+means what it says and the remedy text no longer hedges.
 
 ---
 

@@ -3,13 +3,21 @@
 How the suites are meant to run, and the rules that keep them honest.
 
 ```bash
-# backend — about 7–12 minutes, ~3,300 tests
+# backend — about 7 minutes, about 5,400 tests
 .venv/bin/python -m pytest tests/ --ignore=tests/test_live_smoke.py
 
 # frontend (from dashboard/)
 node --import tsx --test tests/*.test.ts     # same tests as `npm test`, without tsx's IPC socket
 npx tsc --noEmit && npm run lint && npm run build
 ```
+
+Running the backend suite from a copy of the tree (so that nothing edits it mid-run) needs more than
+`git archive`: six quant tests read git-ignored research data (`data/research`, `data/curated`, and the
+`predictions_*.parquet` files under `experiments/`), and EXP-011 stamps its receipts with a git commit.
+Copy those directories into the snapshot (copy, do not link: the tests write there), delete the
+snapshot's `experiments/EXP-011/checkpoints`, `git init` and commit inside it, and run it with the
+repository's own interpreter. On a bare `git archive` those tests fail (a missing file, or a receipt with no
+commit), which is the snapshot's fault and not the code's.
 
 ## The environment contract
 

@@ -276,9 +276,12 @@ honoured only server-side and for local development.
 ## 6. Authentication
 
 Clerk protects everything except the marketing site, news, learn, auth pages and
-SEO files. `/quant`, `/terminal/*` and `/api/*` all require a session;
-unauthenticated requests receive a 404 rewrite rather than a 401, which does not
-disclose that a route exists.
+SEO files. `/quant`, `/terminal/*` and `/api/*` all require a session. An
+unauthenticated page request receives a 404 rewrite rather than a redirect, which
+does not disclose that a route exists; since 2026-10-08 an unauthenticated
+`/api/*` request receives a `401` JSON `{"detail":"Sign in required."}` instead
+(`src/proxy.ts`), because a lapsed browser session was being told "nothing was
+found".
 
 Local visual verification of protected routes is done by temporarily widening
 the public matcher, and the restoration is verified by hashing `proxy.ts` against

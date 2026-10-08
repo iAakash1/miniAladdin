@@ -115,6 +115,25 @@ that names a real contact, which only you can supply; none has been invented.
 
 ### 4. Content-Security-Policy: do the browser check (next section)
 
+### 5. Decision: how quick the first market-dashboard load should be
+
+**State today:** the dashboard is assembled from many calls to free-tier data vendors, each under its own
+rate budget, which OmniSignal respects on purpose. A request that finds nothing cached takes between
+8 and 27 seconds (the last measurement against production, 2026-10-08: 26.9 s); the same request served
+from the cache takes about 0.06 second. A result built while a source was down is kept for minutes, not
+for the quarter hour a complete one keeps, so an outage is never frozen in.
+The time is spent waiting out vendor limits, not computing. No code change makes it shorter without
+either spending more of a budget or paying for one.
+
+**Choose one (each needs your approval, because each costs money or vendor budget):**
+
+- **Accept it.** The first reader after a quiet period waits; everyone after is quick.
+- **Pay for the tier that rate-limits** (the vendors reporting `RATE_LIMITED` in `/api/providers/health`).
+- **Warm it on a schedule.** A Cloud Scheduler job that requests the dashboard with an identity token every
+  few minutes keeps the cache full, at the price of spending vendor budget continuously.
+
+Nothing is broken whichever you pick; this is a trade between money and a few seconds for the first reader.
+
 ---
 
 ## BROWSER VERIFICATION REQUIRED

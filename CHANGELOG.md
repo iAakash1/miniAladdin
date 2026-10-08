@@ -6,6 +6,47 @@ test that has been shown capable of failing.
 
 ## V15 — research platform (in progress)
 
+### Product perfection pass (2026-10-08)
+
+A source-level audit of the whole product against its own rules, with no browser: every finding
+below was found in source, over plain HTTP, or by measuring a system, and each fix has a test that was
+shown to fail without it. What could only be judged in a rendered page is listed in
+`docs/OWNER_ACTIONS.md` and was not claimed.
+
+**Search.** One result per security: a symbol a vendor listed twice, and the same share class under
+two spellings, are one row. `BRK.B`, `BRK-B`, `BRK B` and `BRKB` are one security and are looked up
+dotted first, so a company no longer gets two cache entries and two slightly different quotes; the
+leveraged fund and London product that text-matched `BRK-B` are dropped when the security itself is in
+the answer. A thematic search whose pages never mention the query returns nothing instead of the
+tickers on whichever stock pages ranked best, which is what a nonsense query used to receive.
+
+**Interface.** The sign-in form and the Razorpay checkout use the product's accent (they were the legacy
+green, and white text on the dark accent measured 2.94:1). The state chips (`stale`, `blocked`, `paper`,
+`error`, `warning`, `unknown`, `retired`, `info`) take their colour from named `--s-*` tokens instead of
+borrowing another state's. The shortcut sheet and the claim inspector are real dialogs now: focus enters,
+Tab stays inside, Escape returns focus to where it came from. The saved-research page is called the
+research log everywhere a reader sees it (its own heading still said "Research Vault"), the experiments
+page's own list is the study history, "payload" and "endpoint" no longer appear in the security and
+company workspaces, and the failure advice in the quant API no longer blames "Render free tier
+cold-starts" or a Clerk 404 rewrite, neither of which is true of production. Spelling is American in
+every visible string (45 changes) and a test holds it. Every page names itself (eight pages under the
+simple and intermediate shells all read "Simple" or "Intermediate"). The sitemap lists the public Learn
+topics and no longer claims every page changed the moment it was built. A regime distribution with no
+observations no longer prints "0.0% of 1 observations".
+
+**Google Cloud.** Measured from Cloud Monitoring: ten Cloud Run revisions each held an always-on
+instance, nine of them idle behind a `release-<sha>` tag, on a service whose capacity is one instance. A
+tag keeps its revision's minimum instance at 0% traffic (the release document said it did not). The tags
+of the superseded revisions were removed and the instances were released within a minute; the revisions
+remain for rollback by name. `docs/CLOUD_RUN_DEPLOYMENT.md` now makes removing them a release step and
+shows how to count instances per revision. Traffic was unchanged throughout. The first-load time of the
+market dashboard (27 s cold, 0.06 s warm, set by free-tier vendor limits) is recorded as an owner
+decision, not as a defect.
+
+Tests: backend 5,399 passed, 10 skipped, 0 failed in two consecutive full runs (the live-network smoke
+file is excluded); frontend 839 passed, 0 failed, twice; typecheck, lint and production build clean. The
+research files were re-hashed after the work and are byte-identical.
+
 ### Failure semantics, content security and accessibility (2026-10-08)
 
 A pass whose only rule was that a failure must never look like an answer.

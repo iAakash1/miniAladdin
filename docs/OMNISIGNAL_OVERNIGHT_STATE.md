@@ -5,7 +5,7 @@ after any pause, limit reset or lost context**, then verify the live values
 against the real systems (they may have moved) before continuing. No secrets
 belong in this file.
 
-Last updated: 2026-10-08 (the kill-list pass, resumed after a usage limit, then the handoff pass).
+Last updated: 2026-10-08 (the kill-list pass, resumed after a usage limit, then the handoff pass, then the product perfection pass).
 
 ## SOURCE-VERIFIED ENGINEERING COMPLETE
 
@@ -19,6 +19,7 @@ account, a credential, a domain or a browser that only the owner has, and none h
 | Action | Why only the owner | Detail |
 |---|---|---|
 | Move Clerk from the development instance to a production instance | Needs a domain the owner controls, DNS, and the owner's Clerk dashboard | `CLERK_PRODUCTION.md` |
+| Decide how quick the first market-dashboard load should be (a cold build is 8 to 27 s, set by free-tier vendor limits; warm 0.06 s) | Each remedy (paid vendor tier, scheduled warm-up) costs money or vendor budget | `OWNER_ACTIONS.md` item 5 |
 | Supply a valid NewsAPI key, or leave the provider disabled on purpose | The stored key is rejected; only the account owner can issue a new one. Production reports it truthfully as `AUTH_FAILURE` meanwhile | `OWNER_ACTIONS.md`, `CLOUD_RUN_DEPLOYMENT.md` |
 | Set `SEC_USER_AGENT` to a real contact | Production sends the built-in generic contact; SEC asks for a real one and none has been invented | `OWNER_ACTIONS.md` |
 
@@ -42,7 +43,7 @@ genuinely Clerk-signed token reaching the backend.
 | Production URL | `https://omnisignalterminal.vercel.app` (`mini-aladding.vercel.app` redirects to it). Vercel functions in `bom1` |
 | Cloud Run | project `omnisignal-api-aakash-2026`, `asia-south1`, service `omnisignal-api-poc`, private (anonymous request → 403), min=max=1 instance, concurrency 1, runtime SA `omnisignal-api-runtime`, build SA `omnisignal-build` |
 | Release procedure | `docs/CLOUD_RUN_DEPLOYMENT.md` (backend first, then push; warm the revision afterwards) |
-| Rollback | Backend: `gcloud run services update-traffic omnisignal-api-poc --region asia-south1 --project omnisignal-api-aakash-2026 --to-revisions=<rev>=100`, targets `release-51fab09`, `release-dea3555`, `release-7671e5a`. Frontend: Vercel instant rollback. CSP: set `CSP_MODE=report-only`, redeploy |
+| Rollback | Backend: `gcloud run services update-traffic omnisignal-api-poc --region asia-south1 --project omnisignal-api-aakash-2026 --to-revisions=<rev>=100`, targets: the revision that served before the latest release (kept tagged and warm) or any earlier `omnisignal-api-poc-release-<sha>` by name (cold start; see `CLOUD_RUN_DEPLOYMENT.md`). Frontend: Vercel instant rollback. CSP: set `CSP_MODE=report-only`, redeploy |
 | Render | Rollback target only, documented, not in the serving path. The keep-alive workflow was removed |
 
 ### Commits of this pass (all authored and committed by `iAakash1`, no trailer)
@@ -63,13 +64,21 @@ genuinely Clerk-signed token reaching the backend.
 | `f92af0e` | The agent validation and analysis-run routes report a run in which no provider answered as unavailable, not `ok` / `AVAILABLE` |
 | `51fe68c` | The code release (backend 5,388 passed twice, frontend 814); the optional backend settings documented |
 | later | The handoff documents: owner actions, the CSP mode stated as it is, `SOURCE-VERIFIED ENGINEERING COMPLETE`. Documentation only; the code is byte-identical to `51fe68c` |
+| `86ff882` | Product perfection pass: state colors from their own tokens, sign-in and checkout in the product accent, real focus handling in the shortcut sheet and claim inspector, each with a guard |
+| `910271a` | One American spelling (guarded), one name for saved research, plain words in place of "payload" and "endpoint", failure advice that is true of production (guarded) |
+| `4eddf25` | An empty regime sample no longer prints "0.0% of 1 observations" |
+| `0826774` | Every page names itself; the sitemap lists the public Learn topics and no invented modification time; pages open under their entry's name (all guarded) |
+| `c4de40e` | Search: one result per security, one security per share class (`BRK.B`, `BRK-B`, `BRK B`, `BRKB`), nothing for a nonsense query |
+| docs | This pass's documents: changelog, owner decision 5, release procedure (superseded revisions' tags), testing guide. Documentation only |
 
 ## What was verified, and how
 
 **Backend.** The full suite (`tests/`, excluding `test_live_smoke.py`, which needs the real internet) ran twice in a row
-on the final tree, from a snapshot whose file hash equalled the tree on disk: **5,388 passed, 0 failed**, both times.
+on the final tree, from a snapshot that `diff -r` showed equal to the tree on disk (`src/`, `tests/`, `api/`):
+**5,399 passed, 10 skipped, 0 failed**, both times (6 m 50 s and 6 m 45 s). Run from a bare `git archive`, six quant tests
+fail for want of git-ignored research data; `TESTING.md` says how to build a snapshot that has it.
 
-**Frontend.** `tsc --noEmit` clean, ESLint clean, **814 tests passed, 0 failed**, production build succeeds.
+**Frontend.** `tsc --noEmit` clean, ESLint clean, **839 tests passed, 0 failed** (run twice), production build succeeds.
 Every commit in the series was also checked on its own in a throwaway worktree (typecheck and the frontend suite for the
 three frontend commits; the commit's own tests for the backend ones).
 
@@ -77,6 +86,12 @@ three frontend commits; the commit's own tests for the backend ones).
 the service URL; anonymous request to the service 403; real-vendor comparison against the previous revision (same prices, chart
 points, verdict and provenance counts, plus the new `status` and `coverage` fields); no 5xx and no instrumented handler firing in
 the revision's logs; the real JSON replayed through the frontend normalisers with no `NaN`, `Infinity` or `undefined`.
+
+**Google Cloud.** Measured from Cloud Monitoring: ten revisions each held an always-on instance (nine idle behind a
+`release-<sha>` tag) on a service whose whole capacity is one instance. A tag keeps its revision's minimum instance at 0%
+traffic. The superseded revisions' tags were removed; their instances were released within a minute; traffic was never
+touched and the revisions remain. Project IAM is minimal (owner, Cloud Build roles, log writer for the build account), the
+service invoker is the Vercel service account alone, and an anonymous request is refused.
 
 **Content-Security-Policy, live.** Header present on every HTML page; a 128-bit nonce, different per request, on every
 external script; the one inline script (theme bootstrap) allowed by a hash that equals the SHA-256 of the served text; no
@@ -107,6 +122,7 @@ Fingerprint prefixes (sha256), re-hashed before and after this pass and after ev
 - Dev-only: `npm audit` lists five high findings in the lint toolchain (`braces`); never shipped.
 - No automated workflow runs the test suites; only the secret scan runs on push.
 - Yahoo RSS answers 429 from Cloud Run egress; Finnhub and FMP report plan limits on some endpoints; Massive and Polygon hit the local rate limiter under burst.
+- The first market-dashboard load after a quiet period waits 8 to 27 s on free-tier vendor limits (owner decision 5).
 - Concurrency 1 on one instance: a long research run (~20–35 s) queues the next request. The first request after a release meets a fresh container; warm it.
 - Legacy `compute_decision` is over-confident on sparse data (scoring change, owner's call).
 
