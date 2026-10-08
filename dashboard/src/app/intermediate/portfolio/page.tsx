@@ -1,6 +1,10 @@
+import type { Metadata } from 'next'
+
 import IntermediateShell from '@/components/intermediate/IntermediateShell'
 import PortfolioIntelligence from '@/components/terminal/PortfolioIntelligence'
 import PositionsPanel from '@/components/terminal/PositionsPanel'
+
+export const metadata: Metadata = { title: 'Portfolio' }
 
 export default function IntermediatePortfolioPage() {
   return (

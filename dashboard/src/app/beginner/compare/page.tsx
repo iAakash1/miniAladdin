@@ -1,5 +1,9 @@
+import type { Metadata } from 'next'
+
 import SimpleShell from '@/components/beginner/SimpleShell'
 import ExperienceCompare from '@/components/intermediate/ExperienceCompare'
+
+export const metadata: Metadata = { title: 'Compare' }
 
 export default async function BeginnerComparePage({
   searchParams,

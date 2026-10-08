@@ -1,5 +1,9 @@
+import type { Metadata } from 'next'
+
 import ExperienceCompare from '@/components/intermediate/ExperienceCompare'
 import IntermediateShell from '@/components/intermediate/IntermediateShell'
+
+export const metadata: Metadata = { title: 'Compare' }
 
 export default async function IntermediateComparePage({
   searchParams,
