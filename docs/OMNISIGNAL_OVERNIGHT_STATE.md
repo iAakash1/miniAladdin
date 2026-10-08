@@ -5,7 +5,31 @@ after any pause, limit reset or lost context**, then verify the live values
 against the real systems (they may have moved) before continuing. No secrets
 belong in this file.
 
-Last updated: 2026-10-08 (the kill-list pass, resumed after a usage limit).
+Last updated: 2026-10-08 (the kill-list pass, resumed after a usage limit, then the handoff pass).
+
+## SOURCE-VERIFIED ENGINEERING COMPLETE
+
+Everything the source, the test suites and plain HTTP can show has been verified (below). The items under
+"OWNER ACTION REQUIRED" and "BROWSER VERIFICATION REQUIRED" are **not engineering defects**: each needs an
+account, a credential, a domain or a browser that only the owner has, and none has been faked. Start at
+`OWNER_ACTIONS.md`.
+
+### OWNER ACTION REQUIRED
+
+| Action | Why only the owner | Detail |
+|---|---|---|
+| Move Clerk from the development instance to a production instance | Needs a domain the owner controls, DNS, and the owner's Clerk dashboard | `CLERK_PRODUCTION.md` |
+| Supply a valid NewsAPI key, or leave the provider disabled on purpose | The stored key is rejected; only the account owner can issue a new one. Production reports it truthfully as `AUTH_FAILURE` meanwhile | `OWNER_ACTIONS.md`, `CLOUD_RUN_DEPLOYMENT.md` |
+| Set `SEC_USER_AGENT` to a real contact | Production sends the built-in generic contact; SEC asks for a real one and none has been invented | `OWNER_ACTIONS.md` |
+
+### BROWSER VERIFICATION REQUIRED
+
+The Content-Security-Policy is **enforcing** in production (`CSP_MODE` is not set, and unset enforces). It is not
+in report-only mode. It was verified over HTTP only. A real-browser check of sign-in, a company page and the
+Razorpay checkout under it is outstanding; the checklist and the one-variable fallback to report-only are in
+`OWNER_ACTIONS.md`. Until that check is done, enforcement is unconfirmed. Also unverified without a browser:
+rendered layout and spacing, breakpoints, hover and touch behaviour, focus order, rendered contrast, and a
+genuinely Clerk-signed token reaching the backend.
 
 ## Where things are
 
@@ -36,7 +60,9 @@ Last updated: 2026-10-08 (the kill-list pass, resumed after a usage limit).
 | `d3eb831`, `c1d5051` | Patched PyJWT and aiohttp with token verification failing closed; the CSP made usable under `next dev` |
 | `9417b34` | A transient outage no longer pins the quality / earnings-surprise inputs or a partly failed official record for six hours |
 | `ddf3380` | The browser's request caches drop only their own failed entry |
-| later | The agent validation and analysis-run routes report a run in which no provider answered as unavailable, not `ok` / `AVAILABLE`; this checkpoint |
+| `f92af0e` | The agent validation and analysis-run routes report a run in which no provider answered as unavailable, not `ok` / `AVAILABLE` |
+| `51fe68c` | The code release (backend 5,388 passed twice, frontend 814); the optional backend settings documented |
+| later | The handoff documents: owner actions, the CSP mode stated as it is, `SOURCE-VERIFIED ENGINEERING COMPLETE`. Documentation only; the code is byte-identical to `51fe68c` |
 
 ## What was verified, and how
 
@@ -72,16 +98,9 @@ Fingerprint prefixes (sha256), re-hashed before and after this pass and after ev
 `d0251b4cc4e21d03`, `experiments/EXP-007/search.json` `9ada5cda42234782`. `git diff` over `experiments/`, `artifacts/`, `data/`,
 `datasets/`, `research_papers/` and `src/quant/` between the start and the end of the pass is empty.
 
-## Known issues and external limits
+## Other known limits (none is an owner action)
 
-- **NewsAPI key is rejected** (HTTP 401). Reported as `AUTH_FAILURE`, credential `rejected`, cooling down; four other news vendors are
-  healthy and the research run returns headlines. A real key is the account owner's to supply.
-- **Clerk runs a development instance** (`*.clerk.accounts.dev`). Moving to production needs a domain the owner controls, DNS records and the
-  owner's Clerk dashboard (`docs/CLERK_PRODUCTION.md`). `CLERK_AUTHORIZED_PARTIES` is available but unset until a live token's `azp` is known.
-- **No browser has been opened** (the owner's rule). Everything below is therefore *unverified*, not failing: rendered layout and
-  spacing, hydration and the Clerk sign-in flow under the enforced CSP, the Razorpay checkout under the CSP, focus behaviour, hover and
-  touch behaviour, the responsive breakpoints, rendered contrast. If the CSP misbehaves in a real browser: `CSP_MODE=report-only`.
-- `SEC_USER_AGENT` is unset, so requests to SEC EDGAR carry the built-in generic contact. SEC's fair-access policy asks for a real mailbox; the owner sets it (`docs/CLOUD_RUN_DEPLOYMENT.md`, "Optional settings").
+- The three owner actions and the browser check above. (`CLERK_AUTHORIZED_PARTIES` is available but unset until a live token's `azp` is known.)
 - The free-tier usage meter is client-side by design (`dashboard/src/lib/usage.ts`); paper trading, admin and history are enforced on the server.
 - Browser-local data (watchlists, memos, research history) is stored per browser profile, not per account.
 - `entities`, `registry`, `reasoning` and `related` under `dashboard/src/lib/intelligence/` have tests but no production consumer. Left for the owner to rewire or remove.

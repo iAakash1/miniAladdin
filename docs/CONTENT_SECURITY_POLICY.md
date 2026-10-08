@@ -40,6 +40,12 @@ only if it carries the nonce. (This was found by fetching `/sign-in` and reading
 the markup: without the wrapper that script had no nonce and would have been
 blocked.) A test fails if `ClerkProvider` is used directly.
 
+## Current mode
+
+**The policy is enforcing in production.** `CSP_MODE` is not set on the Vercel project, and an unset value
+(like any unrecognised one) enforces. It is not in report-only mode. It has been verified over HTTP but not
+in a browser: see "BROWSER VERIFICATION REQUIRED" below.
+
 ## Operating it
 
 `CSP_MODE` (Vercel environment variable):
@@ -61,6 +67,14 @@ production policy, a test holds that, and a production build never sets the flag
 To see what the policy is refusing, search the Vercel runtime logs for
 `csp-violation`. Each line carries the blocked URL (origin and path only), the
 violated directive and the page.
+
+## BROWSER VERIFICATION REQUIRED
+
+Whether hydration, Clerk's sign-in and the Razorpay checkout work under the enforced policy can only be
+shown by a browser. The two-minute checklist, the report-only fallback and the log search are in
+`OWNER_ACTIONS.md`. Until it has been done, treat enforcement as unconfirmed and do not describe the policy as
+browser-verified. Report-only mode is the safe place to be while checking: it reports every violation and
+blocks nothing.
 
 ## What was verified, and what was not
 

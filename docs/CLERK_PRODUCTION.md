@@ -1,5 +1,8 @@
 # Clerk: development instance today, and what a production instance needs
 
+**OWNER ACTION REQUIRED.** Moving to a production instance needs a domain, DNS and a Clerk account that only the
+owner has. The summary and the other owner actions are in `OWNER_ACTIONS.md`; this page is the detail.
+
 ## What is deployed (verified 2026-10-08)
 
 | | |
@@ -43,6 +46,35 @@ configuration would only produce a site that cannot sign anyone in.
    confirming a real session token's `azp` claim: it is opt-in so that a wrong
    value cannot lock everyone out. With it set, a token minted for any other
    origin on the instance is refused.
+
+## Origins, redirects and the other places the domain appears
+
+Do these together with the steps above, in the production instance's dashboard and in the two deployments.
+Clerk's menu names change between dashboard versions: look under its Domains and Paths settings.
+
+| Where | What |
+|---|---|
+| Clerk, production instance | Make the custom domain the instance's primary domain. Set the sign-in, sign-up and after-sign-in paths to the values already in the Vercel variables (`NEXT_PUBLIC_CLERK_SIGN_IN_URL`, `…SIGN_UP_URL`, `…AFTER_SIGN_IN_URL`, `…AFTER_SIGN_UP_URL`). Allow the production origin for redirects. For each social sign-in (Google and so on) create that provider's own OAuth client and register the redirect URI Clerk shows you; the development instance's shared credentials do not carry over |
+| Vercel, Production only | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` (`pk_live_…`), `CLERK_SECRET_KEY` (`sk_live_…`), and `NEXT_PUBLIC_SITE_URL` set to the new origin, so the sitemap, robots file and page metadata name it. Leave Preview on the development keys |
+| Cloud Run | `CLERK_JWKS_URL` and `CLERK_ISSUER` for the production instance, and `ALLOWED_ORIGINS` extended with the new origin. Use "Changing backend configuration safely" in `OWNER_ACTIONS.md` |
+| Cloud Run, last | `CLERK_AUTHORIZED_PARTIES`, after you have read a real session token's `azp` claim (below) |
+
+Nothing in the repository names the development instance: the Content-Security-Policy reads the Clerk
+host from the publishable key (a `pk_live_` key on a custom domain is allowed automatically, and a
+malformed key allows nothing), and the backend reads only the two variables above.
+
+## After the switch: verify the authorization boundaries
+
+1. **Anonymous.** `curl -s -o /dev/null -w '%{http_code}\n' https://<your domain>/api/watchlists` must print
+   `401`; the same for `/api/research/AAPL`. `/api/macro`, `/api/build` and `/api/news` stay `200`.
+2. **Direct to Cloud Run, no identity.** `curl -s -o /dev/null -w '%{http_code}\n' <service URL>/api/health` must print `403`.
+3. **Signed in as the owner.** The terminal loads; a company page runs its research; paper-trading status loads.
+4. **Signed in as someone else** (a second account). Their watchlists and notes are their own; another
+   user's object id answers `404`; paper trading, admin and metrics-reset answer `403`.
+5. **`azp`.** In the browser's developer tools, read the `__session` cookie and decode its payload locally
+   (do not paste a token into a website). Its `azp` is your production origin. Set
+   `CLERK_AUTHORIZED_PARTIES` to that origin, release a new revision, and confirm step 3 still works.
+   A wrong value locks everyone out, so keep the previous revision name ready for rollback.
 
 ## What the repository guarantees regardless
 

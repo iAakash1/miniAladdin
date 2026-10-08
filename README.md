@@ -739,6 +739,9 @@ reason. The ones that came from a measured failure rather than a preference:
 
 **The product and its guarantees**
 
+- [`docs/OWNER_ACTIONS.md`](docs/OWNER_ACTIONS.md) — the handoff: how it is served and rolled back, and
+  the few things only the owner can do (Clerk production, NewsAPI, SEC contact, the browser check)
+
 - [`docs/LANGGRAPH_WORKFLOW.md`](docs/LANGGRAPH_WORKFLOW.md) — the analysis
   graph: topology, state reducers, and why no node asks a model what to do next
 - [`docs/EVIDENCE_MODEL.md`](docs/EVIDENCE_MODEL.md) — claims, evidence and the

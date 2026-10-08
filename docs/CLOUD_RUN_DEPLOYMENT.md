@@ -68,7 +68,7 @@ appear nowhere else. Setting one is an environment change on the next revision.
 
 | Variable | Default | Notes |
 |---|---|---|
-| `SEC_USER_AGENT` | `OmniSignal Research (contact: research@omnisignal.app)` | Sent to SEC EDGAR. SEC's fair-access policy asks for a User-Agent that names a real contact; set it to a mailbox the owner reads. Production currently runs on the default |
+| `SEC_USER_AGENT` | `OmniSignal Research (contact: research@omnisignal.app)` | Sent to SEC EDGAR. **OWNER ACTION REQUIRED:** SEC's fair-access policy asks for a User-Agent that names a real contact; set it to a mailbox the owner reads (`OWNER_ACTIONS.md`). Production currently runs on the default |
 | `CLERK_AUTHORIZED_PARTIES` | unset (no check) | Comma-separated origins whose Clerk tokens are accepted; see `CLERK_PRODUCTION.md` before enabling |
 | `MACRO_CACHE_TTL` | `300` (seconds) | How long a complete macro regime reading is reused |
 | `APIFY_SEARCH_ACTOR`, `APIFY_RESEARCH_ACTOR` | `apify/google-search-scraper`, `apify/rag-web-browser` | The Apify actors used for search and research when an Apify token is configured |
@@ -429,6 +429,9 @@ Concurrency stays at 1 with a single instance, so a long research request
 decision recorded above, unchanged.
 
 ### News providers
+
+**OWNER ACTION REQUIRED:** provide a valid NewsAPI key, or leave the provider disabled on purpose; both are
+correct and the exact commands are in `OWNER_ACTIONS.md`. Until then it is reported truthfully as rejected.
 
 `NEWSAPI_KEY` is bound to Secret Manager secret `newsapi-key`, which holds one
 enabled version. That value is 36 characters in UUID form, not the 32-hex
