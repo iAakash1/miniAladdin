@@ -65,7 +65,10 @@ export default function ResearchContext({ experiment = 'EXP-006' }: { experiment
   }
 
   const dist = regimes?.distribution ?? {}
-  const total = Object.values(dist).reduce((s, v) => s + v, 0) || 1
+  const total = Object.values(dist).reduce((s, v) => s + v, 0)
+  /* A share of nothing is not a share. The sum used to be replaced by 1 to dodge the division, which
+     printed "0.0% of 1 observations" for a sample with none. */
+  const share = (n: number, digits: number) => (total > 0 ? ((n / total) * 100).toFixed(digits) : '—')
   const dominant = Object.entries(dist).sort((a, b) => b[1] - a[1])[0]
   const exitShare = universe?.unique_members && universe.ever_exited
     ? universe.ever_exited / universe.unique_members
@@ -87,12 +90,12 @@ export default function ResearchContext({ experiment = 'EXP-006' }: { experiment
                 .map(([state, n]) => ({
                   label: state.replace(/_/g, ' '),
                   value: n,
-                  note: `${((n / total) * 100).toFixed(1)}% of ${total} observations`,
+                  note: `${share(n, 1)}${total > 0 ? '%' : ''} of ${total} observations`,
                 }))}
             />
             {dominant ? (
               <p style={{ margin: 'var(--d-2) 0 0', fontSize: 'var(--t-meta)', color: 'var(--ink-muted)', lineHeight: 'var(--lh-body)', maxWidth: '78ch' }}>
-                {((dominant[1] / total) * 100).toFixed(0)}% of the sample sits in{' '}
+                {share(dominant[1], 0)}{total > 0 ? '%' : ''} of the sample sits in{' '}
                 {dominant[0].replace(/_/g, ' ')}. Whatever the aggregate statistics say,
                 the other regimes are thinly tested — the rarest here has{' '}
                 {Math.min(...Object.values(dist))} observations.
