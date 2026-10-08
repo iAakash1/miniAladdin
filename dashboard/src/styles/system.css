@@ -215,25 +215,27 @@
   background: var(--tone, var(--ink-faint));
   flex: none;
 }
-.sys-status[data-state='live'],
-.sys-status[data-state='production'] { --tone: var(--e-pos); }
-.sys-status[data-state='recorded'] { --tone: var(--ink-faint); }
-.sys-status[data-state='stale'] { --tone: var(--e-warn); color: var(--e-warn); }
-.sys-status[data-state='waking'] { --tone: var(--accent); }
-.sys-status[data-state='unavailable'] { --tone: var(--e-null); color: var(--ink-faint); }
-.sys-status[data-state='blocked'] { --tone: var(--e-warn); color: var(--e-warn); }
-.sys-status[data-state='experimental'],
-.sys-status[data-state='candidate'] { --tone: var(--accent); }
-.sys-status[data-state='unknown'] { --tone: var(--ink-disabled); }
+/* One mapping of state to colour: the --s-* tokens. The chip used to repeat it with literal
+   --e-* colours and had drifted (the token said `recorded` was muted, the chip painted it faint). */
+.sys-status[data-state='live'] { --tone: var(--s-live); }
+.sys-status[data-state='production'] { --tone: var(--s-production); }
+.sys-status[data-state='recorded'] { --tone: var(--s-recorded); }
+.sys-status[data-state='stale'] { --tone: var(--s-stale); color: var(--s-stale); }
+.sys-status[data-state='waking'] { --tone: var(--s-waking); }
+.sys-status[data-state='unavailable'] { --tone: var(--s-unavailable); color: var(--ink-faint); }
+.sys-status[data-state='blocked'] { --tone: var(--s-blocked); color: var(--s-blocked); }
+.sys-status[data-state='experimental'] { --tone: var(--s-experimental); }
+.sys-status[data-state='candidate'] { --tone: var(--s-candidate); }
+.sys-status[data-state='unknown'] { --tone: var(--s-unknown); }
 /* Shape carries the state as well as colour, so it survives greyscale:
    retired is a ring, paper is a square, the rest are dots. */
-.sys-status[data-state='retired'] { color: var(--ink-faint); }
-.sys-status[data-state='retired']::before { background: transparent; box-shadow: inset 0 0 0 1px var(--ink-faint); }
-.sys-status[data-state='paper'] { --tone: var(--e-warn); color: var(--e-warn); }
+.sys-status[data-state='retired'] { color: var(--s-retired); }
+.sys-status[data-state='retired']::before { background: transparent; box-shadow: inset 0 0 0 1px var(--s-retired); }
+.sys-status[data-state='paper'] { --tone: var(--s-paper); color: var(--s-paper); }
 .sys-status[data-state='paper']::before { border-radius: 1px; }
-.sys-status[data-state='error'] { --tone: var(--e-neg); color: var(--e-neg); }
-.sys-status[data-state='warning'] { --tone: var(--e-warn); color: var(--e-warn); }
-.sys-status[data-state='info'] { --tone: var(--accent); }
+.sys-status[data-state='error'] { --tone: var(--s-error); color: var(--s-error); }
+.sys-status[data-state='warning'] { --tone: var(--s-warning); color: var(--s-warning); }
+.sys-status[data-state='info'] { --tone: var(--s-info); }
 .sys-status[data-state='waking']::before { animation: sys-pulse 1.6s ease-in-out infinite; }
 
 @keyframes sys-pulse { 0%, 100% { opacity: 1 } 50% { opacity: 0.35 } }

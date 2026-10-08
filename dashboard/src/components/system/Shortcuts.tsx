@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react'
 
 import Icon from '@/components/shell/Icon'
+import { useModalFocus } from '@/components/system/useModalFocus'
 import { DESTINATIONS } from '@/lib/destinations'
 
 const GROUPS: { title: string; keys: { combo: string; action: string }[] }[] = [
@@ -38,6 +39,7 @@ const GROUPS: { title: string; keys: { combo: string; action: string }[] }[] = [
 
 export default function Shortcuts() {
   const [open, setOpen] = useState(false)
+  const panel = useModalFocus<HTMLDivElement>(open)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -57,7 +59,7 @@ export default function Shortcuts() {
       className="pal-backdrop"
       onMouseDown={(e) => { if (e.target === e.currentTarget) setOpen(false) }}
     >
-      <div className="pal pal--wide" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
+      <div ref={panel} tabIndex={-1} className="pal pal--wide" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
         <div className="pal-title">
           <h2>Keyboard</h2>
           <button type="button" className="sys-btn sys-btn--icon" onClick={() => setOpen(false)} aria-label="Close keyboard shortcuts">

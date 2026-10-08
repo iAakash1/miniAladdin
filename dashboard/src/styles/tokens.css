@@ -74,6 +74,12 @@
   --s-blocked: var(--e-warn);
   --s-experimental: var(--accent);
   --s-candidate: var(--accent);
+  --s-unknown: var(--ink-disabled);
+  --s-retired: var(--ink-faint);
+  --s-paper: var(--e-warn);
+  --s-error: var(--e-neg);
+  --s-warning: var(--e-warn);
+  --s-info: var(--accent);
 
   /* Type */
   --font-sans: 'Inter Variable', -apple-system, 'Segoe UI', sans-serif;

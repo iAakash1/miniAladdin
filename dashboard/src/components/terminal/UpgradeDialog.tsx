@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useUser } from '@clerk/nextjs'
 import Dialog from '@/components/ui/Dialog'
+import { ACCENT_LITERAL } from '@/lib/clerk-appearance'
 
 interface RazorpayResponse {
   razorpay_payment_id: string
@@ -92,7 +93,7 @@ export default function UpgradeDialog({ open, onClose, reason }: UpgradeDialogPr
           email: user?.emailAddresses[0]?.emailAddress ?? '',
           name: user?.fullName ?? '',
         },
-        theme: { color: '#1e6b54' },
+        theme: { color: ACCENT_LITERAL },
         modal: { ondismiss: () => setBusy(false) },
       })
       rzp.open()

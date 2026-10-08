@@ -27,9 +27,9 @@
  *   **Absent is not zero.** A record whose value did not arrive says so.
  */
 
-import { useEffect } from 'react'
 
 import { EmptyLine, Prose, Status, type ResearchState } from '@/components/system'
+import { useDrawerFocus } from '@/components/system/useDrawerFocus'
 
 export interface EvidenceRecord {
   evidence_id: string
@@ -141,11 +141,9 @@ export default function ClaimInspector({
   evidence: EvidenceRecord[]
   onClose: () => void
 }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  // Focus moves in on open and returns to the control that opened it; Escape closes it unless a
+  // modal dialog is above (the shared behaviour of every inspector).
+  const panel = useDrawerFocus<HTMLElement>(true, onClose)
 
   const byId = new Map(evidence.map((e) => [e.evidence_id, e]))
   const resolved = claim.evidence_ids.map((id) => byId.get(id)).filter((e): e is EvidenceRecord => Boolean(e))
@@ -154,7 +152,7 @@ export default function ClaimInspector({
   const dangling = claim.evidence_ids.filter((id) => !byId.has(id))
 
   return (
-    <aside className="sys-drawer" role="dialog" aria-modal="false" aria-label="Claim evidence">
+    <aside ref={panel} tabIndex={-1} className="sys-drawer" role="dialog" aria-modal="false" aria-label="Claim evidence">
       <header className="sys-drawer-head">
         <div style={{ minWidth: 0, flex: 1 }}>
           <div className="sys-lead">{claim.statement}</div>
