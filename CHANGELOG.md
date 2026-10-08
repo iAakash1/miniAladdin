@@ -33,7 +33,9 @@ table now lists a block that failed unexpectedly as missing instead of leaving i
 out. A sentiment aggregate over no headlines is no score, not a neutral one. The quality
 and earnings-surprise inputs to the verdict, and a company's official record, are kept for
 minutes (not the six hours a complete answer keeps) when a source could not be asked, so one
-transient outage no longer removes a factor from a ticker's verdict until the next day.
+transient outage no longer removes a factor from a ticker's verdict until the next day. The agent
+validation and analysis-run routes no longer answer `ok` / `AVAILABLE` for a run in which no provider
+answered (no decision and no specialist that finished cleanly): they report it as unavailable.
 
 **Content-Security-Policy.** Every response carries a per-request nonce policy
 with `'strict-dynamic'` and no `'unsafe-eval'`, no `'unsafe-inline'` for scripts
@@ -71,7 +73,7 @@ unchanged, with the reasoning in `docs/DEPENDENCY_AUDIT.md`.
 rollback target only). The README no longer presents the August captures as the
 current interface.
 
-Tests: backend 5,357 passed, 0 failed in two consecutive full runs (the live-network smoke file, which needs the real internet, is excluded); frontend 814 passed, 0 failed; typecheck, lint and production build clean.
+Tests: backend 5,388 passed, 0 failed in two consecutive full runs (the live-network smoke file, which needs the real internet, is excluded); frontend 814 passed, 0 failed; typecheck, lint and production build clean.
 
 ### UI polish pass
 

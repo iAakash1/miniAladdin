@@ -61,6 +61,19 @@ material part of the process footprint, and multiplying workers multiplies
 that baseline. Provider calls still overlap inside the process-wide bounded
 executor and are additionally constrained by capability fan-out budgets.
 
+### Optional settings that are not set in production
+
+These are read by the backend, have a working default, and are listed here because they
+appear nowhere else. Setting one is an environment change on the next revision.
+
+| Variable | Default | Notes |
+|---|---|---|
+| `SEC_USER_AGENT` | `OmniSignal Research (contact: research@omnisignal.app)` | Sent to SEC EDGAR. SEC's fair-access policy asks for a User-Agent that names a real contact; set it to a mailbox the owner reads. Production currently runs on the default |
+| `CLERK_AUTHORIZED_PARTIES` | unset (no check) | Comma-separated origins whose Clerk tokens are accepted; see `CLERK_PRODUCTION.md` before enabling |
+| `MACRO_CACHE_TTL` | `300` (seconds) | How long a complete macro regime reading is reused |
+| `APIFY_SEARCH_ACTOR`, `APIFY_RESEARCH_ACTOR` | `apify/google-search-scraper`, `apify/rag-web-browser` | The Apify actors used for search and research when an Apify token is configured |
+| `DEEPSEEK_BASE_URL` | `https://api.deepseek.com` | Override for the DeepSeek-compatible endpoint |
+
 The image copies only product read models: `experiments/`, `artifacts/`, data
 manifests, the model registry, reports, and universe metadata. Raw SEC archives,
 training panels, curated research tables, and per-trial prediction files are

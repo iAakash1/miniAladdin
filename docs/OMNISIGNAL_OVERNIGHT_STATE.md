@@ -35,12 +35,13 @@ Last updated: 2026-10-08 (the kill-list pass, resumed after a usage limit).
 | `8a8aeee` | Next 16.3.8 for the published security fixes |
 | `d3eb831`, `c1d5051` | Patched PyJWT and aiohttp with token verification failing closed; the CSP made usable under `next dev` |
 | `9417b34` | A transient outage no longer pins the quality / earnings-surprise inputs or a partly failed official record for six hours |
-| later | The browser's request caches drop only their own failed entry; this checkpoint |
+| `ddf3380` | The browser's request caches drop only their own failed entry |
+| later | The agent validation and analysis-run routes report a run in which no provider answered as unavailable, not `ok` / `AVAILABLE`; this checkpoint |
 
 ## What was verified, and how
 
 **Backend.** The full suite (`tests/`, excluding `test_live_smoke.py`, which needs the real internet) ran twice in a row
-on the final tree, from a snapshot whose file hash equalled the tree on disk: **5,357 passed, 0 failed**, both times.
+on the final tree, from a snapshot whose file hash equalled the tree on disk: **5,388 passed, 0 failed**, both times.
 
 **Frontend.** `tsc --noEmit` clean, ESLint clean, **814 tests passed, 0 failed**, production build succeeds.
 Every commit in the series was also checked on its own in a throwaway worktree (typecheck and the frontend suite for the
@@ -80,6 +81,7 @@ Fingerprint prefixes (sha256), re-hashed before and after this pass and after ev
 - **No browser has been opened** (the owner's rule). Everything below is therefore *unverified*, not failing: rendered layout and
   spacing, hydration and the Clerk sign-in flow under the enforced CSP, the Razorpay checkout under the CSP, focus behaviour, hover and
   touch behaviour, the responsive breakpoints, rendered contrast. If the CSP misbehaves in a real browser: `CSP_MODE=report-only`.
+- `SEC_USER_AGENT` is unset, so requests to SEC EDGAR carry the built-in generic contact. SEC's fair-access policy asks for a real mailbox; the owner sets it (`docs/CLOUD_RUN_DEPLOYMENT.md`, "Optional settings").
 - The free-tier usage meter is client-side by design (`dashboard/src/lib/usage.ts`); paper trading, admin and history are enforced on the server.
 - Browser-local data (watchlists, memos, research history) is stored per browser profile, not per account.
 - `entities`, `registry`, `reasoning` and `related` under `dashboard/src/lib/intelligence/` have tests but no production consumer. Left for the owner to rewire or remove.
