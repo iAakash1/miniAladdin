@@ -214,6 +214,45 @@ def _did_you_mean(query: str) -> list[dict[str, Any]]:
     return out
 
 
+#: Words that describe the kind of question rather than its subject.
+_GENERIC_WORDS = frozenset({
+    "stock", "stocks", "ticker", "tickers", "company", "companies", "share", "shares", "best", "top",
+    "the", "and", "for", "with", "from", "that", "are", "how", "what", "which", "most", "largest",
+    "biggest", "list", "of", "to", "in", "on", "by", "watch", "buy", "invest", "investing",
+})
+
+
+def _words(text: str) -> list[str]:
+    return re.findall(r"[a-z0-9]{2,}", text.lower())
+
+
+def _subject_terms(query: str) -> list[str]:
+    """The query's own terms, when it mixes them with words about the kind of question.
+
+    "tesla stocks" has a subject (tesla) and a frame (stocks); "TSLA" and "best stocks" have
+    only one of the two, and for those there is nothing to hold a vendor's answer against.
+    """
+    words = _words(query)
+    subject = [w for w in words if w not in _GENERIC_WORDS]
+    return subject if subject and len(subject) < len(words) else []
+
+
+def _row_is_about(terms: list[str], row: dict[str, Any]) -> bool:
+    """Whether a symbol-search row names any of the terms, as a word or the start of one.
+
+    A symbol database matches the frame words of a description against fund names, so
+    "qzxwqzxw stocks" returned the largest stock funds there are, none of which has
+    anything to do with the first word. A row must carry one of the query's own terms
+    in its symbol or its name ("tech" for "Technology Select Sector"; "dividend" for
+    "Dividend Yield"), or it is not an answer to that query.
+    """
+    tokens = _words(f"{row.get('symbol') or ''} {row.get('name') or ''}")
+    return any(
+        term == token or (min(len(term), len(token)) >= 4 and (token.startswith(term) or term.startswith(token)))
+        for term in terms for token in tokens
+    )
+
+
 def _tidy(rows: list[dict[str, Any]], share: Optional[tuple[str, str]]) -> list[dict[str, Any]]:
     """One row per symbol, and for a share class the exact listing alone.
 
@@ -244,6 +283,7 @@ def _tidy(rows: list[dict[str, Any]], share: Optional[tuple[str, str]]) -> list[
 def _resolve_direct(query: str) -> list[dict[str, Any]]:
     """Ticker or company-name lookup through the symbol-search chain."""
     share = _share_class(query)
+    subject = _subject_terms(query)
     for spelling in _lookup_spellings(query):
         for vendor in (providers.fundamentals.finnhub, providers.fundamentals.fmp,
                        providers.market_data.yfinance):
@@ -255,6 +295,8 @@ def _resolve_direct(query: str) -> list[dict[str, Any]]:
                 logger.info("symbol search failed on %s", vendor.NAME)
                 continue
             rows = _tidy(rows or [], share)
+            if subject:
+                rows = [row for row in rows if _row_is_about(subject, row)]
             if rows:
                 return [
                     {"symbol": row["symbol"], "name": row["name"],
@@ -297,14 +339,6 @@ def _validate_symbol(symbol: str) -> Optional[str]:
     return WELL_KNOWN_SYMBOLS.get(symbol.upper())
 
 
-#: Words that describe the kind of question rather than its subject.
-_GENERIC_WORDS = frozenset({
-    "stock", "stocks", "ticker", "tickers", "company", "companies", "share", "shares", "best", "top",
-    "the", "and", "for", "with", "from", "that", "are", "how", "what", "which", "most", "largest",
-    "biggest", "list", "of", "to", "in", "on", "by", "watch", "buy", "invest", "investing",
-})
-
-
 def _results_are_about(query: str, rows: list[Any]) -> bool:
     """Whether the pages a web search returned have anything to do with the query.
 
@@ -314,7 +348,7 @@ def _results_are_about(query: str, rows: list[Any]) -> bool:
     The query's own distinctive terms must appear somewhere in what came back.
     A query made only of generic words has nothing to check.
     """
-    terms = [t for t in re.findall(r"[a-z0-9]{2,}", query.lower()) if t not in _GENERIC_WORDS]
+    terms = [t for t in _words(query) if t not in _GENERIC_WORDS]
     if not terms:
         return True
     text = " ".join(f"{row.title} {row.snippet} {row.url}" for row in rows).lower()

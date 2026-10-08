@@ -105,14 +105,17 @@ class TestNvdaRegression:
     def test_thematic_miss_falls_back_to_direct_lookup(self, monkeypatch):
         """Symmetric case: a thematic-shaped query where web search comes up
         empty should still get a direct resolver attempt."""
+        # The row names a bank: a description's rows must be about its subject (see
+        # TestDescriptiveQueryRowsMustBeAboutTheSubject), so a row that names nothing
+        # of the query would rightly be dropped.
         _patch_vendors(monkeypatch, finnhub=_FakeVendor(
-            "finnhub", healthy=True, rows=[{"symbol": "JPM", "name": "JPMorgan Chase & Co."}]))
+            "finnhub", healthy=True, rows=[{"symbol": "BAC", "name": "Bank of America Corporation"}]))
         _patch_search(monkeypatch, data=None)
 
         result = screen("largest banks by market cap")
 
         assert result["mode"] == "lookup"
-        assert result["results"][0]["symbol"] == "JPM"
+        assert result["results"][0]["symbol"] == "BAC"
 
 
 # ── vendor chain behavior ────────────────────────────────────────────────────
@@ -431,3 +434,58 @@ class TestThematicSearchMustBeAboutTheQuery:
     ])
     def test_results_are_about_truth_table(self, query, expected):
         assert screen_service._results_are_about(query, self.PAGES) is expected
+
+
+class TestDescriptiveQueryRowsMustBeAboutTheSubject:
+    """A symbol database matches the frame words of a description ("stocks") against fund
+    names. Live, "qzxwqzxw stocks" returned the largest stock funds there are."""
+
+    FUNDS = [
+        {"symbol": "VTI", "name": "Vanguard Total Stock Market ETF"},
+        {"symbol": "VXUS", "name": "Vanguard Total International Stock ETF"},
+    ]
+
+    def test_a_nonsense_subject_with_a_frame_word_gets_no_funds(self, monkeypatch):
+        _patch_vendors(monkeypatch, finnhub=_FakeVendor("finnhub", rows=self.FUNDS))
+        _patch_search(monkeypatch, data=None)
+        out = screen("qzxwqzxw stocks")
+        assert out["results"] == []
+        assert "suggestions" in out
+
+    def test_a_named_company_with_a_frame_word_keeps_its_own_row_only(self, monkeypatch):
+        rows = [{"symbol": "TSLA", "name": "Tesla, Inc."}, *self.FUNDS]
+        _patch_vendors(monkeypatch, finnhub=_FakeVendor("finnhub", rows=rows))
+        _patch_search(monkeypatch, data=None)
+        assert [r["symbol"] for r in screen("tesla stocks")["results"]] == ["TSLA"]
+
+    def test_a_theme_keeps_the_rows_that_name_it(self, monkeypatch):
+        rows = [{"symbol": "SCHD", "name": "Schwab US Dividend Equity ETF"}, self.FUNDS[0],
+                {"symbol": "VYM", "name": "Vanguard High Dividend Yield Index Fund ETF"}]
+        _patch_vendors(monkeypatch, finnhub=_FakeVendor("finnhub", rows=rows))
+        _patch_search(monkeypatch, data=None)
+        assert [r["symbol"] for r in screen("dividend stocks")["results"]] == ["SCHD", "VYM"]
+
+    def test_a_single_term_is_not_held_to_the_name(self, monkeypatch):
+        """Vendors resolve aliases ("facebook" is Meta Platforms); nothing to check against."""
+        rows = [{"symbol": "META", "name": "Meta Platforms, Inc."}]
+        _patch_vendors(monkeypatch, finnhub=_FakeVendor("finnhub", rows=rows))
+        _patch_search(monkeypatch, data=None)
+        assert [r["symbol"] for r in screen("facebook")["results"]] == ["META"]
+
+    def test_a_query_of_frame_words_alone_is_not_filtered(self, monkeypatch):
+        _patch_vendors(monkeypatch, finnhub=_FakeVendor("finnhub", rows=self.FUNDS))
+        _patch_search(monkeypatch, data=None)
+        assert [r["symbol"] for r in screen("best stocks")["results"]] == ["VTI", "VXUS"]
+
+    @pytest.mark.parametrize("terms,row,expected", [
+        (["tesla"], {"symbol": "TSLA", "name": "Tesla, Inc."}, True),
+        (["aapl"], {"symbol": "AAPL", "name": "Apple Inc."}, True),
+        (["tech"], {"symbol": "XLK", "name": "Technology Select Sector SPDR Fund"}, True),
+        (["dividend"], {"symbol": "SCHD", "name": "Schwab US Dividends Equity ETF"}, True),
+        (["ai"], {"symbol": "AI", "name": "C3.ai, Inc."}, True),
+        (["ai"], {"symbol": "ABNB", "name": "Airbnb, Inc."}, False),       # a short term is a whole word
+        (["tesla"], {"symbol": "VTI", "name": "Vanguard Total Stock Market ETF"}, False),
+        (["oil"], {"symbol": "XOM", "name": None}, False),                 # a row without a name is not an error
+    ])
+    def test_row_is_about_truth_table(self, terms, row, expected):
+        assert screen_service._row_is_about(terms, row) is expected
