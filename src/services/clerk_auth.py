@@ -131,6 +131,9 @@ def verify_token(token: str) -> Optional[str]:
     except jwt.PyJWTError as exc:
         logger.info("rejected bearer token: %s", exc)
         return None
+    except Exception as exc:  # noqa: BLE001 - verification fails closed on anything
+        logger.warning("rejected bearer token: unexpected %s while verifying", type(exc).__name__)
+        return None
     if not _party_allowed(claims):
         return None
     sub = claims.get("sub")
@@ -162,6 +165,9 @@ def verify_token_claims(token: str) -> Optional[dict]:
         )
     except jwt.PyJWTError as exc:
         logger.info("rejected bearer token: %s", exc)
+        return None
+    except Exception as exc:  # noqa: BLE001 - verification fails closed on anything
+        logger.warning("rejected bearer token: unexpected %s while verifying", type(exc).__name__)
         return None
     return claims if _party_allowed(claims) else None
 

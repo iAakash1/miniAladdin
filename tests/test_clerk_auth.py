@@ -144,3 +144,45 @@ class TestAuthorizedParties:
         forged = jwt.encode({"sub": "user_123", "iss": "https://evil.example", "azp": "https://app.example.com",
                              "exp": int(time.time()) + 600}, private, algorithm="RS256")
         assert clerk_auth.verify_token(forged) is None
+
+
+# ── a token built to break the parser is refused, not a server error ──────────
+
+def _b64(raw: bytes) -> str:
+    import base64
+    return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
+
+
+#: Each of these is a bearer token a signed-in caller can send. A parser that
+#: raises something other than the library's own error type used to turn one of
+#: them into a 500 (a deeply nested header raised RecursionError past the
+#: `except PyJWTError`), and a 500 is not the answer to "this token is no good".
+PATHOLOGICAL = {
+    "deeply nested header": _b64(b"[" * 200_000 + b"]" * 200_000) + "." + _b64(b'{"sub":"x"}') + "." + _b64(b"sig"),
+    "header that is not an object": _b64(b'"text"') + "." + _b64(b'{"sub":"x"}') + "." + _b64(b"sig"),
+    "header that is not utf-8": _b64(b"\xff\xfe\xfd") + "." + _b64(b'{"sub":"x"}') + "." + _b64(b"sig"),
+    "huge number in the header": _b64(b'{"alg":' + b"9" * 5000 + b"}") + "." + _b64(b'{"sub":"x"}') + "." + _b64(b"sig"),
+    "signature with characters outside base64url": "e30.e30.!!!!",
+    "four segments": "a.b.c.d",
+}
+
+
+class TestPathologicalTokens:
+    @pytest.mark.parametrize("name", list(PATHOLOGICAL))
+    def test_verify_token_answers_none(self, configured, name):
+        assert clerk_auth.verify_token(PATHOLOGICAL[name]) is None
+
+    @pytest.mark.parametrize("name", list(PATHOLOGICAL))
+    def test_verify_token_claims_answers_none(self, configured, name):
+        assert clerk_auth.verify_token_claims(PATHOLOGICAL[name]) is None
+
+    @pytest.mark.parametrize("name", list(PATHOLOGICAL))
+    def test_the_route_dependency_answers_401_never_500(self, configured, name):
+        with pytest.raises(HTTPException) as caught:
+            clerk_auth.require_clerk_user(_stub_request(), f"Bearer {PATHOLOGICAL[name]}")
+        assert caught.value.status_code == 401
+
+    def test_a_good_token_still_verifies_after_a_bad_one(self, configured, keypair):
+        private, _ = keypair
+        assert clerk_auth.verify_token(PATHOLOGICAL["deeply nested header"]) is None
+        assert clerk_auth.verify_token(_token(private)) == "user_123"
