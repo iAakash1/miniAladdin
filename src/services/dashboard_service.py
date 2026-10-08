@@ -20,6 +20,7 @@ Assembled response is cached for 15 minutes.
 
 from __future__ import annotations
 
+import copy
 import logging
 import threading
 import time
@@ -27,6 +28,7 @@ from datetime import date, datetime, timezone
 from typing import Any, Optional
 
 from src import providers
+from src.services import macro_freshness
 from src.providers.parallel import map_concurrent, values
 from src.providers.validation import monthly_yoy
 from src.scoring.engine import map_verdict
@@ -35,6 +37,11 @@ from src.scoring.fomc_calendar import FOMC_DECISION_DATES
 logger = logging.getLogger(__name__)
 
 CACHE_TTL_SECONDS = 900.0
+#: A dashboard assembled while part of it was unreadable is held for a fraction
+#: of the normal window: long enough to spare the vendors a rebuild per page
+#: view, short enough that a recovered source shows up in minutes rather than
+#: a quarter hour. One with nothing readable is not held at all.
+PARTIAL_TTL_SECONDS = 300.0
 _cache: dict[str, tuple[float, dict[str, Any]]] = {}
 _lock = threading.Lock()
 
@@ -182,15 +189,22 @@ def _macro_board() -> dict[str, Any]:
     cards = _gather(_macro_card, MACRO_SERIES, "macro", lambda meta: meta["id"])
 
     macro_result = providers.macro.get_macro()
+    observation_dates = macro_result.data.observation_dates if macro_result.ok else {}
+    # An observation can be fetched this second and still be months old: the
+    # same age gate the research route applies, from the same definition.
+    old_fields = macro_freshness.stale_fields(observation_dates)
     measurable = (macro_result.ok and not macro_result.stale
                   and macro_result.data.yield_spread is not None
-                  and macro_result.data.inflation_rate is not None)
+                  and macro_result.data.inflation_rate is not None
+                  and not any(f in macro_freshness.GATING_FIELDS for f in old_fields))
     regime: dict[str, Any] = {
         "available": measurable, "status": "UNAVAILABLE",
         "source": macro_result.source, "stale": macro_result.stale,
         "fetched_at": macro_result.fetched_at.isoformat(),
-        "observation_dates": macro_result.data.observation_dates if macro_result.ok else {},
+        "observation_dates": observation_dates,
     }
+    if old_fields:
+        regime["stale_fields"] = old_fields
     if measurable:
         snapshot = macro_result.data
         from src.models import MacroIndicators
@@ -346,8 +360,12 @@ def _breadth_and_sectors() -> tuple[dict[str, Any], list[dict[str, Any]]]:
     breadth_score = round(above / len(sectors) * 100) if sectors else None
     breadth = {
         "indexes": indexes,
-        "sectors_above_50d": above,
-        "sector_count": len(sectors),
+        # No readable sector is "unknown", not "0 of 0 above the 50-day": the
+        # home band printed exactly that when the vendors were down.
+        "sectors_above_50d": above if sectors else None,
+        "sector_count": len(sectors) if sectors else None,
+        # How many were asked for, so "5 of 7" can say it is 7 of 11.
+        "sector_expected": len(SECTOR_ETFS),
         "breadth_score": breadth_score,
         # Real history, recomputed from the same price series — not a stored
         # snapshot, so it is available in full on the very first request.
@@ -414,26 +432,71 @@ def _events(today: date) -> list[dict[str, Any]]:
 
 # ── Assembly ──────────────────────────────────────────────────────────────────
 
+def _coverage(macro: dict[str, Any], breadth: dict[str, Any], sectors: list) -> dict[str, Any]:
+    """What was asked for and what came back, per section.
+
+    The sections used to report only what they held, so a board missing eight
+    of nineteen macro series looked like a board with eleven. Expected counts
+    sit beside the available ones so a reader (and a test) can tell.
+    """
+    return {
+        "macro_cards": {"available": len(macro.get("cards", [])), "expected": len(MACRO_SERIES)},
+        "sectors": {"available": len(sectors), "expected": len(SECTOR_ETFS)},
+        "indexes": {"available": len(breadth.get("indexes", [])), "expected": len(INDEX_TICKERS)},
+        "regime": bool(macro.get("regime", {}).get("available")),
+    }
+
+
+def _overall_status(coverage: dict[str, Any]) -> str:
+    """complete | partial | unavailable, from the coverage and nothing else."""
+    parts = [
+        coverage["macro_cards"]["available"] >= coverage["macro_cards"]["expected"],
+        coverage["sectors"]["available"] >= coverage["sectors"]["expected"],
+        coverage["indexes"]["available"] >= coverage["indexes"]["expected"],
+        coverage["regime"],
+    ]
+    anything = (
+        coverage["macro_cards"]["available"] or coverage["sectors"]["available"]
+        or coverage["indexes"]["available"] or coverage["regime"]
+    )
+    if not anything:
+        return "unavailable"
+    return "complete" if all(parts) else "partial"
+
+
 def get_dashboard() -> dict[str, Any]:
     now = time.time()
     with _lock:
         entry = _cache.get("dashboard")
         if entry and entry[0] > now:
-            return {**entry[1], "cached": True}
+            # A copy, with the flag set on the copy: the stored payload is
+            # shared by every reader, and marking it cached on the shared
+            # object would mark it for the request that built it, too.
+            return {**copy.deepcopy(entry[1]), "cached": True}
 
     started = time.time()
     breadth, sectors = _breadth_and_sectors()
+    macro = _macro_board()
+    coverage = _coverage(macro, breadth, sectors)
+    status = _overall_status(coverage)
     payload = {
-        "macro": _macro_board(),
+        "macro": macro,
         "breadth": breadth,
         "sectors": sectors,
         "events": _events(datetime.now(timezone.utc).date()),
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "cached": False,
+        # Whether the picture is whole. The events block is a published
+        # calendar and says nothing about provider health, so it is not part of
+        # this.
+        "status": status,
+        "coverage": coverage,
     }
-    logger.info("dashboard assembled in %.1fs", time.time() - started)
-    with _lock:
-        _cache["dashboard"] = (now + CACHE_TTL_SECONDS, payload)
+    logger.info("dashboard assembled in %.1fs (%s)", time.time() - started, status)
+    if status != "unavailable":
+        ttl = CACHE_TTL_SECONDS if status == "complete" else PARTIAL_TTL_SECONDS
+        with _lock:
+            _cache["dashboard"] = (now + ttl, copy.deepcopy(payload))
     return payload
 
 

@@ -133,8 +133,11 @@ class MarketDataProvider:
         ]
         if _is_index_symbol(symbol):
             links = [link for link in links if link.vendor is self.yfinance]
+        # Part of the key: a quote read without a second opinion carries no
+        # agreement score, and serving it to a caller that asked for one would
+        # hand back a single-source answer labelled as the validated kind.
         return self._price_chain.execute(
-            f"price:{symbol}",
+            f"price:{symbol}:{'validated' if validate else 'single'}",
             links,
             cross_validate=(lambda quote: quote.price) if validate else None,
         )

@@ -28,6 +28,7 @@ from src.services.cache_policy import put_bounded, put_ttl
 logger = logging.getLogger(__name__)
 
 CACHE_TTL_SECONDS = 21600.0
+DEGRADED_TTL_SECONDS = 60.0     # see company_intelligence.DEGRADED_TTL_SECONDS
 MAX_CACHE_ENTRIES = 256
 MAX_QID_ENTRIES = 2048
 _cache: dict[str, tuple[float, dict[str, Any]]] = {}
@@ -65,9 +66,15 @@ def expand(node_id: str, label_hint: str = "") -> dict[str, Any]:
     else:
         result = _expand_entity(node_id, node_type, key, label_hint)
 
-    with _cache_lock:
-        put_ttl(_cache, node_id, now + CACHE_TTL_SECONDS, result,
-                max_entries=MAX_CACHE_ENTRIES, now=now)
+    # Only a whole answer earns the long cache. One built while a source was
+    # down is held briefly: for six hours "Wikidata timed out" would otherwise
+    # read as "this node has no neighbours".
+    status = result.get("status", "complete")
+    if status != "unavailable":
+        ttl = CACHE_TTL_SECONDS if status == "complete" else DEGRADED_TTL_SECONDS
+        with _cache_lock:
+            put_ttl(_cache, node_id, now + ttl, result,
+                    max_entries=MAX_CACHE_ENTRIES, now=now)
     return result
 
 
@@ -99,6 +106,8 @@ def _expand_company(ticker: str) -> dict[str, Any]:
         "edges": edges,
         "timeline": intel.get("timeline", [])[:8],
         "findings": intel.get("findings", [])[:6],
+        "status": intel.get("status", "complete"),
+        "sources": intel.get("sources", {}),
     }
 
 
@@ -110,11 +119,19 @@ def _expand_entity(node_id: str, node_type: str, key: str, label_hint: str) -> d
 
     if not qid:
         # Never seen this node: resolve it by label once, then remember it.
-        qid = _resolve_qid(label)
+        try:
+            qid = _resolve_qid(label)
+        except Exception:  # noqa: BLE001 — expansion is always optional
+            logger.info("qid resolution failed for %s", label, exc_info=True)
+            return _empty(node_id, label, node_type, status="unavailable")
     if not qid:
         return _empty(node_id, label, node_type)
 
-    bundle = _wikidata.expand_entity(qid, label, node_type, node_id)
+    try:
+        bundle = _wikidata.expand_entity(qid, label, node_type, node_id)
+    except Exception:  # noqa: BLE001 — expansion is always optional
+        logger.info("entity expansion failed for %s", node_id, exc_info=True)
+        return _empty(node_id, label, node_type, status="unavailable")
     remember_qids(bundle.nodes)
     adjacent = neighbors(bundle, node_id)
 
@@ -139,6 +156,7 @@ def _expand_entity(node_id: str, node_type: str, key: str, label_hint: str) -> d
         "edges": edges,
         "timeline": [],
         "findings": [],
+        "status": "complete",
     }
 
 
@@ -153,41 +171,50 @@ _GROUP_FOR_EDGE: dict[str, str] = {
 
 
 def _resolve_qid(label: str) -> str:
+    """The Wikidata id for a label, "" when there is no match.
+
+    Raises when Wikidata could not be asked. "No such entity" and "the lookup
+    failed" used to share the empty string, so a timeout was cached as a node
+    with no neighbours.
+    """
     safe = label.replace('"', "").replace("\\", "")
     if not safe:
         return ""
-    try:
-        # Exact label first, then aliases: many products are stored under a
-        # fuller name ("Microsoft Azure") than the one users click ("Azure").
-        # Bare label lookup is ambiguous — "Azure" matches the colour before
-        # the cloud platform. Require the candidate to participate in at
-        # least one business relationship (developer, manufacturer, owner,
-        # produces, CEO), which is exactly what makes a node worth exploring.
-        rows = _wikidata._query(f"""
-            SELECT ?item (COUNT(?link) AS ?links) WHERE {{
-              {{ ?item rdfs:label "{safe}"@en }}
-              UNION
-              {{ ?item skos:altLabel "{safe}"@en }}
-              {{ ?item wdt:P178|wdt:P176|wdt:P127 ?link }}
-              UNION
-              {{ ?other wdt:P1056|wdt:P169|wdt:P355 ?item . BIND(?other AS ?link) }}
-            }}
-            GROUP BY ?item ORDER BY DESC(?links) LIMIT 1
-        """)
-    except Exception:  # noqa: BLE001 — expansion is always optional
-        logger.info("qid resolution failed for %s", label, exc_info=True)
-        return ""
+    # Exact label first, then aliases: many products are stored under a
+    # fuller name ("Microsoft Azure") than the one users click ("Azure").
+    # Bare label lookup is ambiguous — "Azure" matches the colour before
+    # the cloud platform. Require the candidate to participate in at
+    # least one business relationship (developer, manufacturer, owner,
+    # produces, CEO), which is exactly what makes a node worth exploring.
+    rows = _wikidata._query(f"""
+        SELECT ?item (COUNT(?link) AS ?links) WHERE {{
+          {{ ?item rdfs:label "{safe}"@en }}
+          UNION
+          {{ ?item skos:altLabel "{safe}"@en }}
+          {{ ?item wdt:P178|wdt:P176|wdt:P127 ?link }}
+          UNION
+          {{ ?other wdt:P1056|wdt:P169|wdt:P355 ?item . BIND(?other AS ?link) }}
+        }}
+        GROUP BY ?item ORDER BY DESC(?links) LIMIT 1
+    """)
     if not rows:
         return ""
     qid = rows[0]["item"]["value"].rsplit("/", 1)[-1]
     return qid if qid.startswith("Q") else ""
 
 
-def _empty(node_id: str, label: str = "", node_type: str = "concept") -> dict[str, Any]:
+def _empty(node_id: str, label: str = "", node_type: str = "concept",
+           status: str = "complete") -> dict[str, Any]:
+    """A node with no neighbours. `status` says whether that is an answer.
+
+    "complete": the lookup ran and found none. "unavailable": it could not run,
+    and the empty edge list is the absence of an answer, not an answer.
+    """
     return {
         "center": {"id": node_id, "type": node_type, "label": label or node_id,
                    "route": f"/terminal/graph?node={node_id}"},
         "edges": [], "timeline": [], "findings": [],
+        "status": status,
     }
 
 
@@ -201,9 +228,13 @@ def reset_for_tests() -> None:
 # Composed from graph_api primitives over a bundle assembled from the nodes
 # the user has actually explored. No UI component implements traversal.
 
-def _bundle_for(symbols: list[str]) -> KnowledgeBundle:
-    """Merge the ecosystems of several companies into one working graph."""
-    from src.providers.vendors.sec_vendor import SECVendor
+def _bundle_for(symbols: list[str], failed: Optional[list[str]] = None) -> KnowledgeBundle:
+    """Merge the ecosystems of several companies into one working graph.
+
+    A symbol whose lookup raised is appended to `failed` when one is given, so
+    a graph missing a company because Wikidata timed out is not presented as
+    a graph of companies with nothing around them.
+    """
     from src.services.knowledge_graph import merge_bundles
 
     bundles = []
@@ -212,6 +243,8 @@ def _bundle_for(symbols: list[str]) -> KnowledgeBundle:
             bundles.append(_wikidata.get_knowledge(symbol, ""))
         except Exception:  # noqa: BLE001
             logger.info("workspace bundle failed for %s", symbol, exc_info=True)
+            if failed is not None:
+                failed.append(symbol)
     return merge_bundles(bundles) if bundles else KnowledgeBundle()
 
 
@@ -235,7 +268,8 @@ def workspace(symbols: list[str], hops: int = 2,
     if cached and cached[0] > now and not (node_types or edge_types or min_confidence or before):
         return cached[1]
 
-    bundle = _bundle_for(symbols)
+    unavailable: list[str] = []
+    bundle = _bundle_for(symbols, unavailable)
     roots = [f"company:{s}" for s in symbols]
 
     # Expand from every root, then union the reachable sets.
@@ -257,10 +291,18 @@ def workspace(symbols: list[str], hops: int = 2,
             {"node": row["node"].model_dump(), "connects_to": row["connects_to"]}
             for row in graph_api.shared_neighbors(view, roots)
         ] if len(roots) > 1 else [],
+        # Which of the requested companies could not be looked up. Empty when
+        # the graph is whole.
+        "unavailable_symbols": unavailable,
+        "status": (
+            "unavailable" if len(unavailable) >= len(symbols)
+            else "partial" if unavailable else "complete"
+        ),
     }
-    if not (node_types or edge_types or min_confidence or before):
+    if not (node_types or edge_types or min_confidence or before) and result["status"] != "unavailable":
+        ttl = CACHE_TTL_SECONDS if result["status"] == "complete" else DEGRADED_TTL_SECONDS
         with _cache_lock:
-            put_ttl(_cache, cache_key, now + CACHE_TTL_SECONDS, result,
+            put_ttl(_cache, cache_key, now + ttl, result,
                     max_entries=MAX_CACHE_ENTRIES, now=now)
     return result
 

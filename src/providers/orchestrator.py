@@ -84,18 +84,29 @@ class FallbackChain(Generic[T]):
         links: list[ChainLink[T]],
         cross_validate: Optional[NumericExtractor[T]] = None,
     ) -> ProviderResult[T]:
-        """Resolve through cache → vendors → stale cache. Never raises."""
+        """Resolve through cache → vendors → stale cache. Never raises.
+
+        Every caller receives its own copy. A result is a pydantic model that
+        holds lists of bars, headlines and readings, and these used to be
+        handed out by reference: the first caller got the very object the
+        cache held, and every single-flight follower got the leader's. One
+        caller sorting, truncating or annotating `result.data` would have
+        changed what the next request - possibly another user's, for another
+        page - was served from cache. A copy costs under a millisecond for a
+        year of bars; a shared mutable cache entry costs a bug nobody can
+        reproduce.
+        """
         cached = self.cache.get(cache_key)
         if cached is not None:
             result, is_stale = cached
             if not is_stale:
-                return result.model_copy(update={"cached": True})
+                return result.model_copy(update={"cached": True}, deep=True)
 
         def _fetch() -> ProviderResult[T]:
             return self._resolve(cache_key, links, cross_validate)
 
         try:
-            return self.single_flight.do(cache_key, _fetch)
+            return self.single_flight.do(cache_key, _fetch).model_copy(deep=True)
         except Exception:  # noqa: BLE001 — absolute backstop, _resolve shouldn't raise
             logger.exception("%s: unexpected orchestrator failure for %s", self.name, cache_key)
             return self._stale_or_empty(cache_key, "internal error")
@@ -113,6 +124,11 @@ class FallbackChain(Generic[T]):
         primary_result: Optional[T] = None
         primary_vendor = ""
         used_fallback = False
+        #: How the consulted vendors ended. A vendor that raised (or returned
+        #: data that failed validation) could not answer; one that returned
+        #: nothing answered "no". Only the first is an outage.
+        failed = 0
+        answered_empty = 0
 
         eligible = [l for l in links if l.vendor.healthy]
         skipped = [l.vendor.NAME for l in links if not l.vendor.healthy]
@@ -129,13 +145,17 @@ class FallbackChain(Generic[T]):
                 value = link.fetch()
             except VendorError as exc:
                 logger.info("%s: %s failed (%s), falling through", self.name, link.vendor.NAME, exc)
+                failed += 1
                 continue
             except Exception:  # noqa: BLE001 — adapter bug; log loudly, keep chain alive
                 logger.exception("%s: %s adapter raised unexpectedly", self.name, link.vendor.NAME)
+                failed += 1
                 continue
             if value is None:
+                answered_empty += 1
                 continue
             if not _is_trustworthy(value):
+                failed += 1
                 # The vendor answered, but with data that failed validation
                 # badly enough that it is malfunctioning rather than merely
                 # imperfect. Treat it as a failure so the chain reaches a
@@ -157,7 +177,14 @@ class FallbackChain(Generic[T]):
             break
 
         if primary_result is None:
-            return self._stale_or_empty(cache_key, "all vendors failed")
+            # No eligible vendor at all (nothing configured, everything
+            # cooling) is an outage too: nobody was able to look.
+            outage = answered_empty == 0
+            return self._stale_or_empty(
+                cache_key,
+                "all vendors failed" if outage else "no vendor had data for this request",
+                outage=outage,
+            )
 
         confidence = CONF_FALLBACK if used_fallback else CONF_PRIMARY
         disagreement = False
@@ -193,7 +220,9 @@ class FallbackChain(Generic[T]):
             confidence=confidence,
             disagreement=disagreement,
         )
-        self.cache.set(cache_key, result, self.ttl)
+        # The cache keeps its own copy, so nothing a caller later does to the
+        # object returned here can reach what the next caller is served.
+        self.cache.set(cache_key, result.model_copy(deep=True), self.ttl)
         return result
 
     def _second_opinion(
@@ -221,12 +250,12 @@ class FallbackChain(Generic[T]):
             return metric
         return None
 
-    def _stale_or_empty(self, cache_key: str, reason: str) -> ProviderResult[T]:
+    def _stale_or_empty(self, cache_key: str, reason: str, outage: bool = True) -> ProviderResult[T]:
         cached = self.cache.get(cache_key)
         if cached is not None:
             stale_result, _ = cached
             logger.warning("%s: serving STALE cache for %s (%s)", self.name, cache_key, reason)
             return stale_result.model_copy(update={
                 "cached": True, "stale": True, "confidence": CONF_STALE,
-            })
-        return ProviderResult(data=None, error=reason, confidence=0.0)
+            }, deep=True)
+        return ProviderResult(data=None, error=reason, confidence=0.0, outage=outage)

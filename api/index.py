@@ -39,7 +39,7 @@ from src.decision import (
     derive_risk_level,
     verdict_to_recommendation,
 )
-from src.services import llm_service
+from src.services import llm_service, macro_freshness
 from src.services import availability, clerk_auth, conviction, deployment, explore_service
 from src.services.authz import Permission, require_permission
 from src.services.paper_access import paper_access_state, require_paper_trader
@@ -270,8 +270,17 @@ def _macro_unavailable(reason: str) -> dict[str, Any]:
         "fed_funds_rate":       None,
         "yield_curve_inverted": None,
         "recession_warning":    None,
-        "note":                 "Set FRED_API_KEY to enable the macro regime gate.",
+        # Only a missing credential is the reader's to fix. This note was
+        # attached to every unavailable block, so a deployment whose key was
+        # set - and whose provider was merely down, or stale - told its reader
+        # to configure something already configured.
+        "note": (
+            "Set FRED_API_KEY to enable the macro regime gate."
+            if not providers.macro.fred.available
+            else "FRED is configured but returned no usable current reading."
+        ),
     }
+
 
 
 
@@ -326,6 +335,25 @@ def _fetch_macro_safe() -> tuple[Optional[float], dict[str, Any]]:
         if provenance["stale"]:
             return None, {**_macro_unavailable("FRED is unavailable; the cached observation is stale."),
                           **provenance}
+
+        # A fresh fetch of an old observation. FRED answered, but its latest
+        # point for a series is months behind (a feed that stopped updating);
+        # presenting that as today's curve would be a stale response dressed as
+        # a live one. The optional policy rate is dropped on its own; the two
+        # that gate the multiplier take the regime with them.
+        old_fields = macro_freshness.stale_fields(provenance["observation_dates"])
+        if "fed_funds_rate" in old_fields and snap.fed_funds_rate is not None:
+            snap = snap.model_copy(update={"fed_funds_rate": None})
+        gating_stale = [f for f in old_fields if f in macro_freshness.GATING_FIELDS]
+        if gating_stale:
+            return None, {
+                **_macro_unavailable(
+                    f"FRED's latest {macro_freshness.describe(gating_stale)} observation is too "
+                    "old to describe the present, so the regime gate could not be computed."
+                ),
+                **provenance,
+                "stale_fields": old_fields,
+            }
 
         # The two the multiplier is computed from. Either one missing means
         # there is no multiplier to compute — not a multiplier computed from
@@ -391,6 +419,9 @@ def _fetch_macro_safe() -> tuple[Optional[float], dict[str, Any]]:
 # percentile. Cached 15 min; every input optional — the gate degrades to the
 # term-only Estrella–Mishkin reduced model, then to the legacy SRM curve.
 STRESS_CACHE_TTL = 900.0
+#: A snapshot with an input missing is kept briefly, not for the full TTL, so one
+#: failed fetch does not hold the verdict's macro gate open for a quarter hour.
+STRESS_DEGRADED_TTL = 60.0
 _stress_cache: dict[str, tuple[float, dict[str, Any]]] = {}
 
 
@@ -445,10 +476,12 @@ def _macro_context(stress: dict[str, Any]) -> Optional[dict[str, Any]]:
     "as of" for the block would be wrong for most of it.
     """
     rows: list[dict[str, Any]] = []
+    unavailable: list[str] = []
     for series_id, label, unit, why in MACRO_CONTEXT_SERIES:
         try:
             result = providers.macro.get_series_snapshot(series_id, count=8)
             if not result.ok or result.stale or not result.data:
+                unavailable.append(label)
                 continue
             observations = result.data
             date, value = observations[-1]
@@ -468,6 +501,7 @@ def _macro_context(stress: dict[str, Any]) -> Optional[dict[str, Any]]:
             })
         except Exception:  # noqa: BLE001 — context is never fatal
             logger.exception("macro context fetch failed for %s", series_id)
+            unavailable.append(label)
 
     stress_rows = [
         {
@@ -493,12 +527,28 @@ def _macro_context(stress: dict[str, Any]) -> Optional[dict[str, Any]]:
 
     if not rows and not stress_rows:
         return None
+    # A reading that could not be taken is named, not left out: four rows
+    # that read as the whole picture are a claim the block cannot back when
+    # one of them failed to load.
+    unavailable += [
+        label for key, label in (
+            ("nfci", "Financial conditions (NFCI)"),
+            ("credit_spread_z", "Credit spread (BAA−10y)"),
+            ("vix_percentile", "VIX percentile"),
+            ("term_spread", "Term spread (10y−2y)"),
+        )
+        if stress.get(key) is None
+    ]
+    note = ("The environment this valuation sits in. The stress figures below "
+            "gate the engine's verdict; the rates above set the discount rate "
+            "every multiple on this page implies.")
+    if unavailable:
+        note += f" Not available for this run: {', '.join(unavailable)}."
     return {
         "rates": rows,
         "stress": stress_rows,
-        "note": "The environment this valuation sits in. The stress figures below "
-                "gate the engine's verdict; the rates above set the discount rate "
-                "every multiple on this page implies.",
+        "unavailable": unavailable,
+        "note": note,
     }
 
 
@@ -542,8 +592,9 @@ def _stress_inputs() -> dict[str, Any]:
     except Exception:  # noqa: BLE001
         logger.exception("VIX percentile fetch failed")
 
+    complete = all(value is not None for value in out.values())
     with _macro_lock:
-        _stress_cache["v1"] = (now + STRESS_CACHE_TTL, out)
+        _stress_cache["v1"] = (now + (STRESS_CACHE_TTL if complete else STRESS_DEGRADED_TTL), out)
     return out
 
 
@@ -899,6 +950,24 @@ def _categorise_news(headlines: list) -> dict[str, int]:
     return dict(sorted(counts.items(), key=lambda kv: kv[1], reverse=True))
 
 
+#: What the fabric records for a vendor that answered and had nothing.
+_NO_DATA_ANSWER = "no data for symbol"
+
+
+def _news_state(evidence: list) -> str:
+    """Why no headline was read: `no_headlines` or `unavailable`.
+
+    A vendor that answered "nothing on this symbol" is a statement about the
+    symbol; one that raised, timed out or was refused is a statement about us.
+    If any source answered, "no headlines" is true. If none could, it is not
+    ours to say that there is no news.
+    """
+    answered = any(
+        (e.ok and not e.data) or (not e.ok and e.error == _NO_DATA_ANSWER) for e in evidence
+    )
+    return "no_headlines" if answered else "unavailable"
+
+
 def _as_result(headlines: list, providers_used: list[str]):
     """Wrap merged headlines in the envelope the rest of the handler expects.
 
@@ -1086,6 +1155,17 @@ def research_ticker(
         # to the legacy synthesis, which answered "Hold" at 90% confidence for
         # a symbol no provider knew ("NVIDIA" from the palette). The research
         # page already has an honest state for this answer; send it.
+        if series_result is not None and getattr(series_result, "outage", False):
+            # Every price vendor failed - none said "I do not have this". That
+            # is the providers being down, and 404 would tell the reader the
+            # symbol does not exist.
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    f"Price providers did not answer, so {ticker} could not be scored. "
+                    "This is an outage, not a missing symbol; try again shortly."
+                ),
+            )
         raise HTTPException(
             status_code=404,
             detail=f"No provider returned price history for {ticker}. Nothing was scored.",
@@ -1191,6 +1271,7 @@ def research_ticker(
                     technicals["market_cap"] = _fmt_market_cap(profile.market_cap)
         except Exception:  # noqa: BLE001 — enrichment is never fatal
             logger.exception("Fundamentals enrichment failed for %s", ticker)
+            ledger.record_gap(label="Company profile", kind="fundamental")
     if prediction is not None and technicals.get("pe_ratio") is None:
         try:
             fund_result = providers.fundamentals.get_fundamentals(ticker)
@@ -1221,6 +1302,7 @@ def research_ticker(
                         technicals[field] = value
         except Exception:  # noqa: BLE001
             logger.exception("Fundamentals metrics enrichment failed for %s", ticker)
+            ledger.record_gap(label="Valuation fundamentals", kind="fundamental")
 
     # ── Step 2c: multi-source consensus quote and statement union ───────────
     # Both are parallel fan-outs over every capable vendor, not fallback
@@ -1246,6 +1328,7 @@ def research_ticker(
             )
         except Exception:  # noqa: BLE001 — additive block, never fatal
             logger.exception("consensus quote failed for %s", ticker)
+            ledger.record_gap(label="Consensus quote", kind="market")
 
         try:
             stmt_ev = providers.fundamentals.statement_evidence(ticker)
@@ -1262,6 +1345,7 @@ def research_ticker(
                 )
         except Exception:  # noqa: BLE001
             logger.exception("statement union failed for %s", ticker)
+            ledger.record_gap(label="Reported statements", kind="fundamental")
 
         try:
             # Cross-vendor check on the daily closes. The chart itself is
@@ -1293,6 +1377,7 @@ def research_ticker(
                 )
         except Exception:  # noqa: BLE001
             logger.exception("series reconciliation failed for %s", ticker)
+            ledger.record_gap(label="Series integrity", kind="market")
 
     # ── Step 2c-bis: ownership and sell-side positioning ────────────────────
     # Both keyless, both previously unreachable. Ownership answers "who is on
@@ -1320,6 +1405,7 @@ def research_ticker(
                 )
         except Exception:  # noqa: BLE001 — additive, never fatal
             logger.exception("ownership lookup failed for %s", ticker)
+            ledger.record_gap(label="Ownership & short interest", kind="fundamental")
 
         try:
             # Bare price targets, from vendors that publish a target without
@@ -1358,6 +1444,7 @@ def research_ticker(
                 )
         except Exception:  # noqa: BLE001
             logger.exception("target lookup failed for %s", ticker)
+            ledger.record_gap(label="Price targets", kind="fundamental")
 
         try:
             analyst_ev = providers.fundamentals.analyst_evidence(ticker)
@@ -1389,6 +1476,7 @@ def research_ticker(
                 )
         except Exception:  # noqa: BLE001
             logger.exception("analyst lookup failed for %s", ticker)
+            ledger.record_gap(label="Analyst targets", kind="fundamental")
 
     # ── Step 2d: primary-source regulatory evidence ─────────────────────────
     # SEC EDGAR is keyless and is not another vendor's reading of a filing —
@@ -1475,10 +1563,13 @@ def research_ticker(
                 )
         except Exception:  # noqa: BLE001 — additive block, never fatal
             logger.exception("filings lookup failed for %s", ticker)
+            for gap in ("SEC filings", "Point-in-time filings", "XBRL reported facts"):
+                ledger.record_gap(label=gap, kind="fundamental")
 
     # ── Step 3: Sentiment (after technicals — reuses the resolved company name)
     sentiment_data: Optional[dict[str, Any]] = None
     sentiment_obj = AggregateSentiment()
+    news_ev: list = []
     if fast:
         ledger.record(
             label="News & headlines", kind="evidence",
@@ -1530,6 +1621,7 @@ def research_ticker(
                 "headline_count": sentiment_obj.headline_count,
                 "average_score":  sentiment_obj.average_score,
                 "dominant_label": sentiment_obj.dominant_label.value,
+                "status": "ok",
                 "headlines": [
                     {
                         "title":        h.headline,
@@ -1542,6 +1634,17 @@ def research_ticker(
                     for h in sentiment_obj.headlines
                 ],
             }
+            if not sentiment_obj.headline_count:
+                # Nothing was read. `AggregateSentiment()` carries 0.0 and
+                # "Neutral" for that, which is a *measurement* of neutral
+                # tone - and the narrative layer records `average_score` as
+                # a fact. No headlines is the absence of a score.
+                sentiment_data["average_score"] = None
+                sentiment_data["dominant_label"] = None
+                sentiment_data["status"] = _news_state(news_ev)
+                sentiment_data["sources_failed"] = sorted(
+                    e.provider for e in news_ev if not e.ok and e.error != _NO_DATA_ANSWER
+                )
         except Exception:
             logger.exception("Sentiment analysis failed for %s", ticker)
             ledger.record(
@@ -1552,6 +1655,9 @@ def research_ticker(
             sentiment_data = {
                 "error":          "Sentiment sources unavailable",
                 "headline_count": 0,
+                "average_score":  None,
+                "dominant_label": None,
+                "status":         "unavailable",
                 "note":           "Sentiment analysis failed",
             }
 
@@ -1597,6 +1703,7 @@ def research_ticker(
                     row["sentiment_label"] = merged.sentiment_label
         except Exception:  # noqa: BLE001 — methodology layer must never break research
             logger.exception("News scoring failed for %s", ticker)
+            ledger.record_gap(label="News & headlines", kind="evidence")
 
     # ── Step 4: Quantitative scoring (docs/SCORING.md v2.1). The engine is
     # the primary verdict source; the v1 point system remains solely as the
@@ -1608,6 +1715,7 @@ def research_ticker(
             tech_intel = technical_intelligence.build(scoring_frame)
         except Exception:  # noqa: BLE001 — presentation layer must never break research
             logger.exception("technical intelligence failed for %s", ticker)
+            ledger.record_gap(label="Technical intelligence", kind="market")
 
     # v4.5 P0-B: street & insider intelligence (Finnhub free tier, 6h cache).
     street_intel = None
@@ -1629,6 +1737,7 @@ def research_ticker(
                 street_intel = street_intelligence.build(street_result.data)
         except Exception:  # noqa: BLE001 — additive block, never fatal
             logger.exception("street intelligence failed for %s", ticker)
+            ledger.record_gap(label="Street & insider activity", kind="fundamental")
 
     scorecard = None
     if prediction is not None and scoring_frame is not None:
@@ -2461,12 +2570,22 @@ def get_quotes(symbols: str = Query(..., description="Comma-separated tickers, m
     out: dict[str, Any] = {}
     for symbol in requested:
         if len(symbol) > 10:
-            out[symbol] = {"error": "invalid symbol"}
+            out[symbol] = {"error": "invalid symbol", "status": "invalid"}
             continue
         try:
             result = providers.market_data.get_series(symbol, "3mo")
-            if not result.ok or len(result.data.bars) < 6:
-                out[symbol] = {"error": "no data"}
+            if not result.ok:
+                # Why there is no quote is the reader's business: a provider
+                # outage resolves itself, a name nobody holds does not.
+                out[symbol] = {
+                    "error": "no data",
+                    "status": "unavailable" if result.outage else "no_data",
+                }
+                continue
+            if len(result.data.bars) < 6:
+                # Answered, but a week of sessions does not exist yet (a new
+                # listing) - not a failure and not a price.
+                out[symbol] = {"error": "no data", "status": "insufficient_history"}
                 continue
             bars = result.data.bars
             closes = [bar.close for bar in bars]
@@ -2479,10 +2598,11 @@ def get_quotes(symbols: str = Query(..., description="Comma-separated tickers, m
                 "closes": [round(close, 2) for close in closes if math.isfinite(close)],
                 "source": result.source,
                 "stale": result.stale,
+                "status": "stale" if result.stale else "ok",
             }
         except Exception:  # noqa: BLE001 — one bad symbol never fails the batch
             logger.exception("quote failed for %s", symbol)
-            out[symbol] = {"error": "unavailable"}
+            out[symbol] = {"error": "unavailable", "status": "error"}
     return {"quotes": out, "count": len(out)}
 
 

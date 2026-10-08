@@ -245,6 +245,31 @@ class Ledger:
         except Exception:  # noqa: BLE001 — a recorder must never break its subject
             pass
 
+    def record_gap(
+        self,
+        *,
+        label: str,
+        kind: str,
+        used_for: Iterable[str] = (),
+    ) -> None:
+        """Record an input whose lookup raised before it could record itself.
+
+        The research handler treats every enrichment block as non-fatal and
+        swallows the exception, which is right for the response and wrong for
+        the reader: the block simply vanishes, and a vanished row looks the same
+        as one nobody asked for. This leaves a `missing` row saying the lookup
+        failed, unless the input already recorded its own outcome (an exception
+        after a row was written must not overwrite what that row said).
+        """
+        if any(entry.get("label") == label for entry in self._entries):
+            return
+        self.record(
+            label=label,
+            kind=kind,
+            used_for=used_for,
+            missing_reason="the lookup failed unexpectedly; details are in the server log",
+        )
+
     def note(self, text: str) -> None:
         """A fact about the run that is not tied to one input."""
         if text:

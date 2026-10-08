@@ -135,4 +135,8 @@ def build(street: Optional[StreetData]) -> Optional[dict[str, Any]]:
     # Nothing usable → no block (frontend hides the panel).
     if len(block) == 1:
         return None
+    # Say which parts are unknown, so a block built from two of three sources
+    # is not read as a complete picture of the street.
+    if street.missing_sections:
+        block["missing_sections"] = list(street.missing_sections)
     return block

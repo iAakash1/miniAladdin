@@ -19,6 +19,8 @@ from __future__ import annotations
 import logging
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import TimeoutError as FuturesTimeout
+from dataclasses import dataclass, field
 from typing import Optional
 
 from src.providers.research_schemas import KnowledgeBundle
@@ -135,26 +137,50 @@ def _dedupe_and_rank(hits: list[ResearchHit]) -> tuple[list[ResearchHit], dict[s
     return ranked, by_url
 
 
-def _gather(providers: list[ResearchProvider], call) -> list[ResearchHit]:
+def _gather(
+    providers: list[ResearchProvider], call, failed: Optional[list[str]] = None,
+) -> list[ResearchHit]:
     """Run providers in parallel waves, stopping once evidence suffices.
 
     Waves (rather than one big pool) preserve priority: the best providers
     are consulted first, and slower/lower-priority ones are only paid for
     when the first wave came up short.
+
+    A provider that raised or timed out is appended to `failed` when the
+    caller supplies one. "Returned nothing" and "could not be asked" are
+    different facts, and a caller that wants to say which needs the second to
+    be recorded rather than logged and forgotten.
     """
     collected: list[ResearchHit] = []
     for start in range(0, len(providers), PARALLEL_WAVE):
         wave = providers[start:start + PARALLEL_WAVE]
         if not wave:
             break
-        with ThreadPoolExecutor(max_workers=len(wave), thread_name_prefix="research") as pool:
-            futures = {pool.submit(call, p): p for p in wave}
+        pool = ThreadPoolExecutor(max_workers=len(wave), thread_name_prefix="research")
+        futures = {pool.submit(call, p): p for p in wave}
+        answered: set = set()
+        try:
             for future in as_completed(futures, timeout=PROVIDER_TIMEOUT + 3):
                 provider = futures[future]
+                answered.add(future)
                 try:
                     collected.extend(future.result(timeout=PROVIDER_TIMEOUT))
                 except Exception:  # noqa: BLE001 — one provider never breaks research
                     logger.info("research provider %s failed", provider.name, exc_info=True)
+                    if failed is not None:
+                        failed.append(provider.name)
+        except FuturesTimeout:
+            # `as_completed` raises when the wave outlives its budget. Those
+            # providers did not answer; the rest of the wave still counts.
+            for future, provider in futures.items():
+                if future not in answered:
+                    logger.info("research provider %s timed out", provider.name)
+                    if failed is not None:
+                        failed.append(provider.name)
+        finally:
+            # Do not wait for a straggler: its thread cannot be killed, but the
+            # request need not be held hostage by it.
+            pool.shutdown(wait=False, cancel_futures=True)
         if len({h.url for h in collected}) >= TARGET_HITS:
             break
     return collected
@@ -169,11 +195,39 @@ def search(query: str, limit: int = 8) -> list[ResearchHit]:
     return ranked[:limit]
 
 
+@dataclass
+class ResearchOutcome:
+    """Which providers were asked and which of them could not answer."""
+
+    attempted: int = 0
+    failed: list[str] = field(default_factory=list)
+
+    @property
+    def unavailable(self) -> bool:
+        """Every provider that was asked failed to answer.
+
+        Distinct from "nothing was found" (some provider answered, with no
+        hits) and from "nothing is configured" (no provider was asked).
+        """
+        return self.attempted > 0 and len(self.failed) >= self.attempted
+
+
 def research_company(symbol: str, company_name: str = "") -> KnowledgeBundle:
-    """Company research across the chain, merged, deduplicated, ranked."""
+    """Company research across the chain, merged, deduplicated, ranked.
+
+    Never raises: an absent or failing chain yields an empty bundle. Callers
+    that must tell "found nothing" from "could not ask" use
+    `research_company_checked`.
+    """
+    return research_company_checked(symbol, company_name)[0]
+
+
+def research_company_checked(symbol: str, company_name: str = "") -> tuple[KnowledgeBundle, ResearchOutcome]:
+    """`research_company` plus what happened to the providers behind it."""
+    outcome = ResearchOutcome()
     symbol = symbol.upper().strip()
     if not symbol:
-        return KnowledgeBundle()
+        return KnowledgeBundle(), outcome
 
     subject = company_name or symbol
     query = f"{subject} {symbol} recent developments competitive position risks"
@@ -192,11 +246,12 @@ def research_company(symbol: str, company_name: str = "") -> KnowledgeBundle:
         ]
 
     usable = [p for p in providers_in_order() if p.is_configured()]
-    collected = _gather(usable, call)
+    collected = _gather(usable, call, outcome.failed)
+    outcome.attempted = len(usable)
     ranked, corroboration = _dedupe_and_rank(collected)
     ranked = ranked[:TARGET_HITS]
     if not ranked:
-        return KnowledgeBundle()
+        return KnowledgeBundle(), outcome
 
     # Normalization is shared: identical evidence rules regardless of which
     # provider (or mix) produced these hits.
@@ -209,7 +264,7 @@ def research_company(symbol: str, company_name: str = "") -> KnowledgeBundle:
         providers_seen = corroboration.get(url or "", set())
         if len(providers_seen) > 1:
             claim.confidence = corroborated(claim.confidence, len(providers_seen))
-    return bundle
+    return bundle, outcome
 
 
 class _EngineNormalizer(ResearchProvider):
