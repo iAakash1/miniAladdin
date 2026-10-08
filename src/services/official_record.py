@@ -28,6 +28,8 @@ from src.services.cache_policy import put_ttl
 logger = logging.getLogger(__name__)
 
 CACHE_TTL_SECONDS = 21600.0  # 6h: these records change on a daily cadence at best
+#: A record with a source that could not be asked is retried soon, not held for six hours.
+DEGRADED_TTL_SECONDS = 60.0
 MAX_CACHE_ENTRIES = 128
 _cache: dict[str, tuple[float, dict[str, Any]]] = {}
 _lock = threading.Lock()
@@ -140,8 +142,11 @@ def build(symbol: str) -> dict[str, Any]:
     # A record whose every source failed is not cached: the next reader
     # should get a fresh attempt, not six hours of a transient outage.
     if any(s.get("status") in {"ok", "empty"} for s in sections.values()):
+        # "unavailable" is a source that could not be asked (a configured one that failed);
+        # "not_configured" and "not_applicable" are permanent facts and cache normally.
+        ttl = DEGRADED_TTL_SECONDS if any(s.get("status") == "unavailable" for s in sections.values()) else CACHE_TTL_SECONDS
         with _lock:
-            put_ttl(_cache, symbol, now + CACHE_TTL_SECONDS, result,
+            put_ttl(_cache, symbol, now + ttl, result,
                     max_entries=MAX_CACHE_ENTRIES, now=now)
     return result
 

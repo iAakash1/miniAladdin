@@ -10,6 +10,7 @@ factor, never as zero.
 from __future__ import annotations
 
 import logging
+import math
 import threading
 import time
 from typing import Any, Optional
@@ -21,17 +22,25 @@ from src import providers
 logger = logging.getLogger(__name__)
 
 CACHE_TTL_SECONDS = 6 * 3600.0
+#: An answer that is "nothing" because every source failed is kept for minutes, not hours.
+#: These inputs feed the verdict's quality and earnings-surprise sleeves, so a transient
+#: outage of both vendors must not take them out of a ticker's verdict for six hours.
+UNAVAILABLE_TTL_SECONDS = 300.0
 _cache: dict[str, tuple[float, dict[str, Any]]] = {}
 MAX_CACHE_ENTRIES = 256
 _lock = threading.Lock()
+
+
+def _finite(value: float) -> Optional[float]:
+    return value if math.isfinite(value) else None
 
 
 def _safe_ratio(numerator: Optional[float], denominator: Optional[float]) -> Optional[float]:
     try:
         if numerator is None or denominator in (None, 0):
             return None
-        return float(numerator) / float(denominator)
-    except (TypeError, ValueError, ZeroDivisionError):
+        return _finite(float(numerator) / float(denominator))
+    except (TypeError, ValueError, ZeroDivisionError, OverflowError):
         return None
 
 
@@ -39,8 +48,8 @@ def _yoy(current: Optional[float], previous: Optional[float]) -> Optional[float]
     try:
         if current is None or previous in (None, 0):
             return None
-        return float(current) / float(previous) - 1.0
-    except (TypeError, ValueError, ZeroDivisionError):
+        return _finite(float(current) / float(previous) - 1.0)
+    except (TypeError, ValueError, ZeroDivisionError, OverflowError):
         return None
 
 
@@ -61,10 +70,15 @@ def _from_fmp(symbol: str) -> Optional[dict[str, Any]]:
         return None
     if not (isinstance(income, list) and income and isinstance(balance, list) and balance):
         return None
+    # A row that is not an object is a reply this reader was not written for; it is
+    # "no answer", and the next source is asked, not an AttributeError out of the route.
+    if not (isinstance(income[0], dict) and isinstance(balance[0], dict)):
+        return None
     income_now = income[0]
-    balance_now, balance_prev = balance[0], (balance[1] if len(balance) > 1 else {})
+    balance_now = balance[0]
+    balance_prev = balance[1] if len(balance) > 1 and isinstance(balance[1], dict) else {}
     shares_now = income_now.get("weightedAverageShsOut")
-    shares_prev = income[1].get("weightedAverageShsOut") if len(income) > 1 else None
+    shares_prev = income[1].get("weightedAverageShsOut") if len(income) > 1 and isinstance(income[1], dict) else None
     return {
         "gross_profit_over_assets": _safe_ratio(income_now.get("grossProfit"),
                                                 balance_now.get("totalAssets")),
@@ -137,8 +151,10 @@ def get_quality_inputs(symbol: str) -> dict[str, Any]:
         "gross_profit_over_assets": None, "net_issuance_yoy": None,
         "asset_growth_yoy": None, "source": None,
     }
+    # No source named means nothing answered; retry soon rather than hold the gap.
+    ttl = CACHE_TTL_SECONDS if data.get("source") else UNAVAILABLE_TTL_SECONDS
     with _lock:
-        put_ttl(_cache, key, now + CACHE_TTL_SECONDS, data,
+        put_ttl(_cache, key, now + ttl, data,
                 max_entries=MAX_CACHE_ENTRIES, now=now)
     return data
 
@@ -155,6 +171,7 @@ def get_pead_inputs(symbol: str) -> dict[str, Any]:
             return entry[1]
 
     result: dict[str, Any] = {"surprise_pct": None, "days_since": None}
+    failed = False
     try:
         import pandas as pd
         import yfinance as yf
@@ -171,10 +188,13 @@ def get_pead_inputs(symbol: str) -> dict[str, Any]:
                                        - latest.tz_localize(None)).days),
                 }
     except Exception:  # noqa: BLE001
+        failed = True
         logger.info("earnings surprise unavailable for %s", symbol)
 
+    # A lookup that raised is retried soon. One that answered with no surprise on record
+    # is a real "none" and keeps the long TTL.
     with _lock:
-        put_ttl(_cache, key, now + CACHE_TTL_SECONDS, result,
+        put_ttl(_cache, key, now + (UNAVAILABLE_TTL_SECONDS if failed else CACHE_TTL_SECONDS), result,
                 max_entries=MAX_CACHE_ENTRIES, now=now)
     return result
 
