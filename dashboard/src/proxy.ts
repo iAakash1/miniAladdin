@@ -48,6 +48,7 @@ async function withPolicy(request: NextRequest): Promise<NextResponse | undefine
     scriptHashes: [await themeScriptHash()],
     clerkFrontendApi: clerkFrontendApi(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY),
     reportUri: '/api/csp-report',
+    development: process.env.NODE_ENV === 'development',
   })
 
   const forwarded = new Headers(request.headers)
@@ -100,6 +101,7 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
       scriptHashes: [await themeScriptHash()],
       clerkFrontendApi: clerkFrontendApi(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY),
       reportUri: '/api/csp-report',
+      development: process.env.NODE_ENV === 'development',
     }))
   }
   return response

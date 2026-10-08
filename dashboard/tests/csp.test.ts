@@ -177,3 +177,29 @@ test('no component mounts ClerkProvider without the nonce', () => {
   assert.match(wrapper, /\(await headers\(\)\)\.get\('x-nonce'\)/)
   assert.match(wrapper, /<ClerkProvider nonce=\{nonce\} \{\.\.\.props\} \/>/)
 })
+
+// ── development is the only mode that may evaluate strings ───────────────────
+
+test('a production policy never allows eval, and never lets "development" in by default', () => {
+  const production = policy()
+  assert.ok(!production.includes('unsafe-eval'))
+  assert.ok(production.includes('upgrade-insecure-requests'))
+  assert.ok(!policy({ development: false }).includes('unsafe-eval'))
+})
+
+test('the development policy adds unsafe-eval for React\'s call stacks and changes nothing else that matters', () => {
+  const dev = policy({ development: true })
+  assert.ok(directive('script-src', dev).includes("'unsafe-eval'"))
+  assert.ok(!dev.includes('upgrade-insecure-requests'), 'plain-HTTP localhost has nothing to upgrade to')
+  // Everything else is the production policy, so what is tested in development is what ships.
+  const strip = (text: string) => text.replace(" 'unsafe-eval'", '').replace('; upgrade-insecure-requests', '')
+  assert.equal(strip(dev), strip(policy()))
+  assert.ok(directive('script-src', dev).includes("'strict-dynamic'"))
+})
+
+test('only a development server asks for the development policy', () => {
+  const proxy = read('proxy.ts')
+  const uses = [...proxy.matchAll(/development:\s*([^\n,]+)/g)].map((m) => m[1].trim())
+  assert.equal(uses.length, 2, 'both places the proxy builds a policy must say')
+  for (const use of uses) assert.equal(use, "process.env.NODE_ENV === 'development'")
+})

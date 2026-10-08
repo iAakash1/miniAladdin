@@ -49,6 +49,10 @@ export interface CspInput {
   clerkFrontendApi: string | null
   /** Where violations are posted, if reporting is on. */
   reportUri?: string
+  /** `next dev` only. React rebuilds call stacks with `eval` in development, so the
+   *  development policy adds 'unsafe-eval' and leaves out the HTTPS upgrade (a plain
+   *  `http://localhost` server has nothing to upgrade to). A production build never sets this. */
+  development?: boolean
 }
 
 /** The Frontend API host a Clerk publishable key names, or null for a key that does not parse. */
@@ -99,6 +103,7 @@ export function buildCsp(input: CspInput): string {
       TURNSTILE,
       RAZORPAY_SCRIPT,
       "'strict-dynamic'",
+      ...(input.development ? ["'unsafe-eval'"] : []),
     ],
     'style-src': ["'self'", "'unsafe-inline'"],
     'img-src': ["'self'", 'data:', 'blob:', 'https:'],
@@ -122,7 +127,7 @@ export function buildCsp(input: CspInput): string {
   }
 
   const parts = Object.entries(directives).map(([name, sources]) => `${name} ${[...new Set(sources)].join(' ')}`)
-  parts.push('upgrade-insecure-requests')
+  if (!input.development) parts.push('upgrade-insecure-requests')
   if (input.reportUri) parts.push(`report-uri ${input.reportUri}`)
   return parts.join('; ')
 }
