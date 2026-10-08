@@ -41,12 +41,23 @@ instance, nine of them idle behind a `release-<sha>` tag, on a service whose cap
 tag keeps its revision's minimum instance at 0% traffic (the release document said it did not). The tags
 of the superseded revisions were removed and the instances were released within a minute; the revisions
 remain for rollback by name. `docs/CLOUD_RUN_DEPLOYMENT.md` now makes removing them a release step and
-shows how to count instances per revision. Traffic was unchanged throughout. The first-load time of the
+shows how to count instances per revision.
+
+The same cleanup exposed a deployment fault of a different kind. Production's `BACKEND_ORIGIN` was not
+the service URL but the pinned tag `candidate-fast-601fb7f`, so the website had been calling a backend
+built from commit `601fb7f` (2026-09-22) while every release since moved the service's traffic to a
+revision the website never reached. The cleanup removed that tag (it was in the batch, and the origins
+had not been read first), and for about 55 minutes (16:37 to 17:32 UTC) every backend call the website
+made answered a Google 404 page. It was found within the pass, the tag was restored, and production's
+origin was changed to the service URL and redeployed (the commit is unchanged). Every backend response
+now carries `X-Backend-Commit` and `X-Backend-Revision`, which the proxy passes through, so
+`curl -D - https://omnisignalterminal.vercel.app/api/macro` names the backend the website is calling.
+The release procedure now says to read the origins before removing a tag. The first-load time of the
 market dashboard (27 s cold, 0.06 s warm, set by free-tier vendor limits) is recorded as an owner
 decision, not as a defect.
 
-Tests: backend 5,412 passed, 10 skipped, 0 failed in two consecutive full runs (the live-network smoke
-file is excluded); frontend 839 passed, 0 failed, twice; typecheck, lint and production build clean. The
+Tests: backend 5,415 passed, 10 skipped, 0 failed in two consecutive full runs (the live-network smoke
+file is excluded); frontend 840 passed, 0 failed, twice; typecheck, lint and production build clean. The
 research files were re-hashed after the work and are byte-identical.
 
 ### Failure semantics, content security and accessibility (2026-10-08)

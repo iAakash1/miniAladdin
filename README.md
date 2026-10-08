@@ -862,7 +862,7 @@ with persistence disabled and analysis fully functional.
 | `NEXT_PUBLIC_RAZORPAY_KEY_ID` | yes | Razorpay Checkout in the browser (key IDs are public by design — this one is *intentionally* exposed) |
 | `RAZORPAY_KEY_ID` | yes | Server-only copy of the key ID for order creation — API routes never read `NEXT_PUBLIC_*` values |
 | `RAZORPAY_KEY_SECRET` | yes | Order creation + HMAC verification — must **never** be exposed to the browser |
-| `BACKEND_ORIGIN` | required | Backend base for the server-side `/api/*` proxy |
+| `BACKEND_ORIGIN` | required | Backend base for the server-side `/api/*` proxy. Production: the Cloud Run **service** URL, never a `<tag>---…` tag URL, which pins one revision and ignores every release ([docs/CLOUD_RUN_DEPLOYMENT.md](docs/CLOUD_RUN_DEPLOYMENT.md), "What the website calls") |
 | `BACKEND_AUTH_MODE` | required | `google_oidc` for private Cloud Run; `none` for Render rollback |
 | `GCP_PROJECT_NUMBER` · `GCP_WORKLOAD_IDENTITY_POOL_ID` · `GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID` · `GCP_SERVICE_ACCOUNT_EMAIL` · `CLOUD_RUN_AUDIENCE` | Cloud Run only | Non-secret identifiers for keyless Vercel OIDC federation |
 | `NEXT_PUBLIC_SITE_URL` | optional | Canonical URL for metadata |

@@ -314,6 +314,43 @@ The chain is only proven when all of these agree:
 3. `/api/health` `commit` on the service URL equals that SHA, and `revision`
    names the revision holding 100% of traffic
    (`gcloud run services describe omnisignal-api-poc --format='value(status.traffic)'`).
+4. **The website reaches that revision.** Every backend response names the build that
+   produced it, and the proxy passes the header through, so a public route read through
+   the website shows which backend the website is really calling:
+
+   ```bash
+   curl -s -D - -o /dev/null https://omnisignalterminal.vercel.app/api/macro | grep -i '^x-backend'
+   #   x-backend-commit:   the SHA from step 3 (first 12 characters)
+   #   x-backend-revision: omnisignal-api-poc-release-<sha7>
+   ```
+
+   Steps 1 to 3 describe the service. Only this one describes the website.
+
+### What the website calls
+
+Production's `BACKEND_ORIGIN` (Vercel, Production) must be the **service URL**,
+`https://omnisignal-api-poc-saigcozo6q-el.a.run.app`, so that moving traffic moves the
+website. It must never be a tag URL (`https://<tag>---omnisignal-api-poc-...`): a tag is
+pinned to one revision for as long as it exists, so a release moves traffic and the website
+keeps calling the old build, and removing the tag turns every backend call from the website
+into a Google `404` page.
+
+Until 2026-10-08 production's origin was the tag `candidate-fast-601fb7f`, a revision built
+from commit `601fb7f` on 2026-09-22. The variable was 17 days old, which puts the start at about
+2026-09-21; every backend release after that passed its smoke suite and took the traffic, and the
+website did not call any of them. The three-way agreement above (GitHub, Vercel, the service) held
+throughout, because nothing in it named what the website calls. It came to light when the tag was
+removed during a cleanup of idle instances: for about 55 minutes (16:37 to 17:32 UTC) every backend
+call the website made answered a Google 404 page, until the tag was restored and the origin was
+changed to the service URL. The header check above is what would have shown it earlier, and
+the cleanup procedure above now says to read the origins before removing any tag.
+
+Vercel reads an environment variable when a deployment is created, so changing the origin needs a
+new deployment: `vercel env update BACKEND_ORIGIN production --value <url> --yes`, then
+`vercel redeploy <current production deployment id> --target production` (a redeploy keeps the
+commit, so `/api/build` still names it). Preview deployments have their own origin; the default
+for previews is still the `candidate-fast-601fb7f` tag, so that tag and its revision's idle
+instance stay until previews are given another origin (`OWNER_ACTIONS.md`, item 6).
 
 ### Move traffic, and undo it
 
@@ -353,7 +390,10 @@ released that revision's instance within a minute, and the revision itself stays
 and spend no vendor budget; the cost was money and nothing else.
 
 After a release is verified, keep the tag only on the revision that is the
-instant-rollback target (the one you just replaced) and remove the rest:
+instant-rollback target (the one you just replaced) and remove the rest. **Before
+removing any tag, read every Vercel `BACKEND_ORIGIN`** (`vercel env pull` for Production
+and for Preview, looking only at that line): a tag that an origin names is not spare.
+Remove only tags named `release-<sha>` that no origin uses:
 
 ```bash
 gcloud run services update-traffic omnisignal-api-poc --region asia-south1 \

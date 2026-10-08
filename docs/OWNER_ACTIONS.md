@@ -23,11 +23,15 @@ No credential or contact detail has been invented to make any of them look finis
 2. The backend is released by hand (`CLOUD_RUN_DEPLOYMENT.md`): build the image from `git archive` of the
    commit, deploy it as a zero-traffic tagged revision, run `scripts/smoke_cloud_run.py` against it, then
    move traffic.
-3. Both name their commit. The chain is proven when these agree:
+3. Each names its commit, and the website names the backend it actually calls. The chain is proven when
+   these agree (the last line matters most: until 2026-10-08 the website called an old pinned candidate
+   while every release moved the service's traffic to a different revision):
 
 ```bash
 git ls-remote origin refs/heads/main                                  # GitHub
 curl -s https://omnisignalterminal.vercel.app/api/build               # Vercel: "commit"
+curl -s -D - -o /dev/null https://omnisignalterminal.vercel.app/api/macro \
+  | grep -i '^x-backend'                                              # what the website really calls
 TOKEN=$(gcloud auth print-identity-token)                             # Cloud Run (private):
 curl -s -H "X-Serverless-Authorization: Bearer $TOKEN" \
   https://omnisignal-api-poc-saigcozo6q-el.a.run.app/api/health       #   "commit", "revision"
@@ -133,6 +137,18 @@ either spending more of a budget or paying for one.
   few minutes keeps the cache full, at the price of spending vendor budget continuously.
 
 Nothing is broken whichever you pick; this is a trade between money and a few seconds for the first reader.
+
+### 6. Decision: where Vercel preview deployments should send their backend calls
+
+**State today:** production calls the service (`BACKEND_ORIGIN` is the service URL). The default for
+**preview** deployments is still the pinned candidate tag `candidate-fast-601fb7f`, a backend built
+from commit `601fb7f` (2026-09-22). The `redesign/research-terminal` branch has its own origin. A
+preview of any other branch therefore calls that old build, and the tag keeps one idle instance
+running (a tag holds its revision's instance; see `CLOUD_RUN_DEPLOYMENT.md`).
+
+**Choose one:** point the default preview origin at the service (previews then share production's
+backend and its data), deploy a fresh private candidate per branch as `CLOUD_RUN_DEPLOYMENT.md`
+describes, or stop using previews and remove the tag. Only you know whether previews are used.
 
 ---
 
