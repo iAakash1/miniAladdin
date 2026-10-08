@@ -69,13 +69,14 @@ genuinely Clerk-signed token reaching the backend.
 | `4eddf25` | An empty regime sample no longer prints "0.0% of 1 observations" |
 | `0826774` | Every page names itself; the sitemap lists the public Learn topics and no invented modification time; pages open under their entry's name (all guarded) |
 | `c4de40e` | Search: one result per security, one security per share class (`BRK.B`, `BRK-B`, `BRK B`, `BRKB`), nothing for a nonsense query |
+| `00260c5` | Search: when a query mixes its own terms with a frame word ("tesla stocks"), a vendor's row must name one of those terms; "qzxwqzxw stocks" no longer returns the largest stock funds |
 | docs | This pass's documents: changelog, owner decision 5, release procedure (superseded revisions' tags), testing guide. Documentation only |
 
 ## What was verified, and how
 
 **Backend.** The full suite (`tests/`, excluding `test_live_smoke.py`, which needs the real internet) ran twice in a row
 on the final tree, from a snapshot that `diff -r` showed equal to the tree on disk (`src/`, `tests/`, `api/`):
-**5,399 passed, 10 skipped, 0 failed**, both times (6 m 50 s and 6 m 45 s). Run from a bare `git archive`, six quant tests
+**5,412 passed, 10 skipped, 0 failed**, both times (6 m 43 s and 6 m 47 s). Run from a bare `git archive`, six quant tests
 fail for want of git-ignored research data; `TESTING.md` says how to build a snapshot that has it.
 
 **Frontend.** `tsc --noEmit` clean, ESLint clean, **839 tests passed, 0 failed** (run twice), production build succeeds.
@@ -122,6 +123,7 @@ Fingerprint prefixes (sha256), re-hashed before and after this pass and after ev
 - Dev-only: `npm audit` lists five high findings in the lint toolchain (`braces`); never shipped.
 - No automated workflow runs the test suites; only the secret scan runs on push.
 - Yahoo RSS answers 429 from Cloud Run egress; Finnhub and FMP report plan limits on some endpoints; Massive and Polygon hit the local rate limiter under burst.
+- A share class is one security in search (`BRK.B`, `BRK-B`, `BRK B` and `BRKB` all find `BRK.B`), but the quote layer still asks each vendor for the symbol as given. Measured 2026-10-08 on the live service: the two spellings return the same price, date and 1-day and 1-week changes, and their close series can differ by a session or two at the start of the window because different vendors answer. Canonicalizing symbols throughout the quote layer is a larger change that was not made.
 - The first market-dashboard load after a quiet period waits 8 to 27 s on free-tier vendor limits (owner decision 5).
 - Concurrency 1 on one instance: a long research run (~20–35 s) queues the next request. The first request after a release meets a fresh container; warm it.
 - Legacy `compute_decision` is over-confident on sparse data (scoring change, owner's call).

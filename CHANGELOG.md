@@ -18,7 +18,9 @@ two spellings, are one row. `BRK.B`, `BRK-B`, `BRK B` and `BRKB` are one securit
 dotted first, so a company no longer gets two cache entries and two slightly different quotes; the
 leveraged fund and London product that text-matched `BRK-B` are dropped when the security itself is in
 the answer. A thematic search whose pages never mention the query returns nothing instead of the
-tickers on whichever stock pages ranked best, which is what a nonsense query used to receive.
+tickers on whichever stock pages ranked best, which is what a nonsense query used to receive. A query that mixes
+its own terms with a frame word ("qzxwqzxw stocks", which a symbol database answered with the
+largest stock funds) now keeps only the rows that name one of its terms in their symbol or name.
 
 **Interface.** The sign-in form and the Razorpay checkout use the product's accent (they were the legacy
 green, and white text on the dark accent measured 2.94:1). The state chips (`stale`, `blocked`, `paper`,
@@ -43,7 +45,7 @@ shows how to count instances per revision. Traffic was unchanged throughout. The
 market dashboard (27 s cold, 0.06 s warm, set by free-tier vendor limits) is recorded as an owner
 decision, not as a defect.
 
-Tests: backend 5,399 passed, 10 skipped, 0 failed in two consecutive full runs (the live-network smoke
+Tests: backend 5,412 passed, 10 skipped, 0 failed in two consecutive full runs (the live-network smoke
 file is excluded); frontend 839 passed, 0 failed, twice; typecheck, lint and production build clean. The
 research files were re-hashed after the work and are byte-identical.
 
