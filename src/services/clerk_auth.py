@@ -73,6 +73,38 @@ def _reset_for_testing() -> None:
     _jwks_client = None
 
 
+def authorized_parties() -> frozenset[str]:
+    """Origins whose sessions this backend accepts, from CLERK_AUTHORIZED_PARTIES.
+
+    A Clerk session token names the origin it was issued for in `azp`. Signature,
+    issuer and expiry say the token is Clerk's and current; they do not say it was
+    minted for *this* application. Every site that shares a Clerk instance - a
+    preview deployment, a second app, a development origin - can mint tokens the
+    other accepts. Listing the real origins closes that.
+
+    Empty (the default) checks nothing, which is today's behaviour: switching it on
+    without knowing the origin a live token carries would lock every user out, so
+    it is opt-in, and verified against a real token before it is enabled.
+    """
+    raw = os.getenv("CLERK_AUTHORIZED_PARTIES", "")
+    return frozenset(item.strip().rstrip("/").lower() for item in raw.split(",") if item.strip())
+
+
+def _party_allowed(claims: dict) -> bool:
+    """Whether the token's `azp` is permitted. A token with no `azp` passes: Clerk
+    does not set it on every token type, and its own SDK treats absence the same way."""
+    parties = authorized_parties()
+    if not parties:
+        return True
+    azp = claims.get("azp")
+    if not isinstance(azp, str) or not azp:
+        return True
+    if azp.rstrip("/").lower() in parties:
+        return True
+    logger.warning("rejected bearer token issued for an unlisted origin: %s", azp[:80])
+    return False
+
+
 def verify_token(token: str) -> Optional[str]:
     """Return the Clerk user id (`sub`) for a valid session token, else None."""
     if _issuer_missing_in_production():
@@ -99,6 +131,8 @@ def verify_token(token: str) -> Optional[str]:
     except jwt.PyJWTError as exc:
         logger.info("rejected bearer token: %s", exc)
         return None
+    if not _party_allowed(claims):
+        return None
     sub = claims.get("sub")
     return sub if isinstance(sub, str) and sub else None
 
@@ -118,7 +152,7 @@ def verify_token_claims(token: str) -> Optional[dict]:
         return None
     try:
         signing_key = client.get_signing_key_from_jwt(token)
-        return jwt.decode(
+        claims = jwt.decode(
             token,
             signing_key.key,
             algorithms=["RS256"],
@@ -129,6 +163,7 @@ def verify_token_claims(token: str) -> Optional[dict]:
     except jwt.PyJWTError as exc:
         logger.info("rejected bearer token: %s", exc)
         return None
+    return claims if _party_allowed(claims) else None
 
 
 def _token_from_header(authorization: str) -> str:

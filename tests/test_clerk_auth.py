@@ -102,3 +102,45 @@ class TestDependencies:
         monkeypatch.delenv("CLERK_JWKS_URL", raising=False)
         clerk_auth._reset_for_testing()
         assert clerk_auth.optional_clerk_user(_stub_request(), "Bearer junk") is None
+
+
+class TestAuthorizedParties:
+    """A session token is for an origin, and the backend can say which it accepts."""
+
+    @staticmethod
+    def _with_azp(private, azp, **kw):
+        claims = {"sub": "user_123", "iss": ISSUER, "exp": int(time.time()) + 600}
+        if azp is not None:
+            claims["azp"] = azp
+        return jwt.encode(claims, private, algorithm="RS256")
+
+    def test_unset_checks_nothing_so_nobody_is_locked_out(self, configured, keypair, monkeypatch):
+        monkeypatch.delenv("CLERK_AUTHORIZED_PARTIES", raising=False)
+        private, _ = keypair
+        assert clerk_auth.verify_token(self._with_azp(private, "https://anywhere.example")) == "user_123"
+
+    def test_a_listed_origin_is_accepted_whatever_its_case_or_trailing_slash(self, configured, keypair, monkeypatch):
+        monkeypatch.setenv("CLERK_AUTHORIZED_PARTIES", "https://app.example.com, https://other.example/")
+        private, _ = keypair
+        assert clerk_auth.verify_token(self._with_azp(private, "https://APP.example.com/")) == "user_123"
+        assert clerk_auth.verify_token(self._with_azp(private, "https://other.example")) == "user_123"
+
+    def test_an_unlisted_origin_is_refused_by_both_entry_points(self, configured, keypair, monkeypatch):
+        monkeypatch.setenv("CLERK_AUTHORIZED_PARTIES", "https://app.example.com")
+        private, _ = keypair
+        token = self._with_azp(private, "https://preview-abc.vercel.app")
+        assert clerk_auth.verify_token(token) is None
+        assert clerk_auth.verify_token_claims(token) is None
+
+    def test_a_token_that_names_no_origin_is_not_refused_for_it(self, configured, keypair, monkeypatch):
+        """Clerk does not put `azp` on every token; its own SDK treats absence the same way."""
+        monkeypatch.setenv("CLERK_AUTHORIZED_PARTIES", "https://app.example.com")
+        private, _ = keypair
+        assert clerk_auth.verify_token(self._with_azp(private, None)) == "user_123"
+
+    def test_the_check_adds_to_signature_and_issuer_it_does_not_replace_them(self, configured, keypair, monkeypatch):
+        monkeypatch.setenv("CLERK_AUTHORIZED_PARTIES", "https://app.example.com")
+        private, _ = keypair
+        forged = jwt.encode({"sub": "user_123", "iss": "https://evil.example", "azp": "https://app.example.com",
+                             "exp": int(time.time()) + 600}, private, algorithm="RS256")
+        assert clerk_auth.verify_token(forged) is None
