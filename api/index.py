@@ -2738,6 +2738,19 @@ def ask_suggestions():
     return {"suggestions": list(SUGGESTED)}
 
 
+def _nothing_gathered(model_signal: Any, agent_statuses: list[Any]) -> bool:
+    """True when a run produced no decision and no specialist finished cleanly.
+
+    Every agent unavailable, or able to report only what it lacked ("the macro regime
+    could not be measured" is a claim, and counts as one), and no scorecard to copy a
+    signal from: that is a run in which no provider answered, whatever else it
+    recorded. A run with any clean specialist, or with a signal, is not this.
+    """
+    if model_signal is not None:
+        return False
+    return not any(getattr(status, "value", status) == "ok" for status in agent_statuses)
+
+
 @app.get("/api/analysis-runs/{ticker}", tags=["agents"])
 def analysis_run(ticker: str):
     """One graph execution, with its trace.
@@ -2785,6 +2798,26 @@ def analysis_run(ticker: str):
             "run could be assembled.",
             reason="NO_EVIDENCE",
         ).payload(symbol=symbol, run_id=state.get("run_id"))
+
+    if _nothing_gathered(state.get("model_signal"), [r.status for r in agents.values()]):
+        # The graph ran, and the trace says so, but nothing real came out of it. Reporting
+        # that as AVAILABLE would tell the reader a run exists to be inspected.
+        return availability.dependency_unavailable(
+            "No provider answered, so this run produced no decision. Each specialist "
+            "reported only what it was missing.",
+            reason="NO_PROVIDER_ANSWERED",
+        ).payload(
+            symbol=symbol,
+            run_id=state.get("run_id"),
+            requested_at=state.get("requested_at"),
+            agents=[
+                {"agent": r.agent, "status": r.status.value, "missing": r.missing}
+                for r in agents.values()
+            ],
+            errors=state.get("errors", []),
+            graph_version=state.get("graph_version"),
+            agent_schema_version=state.get("agent_schema_version"),
+        )
 
     return availability.available(
         symbol=symbol,
@@ -2858,13 +2891,19 @@ def agent_validation(ticker: str):
             detail="The evidence pipeline could not be run for this security.",
         ) from None
 
-    if not result.claims and not result.evidence:
-        # Nothing was gathered at all. Reported as unavailable rather than as
-        # an empty but successful analysis.
+    nothing_real = _nothing_gathered(result.model_signal, [a.status for a in result.agents])
+    if (not result.claims and not result.evidence) or nothing_real:
+        # Nothing was gathered at all, or only statements of what could not be gathered.
+        # Reported as unavailable rather than as an empty but successful analysis.
         return {
             "symbol": symbol,
             "status": "unavailable",
-            "detail": "No provider returned evidence for this security.",
+            "detail": (
+                "No provider returned evidence for this security."
+                if not result.claims and not result.evidence else
+                "No provider answered, so there is no decision to audit. Each specialist "
+                "reported only what it was missing."
+            ),
             "agents": [a.model_dump() for a in result.agents],
             "generated_at": result.generated_at,
             "agent_schema_version": result.agent_schema_version,

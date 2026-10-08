@@ -49,6 +49,13 @@ ROUTES: list[tuple[str, str | None]] = [
     ("/api/company/AAPL/record", None),
     ("/api/screen?q=apple", None),
     ("/api/research/AAPL?fast=true", None),
+    ("/api/agents/AAPL/validation", None),
+    ("/api/analysis-runs/AAPL", None),
+    ("/api/ask/suggestions", None),
+    # Reads the committed study artifacts; no provider is involved, so "available" is true.
+    ("/api/ml/overview", "reads committed study artifacts, not a provider"),
+    ("/api/quant/inference/status", None),
+    ("/api/quant/inference/predict/AAPL", None),
 ]
 
 
