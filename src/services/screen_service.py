@@ -387,6 +387,37 @@ def _thematic(query: str) -> list[dict[str, Any]]:
     return out
 
 
+# Short sector / strategy phrases are not security identifiers. When the entire
+# query is made from these terms, try evidence-backed thematic search first;
+# otherwise a symbol database can rank an obscure instrument whose name merely
+# contains the sector label ahead of the companies or funds a reader expects.
+_BROAD_THEME_TERMS = frozenset({
+    "tech", "technology", "semiconductor", "semiconductors", "software",
+    "cybersecurity", "cyber", "cloud", "robotics", "robot", "biotech",
+    "biotechnology", "healthcare", "health", "pharma", "pharmaceutical",
+    "pharmaceuticals", "banks", "banking", "financial", "finance", "energy",
+    "utilities", "utility", "industrials", "industrial", "materials", "metals",
+    "mining", "miners", "aerospace", "defense", "defence", "realestate",
+    "reit", "reits", "property", "properties", "consumer", "staples",
+    "discretionary", "retail", "ecommerce", "auto", "autos", "automotive",
+    "electric", "vehicle", "vehicles", "ev", "clean", "solar", "wind",
+    "renewable", "renewables", "uranium", "oil", "gas", "dividend",
+    "dividends", "growth", "value", "momentum", "small", "mid", "large",
+    "cap", "mega", "micro", "emerging", "markets", "international",
+})
+
+
+def _is_broad_theme_query(query: str) -> bool:
+    """True when a short query names only a sector or investing theme.
+
+    Company names and ticker-shaped input remain direct lookups. Mixed queries
+    such as "Tesla technology stocks" also remain lookups because the distinctive
+    company term is not itself a sector/strategy label.
+    """
+    terms = [word for word in _words(query) if word not in _GENERIC_WORDS]
+    return bool(terms) and all(term in _BROAD_THEME_TERMS for term in terms)
+
+
 def screen(query: str) -> dict[str, Any]:
     """Never raises, never fully dead-ends. Returns
     {query, mode, results[], suggestions[], note, cached}."""
@@ -399,7 +430,10 @@ def screen(query: str) -> dict[str, Any]:
             return {**entry[1], "cached": True}
 
     symbol_shaped = bool(LOOKS_LIKE_SYMBOL.match(normalized))
-    mode = "lookup" if (symbol_shaped or len(normalized.split()) <= 2) else "thematic"
+    broad_theme = _is_broad_theme_query(normalized)
+    mode = "lookup" if symbol_shaped else (
+        "thematic" if broad_theme or len(normalized.split()) > 2 else "lookup"
+    )
     results = _resolve_direct(normalized) if mode == "lookup" else _thematic(normalized)
 
     # A miss on one strategy always gets the other retried — a symbol-shaped
