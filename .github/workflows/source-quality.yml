@@ -1,0 +1,77 @@
+name: Source quality
+
+on:
+  push:
+    branches:
+      - main
+      - "continuation/**"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: source-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+            requirements-quant.txt
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt -r requirements-quant.txt
+      - name: Run provider, search, authorization, and API regressions
+        run: >-
+          python -m pytest -q
+          tests/test_screen_service.py
+          tests/test_authorization_matrix.py
+          tests/test_provider_failure_matrix.py
+          tests/test_provider_value_corruption.py
+          tests/test_provider_reliability.py
+          tests/test_api_research.py
+
+  frontend-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: dashboard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Run frontend tests
+        run: node --import tsx --test tests/*.test.ts
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Lint
+        run: npm run lint
+      - name: Production build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_c2FtcGxlLmNvbQ$"
+          CLERK_SECRET_KEY: "sk_test_build_only"
+          NEXT_PUBLIC_RAZORPAY_KEY_ID: "rzp_test_build_only"
+          RAZORPAY_KEY_ID: "rzp_test_build_only"
+          RAZORPAY_KEY_SECRET: "build_only_not_a_credential"
+          BACKEND_ORIGIN: "https://example.invalid"
+          BACKEND_AUTH_MODE: "none"
+          NEXT_PUBLIC_SITE_URL: "https://example.invalid"
