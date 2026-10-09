@@ -186,6 +186,37 @@ class TestNeverDeadEnds:
 
 # ── preserved / strengthened existing behavior ──────────────────────────────
 
+class TestBroadThematicRouting:
+    def test_short_sector_query_uses_relevant_thematic_evidence_before_symbol_lookup(self, monkeypatch):
+        _patch_vendors(monkeypatch)  # the keyless known-symbol anchor validates candidates
+        _patch_search(monkeypatch, data=[
+            SearchResult(
+                title="Technology stocks to watch include $NVDA and $MSFT",
+                url="https://example.com/technology",
+                snippet="Large technology companies lead the list",
+            ),
+        ])
+
+        result = screen("tech stocks")
+
+        assert result["mode"] == "thematic"
+        assert [row["symbol"] for row in result["results"]] == ["NVDA", "MSFT"]
+        assert all(row["via"] == "mentioned by example.com" for row in result["results"])
+
+    @pytest.mark.parametrize("query", [
+        "tech stocks", "dividend stocks", "semiconductor stocks",
+        "cybersecurity stocks", "small cap stocks",
+    ])
+    def test_sector_and_strategy_phrases_are_recognized(self, query):
+        assert screen_service._is_broad_theme_query(query)
+
+    @pytest.mark.parametrize("query", [
+        "AAPL", "BRK B", "Tesla stocks", "Apple technology stocks",
+    ])
+    def test_security_queries_are_not_misclassified_as_broad_themes(self, query):
+        assert not screen_service._is_broad_theme_query(query)
+
+
 class TestThematicSearch:
     def test_thematic_query_extracts_and_validates_tickers(self, monkeypatch):
         _patch_vendors(monkeypatch)  # all unhealthy — validation must fall back to the anchor table
