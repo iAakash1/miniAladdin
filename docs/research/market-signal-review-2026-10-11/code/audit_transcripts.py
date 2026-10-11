@@ -22,8 +22,14 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 BASE = HERE.parent
-HOME = Path.home() / ".claude/projects/-Users-aakashjawle-Downloads-omnisignal-final/d9fc792f-acf7-4ed5-9f65-6c45655243bc"
-TASKS = Path("/private/tmp/claude-501/-Users-aakashjawle-Downloads-omnisignal-final/d9fc792f-acf7-4ed5-9f65-6c45655243bc/tasks")
+# The two locations are local to the machine that ran the agents, so they are read from the environment rather than written into the source:
+#   RECOVERY_TRANSCRIPT_HOME  the directory holding the session transcripts (it contains subagents/workflows/wf_*/agent-*.jsonl)
+#   RECOVERY_TASK_OUTPUTS     the directory holding the per-agent task output files (<task id>.output)
+try:
+    HOME = Path(os.environ["RECOVERY_TRANSCRIPT_HOME"])
+    TASKS = Path(os.environ["RECOVERY_TASK_OUTPUTS"])
+except KeyError as missing:
+    raise SystemExit(f"set {missing.args[0]} (see the module docstring); this script reads local transcripts and cannot run elsewhere")
 WORKFLOWS = HOME / "subagents/workflows"
 OUT = BASE / "recovery"
 

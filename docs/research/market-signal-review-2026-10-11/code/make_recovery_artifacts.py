@@ -24,8 +24,12 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 BASE = HERE.parent
 REC = BASE / "recovery"
-TASKS = Path("/private/tmp/claude-501/-Users-aakashjawle-Downloads-omnisignal-final/d9fc792f-acf7-4ed5-9f65-6c45655243bc/tasks")
-WF = Path.home() / ".claude/projects/-Users-aakashjawle-Downloads-omnisignal-final/d9fc792f-acf7-4ed5-9f65-6c45655243bc/subagents/workflows"
+# Local to the machine that ran the agents; read from the environment (see audit_transcripts.py for the meaning of the two variables).
+try:
+    TASKS = Path(os.environ["RECOVERY_TASK_OUTPUTS"])
+    WF = Path(os.environ["RECOVERY_TRANSCRIPT_HOME"]) / "subagents/workflows"
+except KeyError as missing:
+    raise SystemExit(f"set {missing.args[0]}; this script reads local transcripts and cannot run elsewhere")
 
 
 def text_of(content) -> str:
