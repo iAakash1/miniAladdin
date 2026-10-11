@@ -1,0 +1,21 @@
+{
+  "records_retrieved_by_source": {
+    "OpenAlex": 3350,
+    "Crossref": 4290,
+    "arXiv": 3538,
+    "NBER": 2860
+  },
+  "records_without_title": 0,
+  "distinct_works_after_deduplication": 11217,
+  "duplicates_removed": 2821,
+  "excluded_before_screening": {
+    "below_pool_threshold": 6539,
+    "off_domain_no_finance_or_fusion_term": 2296,
+    "type_excluded:paratext": 2,
+    "type_excluded:reference-entry": 1,
+    "type_excluded:dataset": 1,
+    "year_missing_or_before_1985": 67
+  },
+  "screening_pool": 2311,
+  "pool_rule": "Domain filter first: a work must mention a finance/economics/market term in its title, abstract or venue (cross-field family K: or a fusion/reliability/uncertainty term). Then a work enters the screening pool if it is retrieved by >=3 distinct queries, OR ranks in the top 5 of any query in any source, OR has >=300 citations, OR is a seed/known-anchor record, OR is a 2023-2026 record in the top 10 of any query (recent work has had no time to accumulate citations). Works with no title, published before 1985, or of a type that is not a paper/preprint/report/chapter are excluded with a counted reason. The pool is a screening pool, not the review: forward/backward citation tracing and domain-restricted gap-filling searches add records afterwards and are logged separately."
+}

@@ -29,11 +29,13 @@ REPO = HERE.parents[3]
 RAW = REPO / "data" / "research" / "literature_raw"
 
 POOL_RULE = (
-    "Domain filter first: a work must mention a finance/economics/market term in its title, abstract or venue (cross-field family K: or a fusion/reliability/uncertainty term). Then a work enters the screening pool if it is retrieved by >=2 distinct queries, OR ranks in the top 8 of any "
-    "query in any source, OR has >=150 citations, OR is a seed/known-anchor record, OR is a 2023-2026 arXiv/NBER/"
-    "OpenAlex record in the top 15 of any query (recent work has had no time to accumulate citations). "
-    "Works with no title, published before 1985, or of a type that is not a paper/preprint/report/chapter are "
-    "excluded with a counted reason."
+    "Domain filter first: a work must mention a finance/economics/market term in its title, abstract or venue "
+    "(cross-field family K: or a fusion/reliability/uncertainty term). Then a work enters the screening pool if it is "
+    "retrieved by >=3 distinct queries, OR ranks in the top 5 of any query in any source, OR has >=300 citations, OR is a "
+    "seed/known-anchor record, OR is a 2023-2026 record in the top 10 of any query (recent work has had no time to "
+    "accumulate citations). Works with no title, published before 1985, or of a type that is not a paper/preprint/report/"
+    "chapter are excluded with a counted reason. The pool is a screening pool, not the review: forward/backward citation "
+    "tracing and domain-restricted gap-filling searches add records afterwards and are logged separately."
 )
 
 OK_TYPES = {"article", "journal-article", "preprint", "posted-content", "proceedings-article", "book-chapter",
@@ -204,12 +206,20 @@ def on_domain(p: dict, families: list[str]) -> bool:
     return False
 
 
+SEED_DOI: set = set()
+SEED_ARXIV: set = set()
+SEED_TITLES: list = []
+
 PUBLISHED_RANK = {"journal-article": 0, "article": 0, "proceedings-article": 1, "book-chapter": 2, "review": 0,
                   "report": 3, "dissertation": 3, "book": 3, "posted-content": 4, "preprint": 4, "working-paper": 4}
 
 
 def main() -> int:
+    global SEED_DOI, SEED_ARXIV, SEED_TITLES
     bank = json.loads((HERE / "queries.json").read_text())
+    SEED_DOI = {norm_doi(d) for d in bank["seeds_doi"]}
+    SEED_ARXIV = set(bank["seeds_arxiv"])
+    SEED_TITLES = [norm_title(t)[:40] for t in bank["seeds_title"]]
     fam = {q["id"]: q["f"] for q in bank["queries"]}
     raw_total = Counter()
     clusters: dict[str, dict] = {}
@@ -263,6 +273,8 @@ def main() -> int:
         p["versions"] = [{"source": v["source"], "type": v["type"], "doi": v["doi"], "arxiv": v["arxiv"], "venue": v["venue"],
                           "year": v["year"]} for v in vers]
         p["cluster_key"] = ck
+        p["seed"] = (p.get("doi", "") in SEED_DOI or p.get("arxiv", "") in SEED_ARXIV
+                     or any(norm_title(p["title"]).startswith(t) for t in SEED_TITLES if t))
         out_all.append(p)
 
         if p["year"] is None or (p["year"] or 0) < 1985:
@@ -274,8 +286,8 @@ def main() -> int:
         if not on_domain(p, p["families"]):
             reasons["off_domain_no_finance_or_fusion_term"] += 1
             continue
-        recent_open = (p["year"] or 0) >= 2023 and p["top15"]
-        if p["n_queries"] >= 2 or p["top8"] or p["cited_by"] >= 150 or recent_open:
+        recent_open = (p["year"] or 0) >= 2023 and p["best_rank"] <= 10
+        if p["seed"] or p["n_queries"] >= 3 or p["best_rank"] <= 5 or p["cited_by"] >= 300 or recent_open:
             pool.append(p)
         else:
             reasons["below_pool_threshold"] += 1
