@@ -38,8 +38,9 @@ ROOT = HERE.parents[2]                      # docs/research/<dir> -> repository 
 REPO = HERE.parents[3]
 RAW = REPO / "data" / "research" / "literature_raw"
 LOG = HERE.parent / "search_log.csv"
-MAILTO = "aakashjawle101@gmail.com"
-UA = f"OmniSignalResearch/1.0 (mailto:{MAILTO})"
+# No contact address is sent to any scholarly API: the "polite pool" convention is optional and the account
+# owner's email is not shared with third-party services. APIs may therefore rate-limit more strictly.
+UA = "OmniSignalResearch/1.0 (academic literature review; contact withheld)"
 RUN_DATE = "2026-10-11"
 FROM_YEAR = 1985
 
@@ -114,7 +115,7 @@ def openalex(q: dict, pages: int = 1) -> None:
         params = {
             "search": q["q"],
             "filter": f"from_publication_date:{FROM_YEAR}-01-01",
-            "per-page": 50, "page": page, "select": OPENALEX_SELECT, "mailto": MAILTO,
+            "per-page": 50, "page": page, "select": OPENALEX_SELECT,
         }
         status, body = get("https://api.openalex.org/works?" + urllib.parse.urlencode(params))
         total = n = ""
@@ -135,7 +136,7 @@ def crossref(q: dict) -> None:
     if done("crossref", q["id"], 1):
         return
     params = {
-        "query.bibliographic": q["q"], "rows": 30, "mailto": MAILTO,
+        "query.bibliographic": q["q"], "rows": 30,
         "filter": f"from-pub-date:{FROM_YEAR},type:journal-article",
         "select": "DOI,title,author,issued,container-title,type,abstract,is-referenced-by-count,publisher,URL",
     }

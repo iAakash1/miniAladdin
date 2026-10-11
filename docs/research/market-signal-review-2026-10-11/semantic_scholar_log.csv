@@ -1,0 +1,9 @@
+run_date,query_id,query,http_status,n_returned,response_sha256
+2026-10-12,S01,amended 10-K filings predict stock returns,200,10,cb3cf0d04b2c4d5c3ee01a11ac6c86e26d22ef4e176efa4c775613902d57f584
+2026-10-12,S02,financial restatement history predicts future stock returns cross-section,200,10,370f5feab965796f506a1fabf3fa6aff35606579094bbf0e63a713e926318067
+2026-10-12,S03,late filing reporting lag stock return predictability machine learning,429,0,65ab993d12c5c2cc9b68e6da2bb79b326930283e520363ffcdc145f88cd5a148
+2026-10-12,S04,filing delay deterioration cross-sectional returns,429,0,65ab993d12c5c2cc9b68e6da2bb79b326930283e520363ffcdc145f88cd5a148
+2026-10-12,S05,disclosure reliability moderates return predictability fundamentals signals,429,0,65ab993d12c5c2cc9b68e6da2bb79b326930283e520363ffcdc145f88cd5a148
+2026-10-12,S06,accounting quality moderates fundamental signal machine learning stock selection,429,0,65ab993d12c5c2cc9b68e6da2bb79b326930283e520363ffcdc145f88cd5a148
+2026-10-12,S07,point-in-time filing metadata features equity return prediction neural network,429,0,65ab993d12c5c2cc9b68e6da2bb79b326930283e520363ffcdc145f88cd5a148
+2026-10-12,S08,information environment uncertainty features gradient boosting cross-section of stock returns,429,0,65ab993d12c5c2cc9b68e6da2bb79b326930283e520363ffcdc145f88cd5a148

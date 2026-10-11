@@ -1,0 +1,37 @@
+run_date,query_no,query,source,http_status,n_returned,sha256
+2026-10-12,1,financial statement restatements predict stock returns cross-section,Crossref,200,12,b568210c42469f46
+2026-10-12,1,financial statement restatements predict stock returns cross-section,arXiv,200,0,b6a102a79cf0a802
+2026-10-12,1,financial statement restatements predict stock returns cross-section,NBER,200,50,a2584103729cc4cb
+2026-10-12,2,late filing NT 10-K stock returns predictability,Crossref,200,12,d1342a09430f33d1
+2026-10-12,2,late filing NT 10-K stock returns predictability,arXiv,200,8,d04dcfd4613cc183
+2026-10-12,2,late filing NT 10-K stock returns predictability,NBER,200,50,d3d3025d9e67d746
+2026-10-12,3,filing lag timeliness earnings quality returns anomaly,Crossref,200,12,fa704cd9dff5308c
+2026-10-12,3,filing lag timeliness earnings quality returns anomaly,arXiv,200,0,9c33317e4006c63b
+2026-10-12,3,filing lag timeliness earnings quality returns anomaly,NBER,200,50,b9b34a256aae2b3a
+2026-10-12,4,accounting quality conditions accrual anomaly mispricing strength,Crossref,200,12,966664ee13cdbc55
+2026-10-12,4,accounting quality conditions accrual anomaly mispricing strength,arXiv,200,8,1bc6d29e1006440a
+2026-10-12,4,accounting quality conditions accrual anomaly mispricing strength,NBER,200,50,d80b9e8dfae89f77
+2026-10-12,5,information uncertainty moderates anomaly returns machine learning,Crossref,200,12,8ae1bb8686c41118
+2026-10-12,5,information uncertainty moderates anomaly returns machine learning,arXiv,200,8,0c3a8ec2b1ed6013
+2026-10-12,5,information uncertainty moderates anomaly returns machine learning,NBER,200,50,612c37461931aedf
+2026-10-12,6,non-reliance restatement market reaction 8-K item 4.02,Crossref,200,12,31c0b3994f6d9a0b
+2026-10-12,6,non-reliance restatement market reaction 8-K item 4.02,arXiv,200,0,ca476d39d9bde234
+2026-10-12,6,non-reliance restatement market reaction 8-K item 4.02,NBER,200,50,c18ca4b022c3fb5c
+2026-10-12,7,stale accounting information fundamentals return predictability decay time since filing,Crossref,200,12,d853ed65661a4a2a
+2026-10-12,7,stale accounting information fundamentals return predictability decay time since filing,arXiv,200,2,3cbad6f6634fde32
+2026-10-12,7,stale accounting information fundamentals return predictability decay time since filing,NBER,200,50,32345bb818092654
+2026-10-12,8,reporting quality signal reliability asset pricing machine learning,Crossref,200,12,e1e987eea786d41d
+2026-10-12,8,reporting quality signal reliability asset pricing machine learning,arXiv,200,8,a5388cc502146215
+2026-10-12,8,reporting quality signal reliability asset pricing machine learning,NBER,200,50,6fb108008a509666
+2026-10-12,9,data quality features machine learning stock selection missing financial statements,Crossref,200,12,7fd749942381a458
+2026-10-12,9,data quality features machine learning stock selection missing financial statements,arXiv,200,8,01d00848443dd0e1
+2026-10-12,9,data quality features machine learning stock selection missing financial statements,NBER,200,50,61626607056beb0f
+2026-10-12,10,reliability of earnings signals conditional predictability earnings quality post-earnings drift,Crossref,200,12,d96b29fe7bd4aca9
+2026-10-12,10,reliability of earnings signals conditional predictability earnings quality post-earnings drift,arXiv,200,5,74deab9436b105b8
+2026-10-12,10,reliability of earnings signals conditional predictability earnings quality post-earnings drift,NBER,200,50,eb06cfd8cef6c11f
+2026-10-12,11,amended filings 10-K/A restatement return prediction,Crossref,200,12,7a579d45641ed8c5
+2026-10-12,11,amended filings 10-K/A restatement return prediction,arXiv,200,0,4c2ec86e3008079c
+2026-10-12,11,amended filings 10-K/A restatement return prediction,NBER,200,50,14bb186917193759
+2026-10-12,12,XBRL financial data quality errors implications return prediction,Crossref,200,12,83be094e06aa9f8f
+2026-10-12,12,XBRL financial data quality errors implications return prediction,arXiv,200,8,0d1a3c2d5f924807
+2026-10-12,12,XBRL financial data quality errors implications return prediction,NBER,200,50,704783dd4c43f477
