@@ -54,7 +54,7 @@ Crossref's fuzzy matching; SSRN could not be searched; and a second index (Seman
 | 20 | Freyberger, Hoeppner, Neuhierl, Weber 2024 | abstract | Missing characteristics: conditional-mean imputation with weighted least squares in a GMM framework; improved out-of-sample predictability | Missingness in ML panels | Missingness kept as NaN and tested as information (`rel_missing`) |
 | 21 | Guo 2009 | abstract | Real-time versus revised data weakens the consumption-wealth forecast | Point-in-time discipline | Firm-level, filing-based |
 | 22 | Diether, Malloy, Scherbina 2002 | abstract | Analyst forecast dispersion predicts lower returns | Uncertainty as a predictor | Source-side, not analyst dispersion |
-| 23 | Bali, Kelly, Moerke, Rahman 2023 | abstract | Dispersion across machine forecasts predicts returns | ML disagreement | Different object |
+| 23 | Bali, Kelly, Mörke, Rahman 2023 | abstract | Dispersion across machine forecasts predicts returns | ML disagreement | Different object |
 | 24 | Goulding, Harvey, Kurtovic 2026 | abstract | Investor-disagreement proxies are nearly uncorrelated | Measurement reliability of a proxy | Different object |
 | 25 | Sanderink 2026 (preprint) | abstract | Two-level uncertainty and a trade/no-trade decision for cross-sectional rankers | Uncertainty-aware ranking | Reliability of the *evidence*, not of the model's output |
 | 26 | Gu, Kelly, Xiu 2020; Lalwani et al. 2025 | abstract | ML return prediction; results move with design choices | The pipeline class | Frozen configuration, no search |

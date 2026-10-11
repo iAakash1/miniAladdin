@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import collections
 import csv
-import html
 from pathlib import Path
 
 BASE = Path(__file__).resolve().parent.parent

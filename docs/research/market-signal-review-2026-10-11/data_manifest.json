@@ -1,0 +1,118 @@
+{
+ "generated": "2026-10-12",
+ "study": "EXP-012",
+ "licence_note": "SEC filings are public records; no filing text is redistributed. The price panel's community source has terms that were not reviewed (datasets.csv L04).",
+ "inputs": [
+  {
+   "path": "data/curated/sec_v3/filings.parquet",
+   "role": "input: SEC filing registry",
+   "bytes": 7906751,
+   "sha256": "4e62004745eebd9b7e669adb091ff53a01f2440e5bdd83b7da5efbb660b7ebb6",
+   "rows": 371229,
+   "recorded_sha256": "4e62004745eebd9b7e669adb091ff53a01f2440e5bdd83b7da5efbb660b7ebb6",
+   "matches_recorded_hash": true
+  },
+  {
+   "path": "data/research/derived/rich_pit_panel.parquet",
+   "role": "input: rich point-in-time panel",
+   "bytes": 17881402,
+   "sha256": "2b8993da1e80a1279d24fe1f6b0b4c49d144cb6f6b0a7c7f785a3203a5e4240a",
+   "rows": 139292,
+   "dataset_id": "ds-richpit-ff3d3f556488b7da",
+   "content_hash": "ff3d3f556488b7daa20bbbeab49d1f0abad9a869976b593f211cf92b6eb7c5da",
+   "date_min": "2014-04-03",
+   "date_max": "2025-05-09"
+  }
+ ],
+ "derived": [
+  {
+   "path": "data/research/derived/reliability_v1.parquet",
+   "role": "derived: reliability table",
+   "bytes": 182453,
+   "sha256": "042ac1fc12957f25ffd32e3d914037567900803ad967ec69a28f077f9ea6316f",
+   "rows": 139292,
+   "coverage": {
+    "amended_730": 0.9176621772966143,
+    "latest_report_amended": 0.9176621772966143,
+    "periodic_count_400": 0.9176621772966143,
+    "lag_deterioration": 0.9099876518393016
+   },
+   "recorded_sha256": "042ac1fc12957f25ffd32e3d914037567900803ad967ec69a28f077f9ea6316f",
+   "matches_recorded_hash": true
+  }
+ ],
+ "outputs": [
+  {
+   "path": "experiments/EXP-012/config.json",
+   "role": "output: EXP-012",
+   "bytes": 35629,
+   "sha256": "7a2cdcf25c2e605162489e0b5a8c5d2e4a8c7b19cadd35b4944b407aa8295417"
+  },
+  {
+   "path": "experiments/EXP-012/definition.json",
+   "role": "output: EXP-012",
+   "bytes": 26193,
+   "sha256": "d564a7cf8519b1b0c2faa9a791bfae66d94af38f2f195951859746f281f9a587"
+  },
+  {
+   "path": "experiments/EXP-012/fold_metrics.csv",
+   "role": "output: EXP-012",
+   "bytes": 6677,
+   "sha256": "bf9e114ede034f8a9f880ea098c9f5ea79adae413d93070c4dd3515da7978c57"
+  },
+  {
+   "path": "experiments/EXP-012/manifest.json",
+   "role": "output: EXP-012",
+   "bytes": 4660,
+   "sha256": "cf2f2147bda60819260a8165072d0bd3454e44e553c57a12ec742ff6e2dc66dd"
+  },
+  {
+   "path": "experiments/EXP-012/metrics.json",
+   "role": "output: EXP-012",
+   "bytes": 163783,
+   "sha256": "7f6193ae130efc6495f5a32be173e5f55d49fa7f7b804a8a75a9260d73d5f3b2"
+  },
+  {
+   "path": "experiments/EXP-012/paired_tests.csv",
+   "role": "output: EXP-012",
+   "bytes": 4088,
+   "sha256": "0185ec40ef4120f3b333c031692d3b6cac359a364e4dc976774e5352e03810de"
+  },
+  {
+   "path": "experiments/EXP-012/per_arm_metrics.csv",
+   "role": "output: EXP-012",
+   "bytes": 20064,
+   "sha256": "6df248d727f46a5ce1eda5662198cd9eb4bc132eaad0c12a35e05bfdb89b333c"
+  },
+  {
+   "path": "experiments/EXP-012/prediction_hashes.json",
+   "role": "output: EXP-012",
+   "bytes": 7161,
+   "sha256": "1723941941915a7d7f800d6c4ee15a572ff2eafc9073735306d653f8b7a9e38b"
+  },
+  {
+   "path": "experiments/EXP-012/reference_naive.json",
+   "role": "output: EXP-012",
+   "bytes": 1054,
+   "sha256": "ac6d74927a79d20c3da9058f93a63a36295eee59678e81d8d6fe08e58b2e9dba"
+  },
+  {
+   "path": "experiments/EXP-012/model/A1.joblib",
+   "role": "output: saved research model (git-ignored)",
+   "bytes": 5678,
+   "sha256": "a052e3dca8fa7fa417ca8b954eff1e8b4267bd848146c4aae2fdcd90121bd69d"
+  },
+  {
+   "path": "experiments/EXP-012/model/A5.joblib",
+   "role": "output: saved research model (git-ignored)",
+   "bytes": 6014,
+   "sha256": "a89906f6953fff6b1c71e0924273f6d6ce281b28374e8956f6be8d6c81559838"
+  }
+ ],
+ "checks": {
+  "reliability_manifest_matches_file": true,
+  "filings_match_recorded_hash": true,
+  "validation": "validation/reliability_validation.json (0 mismatches in 16,000 independent comparisons)",
+  "data_quality": "data_quality_report.md"
+ }
+}

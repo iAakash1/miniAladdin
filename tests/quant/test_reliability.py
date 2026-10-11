@@ -1,6 +1,6 @@
 """Point-in-time guarantees of the disclosure-process reliability variables (src/quant/pit/reliability.py)."""
 
-from datetime import date, datetime
+from datetime import date
 
 import numpy as np
 import pandas as pd

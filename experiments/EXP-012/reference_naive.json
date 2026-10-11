@@ -1,0 +1,34 @@
+{
+ "reference": "N0",
+ "score": "mom_252_21_xs",
+ "definition": "baseline 12-1 momentum cross-sectional rank, unfitted; missing scored 0",
+ "rows": 100246,
+ "dates": 404,
+ "feature_coverage_of_prediction_rows": 0.9746,
+ "mean_rank_ic": 0.01581015438622239,
+ "hac_t": 0.8753312040629742,
+ "fold_ic": [
+  0.06706131880361307,
+  -0.015972109359198475,
+  0.005027119225329125,
+  -0.05444748873419819,
+  0.051198113799095356,
+  0.025324620538292625,
+  0.020676974715892315,
+  0.026401213020104286
+ ],
+ "positive_folds": 6,
+ "portfolio_b1_10bp": {
+  "mean_rank_ic": 0.01581015438622239,
+  "hac_t_stat": 0.8753312040629742,
+  "ic_ir": 0.0706286589601859,
+  "positive_fold_count": 6,
+  "worst_fold_ic": -0.05444748873419819,
+  "b1_gross_sharpe": 0.4294821045155601,
+  "b1_net_sharpe_10bp": 0.3856891883695086,
+  "b1_annualised_turnover": 2.4141326530612246,
+  "b1_net_max_drawdown": -0.23878205455336288,
+  "b1_cost_share_of_gross": 0.10224382621448869
+ },
+ "note": "pre-declared reference; not a contrast and not adjusted; see the preregistration, section 7"
+}

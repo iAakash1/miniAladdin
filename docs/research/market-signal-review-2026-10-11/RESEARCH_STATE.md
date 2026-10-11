@@ -33,7 +33,11 @@ Production on 2026-10-12: GitHub `main`, Vercel production and Cloud Run revisio
 | Data dictionary and quality report | `data_dictionary.md`, `data_quality_report.md` | done |
 | Reliability variables | `src/quant/pit/reliability.py`, `tests/quant/test_reliability.py`, `validation/` | built, 0 mismatches in 16,000 independent comparisons |
 | EXP-012 pipeline, tests, rehearsal | `src/quant/study/exp012.py`, `scripts/quant/exp012.py`, `tests/quant/test_exp012.py` | 1,264 quant tests pass; label-shuffled rehearsal of all 30 fits returned NOT_SUPPORTED everywhere |
-| EXP-012 preregistration | `docs/EXP_012_PREREGISTRATION.md` (written by `code/make_prereg_doc.py`) | written; registered when committed and pushed |
+| EXP-012 preregistration | `docs/EXP_012_PREREGISTRATION.md` (written by `code/make_prereg_doc.py`) | registered: commit `639eb65`, pushed before the run; fingerprint `f9d76d2f3d68...` |
+| EXP-012 registered run | `experiments/EXP-012/`, `docs/EXP_012_RESULTS.md` | **complete** 2026-10-12 02:48 IST at commit `88ec777`, clean tree, 1,016 s. T1 SUPPORTED (+0.00515 Rank IC, Holm p 0.011, 6 of 8 folds, negative in the last two); T2 and T3 NOT_SUPPORTED. A0/A1 reproduced EXP-011 to 4e-17; holdout sealed |
+| Pre-declared naive reference N0 | `experiments/EXP-012/reference_naive.json` | Rank IC 0.0158 (t 0.88), net Sharpe +0.39 at 10 bp |
+| Saved models, fresh-process reload | `experiments/EXP-012/model/` (git-ignored) | A1 and A5 reload through the CLI and score 248 names with finite scores |
+| Executive decision, panel simulation, manuscript draft, data manifests | `00`, `11`, `manuscript/draft.md`, `data_manifest.json`, `provenance_manifest.json`, `dataset_catalogue.csv` | done |
 
 ## Not done, and why
 
@@ -41,7 +45,8 @@ Production on 2026-10-12: GitHub `main`, Vercel production and Cloud Run revisio
 - Quartiles of target journals (SCImago returned 403; Journal Citation Reports is subscription-only).
 - A complete OpenAlex pass (keyless daily limit; a free key needs an account, which is the owner's decision).
 - Any test of vendor disagreement or provider health: no history exists.
-- The registered EXP-012 run, its naive reference and the executive decision, until the registration is pushed: see the next steps.
+- Attribution of the T1 gain to individual columns (needs a separately registered experiment on the same folds; see the next steps).
+- Any test on the sealed holdout (the owner's decision).
 
 ## Token accounting (measured from transcripts; not billing)
 
@@ -54,11 +59,15 @@ Production on 2026-10-12: GitHub `main`, Vercel production and Cloud Run revisio
   and the first commit of this review still contains the constant. History was not rewritten.
 - Title and abstract screening was automated and rubric-driven; no person screened records. The repository credits no tool as author. A journal manuscript will need a truthful declaration of how the work was prepared; that is
   separate from repository attribution and is for the owner to settle (`10_JOURNAL_POSITIONING.md`).
-- One reference quantity (the naive 12-1 momentum rank's IC) was computed once while testing its script, before registration; it is disclosed in the preregistration.
+- One reference quantity (the naive 12-1 momentum rank's IC) was computed once while testing its script, before registration, on the rehearsal's rows (0.0204); the pre-declared value on the registered rows is 0.0158.
+  The row sets differ because shuffling a label moves missing labels. The registration discloses the first number.
+- The registered sensitivity paragraph understated the realised noise (T1 standard error 1.9 times larger than in the shuffled-label rehearsal; T3 8 times); disclosed in `docs/EXP_012_RESULTS.md`, section 7. The registered verdicts stand.
+- Pushing the branch made Vercel's Git integration build two preview deployments (statuses on the pushed commit); production is unchanged (`/api/build` commit `1b3e6c7`).
 
 ## Next executable steps
 
-1. Commit and push the branch (no force); verify the remote SHA and the three identities; `python -m scripts.quant.exp012 gate` must pass.
-2. Run the registered study once: `caffeinate -dimsu .venv/bin/python -m scripts.quant.exp012 run --workers 6` (outside the sandbox); read the acceptance block in `experiments/EXP-012/manifest.json` first.
-3. Run `code/naive_reference.py`; reload `model/A1.joblib` and `model/A5.joblib` in a fresh process; write `00_EXECUTIVE_RESEARCH_DECISION.md`, the results section of the panel simulation and the manuscript draft from the actual files.
-4. Run the whole test suite, scan the diff for attribution wording, secrets and large files, commit, push, verify the remote and the repository's secret-scan workflow.
+1. Final checks before the closing push: the whole test suite, the attribution/secret/size scans, the protected-file hash comparison, remote SHA and identity verification.
+2. Optional follow-up, only as a separately registered experiment (own definition, fingerprint and gate; same folds, so more looks, disclosed): attribute the T1 gain to individual columns (add-one and drop-one arms,
+   ridge only, a stricter placebo criterion). Do not read it as confirmation.
+3. Owner decisions: open the sealed holdout once for a single frozen design (or not); commission the bridging experiment on the live composite and an append-only snapshot archive; SEC contact; OpenAlex key; DoltHub
+   licence review; wording of any journal declaration; what to do with the two Vercel previews.

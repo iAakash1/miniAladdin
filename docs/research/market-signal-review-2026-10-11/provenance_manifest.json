@@ -1,0 +1,80 @@
+{
+ "generated": "2026-10-12",
+ "branch": "research/market-signal-review-2026-10-11",
+ "head": "88ec777a095bb5973ec9a6b32bebd0cb6cadc2ee",
+ "identity_of_head": {
+  "author": "iAakash1",
+  "committer": "iAakash1",
+  "author_and_committer_addresses_equal": true
+ },
+ "lineage": [
+  {
+   "step": 1,
+   "what": "SEC Financial Statement Data Sets quarterly archives",
+   "count": 58,
+   "first": "2011q1.zip",
+   "last": "2025q2.zip",
+   "bytes": 5260095968,
+   "retrieved": [
+    "2026-09-19T16:05:07.079390+00:00",
+    "2026-09-19T16:12:49.248931+00:00"
+   ],
+   "manifest": "data/manifests/sec_download_manifest.json",
+   "manifest_sha256": "fc1956cfb66f09f0b6481f96f24d2e5d27e1f994838524aa29d6c4b8e1f7f890",
+   "fair_access_max_requests_per_second": 10,
+   "note": "no official checksums exist; hashes were recorded at download"
+  },
+  {
+   "step": 2,
+   "what": "curated filing registry",
+   "output": "data/curated/sec_v3/filings.parquet",
+   "sha256": "4e62004745eebd9b7e669adb091ff53a01f2440e5bdd83b7da5efbb660b7ebb6",
+   "rows": 371229,
+   "built_by": "scripts/quant/build_pit_data.py build-facts-v3"
+  },
+  {
+   "step": 3,
+   "what": "rich point-in-time panel (EXP-011 identity)",
+   "output": "data/research/derived/rich_pit_panel.parquet",
+   "sha256": "2b8993da1e80a1279d24fe1f6b0b4c49d144cb6f6b0a7c7f785a3203a5e4240a",
+   "dataset_id": "ds-richpit-ff3d3f556488b7da",
+   "built_by": "scripts/quant/build_pit_data.py build-rich-panel"
+  },
+  {
+   "step": 4,
+   "what": "reliability table",
+   "output": "data/research/derived/reliability_v1.parquet",
+   "sha256": "042ac1fc12957f25ffd32e3d914037567900803ad967ec69a28f077f9ea6316f",
+   "built_by": "python -m src.quant.pit.reliability build",
+   "code_commit": "14f2435f9dedf683a2743e8187e0cee2ecdfa607",
+   "inputs": [
+    "4e62004745eebd9b7e669adb091ff53a01f2440e5bdd83b7da5efbb660b7ebb6",
+    "ff3d3f556488b7daa20bbbeab49d1f0abad9a869976b593f211cf92b6eb7c5da"
+   ]
+  },
+  {
+   "step": 5,
+   "what": "EXP-012 registered study",
+   "code_and_registration_commit": "639eb65a11102cb4dbb4892fd20c5f2279568c4d",
+   "fingerprint": "f9d76d2f3d68512ca613eea3b9263f297238101b5a97cdd1c966a72f3638e7ee",
+   "manifest": "experiments/EXP-012/manifest.json",
+   "manifest_sha256": "cf2f2147bda60819260a8165072d0bd3454e44e553c57a12ec742ff6e2dc66dd",
+   "run_git_commit": "88ec777a095bb5973ec9a6b32bebd0cb6cadc2ee",
+   "run_git_dirty": false,
+   "completion": "COMPLETE"
+  }
+ ],
+ "environment": {
+  "python": "3.12.11",
+  "platform": "macOS-27.0.1-arm64-arm-64bit",
+  "dependencies": {
+   "numpy": "2.2.6",
+   "pandas": "2.3.3",
+   "pyarrow": "18.1.0",
+   "python": "3.12.11",
+   "scipy": "1.18.1",
+   "sklearn": "1.7.2"
+  }
+ },
+ "protected": "EXP-006 and EXP-007 files unchanged (hash comparison before and after); the holdout is sealed and untouched"
+}
