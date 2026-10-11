@@ -1,0 +1,70 @@
+agent,tool,target,chars,usable
+,WebSearch,CRSP delisting return DLRET DLSTCD CIZ flat file format 2.0 delisting returns guide,4026,True
+,WebSearch,"Compustat North America point-in-time vs restated ""Snapshot"" WRDS Compustat Capital IQ fundamentals annual restatement",3855,True
+,WebFetch,https://crsp.org/wp-content/uploads/guides/CRSP_Calculations_and_Index_Methodologies.pdf,215,False
+,WebFetch,https://www.crsp.org/crsp_pdf/crsp-us-stock-indexes-databases-siz-to-ciz-executive-summary,215,False
+,WebFetch,https://crsp.org/wp-content/uploads/guides/CRSP_Calculations_and_Index_Methodologies.pdf,215,False
+,WebFetch,https://datacenter.safe-frankfurt.de/documents/Data_Description_CRSP_Shumway_20250317.pdf,896,True
+,WebSearch,"WRDS Compustat Capital IQ North America Fundamentals Annual ""Compustat Snapshot"" documentation coverage 1950 delisted companies",4221,True
+,WebSearch,"S&P Global Compustat Snapshot Point-in-Time product description originally reported restated data ""Compustat"" Capital IQ Pro market intelligence",3787,True
+,WebFetch,https://data.nasdaq.com/databases/SFA,701,True
+,WebSearch,Sharadar Equity Prices SEP data.nasdaq.com delisted securities 1998 coverage price adjusted closeunadj documentation,2502,True
+,WebSearch,"yfinance ""possibly delisted; no price data found"" delisted tickers Yahoo Finance history removed survivorship bias",3526,True
+,WebSearch,"Yahoo Finance help ""adjusted close"" definition adjusted for splits and dividend distributions how Yahoo calculates adj close",3927,True
+,WebFetch,https://www.tiingo.com/about/pricing,61,False
+,WebFetch,https://www.tiingo.com/documentation/end-of-day,61,False
+,WebFetch,https://www.sec.gov/search-filings/edgar-application-programming-interfaces,2114,True
+,WebFetch,https://www.sec.gov/os/accessing-edgar-data,2191,True
+,WebFetch,https://www.sec.gov/search-filings/edgar-full-text-search,215,False
+,WebFetch,https://www.sec.gov/dera/data/financial-statement-data-sets.html,1929,True
+,WebFetch,https://www.sec.gov/dera/data/financial-statement-and-notes-data-set,1916,True
+,WebSearch,SEC EDGAR full-text search FAQ coverage since 2001 efts API,2960,True
+,WebSearch,EDGAR-CORPUS Loukas 10-K annual reports dataset 1993-2020 license Hugging Face,61,False
+,WebSearch,FINRA equity short interest data publication schedule settlement date API terms of use,61,False
+,WebFetch,https://fred.stlouisfed.org/docs/api/fred/series_vintagedates.html,790,True
+,WebFetch,https://fred.stlouisfed.org/docs/api/fred/realtime_period.html,1781,True
+,WebFetch,https://fred.stlouisfed.org/docs/api/fred/series_observations.html,1724,True
+,WebFetch,https://alfred.stlouisfed.org/docs/alfred_faq/,215,False
+,WebFetch,https://alfred.stlouisfed.org/,1183,True
+,WebFetch,https://www.federalreserve.gov/releases/h15/about.htm,758,True
+,WebFetch,https://www.federalreserve.gov/releases/h15/default.htm,994,True
+,WebFetch,https://home.treasury.gov/policy-issues/financing-the-government/interest-rate-statistics,1551,True
+,WebFetch,https://www.federalreserve.gov/releases/h15/h15_technical_qa.htm,61,False
+,WebFetch,https://home.treasury.gov/policy-issues/financing-the-government/interest-rate-statistics/treasury-yield-curve-methodology,61,False
+,WebFetch,https://www.sec.gov/files/financial-statement-data-sets.pdf,1211,True
+,WebSearch,"sec.gov ""Copyright and Trademark"" policy information on SEC website public may be copied or further distributed",2842,True
+,WebSearch,"Chychyla Kogan ""Using XBRL to Conduct a Large-Scale Study of Discrepancies between the Accounting Numbers in Compustat and SEC 10-K Filings""",3369,True
+,WebSearch,SEC Office of Structured Data XBRL data quality observations errors financial statements staff,4098,True
+,WebSearch,XBRL US Data Quality Committee rules error rate filings validation DQC rules open source,3393,True
+,WebSearch,"Bartley Chen Taylor ""A Comparison of XBRL Filings to Corporate 10-Ks—Evidence of the Many Errors"" Accounting Horizons 2011",2803,True
+,WebFetch,https://github.com/DataQualityCommittee/dqc_us_rules,839,True
+,WebFetch,https://www.sec.gov/newsroom/speeches-statements/crenshaw-lessons-structured-data-111021,1752,True
+,WebFetch,https://www.sec.gov/structureddata/staffobsandguide,3269,True
+,WebFetch,https://xbrl.us/dqc-license,740,True
+,WebSearch,"XBRL US ""Aggregated Real-time Filing Errors"" data quality filing results DQC",3254,True
+,WebFetch,https://github.com/DataQualityCommittee/dqc_us_rules/blob/master/License.md,918,True
+,WebFetch,https://xbrl.us/guardrails/,930,True
+,WebFetch,https://xbrl.us/filing-results,1112,True
+,WebFetch,https://xbrl.us/home/use/xbrl-api/,215,False
+,WebFetch,https://www.sec.gov/files/staff-observations-custom-tag-rates-2014.pdf,215,False
+,WebSearch,"Debreceny Farewell Piechocki ""Does it add up? Early evidence on the data quality of XBRL filings to the SEC""",3039,True
+,WebSearch,"XBRL US API documentation ""Database of Public Filings"" register client id access token terms",3490,True
+,WebFetch,https://ideas.repec.org/a/eee/jappol/v29y2010i3p296-306.html,61,False
+,WebFetch,https://scholarship.miami.edu/esploro/outputs/journalArticle/Using-XBRL-to-Conduct-a-Large-Scale/991031575973402976,61,False
+,WebFetch,https://xbrl.us/access-token,61,False
+,WebSearch,Financial PhraseBank Malo 2014 Good debt or bad debt dataset license Aalto download,4062,True
+,WebFetch,https://huggingface.co/datasets/takala/financial_phrasebank,2266,True
+,WebFetch,https://huggingface.co/datasets/Zihan1004/FNSPID,1894,True
+,WebFetch,https://arxiv.org/abs/2402.06698,1018,True
+,WebFetch,https://github.com/Zdong104/FNSPID_Financial_News_Dataset,2116,True
+,WebFetch,https://sites.google.com/view/fiqa/home,1554,True
+,WebSearch,FiQA 2018 financial opinion mining question answering dataset license huggingface task 1 sentiment microblogs headlines,3587,True
+,WebFetch,https://www.kaggle.com/datasets/aaron7sun/stocknews,315,False
+,WebSearch,"""Daily News for Stock Market Prediction"" Kaggle aaron7sun Reddit WorldNews top 25 headlines DJIA 2008-08-08 2016-07-01 license",2430,True
+,WebSearch,Verba Volant Transcripta Manent earnings calls AI stock rally ECB working paper 3093 transcripts data source,3013,True
+,WebFetch,https://www.ecb.europa.eu/pub/pdf/scpwps/ecb.wp3093~458d28b4bc.lt.pdf,42,False
+,WebSearch,Motley Fool terms of use scraping automated data collection prohibited earnings call transcripts,61,False
+,WebSearch,S&P Capital IQ Pro transcripts earnings call transcripts coverage history licensing product page,61,False
+,WebSearch,LSEG StreetEvents earnings call transcripts historical coverage data product,61,False
+,WebSearch,"Fama French ""Production of U.S. Rm-Rf, SMB, and HML in the Kenneth R. French Data Library"" 2023",3387,True
+,WebSearch,"AQR data sets ""Betting Against Beta"" ""Quality Minus Junk"" factors download terms of use",3326,True

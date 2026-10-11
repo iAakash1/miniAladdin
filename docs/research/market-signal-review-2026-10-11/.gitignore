@@ -1,2 +1,3 @@
-# Raw API responses and abstract-bearing candidate files are rebuilt by the scripts and are not redistributed here.
+# Raw API responses, abstract-bearing candidate files and per-batch agent shards are rebuilt or merged by the scripts and are not tracked.
 /data/
+/shards/screen_*.json

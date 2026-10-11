@@ -1,0 +1,11 @@
+{
+  "trained_on": 2011,
+  "relevant_share": 0.6156141223272004,
+  "cv_auc": 0.9169,
+  "threshold": 0.2698,
+  "cv_recall_at_threshold": 0.9701,
+  "cv_share_removed": 0.1989,
+  "applied_to": 300,
+  "excluded_by_classifier": 69,
+  "carried_forward": 231
+}

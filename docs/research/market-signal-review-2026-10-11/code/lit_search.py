@@ -75,7 +75,7 @@ def get(url: str, *, timeout: int = 60, accept: str = "application/json", tries:
 def log_row(row: dict) -> None:
     new = not LOG.exists()
     with LOG.open("a", newline="") as fh:
-        writer = csv.DictWriter(fh, fieldnames=LOG_FIELDS)
+        writer = csv.DictWriter(fh, fieldnames=LOG_FIELDS, lineterminator="\n")
         if new:
             writer.writeheader()
         writer.writerow({k: row.get(k, "") for k in LOG_FIELDS})
@@ -107,6 +107,7 @@ def openalex(q: dict, pages: int = 1) -> None:
     credits a day, about 100 requests; resets 00:00 UTC). One page of 50 per query, and the run stops at the
     first 429 instead of burning the log with failures; rerun after the reset. A free API key would lift this
     but needs an account, which this study does not create."""
+    global OPENALEX_EXHAUSTED
     for page in range(1, pages + 1):
         if OPENALEX_EXHAUSTED or done("openalex", q["id"], page):
             continue
@@ -122,7 +123,6 @@ def openalex(q: dict, pages: int = 1) -> None:
             total, n = data["meta"]["count"], len(data["results"])
         raw, sha = save_raw("openalex", q["id"], page, body, ok=(status == 200))
         if status == 429:
-            global OPENALEX_EXHAUSTED
             OPENALEX_EXHAUSTED = True
         log_row({"run_date": RUN_DATE, "source": "OpenAlex", "query_id": q["id"], "family": q["f"], "query": q["q"],
                  "params": f"filter=from_publication_date:{FROM_YEAR}; per-page=50; relevance order", "page": page,

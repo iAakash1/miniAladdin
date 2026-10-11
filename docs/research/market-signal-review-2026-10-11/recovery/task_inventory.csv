@@ -1,0 +1,28 @@
+task_id,batch,status,turns,tool_calls,tokens_in_out_cache_create,tokens_cache_read,wrote_file_in_transcript,shard_valid_on_disk,records,recovery_action
+a442ae4561a5341e8,main_001,completed,10,10,148271,690818,True,True,100,none: deliverable on disk
+a84f64e5f721d85d6,main_002,completed,6,6,103599,387826,True,True,100,none: deliverable on disk
+a1a8cbb41d1eaec02,main_003,completed,10,10,129406,736584,True,True,100,none: deliverable on disk
+a006e0af0cbed137b,main_004,completed,9,9,109506,656930,True,True,100,none: deliverable on disk
+aa72b02f3fbe725eb,main_005,completed,9,9,111886,672704,True,True,100,none: deliverable on disk
+a40cb18ee46d85273,main_006,completed,8,8,134245,684883,True,True,100,none: deliverable on disk
+a288635ac5d994ed2,main_007,completed,6,6,95755,394044,True,True,100,none: deliverable on disk
+a8b6ad1940a4c8a76,main_008,completed,9,9,114043,630102,True,True,100,none: deliverable on disk
+a0e8747c91bbca36c,main_009,completed,9,9,127393,644004,True,True,100,none: deliverable on disk
+a26124f704059b514,main_010,completed,7,7,103942,485099,True,True,100,none: deliverable on disk
+a5790d4d733f22fd8,main_011,completed,9,9,108429,687436,True,True,100,none: deliverable on disk
+ae71d3f913eec9bce,main_012,completed,9,9,123551,654389,True,True,100,none: deliverable on disk
+aff89e18a755145d3,main_013,failed (usage limit),7,7,172675,395320,True,True,100,recovered from file written before the stop
+a4e6186eef7a40489,main_014,failed (usage limit),10,10,246044,578019,True,True,100,recovered from file written before the stop
+ae54fe8bc804926f3,main_015,failed (usage limit),9,10,194415,604666,True,True,100,recovered from file written before the stop
+a076d240c232c05d0,main_016,failed (usage limit),10,10,152157,595287,False,False,0,unrecoverable: stopped before writing; reasoning not persisted -> triage classifier
+ac82655a042af261a,main_017,failed (usage limit),10,10,169620,595660,True,True,100,recovered from file written before the stop
+a52149bce33405bc8,main_018,failed (usage limit),10,10,243562,711957,True,True,100,recovered from file written before the stop
+abdf8f5a779a5708e,main_019,failed (usage limit),10,11,226099,738267,True,True,100,recovered from file written before the stop
+ad819b10705261950,main_020,failed (usage limit),10,11,176329,627347,True,False,0,unrecoverable: stopped before writing; reasoning not persisted -> triage classifier
+a82ab84ac2b270e12,main_021,failed (usage limit),10,10,176903,608941,True,True,100,recovered from file written before the stop
+a3d58bf9806614e7e,main_022,failed (usage limit),9,9,157066,538674,True,False,0,unrecoverable: stopped before writing; reasoning not persisted -> triage classifier
+a1302b1f9c4e7930f,main_023,failed (usage limit),11,12,235002,888013,True,True,100,recovered from file written before the stop
+a5b934bdf04f3f972,main_024,completed,5,5,115454,319844,True,True,11,none: deliverable on disk
+a182eea73e6a10531,dual_001,failed (usage limit),9,9,210374,566364,False,False,0,"unrecoverable; not rerun (dual sample is a 10% agreement check, 141 of 241 records already double-screened)"
+a311a786385df4be0,dual_002,failed (usage limit),9,12,334268,489060,True,True,100,recovered from file written before the stop
+a98de8352b370b0f6,dual_003,completed,6,6,235495,481624,True,True,41,none: deliverable on disk

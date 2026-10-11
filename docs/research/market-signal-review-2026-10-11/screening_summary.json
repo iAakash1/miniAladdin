@@ -1,0 +1,56 @@
+{
+  "pool": 2311,
+  "screened_main": 2011,
+  "not_screened": 300,
+  "decisions": {
+    "include": 1028,
+    "exclude": 773,
+    "maybe": 210
+  },
+  "exclusion_codes": {
+    "NOT_RETURNS_OR_SIGNALS": 120,
+    "OFF_TOPIC": 502,
+    "PURE_THEORY_NO_EMPIRICS_OR_METHOD": 53,
+    "WRONG_ASSET_ONLY": 65,
+    "TOO_NARROW_LOCAL": 24,
+    "DUPLICATE_VERSION": 1,
+    "NOT_A_RESEARCH_WORK": 8
+  },
+  "pub_status": {
+    "working_paper_or_preprint": 632,
+    "unknown": 8,
+    "peer_reviewed_journal": 580,
+    "thesis_or_report": 10,
+    "peer_reviewed_conference": 8
+  },
+  "evidence_type": {
+    "empirical": 665,
+    "unclear": 109,
+    "methodology": 366,
+    "review_survey": 37,
+    "theory": 28,
+    "commentary": 5,
+    "benchmark_dataset": 28
+  },
+  "families_include_or_maybe": {
+    "A": 535,
+    "C": 371,
+    "E": 192,
+    "J": 198,
+    "I": 185,
+    "H": 153,
+    "F": 143,
+    "B": 271,
+    "L": 44,
+    "G": 138,
+    "K": 75,
+    "D": 20
+  },
+  "dual_screen": {
+    "n": 132,
+    "raw_agreement_3class": 0.9318181818181818,
+    "kappa_3class": 0.8865546218487396,
+    "raw_agreement_in_vs_out": 0.9621212121212122,
+    "kappa_in_vs_out": 0.922279792746114
+  }
+}

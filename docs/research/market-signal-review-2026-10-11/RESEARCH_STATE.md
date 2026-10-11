@@ -1,71 +1,61 @@
-# Research state checkpoint
+# Research state (canonical checkpoint)
 
-Durable checkpoint for the market-signal review. A new session should read this first, then verify the live
-values (they may have moved). Nothing here is a result; results live in the numbered documents once they exist.
+Single source of truth for progress. A new session reads this first, then verifies live values. Last updated 2026-10-12.
 
-- **Branch:** `research/market-signal-review-2026-10-11`, cut from `1b3e6c7764ad` (`origin/main`, the production commit at
-  the time). The unmerged `origin/continuation/search-intent-quality` branch (3 commits by another identity, touching
-  `screen_service.py` and a CI workflow) is unrelated to this work and was neither merged nor altered.
-- **Date of this checkpoint:** 2026-10-11. **Identity for every commit:** `iAakash1 <aakashjawle101@gmail.com>`, no trailers.
-- **Firewall:** EXP-006/EXP-007 results, artifacts, holdout, cost assumption (10 bp half-spread) and promotion status are
-  protected. No new experiment is registered by the literature stages. The baseline fingerprints at the start were
-  `final_selection.json a69f54e5a309ec3f`, `configs.jsonl d0251b4cc4e21d03`, `search.json 9ada5cda42234782`; git trees
-  `experiments 3f4dea4737ee`, `artifacts 04dc1554d1f6`, `data 09cfd3be09a2`, `src/quant c32663f289a3`.
+- **Branch:** `research/market-signal-review-2026-10-11`, cut from `1b3e6c7764ad` (`origin/main`). `main` is untouched. The
+  unmerged `origin/continuation/search-intent-quality` branch (3 commits by another identity, `screen_service.py` and a CI
+  workflow) is unrelated and was neither merged nor altered.
+- **Identity:** every commit is authored and committed by `iAakash1 <aakashjawle101@gmail.com>`, checked on the commit objects;
+  no trailers. No AI attribution anywhere in the repository (scanned before each commit; exit codes read, not inferred).
+- **Protected:** EXP-006/EXP-007 results, artifacts, folds, 10 bp cost, selection contract, promotion status and the sealed
+  holdout. Baseline file fingerprints (sha256 prefixes): `final_selection.json a69f54e5a309ec3f`, `configs.jsonl
+  d0251b4cc4e21d03`, `search.json 9ada5cda42234782`. Adding new files under `experiments/` or `src/quant/study/` changes
+  directory tree hashes by design; protection is verified per file.
 
-## Baseline facts verified from the artifacts (2026-10-11)
+## Verified baseline facts
 
-| Fact in the brief | Verified value | Source |
+EXP-007 verdict `NO PRODUCTION CANDIDATE`; best recorded net Sharpe `+0.1106` (config `9d1651c56782`, hist-gradient-boosting,
+`C_base`, 27 features, 10 bp half-spread; gross 0.498, mean Rank IC 0.0332, turnover 18.5x); PBO 0.929 over 6 finalists;
+1,029 cumulative trials; holdout untouched. Holdout window is `2025-08-26..2026-08-26` in the EXP-007 artifact and
+`2025-08-28..2026-08-28` in `CURRENT_QUANT_RESEARCH_AUDIT.md` (documentation discrepancy, not edited). Later: EXP-010A/B and
+EXP-011 (`IMPROVES_ONLY_LINEAR`) complete; **no EXP-008 folder exists; the next unused identifier is EXP-012.**
+`NEXT_RESEARCH_DECISION_2026.md` asked the owner to choose Direction A (data completion) or B (freeze); the owner's 2026-10-11/12
+instructions authorise new, separately registered work and keep the holdout sealed (Direction A character).
+All seed identifiers (7 DOIs, 4 arXiv ids) were resolved against Crossref/arXiv.
+
+## Done
+
+| Item | Where | Status |
 |---|---|---|
-| EXP-007 verdict | `NO PRODUCTION CANDIDATE` (`passed: false`, 1 gate failed of 8) | `artifacts/experiments/EXP-007/final_selection.json` |
-| EXP-007 best net Sharpe | `+0.1106` (config `9d1651c56782`, hist_gradient_boosting, arm `C_base`, 27 features, 10 bp half-spread); gross 0.498; mean Rank IC 0.0332; annualised turnover 18.5 | same |
-| EXP-007 selection bias diagnostics | PBO 0.929 over 6 finalists; cumulative trials 1,029 (156 prior + 873 new); expected max abs t under the null 3.38 | same |
-| Holdout | untouched; window recorded as 2025-08-26..2026-08-26 in EXP-007's artifact and as 2025-08-28..2026-08-28 in `CURRENT_QUANT_RESEARCH_AUDIT.md` (a documentation discrepancy to resolve, not to edit) | same, `docs/CURRENT_QUANT_RESEARCH_AUDIT.md` |
-| Frozen panel | `ds-6a5ce92de4de9c48`: 506,374 rows, 977 symbols, 625 dates, 103 features, 9 labels | same |
-| Later studies | EXP-010A (noise floor), EXP-010B (21-session cadence), EXP-011 (rich PIT data, `IMPROVES_ONLY_LINEAR`) complete and immutable; EXP-012 not started; no EXP-008 folder exists | `docs/NEXT_RESEARCH_DECISION_2026.md`, `experiments/` |
+| Query bank (143 queries, 12 families), logged retrieval | `code/queries.json`, `code/lit_search.py`, `search_log.csv` | Crossref, arXiv, NBER complete; OpenAlex partial (keyless daily budget exhausted after 67 pages; rerun after 00:00 UTC) |
+| Dedup + pool (11,217 distinct works -> 2,311 screening pool) | `prisma_counts.json`, `code/build_candidates.py` | done |
+| Title/abstract screening | `screening_log.csv`, `screening_summary.json` | 2,011 of 2,311 rubric-screened; 300 classifier-triaged; agreement kappa 0.887 (3-class) |
+| Recovery of the stopped runs | `recovery_inventory.md`, `recovery/` | done: 9 of 13 failed agents had written valid files; 4 batches lost |
+| Signal registry from code | `signals_core.csv`, `code/export_signal_registry.py` | 114 rows; reconciles to EXP-007's 103 frozen columns |
 
-The seed bibliography was checked against Crossref and arXiv on 2026-10-11: all seven seed DOIs and all four seed arXiv ids
-resolve to the titles given in the brief, including the 2026 items (Discover Computing, Computers and Electrical
-Engineering, arXiv 2606.27100).
+## Token accounting (measured from transcripts; not billing)
 
-## What exists
+27 screening agents 4.46M (new input + output + cache creation); baseline-audit workflow 5.13M over two runs with no output;
+dataset-landscape workflow 0.74M with no output. Details and caveats: `recovery_inventory.md`. **No further model screening and no
+new agent swarm.** Any further agent needs a stated question, why existing artifacts cannot answer it, and a named deliverable.
 
-| Path | Content | Status |
-|---|---|---|
-| `code/queries.json` | 143-query bank in 12 families (A-L), seed DOIs/arXiv ids/titles | done |
-| `code/lit_search.py` | deterministic, logged, resumable retrieval (OpenAlex, Crossref, arXiv, NBER, Semantic Scholar sample) | done |
-| `code/build_candidates.py` | normalise, deduplicate, domain-filter, rank, count (PRISMA identification numbers) | done, rerun after retrieval completes |
-| `search_log.csv` | one row per request with the API's own hit count and the SHA-256 of the raw response | appended by the script |
-| `shards/` | machine-readable audit shards written by audit agents (signals, experiments, datasets, validation, provenance, internal literature, external datasets) | in progress |
+## Known limits of the search
 
-## Retrieval constraints (honest limits of the search)
+OpenAlex keyless budget (about 100 requests a day); SSRN search behind bot protection (HTTP 403, not circumvented);
+IDEAS/RePEc native search not parseable; Semantic Scholar 429; Crossref total hits are fuzzy. Publisher platforms were reached
+through Crossref/OpenAlex metadata only. Titles and identifiers are retained in the ledger; abstracts are not redistributed.
 
-- **OpenAlex without an API key** has a small shared daily budget (about 100 requests; the response says so and resets at
-  00:00 UTC). 67 pages were retrieved before it was exhausted; the remaining queries must be rerun after the reset. A free key
-  would lift it but requires creating an account, which this study does not do.
-- **SSRN's search is behind bot protection (HTTP 403)** and is not circumvented. SSRN-hosted working papers are reached through
-  their registered DOIs (10.2139/ssrn.*) in Crossref/OpenAlex and through domain-restricted web searches.
-- **IDEAS/RePEc** native search could not be parsed (the POST endpoint returns a page without result items); covered via NBER's
-  own API, OpenAlex/Crossref and domain-restricted web searches.
-- **Semantic Scholar** answers 429 to unauthenticated requests; only a small logged sample is attempted.
-- Crossref's `total-results` is a fuzzy-match count and is not interpretable as a relevance count; ranks are.
-- Publisher platforms (IEEE Xplore, ACM, Springer Nature, Elsevier, Wiley, OUP, CUP) were not queried through their own
-  search APIs (keys/subscriptions); their metadata is reached through Crossref and OpenAlex.
+## Method statement (not attribution)
 
-## Next steps (in order)
+Title/abstract screening was automated and rubric-driven (`code/screening_rubric.md`), with a second independent automated screen
+on a hash-sampled 10% and a measured agreement; no human screened records. The repository credits no tool as author. Journals
+generally require disclosure of such tools in a manuscript and forbid listing one as an author; that declaration is separate
+from repository attribution and must be settled with the target journal before submission (`10_JOURNAL_POSITIONING.md`).
 
-1. Finish arXiv retrieval; rerun `lit_search.py --only OPENALEX` after 00:00 UTC (and again the next day if needed).
-2. `python3 code/build_candidates.py` -> `data/candidates_pool.jsonl`, `prisma_counts.json`.
-3. Screening workflow: batches of the pool screened title/abstract by structured agents, 10% dual-screened for agreement.
-4. Detailed coding of at least 120 included works; full-text reading of at least 30 (open-access only; record what was read).
-5. Merge the audit shards into `signals.csv`, `datasets.csv`, `05_OMNISIGNAL_SIGNAL_AUDIT.md`, `04_DATASET_LANDSCAPE.md`.
-6. Candidate generation (>= 6), prior-art audit of the leading candidate against 20-30 closest works, scoring, selection.
-7. Preregistered protocol, bounded feasibility pilot only if genuine point-in-time data supports it, reviewer panel, journals.
+## Next executable step
 
-## Resume commands
-
-```bash
-cd /Users/aakashjawle/Downloads/omnisignal-final/miniAladdin
-git switch research/market-signal-review-2026-10-11
-python3 docs/research/market-signal-review-2026-10-11/code/lit_search.py --only OPENALEX   # after 00:00 UTC
-python3 docs/research/market-signal-review-2026-10-11/code/build_candidates.py
-```
+1. From `screening_log.csv`, list the nearest prior art for the reliability hypothesis (families G, K, F, H, A with
+   `candidate_overlap` A/B/H, relevance 3) and read their abstracts; decide whether the gap survives.
+2. If it survives: build the SEC-submissions reliability table for the EXP-011 universe (public, free, User-Agent with contact)
+   and register EXP-012 (validation folds only, holdout sealed) as an exploratory, predeclared comparison.
+3. If it does not: pivot to the strongest remaining gap and record why.

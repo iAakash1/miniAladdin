@@ -1,0 +1,301 @@
+pool_id,title,year,doi,arxiv,seed,p_relevant,decision,provenance
+W00220,Information Aggregation for Stock Return Predictability,2016,10.2139/ssrn.2841389,,False,0.9953,carry_forward,classifier_assisted
+W00533,The cross-section of stock returns in an early stock market,2014,10.1016/j.irfa.2014.05.007,,False,0.9914,carry_forward,classifier_assisted
+W00740,Illiquidity and the Cross-Section of International Stock Returns,2020,10.2139/ssrn.3520760,,False,0.9898,carry_forward,classifier_assisted
+W00153,Optimizing stock market prediction and stock trading strategies with deep learning models enhanced by nonlinear feature identification and robust prediction evaluation,2026,10.1186/s40854-026-00929-6,,False,0.9887,carry_forward,classifier_assisted
+W00439,Stock returns and investor sentiment: textual analysis and social media,2019,10.1007/s12197-019-09494-4,,False,0.9834,carry_forward,classifier_assisted
+W01145,Stock Price Prediction Using Lstm: An Advanced Review,2022,10.2139/ssrn.4097211,,False,0.98,carry_forward,classifier_assisted
+W02084,What Does ChatGPT Make of Historical Stock Returns? Extrapolation and Miscalibration in LLM Stock Return Forecasts,2024,,2409.11540,False,0.979,carry_forward,classifier_assisted
+W01567,Publication Bias and the Cross-Section of Stock Returns,2018,10.17016/feds.2018.033,,False,0.9775,carry_forward,classifier_assisted
+W00218,Predictability of the simple technical trading rules: An out‐of‐sample test,2013,10.1016/j.rfe.2013.05.004,,False,0.9773,carry_forward,classifier_assisted
+W00594,Volatility of Price–Earnings Ratio and Long‐Run Return Predictability,2026,10.1111/fima.70030,,False,0.9766,carry_forward,classifier_assisted
+W00575,Monetary policy surprises and the cross sectional stock return predictability in volume sorted portfolios,2026,10.1016/j.irfa.2026.105134,,False,0.9755,carry_forward,classifier_assisted
+W00896,Technical Analysis in the Stock Market: A Review,2024,10.1142/9789811269943_0059,,False,0.9736,carry_forward,classifier_assisted
+W00952,Anchoring the stock market : 52-week high momentum trading,2019,,,False,0.9731,carry_forward,classifier_assisted
+W00351,Which Voices Move Markets? Speaker Identity and the Cross-Section of Post-Earnings Returns,2026,,2604.13260,False,0.9725,carry_forward,classifier_assisted
+W01327,News versus Sentiment: Predicting Stock Returns from News Stories,2016,10.17016/feds.2016.048,,False,0.972,carry_forward,classifier_assisted
+W00441,A Discrete Stock Price Prediction Engine Based on Financial News,2010,10.1109/mc.2010.2,,False,0.9717,carry_forward,classifier_assisted
+W01946,Two Essays in Asset Pricing and FinTech: Out-of-Sample Equity Premium Predictability and Stock Co-jump Networks with Mixed Membership,2025,10.14711/thesis-hdl151231,,False,0.9703,carry_forward,classifier_assisted
+W00151,Dumb Money: Mutual Fund Flows and the Cross-Section of Stock Returns,2005,10.3386/w11526,,False,0.9698,carry_forward,classifier_assisted
+W00440,Machine learning goes global: Cross-sectional return predictability in international stock markets,2023,10.1016/j.jedc.2023.104725,,False,0.9668,carry_forward,classifier_assisted
+W01097,Momentum crashes,2016,10.1016/j.jfineco.2015.12.002,,False,0.9659,carry_forward,classifier_assisted
+W00090,Heteroskedasticity in Stock Returns,1989,10.3386/w2956,,False,0.963,carry_forward,classifier_assisted
+W01107,The information content in implied idiosyncratic volatility and the cross‐section of stock returns: Evidence from the option markets,2008,10.1002/fut.20327,,False,0.9623,carry_forward,classifier_assisted
+W00399,"ETF Stock Return Predictability, Fund Premia, and Fund Flows",2020,10.37727/jkdas.2020.22.1.23,,False,0.962,carry_forward,classifier_assisted
+W01587,Earnings momentum meets short‐term return reversal,2020,10.1111/acfi.12669,,False,0.9535,carry_forward,classifier_assisted
+W00483,Robust Econometric Inference for Stock Return Predictability,2014,10.1093/rfs/hhu139,,False,0.9529,carry_forward,classifier_assisted
+W00973,Volatility Momentum,2017,10.2139/ssrn.3042926,,False,0.9514,carry_forward,classifier_assisted
+W00913,Optimization-based spectral end-to-end deep reinforcement learning for equity portfolio management,2025,10.1016/j.pacfin.2025.102746,,False,0.9513,carry_forward,classifier_assisted
+W01978,Integration of Wavelet Transform Convolution and Channel Attention with LSTM for Stock Price Prediction based Portfolio Allocation,2025,,2507.01973,False,0.9494,carry_forward,classifier_assisted
+W00491,ECB language and stock returns – A textual analysis of ECB press conferences,2021,10.1016/j.qref.2021.04.003,,False,0.9491,carry_forward,classifier_assisted
+W02122,Simple Technical Trading Rules and the Stochastic Properties of Stock Returns,1992,10.1111/j.1540-6261.1992.tb04681.x,,False,0.9484,carry_forward,classifier_assisted
+W00502,Do Daily Adaptive Machine Learning Stock Rankings Survive Trading Costs? Evidence from Cross-Sectional Technical Signals,2026,10.3390/economies14090393,,False,0.9465,carry_forward,classifier_assisted
+W00079,Publication Bias in Asset Pricing Research,2022,10.48550/arxiv.2209.13623,2209.13623,False,0.9463,carry_forward,classifier_assisted
+W01595,Anomalies in Commodity Futures Markets: Risk or Mispricing?,2020,10.2139/ssrn.3567629,,False,0.945,carry_forward,classifier_assisted
+W02151,A Machine Learning Framework for Stock Trading: Integrating Technical and Economic Indicators,2025,10.63332/joph.v5i8.3133,,False,0.941,carry_forward,classifier_assisted
+W00326,Using Financial News Sentiment for Stock Price Direction Prediction,2022,10.3390/math10132156,,False,0.9408,carry_forward,classifier_assisted
+W00957,PROFITABILITY OF TECHNICAL TRADING RULES IN ISLAMIC STOCK MARKETS,2014,10.51200/lbibf.v10i.1338,,False,0.9385,carry_forward,classifier_assisted
+W00713,"Short-term stock price momentum, long-term stock price reversal and the effect of information uncertainty",2010,10.1504/ijaf.2010.031910,,False,0.9374,carry_forward,classifier_assisted
+W01577,Nominal Price Anomaly in Emerging Markets: Risk or Mispricing?,2020,10.13106/jafeb.2020.vol7.no9.125,,False,0.9371,carry_forward,classifier_assisted
+W01945,LSTM-Based Stock Price Prediction,2023,10.54097/fcis.v4i2.10208,,False,0.9351,carry_forward,classifier_assisted
+W01750,Time-varying conditional covariances in tests of asset pricing models,1989,10.1016/0304-405x(89)90049-4,,False,0.935,carry_forward,classifier_assisted
+W00589,Stock Market Prediction Using Node Transformer Architecture Integrated With BERT Sentiment Analysis,2026,10.1109/access.2026.3691980,2603.05917,False,0.9306,carry_forward,classifier_assisted
+W01180,Persistence of Hedge Fund Returns and Fee-Aware Portfolio Construction,2018,10.3905/jpm.2018.44.5.103,,False,0.9302,carry_forward,classifier_assisted
+W01554,"Corporate Disclosure, Analyst Forecast Dispersion, and Stock Returns",2016,10.1177/0148558x16674857,,False,0.9292,carry_forward,classifier_assisted
+W00900,Portfolio construction by volatility forecasts: Does the covariance structure matter?,2003,10.1007/s11408-003-0105-6,,False,0.9291,carry_forward,classifier_assisted
+W00531,Evaluation of current research on stock return predictability,2019,10.1002/for.2629,,False,0.9277,carry_forward,classifier_assisted
+W00927,Online Portfolio Selection with Transaction Costs Including Market Impact Costs,2016,10.2139/ssrn.2763202,,False,0.9273,carry_forward,classifier_assisted
+W00099,"Momentum Trading, Return Chasing, and Predictable Crashes",2014,10.3386/w20660,,False,0.925,carry_forward,classifier_assisted
+W00255,Can Geopolitical Risk Improve the Forecasting of Thai Stock-Market Returns? Evidence from Econometrics and Machine-Learning Models,2026,10.3390/forecast8050087,,False,0.923,carry_forward,classifier_assisted
+W01324,Deep learning in the Chinese stock market: The role of technical indicators,2022,10.1016/j.frl.2022.103025,,False,0.9227,carry_forward,classifier_assisted
+W01863,TD-HCN: A trend-driven hypergraph convolutional network for stock return prediction,2025,10.1016/j.neunet.2025.107729,,False,0.9225,carry_forward,classifier_assisted
+W00712,Prediction of Stock Return Based on Sentiment,2024,10.54254/2753-8818/2024.18489,,False,0.9222,carry_forward,classifier_assisted
+W00405,Likelihood-Based Dynamic Asset Pricing: Learning Time-Varying Risk Premia from Cross-Sectional Models,2020,10.2139/ssrn.3666324,,False,0.9216,carry_forward,classifier_assisted
+W00437,"The Deflated Sharpe Ratio: Correcting for Selection Bias, Backtest Overfitting, and Non-Normality",2014,10.3905/jpm.2014.40.5.094,,True,0.9188,carry_forward,classifier_assisted
+W01208,Stock Investment: The p-index Approach,2026,,2606.08569,False,0.9186,carry_forward,classifier_assisted
+W01623,Rumor-Like News Sentiment and Its Impact on Stock Returns: A Granger Causality Analysis,2025,10.54254/2754-1169/2025.gl28083,,False,0.9183,carry_forward,classifier_assisted
+W00433,"Survival, Look-Ahead Bias, and Persistence in Hedge Fund Performance",2005,10.1017/s0022109000001848,,False,0.9181,carry_forward,classifier_assisted
+W00609,Forecasting the Future: A Practical Approach to Stock Price Prediction Using Time Series and Machine Learning Models,2025,10.21275/sr25417110001,,False,0.9174,carry_forward,classifier_assisted
+W00720,Analyst Quality and the Post-Earnings-Announcement Drift*,2009,10.2139/ssrn.1460377,,False,0.9169,carry_forward,classifier_assisted
+W00335,Mispricing Factors,2015,10.3386/w21533,,False,0.9162,carry_forward,classifier_assisted
+W00904,Asset pricing with data revisions,2022,10.1016/j.finmar.2021.100620,,False,0.9137,carry_forward,classifier_assisted
+W00590,The Fu (2009) Positive Relation Between Idiosyncratic Volatility and Expected Returns is Due to Look-Ahead Bias,2023,10.1561/104.00000126,,False,0.9132,carry_forward,classifier_assisted
+W00540,Market Efficiency and Technical Trading: An Empirical Study of MACD and RSI Indicators in Major Asian Stock Indices,2025,10.59865/abacj.2025.30,,False,0.9123,carry_forward,classifier_assisted
+W00627,QTMRL: An Agent for Quantitative Trading Decision-Making Based on Multi-Indicator Guided Reinforcement Learning,2025,,2508.20467,False,0.9112,carry_forward,classifier_assisted
+W00525,Automated news reading: Stock price prediction based on financial news using context-capturing features,2013,10.1016/j.dss.2013.02.006,,False,0.9105,carry_forward,classifier_assisted
+W00105,"What survives honest evaluation? Leakage-safe, search-aware assessment of LLM-driven trading strategy discovery",2026,,2608.27734,False,0.9101,carry_forward,classifier_assisted
+W02247,Out-of-Sample Equity Premium Prediction: Combination Forecasts and Links to the Real Economy,2009,10.1093/rfs/hhp063,,False,0.9082,carry_forward,classifier_assisted
+W01806,Improving volatility forecasts of the Nikkei 225 stock index using a realized EGARCH model with realized and realized range-based volatilities,2025,,2502.02695,False,0.9034,carry_forward,classifier_assisted
+W00960,"Stock Market Forecasting: A Review of Statistical, Machine Learning and Hybrid Approaches",2020,10.37896/jxu14.5/483,,False,0.903,carry_forward,classifier_assisted
+W01331,Entropy-Based Technical Analysis Indicators Selection for International Stock Markets Fluctuations Prediction Using Support Vector Machines,2014,10.1142/s0219477514500138,,False,0.9028,carry_forward,classifier_assisted
+W01374,Explanations for Cross‐Sectional Return Anomalies: Evidence on the IVOL Puzzle,2026,10.1111/fima.70058,,False,0.8998,carry_forward,classifier_assisted
+W00781,Detailed study of a moving average trading rule,2019,10.1080/14697688.2017.1417621,1907.00212,False,0.8993,carry_forward,classifier_assisted
+W00018,The History of the Cross-Section of Stock Returns,2018,10.1093/rfs/hhy030,,False,0.8973,carry_forward,classifier_assisted
+W01904,StockTime: A Time Series Specialized Large Language Model Architecture for Stock Price Prediction,2024,,2409.08281,False,0.8965,carry_forward,classifier_assisted
+W00951,Liquidity and stock returns : empirical evidence in China.,2012,,,False,0.896,carry_forward,classifier_assisted
+W00130,Portfolio Inefficiency and the Cross-Section of Expected Returns,1994,10.3386/w4702,,False,0.8946,carry_forward,classifier_assisted
+W00672,"Innovative Sentiment Analysis and Prediction of Stock Price Using FinBERT, GPT-4 and Logistic Regression: A Data-Driven Approach",2024,10.3390/bdcc8110143,2412.06837,False,0.892,carry_forward,classifier_assisted
+W01628,"Momentum Returns, Information Uncertainty and Retail Ownership",2013,10.2139/ssrn.2312303,,False,0.8901,carry_forward,classifier_assisted
+W00200,AI-Powered Stock Price Prediction System Using Machine Learning,2026,10.21275/mr26825115250,,False,0.8895,carry_forward,classifier_assisted
+W01658,Deep Learning for Portfolio Optimization,2020,10.3905/jfds.2020.1.042,2005.13665,False,0.8877,carry_forward,classifier_assisted
+W00041,"Information, analysts, and stock return comovement",2010,10.3386/w15833,,False,0.8872,carry_forward,classifier_assisted
+W01096,Liquidity and Expected Returns: Lessons from Emerging Markets,2007,10.1093/rfs/hhm030,,False,0.8861,carry_forward,classifier_assisted
+W00384,Stock return prediction with multiple measures using neural network models,2024,10.1186/s40854-023-00608-w,,False,0.8858,carry_forward,classifier_assisted
+W01052,Estimation errors of the Sharpe ratio for long-memory stochastic volatility models,2007,10.1214/074921706000001021,math/0702812,False,0.8842,carry_forward,classifier_assisted
+W01939,Integrating Real-Time Financial Data Streams to Enhance Dynamic Risk Modeling and Portfolio Decision Accuracy,2025,10.7753/ijcatr1408.1001,,False,0.876,carry_forward,classifier_assisted
+W01562,Comparison of Realized Measure and Implied Volatility in Forecasting Volatility,2013,10.1002/for.2253,,False,0.8749,carry_forward,classifier_assisted
+W01474,Improving the Robustness of Trading Strategy Backtesting with Boltzmann Machines and Generative Adversarial Networks,2020,,2007.04838,False,0.8724,carry_forward,classifier_assisted
+W00630,LSTM–Transformer-Based Robust Hybrid Deep Learning Model for Financial Time Series Forecasting,2025,10.3390/sci7010007,,False,0.8717,carry_forward,classifier_assisted
+W01039,Macro-aware time series forecasting via hierarchical mixed-frequency attention models,2026,,2606.00624,False,0.8696,carry_forward,classifier_assisted
+W00593,Forecasting Equity Correlations with Hybrid Transformer Graph Neural Network,2026,,2601.04602,False,0.8667,carry_forward,classifier_assisted
+W01167,A Hybrid Stock Forecasting Model based on EMD -SVR and Technical Indicators Feature Selection,2022,10.6007/ijarafms/v12-i1/12184,,False,0.8638,carry_forward,classifier_assisted
+W00792,A Deep Reinforcement Learning Framework For Financial Portfolio Management,2024,,2409.08426,False,0.8619,carry_forward,classifier_assisted
+W00295,"System Shift Risk, Publication Effects, and the Decay of Stock Return Predictability: An Exploratory Empirical Framework",2026,10.57096/return.v5i6.479,,False,0.8602,carry_forward,classifier_assisted
+W00410,Machine Learning Enhanced Multi-Factor Quantitative Trading: A Cross-Sectional Portfolio Optimization Approach with Bias Correction,2025,,2507.07107,False,0.8598,carry_forward,classifier_assisted
+W01859,EMAT: Enhanced Multi-Aspect Attention Transformer for Financial Time Series Forecasting,2025,10.3390/e27101029,,False,0.8598,carry_forward,classifier_assisted
+W01106,Evaluation of forecasting methods from selected stock market returns,2019,10.1186/s40854-019-0157-x,,False,0.8581,carry_forward,classifier_assisted
+W01683,Causal and Predictive Modeling of Short-Horizon Market Risk and Systematic Alpha Generation Using Hybrid Machine Learning Ensembles,2025,,2510.22348,False,0.858,carry_forward,classifier_assisted
+W01878,Advance Sequential Models for Asset Trading: Leveraging LSTM &amp; RNN with Stochastic RSI and MACD Indicators,2024,10.22214/ijraset.2024.60282,,False,0.8566,carry_forward,classifier_assisted
+W00308,Stock Returns and the Term Structure,1985,10.3386/w1626,,False,0.8562,carry_forward,classifier_assisted
+W00625,Stock Price Prediction Models: From Multi-Scale Adaptive Networks to Large Language Models,2026,10.61173/pc8ec033,,False,0.8558,carry_forward,classifier_assisted
+W00550,Time-Series Imputation with Wasserstein Interpolation for Optimal Look-Ahead-Bias and Variance Tradeoff,2021,,2102.12736,False,0.8508,carry_forward,classifier_assisted
+W00122,One Factor to Bind the Cross-Section of Returns,2024,10.3386/w32365,,False,0.8483,carry_forward,classifier_assisted
+W01573,Feature Selection for Stock Movement Direction Prediction Using Sparse Support Vector Machine,2025,10.1002/asmb.70011,,False,0.8474,carry_forward,classifier_assisted
+W00920,Improving Many Volatility Forecasts Using Cross-Sectional Volatility Clusters,2020,10.3390/jrfm13040064,,False,0.8473,carry_forward,classifier_assisted
+W00702,A Comprehensive Review of Stock Price Prediction Using Text Mining,2022,10.47654/v26y2022i2p116-152,,False,0.8465,carry_forward,classifier_assisted
+W00330,A generalization of multi-source fusion-based framework to stock selection,2023,10.1016/j.inffus.2023.102018,,False,0.8439,carry_forward,classifier_assisted
+W01951,Forecasting realized volatility with the implied volatility surface: an image-based approach,2026,10.21314/jor.2026.006,,False,0.8435,carry_forward,classifier_assisted
+W01948,Evaluating Predictive Power of Fundamental and Technical Indicators Using Machine Learning in Commodity Markets,2025,,,False,0.8403,carry_forward,classifier_assisted
+W00457,Asset Pricing Through Downside Risk Based Arbitrage Pricing Theory: Empirical Evidence from Pakistan Stock Exchange,2020,10.34091/ajss.13.2.02,,False,0.8394,carry_forward,classifier_assisted
+W00825,FinRL: A Deep Reinforcement Learning Library for Automated Stock Trading in Quantitative Finance,2020,,2011.09607,True,0.8384,carry_forward,classifier_assisted
+W01149,"Quantitative portfolio optimization framework with market regimes classification, probabilistic time series forecasting, and hidden Markov models",2025,10.1007/s42521-025-00153-4,,False,0.8367,carry_forward,classifier_assisted
+W00310,A Survey of Forex and Stock Price Prediction Using Deep Learning,2021,10.3390/asi4010009,,False,0.8284,carry_forward,classifier_assisted
+W01192,Centred expected shortfall (CES): a traditional asset manager’s view on decomposing downside investment risk,2023,10.1080/14697688.2023.2269992,,False,0.8188,carry_forward,classifier_assisted
+W00578,DART: Domain Aware Relational Transformer for Stock Prediction,2026,10.21203/rs.3.rs-9891943/v1,,False,0.815,carry_forward,classifier_assisted
+W00663,HAR Modeling for Realized Volatility Forecasting,2012,10.1002/9781118272039.ch15,,False,0.8139,carry_forward,classifier_assisted
+W00728,Working with CRSP/COMPUSTAT in R: Reproducible Empirical Asset Pricing,2021,10.32614/rj-2021-047,,False,0.8139,carry_forward,classifier_assisted
+W02137,From Econometrics to Machine Learning: Transforming Empirical Asset Pricing,2025,10.1111/joes.70002,,False,0.8115,carry_forward,classifier_assisted
+W00745,Behavioral-Memory-Augmented Sparse Mixture-of-Experts Time-Series Foundation Model for Cross-Market Financial Return Forecasting,2026,10.1109/access.2026.3727460,,False,0.8064,carry_forward,classifier_assisted
+W01205,Forecasting Realized Volatility Matrix With Copula-Based Models,2020,,2002.08849,False,0.7984,carry_forward,classifier_assisted
+W00547,Stock Trading via Feedback Control: Stochastic Model Predictive or Genetic?,2017,,1708.08857,False,0.7941,carry_forward,classifier_assisted
+W00696,Feedback predictive control strategies for investment in the financial market with serially correlated returns subject to constraints and trading costs,2017,10.1002/oca.2296,,False,0.793,carry_forward,classifier_assisted
+W00551,Do Sell-side Analyst Reports Have Investment Value?,2025,,2502.20489,False,0.7867,carry_forward,classifier_assisted
+W00571,The Capital Asset Pricing Model: Theory and Evidence,2004,10.1257/0895330042162430,,False,0.7865,carry_forward,classifier_assisted
+W00933,An Empirical Assessment of Characteristics and Optimal Portfolios,2024,10.1093/rapstu/raae006,2104.12975,False,0.7789,carry_forward,classifier_assisted
+W01177,Research on multi-source data fusion algorithm and optimization application for financial risk identification,2026,10.1049/icp.2025.4100,,False,0.7787,carry_forward,classifier_assisted
+W02099,Online Ensemble Learning for Sector Rotation: A Gradient-Free Framework,2023,,2304.09947,False,0.7708,carry_forward,classifier_assisted
+W01465,"A revised comparison between FF five-factor model and three-factor model,based on China's A-share market",2021,,2112.03170,False,0.7672,carry_forward,classifier_assisted
+W00991,Memory effects in stock price dynamics: evidences of technical trading,2011,,1110.5197,False,0.7671,carry_forward,classifier_assisted
+W00598,Data-Efficient Realized Volatility Forecasting with Vision Transformers,2025,,2511.03046,False,0.767,carry_forward,classifier_assisted
+W01653,An Asymmetric Capital Asset Pricing Model,2024,,2404.14137,False,0.7619,carry_forward,classifier_assisted
+W00267,FinAbstain: Uncertainty-Calibrated Multimodal RAG for Selective Financial Forecasting,2026,,2607.24875,False,0.7484,carry_forward,classifier_assisted
+W02074,On options-driven realized volatility forecasting: Information gains via rough volatility model,2026,,2604.02743,False,0.7452,carry_forward,classifier_assisted
+W01821,"Do VLMs Truly ""Read"" Candlesticks? A Multi-Scale Benchmark for Visual Stock Price Forecasting",2026,,2604.12659,False,0.743,carry_forward,classifier_assisted
+W00538,Multimodal information fusion for financial forecasting via cross-attention and calibrated uncertainty,2026,10.1016/j.mlwa.2026.100840,,False,0.7364,carry_forward,classifier_assisted
+W02007,High-Dimensional Mean-Variance Spanning Tests,2024,10.2139/ssrn.4703023,2403.17127,False,0.7335,carry_forward,classifier_assisted
+W02165,"A comprehensive review of open source large language models for the analysis of earnings call reports and financial documents including applications, datasets, and long term challenges",2026,10.1007/s44163-026-01334-9,,False,0.7314,carry_forward,classifier_assisted
+W02035,Harnessing Machine Learning for Stock Price Prediction with Random Forest and Simple Moving Average Techniques,2024,10.69693/jesa.v1i1.1,,False,0.7166,carry_forward,classifier_assisted
+W02291,"Prospect theory, mental accounting, and momentum",2005,10.1016/j.jfineco.2004.10.006,,False,0.7101,carry_forward,classifier_assisted
+W00941,Reinforcement Learning for Enhancing Bitcoin Risk-Aware Trading with Predictive Signals,2026,10.3390/electronics15040793,,False,0.7019,carry_forward,classifier_assisted
+W02019,Zero-Copy Semantic Contagion: An In-Memory Streaming Architecture for Evolving Attention Graphs,2026,,2606.05733,False,0.6905,carry_forward,classifier_assisted
+W00667,Universal Portfolios With and Without Transaction Costs,1999,10.1023/a:1007530728748,,False,0.6844,carry_forward,classifier_assisted
+W01973,Market Inefficiency in Cryptoasset Markets,2026,,2602.20771,False,0.6831,carry_forward,classifier_assisted
+W00493,Improving RNN Performance by Modelling Informative Missingness with Combined Indicators,2019,10.3390/app9081623,,False,0.6793,carry_forward,classifier_assisted
+W01342,Do asset impairments and the associated disclosures resolve uncertainty about future returns and reduce information asymmetry?,2018,10.1016/j.jcae.2018.02.003,,False,0.6655,carry_forward,classifier_assisted
+W01920,Enhanced indexation using both equity assets and index options,2025,,2508.21192,False,0.6565,carry_forward,classifier_assisted
+W01763,The Role of Deep Learning in Financial Asset Management: A Systematic Review,2025,10.48550/arxiv.2503.01591,2503.01591,False,0.6462,carry_forward,classifier_assisted
+W01158,Bringing Discipline to the Factor Zoo: Evidence from China,2025,,,False,0.6401,carry_forward,classifier_assisted
+W00733,Insider Purchases Far Below the 52-Week High: Decomposing the Disclosure Reaction in Microcap Equities,2026,10.48550/arxiv.2602.06198,2602.06198,False,0.6399,carry_forward,classifier_assisted
+W01181,Stock Return Effects of Accounting Information and Institutional Quality,2022,10.33423/jaf.v22i5.5763,,False,0.6314,carry_forward,classifier_assisted
+W01127,Bid–ask spread estimator from high and low daily prices: Practical implementation for corporate bonds,2018,10.1016/j.jempfin.2018.06.003,,False,0.6303,carry_forward,classifier_assisted
+W00169,Technical Trading Rule Profitability and Foreign Exchange Intervention,1996,10.3386/w5505,,False,0.6276,carry_forward,classifier_assisted
+W02296,Are Carbon Emissions Associated with Stock Returns?,2023,10.1093/rof/rfad013,,False,0.623,carry_forward,classifier_assisted
+W00703,"Volatility of BIST 100 Returns After 2020, Calendar Anomalies and Covid-19 Effect",2021,10.46520/bddkdergisi.986643,,False,0.6175,carry_forward,classifier_assisted
+W00965,An LLM-based event-driven forecasting framework for intelligent financial services,2026,10.1007/s11761-026-00508-8,,False,0.6168,carry_forward,classifier_assisted
+W00795,FinPT: Financial Risk Prediction with Profile Tuning on Pretrained Foundation Models,2023,,2308.00065,False,0.616,carry_forward,classifier_assisted
+W00747,Using Big Data to Improve Financial Forecasting,2019,10.33548/scientia328,,False,0.6137,carry_forward,classifier_assisted
+W01596,Copula Model Selection of Stock Return Time Series Using Information Complexity,2018,10.22158/jbtp.v6n4p294,,False,0.6131,carry_forward,classifier_assisted
+W00912,The betting against beta anomaly: Fact or fiction?,2016,10.1016/j.frl.2015.12.010,,False,0.6123,carry_forward,classifier_assisted
+W02212,Feedback-Enhanced Online Multiple Testing with Applications to Conformal Selection,2025,,2509.03297,False,0.6068,carry_forward,classifier_assisted
+W01600,"Market Microstructure of High-Frequency Trading (HFT) in Derivatives: Strategies, Impact, and Regulatory Implications",2020,10.21275/sr24422182248,,False,0.6044,carry_forward,classifier_assisted
+W01779,Crude oil risk forecasting using time series foundation model,2025,10.1016/j.procs.2025.08.073,,False,0.6036,carry_forward,classifier_assisted
+W01645,STORM: A Spatio-Temporal Factor Model Based on Dual Vector Quantized Variational Autoencoders for Financial Trading,2024,,2412.09468,False,0.6019,carry_forward,classifier_assisted
+W02003,Towards systematic intraday news screening: a liquidity-focused approach,2023,,2304.05115,False,0.6,carry_forward,classifier_assisted
+W00190,Backtesting Strategies Based on Multiple Signals,2015,10.3386/w21329,,False,0.5982,carry_forward,classifier_assisted
+W00802,Multimodal price prediction,2020,10.1007/s40745-021-00326-z,2007.05056,False,0.5978,carry_forward,classifier_assisted
+W00963,The Role of Data Analysis in Financial Forecasting: Enhancing Accuracy and Decision-Making in Modern Financial Systems,2026,10.70729/se26523173752,,False,0.5955,carry_forward,classifier_assisted
+W00167,Predicting cryptocurrency returns with vision transformers: A look-ahead bias-free approach,2026,10.1016/j.jbankfin.2026.107750,,False,0.5916,carry_forward,classifier_assisted
+W00207,A Model of Momentum,2011,10.3386/w16747,,False,0.5869,carry_forward,classifier_assisted
+W00359,Scaling-laws for Large Time-series Models,2024,,2405.13867,False,0.5792,carry_forward,classifier_assisted
+W00537,A Posteriori Multistage Optimal Trading under Transaction Costs and a Diversification Constraint,2018,10.3905/jot.2018.1.064,,False,0.5787,carry_forward,classifier_assisted
+W01728,What Hundreds of Economic News Events Say About Belief Overreaction in the Stock Market,2024,10.3386/w32301,,False,0.5485,carry_forward,classifier_assisted
+W01196,An Algorithm for Matching Heterogeneous Financial Databases: a Case Study for COMPUSTAT/CRSP and I/B/E/S Databases,2016,10.11114/aef.v3i1.1164,,False,0.547,carry_forward,classifier_assisted
+W01204,Moving averages and markets inefficiency,2000,,cond-mat/0011337,False,0.5454,carry_forward,classifier_assisted
+W01035,Estimating a Large Covariance Matrix in Time-varying Factor Models,2019,,1910.11965,False,0.5447,carry_forward,classifier_assisted
+W01431,TiRex: Zero-Shot Forecasting Across Long and Short Horizons with Enhanced In-Context Learning,2025,,2505.23719,False,0.5156,carry_forward,classifier_assisted
+W00755,Consensus? An Examination of Differences in Earnings Information Across Forecast Data Providers,2026,10.1111/1475-679x.70072,,False,0.5078,carry_forward,classifier_assisted
+W01420,Sparse Index Tracking: Simultaneous Asset Selection and Capital Allocation via $\ell_0$-Constrained Portfolio,2023,,2309.10152,False,0.5064,carry_forward,classifier_assisted
+W01009,Predicting Market Troughs: A Machine Learning Approach with Causal Interpretation,2025,,2509.05922,False,0.4946,carry_forward,classifier_assisted
+W01768,Deep Learning Artificial Neural Network for Pricing Multi-Asset European Options,2025,10.3390/math13040617,,False,0.4946,carry_forward,classifier_assisted
+W02306,Exchange Rate Predictability,2013,10.1257/jel.51.4.1063,,False,0.4928,carry_forward,classifier_assisted
+W01690,Autonomous AI Agents for Option Hedging: Enhancing Financial Stability through Shortfall Aware Reinforcement Learning,2026,10.1145/3829441.3829635,2603.06587,False,0.4914,carry_forward,classifier_assisted
+W00475,"An LLM Workflow That Reproduces, Improves, and Extends Published Economics Research",2026,10.3386/w35782,,False,0.4859,carry_forward,classifier_assisted
+W01584,Classification with reject option: Distribution-free error guarantees via conformal prediction,2025,10.1016/j.mlwa.2025.100664,,False,0.4825,carry_forward,classifier_assisted
+W02008,"Why Empirical p-Values Are Not Uniform: Reference Samples, Dependence, and PIT Backtesting",2026,,2605.16221,False,0.4789,carry_forward,classifier_assisted
+W00350,Not feeling the buzz: Correction study of mispricing and inefficiency in online sportsbooks,2023,10.1016/j.ijforecast.2024.06.012,2306.01740,False,0.474,carry_forward,classifier_assisted
+W02231,Asset pricing in production economies,1998,10.1016/s0304-3932(97)00078-0,,False,0.4648,carry_forward,classifier_assisted
+W00856,High-Dimensional Factor Models with an Application to Mutual Fund Characteristics,2022,10.3386/w29833,,False,0.4631,carry_forward,classifier_assisted
+W01315,Do Strict Capital Requirements Raise the Cost of Capital? Banking Regulation and the Low Risk Anomaly,2013,10.3386/w19018,,False,0.4595,carry_forward,classifier_assisted
+W01310,"Size, value, profitability, and investment: Evidence from emerging markets",2018,10.1016/j.ememar.2018.04.006,,False,0.4579,carry_forward,classifier_assisted
+W01668,Transforming Sensitive Documents into Quantitative Data: An AI-Based Preprocessing Toolchain for Structured and Privacy-Conscious Analysis,2025,,2507.10582,False,0.4569,carry_forward,classifier_assisted
+W02162,Forecasting Financial Assets Using Recursive Clustering Approach,2026,10.1002/for.70200,,False,0.434,carry_forward,classifier_assisted
+W01549,Audit Quality and Analyst Forecast Accuracy: The Impact of Forecast Horizon and Other Modeling Choices,2015,10.2308/ajpt-51216,,False,0.4316,carry_forward,classifier_assisted
+W01100,Speculative dynamics of prices and volume,2022,10.1016/j.jfineco.2022.07.002,,False,0.4308,carry_forward,classifier_assisted
+W02281,"RANK, STOCK, ORDER AND EPIDEMIC EFFECTS IN THE DIFFUSION OF NEW PROCESS TECHNOLOGIES: AN EMPIRICAL MODEL",1990,10.22004/ag.econ.268393,,False,0.4292,carry_forward,classifier_assisted
+W01871,ABAG-Rank: improving model selection of AlphaFold antibody–antigen complexes by learning to rank,2026,10.1093/bioinformatics/btag663,,False,0.4288,carry_forward,classifier_assisted
+W00526,"SUCCESSIVE WEIGHTING, RELIABILITY AND EVIDENCE",1994,10.1111/j.1096-0031.1994.tb00173.x,,False,0.4241,carry_forward,classifier_assisted
+W00637,Predicting Market Trends with Enhanced Technical Indicator Integration and Classification Models,2024,,2410.06935,False,0.4168,carry_forward,classifier_assisted
+W01998,How Data Quality Affects Machine Learning Models for Credit Risk Assessment,2025,,2511.10964,False,0.4039,carry_forward,classifier_assisted
+W01496,Efficient Estimation of Linear Asset Pricing Models with Moving-Average Errors,1997,,,False,0.3932,carry_forward,classifier_assisted
+W00660,Detecting financial restatements using data mining techniques,2017,10.1016/j.eswa.2017.08.030,,False,0.3866,carry_forward,classifier_assisted
+W00508,Real-time Inflation Forecasting Using Non-linear Dimension Reduction Techniques,2020,,2012.08155,False,0.3677,carry_forward,classifier_assisted
+W00333,Informative missingness and its implications in semi-supervised learning,2026,10.59717/j.xinn-inform.2026.100033,2512.04392,False,0.3578,carry_forward,classifier_assisted
+W01813,Toward Black Scholes for Prediction Markets: A Unified Kernel and Market Maker's Handbook,2025,,2510.15205,False,0.3566,carry_forward,classifier_assisted
+W00796,M3: A State-Event Generative Foundation Model for Market Microstructure Dynamics,2026,,2608.19227,False,0.3556,carry_forward,classifier_assisted
+W01828,Match forecasts in UEFA club competitions: Elo ratings versus Transfermarkt valuations,2026,,2609.21674,False,0.3544,carry_forward,classifier_assisted
+W00356,Adaptive Online Learning with LSTM Networks for Energy Price Prediction,2025,10.1007/s41060-026-01251-1,2510.16898,False,0.3542,carry_forward,classifier_assisted
+W00932,Technical analysis on foreign exchange markets: MACD and RSI,2019,,,False,0.3524,carry_forward,classifier_assisted
+W00715,"A comparative study of time series foundation models for hand, foot, and mouth disease forecasting: TimesFM, Moirai, and traditional approaches",2025,10.3389/fpubh.2025.1634138,,False,0.352,carry_forward,classifier_assisted
+W01987,Transfer Learning on Transformers for Building Energy Consumption Forecasting -- A Comparative Study,2024,,2410.14107,False,0.3418,carry_forward,classifier_assisted
+W02110,PACMI: Provenance-Aware Cascading Memory Invalidation for Long-Term LLM Agents,2026,,2610.05732,False,0.3359,carry_forward,classifier_assisted
+W01993,Schedule-Informed Temporal Fusion Forecasting of Hourly Airport Security-Checkpoint Throughput,2026,,2608.02950,False,0.335,carry_forward,classifier_assisted
+W01199,Explaining Predictions by Characteristic Rules,2024,10.1007/978-3-031-26387-3_24,2405.21003,False,0.3347,carry_forward,classifier_assisted
+W01230,Fairness in Missing Data Imputation,2021,,2110.12002,False,0.3291,carry_forward,classifier_assisted
+W02216,When to Act: Calibrated Confidence for Reliable Human Intention Prediction in Assistive Robotics,2026,,2601.04982,False,0.3273,carry_forward,classifier_assisted
+W01672,QAmplifyNet: Pushing the Boundaries of Supply Chain Backorder Prediction Using Interpretable Hybrid Quantum-Classical Neural Network,2023,,2307.12906,False,0.3245,carry_forward,classifier_assisted
+W01656,Take an Irregular Route: Enhance the Decoder of Time-Series Forecasting Transformer,2023,,2312.05792,False,0.3238,carry_forward,classifier_assisted
+W02018,Confidence Calibration for Systems with Cascaded Predictive Modules,2023,,2309.12510,False,0.3204,carry_forward,classifier_assisted
+W01218,Adversarial Vulnerabilities in Large Language Models for Time Series Forecasting,2024,,2412.08099,False,0.3203,carry_forward,classifier_assisted
+W02213,Assessing the Effectiveness of GPT-4o in Climate Change Evidence Synthesis and Systematic Assessments: Preliminary Insights,2024,,2407.12826,False,0.3169,carry_forward,classifier_assisted
+W00303,No News is News: Do Markets Underreact to Nothing?,2013,10.3386/w18914,,False,0.3144,carry_forward,classifier_assisted
+W01819,Error Adjustment Based on Spatiotemporal Correlation Fusion for Traffic Forecasting,2025,10.1016/j.inffus.2025.103635,2510.23656,False,0.3105,carry_forward,classifier_assisted
+W01783,Learning Data-Driven Uncertainty Set Partitions for Robust and Adaptive Energy Forecasting With Missing Data,2026,10.1109/tsg.2025.3620957,,False,0.3101,carry_forward,classifier_assisted
+W01995,A Computational Analysis of Vagueness in Revisions of Instructional Texts,2023,,2309.12107,False,0.31,carry_forward,classifier_assisted
+W01047,Estimating Dynamic Conditional Spread Densities to Optimise Daily Storage Trading of Electricity,2019,,1903.06668,False,0.3002,carry_forward,classifier_assisted
+W00459,Bounding causal effects with an unknown mixture of informative and non-informative missingness,2026,10.1515/jci-2025-0028,,False,0.2975,carry_forward,classifier_assisted
+W01242,Shelf space strategy in long-tail markets,2008,10.1016/j.physa.2008.11.009,0808.1655,False,0.2927,carry_forward,classifier_assisted
+W00722,A Benchmark for Evaluating Cognitive Reasoning in Modern Language Models,2026,10.3390/app16041918,,False,0.2911,carry_forward,classifier_assisted
+W01556,"Conciseness, Financial Disclosure, and Market Reaction: A Textual Analysis of Annual Reports in Listed Chinese Companies",2022,10.3390/ijfs10040104,,False,0.291,carry_forward,classifier_assisted
+W01251,Stacking with Neural network for Cryptocurrency investment,2019,,1902.07855,False,0.2865,carry_forward,classifier_assisted
+W00996,Compactness and Consistency: A Conjoint Framework for Deep Graph Clustering,2026,,2610.11506,False,0.2788,carry_forward,classifier_assisted
+W02265,The Effect of Accounting Restatements on Earnings Revisions and the Estimated Cost of Capital,2004,10.1023/b:rast.0000028194.11371.42,,False,0.2757,carry_forward,classifier_assisted
+W00404,The role of news in the fluctuations of housing price,2018,10.21511/imfi.15(3).2018.24,,False,0.2724,carry_forward,classifier_assisted
+W01227,Stock-flow consistent macroeconomic model with nonuniform distributional constraint,2017,,1708.00645,False,0.2638,exclude_by_classifier,classifier_assisted
+W01980,Regularization method in the variable selection for logistic regression on BRFSS data,2025,,2510.22550,False,0.2593,exclude_by_classifier,classifier_assisted
+W02115,From Leakage to Fidelity: Reliable Benchmarking for Temporal Cascade Prediction,2025,,2510.25348,False,0.2587,exclude_by_classifier,classifier_assisted
+W01109,Redundancy optimization for multi-state system with fixed resource-requirements and unreliable sources,2001,10.1109/24.935018,,False,0.2581,exclude_by_classifier,classifier_assisted
+W01790,Decoding the 'Trump Trade': A FinBERT-Based Sentiment Analysis of Cryptocurrency Market Reactions,2026,10.57017/jaes.v21.2(92).03,,False,0.258,exclude_by_classifier,classifier_assisted
+W02241,Assetization,2020,10.7551/mitpress/12075.001.0001,,False,0.2526,exclude_by_classifier,classifier_assisted
+W00471,"Technical Change, Learning, and Wages",1988,10.3386/w2732,,False,0.2489,exclude_by_classifier,classifier_assisted
+W00091,Deep Learning as a Projection Method for Solving Economic Models,2026,10.3386/w35806,,False,0.2452,exclude_by_classifier,classifier_assisted
+W02026,Out of the Black Box: Uncertainty Quantification for LLMs via Conditional Probabilities,2026,10.3386/w34965,,False,0.2438,exclude_by_classifier,classifier_assisted
+W01525,"Fundamentals, Market Timing, and Seasoned Equity Offerings",2007,10.3386/w13285,,False,0.2431,exclude_by_classifier,classifier_assisted
+W01010,IISE PG&amp;E Energy Analytics Challenge 2025: Hourly-Binned Regression Models Beat Transformers in Load Forecasting,2025,,2505.11390,False,0.2427,exclude_by_classifier,classifier_assisted
+W02101,Evaluating Frontier AI Agents as Autonomous Clinical Security Auditors,2026,,2607.13411,False,0.2421,exclude_by_classifier,classifier_assisted
+W02016,Epistemic Uncertainty for Test-Time Discovery,2026,,2605.11328,False,0.2416,exclude_by_classifier,classifier_assisted
+W00188,Replication in Economics,2007,10.3386/w13026,,False,0.2373,exclude_by_classifier,classifier_assisted
+W01048,Quantifying Social Inflation in Liability Insurance with Advanced Statistical Methods,2026,,2605.27265,False,0.2363,exclude_by_classifier,classifier_assisted
+W01063,VL-Calibration: Decoupled Confidence Calibration for Large Vision-Language Models Reasoning,2026,,2604.09529,False,0.2294,exclude_by_classifier,classifier_assisted
+W02201,Approximating Score-based Explanation Techniques Using Conformal Regression,2023,,2308.11975,False,0.2293,exclude_by_classifier,classifier_assisted
+W00811,Bayesian Surrogates for Risk-Aware Pre-Assessment of Aging Bridge Portfolios,2025,,2509.25031,False,0.2288,exclude_by_classifier,classifier_assisted
+W02129,yProv4ML: Effortless provenance tracking for machine learning systems,2025,10.1016/j.softx.2025.102298,,False,0.2278,exclude_by_classifier,classifier_assisted
+W00490,A latent factor model for spatial data with informative missingness,2010,10.1214/09-aoas278,1010.1430,False,0.2249,exclude_by_classifier,classifier_assisted
+W01424,Recommendation systems: a joint analysis of technical aspects with marketing implications,2011,,1112.2251,False,0.2237,exclude_by_classifier,classifier_assisted
+W01267,Rethinking Confidence Calibration for Failure Prediction,2023,,2303.02970,False,0.2195,exclude_by_classifier,classifier_assisted
+W01212,Machine Learning-Based Cloud Computing Compliance Process Automation,2025,10.23977/autml.2025.060105,2502.16344,False,0.2183,exclude_by_classifier,classifier_assisted
+W00979,A Provenance-Aware Seven-Class Dataset and Attention-Enhanced Distilbert–Bilstm–Bigru Framework For Violence Detection in Digital Text,2026,10.51483/ijaiml.6.9s.2026.1056-1068,,False,0.2176,exclude_by_classifier,classifier_assisted
+W01488,"Where Reliability Lives in Vision-Language Models: A Mechanistic Study of Attention, Hidden States, and Causal Circuits",2026,,2605.08200,False,0.215,exclude_by_classifier,classifier_assisted
+W01874,Enhancing Gravitational-Wave Detection: A Machine Learning Pipeline Combination Approach with Robust Uncertainty Quantification,2026,10.1103/yfb3-fgf2,,False,0.215,exclude_by_classifier,classifier_assisted
+W01641,Diminishing Empirical Risk Minimization for Unsupervised Anomaly Detection,2022,,2205.14676,False,0.2132,exclude_by_classifier,classifier_assisted
+W01675,A cross-vendor and cross-state analysis of the GPS-probe data latency,2017,10.1177/0361198118792768,1711.02688,False,0.2129,exclude_by_classifier,classifier_assisted
+W01004,On Equivalence of Martingale Tail Bounds and Deterministic Regret Inequalities,2015,,1510.03925,False,0.2109,exclude_by_classifier,classifier_assisted
+W01422,Transforming Multidimensional Time Series into Interpretable Event Sequences for Advanced Data Mining,2024,,2409.14327,False,0.2102,exclude_by_classifier,classifier_assisted
+W01825,Quantile and expectile copula-based hidden Markov regression models for the analysis of the cryptocurrency market,2023,10.1177/1471082x241279513,2307.06400,False,0.2101,exclude_by_classifier,classifier_assisted
+W01468,FairDICE: Fairness-Driven Offline Multi-Objective Reinforcement Learning,2025,,2506.08062,False,0.2064,exclude_by_classifier,classifier_assisted
+W02222,On Eliciting Subjective Probability Distributions of Expectations,2024,10.3386/w32406,,False,0.2054,exclude_by_classifier,classifier_assisted
+W00764,PROXAI: Interactive Provenance-Aware Debugging of Machine Learning Pipelines,2026,10.14778/3827998.3828102,,False,0.2052,exclude_by_classifier,classifier_assisted
+W01696,Estimating journey time for two-point vehicle re-identification survey with limited observable scope using 2-dimensional truncated distributions,2024,,2411.02539,False,0.2035,exclude_by_classifier,classifier_assisted
+W02094,A Unified Framework for Gradient Aggregation in Multi-Objective Optimization,2026,,2605.30452,False,0.2034,exclude_by_classifier,classifier_assisted
+W01485,Conformal Prediction Beyond the Seen: A Missing Mass Perspective for Uncertainty Quantification in Generative Models,2025,,2506.05497,False,0.1944,exclude_by_classifier,classifier_assisted
+W01229,When Privacy Moves ML-Mediated Decisions On Device: Information and Incentive Misalignment in Auctions,2026,,2609.33312,False,0.1913,exclude_by_classifier,classifier_assisted
+W01156,DAUNT: Ensemble Disagreement as Actionable Uncertainty for Imbalanced Fraud Detection,2026,10.3390/make8080233,,False,0.187,exclude_by_classifier,classifier_assisted
+W01068,On the Predictive Power of Interest Rates and Interest Rate Spreads,1990,10.3386/w3486,,False,0.1869,exclude_by_classifier,classifier_assisted
+W01839,Uncertainty-Aware Post-Hoc Calibration: Mitigating Confidently Incorrect Predictions Beyond Calibration Metrics,2025,,2510.17915,False,0.1845,exclude_by_classifier,classifier_assisted
+W01073,A Multi-Country Comparison of Term Structure Forecasts at Long Horizons,1991,10.3386/w3574,,False,0.1833,exclude_by_classifier,classifier_assisted
+W02116,Political Power and Market Power,2024,10.3386/w33255,,False,0.176,exclude_by_classifier,classifier_assisted
+W00566,Vintage Capital and Inequality,1998,10.3386/w6416,,False,0.1744,exclude_by_classifier,classifier_assisted
+W00861,When Is Quality of Financial System a Source of Comparative Advantage?,2008,10.3386/w13984,,False,0.1678,exclude_by_classifier,classifier_assisted
+W00907,A novel method for weighting decision makers for failure mode and effect analysis under intuitionistic fuzzy environment,2024,10.1002/qre.3510,,False,0.1658,exclude_by_classifier,classifier_assisted
+W02192,TopoBench: Benchmarking LLMs on Hard Topological Reasoning,2026,,2603.12133,False,0.1614,exclude_by_classifier,classifier_assisted
+W02244,Introduction to Machine Learning,2013,10.1007/978-1-62703-748-8_7,,False,0.1591,exclude_by_classifier,classifier_assisted
+W02205,General Equilibrium Amplification and Crisis Vulnerability: Cross-Crisis Evidence from Global Banks,2025,,2510.24775,False,0.1589,exclude_by_classifier,classifier_assisted
+W01007,Robust Counterfactual Explanations for Tree-Based Ensembles,2022,,2207.02739,False,0.1526,exclude_by_classifier,classifier_assisted
+W01967,Correction to “Standardized mean differences in meta‐analysis: A tutorial”,2024,10.1002/cesm.12076,,False,0.1521,exclude_by_classifier,classifier_assisted
+W01534,Confidence Calibration and Predictive Uncertainty Estimation for Deep Medical Image Segmentation,2020,10.1109/tmi.2020.3006437,1911.13273,False,0.1469,exclude_by_classifier,classifier_assisted
+W01558,What Are the Most Important Factors for Accounting Information Quality and Their Impact on AIS Data Quality Outcomes?,2015,10.1145/2700833,,False,0.1458,exclude_by_classifier,classifier_assisted
+W01005,Learning Time-Series Representations by Hierarchical Uniformity-Tolerance Latent Balancing,2025,,2510.01658,False,0.1455,exclude_by_classifier,classifier_assisted
+W01877,"The Effect of Profitability, Liquidity, Audit Committee, and Audit Quality on Earnings Quality",2025,10.47191/ijmra/v8-i05-26,,False,0.141,exclude_by_classifier,classifier_assisted
+W01932,Two Sides of Miscalibration: Identifying Over and Under-Confidence Prediction for Network Calibration,2023,,2308.03172,False,0.1376,exclude_by_classifier,classifier_assisted
+W00937,Market Reaction to Health Care Law: An Event Study,2013,10.5296/ijafr.v3i1.3356,,False,0.1361,exclude_by_classifier,classifier_assisted
+W00774,When Identical Rows Disagree: From Benchmark Identifiability to Replication-Robust Anomaly Detection,2026,,2609.29580,False,0.1356,exclude_by_classifier,classifier_assisted
+W02076,Adaptively Learning to Select-Rank in Online Platforms,2024,,2406.05017,False,0.1317,exclude_by_classifier,classifier_assisted
+W01298,The Real Effects of Modern Information Technologies: Evidence from the EDGAR Implementation,2020,10.3386/w27529,,False,0.1271,exclude_by_classifier,classifier_assisted
+W01698,Replication: Contrastive Learning and Data Augmentation in Traffic Classification Using a Flowpic Input Representation,2023,10.1145/3618257.3624820,2309.09733,False,0.1219,exclude_by_classifier,classifier_assisted
+W00876,The Value of Statistical Life: A Meta-analysis of Meta-analyses,2021,10.3386/w29185,,False,0.1127,exclude_by_classifier,classifier_assisted
+W00616,Reliability-Aware Control of Distributed Energy Resources using Multi-Source Data Models,2025,,2510.21062,False,0.1079,exclude_by_classifier,classifier_assisted
+W02289,Machine Learning and Deep Learning in Energy Systems: A Review,2022,10.3390/su14084832,,False,0.1026,exclude_by_classifier,classifier_assisted
+W00098,Current Account Sustainability and Relative Reliability,2008,10.3386/w14295,,False,0.1011,exclude_by_classifier,classifier_assisted
+W02067,A Robust Approach to Uncertainty Quantification in Deep Learning,2025,10.33140/crsm.04.01.01,,False,0.0968,exclude_by_classifier,classifier_assisted
+W01074,"Firms, Failures, and Fluctuations: The Macroeconomics of Supply Chain Disruptions",2020,10.3386/w27565,,False,0.0645,exclude_by_classifier,classifier_assisted
+W01738,Price and Capacity Competition,2006,10.3386/w12804,,False,0.0515,exclude_by_classifier,classifier_assisted
+W01511,Conforming and Non-conforming Peer Effects in Vaccination Decisions,2013,10.3386/w19528,,False,0.029,exclude_by_classifier,classifier_assisted

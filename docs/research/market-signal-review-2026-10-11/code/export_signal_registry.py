@@ -114,7 +114,7 @@ def main() -> int:
         })
 
     with OUT.open("w", newline="") as fh:
-        writer = csv.DictWriter(fh, fieldnames=FIELDS)
+        writer = csv.DictWriter(fh, fieldnames=FIELDS, lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
     summary = {"registry_definitions": len(REGISTRY.definitions), "rich_catalog": len(CATALOG),
