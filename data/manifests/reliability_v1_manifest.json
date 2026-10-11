@@ -1,0 +1,50 @@
+{
+  "version": "reliability-v1",
+  "rows": 139292,
+  "dates": 560,
+  "symbols": 874,
+  "date_min": "2014-04-03",
+  "date_max": "2025-05-09",
+  "inputs": {
+    "filings_parquet": "data/curated/sec_v3/filings.parquet",
+    "filings_sha256": "4e62004745eebd9b7e669adb091ff53a01f2440e5bdd83b7da5efbb660b7ebb6",
+    "filings_rows": 371229,
+    "rich_panel_content_hash": "ff3d3f556488b7daa20bbbeab49d1f0abad9a869976b593f211cf92b6eb7c5da"
+  },
+  "output": {
+    "path": "data/research/derived/reliability_v1.parquet",
+    "sha256": "042ac1fc12957f25ffd32e3d914037567900803ad967ec69a28f077f9ea6316f",
+    "bytes": 182453
+  },
+  "coverage": {
+    "amended_730": 0.9176621772966143,
+    "latest_report_amended": 0.9176621772966143,
+    "periodic_count_400": 0.9176621772966143,
+    "lag_deterioration": 0.9099876518393016
+  },
+  "quantiles": {
+    "amended_730": {
+      "p01": 0.0,
+      "p50": 0.0,
+      "p99": 1.0
+    },
+    "latest_report_amended": {
+      "p01": 0.0,
+      "p50": 0.0,
+      "p99": 0.0
+    },
+    "periodic_count_400": {
+      "p01": 3.0,
+      "p50": 4.0,
+      "p99": 5.0
+    },
+    "lag_deterioration": {
+      "p01": -12.5,
+      "p50": -1.0,
+      "p99": 11.0
+    }
+  },
+  "rows_without_cik": 8967,
+  "rule": "available_session(accepted_at) <= decision date; prevrpt never read; NaN (not 0) before any filing history",
+  "license": "SEC filings are public records; derived counts only, no filing text redistributed"
+}

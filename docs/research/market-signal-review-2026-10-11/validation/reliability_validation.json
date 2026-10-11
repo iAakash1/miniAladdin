@@ -1,0 +1,17 @@
+{
+  "sample_rows": 4000,
+  "mismatch_counts": {
+    "amended_730": 0,
+    "latest_report_amended": 0,
+    "periodic_count_400": 0,
+    "lag_deterioration": 0
+  },
+  "mismatch_examples": [],
+  "invariants": {
+    "counts_non_negative": true,
+    "flag_binary": true,
+    "dates_before_holdout": true,
+    "rows_match_panel": true
+  },
+  "passed": true
+}
