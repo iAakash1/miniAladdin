@@ -1,0 +1,47 @@
+{
+ "what": "EXP-012 rehearsal on a label shuffled across firms within each date (seed 20261012); no information about the hypotheses",
+ "completion": "REHEARSAL",
+ "fits": 30,
+ "prediction_files_finite": 30,
+ "wall_seconds": 1021.9,
+ "workers": 6,
+ "verdicts": {
+  "T1": "NOT_SUPPORTED",
+  "T2": "NOT_SUPPORTED",
+  "T3": "NOT_SUPPORTED"
+ },
+ "acceptance": {
+  "panel_end": "2025-05-09",
+  "predictions_finite": true,
+  "reproduction": "skipped: shuffled label"
+ },
+ "artifacts_written": [
+  "A1.joblib",
+  "A5.joblib"
+ ],
+ "holdout": {
+  "state": "SEALED",
+  "touched": false
+ },
+ "contrast_standard_errors_null_world": {
+  "T1": {
+   "standard_error": 0.001021,
+   "mde_80pct_power_single_test": 0.00254,
+   "mde_80pct_power_strictest_holm_step": 0.003033,
+   "dates": 404
+  },
+  "T2": {
+   "standard_error": 0.002305,
+   "mde_80pct_power_single_test": 0.005731,
+   "mde_80pct_power_strictest_holm_step": 0.006844,
+   "dates": 404
+  },
+  "T3": {
+   "standard_error": 0.000211,
+   "mde_80pct_power_single_test": 0.000525,
+   "mde_80pct_power_strictest_holm_step": 0.000627,
+   "dates": 404
+  }
+ },
+ "reading": "mde = (z_alpha + z_power) * SE with z_alpha 1.645 (single one-sided 5% test) or 2.128 (strictest Holm step over three tests) and z_power 0.842 (80% power). The SE comes from the Newey-West t of the paired difference series in a world with no signal."
+}
