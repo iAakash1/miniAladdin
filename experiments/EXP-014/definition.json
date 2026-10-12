@@ -1,0 +1,286 @@
+{
+  "acceptance_gates": [
+    "every input file's sha256 equals the one recorded here",
+    "no date after 2025-05-09",
+    "label never shuffled outside rehearsal",
+    "all predictions finite",
+    "8 folds complete for every arm"
+  ],
+  "availability": "first session whose close-based decision may use the amendment (accepted before 16:00 New York time: that session; otherwise the next); amendment forms are 10-K/A, 10-Q/A, 10-KT/A, 10-QT/A from the SEC Financial Statement Data Sets registry; NaN before the firm has any original periodic report",
+  "categories": {
+    "core": "classifiable amendment with revenue, net income, assets, liabilities, equity or operating cash flow differing by > 1% from the previous version",
+    "other_changed": "classifiable, not core, with some canonical key differing by > 0.1%",
+    "unchanged": "classifiable with no canonical key differing by > 0.1%",
+    "unclass": "no previous version with comparable facts"
+  },
+  "controls": {
+    "full": "all 76 point-in-time features of the rich panel (ranks) plus the three reporting controls",
+    "missing": "0 after centring (neutral rank)",
+    "parsimonious": [
+      "log_dollar_volume_21_xs",
+      "amihud_21_xs",
+      "mom_252_21_xs",
+      "mom_21_xs",
+      "reversal_5_xs",
+      "vol_63_xs",
+      "book_to_market_xs",
+      "roa_xs",
+      "gross_profitability_xs",
+      "asset_growth_xs",
+      "liabilities_to_assets_xs",
+      "accruals_xs",
+      "filing_lag_days_xs",
+      "days_since_report_xs",
+      "periodic_count_400_r",
+      "lag_deterioration_r",
+      "n_missing_sec_r"
+    ]
+  },
+  "decision": {
+    "FRAGILE": "H1 Holm-adjusted p < 0.05 with negative sign AND R1 passes AND at least one of R2 to R7 fails",
+    "INCONCLUSIVE": "R1 fails: too few treated firms to conclude anything",
+    "NOT_REPLICATED": "R1 passes and neither SURVIVES, FRAGILE nor REVERSED applies: H1 adjusted p >= 0.05, or the sign is positive without two-sided p < 0.05",
+    "REVERSED": "R1 passes, H1 is not significant in the registered direction, and the H1 coefficient is POSITIVE with two-sided wild-cluster p < 0.05 (the opposite sign to the registered hypothesis; descriptive, uncorrected, no gate applies)",
+    "SURVIVES": "H1 Holm-adjusted p < 0.05 with negative sign AND R1 to R7 all pass",
+    "no_other_outcomes": true
+  },
+  "economics": "the frozen EXP-010B 21-session portfolio (B1) at 10 bp for M0 and M1 on the mid-sample daily panel; reported at 10, 30 and 50 bp; not part of the decision",
+  "experiment_id": "EXP-014",
+  "fixed_effects": "date x Fama-French 12 sector",
+  "hypotheses": {
+    "H1": "coefficient on core_730 < 0 (with other_730, unchanged_730 and unclass_730 as separate regressors)",
+    "H2": "coefficient on any_730 < 0 (EXP-012 definition), alone",
+    "correction": "Holm across H1 and H2 on the wild-cluster bootstrap p-values (one-sided, negative)"
+  },
+  "inference": {
+    "alpha": 0.05,
+    "also_reported": "Cameron-Gelbach-Miller two-way (firm, date) t statistic and firm-clustered t, which are not used for decisions",
+    "draws": 9999,
+    "primary": "wild-cluster bootstrap over firms, null imposed, Webb six-point weights",
+    "robustness_draws": 4999,
+    "seed": 20261014
+  },
+  "interpretation_diagnostic": {
+    "anticipation_ratio": "coef(core_next365) / coef(core_prev365) from one regression with the five event-time bins; below 0.5 the association is labelled TIME_SPECIFIC, otherwise MARKER_OF_PERSISTENT_TROUBLE (it is not an information event but a marker)"
+  },
+  "machine_learning_increment": {
+    "arms": {
+      "G0": "boosted trees on the 76 features, 3 seeds, frozen EXP-010A settings",
+      "G1": "G0 plus the amendment block",
+      "M0": "ridge on the 76 point-in-time features (alpha 10, the pre-existing configuration)",
+      "M1": "M0 plus the amendment block (core_730, other_730, unchanged_730, unclass_730 indicators and log1p count of any_730)"
+    },
+    "folds": "the recorded EXP-006 plan, unchanged",
+    "placebos": {
+      "permute": "the block permuted across firms within date (5 seeds)",
+      "shift": "the block taken from 252 sessions earlier within firm"
+    },
+    "search": "none: no hyperparameter is chosen on any data, so no selection correction is needed",
+    "test": "paired mean Rank IC difference on identical dates, Newey-West HAC (4 lags), moving-block bootstrap (block 6, 4,000 draws), Holm across ridge and boosted contrasts; folds: the 8 recorded folds"
+  },
+  "outcome": {
+    "label": "fwd_rank_21",
+    "note": "centred cross-sectional rank of the 21-session forward return within the universe-date; identical construction to every earlier experiment"
+  },
+  "outputs": [
+    "definition.json",
+    "config.json",
+    "results.json",
+    "regressions.csv",
+    "robustness.csv",
+    "ml_paired_tests.csv",
+    "ml_metrics.csv",
+    "manifest.json",
+    "model/*"
+  ],
+  "parent_experiment": "EXP-012 / EXP-013",
+  "prior_evidence": {
+    "consequence": "The sign of the effect is not settled for amendments in the XBRL era. H1 keeps its registered one-sided direction (the discovery sample's), the label REVERSED reports the opposite sign when the data support it, and S11 shows where in time after the amendment any effect sits.",
+    "persistent_firm_type": "Ghosh et al. report that 79% of firms with a material weakness report another in the next quarter (6% unconditionally) and Zhu (2026, SSRN, abstract level) that filing-timeliness signals work through the cross-sectional level and not through a firm's own deviations: both are the reason SURVIVES requires the within-firm gate R7.",
+    "sign_is_contested": "Frieder and Shanthikumar (2008, SSRN 1106855, read in full): after press-release restatement announcements by NYSE firms 1993-2002 no significant negative drift, and a significant POSITIVE return in trading days 64-126 (+4.3% raw, +5.0% characteristic-adjusted; days 127-252 insignificant). Gondhalekar et al. (2012, abstract level) report negative abnormal returns in each of four years; Moon, Lee and Waggle (2019/2020, abstract level) long-run underperformance; Hong, Lee, Park and Patro (2021/2023, abstract level) no drift where cash-flow news dominates; Ghosh et al. (2025/2026, text read in part): material-weakness disclosures are followed by negative drift over 60 to 120 trading days."
+  },
+  "question": "Do value-changing amendments to periodic reports predict lower next-month return ranks in firms the discovery never saw, beyond established characteristics and reporting controls?",
+  "registry_availability": "EDGAR submissions registry; event date = later of the filing date and the date of the acceptance stamp; usable from the first session after the event date; the registry stamp itself is not trusted (clock audit)",
+  "registry_treatments": {
+    "i402_730": "8-K reporting Item 4.02 (non-reliance on previously issued financial statements) with event date in the trailing 730 days",
+    "nonfsds_amend_730": "periodic-report amendment in the EDGAR registry that is not in the Financial Statement Data Sets (no financial statements: Part III, exhibits)",
+    "nt_730": "NT 10-K or NT 10-Q (late-filing notice) in the trailing 730 days"
+  },
+  "robustness_gates": {
+    "R1_power": "at least 40 distinct treated firms and 150 treated firm-dates for core_730 in the confirmatory sample, else the result is INCONCLUSIVE and nothing is concluded",
+    "R2_influence": "after removing the 5 treated firms whose deletion moves the coefficient most, the coefficient is still negative and at least 50% of the full-sample estimate",
+    "R3_years": "the coefficient is negative in at least 9 of the 12 leave-one-calendar-year-out fits (2014 and 2025 are partial years)",
+    "R4_full_controls": "with the full control set the coefficient is negative with wild-cluster one-sided p < 0.05",
+    "R5_time_separate": "in the time-separate sample (label-free counts before registration: 9 treated firms for core_730, 58 for any_730) the coefficient on any_730 is negative with wild-cluster one-sided p < 0.10 and the coefficient on core_730 is negative",
+    "R6_sector": "the coefficient is negative in at least 8 of the 12 leave-one-sector-out fits",
+    "R7_within_firm": "with a fixed effect per firm added (only the timing of the amendment within a firm identifies the coefficient) the coefficient is negative with wild-cluster one-sided p < 0.05"
+  },
+  "samples": {
+    "confirmatory": "mid-liquidity universe (ranks 251-1,000 by 3-month median dollar volume, close >= 5, non-ETF), identity-trusted rows, company never in the frozen 250-name universe, 2014-04-01..2025-05-09",
+    "holdout": {
+      "end": "2026-08-28",
+      "start": "2025-08-26",
+      "touched": false
+    },
+    "time_separate": "frozen 250-name panel, identity-trusted rows, 2014-04-01..2017-03-31 (never evaluated before)"
+  },
+  "secondary_analyses": {
+    "S1": "core amendment in the trailing 365 days",
+    "S10": "amendments that carry no financial statements",
+    "S11": "age of the most informative past core amendment: four non-overlapping indicators for a core amendment first usable 0-89, 90-179, 180-364 or 365-729 calendar days before the decision day (they sum to core_730), in one regression with the other three categories; coefficients and wild-cluster p-values on both sides, descriptive",
+    "S12": "H1 re-estimated separately in the more liquid and the less liquid half of the confirmatory sample (split at the date median of the 21-day dollar-volume rank), descriptive",
+    "S2": "core amendment in the trailing 1,095 days",
+    "S3": "amendments without number changes (unchanged_730)",
+    "S4": "unclassifiable amendments (unclass_730)",
+    "S5": "core amendments to 10-K filings",
+    "S6": "core amendments to 10-Q filings",
+    "S7": "H1 with the out-of-sample ridge score held fixed",
+    "S8": "8-K Item 4.02 in 730 days",
+    "S9": "core amendment with Item 4.02 and late-filing notices as competing indicators"
+  },
+  "status": "CONFIRMATORY TEST ON AN INDEPENDENT FIRM SAMPLE - HOLDOUT SEALED - PROMOTION NOT ASSESSED",
+  "treatments": {
+    "any_1095": {
+      "categories": [
+        "core",
+        "other_changed",
+        "unchanged",
+        "unclass"
+      ],
+      "from_days": -1095,
+      "to_days": 0
+    },
+    "any_365": {
+      "categories": [
+        "core",
+        "other_changed",
+        "unchanged",
+        "unclass"
+      ],
+      "from_days": -365,
+      "to_days": 0
+    },
+    "any_730": {
+      "categories": [
+        "core",
+        "other_changed",
+        "unchanged",
+        "unclass"
+      ],
+      "from_days": -730,
+      "to_days": 0
+    },
+    "core_1095": {
+      "categories": [
+        "core"
+      ],
+      "from_days": -1095,
+      "to_days": 0
+    },
+    "core_365": {
+      "categories": [
+        "core"
+      ],
+      "from_days": -365,
+      "to_days": 0
+    },
+    "core_730": {
+      "categories": [
+        "core"
+      ],
+      "from_days": -730,
+      "to_days": 0
+    },
+    "core_age_0_90": {
+      "categories": [
+        "core"
+      ],
+      "from_days": -90,
+      "to_days": 0
+    },
+    "core_age_180_365": {
+      "categories": [
+        "core"
+      ],
+      "from_days": -365,
+      "to_days": -180
+    },
+    "core_age_365_730": {
+      "categories": [
+        "core"
+      ],
+      "from_days": -730,
+      "to_days": -365
+    },
+    "core_age_90_180": {
+      "categories": [
+        "core"
+      ],
+      "from_days": -180,
+      "to_days": -90
+    },
+    "core_next365": {
+      "categories": [
+        "core"
+      ],
+      "from_days": 0,
+      "to_days": 365
+    },
+    "core_next730b": {
+      "categories": [
+        "core"
+      ],
+      "from_days": 365,
+      "to_days": 730
+    },
+    "core_old": {
+      "categories": [
+        "core"
+      ],
+      "from_days": -1460,
+      "to_days": -730
+    },
+    "core_prev365": {
+      "categories": [
+        "core"
+      ],
+      "from_days": -365,
+      "to_days": 0
+    },
+    "core_prev730b": {
+      "categories": [
+        "core"
+      ],
+      "from_days": -730,
+      "to_days": -365
+    },
+    "other_730": {
+      "categories": [
+        "other_changed"
+      ],
+      "from_days": -730,
+      "to_days": 0
+    },
+    "unchanged_730": {
+      "categories": [
+        "unchanged"
+      ],
+      "from_days": -730,
+      "to_days": 0
+    },
+    "unclass_730": {
+      "categories": [
+        "unclass"
+      ],
+      "from_days": -730,
+      "to_days": 0
+    }
+  },
+  "trial_ledger": {
+    "confirmatory_tests": 2,
+    "ml_contrasts": 2,
+    "model_fits": "24 ridge/boosted fits plus 5 placebo permutations x 2 arms",
+    "robustness_gates": 7,
+    "secondary_contrasts": 16
+  }
+}

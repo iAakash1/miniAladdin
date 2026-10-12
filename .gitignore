@@ -159,3 +159,6 @@ experiments/EXP-012/model/
 
 # EXP-014 full rehearsal (shuffled label; no result about the hypotheses): kept locally so the registration can state that the whole pipeline was exercised.
 experiments/EXP-014_rehearsal/
+
+# EXP-014 saved research model (one reloadable ridge, M1). Trained on prices whose licence has not been reviewed, so it is not committed; its SHA-256 is in docs/EXP_014_RESULTS.md.
+experiments/EXP-014/model/

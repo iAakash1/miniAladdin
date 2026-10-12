@@ -247,6 +247,21 @@ No claim of eligibility for any tier of journal is made and no ranking is quoted
 |---|---|---|---|---|---|
 {core_lines}
 """
+    exp = HERE.parents[2] / "experiments/EXP-014/results.json"
+    if exp.exists():
+        r = json.loads(exp.read_text())
+        reg, dec_ = r["regressions"], r["decision"]
+        sec, ev = reg["secondary"], reg["event_time"]
+        doc += f"""
+## 12. Postscript: what the registered run (EXP-014, commit fa1469c) says about the competing readings above
+
+Written after the run; sections 1 to 11 were written before it and are unchanged. Registered outcome: **{dec_['label']}**, interpretation {dec_.get('interpretation')} (`docs/EXP_014_RESULTS.md`).
+
+* **Sign.** The pooled coefficient is negative ({reg['H1']['coef']:.4f}, Holm-adjusted p {dec_['h1_adjusted_p']:.4f}), the direction of the older long-run studies and of Ghosh et al., but it is absent in the first year after the amendment ({ev['bins']['D_core_prev365']['coef']:.4f}) and present for firms that will file one within a year ({ev['bins']['D_core_next365']['coef']:.4f}) and in amendments one to two years old ({sec['S11_age_365_730']['coef']:.4f}): it is not a drift that follows the amendment.
+* **The Frieder and Shanthikumar rebound** is neither shown nor excluded: the 90-179 and 180-364 day bins are {sec['S11_age_90_180']['coef']:+.4f} and {sec['S11_age_180_365']['coef']:+.4f}, both indistinguishable from zero. With Item 4.02 announcements and late-filing notices in the model the core-amendment coefficient turns positive ({sec['S9_core_with_4_02_and_nt']['coef']:+.4f}, two-sided p {sec['S9_core_with_4_02_and_nt']['wcr_p_two_sided']:.3f}), which is the direction a post-announcement rebound would take, but this is a descriptive secondary analysis.
+* **Firm type versus event.** The within-firm test fails narrowly (coefficient {reg['R7_within_firm']['coef']:.4f}, one-sided p {reg['R7_within_firm']['wcr_p_negative']:.4f} against 0.05) and so does the influence gate; the pattern fits the persistence of disclosure failures (Ghosh et al.) and Zhu's level-versus-deviation result, though the data cannot separate a within-firm effect from none.
+* **Novelty.** The amendment-specific claim was not established as an event effect. What stands out descriptively is that the Item 4.02 announcement, in state-variable form, carries a stronger negative association ({sec['S8_item_4_02']['coef']:.4f}, two-sided p {sec['S8_item_4_02']['wcr_p_two_sided']:.4f}) than the amendment; it is a secondary, uncorrected result and needs its own registration before it is a finding.
+"""
     out = HERE / "17_RECENT_LITERATURE_2022_2026.md"
     out.write_text(doc, encoding="utf-8")
     print(f"wrote {out} ({len(doc):,} characters)")

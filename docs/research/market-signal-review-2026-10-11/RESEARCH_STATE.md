@@ -1,6 +1,6 @@
 # Research state (canonical checkpoint)
 
-Single source of truth for progress. A new session reads this first, then verifies live values (`git log` on the branch, `experiments/EXP-012/manifest.json`). Last updated 2026-10-12 13:00 IST. **Phase II is paused mid-way at the owner's request: start with `PHASE2_HANDOFF.md`, which has the exact next commands.**
+Single source of truth for progress. A new session reads this first, then verifies live values (`git log` on the branch, `experiments/EXP-012/manifest.json`). Last updated 2026-10-12 (evening, Phase II continuation). **Start with `PHASE2_HANDOFF.md`; the literature update is `17_RECENT_LITERATURE_2022_2026.md`, the Frieder and Shanthikumar review is `16_...`; EXP-014 was registered at `fa1469c` and run once (see the Phase II continuation table).**
 
 - **Branch:** `research/market-signal-review-2026-10-11`, cut from `1b3e6c7764ad` (`origin/main`). `main` is untouched and nothing is deployed. The unmerged
   `origin/continuation/search-intent-quality` branch (another identity; `screen_service.py` and a CI workflow) is unrelated and was neither merged nor altered.
@@ -55,16 +55,29 @@ Production on 2026-10-12: GitHub `main`, Vercel production and Cloud Run revisio
 | Full-text review ledger, closest-30 matrix, identifier verification | newly generated | `12_FULLTEXT_REVIEW_AND_NOVELTY_MATRIX.md`, `fulltext_ledger.csv`, `validation/fulltext_papers_verification.json` | 14 papers read in extract (pages stated); SSRN-only works unread |
 | Path A versus Path B | newly generated | `14_PATH_A_VS_PATH_B.md` | conditional on EXP-014 |
 | Repository history audit | newly generated | `15_GITHUB_QUALITY_AND_VERIFICATION.md` | email constant and path literals confirmed; no rewrite |
-| EXP-014 protocol, code, tests, regression-stage rehearsal | newly generated | `src/quant/study/exp014*.py`, `scripts/quant/exp014.py`, `tests/quant/test_exp014*.py`, `code/exp014_pre_registration_checks.py`, `validation/exp014_pre_registration_checks.json` | **not registered**; machine-learning and economics stages never run on real data |
-| EXP-014 registration, registered run, results, updated decision document and manuscript | planned | see `PHASE2_HANDOFF.md`, section 4 | |
+| EXP-014 protocol, code, tests, regression-stage rehearsal | newly generated | `src/quant/study/exp014*.py`, `scripts/quant/exp014.py`, `tests/quant/test_exp014*.py`, `code/exp014_pre_registration_checks.py`, `validation/exp014_pre_registration_checks.json` | superseded by the continuation rows below |
 | ALFRED vintages for the live scorer's macro gate | blocked | | no key (owner) |
 | Provider-snapshot capture for the live scorer | planned | | needs provider-terms review; library ready |
-| Frieder and Shanthikumar (2008) and other SSRN-only full texts | blocked | | SSRN bot verification, not circumvented |
+| Other SSRN-only full texts (Zhu 2026, Ahn 2026, Bangert and Myers 2023, Mammadova 2026 and others) | blocked | | SSRN bot verification, not circumvented; abstracts only |
+
+## Phase II continuation (2026-10-12 evening): literature update, F&S reading, EXP-014 registered and run
+
+| Deliverable | Label | Where | Notes |
+|---|---|---|---|
+| Full-text review of Frieder and Shanthikumar (2008), owner-supplied PDF | newly generated | `16_FRIEDER_SHANTHIKUMAR_FULLTEXT_REVIEW.md`, `fulltext_ledger.csv` (F15) | all 60 pages; **a positive rebound in trading days 64-126 (+4.3% raw), no significant negative drift: the earlier premise "the sign is prior art" is withdrawn** |
+| 2022-2026 literature search, screening, evidence matrix, coverage statement | newly generated | `17_RECENT_LITERATURE_2022_2026.md`, `recent_lit_matrix.csv` (43 rows), `recent_lit_screening.csv`, `recent_lit_candidates.csv`, `recent_lit_coverage.json`, `recent_search_log.csv`, `citation_chain_log.csv` | 10,618 distinct works (OpenAlex, Crossref, arXiv), 495 titles read, 7 of the 8 named leads recalled by the queries alone; no modern study of content-classified amendments as a return predictor found; SSRN and most publishers unreachable |
+| Verification of the eight named leads and 43 core DOIs | newly generated | `lead_verification.csv`, `recent_core_crossref.csv` | online dates kept apart from issue dates; one retracted record excluded |
+| Open-access full text of Ghosh et al. (JBFA 2025/2026) | newly generated | local only (`research_papers/phase2_fulltext/text/`), ledger F16 | read in part |
+| EXP-014 protocol amendments (REVERSED label, S11 age bins, S12 liquidity halves) | newly generated, before registration | `src/quant/study/exp014.py`, `tests/quant/test_exp014.py` (19 tests) | made after the F&S reading, before any amendment variable was related to a return on the independent sample |
+| EXP-014 full shuffled-label rehearsal (all stages) | newly generated | `experiments/EXP-014_rehearsal/` (git-ignored) | 1,366 s; NOT_REPLICATED / NOT_SUPPORTED everywhere, artifact reloaded in a fresh process to 0.0 difference |
+| EXP-014 registration | registered | `docs/EXP_014_PREREGISTRATION.md`, `validation/exp014_protocol_pre_run.json`, commit `fa1469c` (pushed, gate passed) | fingerprint `eefc4cc03454c3dc...`; power statement and S11/S12 reading rule included |
+| **EXP-014 registered run** | **complete** 2026-10-12 21:20-21:43 IST at commit `fa1469c`, clean tree, 1,370 s | `experiments/EXP-014/` (results, manifest, regressions, ML and economics tables), `docs/EXP_014_RESULTS.md` | **FRAGILE**, interpretation MARKER_OF_PERSISTENT_TROUBLE. H1 -0.0537 (Holm p 0.0208), H2 null; R2 failed (0.497 of the estimate kept, needs 0.5) and R7 failed (within-firm p 0.0566, needs 0.05); ML increments NOT_SUPPORTED; holdout sealed. Saved model `experiments/EXP-014/model/M1.joblib` (git-ignored), sha256 `ef9866ed2864b3dd...`, reloaded in a fresh process to 0.0 difference |
+| Updated executive decision, Path A/B decision, manuscript draft | newly generated | `00_EXECUTIVE_RESEARCH_DECISION.md`, `14_PATH_A_VS_PATH_B.md` (section 4), `manuscript/draft_014.md` | Path A as a measured, qualified result; no anomaly or value claim |
 
 ## Not done, and why
 
-- The registered EXP-014 run and everything that depends on it (see `PHASE2_HANDOFF.md`, section 4). The full rehearsal comes first.
-- Full text of the SSRN-only closest works, above all Frieder and Shanthikumar (2008): SSRN refuses automated access and the bot verification was not completed or worked around.
+- Full text of the SSRN-only works (Zhu 2026, Ahn 2026, Bangert and Myers, Mammadova, Schroeder and Posch, Wang): SSRN refuses automated access and the bot verification was not completed or worked around. Frieder and Shanthikumar was supplied by the owner and read in full.
+- Wiley, AAA, ScienceDirect and INFORMS full texts of closed articles; Google Scholar (no automated access); a recall estimate for the 2022-2026 search beyond the 7 of 8 named leads.
 - Quartiles of target journals (SCImago 403, Journal Citation Reports subscription-only): none is stated anywhere.
 - A complete OpenAlex pass (keyless daily limit).
 - Any test of vendor disagreement or provider health: no history exists; the archive library is built but nothing is captured.
@@ -94,8 +107,14 @@ Production on 2026-10-12: GitHub `main`, Vercel production and Cloud Run revisio
   requires both.
 - The rehearsal of the regression stage on a shuffled label returned NOT_REPLICATED (H1 adjusted p 0.93, H2 0.77), as it must.
 
+- **Phase II continuation (2026-10-12 evening).** Three protocol amendments (the REVERSED label, secondary S11, secondary S12) were made after reading Frieder and Shanthikumar and the 2022-2026 literature and before any amendment variable was related to a return on the independent sample; the registration says so. The full shuffled-label rehearsal returned NOT_REPLICATED / NOT_SUPPORTED everywhere. Label-free treated counts for S11/S12 were read from the rehearsal frame.
+  The registered run was started once and not restarted. Numpy prints spurious matmul warnings on this machine (reproduced on random data); results are finite and two inference code paths agree.
+- **Literature search limits (continuation).** SSRN, Wiley PDFs, AAA, ScienceDirect and INFORMS refused automated retrieval and were not worked around; abstract-level evidence is labelled as such; one retracted record was found and excluded; the search is not exhaustive (7 of 8 named leads recalled by the queries alone). The account email was sent to no service in this session (SEC calls were not made).
+- **The results document and manuscript draft** are generated from the output files; the interpretation sentences beyond the registered label are descriptive and say so.
+
 ## Next executable steps
 
-Phase II continues from `PHASE2_HANDOFF.md`, section 4: (1) full rehearsal of EXP-014 (machine learning, economics, artifact round trip); (2) refresh inputs and pre-registration checks if code changed; (3) write, commit and push the
-registration, then run the gate; (4) run the registered study once; (5) results, decision, state and manuscript documents from what was measured; (6) closing checks and final report.
-Owner decisions that remain: open the sealed holdout once for one frozen design (or not); approve the registered run; SEC contact for the live service; DoltHub licence review; access to the SSRN-only papers; provider-terms review before any snapshot capture; wording of any journal AI declaration; the two Vercel previews (and any new ones the pushes create).
+Phase II has run its registered test. The single best next step is a **new registration** (not an edit of EXP-014): a within-firm, event-time study of the Item 4.02 non-reliance announcement with value-changing amendments as the later event, on firms neither sample has seen (liquidity ranks beyond 1,000 for 2014-2025, which needs
+price ingestion, an identity layer and a panel build, or the sealed holdout once for one frozen design, which needs the owner). Until then: the closing checks of this session (full test suite, protected-file hashes, secret and attribution scans, push) are in the commit that adds the results; the draft `manuscript/draft_014.md` and the
+decision documents are for the owner's review.
+Owner decisions that remain: open the sealed holdout once for one frozen design (or not); extend the independent sample beyond liquidity rank 1,000 (data acquisition and the price source's licence); SEC contact for the live service; DoltHub licence review; access to the SSRN-only papers; provider-terms review before any snapshot capture; wording of any journal AI declaration; the Vercel previews that the pushes create.

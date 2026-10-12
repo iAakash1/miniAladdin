@@ -41,3 +41,9 @@ experiment (`05_OMNISIGNAL_SIGNAL_AUDIT.md`, finding 1).
 
 Path B is not abandoned in any branch: the archive is built, and a bridging experiment on the price-derived sleeves remains the cheapest honest statement the product can make about its own score. It is not
 started here because the brief for this phase forbids production changes and a bridging experiment needs its own preregistration.
+
+## 4. Outcome applied (2026-10-12, after the registered run)
+
+EXP-014 returned **FRAGILE** (interpretation MARKER_OF_PERSISTENT_TROUBLE; `docs/EXP_014_RESULTS.md`). By the table above the primary paper is **Path A as a measured, qualified result**: the pooled association replicates at about a fifth of the discovery size (one-sided p 0.0104, Holm 0.0208),
+it fails the influence gate (0.497 of the estimate remains against 0.5) and the within-firm gate (p 0.0566 against 0.05), it sits before the amendment and one to two years after it, not in the first year, and an Item 4.02 announcement carries it in the descriptive secondary analyses. **Path B** remains the separate software and audit contribution
+(archive and replay table) and is the forward-looking line if no further registered test of the amendment or Item 4.02 direction is run. Nothing in this outcome supports a claim of a new anomaly, investment value or promotion.

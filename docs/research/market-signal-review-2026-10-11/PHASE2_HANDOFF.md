@@ -1,4 +1,13 @@
-# Phase II handoff: read this first, then continue at section 4
+# Phase II handoff: read this first
+
+> **STATUS AFTER THE CONTINUATION (2026-10-12 evening) - read this block, then `RESEARCH_STATE.md`; sections 0 to 8 below are the history of the pause and still describe the data, the rules and the gotchas correctly.**
+>
+> * Done since the pause: Frieder and Shanthikumar read in full (`16_...`); literature updated to 12 October 2026 (`17_RECENT_LITERATURE_2022_2026.md`, `recent_lit_*.csv/json`); three pre-registration protocol amendments (REVERSED label, S11 age bins, S12 liquidity halves);
+>   full shuffled-label rehearsal (1,366 s, all stages); **EXP-014 registered at commit `fa1469c` (pushed, gate passed) and run once: FRAGILE**, interpretation MARKER_OF_PERSISTENT_TROUBLE (`docs/EXP_014_RESULTS.md`, `experiments/EXP-014/`); decision documents and `manuscript/draft_014.md` updated.
+> * Result in one line: pooled value-changing-amendment coefficient -0.0537 (Holm p 0.0208) at about a fifth of the discovery size; fails the influence gate (0.497 against 0.5) and the within-firm gate (p 0.0566 against 0.05); sits before the amendment and 1-2 years after it, not in the first year; the Item 4.02 announcement carries it (secondary S8/S9, descriptive).
+> * Single best next step: a NEW registration (within-firm, event-time study of Item 4.02 announcements with amendments as the later event) on firms neither sample has seen; it needs data acquisition (liquidity ranks beyond 1,000) or the owner's decision to open the sealed holdout once. EXP-014 itself must not be rerun or edited.
+> * Section 4 below ("What remains") is DONE through step 5; step 6 (closing checks) is recorded in the final commit and `RESEARCH_STATE.md`.
+> * New gotchas: see the memory-file list in section 5 and `17_...` section 2 (publisher bot-blocks, curl with hard timeouts, resumable scripts, numpy matmul warnings).
 
 Written 2026-10-12 at about 13:00 IST, when the owner asked me to save everything and stop. Branch `research/market-signal-review-2026-10-11` of `iAakash1/miniAladdin` (public). `RESEARCH_STATE.md` in this folder is the
 canonical checkpoint; this page is the working order for Phase II (the owner's brief: "From preliminary results to a defensible Q1-level research contribution").
@@ -26,7 +35,7 @@ until the EXP-014 registration is pushed**.
 | Background jobs | none running (checked with `ps`) |
 | Tests | full suite 5,513 passed, 3 skipped (448 s) on the checkpoint tree; a second full-suite attempt on the closing tree stalled at 26% in a non-quant test that uses process pools and was killed (the interpreter-teardown / process-pool hang described in section 5, not a failure); the **whole quant tree, which contains every module changed in Phase II, passed on the closing tree: 1,333 tests in 326 s**. Re-run the full suite once more at the very end of Phase II |
 | Lint | `ruff check --select E9,F` clean on every new file; two old unused-variable warnings left in `make_recovery_artifacts.py` and `make_results_doc.py` |
-| EXP-014 | code, tests and the regression-stage rehearsal exist; **not registered**; the machine-learning and economics stages have **never run on real data** (not even rehearsed) |
+| EXP-014 | (at the pause) code, tests and the regression-stage rehearsal existed; not registered. **Now: registered (`fa1469c`) and run once, FRAGILE** |
 
 ### Data on disk (all git-ignored; hashes in `phase2_data_manifest.json`; the only tracked data file is `data/research_mid/universe/mid.json`)
 
@@ -128,12 +137,12 @@ build_mid_security_master,build_mid_rich_panel,exp014}.py`, `tests/quant/test_{e
 | Licence | SEC data: US government public data, fair access (at most 10 requests a second, declared User-Agent); DoltHub community data: licence review is an open owner action, nothing derived from it is redistributed; no data file is tracked except the membership file |
 | Coverage | prices 2011-01..2025-06-30; panel 2014-04-07..2025-05-06; 559 decision dates; 2,424 symbols; identity trusted for 80.8% of rows (gate 95% fails); registry history back to 2009 for 1,503 of 2,098 companies; amendment content classifiable for 55% |
 | Acquisition commands | `python -m scripts.quant.build_independent_sample universe` / `ingest` / `baseline --workers 6`; `EDGAR_USER_AGENT=... python -m scripts.quant.build_mid_security_master`; `EDGAR_USER_AGENT=... python -m scripts.quant.acquire_edgar_submissions --cohort both`; `python -m scripts.quant.build_mid_rich_panel`; `python docs/research/market-signal-review-2026-10-11/code/classify_amendments.py`; large fetches need the tool sandbox off |
-| Models trained | none new yet: the EXP-014 ridge/boosted arms and the saved M1 artifact are produced by the rehearsal and the registered run; earlier A1/A5 artifacts exist (`experiments/EXP-012/model/`, git-ignored) |
-| Metrics | discovery diagnostics (section 2); EXP-014 metrics pending |
-| Full-text papers verified | 14 read in extract with pages stated; 21 DOI records and 7 arXiv records checked; list in `12_...` |
+| Models trained | EXP-014 ridge (M0, M1, five permuted placebos and one shifted placebo) and boosted (G0, G1, three seeds each) arms on eight folds; saved M1 ridge at `experiments/EXP-014/model/M1.joblib` (git-ignored, sha256 `ef9866ed2864b3dd...`, 81 features, reloaded in a fresh process to 0.0 difference; NOT FOR PRODUCTION); predictions per arm in `experiments/EXP-014/checkpoints/` (git-ignored); earlier A1/A5 artifacts in `experiments/EXP-012/model/` |
+| Metrics | discovery diagnostics (section 2); EXP-014 in `docs/EXP_014_RESULTS.md`: H1 -0.0537 (Holm 0.0208), ML increments +0.0004 Rank IC (NOT_SUPPORTED), net Sharpe 0.3-0.6 at 10 bp for all arms |
+| Full-text papers verified | 14 read in extract (pages stated) + Frieder and Shanthikumar (all 60 pages) + Ghosh et al. (open-access HTML, in part); 43 core DOIs checked in Crossref (`recent_core_crossref.csv`); list in `12_...` and `17_...` |
 | Limitations | single calendar period shared by both samples; identity selection (80.8% trusted); delisted names lose their last labels; price source licence; SSRN-only papers unread; amendment content known for 55%; registry current-state download |
 | Tests | 5,513 passed / 3 skipped (full suite, checkpoint tree); quant tree 1,333 passed on the closing tree; mutation checks on the archive |
-| Exact SHA | fill in after the closing push |
-| Unverified claims | Frieder and Shanthikumar; Gondhalekar et al. beyond the abstract; the 45% / 15% / 40% weight split uses the sleeve weights recorded in the signal registry; provider equivalence of adjusted closes; novelty rating (retrieval sensitivity 77%); no venue ranking is stated |
-| Q1 manuscript? | Not on present evidence. Decide after EXP-014; even a SURVIVES supports an applied-venue replication plus the data-audit finding, not a new anomaly |
-| Highest-value next experiment | the registered EXP-014 run (after the full rehearsal); then, only if it SURVIVES and the owner agrees, one frozen look at the sealed holdout |
+| Exact SHA | the registration commit is `fa1469ce840a`; the closing commit is the head of the pushed branch (`git log -1`; stated in the final report) |
+| Unverified claims | Gondhalekar et al. beyond the abstract; every ABSTRACT-level paper in `recent_lit_matrix.csv` beyond its abstract; two web-search leads (an Audit Analytics note on positive returns after restatement resolution; a 27% 36-month drift figure); the 45% / 15% / 40% weight split uses the sleeve weights recorded in the signal registry; provider equivalence of adjusted closes; novelty rating (retrieval sensitivity 77%); no venue ranking is stated |
+| Q1 manuscript? | Not claimed. The registered outcome is FRAGILE: the supportable paper is a measured, qualified replication plus the data-audit finding (`manuscript/draft_014.md`); no venue ranking is asserted |
+| Highest-value next experiment | a new registered within-firm, event-time study of Item 4.02 announcements (amendments as the later event) on firms beyond liquidity rank 1,000, or one frozen look at the sealed holdout if the owner agrees; EXP-014 is not to be rerun |

@@ -2,7 +2,7 @@
 
 > **Phase II update (2026-10-12).** Read levels for fourteen works were upgraded to a full-text extract and seven more were found or re-read at abstract level; see `12_FULLTEXT_REVIEW_AND_NOVELTY_MATRIX.md` and `fulltext_ledger.csv`.
 > The sentence below, "No full text was read", is superseded for those works only. Two findings change this page: long-run underperformance after restatements is documented (Gondhalekar, Joshi and McKendall 2012, abstract level),
-> and point-in-time SEC construction has a published benchmark (Liu 2026, abstract level). The overall novelty rating stays **low**; one probably decisive paper (Frieder and Shanthikumar 2008) is still unread.
+> and point-in-time SEC construction has a published benchmark (Liu 2026, abstract level). The overall novelty rating stayed **low** at that point. **UPDATE (continuation, same day):** Frieder and Shanthikumar (2008) was read in full (`16_FRIEDER_SHANTHIKUMAR_FULLTEXT_REVIEW.md`) and shows a positive rebound after day 64, so the sign is contested rather than prior art; the 2022 to 2026 update is `17_RECENT_LITERATURE_2022_2026.md`, which rates novelty low to moderate for the idea and moderate only as a preregistered independent-sample test (confidence moderate-low).
 
 ## The claim being tested
 

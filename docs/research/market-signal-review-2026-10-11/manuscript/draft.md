@@ -1,3 +1,5 @@
+> **Note (2026-10-12 continuation):** this draft describes the EXP-012 feasibility study. The registered independent-sample test that followed (EXP-014, FRAGILE) is drafted in `draft_014.md`; the statement below that the direction of the effect is known from the literature is withdrawn (`17_RECENT_LITERATURE_2022_2026.md`).
+
 # Do disclosure-process variables add to a point-in-time ranking of US stocks? A preregistered, placebo-controlled feasibility study
 
 **Status of this draft.** Written for the owner's review; a feasibility study; exploratory; **not submission-ready.** Every number below is read from the registered study's output files

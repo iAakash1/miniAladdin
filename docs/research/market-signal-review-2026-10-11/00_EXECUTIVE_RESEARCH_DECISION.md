@@ -35,10 +35,26 @@ What the second phase changed in the assessment, each point traceable to a file 
 5. **The live scorer cannot be evaluated on the past.** About 45% of the composite's weight (momentum and reversal) is replayable from prices, 15% only through a different SEC-based definition, 40% (news and fundamentals) not at
    all. A hash-chained snapshot archive library now exists and is tested; it reconstructs nothing, and no capture job runs.
 
-**Interim decision.** Do not describe the amendment effect as a discovery or as investment value. Run EXP-014 once, as registered (with the two-sided label REVERSED and the descriptive age bins S11 and liquidity halves S12, added before registration after the literature update). A publication-grade empirical paper on this variable is **not supported at present**: the sign is contested rather than known,
+**Interim decision (superseded by the update below once EXP-014 had run).** Do not describe the amendment effect as a discovery or as investment value. Run EXP-014 once, as registered (with the two-sided label REVERSED and the descriptive age bins S11 and liquidity halves S12, added before registration after the literature update). A publication-grade empirical paper on this variable is **not supported at present**: the sign is contested rather than known,
 the point-in-time handling of SEC data is not new (Liu 2026 at abstract level), and the economic result so far is negative. What could stand on its own, depending on EXP-014, is an independent, valid-inference replication
 with the data-audit finding and the archive design; where that fits is the owner's call. If EXP-014 does not replicate, the forward-looking contribution is Path B (prospective capture and a pre-registered evaluation of the
 price-derived sleeves). The single highest-value next step is the registered EXP-014 run.
+
+## Update 2026-10-12, Phase II continuation: EXP-014 registered (commit `fa1469c`) and run once - FRAGILE
+
+Numbers are in `docs/EXP_014_RESULTS.md` (generated from `experiments/EXP-014`); the protocol was frozen in `docs/EXP_014_PREREGISTRATION.md` and `validation/exp014_protocol_pre_run.json` before the run.
+
+1. **Registered outcome: FRAGILE, interpretation MARKER_OF_PERSISTENT_TROUBLE.** In 1,141 firms the discovery never saw (150,884 firm-dates, 65 treated firms), a value-changing amendment in the trailing 730 days goes with a next-month return rank 0.0537 lower on a
+   scale that runs from -1 to 1 (about 2.7 percentile points; one-sided wild-cluster p 0.0104, Holm-adjusted 0.0208). Any amendment (H2) shows nothing (adjusted p 0.57). Five of seven gates passed (power, calendar years 12 of 12, full controls, time-separate sample, sectors 13 of 13);
+   two failed by narrow margins: removing the five most influential treated firms keeps 0.497 of the estimate (the gate needs 0.5), and with a firm fixed effect the coefficient is -0.0551 with one-sided p 0.0566 (the gate needs below 0.05). The rule is mechanical, so the label stays FRAGILE.
+2. **The association is not a post-announcement drift.** It is absent in the first year after the amendment (previous 365 days: -0.0013), present for firms that will file one within the next year (-0.0747, p 0.012) and in amendments one to two years old (-0.1121, two-sided p 0.004). In the descriptive
+   secondary analyses an Item 4.02 non-reliance 8-K in the trailing 730 days carries -0.0832 (two-sided p 0.0006) and, with it and late-filing notices in the model, the core-amendment coefficient is +0.059 (two-sided p 0.054). The amendment looks like a marker of persistent trouble whose information was in earlier events.
+3. **The discovery estimate shrank to about a fifth** (-0.245 to -0.054 pooled; -0.154 to -0.055 within firm), as a selected estimate is expected to. The rebound of Frieder and Shanthikumar is neither shown nor excluded: the 90-179 and 180-364 day bins are +0.053 and -0.015, both indistinguishable from zero.
+4. **Machine learning and money.** The amendment block adds +0.0004 Rank IC to ridge and boosted rankings (NOT_SUPPORTED; boosted positive in 7 of 8 folds, Holm p 0.15). The frozen portfolio's net Sharpe at 10 bp is 0.3 to 0.6 with or without the block, a property of the independent universe, not of the amendment variable; nothing is promoted.
+5. **What the paper can be.** Per the trigger table in `14_PATH_A_VS_PATH_B.md`: Path A as a measured, qualified result (where the association holds and where it does not) plus the data-quality finding on EDGAR's acceptance times; Path B (the point-in-time scorer audit and archive) as the separate forward-looking contribution. A claim of a new anomaly or of investment value is not supported.
+   The draft is `manuscript/draft_014.md`; no journal tier is claimed.
+6. **Single best next step (needs a new registration, not an edit of this one):** a within-firm, event-time study of the Item 4.02 non-reliance announcement, with value-changing amendments as the later event, on firms neither sample has seen (liquidity ranks beyond 1,000, or the sealed holdout if the owner approves opening it once for one frozen design).
+   The present sample cannot be reused for it without losing its independence.
 
 ## The nine questions
 
