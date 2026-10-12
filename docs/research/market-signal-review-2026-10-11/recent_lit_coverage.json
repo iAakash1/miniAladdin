@@ -1,0 +1,245 @@
+{
+  "citation_chains": {
+    "citing_works_fetched": 3714,
+    "seeds_resolved": 14,
+    "seeds_tried": 20,
+    "seeds_unresolved": [
+      "HJ2004",
+      "BGH2011",
+      "GBRS2012",
+      "AZZ2015",
+      "BK2006",
+      "BGPR2020"
+    ]
+  },
+  "decisions": {
+    "EXCLUDE_DETERMINANTS_AUDIT_GOVERNANCE": 108,
+    "EXCLUDE_NOT_FINANCE": 35,
+    "EXCLUDE_OFF_QUESTION": 205,
+    "EXCLUDE_RETRACTED": 1,
+    "INCLUDE_CONTEXT": 110,
+    "INCLUDE_CORE": 31,
+    "INCLUDE_CORE_TITLE_ONLY": 5,
+    "NOT_SCREENED_BY_READING": 10123
+  },
+  "excluded_after_reading": 349,
+  "excluded_by_reason": {
+    "EXCLUDE_DETERMINANTS_AUDIT_GOVERNANCE": 108,
+    "EXCLUDE_NOT_FINANCE": 35,
+    "EXCLUDE_OFF_QUESTION": 205,
+    "EXCLUDE_RETRACTED": 1
+  },
+  "full_texts_examined": {
+    "earlier_in_phase_II": 14,
+    "this_continuation": [
+      "Frieder and Shanthikumar 2008 (all 60 pages)",
+      "Ghosh et al. 2025/2026 (open-access HTML, sections named in the matrix)"
+    ],
+    "total_distinct": 16
+  },
+  "included_context": 110,
+  "included_core": 36,
+  "included_core_title_only": 5,
+  "included_core_with_abstract_read": 31,
+  "leads": {
+    "missed_by_the_search_queries": [
+      "Kang, Ryu and Webb (2025, Financial Innovation)"
+    ],
+    "named": 8,
+    "retrieved_by_the_search_queries_alone": 7,
+    "verified_by_doi_in_crossref_or_openalex": 7
+  },
+  "matrix_evidence_levels": {
+    "ABSTRACT": 35,
+    "FULL_TEXT": 1,
+    "FULL_TEXT_PARTIAL": 1,
+    "RETRACTED": 1,
+    "TITLE_ONLY": 5
+  },
+  "matrix_rows": 43,
+  "matrix_rows_by_group": {
+    "A restatement returns": 16,
+    "B filing-process signals": 9,
+    "C design and ML": 18
+  },
+  "merge": {
+    "distinct_works": 10618,
+    "distinct_works_published_2022_or_later": 10618,
+    "domain_term_present": 8041,
+    "raw_records_by_source": {
+      "Crossref": 1720,
+      "Crossref-preprints": 1290,
+      "OpenAlex": 6763,
+      "OpenAlex-chain": 3714,
+      "arXiv": 246
+    },
+    "raw_records_total": 13733,
+    "topical_keyword_present": 4409,
+    "works_in_more_than_one_source": 648,
+    "works_with_restatement_or_amendment_term_in_title": 233,
+    "works_with_restatement_or_amendment_terms_in_title_or_abstract_twice_or_more": 242,
+    "works_without_abstract": 2871,
+    "year_distribution": {
+      "2022": 1608,
+      "2023": 1751,
+      "2024": 1862,
+      "2025": 2366,
+      "2026": 3031
+    }
+  },
+  "reading_set_size": 495,
+  "requests": {
+    "boolean_sweeps": 12,
+    "by_source_http_200": {
+      "Crossref": 43,
+      "Crossref-preprints": 43,
+      "OpenAlex": 55,
+      "arXiv": 23
+    },
+    "curated_arxiv_queries": 9,
+    "failed_then_repeated_successfully": [
+      {
+        "http_status": "0",
+        "query_id": "T1g",
+        "source": "Crossref"
+      },
+      {
+        "http_status": "301",
+        "query_id": "T6a",
+        "source": "arXiv"
+      },
+      {
+        "http_status": "301",
+        "query_id": "T6b",
+        "source": "arXiv"
+      },
+      {
+        "http_status": "301",
+        "query_id": "T6c",
+        "source": "arXiv"
+      },
+      {
+        "http_status": "301",
+        "query_id": "T6d",
+        "source": "arXiv"
+      },
+      {
+        "http_status": "301",
+        "query_id": "T6e",
+        "source": "arXiv"
+      },
+      {
+        "http_status": "301",
+        "query_id": "T7a",
+        "source": "arXiv"
+      },
+      {
+        "http_status": "301",
+        "query_id": "T7b",
+        "source": "arXiv"
+      },
+      {
+        "http_status": "301",
+        "query_id": "T7c",
+        "source": "arXiv"
+      },
+      {
+        "http_status": "301",
+        "query_id": "T8a",
+        "source": "arXiv"
+      },
+      {
+        "http_status": "301",
+        "query_id": "T8b",
+        "source": "arXiv"
+      },
+      {
+        "http_status": "301",
+        "query_id": "T8c",
+        "source": "arXiv"
+      },
+      {
+        "http_status": "301",
+        "query_id": "T8d",
+        "source": "arXiv"
+      },
+      {
+        "http_status": "301",
+        "query_id": "T9c",
+        "source": "arXiv"
+      },
+      {
+        "http_status": "301",
+        "query_id": "T10c",
+        "source": "arXiv"
+      }
+    ],
+    "http_200": 164,
+    "logged": 179,
+    "never_succeeded": [],
+    "ranked_queries": 43,
+    "sweep_match_counts": {
+      "S1": 552,
+      "S10": 65,
+      "S11": 236,
+      "S12": 23346,
+      "S2": 5417,
+      "S3": 49,
+      "S4": 16,
+      "S5": 3253,
+      "S6": 826,
+      "S7": 667,
+      "S8": 1183,
+      "S9": 103
+    },
+    "sweeps_truncated_at_600": [
+      "S2",
+      "S5",
+      "S6",
+      "S7",
+      "S8",
+      "S12"
+    ]
+  },
+  "stages": {
+    "L1_not_topical": 3613,
+    "L1_off_domain": 2547,
+    "L1_topical_rule_only": 3963,
+    "L2_title_read": 495
+  },
+  "unavailable": {
+    "abstract_not_retrievable": [
+      "A11 Schroeder, J",
+      "A12 Zhang, Z",
+      "B04 Wang, R",
+      "C17 Jo, Y",
+      "C18 Chen, M"
+    ],
+    "bot_verification_or_refusal": [
+      "SSRN abstract and download pages",
+      "Wiley PDF of Lalwani et al. (paywalled despite an open-access flag)",
+      "AAA (The Accounting Review, Accounting Horizons)",
+      "ScienceDirect",
+      "INFORMS",
+      "Springer API pages for programmatic fetch (page loads in the browser)"
+    ],
+    "retracted": [
+      "C16"
+    ]
+  },
+  "window": "2022-01-01 to 2026-10-12 (publication date); pre-2022 work only through citation seeds, the Phase I corpus and the older papers named in the matrix",
+  "year_distribution_all": {
+    "2022": 1608,
+    "2023": 1751,
+    "2024": 1862,
+    "2025": 2366,
+    "2026": 3031
+  },
+  "year_distribution_included": {
+    "2022": 20,
+    "2023": 34,
+    "2024": 18,
+    "2025": 31,
+    "2026": 43
+  }
+}

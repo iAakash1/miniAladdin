@@ -1,6 +1,8 @@
 # Full-text review of the decision-critical papers, and the closest-work novelty matrix (Phase II)
 
-Status: **newly generated 2026-10-12.** It replaces the abstract-level reading in `06_PRIOR_ART_AND_NOVELTY.md` for the works named below; that page's other rows still stand at their stated read level.
+Status: **newly generated 2026-10-12; sections 3 (row A02), 4 (row 2), 5 and 6 were SUPERSEDED later the same day** by `16_FRIEDER_SHANTHIKUMAR_FULLTEXT_REVIEW.md` (the paper they called unread and decisive) and `17_RECENT_LITERATURE_2022_2026.md` (the 2022 to 2026 update). The superseded wording is kept below, struck through in meaning by the notes marked UPDATE.
+
+Original status: **newly generated 2026-10-12.** It replaces the abstract-level reading in `06_PRIOR_ART_AND_NOVELTY.md` for the works named below; that page's other rows still stand at their stated read level.
 Machine-readable: `fulltext_ledger.csv` (built by `code/make_fulltext_ledger.py`) and `validation/fulltext_papers_verification.json` (identifier checks).
 
 ## 1. How the reading was done, and what it covers
@@ -36,7 +38,7 @@ Machine-readable: `fulltext_ledger.csv` (built by `code/make_fulltext_ledger.py`
 | ID | Work | Read level | What it shows | Consequence |
 |---|---|---|---|---|
 | A01 | Gondhalekar, Joshi, McKendall (2012), *Short- and Long-Term Share Price Reaction to Announcements of Financial Restatements*, Adv. Financial Economics 15:149-172 | ABSTRACT | 553 restatements; three-day CAR -1.58; negative CAR in each of four years after, about -22% in total | **The sign is prior art.** "Restating firms underperform for years" is not a discovery. |
-| A02 | Frieder, Shanthikumar (2008), *After a Restatement: Long-Run Market and Investor Response*, SSRN 1106855 | TITLE ONLY | unknown | **Unread and probably decisive.** If it documents long-run drift, EXP-013 largely replicates known work. |
+| A02 | Frieder, Shanthikumar (2008), *After a Restatement: Long-Run Market and Investor Response*, SSRN 1106855 | **FULL TEXT (F15 in `fulltext_ledger.csv`; all 60 pages)** | 238 negative non-rule-change announcements, NYSE 1993-2002: no significant negative drift; a significant **positive** return in trading days 64-126 (+4.29% raw, +4.96% characteristic-adjusted) | UPDATE: the earlier note "unread and probably decisive; if it documents long-run drift, EXP-013 largely replicates known work" is replaced: the paper documents a rebound, so the sign is contested, not prior art (`16_...`, `17_...`) |
 | A03 | Files, Swanson, Tse (2009), *Stealth Disclosure of Accounting Restatements*, TAR 84(5):1495-1520 | ABSTRACT | Press-release prominence goes with three-day returns of -8.3%, -4.0%, -1.5% | Disclosure route matters; quiet routes carry smaller immediate reactions. |
 | A04 | Irani, Xu (2011), *Do stealth restatements convey material information?*, Accounting Research Journal 24(1):5-22 | ABSTRACT | Restatements disclosed only in a 10-K/10-Q (not an Item 4.02 8-K) show no reaction at filing or for 22 trading days | Closest on the amendment channel and short window; EXP-014 differs by horizon (state variable up to two years), content classification and controls. |
 | A05 | Desai, Krishnamurthy, Venkataraman (2006), RAS 11(1):71-90 | ABSTRACT | Short sellers build positions months before restatements | Anticipation: the event-time bins in EXP-014 test whether the amendment is news or a marker. |
@@ -50,7 +52,7 @@ Read levels: FT = full-text extract (pages in section 2), AB = abstract, MD = me
 | # | Work | Read | Overlap with EXP-014 | Verdict |
 |---|---|---|---|---|
 | 1 | Gondhalekar, Joshi, McKendall 2012 | AB | Long-run returns after restatement announcements | Sign and persistence are known |
-| 2 | Frieder, Shanthikumar 2008 | TO | Long-run response after restatements | **Unresolved; highest priority to read** |
+| 2 | Frieder, Shanthikumar 2008 | **FT (all 60 pages)** | Long-run response after restatements | **UPDATE: positive rebound after day 64, no significant negative drift; sign contested** |
 | 3 | Palmrose, Richardson, Scholz 2001/2004 | MD | Announcement reaction | Event-study base |
 | 4 | Hribar, Jenkins 2004 | MD | Cost of capital after restatements | Consequence of the event |
 | 5 | Files, Swanson, Tse 2009 | AB | Disclosure route and reaction | Context |
@@ -84,18 +86,20 @@ Context only: Bali et al. 2023, Goulding et al. 2026, Freyberger et al. 2024, Gu
 
 ## 5. Full texts not reached
 
-SSRN-hosted: Frieder and Shanthikumar 2008, Palmrose et al., Hribar and Jenkins, Karpoff et al., Wu, Lev, Ryan and Wu, Brooks et al., Liu 2026 (Bannouh et al. was read from an author-posted draft hosted elsewhere). Publisher-hosted and not opened: Files et al.,
+UPDATE (continuation): Frieder and Shanthikumar was supplied by the owner and read in full; Ghosh et al. (2025/2026) was read in part from its open-access HTML. `17_RECENT_LITERATURE_2022_2026.md` lists what could not be reached in the 2022 to 2026 update.
+
+SSRN-hosted: Palmrose et al., Hribar and Jenkins, Karpoff et al., Wu, Lev, Ryan and Wu, Brooks et al., Liu 2026 (Bannouh et al. was read from an author-posted draft hosted elsewhere). Publisher-hosted and not opened: Files et al.,
 Irani and Xu, Gleason et al., Desai et al., Gondhalekar et al., Dechow et al., Richardson et al., Sloan. For these the judgement rests on the abstract or metadata, and says so.
 
 ## 6. What this changes
 
-1. **Direction is prior art.** Long-run underperformance after restatements is documented (A01 at abstract level); informed trading precedes them (A05); the immediate reaction depends on the disclosure route (A03, A04).
+1. **UPDATE: direction is NOT settled prior art (superseded text follows).** **Direction is prior art.** Long-run underperformance after restatements is documented (A01 at abstract level); informed trading precedes them (A05); the immediate reaction depends on the disclosure route (A03, A04).
    EXP-014 is therefore a test of *robustness and independence*, not of a new sign. A positive result would be a replication in a point-in-time, controlled, cross-sectional form.
 2. **Point-in-time SEC construction is not new** (A07), though the cited work is a conformance suite, not a return study.
 3. **What may still be new, to be claimed only if shown:** (a) the split of amendments by whether they change the reported numbers, as a point-in-time state variable; (b) the finding that an
    independent firm sample does or does not reproduce the effect; (c) the data-quality finding about EDGAR submissions timestamps (`validation` of `data/manifests/edgar_filings_v1.json`); (d) the
    cost-aware economic result, which so far is negative.
-4. **Overall novelty rating: low.** Confidence moderate-low: one decisive paper (A02) is unread, SSRN and several publishers could not be searched, and the retrieval had 77% sensitivity against known anchors.
+4. **UPDATE: see `17_RECENT_LITERATURE_2022_2026.md` section 6 (low to moderate for the idea, moderate as a preregistered independent-sample test, not a new anomaly; confidence moderate-low).** Earlier rating: **Overall novelty rating: low.** Confidence moderate-low: one decisive paper (A02) was unread at the time, SSRN and several publishers could not be searched, and the retrieval had 77% sensitivity against known anchors.
 
 ## 7. Reproducing this page
 

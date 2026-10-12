@@ -16,9 +16,12 @@ Written 2026-10-12 after the registered pilot (EXP-012) finished. Every number i
 
 What the second phase changed in the assessment, each point traceable to a file named in `PHASE2_HANDOFF.md`:
 
-1. **The direction is prior art.** Long-run underperformance after restatements is documented (Gondhalekar, Joshi and McKendall 2012, abstract level: negative abnormal returns in each of four years, about -22% in total);
-   informed trading precedes restatements (Desai et al. 2006); restatements disclosed only in a 10-K or 10-Q ("stealth") show no short-window reaction (Irani and Xu 2011). Novelty stays **low**. One probably decisive paper,
-   Frieder and Shanthikumar (2008), is unread because SSRN refuses automated access.
+1. **The direction is contested, not settled prior art (revised after the full-text reading of Frieder and Shanthikumar and the 2022 to 2026 update).** Long-run underperformance after restatements is reported by some studies
+   (Gondhalekar, Joshi and McKendall 2012, abstract level: about -22% over four years; Moon, Lee and Waggle 2019/2020, abstract level) and not by others: Frieder and Shanthikumar (2008, read in full, 238 NYSE announcements 1993-2002)
+   find no significant negative drift and a significant positive return of about +4.3% to +5.0% in trading days 64 to 126; Hong, Lee, Park and Patro (online 2021) find no drift where cash-flow news dominates. For a different reliability
+   disclosure, material weaknesses, a 2025 paper finds negative drift of about 1.2% a month (Ghosh et al.). Informed trading precedes restatements (Desai et al. 2006); restatements disclosed only in a 10-K or 10-Q ("stealth") show no
+   short-window reaction (Irani and Xu 2011). No study of content-classified amendments as a cross-sectional return predictor was found. Novelty: **low to moderate** for the idea, moderate only as a preregistered independent-sample
+   test, not a new anomaly (`16_FRIEDER_SHANTHIKUMAR_FULLTEXT_REVIEW.md`, `17_RECENT_LITERATURE_2022_2026.md`).
 2. **The earlier "fragile" verdict applies to the machine-learning gain, not to the regression association.** On the discovery sample the association between a value-changing amendment and lower next-month return ranks
    survives inference built for few treated firms (wild-cluster bootstrap, 18 treated firms, p about 1e-4), the removal of the ten most influential firms (coefficient -0.126 against -0.245), and a firm fixed effect
    (about three quarters of the pooled estimate remains, p 0.008). It is not a clustering artefact and not mainly a stable firm trait. It is also not independent evidence: it is the sample that produced the finding. The
@@ -32,7 +35,7 @@ What the second phase changed in the assessment, each point traceable to a file 
 5. **The live scorer cannot be evaluated on the past.** About 45% of the composite's weight (momentum and reversal) is replayable from prices, 15% only through a different SEC-based definition, 40% (news and fundamentals) not at
    all. A hash-chained snapshot archive library now exists and is tested; it reconstructs nothing, and no capture job runs.
 
-**Interim decision.** Do not describe the amendment effect as a discovery or as investment value. Run EXP-014 once, as registered. A Q1-level empirical paper on this variable is **not supported at present**: the sign is known,
+**Interim decision.** Do not describe the amendment effect as a discovery or as investment value. Run EXP-014 once, as registered (with the two-sided label REVERSED and the descriptive age bins S11 and liquidity halves S12, added before registration after the literature update). A publication-grade empirical paper on this variable is **not supported at present**: the sign is contested rather than known,
 the point-in-time handling of SEC data is not new (Liu 2026 at abstract level), and the economic result so far is negative. What could stand on its own, depending on EXP-014, is an independent, valid-inference replication
 with the data-audit finding and the archive design; where that fits is the owner's call. If EXP-014 does not replicate, the forward-looking contribution is Path B (prospective capture and a pre-registered evaluation of the
 price-derived sleeves). The single highest-value next step is the registered EXP-014 run.

@@ -1,0 +1,25 @@
+{
+  "distinct_works": 10618,
+  "distinct_works_published_2022_or_later": 10618,
+  "domain_term_present": 8041,
+  "raw_records_by_source": {
+    "Crossref": 1720,
+    "Crossref-preprints": 1290,
+    "OpenAlex": 6763,
+    "OpenAlex-chain": 3714,
+    "arXiv": 246
+  },
+  "raw_records_total": 13733,
+  "topical_keyword_present": 4409,
+  "works_in_more_than_one_source": 648,
+  "works_with_restatement_or_amendment_term_in_title": 233,
+  "works_with_restatement_or_amendment_terms_in_title_or_abstract_twice_or_more": 242,
+  "works_without_abstract": 2871,
+  "year_distribution": {
+    "2022": 1608,
+    "2023": 1751,
+    "2024": 1862,
+    "2025": 2366,
+    "2026": 3031
+  }
+}
