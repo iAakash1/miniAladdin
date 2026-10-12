@@ -91,6 +91,13 @@ def records() -> list[dict]:
                     online, issued, printed = cr_year(it)
                     recs.append(dict(src=source, qid=qid, rank=rank, title=clean((it.get("title") or [""])[0]), doi=norm_doi(it.get("DOI")), year=(issued or printed or online)[:4], online=online, venue=clean((it.get("container-title") or [""])[0]),
                                      authors="; ".join(f"{a.get('family', '')} {a.get('given', '')[:1]}".strip() for a in (it.get("author") or [])[:6]), cited=it.get("is-referenced-by-count") or 0, type=it.get("type") or "", oa="", oa_url="", abstract=clean(it.get("abstract")), oaid="", lang=""))
+            elif source == "NBER":
+                for rank, r in enumerate(json.loads(f.read_bytes())["results"], 1):
+                    yr = next((int(t) for t in r.get("displaydate", "").replace(",", " ").split() if t.isdigit() and len(t) == 4), 0)
+                    if yr < FROM_YEAR:
+                        continue
+                    recs.append(dict(src=source, qid=qid, rank=rank, title=clean(r["title"]), doi="10.3386/" + r["url"].rsplit("/", 1)[-1], year=str(yr), online=str(yr), venue="NBER Working Paper",
+                                     authors="; ".join(re.findall(r">([^<]+)</a>", str(r["authors"]))[:6]), cited=0, type="preprint", oa="", oa_url="https://www.nber.org" + r["url"], abstract=clean(r.get("abstract", "")), oaid="", lang=""))
             elif source == "arXiv":
                 ns = {"a": "http://www.w3.org/2005/Atom"}
                 for rank, e in enumerate(ET.fromstring(f.read_bytes()).findall("a:entry", ns), 1):

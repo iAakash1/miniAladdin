@@ -87,7 +87,7 @@ retrievable. A claim in this page never rests on a higher level than the paper h
 
 ## 2. How the search was done, and how much it covers
 
-Sources: OpenAlex (ranked title-and-abstract search, boolean sweeps, forward citation chains), Crossref (journal articles and posted content), arXiv (q-fin, econ.EM, stat.ML), plus spot checks through Semantic Scholar, IDEAS/RePEc pages and web search. Window: publication date
+Sources: OpenAlex (ranked title-and-abstract search, boolean sweeps, forward citation chains), Crossref (journal articles and posted content), arXiv (q-fin, econ.EM, stat.ML), the NBER working-paper search, plus spot checks through Semantic Scholar, IDEAS/RePEc pages and web search. Window: publication date
 2022-01-01 to 2026-10-12; online-publication date is recorded apart from the issue year wherever Crossref gives it. All requests are logged with filters, hit counts and the SHA-256 of each raw response (`recent_search_log.csv`; raw files are git-ignored because they carry publishers' abstracts).
 
 | Item | Count |
@@ -95,6 +95,7 @@ Sources: OpenAlex (ranked title-and-abstract search, boolean sweeps, forward cit
 | Ranked queries (43 over ten themes), each sent to OpenAlex, Crossref journals, Crossref posted content, and for 14 of them arXiv | {req['ranked_queries']} |
 | Boolean sweeps (OpenAlex `title_and_abstract.search`, cursor-paged, cap 600) | {req['boolean_sweeps']} (truncated at the cap: {', '.join(req['sweeps_truncated_at_600'])}) |
 | Curated arXiv queries (phrase and OR semantics; the 14 strict AND-of-all-words arXiv calls above returned only 38 records) | {req['curated_arxiv_queries']} |
+| Direct NBER working-paper queries (the site's own search; OpenAlex and Crossref had surfaced one NBER record) | {req['nber_queries']}: no work dated 2022 or later on restatements, amendments, late filing or internal control; three peripheral hits (point-in-time language models, model complexity) |
 | Citation chains: seed papers tried / resolved by title and author | {cov['citation_chains']['seeds_tried']} / {cov['citation_chains']['seeds_resolved']} (unresolved: {', '.join(cov['citation_chains']['seeds_unresolved'])}); {cov['citation_chains']['citing_works_fetched']:,} citing works fetched |
 | Logged requests / HTTP 200 / never succeeded | {req['logged']} / {req['http_200']} / {len(req['never_succeeded'])} |
 | Requests that failed once and were repeated successfully | {len(req['failed_then_repeated_successfully'])} (14 arXiv calls answered with a redirect because the API had moved to https; 1 Crossref call interrupted when the laptop slept) |

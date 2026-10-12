@@ -20,7 +20,7 @@
     "INCLUDE_CONTEXT": 110,
     "INCLUDE_CORE": 31,
     "INCLUDE_CORE_TITLE_ONLY": 5,
-    "NOT_SCREENED_BY_READING": 10123
+    "NOT_SCREENED_BY_READING": 10138
   },
   "excluded_after_reading": 349,
   "excluded_by_reason": {
@@ -63,28 +63,29 @@
     "C design and ML": 18
   },
   "merge": {
-    "distinct_works": 10618,
-    "distinct_works_published_2022_or_later": 10618,
-    "domain_term_present": 8041,
+    "distinct_works": 10633,
+    "distinct_works_published_2022_or_later": 10633,
+    "domain_term_present": 8052,
     "raw_records_by_source": {
       "Crossref": 1720,
       "Crossref-preprints": 1290,
+      "NBER": 23,
       "OpenAlex": 6763,
       "OpenAlex-chain": 3714,
       "arXiv": 246
     },
-    "raw_records_total": 13733,
-    "topical_keyword_present": 4409,
-    "works_in_more_than_one_source": 648,
+    "raw_records_total": 13756,
+    "topical_keyword_present": 4408,
+    "works_in_more_than_one_source": 652,
     "works_with_restatement_or_amendment_term_in_title": 233,
     "works_with_restatement_or_amendment_terms_in_title_or_abstract_twice_or_more": 242,
     "works_without_abstract": 2871,
     "year_distribution": {
-      "2022": 1608,
+      "2022": 1615,
       "2023": 1751,
-      "2024": 1862,
-      "2025": 2366,
-      "2026": 3031
+      "2024": 1865,
+      "2025": 2370,
+      "2026": 3032
     }
   },
   "reading_set_size": 495,
@@ -93,6 +94,7 @@
     "by_source_http_200": {
       "Crossref": 43,
       "Crossref-preprints": 43,
+      "NBER": 8,
       "OpenAlex": 55,
       "arXiv": 23
     },
@@ -174,8 +176,9 @@
         "source": "arXiv"
       }
     ],
-    "http_200": 164,
-    "logged": 179,
+    "http_200": 172,
+    "logged": 187,
+    "nber_queries": 8,
     "never_succeeded": [],
     "ranked_queries": 43,
     "sweep_match_counts": {
@@ -202,9 +205,9 @@
     ]
   },
   "stages": {
-    "L1_not_topical": 3613,
-    "L1_off_domain": 2547,
-    "L1_topical_rule_only": 3963,
+    "L1_not_topical": 3625,
+    "L1_off_domain": 2551,
+    "L1_topical_rule_only": 3962,
     "L2_title_read": 495
   },
   "unavailable": {
@@ -229,11 +232,11 @@
   },
   "window": "2022-01-01 to 2026-10-12 (publication date); pre-2022 work only through citation seeds, the Phase I corpus and the older papers named in the matrix",
   "year_distribution_all": {
-    "2022": 1608,
+    "2022": 1615,
     "2023": 1751,
-    "2024": 1862,
-    "2025": 2366,
-    "2026": 3031
+    "2024": 1865,
+    "2025": 2370,
+    "2026": 3032
   },
   "year_distribution_included": {
     "2022": 20,

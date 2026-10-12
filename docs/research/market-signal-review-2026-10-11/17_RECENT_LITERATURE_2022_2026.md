@@ -2,7 +2,7 @@
 
 Written 2026-10-12 (Phase II continuation). It **updates** `12_FULLTEXT_REVIEW_AND_NOVELTY_MATRIX.md` and `06_PRIOR_ART_AND_NOVELTY.md` and replaces their statements that the direction of the effect "is prior art" and that the one decisive
 paper was unread: that paper has now been read in full (`16_FRIEDER_SHANTHIKUMAR_FULLTEXT_REVIEW.md`) and it does not say what was assumed. Machine-readable files: `recent_lit_matrix.csv` (long per-paper field set), `recent_lit_screening.csv`
-(every work whose title I read, with the decision and reason), `recent_lit_candidates.csv` (all 10,618 deduplicated works with their stage), `recent_lit_coverage.json`, `recent_search_log.csv`, `citation_chain_log.csv`,
+(every work whose title I read, with the decision and reason), `recent_lit_candidates.csv` (all 10,633 deduplicated works with their stage), `recent_lit_coverage.json`, `recent_search_log.csv`, `citation_chain_log.csv`,
 `lead_verification.csv`, `recent_core_crossref.csv`. Scripts: `code/recent_lit_search.py`, `recent_lit_sweeps.py`, `citation_chains.py`, `merge_recent_lit.py`, `verify_leads.py`, `verify_core_dois.py`, `build_recent_lit_report.py`, `make_recent_lit_doc.py`.
 
 **Evidence levels.** FULL_TEXT: every page read. FULL_TEXT_PARTIAL: the open text was read in the sections the matrix names. ABSTRACT: the abstract from Crossref, OpenAlex or a repository page, nothing more. TITLE_ONLY: title and venue verified, no abstract
@@ -28,7 +28,7 @@ retrievable. A claim in this page never rests on a higher level than the paper h
 
 ## 2. How the search was done, and how much it covers
 
-Sources: OpenAlex (ranked title-and-abstract search, boolean sweeps, forward citation chains), Crossref (journal articles and posted content), arXiv (q-fin, econ.EM, stat.ML), plus spot checks through Semantic Scholar, IDEAS/RePEc pages and web search. Window: publication date
+Sources: OpenAlex (ranked title-and-abstract search, boolean sweeps, forward citation chains), Crossref (journal articles and posted content), arXiv (q-fin, econ.EM, stat.ML), the NBER working-paper search, plus spot checks through Semantic Scholar, IDEAS/RePEc pages and web search. Window: publication date
 2022-01-01 to 2026-10-12; online-publication date is recorded apart from the issue year wherever Crossref gives it. All requests are logged with filters, hit counts and the SHA-256 of each raw response (`recent_search_log.csv`; raw files are git-ignored because they carry publishers' abstracts).
 
 | Item | Count |
@@ -36,13 +36,14 @@ Sources: OpenAlex (ranked title-and-abstract search, boolean sweeps, forward cit
 | Ranked queries (43 over ten themes), each sent to OpenAlex, Crossref journals, Crossref posted content, and for 14 of them arXiv | 43 |
 | Boolean sweeps (OpenAlex `title_and_abstract.search`, cursor-paged, cap 600) | 12 (truncated at the cap: S2, S5, S6, S7, S8, S12) |
 | Curated arXiv queries (phrase and OR semantics; the 14 strict AND-of-all-words arXiv calls above returned only 38 records) | 9 |
+| Direct NBER working-paper queries (the site's own search; OpenAlex and Crossref had surfaced one NBER record) | 8: no work dated 2022 or later on restatements, amendments, late filing or internal control; three peripheral hits (point-in-time language models, model complexity) |
 | Citation chains: seed papers tried / resolved by title and author | 20 / 14 (unresolved: HJ2004, BGH2011, GBRS2012, AZZ2015, BK2006, BGPR2020); 3,714 citing works fetched |
-| Logged requests / HTTP 200 / never succeeded | 179 / 164 / 0 |
+| Logged requests / HTTP 200 / never succeeded | 187 / 172 / 0 |
 | Requests that failed once and were repeated successfully | 15 (14 arXiv calls answered with a redirect because the API had moved to https; 1 Crossref call interrupted when the laptop slept) |
-| Raw records retrieved | 13,733 |
-| **Distinct works after deduplication** (DOI, then normalised title) | **10,618**, of which 648 came from more than one source |
-| Year distribution | 2022: 1,608, 2023: 1,751, 2024: 1,862, 2025: 2,366, 2026: 3,031; **2024 to 2026: 7,259 (68%)** |
-| Works with a domain term (finance, accounting, markets) / with a topical keyword as well | 8,041 / 4,409 |
+| Raw records retrieved | 13,756 |
+| **Distinct works after deduplication** (DOI, then normalised title) | **10,633**, of which 652 came from more than one source |
+| Year distribution | 2022: 1,615, 2023: 1,751, 2024: 1,865, 2025: 2,370, 2026: 3,032; **2024 to 2026: 7,267 (68%)** |
+| Works with a domain term (finance, accounting, markets) / with a topical keyword as well | 8,052 / 4,408 |
 | Works with a restatement or amendment term in the title | 233 |
 | Works without an abstract in any source | 2,871 |
 
@@ -52,6 +53,7 @@ Raw records by source:
 |---|---|
 | Crossref | 1,720 |
 | Crossref-preprints | 1,290 |
+| NBER | 23 |
 | OpenAlex | 6,763 |
 | OpenAlex-chain | 3,714 |
 | arXiv | 246 |
@@ -60,9 +62,9 @@ Raw records by source:
 
 | Stage | Works | What it means |
 |---|---|---|
-| L1 off domain | 2,547 | no finance or accounting term; excluded by rule, not read |
-| L1 not topical | 3,613 | domain term but none of the restatement, machine-learning, design, point-in-time or accounting-quality keywords; excluded by rule, not read |
-| L1 topical, rule only | 3,963 | keywords present, **not read**; kept in the table, no decision |
+| L1 off domain | 2,551 | no finance or accounting term; excluded by rule, not read |
+| L1 not topical | 3,625 | domain term but none of the restatement, machine-learning, design, point-in-time or accounting-quality keywords; excluded by rule, not read |
+| L1 topical, rule only | 3,962 | keywords present, **not read**; kept in the table, no decision |
 | **L2 titles read by me** | **495** | the reading set: every restatement- or amendment-titled work, design and point-in-time titles in finance and working-paper venues, widely retrieved or cited machine-learning return-prediction titles, the boolean-sweep members on late filing, Item 4.02, accounting quality and internal control, and the matrix works |
 | of which included as core (matrix rows found in the candidate table) | 36 | 31 with an abstract read, 5 title only |
 | of which included as context (listed, not in the matrix) | 110 | consequences of restatements, misstatement detection, design, point-in-time, reproducibility |
