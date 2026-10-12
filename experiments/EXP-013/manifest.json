@@ -1,0 +1,123 @@
+{
+  "acceptance": {
+    "panel_end": "2025-05-09",
+    "predictions_finite": true,
+    "reproduction_abs_difference": {
+      "B1": 3.9898639947466563e-17,
+      "B5": 4.85722573273506e-17
+    }
+  },
+  "attribution": {
+    "M": "SHARES",
+    "P": "CARRIES",
+    "U": "NOT_CARRYING"
+  },
+  "completion": "COMPLETE",
+  "compute": {
+    "cpu_count": 12,
+    "platform": "macOS-27.0.1-arm64-arm-64bit",
+    "python": "3.12.11",
+    "wall_seconds": 86.5,
+    "workers": 6
+  },
+  "definition_fingerprint": "746182292afc9c80d4cb5cbc9af6c3605c3b8a71dd58ac88c63916f725a6beae",
+  "dependency_versions": {
+    "numpy": "2.2.6",
+    "pandas": "2.3.3",
+    "pyarrow": "18.1.0",
+    "python": "3.12.11",
+    "scipy": "1.18.1",
+    "sklearn": "1.7.2"
+  },
+  "experiment_id": "EXP-013",
+  "git_commit": "a39400f4463fe4aa9c589268f0dc65f245aeb048",
+  "git_dirty": false,
+  "holdout": {
+    "end": "2026-08-28",
+    "firewall": {
+      "breaches_prevented": 0,
+      "checks": 0,
+      "contract_armed": false,
+      "contract_path": "docs/HOLDOUT_CONTRACT.md",
+      "contract_readable": true,
+      "contract_state": "NOT_ARMED",
+      "engaged": true,
+      "holdout_access": "BLOCKED",
+      "holdout_state": "SEALED",
+      "override_reason": null,
+      "reading_note": "contract_armed=false means the holdout-evaluation contract has NOT been armed, i.e. the holdout is closed; engaged=true means the firewall is blocking it",
+      "window": {
+        "active": true,
+        "end": "2026-08-28",
+        "start": "2025-08-26"
+      }
+    },
+    "start": "2025-08-26",
+    "touched": false
+  },
+  "output_sha256": {
+    "attribution.json": "b6d88994cc4e8d775a12ee87bafff01dc39e927e58ae0b8261f0d0e8816020f0",
+    "config.json": "6fff995a9c1b1055e69749b14e25be70bb5b324ea9f54e66c02123cbc18d0f5b",
+    "definition.json": "89095300027e196ca83998323baf839b77e023a3e0b583bf2f3582182f7f4966",
+    "fold_metrics.csv": "c6d7c476968536376addc1be92d545071ab185e1f882f37f8bf1b2fe8cde37d0",
+    "paired_tests.csv": "e6fd971df3bf63c72c4d57ccd8e0e070b83d3a6629de688360b9fe0243274952",
+    "per_arm_metrics.csv": "7a6ee676708455afcf6dad0201b091419a053d6b20e4f319a0ef5a921384e775"
+  },
+  "parent_artifacts_verified": true,
+  "preregistration_document": "docs/EXP_013_PREREGISTRATION.md",
+  "preregistration_sha256": "36370ffca405605eff7e43ab3bbbc6b4b739083d1e678660ba52689855369f96",
+  "promotion": "NOT ASSESSED",
+  "pushed_to": "origin/research/market-signal-review-2026-10-11",
+  "registration_commit": "a39400f4463fe4aa9c589268f0dc65f245aeb048",
+  "reliability_manifest": {
+    "coverage": {
+      "amended_730": 0.9176621772966143,
+      "lag_deterioration": 0.9099876518393016,
+      "latest_report_amended": 0.9176621772966143,
+      "periodic_count_400": 0.9176621772966143
+    },
+    "date_max": "2025-05-09",
+    "date_min": "2014-04-03",
+    "dates": 560,
+    "inputs": {
+      "filings_parquet": "data/curated/sec_v3/filings.parquet",
+      "filings_rows": 371229,
+      "filings_sha256": "4e62004745eebd9b7e669adb091ff53a01f2440e5bdd83b7da5efbb660b7ebb6",
+      "rich_panel_content_hash": "ff3d3f556488b7daa20bbbeab49d1f0abad9a869976b593f211cf92b6eb7c5da"
+    },
+    "license": "SEC filings are public records; derived counts only, no filing text redistributed",
+    "output": {
+      "bytes": 182453,
+      "path": "data/research/derived/reliability_v1.parquet",
+      "sha256": "042ac1fc12957f25ffd32e3d914037567900803ad967ec69a28f077f9ea6316f"
+    },
+    "quantiles": {
+      "amended_730": {
+        "p01": 0.0,
+        "p50": 0.0,
+        "p99": 1.0
+      },
+      "lag_deterioration": {
+        "p01": -12.5,
+        "p50": -1.0,
+        "p99": 11.0
+      },
+      "latest_report_amended": {
+        "p01": 0.0,
+        "p50": 0.0,
+        "p99": 0.0
+      },
+      "periodic_count_400": {
+        "p01": 3.0,
+        "p50": 4.0,
+        "p99": 5.0
+      }
+    },
+    "rows": 139292,
+    "rows_without_cik": 8967,
+    "rule": "available_session(accepted_at) <= decision date; prevrpt never read; NaN (not 0) before any filing history",
+    "symbols": 874,
+    "version": "reliability-v1"
+  },
+  "status": "EXPLORATORY - VALIDATION FOLDS ONLY - HOLDOUT SEALED - PROMOTION NOT ASSESSED"
+}

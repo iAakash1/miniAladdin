@@ -28,7 +28,8 @@ constant, the universe is 250 liquid names, and the one supported test is small 
 5. *The strongest model does not need it.* Boosting gains nothing (+0.0015, t 0.77) and is far stronger in level (0.033 against 0.020). **Answer:** conceded; the result concerns the linear model only.
 6. *Odd ordering.* The baseline plus the block (A4, 0.0222) beats the rich set plus the block (A5, 0.0200), and the block alone adds more to the baseline (+0.0168) than the 50 SEC characteristics do (+0.0096).
    **Answer:** not explained by this design. It suggests ridge gains little from the 50 characteristics, and that part of the block's value is a re-expression of information already in the features (it contains the
-   existing lag and staleness variables). This is why the attribution check is the first follow-up.
+   existing lag and staleness variables). The attribution check (EXP-013) has since shown that the composite adds nothing and the amendment-based ranks carry the gain, which explains part of the pattern
+   (the composite is where the re-expressed information sat) but not why the baseline plus the block beats the rich set plus the block; that remains unexplained.
 
 ## Referee 2 - accounting and disclosure
 
@@ -40,7 +41,8 @@ restatement taxonomy) are absent. Three of the four variables are almost constan
 1. *Measurement validity.* `amended_730` is non-zero in 3.5% of rows and `latest_report_amended` in 0.2%; many amendments are Part III or exhibit-only and are not in the data; "big R" and "little r" restatements are not
    distinguished. **Answer:** conceded in the data quality report; the registration does not claim to measure restatement severity. The result therefore says little about amendments themselves.
 2. *What carries the effect.* In the final A5 model the composite and lag deterioration have the largest coefficients of the block (3rd and 4th of 82 in absolute size); the amendment variables rank 18th
-   (`amended_730`) and 47th (`latest_report_amended`). The composite includes two variables already in the feature set. **Answer:** conceded; an ablation is needed before any claim about "amendments" or "reliability" in the accounting sense.
+   (`amended_730`) and 47th (`latest_report_amended`). **Answer:** that reading was wrong. EXP-013 (same folds, separately registered) found that the four filing-process ranks carry the gain, chiefly the amendment count (alone
+   +0.0024, t 2.50), while the composite adds nothing; the registered prior expectation was the opposite. Coefficients of a collinear ridge model are not a guide to out-of-sample contribution.
 3. *Confounding.* Late filers are small, distressed or recently restating; reliability may proxy size and distress, which the panel handles only through liquidity and volatility features (size and industry controls were
    withheld because the security master is not point in time). **Answer:** a real limitation, stated; the permutation placebo shows the link to the firm matters, not that it is *reliability*.
 4. *Timing versus trait.* A one-year shift keeps about half of the gain. **Answer:** reported (C2: +0.0024, t 1.28). The variables are slow-moving, so the shifted placebo is a demanding control and also a weak test of
@@ -66,10 +68,13 @@ restatement taxonomy) are absent. Three of the four variables are almost constan
    conceded.
 7. *Reproducibility.* The price data cannot be redistributed. **Answer:** conceded; the SEC-derived part is reproducible by anyone.
 
+8. *Rare events and clustering (raised by EXP-013).* The amendment count is non-zero in 2.6% of validation rows, from 60 firms, about 6 names per date; the ten most frequent symbols hold 39% of flagged rows. The date-level
+   Newey-West statistic ignores clustering by firm, and each amendment is visible for 730 days, so the number of independent episodes is a few dozen. **Answer:** reported prominently; no firm-level inference has been done. This is the
+   first thing a real referee would ask for, and the next study should be built around it (leave-one-firm-out, firm-clustered errors, event windows).
+
 ## Editor's letter
 
 The question is incremental and the design is more careful than the question deserves. The single supported test is small, fades at the end of the sample, holds for the linear model only, and rests on a lenient
-decision rule; the registered power statement was optimistic. The package is honest about all of this. Conditions for a revision to be considered: (i) a separately registered attribution check showing which
-variables carry the gain, with a stricter placebo criterion; (ii) novelty claimed modestly and the closest works read in full; (iii) one frozen look at data not used in the design, if the owner is willing to open it;
+decision rule; the registered power statement was optimistic. The package is honest about all of this. Conditions for a revision to be considered: (i) a separately registered event-level analysis of the amendment effect (firms, episodes, clustering), with a stricter placebo criterion; (ii) novelty claimed modestly and the closest works read in full; (iii) one frozen look at data not used in the design, if the owner is willing to open it;
 (iv) the scope statement (liquid US names; filings with financial statements only; community price data) in the abstract. Decision on the package as it stands: **major revision before any submission**; as a
 preregistered internal study: **accept**, with the limitations above stated in any report of the result.

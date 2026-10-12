@@ -107,6 +107,54 @@
    "role": "output: saved research model (git-ignored)",
    "bytes": 6014,
    "sha256": "a89906f6953fff6b1c71e0924273f6d6ce281b28374e8956f6be8d6c81559838"
+  },
+  {
+   "path": "experiments/EXP-013/attribution.json",
+   "role": "output: EXP-013",
+   "bytes": 3008,
+   "sha256": "b6d88994cc4e8d775a12ee87bafff01dc39e927e58ae0b8261f0d0e8816020f0"
+  },
+  {
+   "path": "experiments/EXP-013/config.json",
+   "role": "output: EXP-013",
+   "bytes": 54431,
+   "sha256": "6fff995a9c1b1055e69749b14e25be70bb5b324ea9f54e66c02123cbc18d0f5b"
+  },
+  {
+   "path": "experiments/EXP-013/definition.json",
+   "role": "output: EXP-013",
+   "bytes": 58332,
+   "sha256": "89095300027e196ca83998323baf839b77e023a3e0b583bf2f3582182f7f4966"
+  },
+  {
+   "path": "experiments/EXP-013/fold_metrics.csv",
+   "role": "output: EXP-013",
+   "bytes": 8704,
+   "sha256": "c6d7c476968536376addc1be92d545071ab185e1f882f37f8bf1b2fe8cde37d0"
+  },
+  {
+   "path": "experiments/EXP-013/manifest.json",
+   "role": "output: EXP-013",
+   "bytes": 4177,
+   "sha256": "606d4af43711fb348e65d115f2f7d5527ced53bebdb5dd163aa2531bf4edaee9"
+  },
+  {
+   "path": "experiments/EXP-013/paired_tests.csv",
+   "role": "output: EXP-013",
+   "bytes": 8225,
+   "sha256": "e6fd971df3bf63c72c4d57ccd8e0e070b83d3a6629de688360b9fe0243274952"
+  },
+  {
+   "path": "experiments/EXP-013/per_arm_metrics.csv",
+   "role": "output: EXP-013",
+   "bytes": 21603,
+   "sha256": "7a6ee676708455afcf6dad0201b091419a053d6b20e4f319a0ef5a921384e775"
+  },
+  {
+   "path": "experiments/EXP-013/prediction_hashes.json",
+   "role": "output: EXP-013",
+   "bytes": 8217,
+   "sha256": "a808ff6b2553b34a063577f24d253f98c0ee55d14b0d85afa159f607e9926a9f"
   }
  ],
  "checks": {

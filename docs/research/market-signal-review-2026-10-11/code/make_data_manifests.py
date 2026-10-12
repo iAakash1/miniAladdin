@@ -74,9 +74,12 @@ def main() -> None:
             entry["matches_recorded_hash"] = entry["sha256"] == entry["recorded_sha256"]
     outputs = []
     study = REPO / "experiments/EXP-012"
+    attribution_study = REPO / "experiments/EXP-013"
     if (study / "manifest.json").exists():
         outputs = [file_entry(str(p.relative_to(REPO)), "output: EXP-012") for p in sorted(study.glob("*")) if p.is_file()]
         outputs += [file_entry(str(p.relative_to(REPO)), "output: saved research model (git-ignored)") for p in sorted((study / "model").glob("*.joblib"))]
+    if (attribution_study / "manifest.json").exists():
+        outputs += [file_entry(str(p.relative_to(REPO)), "output: EXP-013") for p in sorted(attribution_study.glob("*")) if p.is_file()]
     manifest = {
         "generated": TODAY, "study": "EXP-012", "licence_note": "SEC filings are public records; no filing text is redistributed. The price panel's community source has terms that were not reviewed (datasets.csv L04).",
         "inputs": [filings, panel], "derived": [table], "outputs": outputs,
@@ -89,6 +92,7 @@ def main() -> None:
     commits = {name: git("log", "-1", "--format=%H", "--", *paths) for name, paths in {
         "reliability_code": ["src/quant/pit/reliability.py"], "study_code_and_registration": ["src/quant/study/exp012.py", "docs/EXP_012_PREREGISTRATION.md"]}.items()}
     results = json.loads((study / "manifest.json").read_text()) if (study / "manifest.json").exists() else {}
+    attribution = json.loads((attribution_study / "manifest.json").read_text()) if (attribution_study / "manifest.json").exists() else {}
     provenance = {
         "generated": TODAY, "branch": git("rev-parse", "--abbrev-ref", "HEAD"), "head": git("rev-parse", "HEAD"),
         "identity_of_head": {"author": git("show", "-s", "--format=%an", "HEAD"), "committer": git("show", "-s", "--format=%cn", "HEAD"),
@@ -105,6 +109,9 @@ def main() -> None:
             {"step": 5, "what": "EXP-012 registered study", "code_and_registration_commit": commits["study_code_and_registration"], "fingerprint": results.get("definition_fingerprint"),
              "manifest": "experiments/EXP-012/manifest.json" if results else "not yet run", "manifest_sha256": sha256(study / "manifest.json") if results else None,
              "run_git_commit": results.get("git_commit"), "run_git_dirty": results.get("git_dirty"), "completion": results.get("completion")},
+            {"step": 6, "what": "EXP-013 registered attribution study", "registration_commit": attribution.get("registration_commit"), "fingerprint": attribution.get("definition_fingerprint"),
+             "manifest": "experiments/EXP-013/manifest.json" if attribution else "not yet run", "manifest_sha256": sha256(attribution_study / "manifest.json") if attribution else None,
+             "run_git_commit": attribution.get("git_commit"), "run_git_dirty": attribution.get("git_dirty"), "completion": attribution.get("completion")},
         ],
         "environment": {"python": platform.python_version(), "platform": platform.platform(), "dependencies": results.get("dependency_versions")},
         "protected": "EXP-006 and EXP-007 files unchanged (hash comparison before and after); the holdout is sealed and untouched",

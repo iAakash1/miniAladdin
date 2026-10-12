@@ -1,0 +1,244 @@
+{
+ "experiment": "EXP-013",
+ "note": "sha256 of each fit's out-of-sample prediction frame, from the checkpoint receipts (the checkpoints themselves are git-ignored)",
+ "predictions": {
+  "B1:0": {
+   "prediction_sha256": "cb25deb3c0f60d40f438ad33913ff6a6d5e4e7bcfef0bfb3bca83eefcb81a15a",
+   "rows": 100246,
+   "fit_seconds": 3.5,
+   "git_commit": "a39400f4463f",
+   "definition_fingerprint": "746182292afc9c80"
+  },
+  "B5:0": {
+   "prediction_sha256": "4ccfc7427c6d4a5382af6fb8b9fd8bc452e5c898a464dc17deb8f647aed02c29",
+   "rows": 100246,
+   "fit_seconds": 3.5,
+   "git_commit": "a39400f4463f",
+   "definition_fingerprint": "746182292afc9c80"
+  },
+  "C_P:0": {
+   "prediction_sha256": "5f545979175763b3558a62dd70df7b7a2ae6ef8aad855748be12425a36bb711c",
+   "rows": 100246,
+   "fit_seconds": 3.4,
+   "git_commit": "a39400f4463f",
+   "definition_fingerprint": "746182292afc9c80"
+  },
+  "C_amended:0": {
+   "prediction_sha256": "54256404a70fe94be84ce704467f2b6dd9f2324001f2d0710334df7d8d2f7348",
+   "rows": 100246,
+   "fit_seconds": 3.4,
+   "git_commit": "a39400f4463f",
+   "definition_fingerprint": "746182292afc9c80"
+  },
+  "C_count:0": {
+   "prediction_sha256": "67d33adb154a5bfd1a901024534cf4ad20884e7d424fb34e0ee3b792f23aae06",
+   "rows": 100246,
+   "fit_seconds": 3.3,
+   "git_commit": "a39400f4463f",
+   "definition_fingerprint": "746182292afc9c80"
+  },
+  "C_lagdet:0": {
+   "prediction_sha256": "43be2b74c2134c9f8c12950b23163a96e3007507a3a034525c101d90c776fa83",
+   "rows": 100246,
+   "fit_seconds": 3.4,
+   "git_commit": "a39400f4463f",
+   "definition_fingerprint": "746182292afc9c80"
+  },
+  "C_latest:0": {
+   "prediction_sha256": "521e2ca9f659ca68ab23b69cfc491b21c9d7308958dbd6c7a324cbe21adb63e8",
+   "rows": 100246,
+   "fit_seconds": 3.5,
+   "git_commit": "a39400f4463f",
+   "definition_fingerprint": "746182292afc9c80"
+  },
+  "C_missing:0": {
+   "prediction_sha256": "d542a84be35937f8cbdbc6f1d4f473ed80cc5cd45ceff9deeb5e596dca3b7be0",
+   "rows": 100246,
+   "fit_seconds": 3.4,
+   "git_commit": "a39400f4463f",
+   "definition_fingerprint": "746182292afc9c80"
+  },
+  "C_u:0": {
+   "prediction_sha256": "570a68eadc264bf997c472f7d5766a8a18d356a61241eebe72a4a4ba7abda433",
+   "rows": 100246,
+   "fit_seconds": 3.2,
+   "git_commit": "a39400f4463f",
+   "definition_fingerprint": "746182292afc9c80"
+  },
+  "D_P:0": {
+   "prediction_sha256": "87c0daf90fed263b766fed8cc52af27710d4910f56fdab7895bf3ebad84f3fd7",
+   "rows": 100246,
+   "fit_seconds": 3.3,
+   "git_commit": "a39400f4463f",
+   "definition_fingerprint": "746182292afc9c80"
+  },
+  "D_amended:0": {
+   "prediction_sha256": "a3bb0037d10af8de3d05b333ffe18b2391ce20b64efdc4f5b05863ae1ad41762",
+   "rows": 100246,
+   "fit_seconds": 3.5,
+   "git_commit": "a39400f4463f",
+   "definition_fingerprint": "746182292afc9c80"
+  },
+  "D_count:0": {
+   "prediction_sha256": "25eb77dcbf9dbaa0b4b33541d01a6dc8e1e7e5620be1461b8356d69e17216236",
+   "rows": 100246,
+   "fit_seconds": 3.4,
+   "git_commit": "a39400f4463f",
+   "definition_fingerprint": "746182292afc9c80"
+  },
+  "D_lagdet:0": {
+   "prediction_sha256": "77e3effd8aba9fd51b076f3815f63f86a9d591925f1e265be44f80b5a384df06",
+   "rows": 100246,
+   "fit_seconds": 3.4,
+   "git_commit": "a39400f4463f",
+   "definition_fingerprint": "746182292afc9c80"
+  },
+  "D_latest:0": {
+   "prediction_sha256": "d1329b6080862a86c33012b844f330aa578f516a45d30dc1aa6d850992caafdc",
+   "rows": 100246,
+   "fit_seconds": 3.4,
+   "git_commit": "a39400f4463f",
+   "definition_fingerprint": "746182292afc9c80"
+  },
+  "D_missing:0": {
+   "prediction_sha256": "e488630b9287331fc52621ed5f93527612f3340b412eccb78b9d74042d3229af",
+   "rows": 100246,
+   "fit_seconds": 3.4,
+   "git_commit": "a39400f4463f",
+   "definition_fingerprint": "746182292afc9c80"
+  },
+  "D_u:0": {
+   "prediction_sha256": "080b77fadb857b9d478c6653cceb45dc089c7870481b43203c7eaacd0835d104",
+   "rows": 100246,
+   "fit_seconds": 3.3,
+   "git_commit": "a39400f4463f",
+   "definition_fingerprint": "746182292afc9c80"
+  },
+  "XMperm:0": {
+   "prediction_sha256": "017fd1723100f1da7048baa7ad56334e1f6cb85e4e8942e7bd1279f3f2637441",
+   "rows": 100246,
+   "fit_seconds": 3.4,
+   "git_commit": "a39400f4463f",
+   "definition_fingerprint": "746182292afc9c80"
+  },
+  "XMperm:1": {
+   "prediction_sha256": "cccfc222fb249984ecb9e6c4b000d6e3e3ed66e8d63dcf0702f113a4f8b9ccdb",
+   "rows": 100246,
+   "fit_seconds": 3.4,
+   "git_commit": "a39400f4463f",
+   "definition_fingerprint": "746182292afc9c80"
+  },
+  "XMperm:2": {
+   "prediction_sha256": "3226bf714424377f0f584dcba3c2a924c388d0c4fb32dfd786481469b0b48687",
+   "rows": 100246,
+   "fit_seconds": 3.3,
+   "git_commit": "a39400f4463f",
+   "definition_fingerprint": "746182292afc9c80"
+  },
+  "XMperm:3": {
+   "prediction_sha256": "b522eb7dea72334c502f4997a628acf80ac3199c7ea5b59493ab67f09e21cac5",
+   "rows": 100246,
+   "fit_seconds": 3.3,
+   "git_commit": "a39400f4463f",
+   "definition_fingerprint": "746182292afc9c80"
+  },
+  "XMperm:4": {
+   "prediction_sha256": "83bab486f9ce9bf318de90a1c0536552f57754edecea0b4d4e3da161c38ed49b",
+   "rows": 100246,
+   "fit_seconds": 3.4,
+   "git_commit": "a39400f4463f",
+   "definition_fingerprint": "746182292afc9c80"
+  },
+  "XMshift:0": {
+   "prediction_sha256": "18c1f0663a475da63d3fd9dc5907d0ab0e7978e21815d884e279a608114ac888",
+   "rows": 100246,
+   "fit_seconds": 3.3,
+   "git_commit": "a39400f4463f",
+   "definition_fingerprint": "746182292afc9c80"
+  },
+  "XPperm:0": {
+   "prediction_sha256": "b3001b6fb44ec4496316b4cf23954d3b9845be8ab273163070a1b226b0e672e8",
+   "rows": 100246,
+   "fit_seconds": 3.4,
+   "git_commit": "a39400f4463f",
+   "definition_fingerprint": "746182292afc9c80"
+  },
+  "XPperm:1": {
+   "prediction_sha256": "1f84f5a3a69f82647e971a664ac4d3c69291806d05fefef7ee433bd307ca6255",
+   "rows": 100246,
+   "fit_seconds": 3.4,
+   "git_commit": "a39400f4463f",
+   "definition_fingerprint": "746182292afc9c80"
+  },
+  "XPperm:2": {
+   "prediction_sha256": "9e729c8e1eec334bea38b916433e00521921a18cedb4f6e43ed4afae55b1182a",
+   "rows": 100246,
+   "fit_seconds": 3.3,
+   "git_commit": "a39400f4463f",
+   "definition_fingerprint": "746182292afc9c80"
+  },
+  "XPperm:3": {
+   "prediction_sha256": "6ff83c55ae5061e02b5b0cc9813bd70c3a1868c0d91d6d133d425bf5a36ff6e2",
+   "rows": 100246,
+   "fit_seconds": 3.3,
+   "git_commit": "a39400f4463f",
+   "definition_fingerprint": "746182292afc9c80"
+  },
+  "XPperm:4": {
+   "prediction_sha256": "e1c7ce01e055c563fb76f1ab76fad8c988b547861cec1e44a77b1c34610e0a1c",
+   "rows": 100246,
+   "fit_seconds": 3.4,
+   "git_commit": "a39400f4463f",
+   "definition_fingerprint": "746182292afc9c80"
+  },
+  "XPshift:0": {
+   "prediction_sha256": "7c56e0cad101c3b2c9751f2a39421ce87a015f3b06e7b73ac60e516f0d12fb8a",
+   "rows": 100246,
+   "fit_seconds": 3.4,
+   "git_commit": "a39400f4463f",
+   "definition_fingerprint": "746182292afc9c80"
+  },
+  "XUperm:0": {
+   "prediction_sha256": "40729e229a333aaf5777bc1a69dfa7294d8c93bbb9bdb82341f08fe292ffb321",
+   "rows": 100246,
+   "fit_seconds": 3.4,
+   "git_commit": "a39400f4463f",
+   "definition_fingerprint": "746182292afc9c80"
+  },
+  "XUperm:1": {
+   "prediction_sha256": "39dd75e30b5b9f4f32a48bfaaaf2901a774df3147da75cbb99734af67779f2db",
+   "rows": 100246,
+   "fit_seconds": 3.4,
+   "git_commit": "a39400f4463f",
+   "definition_fingerprint": "746182292afc9c80"
+  },
+  "XUperm:2": {
+   "prediction_sha256": "2983e42f2db14d48925a5fea63c92069af30685e095c71901719653bac730e59",
+   "rows": 100246,
+   "fit_seconds": 3.2,
+   "git_commit": "a39400f4463f",
+   "definition_fingerprint": "746182292afc9c80"
+  },
+  "XUperm:3": {
+   "prediction_sha256": "e0dad57aeb5c3e595b6c0b5c565c2931f3e169cd10d433b50b5896ed932423ef",
+   "rows": 100246,
+   "fit_seconds": 3.2,
+   "git_commit": "a39400f4463f",
+   "definition_fingerprint": "746182292afc9c80"
+  },
+  "XUperm:4": {
+   "prediction_sha256": "6780a97ed53427bee69cbbd4387f2688e37b4936a79b85be17bd4d90328fd859",
+   "rows": 100246,
+   "fit_seconds": 3.1,
+   "git_commit": "a39400f4463f",
+   "definition_fingerprint": "746182292afc9c80"
+  },
+  "XUshift:0": {
+   "prediction_sha256": "27b6ae613e1cf6f3a8a2dda9635d7b5a5cddb3a8ada7fec929c53b7bb4bf861f",
+   "rows": 100246,
+   "fit_seconds": 3.2,
+   "git_commit": "a39400f4463f",
+   "definition_fingerprint": "746182292afc9c80"
+  }
+ }
+}

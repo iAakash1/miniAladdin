@@ -21,6 +21,8 @@ The registration states in section 2 that the underlying idea is not new. This p
 | **5. Test as direct predictor *and* moderator, inside a frozen, cost-aware ML ranking pipeline, against placebos that destroy the firm link** | Machine-learning asset pricing (Gu, Kelly and Xiu 2020; Chen, Pelger and Zhu 2023), design-choice sensitivity (Lalwani et al. 2025), credibility standards (Harvey, Liu and Zhu; Hou, Xue and Zhang; Jensen, Kelly and Pedersen) | **Methodological care, not a new finding.** The design is stricter than most applied papers (preregistered, placebo-controlled, trial ledger, noise floor), which is a reason a null would be credible, not a source of novelty. |
 | **6. Cross-source (vendor) disagreement or data-provider health as a signal** | Analyst dispersion (Diether, Malloy and Scherbina 2002), machine-forecast disagreement (Bali et al. 2023), the unreliability of disagreement proxies (Goulding, Harvey and Kurtovic 2026) | **Cannot be tested here.** No history of provider disagreement exists in the repository or in any source examined (`07_RESEARCH_CANDIDATES.md`); it is not claimed. |
 
+**Update after EXP-013:** the part of the EXP-012 result that survives attribution is the count of recent amendments to periodic reports. That is the least novel component: restatements and the returns that follow them are a long-standing topic (rows 12, 13 and 13b), and the contribution is only the point-in-time state-variable form.
+
 **Overall novelty rating: low to medium.** Components 1 and 2 are established, component 3 is covered as events, and the remainder is a careful combination plus a measurement. A reasonable referee would call the
 question incremental. What would still be worth a paper is an honest, well-powered answer to a question the literature answers only in pieces; if the answer is no, that is a legitimate finding too.
 
@@ -45,6 +47,7 @@ Crossref's fuzzy matching; SSRN could not be searched; and a second index (Seman
 | 11 | Bartov, Konchitchki 2017 | metadata | SEC filings, deadlines and capital-market consequences | Filing-deadline effects | Context |
 | 12 | Palmrose, Richardson, Scholz 2001 | metadata | Market reaction to restatement announcements | Amendments as events | Running count, cross-sectional |
 | 13 | Hribar, Jenkins 2004 | metadata | Restatements, earnings revisions and cost of capital | Restatement consequences | Predictive, not explanatory |
+| 13b | Frieder, Shanthikumar 2008 (SSRN) "After a Restatement: Long-Run Market and Investor Response" | title only (abstract unavailable) | Title indicates long-run market response after restatements | **Closest to the EXP-013 finding** (recent amendments predict later returns) | Amendment count as a rolling point-in-time state variable in a ranking model; not read |
 | 14 | Dechow, Ge, Larson, Sloan 2011 | metadata | Predicting material accounting misstatements from public data | Predicts misstatements, the *cause* behind amendments | Predicts returns |
 | 15 | Dechow, Sloan, Sweeney 1996 | metadata | Earnings manipulation and SEC enforcement | Context | Context |
 | 16 | Kinney, McDaniel 1989; DeFond, Jiambalvo 1991 | metadata | Characteristics of firms that correct earnings; incidence of accounting errors | Who amends | Not about returns |

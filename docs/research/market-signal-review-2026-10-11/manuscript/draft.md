@@ -11,7 +11,8 @@ disclosure-process variables strictly point in time from the SEC's filing regist
 eight yearly validation folds) beyond a 76-feature point-in-time set. Adding them raised the mean Rank IC from 0.0149 to 0.0200
 (+0.0051; Newey-West t 2.68; Holm-adjusted p 0.011), and a placebo that permutes the same columns across firms added nothing. The gain
 was positive in six of eight folds but negative in the last two, about half of it survived a one-year shift of the columns, a gradient-boosting model gained nothing, and the frozen cost-aware portfolio did not improve.
-Letting the variables moderate fundamentals signals did not help. We read this as a lead, not a finding, and set out what would be needed to settle it.
+Letting the variables moderate fundamentals signals did not help. A separately registered attribution check found that the gain is carried by the filing-process ranks, chiefly the count of amendments to periodic
+reports in the previous two years, a rare event (about six names per date, from 60 firms). We read this as a lead, not a finding, and set out what would be needed to settle it.
 
 ## 1. Introduction
 
@@ -49,7 +50,7 @@ portfolio at a 10 basis point half-spread for economics. Fourteen arms and thirt
 (A2), the new block on the baseline (A4) and on the rich set (A5), the block with interactions (A6), and placebo arms in which the new block (and so the interactions built from it) or the two existing variables are
 permuted across firms within each date (five draws) or shifted by 252 sessions within each firm. Three confirmatory contrasts, each of a paired difference of per-date Spearman Rank ICs: T1, A5 - A1; T2, A6 - A5; T3, A1 - A2,
 tested one-sided with a Newey-West variance (4 lags) and adjusted by Holm's method; a contrast is SUPPORTED only if the adjusted p is below 0.05, at least six of eight folds are positive, and every mapped placebo is beaten.
-The study is exploratory: the same folds were used by earlier experiments (1,029 cumulative trials), the holdout is sealed and was not used, and nothing is promoted. The design, the gates and the likely outcome were
+The study is exploratory: the same folds were used by earlier experiments (1,029 cumulative trials), the holdout is sealed and was not used, and nothing is promoted. A follow-up attribution study (EXP-013; section 4.1) was registered and pushed separately before it was run. The design, the gates and the likely outcome of the main study were
 committed and pushed before the run (registration commit `639eb65a1110`; GitHub is not an independent registry).
 
 ## 4. Results
@@ -80,6 +81,20 @@ Holm-adjusted p: T1 0.011 (SUPPORTED), T2 0.933, T3 0.117 (NOT_SUPPORTED).
 | 2023-24 | +0.0025 | -0.0096 | -0.0121 |
 | 2024-25 | +0.0403 | +0.0396 | -0.0007 |
 
+### 4.1 Attribution (EXP-013, separately registered; same folds, so another look)
+
+Arms with each column and each group added to the rich set or removed from the full block (ridge, 34 fits, gates identical to the main study), against permuted and shifted placebos. The labels are descriptive rules fixed in advance.
+
+| Group | Adds to the rich set | HAC t | Positive folds | Share of the T1 gain added / lost on removal | Label |
+|---|---|---|---|---|---|
+| the four filing-process ranks | +0.00309 | 2.07 | 7/8 | +0.60 / +0.78 | CARRIES |
+| the missing-fundamentals count | +0.00140 | 1.68 | 6/8 | +0.27 / +0.27 | SHARES |
+| the composite unreliability rank | -0.00019 | -1.25 | 2/8 | -0.04 / +0.13 | NOT_CARRYING |
+
+The amendment count alone adds +0.00243 (t 2.50, 6/8 folds); lateness deterioration, the regularity count and the latest-report-amended flag add
+nothing on their own, and the composite adds nothing. The Holm-adjusted p of the leading group is 0.058. The amendment variable is non-zero in 2.6% of the validation rows, from 60 of 754 symbols
+(about six names per date).
+
 Secondary contrasts (descriptive): the new block alone on the baseline adds +0.0168 (6/8 folds); the boosted learner's gain from the block is +0.0015
 (t 0.77, 4/8). The unfitted 12-1 momentum rank, a pre-declared reference, has a Rank IC of 0.0158 (t 0.88) and a net Sharpe of
 +0.39 in the frozen portfolio at 10 bp; the rich ridge set with the block (A5) has -0.49, and the boosted arms about
@@ -94,24 +109,28 @@ stronger learner here by a wide margin, gains nothing measurable, and the frozen
 so the T1 effect sits near the smallest detectable one, where estimates tend to overstate. The failure of T2 and the non-significance of T3 are weak evidence against moderation and for the timeliness literature respectively:
 the tests had little power.
 
+The attribution check changes the reading. The registered expectation was that the composite and lateness deterioration would carry the gain and the amendment count almost none; the opposite held. The filing-process ranks
+carry about 60% of the gain and their removal loses about 78%, chiefly through the amendment count, which is zero in 97% of rows. That puts the result close to
+the literature on restatements and later returns (Palmrose et al. 2001; Hribar and Jenkins 2004), and it rests on a few dozen firm-episodes: the date-level standard errors used here do not account for clustering by firm, so
+the evidence is thinner than the t-statistic suggests. A firm-level analysis is the necessary next step.
+
 What the study does show is that the construction is sound and cheap, that a preregistered placebo-controlled test of this kind is feasible on public data, and that a small linear-model gain can coexist with no gain for the
-model that matters. It does not show a mechanism: the block includes a count of missing fundamentals and a composite that contains two variables already in the feature set, so the gain cannot yet be assigned to disclosure
-behaviour. A separately registered attribution check is the natural next step.
+model that matters. It does not show a mechanism: an amendment is not a restatement, and nothing here separates a correction effect from the characteristics of firms that amend.
 
 ## 6. Limitations
 
-A single, narrow universe of liquid names, where amendments and late filing are rare; folds reused by many earlier experiments; a registry that holds only filings with financial statements (late-filing notices and
+A single, narrow universe of liquid names, where amendments and late filing are rare, and an effect that rests on about sixty firms; folds reused by many earlier experiments; a registry that holds only filings with financial statements (late-filing notices and
 non-reliance events are absent); price data of unreviewed licence; no full-text reading of the closest literature; economics reported as exploratory only; and a ridge-centred test of an incremental block, which cannot
 find nonlinear moderation.
 
 ## 7. Conclusion
 
 An exploratory, preregistered test finds a small, time-unstable, linear-model gain from point-in-time disclosure-process variables and no gain for gradient boosting or for the frozen portfolio. It does not justify a
-claim of new alpha or a change to any production score. It justifies one bounded attribution check and, if the owner chooses, one frozen look at data not used to design the study.
+claim of new alpha or a change to any production score. A separately registered attribution check traced the gain to the count of recent amendments, a rare event. It justifies one event-level, firm-clustered analysis and, if the owner chooses, one frozen look at data not used to design the study.
 
 ## Declarations (to be completed by the owner)
 
-- **Preregistration.** `docs/EXP_012_PREREGISTRATION.md`, committed and pushed before the run (commit `639eb65a1110`). Not an independent registry.
+- **Preregistration.** `docs/EXP_012_PREREGISTRATION.md`, committed and pushed before the run (commit `639eb65a1110`); the attribution study is `docs/EXP_013_PREREGISTRATION.md` (commit `a39400f4463f`). Not an independent registry.
 - **Data and code availability.** SEC filing data are public records; the reliability table can be rebuilt from them in seconds (`09_REPRODUCIBILITY_PLAN.md`). The price panel's community source has unreviewed terms and is not
   redistributed. Code, tests, manifests and results are in the repository's research branch.
 - **Competing interests.** The author develops the OmniSignal platform to which the research is applied.

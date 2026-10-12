@@ -6,7 +6,8 @@ Written 2026-10-12 after the registered pilot (EXP-012) finished. Every number i
 ## Decision
 
 1. **Do not scale the reliability idea on this evidence.** The pilot returned one supported test of three, and that result is small, unstable in the most recent two years, confined to the linear model, and does not
-   reach the frozen portfolio. It is a lead worth one more bounded check, not a finding.
+   reach the frozen portfolio. A second, separately registered check (EXP-013) found that the gain is carried mainly by one column, the count of recent amendments to periodic reports, which is non-zero in 2.6% of
+   validation rows and comes from 60 firms. That makes it a lead about a rare event, to be examined at the level of firms and episodes before anything else, not a finding.
 2. **The most useful result for the product is about the product, not about disclosure.** The live scoring engine has never been evaluated on a point-in-time panel; most of its inputs cannot be replayed because provider
    snapshots are not archived (`05_OMNISIGNAL_SIGNAL_AUDIT.md`). A bridging experiment and an append-only snapshot archive are the next steps that change what the platform can honestly claim.
 3. **Keep the work exploratory and unpromoted.** The holdout stays sealed, nothing is promoted, no production system changed, and the branch is not merged.
@@ -33,12 +34,15 @@ Written 2026-10-12 after the registered pilot (EXP-012) finished. Every number i
    - **But:** the gain is absent in the last two validation years (folds 6 and 7: -0.0121 and -0.0007); a one-year-shifted version of the same columns keeps about half of it (A5 beats that placebo by +0.0024, t 1.28), so much
      of it looks like a persistent firm trait; the boosted model gains nothing (+0.0015, t 0.77); the frozen portfolio's net Sharpe at 10 bp does not improve (A5 -0.49 against A1 -0.34, and the unfitted momentum rank scores
      +0.39); moderation (T2) lowered the ordering and the existing lag variables (T3) are positive but not significant after adjustment (Holm 0.117).
+   - **EXP-013 (attribution, same folds, separately registered):** the four filing-process ranks carry the gain (adding them alone gives +0.0031, 60% of it; removing them loses 78%); within them the amendment count alone
+     adds +0.0024 (t 2.50, 6 of 8 folds). The composite adds nothing, and the missing-fundamentals count shares 27% without beating its own shifted placebo. The registered prior expectation (composite and lateness
+     would lead, amendments would not) was wrong. The leading group's Holm-adjusted p is 0.058, the amendment variable is non-zero for about 6 names per date, and no firm-level analysis exists.
    - The sensitivity statement in the registration was too optimistic: realised standard errors were 1.9 times larger for T1 and 8 times for T3 than in the shuffled-label rehearsal, so the T1 effect sits close to the
      smallest effect the design could detect, where estimates tend to overstate (`docs/EXP_012_RESULTS.md`, section 7).
-8. **What remains unproven.** Which of the six columns carries the gain; whether it survives outside the validation folds (the sealed holdout was not used); whether it exists for smaller firms, other markets or a richer
+8. **What remains unproven.** Whether the amendment effect survives firm-clustered inference and leave-one-firm-out checks (60 firms, about 6 names per date); whether it survives outside the validation folds (the sealed holdout was not used); whether it exists for smaller firms, other markets or a richer
    disclosure measure; any mechanism; any economic value; and the full-text content of the closest prior works. Cross-vendor disagreement and provider health could not be tested at all: no history exists.
-9. **Ready for a full-scale study?** No. The effect is small, unstable at the end of the sample, absent for the strongest model, and untranslated into portfolio terms; the novelty is low to medium; the data behind the new
-   variables are thin (three of the four are almost constant); the folds have been looked at many times. A full-scale study would need the attribution check, a richer disclosure measure (the full EDGAR submission index with
+9. **Ready for a full-scale study?** No. The effect is small, unstable at the end of the sample, absent for the strongest model, untranslated into portfolio terms and carried by a rare event; the novelty is low to medium
+   (restatements and later returns are an old topic); the data behind the new variables are thin; the folds have been looked at many times. A full-scale study would need an event-level analysis with firm-clustered inference, a richer disclosure measure (the full EDGAR submission index with
    late-filing notices and non-reliance events), a larger universe, a single frozen look at the holdout decided by the owner, and full-text reading of the closest works.
 
 ## What was delivered, and what is still open
@@ -52,7 +56,8 @@ Written 2026-10-12 after the registered pilot (EXP-012) finished. Every number i
 | Prior-art and novelty audit | done at abstract and metadata level |
 | Registered pilot EXP-012, results, saved models | done; documented in `docs/EXP_012_RESULTS.md` |
 | Peer-review panel simulation, journal map, reproducibility plan, manuscript draft | done (self-critique, not independent review); journal quartiles unverified |
-| Attribution of the T1 gain | proposed as a separately registered follow-up; see `RESEARCH_STATE.md` |
+| Attribution of the T1 gain | done: EXP-013, `docs/EXP_013_RESULTS.md` (amendment ranks carry it; few firms) |
+| Event-level analysis of the amendment effect | proposed, separately registered, not started |
 
 ## Decisions that belong to the owner
 
@@ -65,11 +70,12 @@ Written 2026-10-12 after the registered pilot (EXP-012) finished. Every number i
 
 - The account email was placed in the headers of the first scholarly-API calls (removed from the code; requests made carried it; the first commit contains the constant; history not rewritten).
 - Three screening batches (300 records) were lost with the usage limit and triaged by a validated classifier; they are not counted among the included records.
+- EXP-013 is a second look at the same folds. Its first draft of the attribution rule labelled two groups on a pure-noise rehearsal, so the rule was tightened before registration; its prior expectation was wrong. Both are recorded in its documents.
 - The naive-reference look disclosed in the registration (0.0204) was computed on the rehearsal's row set; on the registered rows the pre-declared reference is 0.0158. The two differ because shuffling a label moves missing labels.
 - Title-and-abstract screening and the drafting of this package used automated assistance; a journal declaration is the owner's to word (`10_JOURNAL_POSITIONING.md`).
 - Pushing the branch caused Vercel's Git integration to build two preview deployments; production (`/api/build` commit `1b3e6c7`) is unchanged.
 
 ## Where everything is
 
-Canonical state `RESEARCH_STATE.md`; registration `docs/EXP_012_PREREGISTRATION.md`; results `docs/EXP_012_RESULTS.md` and `experiments/EXP-012/`; review files `01` to `11` and the CSV, JSON and BibTeX
+Canonical state `RESEARCH_STATE.md`; registration `docs/EXP_012_PREREGISTRATION.md`; results `docs/EXP_012_RESULTS.md`, `docs/EXP_013_RESULTS.md` and `experiments/EXP-012/`, `experiments/EXP-013/`; review files `01` to `11` and the CSV, JSON and BibTeX
 files in this folder; manuscript draft `manuscript/draft.md`.

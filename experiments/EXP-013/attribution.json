@@ -1,0 +1,74 @@
+{
+  "groups": {
+    "M": {
+      "add_positive_folds": 6,
+      "add_share": 0.27141026327531914,
+      "drop_share": 0.2741030757032815,
+      "gain": 0.005146880149312109,
+      "group": "M",
+      "label": "SHARES",
+      "permuted_placebo_p": 0.03772552819744274,
+      "placebos_beaten": false,
+      "resolvable": true,
+      "what": "the missing-fundamentals count"
+    },
+    "P": {
+      "add_positive_folds": 7,
+      "add_share": 0.5993957318689966,
+      "drop_share": 0.7809980925776737,
+      "gain": 0.005146880149312109,
+      "group": "P",
+      "label": "CARRIES",
+      "permuted_placebo_p": 0.013038126584525633,
+      "placebos_beaten": true,
+      "resolvable": true,
+      "what": "the four filing-process ranks"
+    },
+    "U": {
+      "add_positive_folds": 2,
+      "add_share": -0.036136036323607505,
+      "drop_share": 0.1281307497034907,
+      "gain": 0.005146880149312109,
+      "group": "U",
+      "label": "NOT_CARRYING",
+      "permuted_placebo_p": 0.9280022014401151,
+      "placebos_beaten": false,
+      "resolvable": false,
+      "what": "the composite unreliability rank"
+    }
+  },
+  "mean_rank_ic": {
+    "B1": 0.01488409905175374,
+    "B5": 0.02003097920106585,
+    "C_P": 0.017969117045692682,
+    "C_amended": 0.017311111369864556,
+    "C_count": 0.014866163458209576,
+    "C_lagdet": 0.015313336408250137,
+    "C_latest": 0.014834812633122191,
+    "C_missing": 0.016281015148125053,
+    "C_u": 0.014698111203724943,
+    "D_P": 0.0160112756217272,
+    "D_amended": 0.019545099553122395,
+    "D_count": 0.01936155975968577,
+    "D_lagdet": 0.018961315091352928,
+    "D_latest": 0.019794080696541542,
+    "D_missing": 0.018620203521863235,
+    "D_u": 0.019371505588900474,
+    "XMperm": 0.014801296463779623,
+    "XMshift": 0.01675011445084153,
+    "XPperm": 0.014725947086768049,
+    "XPshift": 0.015494935808092657,
+    "XUperm": 0.014923507421982595,
+    "XUshift": 0.015170054804680913
+  },
+  "rule": {
+    "CARRIES": "resolvable, add_share >= 0.5, drop_share >= 0.5, both placebos beaten (positive mean difference), the permuted-placebo difference has one-sided p < 0.10, and the add arm beats B1 in at least 6 of 8 folds",
+    "NOT_CARRYING": "otherwise (including groups whose contribution is too small to resolve; low power is a possible reason and is not distinguished from absence)",
+    "SHARES": "resolvable and not CARRIES, with add_share >= 0.25 or drop_share >= 0.25",
+    "add_share": "(IC(add arm) - IC(B1)) / gain",
+    "drop_share": "(IC(B5) - IC(drop arm)) / gain",
+    "gain": "the EXP-012 T1 gain, IC(B5) - IC(B1); if it is not positive nothing is attributed and every group is labelled NO_GAIN",
+    "note": "descriptive labels; the groups overlap through collinearity, so shares need not sum to one; no confirmatory claim is made",
+    "resolvable": "the add contrast (add arm - B1) is positive with one-sided Newey-West p < 0.10; without it nothing is claimed for the group, because a share of a small, noisy gain is not interpretable"
+  }
+}

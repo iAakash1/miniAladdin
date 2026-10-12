@@ -1,7 +1,7 @@
 {
  "generated": "2026-10-12",
  "branch": "research/market-signal-review-2026-10-11",
- "head": "88ec777a095bb5973ec9a6b32bebd0cb6cadc2ee",
+ "head": "a39400f4463fe4aa9c589268f0dc65f245aeb048",
  "identity_of_head": {
   "author": "iAakash1",
   "committer": "iAakash1",
@@ -60,6 +60,17 @@
    "manifest": "experiments/EXP-012/manifest.json",
    "manifest_sha256": "cf2f2147bda60819260a8165072d0bd3454e44e553c57a12ec742ff6e2dc66dd",
    "run_git_commit": "88ec777a095bb5973ec9a6b32bebd0cb6cadc2ee",
+   "run_git_dirty": false,
+   "completion": "COMPLETE"
+  },
+  {
+   "step": 6,
+   "what": "EXP-013 registered attribution study",
+   "registration_commit": "a39400f4463fe4aa9c589268f0dc65f245aeb048",
+   "fingerprint": "746182292afc9c80d4cb5cbc9af6c3605c3b8a71dd58ac88c63916f725a6beae",
+   "manifest": "experiments/EXP-013/manifest.json",
+   "manifest_sha256": "606d4af43711fb348e65d115f2f7d5527ced53bebdb5dd163aa2531bf4edaee9",
+   "run_git_commit": "a39400f4463fe4aa9c589268f0dc65f245aeb048",
    "run_git_dirty": false,
    "completion": "COMPLETE"
   }
