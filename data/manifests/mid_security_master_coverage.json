@@ -1,0 +1,27 @@
+{
+  "classification_intervals": 2361,
+  "cutoff": "2025-05-09",
+  "exit_events": 614,
+  "french_sic_sha256": {
+    "ff12": "d801141acf039f2e06e6d4d9ba2b3992e9747a1d82fabd53ef21da4a3af79fff",
+    "ff17": "c3b19f0483ca8ed2d701ffaaef4ad6236ef086084374025e4f6e5c0e85e10289",
+    "ff48": "f37edffc024fe7b91b794dd933244430da2de212df2549dc448c0dfcca45d740"
+  },
+  "identity_intervals": 2623,
+  "note": "no request header is recorded anywhere; see data/manifests/edgar_requests_mid_security_master.jsonl for URLs, statuses and body hashes",
+  "resolution_grades": {
+    "A_CONFIRMED": 483,
+    "B_CONSISTENT": 1702,
+    "C_PARTIAL": 18,
+    "D_NO_PERIODIC_FILINGS": 362,
+    "UNRESOLVED": 337,
+    "X_CONTRADICTED": 58
+  },
+  "sec_requests_this_run": 2850,
+  "seconds": 1327.8,
+  "shares_vintages": 367683,
+  "submissions_documents_looked_up": 2327,
+  "symbols": 2747,
+  "trusted_securities": 2044,
+  "unresolved_tickers": 337
+}

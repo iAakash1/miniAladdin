@@ -29,29 +29,31 @@ OUT = REPO / "docs/research/market-signal-review-2026-10-11/validation/exp014_pr
 def main() -> int:
     calendar = exp014.read_calendar(REPO)
     conf, sep, counts = exp014.build_samples(REPO, calendar)
-    treatments = ("core_730", "other_730", "unchanged_730", "unclass_730", "any_730")
+    treatments = tuple(x for x in ("core_730", "other_730", "unchanged_730", "unclass_730", "any_730", "i402_730", "nt_730", "nonfsds_amend_730") if f"D_{x}" in conf.columns)
 
     def block(frame):
         return {"rows": int(len(frame)), "firms": int(frame["firm"].nunique()), "dates": int(frame["date"].nunique()), "rows_without_history": int(frame["D_core_730"].isna().sum()),
                 "treatments": {t: {"rows": int((frame[f"D_{t}"] > 0).sum()), "firms": int(frame.loc[frame[f"D_{t}"] > 0, "firm"].nunique())} for t in treatments}}
 
     label_free = {**counts, "confirmatory": block(conf), "time_separate": block(sep)}
-    calibration = exp014.placebo_event_calibration(conf, draws=200, seed=exp014.SEED + 30)
+    calibration = exp014.placebo_event_calibration(conf, draws=300, seed=exp014.SEED + 30)
+    calibration_within = exp014.placebo_event_calibration(conf, draws=300, seed=exp014.SEED + 31, firm_fe=True)
     pm = json.loads((REPO / exp014.MID_MANIFEST).read_text())
     universe = json.loads((REPO / "data/manifests/mid_sample_universe.json").read_text())
     edgar = json.loads((REPO / "data/manifests/edgar_filings_v1.json").read_text())
     audit = edgar["validation"]["clock_audit"]
     wrong = 1.0 - audit["shares"]["utc_correct (+4/+5 h)"]
     result = {
-        "label_free_counts": label_free, "size_calibration": calibration,
+        "label_free_counts": label_free, "size_calibration": calibration, "size_calibration_within_firm": calibration_within,
         "mid_panel": {"rows": pm["rows"], "dates": pm["dates"], "symbols": pm["symbols"], "securities": pm["securities"], "trusted_share": pm["identity"]["share_trusted"],
-                      "identity_gate": pm["identity_gate"], "content_hash": pm["content_hash"], "universe_snapshots": universe["snapshots"], "universe_unique_members": universe["unique_members"],
+                      "identity_gate": pm["identity_gate"], "content_hash": pm["content_hash"], "feature_hash": pm["feature_hash"],
+                      "feature_hash_equals_frozen_rich_panel": pm["feature_hash"] == exp014.exp011.R.feature_hash(exp014.RICH), "universe_snapshots": universe["snapshots"], "universe_unique_members": universe["unique_members"],
                       "overlap_with_frozen_universe_ever": universe["overlap_with_frozen_universe_ever"]},
         "edgar_registry": {"companies": edgar["validation"]["companies"], "rows": edgar["validation"]["rows"], "share_registry_stamp_wrong": wrong, "clock_audit_shares": audit["shares"],
                            "amendments": edgar["validation"]["amendments"], "item_4_02_8k": edgar["validation"]["item_4_02_8k"]},
     }
     OUT.write_text(json.dumps(result, indent=1, default=str) + "\n")
-    print(json.dumps({"counts": {k: label_free[k] for k in ("confirmatory", "time_separate")}, "size_calibration": calibration}, indent=1, default=str))
+    print(json.dumps({"counts": {k: label_free[k] for k in ("confirmatory", "time_separate")}, "size_calibration": calibration, "size_calibration_within_firm": calibration_within}, indent=1, default=str))
     return 0
 
 

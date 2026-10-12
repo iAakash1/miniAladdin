@@ -115,7 +115,7 @@ def passing():
     one = lambda coef, p, firms=60, rows=400: {"coef": coef, "wcr_p_negative": p, "treated_firms": firms, "treated_rows": rows}
     return {"H1": one(-0.2, 0.001), "H2": one(-0.1, 0.01, 90, 900), "holm_adjusted_p": {"H1": 0.002, "H2": 0.01},
             "R2_influence": {**one(-0.15, 0.01), "share_of_full_estimate": 0.75}, "R3_years": [{"coef": -0.1}] * 11 + [{"coef": 0.1}],
-            "R4_full_controls": one(-0.14, 0.01), "R5_time_separate": one(-0.1, 0.5, 9, 161), "R5_time_separate_any": one(-0.09, 0.04, 58, 1798), "R6_sector": [{"coef": -0.1}] * 10 + [{"coef": 0.1}] * 2,
+            "R4_full_controls": one(-0.14, 0.01), "R5_time_separate": one(-0.1, 0.5, 9, 161), "R5_time_separate_any": one(-0.09, 0.04, 58, 1798), "R7_within_firm": one(-0.1, 0.02), "R6_sector": [{"coef": -0.1}] * 10 + [{"coef": 0.1}] * 2,
             "event_time": {"anticipation_ratio": 0.2}}
 
 
@@ -126,7 +126,8 @@ def test_decision_rule_labels():
     assert exp014.decide(res)["interpretation"] == "MARKER_OF_PERSISTENT_TROUBLE"
     for gate, change in (("R2_influence", lambda r: r["R2_influence"].update(share_of_full_estimate=0.3)), ("R3_years", lambda r: r.update(R3_years=[{"coef": -0.1}] * 8 + [{"coef": 0.1}] * 4)),
                          ("R4_full_controls", lambda r: r["R4_full_controls"].update(wcr_p_negative=0.2)), ("R5_time_separate", lambda r: r["R5_time_separate_any"].update(wcr_p_negative=0.3)),
-                         ("R6_sector", lambda r: r.update(R6_sector=[{"coef": -0.1}] * 7 + [{"coef": 0.1}] * 5))):
+                         ("R6_sector", lambda r: r.update(R6_sector=[{"coef": -0.1}] * 7 + [{"coef": 0.1}] * 5)),
+                         ("R7_within_firm", lambda r: r["R7_within_firm"].update(wcr_p_negative=0.2))):
         broken = passing()
         change(broken)
         out = exp014.decide(broken)
@@ -146,7 +147,7 @@ def test_decision_rule_labels():
 
 
 def test_definition_names_every_gate_the_code_applies():
-    assert set(exp014.DEFINITION["robustness_gates"]) == {"R1_power", "R2_influence", "R3_years", "R4_full_controls", "R5_time_separate", "R6_sector"}
+    assert set(exp014.DEFINITION["robustness_gates"]) == {"R1_power", "R2_influence", "R3_years", "R4_full_controls", "R5_time_separate", "R6_sector", "R7_within_firm"}
     assert set(exp014.DEFINITION["decision"]) >= {"SURVIVES", "FRAGILE", "NOT_REPLICATED", "INCONCLUSIVE"}
 
 
@@ -215,3 +216,48 @@ def test_placebo_event_calibration_does_not_reject_more_than_chance():
     out = exp014.placebo_event_calibration(f, draws=60, seed=3, boot_draws=199)
     assert out["placebo_draws"] >= 55 and out["treated_firms_per_draw"] == 8
     assert out["rejection_rate_5pct_one_sided"] <= 0.2 and abs(out["coef_mean"]) < 0.2
+
+
+def test_score_augmented_regression_holds_the_models_opinion_fixed():
+    f = make_panel(n_firms=60, n_dates=40, effect=-0.5, treated=8, seed=33)
+    rng = np.random.default_rng(2)
+    f["symbol"] = f["firm"]
+    pred = f[["date", "symbol"]].copy()
+    pred["prediction"] = rng.normal(size=len(pred))
+    out = exp014.score_augmented(f, pred, draws=199, seed=1)
+    assert out["rows"] == len(f) and out["coef"] < -0.2 and out["treated_firms"] == 8
+    half = pred.iloc[: len(pred) // 2]
+    assert exp014.score_augmented(f, half, draws=99, seed=1)["rows"] == len(half)         # only rows the model scored enter
+
+
+def test_firm_fixed_effects_remove_a_stable_trait_that_the_pooled_estimate_picks_up():
+    f = make_panel(n_firms=100, n_dates=50, effect=0.0, treated=10, seed=51, persistent=-0.6)       # treated firms are persistently weak, but the amendment itself does nothing
+    pooled = exp014.regress(f, "D_core_730", ["D_core_730"], exp014.BASE_CONTROLS, draws=399, seed=1)
+    within = exp014.regress(f, "D_core_730", ["D_core_730"], exp014.BASE_CONTROLS, draws=399, seed=1, firm_fe=True)
+    assert pooled["coef"] < -0.3 and abs(within["coef"]) < 0.15 and within["wcr_p_negative"] > 0.05 and within["firm_fe"] is True
+    real = make_panel(n_firms=100, n_dates=50, effect=-0.8, treated=10, seed=52)
+    assert exp014.regress(real, "D_core_730", ["D_core_730"], exp014.BASE_CONTROLS, draws=399, seed=1, firm_fe=True)["coef"] < -0.5
+
+
+def test_registry_events_are_usable_from_the_session_after_their_event_date():
+    edgar = pd.DataFrame({
+        "cik": [1, 1, 1, 1, 1, 2], "accession": ["e1", "e2", "e3", "e4", "e5", "e6"],
+        "form": ["8-K", "8-K", "NT 10-K", "10-K/A", "10-K/A", "8-K/A"],
+        "event_date": pd.to_datetime(["2013-03-08", "2013-03-11", "2013-04-12", "2013-06-03", "2013-06-04", "2013-03-09"]),     # 2013-03-09 is a Saturday
+        "items": ["2.02,4.02", "4.020", "", "", "", "4.02"]})
+    out = exp014.registry_events(edgar, fsds_adsh={"e4"}, calendar=CALENDAR, ciks={1, 2})
+    assert out["i402"].sort_values("cik")["cik"].tolist() == [1, 2]                         # '4.020' is not item 4.02
+    day = lambda text: int((pd.Timestamp(text) - pd.Timestamp("1970-01-01")).days)
+    assert out["i402"].loc[out["i402"]["cik"] == 1, "avail_d"].iloc[0] == day("2013-03-11")    # Friday event: usable from Monday
+    assert out["i402"].loc[out["i402"]["cik"] == 2, "avail_d"].iloc[0] == day("2013-03-11")    # Saturday event: Monday as well
+    assert out["nt"]["avail_d"].tolist() == [day("2013-04-15")]
+    assert out["nonfsds_amend"]["avail_d"].tolist() == [day("2013-06-05")]                  # e4 is in the data sets; only e5 is an amendment without financial statements
+
+
+def test_registry_windows_enter_the_treatment_frame_as_730_day_indicators():
+    f = pd.DataFrame([filing("o1", 1, "10-K", "20121231", "2013-03-01 10:00")])
+    originals, amendments = exp014.amendment_events(f, classes([]), CALENDAR, {1})
+    extra = {"i402": pd.DataFrame({"cik": [1], "avail_d": [int((pd.Timestamp("2013-06-03") - pd.Timestamp("1970-01-01")).days)]})}
+    keys = pd.DataFrame({"date": pd.to_datetime(["2013-05-01", "2013-07-01", "2015-07-01"]), "cik": 1})
+    t = exp014.treatment_frame(keys, originals, amendments, extra)
+    assert t["D_i402_730"].tolist() == [0.0, 1.0, 0.0]

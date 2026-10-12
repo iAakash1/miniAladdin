@@ -1,76 +1,84 @@
 {
   "cap": "2025-06-30",
   "caveat": "A current-state download of the registry (retrieved on the date in the request manifest), not a historical snapshot. Acceptance times of accepted filings do not change; withdrawn or removed filings, if any, would be absent. Only filings accepted on or before 2025-06-30 are kept.",
-  "cohort": "frozen",
-  "companies_requested": 792,
-  "fetch": {},
+  "cohort": "both",
+  "companies_requested": 2098,
+  "fetch": {
+    "main_cached_or_fetched": 2098,
+    "main_missing_404": 0,
+    "pages_cached_or_fetched": 1962,
+    "pages_missing_404": 0,
+    "pages_named": 1962,
+    "requests_this_run": 906
+  },
   "floor": "2009-01-01",
   "forms_kept": "10-K*, 10-Q*, 8-K*, NT 10-K*, NT 10-Q*, 15-12*, 15-15*, 25*",
   "output": {
     "file": "data/curated/edgar_filings_v1/filings.parquet",
-    "rows": 201205,
-    "sha256": "31ba936e718a988d96b8db09f85cb297a4e72d3641eb45d9cd7e8c40b4889db8"
+    "rows": 481027,
+    "sha256": "422b219b11deb74f6bc158c8bd213d2abb54370fb9932b0620a297280a5720b9"
   },
   "request_log": "data/manifests/edgar_requests_submissions.jsonl",
   "validation": {
     "amendments": {
       "by_form": {
-        "10-K/A": 905,
-        "10-Q/A": 600
+        "10-K/A": 2545,
+        "10-KT/A": 5,
+        "10-Q/A": 1669
       },
-      "in_fsds": 388,
+      "in_fsds": 1215,
       "in_fsds_but_not_flagged_xbrl": 0,
-      "not_in_fsds": 1117,
-      "registry_amendments_flagged_xbrl": 763,
-      "registry_periodic_amendments": 1505,
-      "xbrl_flagged_but_not_in_fsds": 375
+      "not_in_fsds": 3004,
+      "registry_amendments_flagged_xbrl": 2087,
+      "registry_periodic_amendments": 4219,
+      "xbrl_flagged_but_not_in_fsds": 872
     },
     "chain": {
-      "chains_with_all_pages_read": 792,
-      "companies": 792,
+      "chains_with_all_pages_read": 2098,
+      "companies": 2098,
       "companies_whose_pages_were_not_all_read": [],
-      "companies_with_history_before_2011": 603
+      "companies_with_history_before_2011": 1503
     },
     "clock_audit": {
       "backdated_filings": {
-        "count": 14,
+        "count": 31,
         "definition": "filing date earlier than the acceptance date by more than one day (delinquent filers submitting old reports)",
         "min_gap_days": -633,
-        "share": 6.958077582565046e-05
+        "share": 6.444544692917445e-05
       },
       "conclusion": "the registry acceptance stamp is shifted for about a quarter of 10-K/10-Q filings; the FSDS stamp is consistent with the filing-date rule; event_date = max(filing date, stamp date) is conservative; the FSDS stamp is used wherever it exists",
       "filing_date_rule_agreement_10k_10q__fsds_stamp_read_as_new_york": {
         "clock_unconverted (0 h)": 0.9916,
-        "double_converted (+8/+10 h)": 0.9952,
-        "utc_correct (+4/+5 h)": 0.9928
+        "double_converted (+8/+10 h)": 0.9923,
+        "utc_correct (+4/+5 h)": 0.9922
       },
       "filing_date_rule_agreement_10k_10q__registry_stamp_read_as_utc": {
         "clock_unconverted (0 h)": 0.9147,
-        "double_converted (+8/+10 h)": 0.3702,
-        "utc_correct (+4/+5 h)": 0.9936
+        "double_converted (+8/+10 h)": 0.3391,
+        "utc_correct (+4/+5 h)": 0.9932
       },
-      "matched_filings": 38349,
+      "matched_filings": 96429,
       "offset_hours_registry_minus_fsds_clock": {
         "-0.0": 3144,
-        "4.0": 19217,
-        "5.0": 10099,
-        "8.0": 3806,
-        "10.0": 2083
+        "4.0": 44940,
+        "5.0": 24249,
+        "8.0": 15261,
+        "10.0": 8835
       },
       "populations": {
         "clock_unconverted (0 h)": 3144,
-        "double_converted (+8/+10 h)": 5889,
-        "utc_correct (+4/+5 h)": 29316
+        "double_converted (+8/+10 h)": 24096,
+        "utc_correct (+4/+5 h)": 69189
       },
       "shares": {
-        "clock_unconverted (0 h)": 0.082,
-        "double_converted (+8/+10 h)": 0.1536,
-        "utc_correct (+4/+5 h)": 0.7645
+        "clock_unconverted (0 h)": 0.0326,
+        "double_converted (+8/+10 h)": 0.2499,
+        "utc_correct (+4/+5 h)": 0.7175
       }
     },
-    "companies": 792,
-    "duplicate_accessions_across_companies": 105,
-    "event_date_after_filing_date_share": 0.0002385626599736587,
+    "companies": 2098,
+    "duplicate_accessions_across_companies": 118,
+    "event_date_after_filing_date_share": 0.0002577817877166978,
     "filing_date_max": "2025-06-30",
     "filing_date_min": "2009-01-02",
     "filing_date_minus_acceptance_date_days": {
@@ -78,46 +86,46 @@
       "min": -633,
       "p50": 0.0,
       "p99": 1.0,
-      "share_within_0_to_4_days": 0.9997514972291941
+      "share_within_0_to_4_days": 0.999733902670744
     },
     "forms": {
-      "10-K": 10848,
-      "10-K/A": 905,
-      "10-KT": 10,
-      "10-Q": 31788,
-      "10-Q/A": 600,
-      "10-QT": 5,
-      "15-12B": 156,
-      "15-12B/A": 1,
-      "15-12G": 90,
-      "15-15D": 89,
-      "15-15D/A": 3,
-      "15F-12B": 1,
-      "25": 132,
-      "25-NSE": 1116,
-      "25-NSE/A": 19,
-      "25/A": 1,
-      "253G1": 1,
-      "253G2": 16,
-      "8-K": 151419,
-      "8-K/A": 3536,
-      "8-K12B": 64,
-      "8-K12B/A": 3,
-      "8-K12G3": 8,
-      "NT 10-K": 170,
-      "NT 10-Q": 224
+      "10-K": 27341,
+      "10-K/A": 2545,
+      "10-KT": 33,
+      "10-KT/A": 5,
+      "10-Q": 80234,
+      "10-Q/A": 1669,
+      "10-QT": 13,
+      "15-12B": 390,
+      "15-12B/A": 5,
+      "15-12G": 298,
+      "15-12G/A": 4,
+      "15-15D": 158,
+      "25": 277,
+      "25-NSE": 2002,
+      "25-NSE/A": 32,
+      "253G2": 18,
+      "8-K": 355899,
+      "8-K/A": 8589,
+      "8-K12B": 121,
+      "8-K12B/A": 9,
+      "8-K12G3": 23,
+      "NT 10-K": 588,
+      "NT 10-K/A": 8,
+      "NT 10-Q": 748,
+      "NT 10-Q/A": 4
     },
     "item_4_02_8k": {
-      "companies": 98,
-      "filings": 122
+      "companies": 298,
+      "filings": 390
     },
     "late_notices": {
-      "NT 10-K": 170,
-      "NT 10-Q": 224
+      "NT 10-K": 588,
+      "NT 10-Q": 748
     },
     "null_acceptance_time": 0,
     "null_filing_date": 0,
-    "periodic_reports_registry_since_2011": 38442,
-    "rows": 201205
+    "periodic_reports_registry_since_2011": 97449,
+    "rows": 481027
   }
 }

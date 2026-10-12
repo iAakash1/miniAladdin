@@ -96,17 +96,17 @@ variables built from the SEC filing registry; fourteen arms; thirty fits. Detail
 
 | Test | Contrast | Verdict | Holm-adjusted p | Weakest mapped placebo margin |
 |---|---|---|---|---|
-""" + "\n".join(f"| {k} | {paired[k]['left']} - {paired[k]['right']} | **{v['label']}** | {v['adjusted_p']:.4f} | {v['weakest_placebo_margin']:+.5f} |" for k, v in manifest["verdicts"].items()) + f"""
+""" + "\n".join(f"| {k} | {paired[k]['left']} - {paired[k]['right']} | **{v['label']}** | {v['adjusted_p']:.4f} | {v['weakest_placebo_margin']:+.5f} |" for k, v in manifest["verdicts"].items()) + """
 
 | Test | Contrast | Mean Rank IC difference | HAC t | one-sided p | 95% block-bootstrap interval | Positive folds | Claim |
 |---|---|---|---|---|---|---|---|
-""" + "\n".join(contrast_line(k) for k in ("T1", "T2", "T3")) + f"""
+""" + "\n".join(contrast_line(k) for k in ("T1", "T2", "T3")) + """
 
 Controls (a real information set must beat a placebo built from the same variables):
 
 | Control | Contrast | Mean difference | HAC t | one-sided p | 95% interval | Positive folds | Claim |
 |---|---|---|---|---|---|---|---|
-""" + "\n".join(contrast_line(k) for k in ("C1", "C2", "C3", "C4", "C5")) + f"""
+""" + "\n".join(contrast_line(k) for k in ("C1", "C2", "C3", "C4", "C5")) + """
 
 Secondary, descriptive only (no adjustment, no claim):
 

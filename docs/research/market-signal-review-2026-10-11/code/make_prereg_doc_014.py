@@ -38,6 +38,13 @@ def main() -> None:
     hashes = "\n".join(f"| `{k}` | `{exp014.input_paths()[k]}` | `{v}` |" for k, v in inputs.items())
     methods = "\n".join(f"- `{m}`" for m in exp014.METHOD_SOURCES)
     conf, sep = counts["confirmatory"], counts["time_separate"]
+    reh_path = REPO / "experiments/EXP-014_rehearsal/manifest.json"
+    if not reh_path.exists():
+        sys.exit("run the FULL rehearsal first: python -m scripts.quant.exp014 rehearse --workers 6 --draws 999 --rehearsal-output experiments/EXP-014_rehearsal")
+    reh = json.loads(reh_path.read_text())
+    if reh.get("completion") != "REHEARSAL" or reh["machine_learning"].get("skipped") or "economics" not in reh["machine_learning"]:
+        sys.exit("the rehearsal on disk skipped the machine-learning or economics stage; the registration may only say the whole pipeline was rehearsed when it was")
+    calib_w = chk["size_calibration_within_firm"]
     doc = f"""# EXP-014 preregistration - does the restating-amendment signal survive in firms the discovery never saw?
 
 Definition fingerprint: `{fp}`
@@ -65,7 +72,10 @@ It does not scale the discovery model, claims no investment value, and does not 
   Fama-French 12), the wild-cluster bootstrap as the decision statistic, and the gates below.
 * **Independent sample, what has been looked at:** universe construction (membership counts only), price ingestion checks, the baseline frame's row and label coverage, identity coverage, the
   label-free counts of treated companies in section 4, and a size calibration with placebo events. **No relation between an amendment variable and a return, rank or label has been computed on it.**
-* **Rehearsal:** the whole pipeline was run once with the label shuffled across firms within each date, to prove that every code path runs and that nothing is reported as a result of that run.
+* **Label-only descriptives computed on the independent sample** (no amendment variable involved): mean return rank by tenure and by time to a firm's last row (end-of-life rows carry systematically low ranks:
+  -0.083 in the final quarter), and by firm lifespan. They motivated the within-firm gate R7 and the position-neutral placebo windows.
+* **Rehearsal:** the whole pipeline (regressions, machine-learning arms, economics, saved-artifact reload) was run once with the label shuffled across firms within each date, to prove that every code path runs
+  and that nothing is reported as a result of that run. Its outcome was {reh['decision']['label']} with H1 Holm-adjusted p {reh['decision']['h1_adjusted_p']:.3f}, as it must be on a shuffled label.
 
 ## 3. Data
 
@@ -111,13 +121,21 @@ All inputs are verified by SHA-256 before the study runs (`docs/EXP_014_INPUTS.j
 - **H2:** the coefficient on any_730 (the EXP-012 definition) is negative.
 - Holm across H1 and H2 on the wild-cluster bootstrap p-values (one-sided, negative; Webb six-point weights, null imposed, {exp014.WEBB_DRAWS:,} draws, firm clusters, seed {exp014.SEED}).
 - The two-way (firm, date) clustered t and the firm-clustered t are reported, never used to decide.
-- **Why the bootstrap:** in a simulation with three treated firms of fifty and no effect a plain firm-clustered t rejects {pct(0.225)} of the time at the nominal 5%; the bootstrap rejects 4.0% (one-sided).
-  On the real label structure, with the same number of randomly chosen firms given one placebo amendment each, the registered procedure rejected {pct(calib['rejection_rate_5pct_one_sided'])} of
-  {calib['placebo_draws']} placebo draws at 5% (one-sided) and {pct(calib['rejection_rate_1pct_one_sided'])} at 1%.
+- **Why the bootstrap:** in a simulation with three treated firms of fifty and no effect a plain firm-clustered t rejects 22.5% of the time at the nominal 5%; the bootstrap rejects 4.0% (one-sided).
+- **Size on the real label structure.** Each really treated firm is paired with an untreated firm of similar length (rows within 25%) and the same sector, and the partner receives one placebo amendment: a
+  730-day window starting on a day drawn uniformly, so that every row of the partner has the same chance of being flagged. The registered regression is then re-estimated and the bootstrap rejection rate counted.
+  Pooled regression: {pct(calib['rejection_rate_5pct_one_sided'])} of {calib['placebo_draws']} draws reject at 5% (one-sided), {pct(calib['rejection_rate_1pct_one_sided'])} at 1%, mean placebo coefficient
+  {calib['coef_mean']:+.4f} (sd {calib['coef_sd']:.4f}). With a fixed effect per firm: {pct(calib_w['rejection_rate_5pct_one_sided'])} and {pct(calib_w['rejection_rate_1pct_one_sided'])}, mean coefficient {calib_w['coef_mean']:+.4f}
+  (sd {calib_w['coef_sd']:.4f}). The pooled regression over-rejects because flagged firms matched on length are short-lived, and short-lived firms have systematically lower return ranks (a firm-length / exit
+  confound that is part of what a pooled association means); the within-firm regression is the size-correct test. That is why **SURVIVES requires both** the pooled H1 and the within-firm gate R7.
 
 ## 7. Robustness gates
 
 {gates}
+
+Secondary regressions (reported, not gated): S1 core amendment in 365 days; S2 in 1,095 days; S3 amendments without number changes; S4 unclassifiable amendments; S5 and S6 core amendments by 10-K/A and
+10-Q/A; S7 H1 with the out-of-sample ridge score held fixed (machine-learning section); S8 8-K Item 4.02 (non-reliance) in 730 days; S9 core amendment with Item 4.02 and late-filing notices as competing
+restatement indicators; S10 amendments that carry no financial statements. Registry events are usable from the first session after their event date (`registry_availability` in the definition).
 
 ## 8. Interpretation diagnostic
 
@@ -135,7 +153,8 @@ production use or a new anomaly.
 Arms: M0 ridge on the 76 features (alpha 10, no search); M1 adds the amendment block (core, other_changed, unchanged, unclass indicators and log1p of the count); G0 and G1 boosted equivalents (frozen
 EXP-010A settings, 3 seeds); placebos of M1 (block permuted within date x 5 seeds; block shifted 252 sessions within firm). Test: paired mean Rank IC difference on identical dates, Newey-West HAC (4 lags),
 moving-block bootstrap (block 6, 4,000 draws), Holm across the ridge and boosted contrasts, eight recorded folds. No hyperparameter is chosen on any data, so no selection correction is needed. The saved
-M1 ridge is scored again in a fresh process and must reproduce the in-memory scores to 1e-9.
+M1 ridge is scored again in a fresh process and must reproduce the in-memory scores to 1e-9. Secondary S7 re-estimates H1 on the validation-period rows with the M0 out-of-sample score (ranked within date) added
+to the controls.
 
 ## 11. Economics (reported separately; not part of the decision)
 
@@ -144,7 +163,7 @@ ridge portfolio (net Sharpe -0.34 for A1, -0.49 for A5 at 10 bp) and that result
 
 ## 12. Multiple testing and the ledger
 
-Two confirmatory hypotheses (Holm), six gates (mechanical, not tests), ten secondary regressions and two machine-learning contrasts (reported with their own adjustment), and the cumulative trial count
+Two confirmatory hypotheses (Holm), seven gates (mechanical, not tests), ten secondary regressions and two machine-learning contrasts (reported with their own adjustment), and the cumulative trial count
 of the eight folds (1,029 before EXP-012; EXP-012 to EXP-013 added more and are counted in `docs/EXP_013_RESULTS.md`). The confirmatory regressions run on a sample that no earlier trial used.
 
 ## 13. Acceptance gates, reproducibility and compute
@@ -157,6 +176,10 @@ laptop with six workers: minutes for the regressions, under an hour in all.
 ## 14. Method files covered by the fingerprint
 
 {methods}
+
+## 14b. What happens next, whatever the outcome
+
+The sealed holdout (2025-08-26 to 2026-08-28) remains untouched and is the only unused period. Opening it needs a separate, frozen design and the owner's decision; this study does not.
 
 ## 15. Known threats, stated in advance
 

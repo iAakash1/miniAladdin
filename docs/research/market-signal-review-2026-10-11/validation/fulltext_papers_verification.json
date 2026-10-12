@@ -129,6 +129,21 @@
    "authors": "Frieder, Shanthikumar",
    "year": 2008,
    "abstract": "not available"
+  },
+  "10.2308/ajpt-50667": {
+   "title": "The Relationship between Audit Report Lags and Future Restatements",
+   "container": "Auditing: A Journal of Practice & Theory",
+   "volume": "33",
+   "issue": "2",
+   "pages": "27-57",
+   "year": 2014
+  },
+  "10.1108/s1569-3732(2012)0000015008": {
+   "title": "Short- and Long-Term Share Price Reaction to Announcements of Financial Restatements",
+   "container": "Advances in Financial Economics",
+   "pages": "149-172",
+   "year": 2012,
+   "abstract_source": "OpenAlex"
   }
  },
  "arxiv_records": {
@@ -230,6 +245,7 @@
  "venue_rankings": "not stated: SCImago returned HTTP 403 and JCR is paywalled; nothing was inferred",
  "access_notes": [
   "SSRN presents a bot verification page to the built-in browser (Cloudflare 'Just a moment...'); not completed or bypassed",
-  "Springer policy pages redirect to authorisation; not circumvented"
+  "Springer policy pages redirect to authorisation; not circumvented",
+  "Bannouh, Geng, Peeters (2019 draft, SSRN 3432446) was read from an author-posted copy found through a web search and hosted on a corporate content network; 781,682 bytes, valid PDF header, read with pypdf in the isolated environment"
  ]
 }

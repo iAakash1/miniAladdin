@@ -1,0 +1,44 @@
+{
+ "status": "EXPLORATORY discovery-sample reading of the registered event-time diagnostic; not confirmatory",
+ "rows": 93633,
+ "firms": 668,
+ "bins": {
+  "D_core_prev365": {
+   "coef": -0.22781675387205558,
+   "t_two_way": -4.353336028692028,
+   "wcr_p_negative": 0.0004,
+   "treated_firms": 17,
+   "treated_rows": 383
+  },
+  "D_core_prev730b": {
+   "coef": -0.08112419204944148,
+   "t_two_way": -1.587971426643951,
+   "wcr_p_negative": 0.09,
+   "treated_firms": 13,
+   "treated_rows": 241
+  },
+  "D_core_old": {
+   "coef": -0.06372846735572125,
+   "t_two_way": -1.2159459878908014,
+   "wcr_p_negative": 0.1192,
+   "treated_firms": 18,
+   "treated_rows": 525
+  },
+  "D_core_next365": {
+   "coef": -0.11036308522917908,
+   "t_two_way": -1.517059928488483,
+   "wcr_p_negative": 0.0876,
+   "treated_firms": 16,
+   "treated_rows": 305
+  },
+  "D_core_next730b": {
+   "coef": 0.12340690819258429,
+   "t_two_way": 1.1147707765580395,
+   "wcr_p_negative": 0.8458,
+   "treated_firms": 6,
+   "treated_rows": 98
+  }
+ },
+ "anticipation_ratio": 0.48443796759197183,
+ "reading": "ratio below 0.5: the association is concentrated after the amendment (TIME_SPECIFIC); at or above 0.5: the firms look just as weak before the amendment as after (MARKER_OF_PERSISTENT_TROUBLE)"
+}

@@ -1,0 +1,13 @@
+{
+  "experiment": "EXP-014",
+  "sha256": {
+    "calendar": "484076244e61292e4b1addd3383982d0665ec6aed66e8ec19374468980747e3c",
+    "classification": "d3ccba49096f873061cb53f420c649e2ea1a30b0a712ccee1ccfccf4c816c509",
+    "edgar_filings": "422b219b11deb74f6bc158c8bd213d2abb54370fb9932b0620a297280a5720b9",
+    "frozen_identity": "e51d062a93691686d6b00f76be0cc00d7f1deff1049230857a41e1c7669a6130",
+    "frozen_panel": "2b8993da1e80a1279d24fe1f6b0b4c49d144cb6f6b0a7c7f785a3203a5e4240a",
+    "fsds_filings": "4e62004745eebd9b7e669adb091ff53a01f2440e5bdd83b7da5efbb660b7ebb6",
+    "mid_panel": "3cb9e32a309e768e428860ac4518e60289336b704472ead95c6bf15abb2a2e72",
+    "mid_panel_manifest": "44087208039a44971aab33c25764e7424fea799c32e9687ad026e59373013ba9"
+  }
+}

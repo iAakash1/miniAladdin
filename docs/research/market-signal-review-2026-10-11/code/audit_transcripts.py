@@ -13,10 +13,8 @@ Nothing is printed from transcript bodies except counts. Read-only.
 from __future__ import annotations
 
 import csv
-import glob
 import json
 import os
-import re
 import sys
 from pathlib import Path
 

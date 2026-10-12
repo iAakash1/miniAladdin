@@ -1,6 +1,6 @@
 # Research state (canonical checkpoint)
 
-Single source of truth for progress. A new session reads this first, then verifies live values (`git log` on the branch, `experiments/EXP-012/manifest.json`). Last updated 2026-10-12.
+Single source of truth for progress. A new session reads this first, then verifies live values (`git log` on the branch, `experiments/EXP-012/manifest.json`). Last updated 2026-10-12 13:00 IST. **Phase II is paused mid-way at the owner's request: start with `PHASE2_HANDOFF.md`, which has the exact next commands.**
 
 - **Branch:** `research/market-signal-review-2026-10-11`, cut from `1b3e6c7764ad` (`origin/main`). `main` is untouched and nothing is deployed. The unmerged
   `origin/continuation/search-intent-quality` branch (another identity; `screen_service.py` and a CI workflow) is unrelated and was neither merged nor altered.
@@ -40,13 +40,34 @@ Production on 2026-10-12: GitHub `main`, Vercel production and Cloud Run revisio
 | Saved models, fresh-process reload | `experiments/EXP-012/model/` (git-ignored) | A1 and A5 reload through the CLI and score 248 names with finite scores |
 | Executive decision, panel simulation, manuscript draft, data manifests | `00`, `11`, `manuscript/draft.md`, `data_manifest.json`, `provenance_manifest.json`, `dataset_catalogue.csv` | done |
 
+## Phase II (2026-10-12): verified, newly generated, planned, blocked
+
+| Deliverable | Label | Where | Notes |
+|---|---|---|---|
+| Independent recomputation of the registered EXP-012/013 numbers | newly generated | `validation/phase2_independent_verification.json`, `code/phase2_verify_independent.py` | agrees to machine precision |
+| Discovery-sample diagnostics: clustered inference, influence calibration, regression discovery, wild-cluster bootstrap, event-time bins | newly generated | `validation/phase2_*.json` | exploratory; the sample that produced the finding |
+| Amendment content classification (16,576 FSDS amendments) | newly generated | `code/classify_amendments.py`, `validation/amendment_classification_summary.json` | 55% have a comparable previous version |
+| Independent firm sample (liquidity ranks 251-1,000): universe, prices, baseline frame, identity layer, rich panel | newly acquired / derived | `data/research_mid/`, `data/curated/security_master_mid/`, `phase2_data_manifest.json`, `data/manifests/mid_*.json` | git-ignored except the membership file; licence of the price source unreviewed |
+| EDGAR submissions registry for 2,098 companies, with request log | newly acquired | `data/curated/edgar_filings_v1/`, `data/manifests/edgar_*` | current-state download; acceptance stamps audited |
+| Acceptance-clock audit of the registry | newly generated (finding) | `validation/edgar_acceptance_clock_audit.md` | 28.2% of matched stamps wrong; FSDS stamps right |
+| SEC client that keeps the contact out of code, logs and manifests | newly generated | `src/quant/pit/edgar_client.py`, `tests/quant/test_edgar_client.py` | 8 tests |
+| Point-in-time snapshot archive and live-scorer replay audit | newly generated | `src/quant/pit/snapshot_archive.py`, `13_PIT_ARCHIVE_DESIGN.md`, `live_scorer_replayability.csv` | 25 tests, 12 of 12 breakages caught; **no capture job exists, nothing is collected** |
+| Full-text review ledger, closest-30 matrix, identifier verification | newly generated | `12_FULLTEXT_REVIEW_AND_NOVELTY_MATRIX.md`, `fulltext_ledger.csv`, `validation/fulltext_papers_verification.json` | 14 papers read in extract (pages stated); SSRN-only works unread |
+| Path A versus Path B | newly generated | `14_PATH_A_VS_PATH_B.md` | conditional on EXP-014 |
+| Repository history audit | newly generated | `15_GITHUB_QUALITY_AND_VERIFICATION.md` | email constant and path literals confirmed; no rewrite |
+| EXP-014 protocol, code, tests, regression-stage rehearsal | newly generated | `src/quant/study/exp014*.py`, `scripts/quant/exp014.py`, `tests/quant/test_exp014*.py`, `code/exp014_pre_registration_checks.py`, `validation/exp014_pre_registration_checks.json` | **not registered**; machine-learning and economics stages never run on real data |
+| EXP-014 registration, registered run, results, updated decision document and manuscript | planned | see `PHASE2_HANDOFF.md`, section 4 | |
+| ALFRED vintages for the live scorer's macro gate | blocked | | no key (owner) |
+| Provider-snapshot capture for the live scorer | planned | | needs provider-terms review; library ready |
+| Frieder and Shanthikumar (2008) and other SSRN-only full texts | blocked | | SSRN bot verification, not circumvented |
+
 ## Not done, and why
 
-- Full-text reading of the closest works (no access; SSRN refuses automated access).
-- Quartiles of target journals (SCImago returned 403; Journal Citation Reports is subscription-only).
-- A complete OpenAlex pass (keyless daily limit; a free key needs an account, which is the owner's decision).
-- Any test of vendor disagreement or provider health: no history exists.
-- Event-level and firm-clustered analysis of the amendment effect (proposed; not started).
+- The registered EXP-014 run and everything that depends on it (see `PHASE2_HANDOFF.md`, section 4). The full rehearsal comes first.
+- Full text of the SSRN-only closest works, above all Frieder and Shanthikumar (2008): SSRN refuses automated access and the bot verification was not completed or worked around.
+- Quartiles of target journals (SCImago 403, Journal Citation Reports subscription-only): none is stated anywhere.
+- A complete OpenAlex pass (keyless daily limit).
+- Any test of vendor disagreement or provider health: no history exists; the archive library is built but nothing is captured.
 - Any test on the sealed holdout (the owner's decision).
 
 ## Token accounting (measured from transcripts; not billing)
@@ -64,11 +85,17 @@ Production on 2026-10-12: GitHub `main`, Vercel production and Cloud Run revisio
   The row sets differ because shuffling a label moves missing labels. The registration discloses the first number.
 - The registered sensitivity paragraph understated the realised noise (T1 standard error 1.9 times larger than in the shuffled-label rehearsal; T3 8 times); disclosed in `docs/EXP_012_RESULTS.md`, section 7. The registered verdicts stand.
 - Pushing the branch made Vercel's Git integration build two preview deployments (statuses on the pushed commit); production is unchanged (`/api/build` commit `1b3e6c7`).
+- **Phase II.** The SEC contact (the account email) was sent to the SEC only, through the environment variable `EDGAR_USER_AGENT`, at the owner's explicit choice; it is in no code, document, log, manifest, commit or other service
+  (tested for the client's logs and exceptions). Large downloads were run outside the tool sandbox because its network proxy truncates bodies above roughly 45 KB.
+- **Phase II, before registration, on the independent sample:** only label-free counts, coverage checks, a placebo-amendment size calibration, and label-only descriptives (return rank by tenure and by time to a firm's last row) were
+  computed; no relation between an amendment variable and a return. The amendment categories, the 730-day window, the controls and the gates were fixed after reading the discovery-sample diagnostics and are therefore not independent of them.
+- **Phase II calibration history, disclosed:** the first placebo designs gave negative mean placebo coefficients because their windows were position-biased or the partners were not matched on length; they were replaced by position-neutral windows
+  and length- and sector-matched partners before anything was registered. The pooled regression still over-rejects under that placebo (13.3% at 5%), the within-firm regression does not (6.3%); the registration therefore
+  requires both.
+- The rehearsal of the regression stage on a shuffled label returned NOT_REPLICATED (H1 adjusted p 0.93, H2 0.77), as it must.
 
 ## Next executable steps
 
-1. Final checks before the closing push: the whole test suite, the attribution/secret/size scans, the protected-file hash comparison, remote SHA and identity verification.
-2. Optional follow-up, only as a separately registered experiment: an event-level analysis of the amendment effect (the 60 firms and their episodes, leave-one-firm-out, firm-clustered inference, event windows, duplicate
-   and Part III-type amendments), ideally on the full EDGAR submission index and a larger universe. More looks at the same folds, disclosed; not a confirmation.
-3. Owner decisions: open the sealed holdout once for a single frozen design (or not); commission the bridging experiment on the live composite and an append-only snapshot archive; SEC contact; OpenAlex key; DoltHub
-   licence review; wording of any journal declaration; what to do with the two Vercel previews.
+Phase II continues from `PHASE2_HANDOFF.md`, section 4: (1) full rehearsal of EXP-014 (machine learning, economics, artifact round trip); (2) refresh inputs and pre-registration checks if code changed; (3) write, commit and push the
+registration, then run the gate; (4) run the registered study once; (5) results, decision, state and manuscript documents from what was measured; (6) closing checks and final report.
+Owner decisions that remain: open the sealed holdout once for one frozen design (or not); approve the registered run; SEC contact for the live service; DoltHub licence review; access to the SSRN-only papers; provider-terms review before any snapshot capture; wording of any journal AI declaration; the two Vercel previews (and any new ones the pushes create).

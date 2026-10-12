@@ -1,5 +1,9 @@
 # Prior art and novelty audit
 
+> **Phase II update (2026-10-12).** Read levels for fourteen works were upgraded to a full-text extract and seven more were found or re-read at abstract level; see `12_FULLTEXT_REVIEW_AND_NOVELTY_MATRIX.md` and `fulltext_ledger.csv`.
+> The sentence below, "No full text was read", is superseded for those works only. Two findings change this page: long-run underperformance after restatements is documented (Gondhalekar, Joshi and McKendall 2012, abstract level),
+> and point-in-time SEC construction has a published benchmark (Liu 2026, abstract level). The overall novelty rating stays **low**; one probably decisive paper (Frieder and Shanthikumar 2008) is still unread.
+
 ## The claim being tested
 
 > **EXP-012 (`docs/EXP_012_PREREGISTRATION.md`).** Properties of a company's *disclosure process*, measured point in time from the SEC filing registry alone (amendments to periodic reports,

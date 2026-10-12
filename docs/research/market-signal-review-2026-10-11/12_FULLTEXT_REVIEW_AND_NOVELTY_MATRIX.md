@@ -5,14 +5,14 @@ Machine-readable: `fulltext_ledger.csv` (built by `code/make_fulltext_ledger.py`
 
 ## 1. How the reading was done, and what it covers
 
-* Thirteen open-access PDFs (NBER working papers and arXiv preprints) were downloaded into separate directories outside the repository, text-extracted with `pypdf` in an isolated virtual environment, and read
-  in the pages listed in section 2. One PDF (NBER w8308) uses glyph-index fonts and was decoded with a character map first. **None of the 13 was read cover to cover**: the long NBER papers (90 to 130
+* Fourteen open-access PDFs (NBER working papers, arXiv preprints and one author-posted draft) were downloaded into separate directories outside the repository, text-extracted with `pypdf` in an isolated virtual environment, and read
+  in the pages listed in section 2. One PDF (NBER w8308) uses glyph-index fonts and was decoded with a character map first. **None of the 14 was read cover to cover**: the long NBER papers (90 to 130
   pages) were read for abstract, introduction, data and design, and searched for the specific claims used here. The ledger states the pages; "read" never means more than that.
 * Identifiers, venues and preprint-to-publication links were verified against Crossref and the arXiv API on 2026-10-12. No contact address was sent to either service.
 * No venue ranking or quartile is stated. SCImago returned HTTP 403 and the Journal Citation Reports are paywalled.
 * Works whose full text could not be reached are listed in section 5. SSRN answered the in-app browser with a bot-verification page; it was not completed or worked around.
 
-## 2. The thirteen papers read in full-text extract
+## 2. The fourteen papers read in full-text extract
 
 | ID | Work | Version chain (verified) | Pages read | What was learned that matters here |
 |---|---|---|---|---|
@@ -28,6 +28,7 @@ Machine-readable: `fulltext_ledger.csv` (built by `code/make_fulltext_ledger.py`
 | F10 | Sanderink, *When Alpha Breaks* | arXiv 2603.13252 (2026) | 1-8 + limitations of 34 | Reports Sharpe 2.73 on a **fixed 100-ticker "AI-exposed" list** whose construction date is not discussed; delisting returns not modelled. A cautionary example of universe look-ahead; effect sizes not used. |
 | F11 | Bracher, Funk, *Information leakage from data revisions* | arXiv 2608.05883 (2026) | all 4 | The reported gain comes from revised data: 9 of 1,430 state-weeks give 20% of it; relative score 0.69 where the last point was later revised by >= 25%, 1.00 where revised by <= 1%. **The same mechanism as restatements and the same concentration diagnostic.** |
 | F12 | Agyekum, Obese, *Forecasting in the Fog* | arXiv 2608.09033 (2026) | 1-4 of 27 | Real-time (ALFRED) versus revised macro data: small accuracy gaps, large changes in what the model relies on (mean absolute SHAP of PCE inflation 0.778 versus 0.039). Preprint, modest evidence. |
+| F14 | Bannouh, Geng, Peeters, *Filing, Fast and Slow: Reporting Lag and Stock Returns* | SSRN 3432446 (draft 5 Aug 2019); no journal version found; author-posted copy | 1-3, 7-14 of 39 | EDGAR 10-K/10-Q, periods from Dec 2006 to 2018; faster filers earn a premium (10-K quintile spread 36 bp a month CAPM alpha, t 2.9; 10-Q up to 40 bp), decaying within a year; non-timely filers sit in the slowest quintile; **amendments not studied**. Reporting delay stays in the control set. |
 | F13 | Li et al., *A Survey on Truth Discovery* | arXiv 1505.02463 = *ACM SIGKDD Explorations* 17(2):1-16 | 1-6 of 16 | Vocabulary for estimating source reliability from conflicting claims; no finance application. |
 
 ## 3. Works found or re-read in Phase II at abstract level
@@ -64,7 +65,7 @@ Read levels: FT = full-text extract (pages in section 2), AB = abstract, MD = me
 | 14 | Richardson, Sloan, Soliman, Tuna 2005 | MD | Accrual reliability | Concept of reliability |
 | 15 | Sloan 1996 | MD | Accruals anomaly | Context |
 | 16 | Cohen, Malloy, Nguyen 2020 | FT | Filing-derived, under-used signal | Design, not variable |
-| 17 | Bannouh, Geng, Peeters 2019 | AB | Filing lag predicts returns | Reporting-delay control |
+| 17 | Bannouh, Geng, Peeters 2019 | FT | Filing lag predicts returns; amendments not studied | Reporting-delay control |
 | 18 | Brooks, Cheng, Liu, Yu 2023 | AB | Early filers do better | Reporting-delay control |
 | 19 | Zhang 2006 | AB | Information uncertainty and continuation | Moderator concept |
 | 20 | Francis, LaFond, Olsson, Schipper 2007 | AB | Information uncertainty and drift | Moderator concept |
@@ -83,7 +84,7 @@ Context only: Bali et al. 2023, Goulding et al. 2026, Freyberger et al. 2024, Gu
 
 ## 5. Full texts not reached
 
-SSRN-hosted: Frieder and Shanthikumar 2008, Palmrose et al., Hribar and Jenkins, Karpoff et al., Wu, Lev, Ryan and Wu, Bannouh et al., Brooks et al., Liu 2026. Publisher-hosted and not opened: Files et al.,
+SSRN-hosted: Frieder and Shanthikumar 2008, Palmrose et al., Hribar and Jenkins, Karpoff et al., Wu, Lev, Ryan and Wu, Brooks et al., Liu 2026 (Bannouh et al. was read from an author-posted draft hosted elsewhere). Publisher-hosted and not opened: Files et al.,
 Irani and Xu, Gleason et al., Desai et al., Gondhalekar et al., Dechow et al., Richardson et al., Sloan. For these the judgement rests on the abstract or metadata, and says so.
 
 ## 6. What this changes

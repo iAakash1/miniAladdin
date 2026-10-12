@@ -33,6 +33,27 @@ def absorb(frame: pd.DataFrame, columns: Sequence[str], groups: Sequence[pd.Seri
     return sub - sub.groupby(key, sort=False).transform("mean")
 
 
+def absorb_two_way(frame: pd.DataFrame, columns: Sequence[str], cells: pd.Series, firms: pd.Series, *, tol: float = 1e-9, max_iter: int = 500) -> pd.DataFrame:
+    """Remove two sets of fixed effects (cells such as date x sector, and firms) by alternating projections until the change falls below `tol`.
+    Exact in the limit; the data here converge in a few dozen passes. Works on integer codes with bincount, one column at a time."""
+    g1 = pd.factorize(cells)[0]
+    g2 = pd.factorize(firms)[0]
+    n1, n2 = int(g1.max()) + 1, int(g2.max()) + 1
+    c1 = np.bincount(g1, minlength=n1).astype(float)
+    c2 = np.bincount(g2, minlength=n2).astype(float)
+    out = {}
+    for col in columns:
+        x = frame[col].to_numpy(float).copy()
+        for _ in range(max_iter):
+            before = x.copy()
+            x -= (np.bincount(g1, weights=x, minlength=n1) / c1)[g1]
+            x -= (np.bincount(g2, weights=x, minlength=n2) / c2)[g2]
+            if np.max(np.abs(x - before)) < tol:
+                break
+        out[col] = x
+    return pd.DataFrame(out, index=frame.index)
+
+
 @dataclass
 class Fit:
     names: list[str]

@@ -33,6 +33,7 @@ import pandas as pd
 
 from src.quant.pit import reliability as rel
 from src.quant.pit.calendar import TradingCalendar
+from src.quant.pit.sec_facts import available_session
 from src.quant.study import exp009b, exp011, exp012, prereg
 from src.quant.study import exp014_inference as inf
 from src.quant.study.firewall import FIREWALL
@@ -81,6 +82,10 @@ DEFINITION: dict[str, Any] = {
     },
     "outcome": {"label": LABEL, "note": "centred cross-sectional rank of the 21-session forward return within the universe-date; identical construction to every earlier experiment"},
     "treatments": {k: {"categories": list(v[0]), "from_days": v[1], "to_days": v[2]} for k, v in TREATMENTS.items()},
+    "registry_treatments": {"i402_730": "8-K reporting Item 4.02 (non-reliance on previously issued financial statements) with event date in the trailing 730 days",
+                            "nt_730": "NT 10-K or NT 10-Q (late-filing notice) in the trailing 730 days",
+                            "nonfsds_amend_730": "periodic-report amendment in the EDGAR registry that is not in the Financial Statement Data Sets (no financial statements: Part III, exhibits)"},
+    "registry_availability": "EDGAR submissions registry; event date = later of the filing date and the date of the acceptance stamp; usable from the first session after the event date; the registry stamp itself is not trusted (clock audit)",
     "categories": {"core": "classifiable amendment with revenue, net income, assets, liabilities, equity or operating cash flow differing by > 1% from the previous version",
                    "other_changed": "classifiable, not core, with some canonical key differing by > 0.1%", "unchanged": "classifiable with no canonical key differing by > 0.1%",
                    "unclass": "no previous version with comparable facts"},
@@ -98,11 +103,12 @@ DEFINITION: dict[str, Any] = {
         "R4_full_controls": "with the full control set the coefficient is negative with wild-cluster one-sided p < 0.05",
         "R5_time_separate": "in the time-separate sample (label-free counts before registration: 9 treated firms for core_730, 58 for any_730) the coefficient on any_730 is negative with wild-cluster one-sided p < 0.10 and the coefficient on core_730 is negative",
         "R6_sector": "the coefficient is negative in at least 8 of the 12 leave-one-sector-out fits",
+        "R7_within_firm": "with a fixed effect per firm added (only the timing of the amendment within a firm identifies the coefficient) the coefficient is negative with wild-cluster one-sided p < 0.05",
     },
     "interpretation_diagnostic": {"anticipation_ratio": "coef(core_next365) / coef(core_prev365) from one regression with the five event-time bins; below 0.5 the association is labelled TIME_SPECIFIC, otherwise MARKER_OF_PERSISTENT_TROUBLE (it is not an information event but a marker)"},
     "decision": {
-        "SURVIVES": "H1 Holm-adjusted p < 0.05 with negative sign AND R1 to R6 all pass",
-        "FRAGILE": "H1 Holm-adjusted p < 0.05 with negative sign AND R1 passes AND at least one of R2 to R6 fails",
+        "SURVIVES": "H1 Holm-adjusted p < 0.05 with negative sign AND R1 to R7 all pass",
+        "FRAGILE": "H1 Holm-adjusted p < 0.05 with negative sign AND R1 passes AND at least one of R2 to R7 fails",
         "NOT_REPLICATED": "H1 adjusted p >= 0.05 or the sign is positive, with R1 passed",
         "INCONCLUSIVE": "R1 fails: too few treated firms to conclude anything",
         "no_other_outcomes": True,
@@ -116,7 +122,7 @@ DEFINITION: dict[str, Any] = {
     },
     "economics": "the frozen EXP-010B 21-session portfolio (B1) at 10 bp for M0 and M1 on the mid-sample daily panel; reported at 10, 30 and 50 bp; not part of the decision",
     "acceptance_gates": ["every input file's sha256 equals the one recorded here", "no date after 2025-05-09", "label never shuffled outside rehearsal", "all predictions finite", "8 folds complete for every arm"],
-    "trial_ledger": {"confirmatory_tests": 2, "robustness_gates": 6, "secondary_contrasts": 10, "ml_contrasts": 2, "model_fits": "24 ridge/boosted fits plus 5 placebo permutations x 2 arms"},
+    "trial_ledger": {"confirmatory_tests": 2, "robustness_gates": 7, "secondary_contrasts": 10, "ml_contrasts": 2, "model_fits": "24 ridge/boosted fits plus 5 placebo permutations x 2 arms"},
     "outputs": ["definition.json", "config.json", "results.json", "regressions.csv", "robustness.csv", "ml_paired_tests.csv", "ml_metrics.csv", "manifest.json", "model/*"],
 }
 METHOD_SOURCES = (
@@ -189,11 +195,30 @@ def amendment_events(filings: pd.DataFrame, classification: pd.DataFrame, calend
     return table[~table["is_amend"]].copy(), amend
 
 
-def treatment_frame(keys: pd.DataFrame, originals: pd.DataFrame, amendments: pd.DataFrame) -> pd.DataFrame:
-    """Counts of amendments in each registered window, per row of `keys` (date, cik). NaN where the firm has no original periodic report available yet."""
+def registry_events(edgar: pd.DataFrame, fsds_adsh: set[str], calendar: TradingCalendar, ciks: set[int]) -> dict[str, pd.DataFrame]:
+    """Events from the EDGAR registry that the Financial Statement Data Sets do not carry, each with the day (epoch days) from which it is usable: the first session after its event date."""
+    e = edgar[edgar["cik"].isin(ciks)]
+    kinds = {
+        "i402": e[e["form"].str.startswith("8-K") & e["items"].str.contains(r"(?:^|,)4\.02(?:,|$)", regex=True)],
+        "nt": e[e["form"].isin(["NT 10-K", "NT 10-Q", "NT 10-K/A", "NT 10-Q/A"])],
+        "nonfsds_amend": e[e["form"].isin(rel.AMENDMENT) & ~e["accession"].isin(fsds_adsh)],
+    }
+    out = {}
+    for name, table in kinds.items():
+        avail = [available_session(pd.Timestamp(d) + pd.Timedelta(hours=23, minutes=59), calendar) for d in table["event_date"]]
+        frame = table.assign(avail=avail).dropna(subset=["avail"])
+        out[name] = pd.DataFrame({"cik": frame["cik"].astype("int64").to_numpy(), "avail_d": rel.epoch_days(frame["avail"])})
+    return out
+
+
+def treatment_frame(keys: pd.DataFrame, originals: pd.DataFrame, amendments: pd.DataFrame, extra: Optional[dict[str, pd.DataFrame]] = None) -> pd.DataFrame:
+    """Counts of amendments in each registered window, per row of `keys` (date, cik). NaN where the firm has no original periodic report available yet.
+    `extra` adds registry event counts (trailing 730 days) under the names `<kind>_730`."""
+    extra = extra or {}
     days = rel.epoch_days(keys["date"])
-    out = {name: np.full(len(keys), np.nan) for name in [*TREATMENTS, *FORM_SPLIT]}
+    out = {name: np.full(len(keys), np.nan) for name in [*TREATMENTS, *FORM_SPLIT, *[f"{k}_730" for k in extra]]}
     out["has_history"] = np.zeros(len(keys))
+    extra_by = {k: {int(c): np.sort(g["avail_d"].to_numpy()) for c, g in v.groupby("cik")} for k, v in extra.items()}
     orig_by = {int(c): np.sort(g["avail_d"].to_numpy()) for c, g in originals.groupby("cik")}
     am_by = {int(c): g for c, g in amendments.groupby("cik")}
     positions = pd.Series(np.arange(len(keys))).groupby(keys["cik"].to_numpy()).indices
@@ -213,6 +238,9 @@ def treatment_frame(keys: pd.DataFrame, originals: pd.DataFrame, amendments: pd.
             else:
                 values = inf.window_counts(d, np.sort(a.loc[a["category"].isin(cats), "avail_d"].to_numpy()), lo, hi)
             out[name][idx] = np.where(history, values, np.nan)
+        for kind, by_cik in extra_by.items():
+            values = inf.window_counts(d, by_cik[int(c)], -730, 0) if int(c) in by_cik else np.zeros(len(idx))
+            out[f"{kind}_730"][idx] = np.where(history, values, np.nan)
         for name, (form, cats) in FORM_SPLIT.items():
             if a is None:
                 values = np.zeros(len(idx))
@@ -221,7 +249,7 @@ def treatment_frame(keys: pd.DataFrame, originals: pd.DataFrame, amendments: pd.
                 values = inf.window_counts(d, np.sort(a.loc[sel, "avail_d"].to_numpy()), -730, 0)
             out[name][idx] = np.where(history, values, np.nan)
     frame = pd.DataFrame(out, index=keys.index)
-    for name in [*TREATMENTS, *FORM_SPLIT]:
+    for name in [*TREATMENTS, *FORM_SPLIT, *[f"{k}_730" for k in extra]]:
         frame[f"D_{name}"] = (frame[name] > 0).astype(float).where(frame[name].notna())
     frame["n_any_730_log"] = np.log1p(frame["any_730"])
     return frame
@@ -239,14 +267,18 @@ def control_frame(panel: pd.DataFrame, filings: pd.DataFrame, calendar: TradingC
     return out
 
 
-def assemble(panel: pd.DataFrame, root: Path, calendar: TradingCalendar, filings: Optional[pd.DataFrame] = None, classification: Optional[pd.DataFrame] = None) -> pd.DataFrame:
-    """Sample rows with treatments and controls attached, missing controls set to the neutral 0."""
+def assemble(panel: pd.DataFrame, root: Path, calendar: TradingCalendar, filings: Optional[pd.DataFrame] = None, classification: Optional[pd.DataFrame] = None,
+             edgar: Optional[pd.DataFrame] = None) -> pd.DataFrame:
+    """Sample rows with treatments and controls attached, missing controls set to the neutral 0. The EDGAR registry (Item 4.02, late-filing notices, amendments without financial statements) is read when present."""
     root = Path(root)
     filings = pd.read_parquet(root / rel.FILINGS) if filings is None else filings
     classification = pd.read_parquet(root / CLASSIFICATION) if classification is None else classification
+    if edgar is None and (root / EDGAR_FILINGS).exists():
+        edgar = pd.read_parquet(root / EDGAR_FILINGS, columns=["cik", "accession", "form", "event_date", "items"])
     ciks = {int(c) for c in panel["cik"].dropna().unique()}
     originals, amendments = amendment_events(filings, classification, calendar, ciks)
-    treat = treatment_frame(panel[["date", "cik"]], originals, amendments)
+    extra = registry_events(edgar, set(filings["adsh"]), calendar, ciks) if edgar is not None else None
+    treat = treatment_frame(panel[["date", "cik"]], originals, amendments, extra)
     controls = control_frame(panel, filings, calendar)
     out = pd.concat([panel.reset_index(drop=True), treat.reset_index(drop=True), controls.reset_index(drop=True)], axis=1)
     out["firm"] = out["security_id"].astype(str)
@@ -262,18 +294,22 @@ def full_controls(frame: pd.DataFrame) -> list[str]:
     return [*[c for c in exp011.feature_list("rich") if c in frame.columns], *REPORTING_CONTROLS]
 
 
-def regress(frame: pd.DataFrame, focus: str, regressors: Sequence[str], controls: Sequence[str], *, draws: int, seed: int, fe: bool = True, label: str = "") -> dict[str, Any]:
-    """Fixed-effects regression of the label on `regressors` + `controls`, inference on `focus`: wild-cluster bootstrap (decisions), two-way and firm-cluster t (reported)."""
+def regress(frame: pd.DataFrame, focus: str, regressors: Sequence[str], controls: Sequence[str], *, draws: int, seed: int, fe: bool = True, label: str = "", firm_fe: bool = False) -> dict[str, Any]:
+    """Fixed-effects regression of the label on `regressors` + `controls`, inference on `focus`: wild-cluster bootstrap (decisions), two-way and firm-cluster t (reported).
+    `firm_fe` adds a fixed effect per firm, so that only the timing of the treatment within a firm identifies the coefficient (stable firm traits drop out)."""
     cols = [*regressors, *controls]
-    use = frame[[LABEL, *cols, "firm", "date", "cell"]].dropna(subset=[LABEL, *regressors])
+    use = frame[[LABEL, *cols, "firm", "date", "cell"]].dropna(subset=[LABEL, *regressors]).reset_index(drop=True)
     use = use.assign(**{c: use[c].fillna(0.0) for c in controls})
-    groups = [use["date"], use["cell"]] if fe else [use["date"]]
-    z = inf.absorb(use, [LABEL, *cols], groups)
+    if firm_fe:
+        z = inf.absorb_two_way(use, [LABEL, *cols], use["date"].astype(str) + "|" + use["cell"].astype(str), use["firm"])
+    else:
+        groups = [use["date"], use["cell"]] if fe else [use["date"]]
+        z = inf.absorb(use, [LABEL, *cols], groups)
     spread = z[cols].std()
-    if not spread[list(regressors)].gt(1e-10).all():          # a treatment with no variation inside the fixed-effect cells cannot be estimated
+    if not spread[focus] > 1e-10:                              # the focus treatment has no variation inside the fixed-effect cells: it cannot be estimated
         return {"label": label or focus, "focus": focus, "rows": int(len(use)), "firms": int(use["firm"].nunique()), "treated_firms": 0, "treated_rows": 0, "coef": float("nan"),
                 "wcr_p_negative": 1.0, "wcr_p_two_sided": 1.0, "degenerate": True}
-    cols = [c for c in cols if c in regressors or spread[c] > 1e-10]       # constant controls (all missing in this sample) would make the problem singular
+    cols = [c for c in cols if c == focus or spread[c] > 1e-10]            # other constant regressors or controls (no such amendments, or all missing, in this sample) would make the problem singular
     X, y = z[cols].to_numpy(float), z[LABEL].to_numpy(float)
     firm, date = pd.factorize(use["firm"])[0], pd.factorize(use["date"])[0]
     fit = inf.ols(y, X, cols, firm, date)
@@ -282,7 +318,7 @@ def regress(frame: pd.DataFrame, focus: str, regressors: Sequence[str], controls
     j = cols.index(focus)
     boot = inf.wild_cluster_bootstrap(y, X[:, j], np.delete(X, j, axis=1), firm, draws=draws, seed=seed)
     treated = use.loc[use[focus] > 0, "firm"]
-    return {"label": label or focus, "focus": focus, "rows": int(len(use)), "firms": int(use["firm"].nunique()), "dates": int(use["date"].nunique()), "treated_firms": int(treated.nunique()),
+    return {"label": label or focus, "focus": focus, "firm_fe": bool(firm_fe), "rows": int(len(use)), "firms": int(use["firm"].nunique()), "dates": int(use["date"].nunique()), "treated_firms": int(treated.nunique()),
             "treated_rows": int(len(treated)), "coef": two_way["coef"], "t_two_way": two_way["t"], "t_firm": one_way["t"], "wcr_t": boot["t_obs"], "wcr_p_negative": boot["p_one_sided_negative"],
             "wcr_p_two_sided": boot["p_two_sided"], "draws": boot["draws"], "coefficients": {n: float(b) for n, b in zip(cols, fit.beta)}}
 
@@ -339,6 +375,7 @@ def confirmatory_regressions(conf: pd.DataFrame, time_sep: pd.DataFrame, *, draw
     res["R2_influence"]["share_of_full_estimate"] = float(res["R2_influence"]["coef"] / res["H1"]["coef"]) if res["H1"]["coef"] != 0 else None
     res["R3_years"] = leave_out_fits(conf, "D_core_730", h1_regs, BASE_CONTROLS, "year")
     res["R6_sector"] = leave_out_fits(conf, "D_core_730", h1_regs, BASE_CONTROLS, "sector")
+    res["R7_within_firm"] = regress(conf, "D_core_730", h1_regs, BASE_CONTROLS, draws=robust_draws, seed=seed + 6, firm_fe=True, label="H1 with a fixed effect per firm (within-firm timing)")
     res["R5_time_separate"] = regress(time_sep, "D_core_730", h1_regs, BASE_CONTROLS, draws=robust_draws, seed=seed + 4, label="H1 in the time-separate sample (discovery firms, 2014-04..2017-03)")
     res["R5_time_separate_any"] = regress(time_sep, "D_any_730", h2_regs, BASE_CONTROLS, draws=robust_draws, seed=seed + 5, label="H2 in the time-separate sample")
     # secondary and interpretation
@@ -347,8 +384,13 @@ def confirmatory_regressions(conf: pd.DataFrame, time_sep: pd.DataFrame, *, draw
                               ("S3_unchanged", h1_regs, "D_unchanged_730"), ("S4_unclass", h1_regs, "D_unclass_730"), ("S5_k_core", ["D_k_core_730", "D_q_core_730", "D_other_730", "D_unchanged_730", "D_unclass_730"], "D_k_core_730"),
                               ("S6_q_core", ["D_k_core_730", "D_q_core_730", "D_other_730", "D_unchanged_730", "D_unclass_730"], "D_q_core_730")):
         sec[name] = regress(conf, focus, regs, BASE_CONTROLS, draws=robust_draws, seed=seed + 10, label=name)
+    if "D_i402_730" in conf.columns:
+        for name, regs, focus in (("S8_item_4_02", ["D_i402_730"], "D_i402_730"), ("S9_core_with_4_02_and_nt", [*h1_regs, "D_i402_730", "D_nt_730"], "D_core_730"),
+                                  ("S10_amendments_without_financials", ["D_nonfsds_amend_730"], "D_nonfsds_amend_730")):
+            sec[name] = regress(conf, focus, regs, BASE_CONTROLS, draws=robust_draws, seed=seed + 11, label=name)
     res["secondary"] = sec
     res["placebo_events"] = placebo_event_calibration(conf, draws=200 if robust_draws >= 999 else 20, seed=seed + 30)
+    res["placebo_events_within_firm"] = placebo_event_calibration(conf, draws=200 if robust_draws >= 999 else 20, seed=seed + 31, firm_fe=True)
     bins = ["D_core_prev365", "D_core_prev730b", "D_core_next365", "D_core_next730b", "D_core_old", "D_other_730", "D_unchanged_730", "D_unclass_730"]
     event_time = {focus: regress(conf, focus, bins, BASE_CONTROLS, draws=robust_draws, seed=seed + 20, label=f"event-time bins, focus {focus}") for focus in ("D_core_prev365", "D_core_next365")}
     prev, nxt = event_time["D_core_prev365"]["coef"], event_time["D_core_next365"]["coef"]
@@ -357,42 +399,57 @@ def confirmatory_regressions(conf: pd.DataFrame, time_sep: pd.DataFrame, *, draw
     return res
 
 
-def placebo_event_calibration(frame: pd.DataFrame, *, draws: int = 200, seed: int = SEED, boot_draws: int = 399) -> dict[str, Any]:
-    """Size of the whole inference on the real label structure: give the same number of randomly chosen firms one placebo amendment each (flagged for 730 days from a random date in the firm's own span),
-    re-estimate the registered H1 regression, and count how often the wild-cluster bootstrap rejects at 5%. The placebo event is independent of the firm's returns by construction, so the share of
-    rejections should not exceed 5%; labels keep their real firm-level persistence, which a label shuffle would destroy."""
+def placebo_event_calibration(frame: pd.DataFrame, *, draws: int = 200, seed: int = SEED, boot_draws: int = 399, firm_fe: bool = False) -> dict[str, Any]:
+    """Size of the whole inference on the real label structure. Each really treated firm (core_730) is paired with an untreated firm of similar length (rows within 25%) in the same sector, and the
+    partner receives one placebo amendment: flagged for 730 days from a random date such that the window lies inside the partner's own span. The registered H1 regression is re-estimated and the
+    wild-cluster bootstrap rejection rate at 5% counted. The placebo event is independent of the partner's returns by construction, so the rate should not exceed 5%. Matching on length and sector keeps
+    the placebo firms comparable to the real ones (random firms are not: short-lived firms have lower return ranks and would build a negative effect into the null); labels keep their real firm-level
+    persistence, which a label shuffle would destroy. No real amendment indicator is related to a label here: the real treated set only supplies firm identities and lengths."""
     h1_regs = ["D_core_730", "D_other_730", "D_unchanged_730", "D_unclass_730"]
     others = [r for r in h1_regs if r != "D_core_730"]
     use = frame[[LABEL, *h1_regs, *BASE_CONTROLS, "firm", "date", "cell"]].dropna(subset=[LABEL, *h1_regs]).reset_index(drop=True)
     use = use.assign(**{c: use[c].fillna(0.0) for c in BASE_CONTROLS})
-    z = inf.absorb(use, [LABEL, *others, *BASE_CONTROLS], [use["date"], use["cell"]])
+    cell_key = use["date"].astype(str) + "|" + use["cell"].astype(str)
+    z = inf.absorb_two_way(use, [LABEL, *others, *BASE_CONTROLS], cell_key, use["firm"]) if firm_fe else inf.absorb(use, [LABEL, *others, *BASE_CONTROLS], [use["date"], use["cell"]])
     y = z[LABEL].to_numpy(float)
     keep = [c for c in [*others, *BASE_CONTROLS] if z[c].std() > 1e-10]            # a regressor constant inside the cells (no such amendments in this sample) would make the problem singular
     Z = z[keep].to_numpy(float)
-    codes = pd.factorize(use["firm"])[0]
-    n_firms = int(codes.max()) + 1
-    k = int(use.loc[use["D_core_730"] > 0, "firm"].nunique())
+    codes, names = pd.factorize(use["firm"])
+    n_firms = len(names)
     day = use["date"].to_numpy("datetime64[D]").astype("int64")
     order = np.argsort(codes, kind="stable")
     starts = np.searchsorted(codes[order], np.arange(n_firms))
     ends = np.searchsorted(codes[order], np.arange(n_firms), side="right")
+    lengths = (ends - starts).astype(float)
+    sector = pd.Series(use["cell"].to_numpy()).groupby(codes).agg(lambda v: v.mode().iloc[0]).to_numpy()
+    treated_flag = np.zeros(n_firms, dtype=bool)
+    treated_flag[np.unique(codes[(use["D_core_730"] > 0).to_numpy()])] = True
+    treated = np.flatnonzero(treated_flag)
+    pool = np.flatnonzero(~treated_flag)
     rng = np.random.default_rng(seed)
     p_values, coefs = [], []
     for _ in range(draws):
         d = np.zeros(len(use))
-        for firm_code in rng.choice(n_firms, size=k, replace=False):
-            rows = order[starts[firm_code]:ends[firm_code]]
-            begin = day[rows[rng.integers(0, len(rows))]]
+        available = set(pool.tolist())
+        for t in rng.permutation(treated):
+            near = [c for c in available if abs(lengths[c] - lengths[t]) <= 0.25 * lengths[t]]
+            same = [c for c in near if sector[c] == sector[t]]
+            choices = same or near or sorted(available, key=lambda c: abs(lengths[c] - lengths[t]))[:5]
+            partner = int(choices[rng.integers(0, len(choices))])
+            available.discard(partner)
+            rows = order[starts[partner]:ends[partner]]
+            first, last = day[rows].min(), day[rows].max()
+            begin = rng.integers(first - 729, last + 1)                              # uniform over calendar days, windows may overhang the span: every row of the partner is flagged with the same probability
             d[rows[(day[rows] >= begin) & (day[rows] < begin + 730)]] = 1.0
         d_frame = pd.DataFrame({"d": d, "date": use["date"], "cell": use["cell"]})
-        d_dm = inf.absorb(d_frame, ["d"], [d_frame["date"], d_frame["cell"]])["d"].to_numpy(float)
+        d_dm = (inf.absorb_two_way(d_frame, ["d"], cell_key, use["firm"]) if firm_fe else inf.absorb(d_frame, ["d"], [d_frame["date"], d_frame["cell"]]))["d"].to_numpy(float)
         if not np.any(np.abs(d_dm) > 1e-12):
             continue
         boot = inf.wild_cluster_bootstrap(y, d_dm, Z, codes, draws=boot_draws, seed=int(rng.integers(0, 2 ** 31 - 1)))
         p_values.append(boot["p_one_sided_negative"])
         coefs.append(boot["gamma"])
     ps = np.array(p_values)
-    return {"placebo_draws": int(len(ps)), "treated_firms_per_draw": k, "rejection_rate_5pct_one_sided": float(np.mean(ps < 0.05)), "rejection_rate_1pct_one_sided": float(np.mean(ps < 0.01)),
+    return {"firm_fe": bool(firm_fe), "placebo_draws": int(len(ps)), "treated_firms_per_draw": int(len(treated)), "rejection_rate_5pct_one_sided": float(np.mean(ps < 0.05)), "rejection_rate_1pct_one_sided": float(np.mean(ps < 0.01)),
             "mean_p": float(ps.mean()), "coef_mean": float(np.mean(coefs)), "coef_sd": float(np.std(coefs)), "bootstrap_draws_each": boot_draws}
 
 
@@ -406,6 +463,7 @@ def decide(res: dict[str, Any], alpha: float = 0.05) -> dict[str, Any]:
         "R4_full_controls": res["R4_full_controls"]["coef"] < 0 and res["R4_full_controls"]["wcr_p_negative"] < 0.05,
         "R5_time_separate": res["R5_time_separate"]["coef"] < 0 and res["R5_time_separate_any"]["coef"] < 0 and res["R5_time_separate_any"]["wcr_p_negative"] < 0.10,
         "R6_sector": sum(1 for r in res["R6_sector"] if r["coef"] < 0) >= 8,
+        "R7_within_firm": res["R7_within_firm"]["coef"] < 0 and res["R7_within_firm"]["wcr_p_negative"] < 0.05,
     }
     significant = h1["coef"] < 0 and res["holm_adjusted_p"]["H1"] < alpha
     if not gates["R1_power"]:
@@ -517,6 +575,17 @@ def ml_label(contrasts: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
+def score_augmented(conf: pd.DataFrame, predictions: pd.DataFrame, *, draws: int, seed: int) -> dict[str, Any]:
+    """Secondary S7: the registered H1 regression on the validation-period rows with the out-of-sample ridge score (M0, ranked within date) added to the controls: is the association still there once the
+    conventional model's own opinion of the stock is held fixed?"""
+    pred = predictions[["date", "symbol", "prediction"]].copy()
+    pred["date"] = pd.to_datetime(pred["date"])
+    merged = conf.merge(pred, on=["date", "symbol"], how="inner")
+    merged["score_r"] = 2 * (merged.groupby("date")["prediction"].rank(pct=True) - 0.5)
+    h1_regs = ["D_core_730", "D_other_730", "D_unchanged_730", "D_unclass_730"]
+    return regress(merged, "D_core_730", h1_regs, [*BASE_CONTROLS, "score_r"], draws=draws, seed=seed, label="S7 H1 with the out-of-sample ridge score as an extra control")
+
+
 # ── economics on the mid sample ─────────────────────────────────────────────────────────────────────────────────────
 
 MID_DAILY = Path("data/research_mid/derived/exp014_daily_panel.parquet")
@@ -616,7 +685,13 @@ def build_samples(root: Path, calendar: TradingCalendar) -> tuple[pd.DataFrame, 
     frozen_ciks = {int(c) for c in pd.read_parquet(root / FROZEN_IDENTITY, columns=["cik"])["cik"].dropna()}
     mid = pd.read_parquet(root / MID_PANEL)
     mid["date"] = pd.to_datetime(mid["date"])
+    absent = [c for c in [*RICH, LABEL, "in_universe", "security_id", "cik", "ff12"] if c not in mid.columns]
+    if absent:
+        raise RuntimeError(f"the independent panel lacks {len(absent)} registered columns, first: {absent[:3]}")
     conf_rows = confirmatory_sample(mid, frozen_ciks)
+    shared = {int(c) for c in conf_rows["cik"].dropna()} & frozen_ciks
+    if shared:
+        raise RuntimeError(f"the confirmatory sample contains {len(shared)} companies from the discovery universe")
     frozen = pd.read_parquet(root / FROZEN_PANEL)
     frozen["date"] = pd.to_datetime(frozen["date"])
     sep_rows = time_separate_sample(frozen)
@@ -694,6 +769,7 @@ def run_study(root: Path = Path("."), *, output: Optional[Path] = None, workers:
         metrics = [{"arm": a, "seed": s, "rows": int(len(p)), "mean_rank_ic": float(series[(a, s)].mean()), "fold_ic": json.dumps(fold_ic[(a, s)])} for (a, s), p in predictions.items()]
         pd.DataFrame(metrics).to_csv(output / "ml_metrics.csv", index=False)
         ml_block = {"labels": labels, "contrasts": {k: {kk: vv for kk, vv in v.items() if kk != "fold_diffs"} for k, v in contrasts.items()}}
+        ml_block["score_augmented_regression"] = {k: v for k, v in score_augmented(conf, predictions[("M0", 0)], draws=robust_draws, seed=SEED + 40).items() if k != "coefficients"}
         if not skip_economics:
             from src.quant.study import exp011
             daily = mid_daily_panel(root)
@@ -738,7 +814,8 @@ def label_free_counts(root: Path = Path(".")) -> dict[str, Any]:
     conf, sep, counts = build_samples(root, calendar)
     out = {**counts}
     for name, frame in (("confirmatory", conf), ("time_separate", sep)):
-        out[name] = {t: {"rows": int((frame[f"D_{t}"] > 0).sum()), "firms": int(frame.loc[frame[f"D_{t}"] > 0, "firm"].nunique())} for t in ("core_730", "other_730", "unchanged_730", "unclass_730", "any_730")}
+        out[name] = {t: {"rows": int((frame[f"D_{t}"] > 0).sum()), "firms": int(frame.loc[frame[f"D_{t}"] > 0, "firm"].nunique())}
+                     for t in ("core_730", "other_730", "unchanged_730", "unclass_730", "any_730", "i402_730", "nt_730", "nonfsds_amend_730") if f"D_{t}" in frame.columns}
         out[name]["rows_without_history"] = int(frame["D_core_730"].isna().sum())
     return out
 

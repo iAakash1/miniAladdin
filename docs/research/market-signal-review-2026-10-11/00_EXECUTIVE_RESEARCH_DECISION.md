@@ -12,6 +12,31 @@ Written 2026-10-12 after the registered pilot (EXP-012) finished. Every number i
    snapshots are not archived (`05_OMNISIGNAL_SIGNAL_AUDIT.md`). A bridging experiment and an append-only snapshot archive are the next steps that change what the platform can honestly claim.
 3. **Keep the work exploratory and unpromoted.** The holdout stays sealed, nothing is promoted, no production system changed, and the branch is not merged.
 
+## Update 2026-10-12, Phase II (interim: EXP-014 is designed, partly rehearsed, neither registered nor run)
+
+What the second phase changed in the assessment, each point traceable to a file named in `PHASE2_HANDOFF.md`:
+
+1. **The direction is prior art.** Long-run underperformance after restatements is documented (Gondhalekar, Joshi and McKendall 2012, abstract level: negative abnormal returns in each of four years, about -22% in total);
+   informed trading precedes restatements (Desai et al. 2006); restatements disclosed only in a 10-K or 10-Q ("stealth") show no short-window reaction (Irani and Xu 2011). Novelty stays **low**. One probably decisive paper,
+   Frieder and Shanthikumar (2008), is unread because SSRN refuses automated access.
+2. **The earlier "fragile" verdict applies to the machine-learning gain, not to the regression association.** On the discovery sample the association between a value-changing amendment and lower next-month return ranks
+   survives inference built for few treated firms (wild-cluster bootstrap, 18 treated firms, p about 1e-4), the removal of the ten most influential firms (coefficient -0.126 against -0.245), and a firm fixed effect
+   (about three quarters of the pooled estimate remains, p 0.008). It is not a clustering artefact and not mainly a stable firm trait. It is also not independent evidence: it is the sample that produced the finding. The
+   association is concentrated in the first year after the amendment (-0.228) and the same firms already rank lower in the year before it (-0.110, ratio 0.48): informed trading or distress as much as news.
+3. **A data finding with value of its own.** The acceptance time in the SEC's submissions JSON is wrong for 28.2% of 96,429 filings matched to the Financial Statement Data Sets; the Financial Statement Data Sets' stamps obey the
+   EDGAR filing-date rule 99.2% of the time. Any study that takes the JSON stamp as an availability time will misplace roughly a quarter of its filings by 4 to 10 hours, some of them before they were public.
+4. **An independent test is now possible and designed.** A second firm sample (liquidity ranks 251 to 1,000, delisted names included, companies from the discovery universe excluded) has 65 companies with a value-changing
+   amendment against 18 in the discovery sample. EXP-014 states one hypothesis, a wild-cluster bootstrap decision statistic, seven robustness gates including a within-firm test, a mechanical decision rule and a separate machine-learning
+   and portfolio assessment. On the real label structure the pooled regression over-rejects under placebo amendments (13% at a nominal 5%) because short-lived firms have low ranks; the within-firm regression does not (6%), so the
+   registered rule needs both.
+5. **The live scorer cannot be evaluated on the past.** About 45% of the composite's weight (momentum and reversal) is replayable from prices, 15% only through a different SEC-based definition, 40% (news and fundamentals) not at
+   all. A hash-chained snapshot archive library now exists and is tested; it reconstructs nothing, and no capture job runs.
+
+**Interim decision.** Do not describe the amendment effect as a discovery or as investment value. Run EXP-014 once, as registered. A Q1-level empirical paper on this variable is **not supported at present**: the sign is known,
+the point-in-time handling of SEC data is not new (Liu 2026 at abstract level), and the economic result so far is negative. What could stand on its own, depending on EXP-014, is an independent, valid-inference replication
+with the data-audit finding and the archive design; where that fits is the owner's call. If EXP-014 does not replicate, the forward-looking contribution is Path B (prospective capture and a pre-registered evaluation of the
+price-derived sleeves). The single highest-value next step is the registered EXP-014 run.
+
 ## The nine questions
 
 1. **What is genuinely new?** Little. The idea that reporting reliability conditions how well a signal predicts is two decades old, and filing timeliness as a return predictor is published (Bannouh, Geng and Peeters 2019;

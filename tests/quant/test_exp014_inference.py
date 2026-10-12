@@ -123,3 +123,15 @@ def test_window_counts_past_and_future_windows():
     assert inf.window_counts(days, events, 0, 365).tolist() == [2, 1, 0, 3]        # events in (day, day+365]
     assert inf.window_counts(days, events, -365, -1).tolist() == [1, 2, 1, 0]
     assert inf.window_counts(days, np.array([], dtype=int), -730, 0).tolist() == [0, 0, 0, 0]
+
+
+def test_two_way_absorption_equals_regression_on_dummies():
+    rng = np.random.default_rng(3)
+    n = 400
+    f = pd.DataFrame({"x": rng.normal(size=n), "cell": rng.integers(0, 12, n).astype(str), "firm": rng.integers(0, 25, n).astype(str)})
+    f["y"] = 0.5 * f["x"] + rng.normal(size=n)
+    z = inf.absorb_two_way(f, ["y", "x"], f["cell"], f["firm"], tol=1e-12)
+    D = pd.get_dummies(f[["cell", "firm"]], dtype=float).to_numpy()
+    for col in ("y", "x"):
+        resid = f[col].to_numpy() - D @ np.linalg.lstsq(D, f[col].to_numpy(), rcond=None)[0]
+        assert np.allclose(z[col].to_numpy(), resid, atol=1e-8)

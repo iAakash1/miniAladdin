@@ -1,0 +1,188 @@
+{
+ "label_free_counts": {
+  "mid_panel_rows": 417346,
+  "confirmatory_rows": 150884,
+  "confirmatory_firms": 1141,
+  "confirmatory_dates": 559,
+  "time_separate_rows": 35654,
+  "time_separate_firms": 458,
+  "discovery_ciks_excluded": 891,
+  "mid_rows_dropped_as_discovery_companies": 185809,
+  "confirmatory": {
+   "rows": 150884,
+   "firms": 1141,
+   "dates": 559,
+   "rows_without_history": 2541,
+   "treatments": {
+    "core_730": {
+     "rows": 2277,
+     "firms": 65
+    },
+    "other_730": {
+     "rows": 59,
+     "firms": 5
+    },
+    "unchanged_730": {
+     "rows": 4616,
+     "firms": 104
+    },
+    "unclass_730": {
+     "rows": 1075,
+     "firms": 36
+    },
+    "any_730": {
+     "rows": 7456,
+     "firms": 180
+    },
+    "i402_730": {
+     "rows": 2368,
+     "firms": 74
+    },
+    "nt_730": {
+     "rows": 4295,
+     "firms": 122
+    },
+    "nonfsds_amend_730": {
+     "rows": 13075,
+     "firms": 287
+    }
+   }
+  },
+  "time_separate": {
+   "rows": 35654,
+   "firms": 458,
+   "dates": 152,
+   "rows_without_history": 1316,
+   "treatments": {
+    "core_730": {
+     "rows": 161,
+     "firms": 9
+    },
+    "other_730": {
+     "rows": 52,
+     "firms": 1
+    },
+    "unchanged_730": {
+     "rows": 1262,
+     "firms": 44
+    },
+    "unclass_730": {
+     "rows": 352,
+     "firms": 9
+    },
+    "any_730": {
+     "rows": 1798,
+     "firms": 58
+    },
+    "i402_730": {
+     "rows": 382,
+     "firms": 11
+    },
+    "nt_730": {
+     "rows": 240,
+     "firms": 11
+    },
+    "nonfsds_amend_730": {
+     "rows": 4594,
+     "firms": 115
+    }
+   }
+  }
+ },
+ "size_calibration": {
+  "firm_fe": false,
+  "placebo_draws": 300,
+  "treated_firms_per_draw": 65,
+  "rejection_rate_5pct_one_sided": 0.13333333333333333,
+  "rejection_rate_1pct_one_sided": 0.023333333333333334,
+  "mean_p": 0.33865,
+  "coef_mean": -0.01467887012782219,
+  "coef_sd": 0.024786405346294,
+  "bootstrap_draws_each": 399
+ },
+ "size_calibration_within_firm": {
+  "firm_fe": true,
+  "placebo_draws": 300,
+  "treated_firms_per_draw": 65,
+  "rejection_rate_5pct_one_sided": 0.06333333333333334,
+  "rejection_rate_1pct_one_sided": 0.013333333333333334,
+  "mean_p": 0.512925,
+  "coef_mean": 0.0019068772621569888,
+  "coef_sd": 0.036536043478768716,
+  "bootstrap_draws_each": 399
+ },
+ "mid_panel": {
+  "rows": 417346,
+  "dates": 559,
+  "symbols": 2424,
+  "securities": 1838,
+  "trusted_share": 0.8077590296780129,
+  "identity_gate": {
+   "failures": [
+    "year 2015: trusted identity 0.800 < 0.95",
+    "year 2016: trusted identity 0.808 < 0.95",
+    "year 2017: trusted identity 0.808 < 0.95",
+    "year 2018: trusted identity 0.804 < 0.95",
+    "year 2019: trusted identity 0.802 < 0.95",
+    "year 2020: trusted identity 0.807 < 0.95",
+    "year 2021: trusted identity 0.805 < 0.95",
+    "year 2022: trusted identity 0.811 < 0.95",
+    "year 2023: trusted identity 0.817 < 0.95",
+    "year 2024: trusted identity 0.819 < 0.95",
+    "year 2025: trusted identity 0.822 < 0.95",
+    "fold_0: trusted identity 0.804 < 0.95",
+    "fold_1: trusted identity 0.799 < 0.95",
+    "fold_2: trusted identity 0.807 < 0.95",
+    "fold_3: trusted identity 0.807 < 0.95",
+    "fold_4: trusted identity 0.807 < 0.95",
+    "fold_5: trusted identity 0.812 < 0.95",
+    "fold_6: trusted identity 0.817 < 0.95",
+    "fold_7: trusted identity 0.822 < 0.95"
+   ],
+   "neutralization_allowed": false,
+   "security_master_pit": false,
+   "size_features_allowed": false,
+   "thresholds": {
+    "identity_contradicted_share_max": 0.02,
+    "identity_trusted_share_min_each_validation_fold": 0.95,
+    "identity_trusted_share_min_each_year_from_2015": 0.95,
+    "note": "shares / market-cap coverage gate size-dependent features and neutralisation separately (>= 0.90 in every fold)",
+    "sic_share_of_identified_min": 0.95,
+    "size_feature_share_min_each_validation_fold": 0.9
+   }
+  },
+  "content_hash": "a95ee4289acf4ad22bf1a6a3f238581e6ff15253634d9f6d8c67e77aabd5d6d4",
+  "feature_hash": "7212297bc55a45f66ffceb3548000e899773e1959e365b266fb477f24d8b8614",
+  "feature_hash_equals_frozen_rich_panel": true,
+  "universe_snapshots": 171,
+  "universe_unique_members": 2778,
+  "overlap_with_frozen_universe_ever": 885
+ },
+ "edgar_registry": {
+  "companies": 2098,
+  "rows": 481027,
+  "share_registry_stamp_wrong": 0.2825,
+  "clock_audit_shares": {
+   "clock_unconverted (0 h)": 0.0326,
+   "double_converted (+8/+10 h)": 0.2499,
+   "utc_correct (+4/+5 h)": 0.7175
+  },
+  "amendments": {
+   "by_form": {
+    "10-K/A": 2545,
+    "10-KT/A": 5,
+    "10-Q/A": 1669
+   },
+   "in_fsds": 1215,
+   "in_fsds_but_not_flagged_xbrl": 0,
+   "not_in_fsds": 3004,
+   "registry_amendments_flagged_xbrl": 2087,
+   "registry_periodic_amendments": 4219,
+   "xbrl_flagged_but_not_in_fsds": 872
+  },
+  "item_4_02_8k": {
+   "companies": 298,
+   "filings": 390
+  }
+ }
+}
