@@ -108,6 +108,14 @@ data/panel/
 !/data/research/universe/liquid.json
 /data/panel/
 
+# The independent firm sample (liquidity ranks 251 to 1,000) is a second store built with the same code
+# (scripts/quant/build_independent_sample.py). Same rule as /data/research/: prices come from a Dolt
+# clone whose licence has not been reviewed for redistribution, so only the universe file is versioned.
+/data/research_mid/*
+!/data/research_mid/universe/
+/data/research_mid/universe/*
+!/data/research_mid/universe/mid.json
+
 # Training and ingestion logs — reproducible output, often large.
 /logs/
 

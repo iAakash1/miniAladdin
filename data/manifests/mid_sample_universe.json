@@ -1,0 +1,25 @@
+{
+  "coverage_classes": [
+    "complete",
+    "partial"
+  ],
+  "end": "2025-06-30",
+  "ever_exited": 2691,
+  "file": "data/research_mid/universe/mid.json",
+  "mean_entries_per_rebalance": 75.38,
+  "members_per_snapshot": {
+    "max": 750,
+    "median": 750,
+    "min": 750
+  },
+  "mismatches": 0,
+  "name": "mid",
+  "overlap_with_frozen_universe_ever": 885,
+  "point_in_time": true,
+  "sha256": "9f77d78d78d4beea0d09e8fc1afa07235817b347560da0b95848477a0a13e42f",
+  "size": 750,
+  "snapshots": 171,
+  "snapshots_checked_against_frozen_size_250": 171,
+  "start": "2011-01-31",
+  "unique_members": 2778
+}

@@ -1,0 +1,67 @@
+{
+ "status": "EXPLORATORY re-analysis of registered outputs; no refit",
+ "firms": 755,
+ "flagged_firms": 60,
+ "mean_delta_ic_all_firms": 0.005146880149312111,
+ "mean_delta_ic_after_removal": {
+  "5": {
+   "top_k_flagged_by_influence": 0.003091401888196968,
+   "top_k_unflagged_by_influence": 0.004173479828656215,
+   "top_k_of_all_firms_by_influence": 0.003091401888196968,
+   "random_k_flagged_mean_of_40_draws": 0.004848708574888316,
+   "random_k_flagged_range": [
+    0.0040317164483819334,
+    0.00559412545541392
+   ]
+  },
+  "10": {
+   "top_k_flagged_by_influence": 0.0019642565773971992,
+   "top_k_unflagged_by_influence": 0.0033966431382223316,
+   "top_k_of_all_firms_by_influence": 0.0018446789097915559,
+   "random_k_flagged_mean_of_40_draws": 0.0046448785780545485,
+   "random_k_flagged_range": [
+    0.0037877090417361547,
+    0.0058318980751773
+   ]
+  },
+  "20": {
+   "top_k_flagged_by_influence": 0.0007571618624703524,
+   "top_k_unflagged_by_influence": 0.0021911467736751176,
+   "top_k_of_all_firms_by_influence": 3.068364945932776e-05,
+   "random_k_flagged_mean_of_40_draws": 0.004018777770331593,
+   "random_k_flagged_range": [
+    0.002972642938671911,
+    0.005296846713367185
+   ]
+  }
+ },
+ "flagged_among_20_most_influential_firms": 12,
+ "reading": "A positive statistic always falls when its most influential contributors are removed; the comparison across the four rows is what matters.",
+ "persistence_of_raw_variables": {
+  "amended_730": {
+   "between_firm_share_of_variance": 0.38403233731375763,
+   "autocorr_one_year_within_firm": 0.40181992240520725,
+   "share_equal_to_value_one_year_earlier": 0.9617530429306596,
+   "rows": 127823
+  },
+  "latest_report_amended": {
+   "between_firm_share_of_variance": 0.17590342707983608,
+   "autocorr_one_year_within_firm": -0.0019133960862241105,
+   "share_equal_to_value_one_year_earlier": 0.996152672957522,
+   "rows": 127823
+  },
+  "periodic_count_400": {
+   "between_firm_share_of_variance": 0.10773419907163015,
+   "autocorr_one_year_within_firm": 0.47274281534567897,
+   "share_equal_to_value_one_year_earlier": 0.7709118460282006,
+   "rows": 127823
+  },
+  "lag_deterioration": {
+   "between_firm_share_of_variance": 0.08970986689194206,
+   "autocorr_one_year_within_firm": 0.1247496735759455,
+   "share_equal_to_value_one_year_earlier": 0.11011774967291757,
+   "rows": 126754
+  }
+ },
+ "seconds": 20.3
+}

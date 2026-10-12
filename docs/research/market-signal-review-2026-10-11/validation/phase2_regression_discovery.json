@@ -1,0 +1,176 @@
+{
+ "status": "EXPLORATORY discovery-sample regressions; informs the next protocol; not confirmatory",
+ "rows": 100246,
+ "prevalence_of_D_any_730": 0.025986074257326977,
+ "firms_ever_flagged_any_730": 60,
+ "prevalence": {
+  "any_730": 0.025986074257326977,
+  "core_730": 0.005855595235720128,
+  "unchanged_730": 0.0192626139696347,
+  "unclass_730": 0.0016060491191668496,
+  "10K_730": 0.016050515731301,
+  "10Q_730": 0.010613889831015702,
+  "any_365": 0.013337190511342098,
+  "any_1095": 0.04010135067733376
+ },
+ "models": [
+  {
+   "label": "M0 raw: D_any_730",
+   "n": 100246,
+   "firms": 755,
+   "dates": 404,
+   "focus": {
+    "D_any_730": {
+     "coef": -0.1014150076863788,
+     "se_two_way": 0.026276314092905362,
+     "t": -3.8595598807277534,
+     "p_one_sided_negative": 5.6795710526008134e-05
+    }
+   }
+  },
+  {
+   "label": "M1 + conventional OOS score",
+   "n": 100246,
+   "firms": 755,
+   "dates": 404,
+   "focus": {
+    "D_any_730": {
+     "coef": -0.09963984362599683,
+     "se_two_way": 0.025780665661508315,
+     "t": -3.86490577606627,
+     "p_one_sided_negative": 5.556604629752493e-05
+    }
+   }
+  },
+  {
+   "label": "M2 + explicit controls",
+   "n": 100246,
+   "firms": 755,
+   "dates": 404,
+   "focus": {
+    "D_any_730": {
+     "coef": -0.09111624051005254,
+     "se_two_way": 0.023650711416931713,
+     "t": -3.8525792693416308,
+     "p_one_sided_negative": 5.844006045415332e-05
+    }
+   }
+  },
+  {
+   "label": "M3 + score + explicit controls",
+   "n": 100246,
+   "firms": 755,
+   "dates": 404,
+   "focus": {
+    "D_any_730": {
+     "coef": -0.09178487252964629,
+     "se_two_way": 0.02385943942521627,
+     "t": -3.8468997906397506,
+     "p_one_sided_negative": 5.981093315779691e-05
+    }
+   }
+  },
+  {
+   "label": "M3 with date x FF12 fixed effects",
+   "n": 100246,
+   "firms": 755,
+   "dates": 404,
+   "focus": {
+    "D_any_730": {
+     "coef": -0.08817384939297214,
+     "se_two_way": 0.022954474650205774,
+     "t": -3.841248851765018,
+     "p_one_sided_negative": 6.120496908800024e-05
+    }
+   }
+  },
+  {
+   "label": "M4 components (core-changing / unchanged / unclassifiable), score + controls",
+   "n": 100246,
+   "firms": 755,
+   "dates": 404,
+   "focus": {
+    "D_core_730": {
+     "coef": -0.24478933654385757,
+     "se_two_way": 0.03660456757623763,
+     "t": -6.687398670508158,
+     "p_one_sided_negative": 1.1358620032548058e-11
+    },
+    "D_unchanged_730": {
+     "coef": -0.04846989471255769,
+     "se_two_way": 0.026190720206645583,
+     "t": -1.8506514647221894,
+     "p_one_sided_negative": 0.03210985535515701
+    },
+    "D_unclass_730": {
+     "coef": -0.015630247238707613,
+     "se_two_way": 0.07253429732723086,
+     "t": -0.2154876770666626,
+     "p_one_sided_negative": 0.4146935593385459
+    }
+   }
+  },
+  {
+   "label": "M5 form split (10-K/A vs 10-Q/A), score + controls",
+   "n": 100246,
+   "firms": 755,
+   "dates": 404,
+   "focus": {
+    "D_10K_730": {
+     "coef": -0.06577042138183171,
+     "se_two_way": 0.02633522855024391,
+     "t": -2.497431197771874,
+     "p_one_sided_negative": 0.006254836904356773
+    },
+    "D_10Q_730": {
+     "coef": -0.12887265562514946,
+     "se_two_way": 0.038644234345658376,
+     "t": -3.3348482071718966,
+     "p_one_sided_negative": 0.00042672986488043483
+    }
+   }
+  },
+  {
+   "label": "M6 window 365, score + controls",
+   "n": 100246,
+   "firms": 755,
+   "dates": 404,
+   "focus": {
+    "D_any_365": {
+     "coef": -0.12256832601926299,
+     "se_two_way": 0.033184487274043654,
+     "t": -3.6935428595617887,
+     "p_one_sided_negative": 0.00011057560791814097
+    }
+   }
+  },
+  {
+   "label": "M7 window 1095, score + controls",
+   "n": 100246,
+   "firms": 755,
+   "dates": 404,
+   "focus": {
+    "D_any_1095": {
+     "coef": -0.08558513865821733,
+     "se_two_way": 0.01847519206278995,
+     "t": -4.632435666560159,
+     "p_one_sided_negative": 1.8069432681471214e-06
+    }
+   }
+  },
+  {
+   "label": "M8 count (log1p of amendments in 730 days), score + controls",
+   "n": 100246,
+   "firms": 755,
+   "dates": 404,
+   "focus": {
+    "n_log_any_730": {
+     "coef": -0.1301759328795881,
+     "se_two_way": 0.030433694988277978,
+     "t": -4.277362079423068,
+     "p_one_sided_negative": 9.456052853480822e-06
+    }
+   }
+  }
+ ]
+}

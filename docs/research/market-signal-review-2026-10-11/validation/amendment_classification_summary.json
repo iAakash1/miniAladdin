@@ -1,0 +1,124 @@
+{
+ "status": "newly generated; label-free point-in-time attribute of each amendment",
+ "inputs": {
+  "registry": "data/curated/sec_v3/filings.parquet",
+  "facts": "data/curated/sec_v3/facts-*.parquet",
+  "canonical_facts": [
+   "accounts_receivable",
+   "assets",
+   "capital_expenditure",
+   "cash",
+   "cost_of_revenue",
+   "current_assets",
+   "current_liabilities",
+   "depreciation_amortization",
+   "equity",
+   "gross_profit",
+   "inventory",
+   "liabilities",
+   "long_term_debt",
+   "net_income",
+   "operating_cash_flow",
+   "operating_income",
+   "revenue",
+   "shares_outstanding",
+   "short_term_debt",
+   "weighted_shares_basic"
+  ]
+ },
+ "amendments": 16576,
+ "with_previous_version": 9222,
+ "classifiable": 9172,
+ "classifiable_share": 0.5533301158301158,
+ "of_classifiable": {
+  "unchanged_numbers (no key differs by >0.1%)": 0.5165721761883995,
+  "value_changing_1pct (any key differs by >1%)": 0.47819450501526384,
+  "core_changing_1pct (revenue, net income, assets, liabilities, equity or operating cash flow differs by >1%)": 0.4443959877889228
+ },
+ "by_form": {
+  "10-K/A": {
+   "n": 5327,
+   "core_changing_1pct_share_of_classifiable": 0.35273881979359617
+  },
+  "10-KT/A": {
+   "n": 35,
+   "core_changing_1pct_share_of_classifiable": 0.20833333333333334
+  },
+  "10-Q/A": {
+   "n": 11208,
+   "core_changing_1pct_share_of_classifiable": 0.5098806860551827
+  },
+  "10-QT/A": {
+   "n": 6,
+   "core_changing_1pct_share_of_classifiable": 0.6
+  }
+ },
+ "by_year": {
+  "2011": {
+   "n": 1853,
+   "core_changing_1pct_share_of_classifiable": 0.27467811158798283
+  },
+  "2012": {
+   "n": 3019,
+   "core_changing_1pct_share_of_classifiable": 0.412327311370882
+  },
+  "2013": {
+   "n": 1911,
+   "core_changing_1pct_share_of_classifiable": 0.4523809523809524
+  },
+  "2014": {
+   "n": 1562,
+   "core_changing_1pct_share_of_classifiable": 0.41122565864833904
+  },
+  "2015": {
+   "n": 1160,
+   "core_changing_1pct_share_of_classifiable": 0.44245142002989535
+  },
+  "2016": {
+   "n": 833,
+   "core_changing_1pct_share_of_classifiable": 0.5122448979591837
+  },
+  "2017": {
+   "n": 787,
+   "core_changing_1pct_share_of_classifiable": 0.4024896265560166
+  },
+  "2018": {
+   "n": 769,
+   "core_changing_1pct_share_of_classifiable": 0.4468864468864469
+  },
+  "2019": {
+   "n": 648,
+   "core_changing_1pct_share_of_classifiable": 0.3783132530120482
+  },
+  "2020": {
+   "n": 475,
+   "core_changing_1pct_share_of_classifiable": 0.3887240356083086
+  },
+  "2021": {
+   "n": 1046,
+   "core_changing_1pct_share_of_classifiable": 0.6148648648648649
+  },
+  "2022": {
+   "n": 912,
+   "core_changing_1pct_share_of_classifiable": 0.4601226993865031
+  },
+  "2023": {
+   "n": 723,
+   "core_changing_1pct_share_of_classifiable": 0.4100609756097561
+  },
+  "2024": {
+   "n": 692,
+   "core_changing_1pct_share_of_classifiable": 0.4501557632398754
+  },
+  "2025": {
+   "n": 186,
+   "core_changing_1pct_share_of_classifiable": 0.3220338983050847
+  }
+ },
+ "output": {
+  "path": "data/research/derived/amendment_classification_v1.parquet",
+  "sha256": "d3ccba49096f873061cb53f420c649e2ea1a30b0a712ccee1ccfccf4c816c509",
+  "rows": 16576
+ },
+ "rule": "previous version = latest filing with the same cik and fiscal period accepted strictly before the amendment; keys compared = canonical fact x quarters x unit x period end present in both; relative change = |a - b| / max(|b|, 1)"
+}

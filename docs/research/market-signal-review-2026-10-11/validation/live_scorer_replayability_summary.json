@@ -1,0 +1,14 @@
+{
+ "rows": 37,
+ "by_layer_and_class": {
+  "confidence_deduction:DEPENDS": 7,
+  "factor:NOT_REPLAYABLE": 5,
+  "factor:RECOMPUTABLE_SEC": 3,
+  "factor:REPLAYABLE_PRICE": 7,
+  "gate:NOT_REPLAYABLE": 1,
+  "risk_component:REPLAYABLE_PRICE": 9,
+  "sleeve:DEPENDS": 5
+ },
+ "factors_replayable_from_prices": 7,
+ "factors_total": 15
+}

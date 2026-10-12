@@ -1,0 +1,74 @@
+{
+  "cap": "2025-06-30",
+  "clone_commits": {
+    "rates": "rates@voetqaa5v6o40rsf6here99532ggrjk1",
+    "stocks": "stocks@h4k31feneele009f7t15a022qjtn2970"
+  },
+  "dolthub_rates_us_treasury": {
+    "rows": 0,
+    "skipped": [
+      "all"
+    ]
+  },
+  "dolthub_stocks_dividend": {
+    "rows": 0,
+    "skipped": [
+      "all"
+    ]
+  },
+  "dolthub_stocks_split": {
+    "rows": 0,
+    "skipped": [
+      "all"
+    ]
+  },
+  "monthly": {
+    "dataset_id": "dolthub_stocks_ohlcv_monthly",
+    "max_date": "2025-06-30",
+    "rows": 1193219
+  },
+  "ohlcv": {
+    "partitions_written": [],
+    "rows": 0,
+    "skipped": [
+      "2011",
+      "2012",
+      "2013",
+      "2014",
+      "2015",
+      "2016",
+      "2017",
+      "2018",
+      "2019",
+      "2020",
+      "2021",
+      "2022",
+      "2023",
+      "2024",
+      "2025"
+    ]
+  },
+  "universe_symbols": 2778,
+  "verification": {
+    "dolthub_rates_us_treasury": {
+      "ok": true,
+      "partitions": 1
+    },
+    "dolthub_stocks_dividend": {
+      "ok": true,
+      "partitions": 1
+    },
+    "dolthub_stocks_ohlcv": {
+      "ok": true,
+      "partitions": 15
+    },
+    "dolthub_stocks_ohlcv_monthly": {
+      "ok": true,
+      "partitions": 15
+    },
+    "dolthub_stocks_split": {
+      "ok": true,
+      "partitions": 1
+    }
+  }
+}

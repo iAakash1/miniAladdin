@@ -1,0 +1,251 @@
+{
+ "status": "EXPLORATORY discovery-sample inference with few treated firms; not confirmatory",
+ "draws": 9999,
+ "seed": 20261013,
+ "models": [
+  {
+   "label": "M3 any amendment 730d, date FE",
+   "focus": "D_any_730",
+   "rows": 100246,
+   "firms": 755,
+   "treated_firms": 60,
+   "treated_rows": 2605,
+   "coef": -0.09178487252965406,
+   "t_two_way_firm_date": -3.846899790640057,
+   "t_one_way_firm": -3.8024350872667014,
+   "wild_cluster_bootstrap": {
+    "t_obs": -3.80243508726671,
+    "p_one_sided_negative": 0.0001,
+    "p_two_sided": 0.0001,
+    "draws": 9999,
+    "t_star_q025": -1.9891737583707665,
+    "t_star_q975": 2.0454658163895614
+   }
+  },
+  {
+   "label": "M3 any amendment 730d, date x FF12 FE",
+   "focus": "D_any_730",
+   "rows": 100246,
+   "firms": 755,
+   "treated_firms": 60,
+   "treated_rows": 2605,
+   "coef": -0.08817384939297429,
+   "t_two_way_firm_date": -3.8412488517651076,
+   "t_one_way_firm": -3.8670460529209123,
+   "wild_cluster_bootstrap": {
+    "t_obs": -3.8670460529209154,
+    "p_one_sided_negative": 0.0001,
+    "p_two_sided": 0.0002,
+    "draws": 9999,
+    "t_star_q025": -1.9984046275392569,
+    "t_star_q975": 2.0224892319609857
+   }
+  },
+  {
+   "label": "M4 core-changing 730d (with unchanged and unclassifiable), date FE",
+   "focus": "D_core_730",
+   "rows": 100246,
+   "firms": 755,
+   "treated_firms": 18,
+   "treated_rows": 587,
+   "coef": -0.24478933654383167,
+   "t_two_way_firm_date": -6.687398670507604,
+   "t_one_way_firm": -6.795287445308625,
+   "wild_cluster_bootstrap": {
+    "t_obs": -6.7952874453086745,
+    "p_one_sided_negative": 0.0001,
+    "p_two_sided": 0.0001,
+    "draws": 9999,
+    "t_star_q025": -2.672571589624202,
+    "t_star_q975": 2.7025779184027496
+   }
+  },
+  {
+   "label": "M4 core-changing 730d, date x FF12 FE",
+   "focus": "D_core_730",
+   "rows": 100246,
+   "firms": 755,
+   "treated_firms": 18,
+   "treated_rows": 587,
+   "coef": -0.2001271709967212,
+   "t_two_way_firm_date": -3.9958509305803727,
+   "t_one_way_firm": -4.13151288908058,
+   "wild_cluster_bootstrap": {
+    "t_obs": -4.131512889080581,
+    "p_one_sided_negative": 0.0001,
+    "p_two_sided": 0.0002,
+    "draws": 9999,
+    "t_star_q025": -2.2657679086471556,
+    "t_star_q975": 2.289571671084564
+   }
+  },
+  {
+   "label": "M4 unchanged-numbers amendments 730d (comparator), date FE",
+   "focus": "D_unchanged_730",
+   "rows": 100246,
+   "firms": 755,
+   "treated_firms": 42,
+   "treated_rows": 1931,
+   "coef": -0.04846989471254594,
+   "t_two_way_firm_date": -1.85065146472175,
+   "t_one_way_firm": -1.8500295986924988,
+   "wild_cluster_bootstrap": {
+    "t_obs": -1.8500295986924982,
+    "p_one_sided_negative": 0.0373,
+    "p_two_sided": 0.0736,
+    "draws": 9999,
+    "t_star_q025": -1.9978859034415701,
+    "t_star_q975": 2.003567441734718
+   }
+  },
+  {
+   "label": "window 365d any amendment, date FE",
+   "focus": "D_any_365",
+   "rows": 100246,
+   "firms": 755,
+   "treated_firms": 49,
+   "treated_rows": 1337,
+   "coef": -0.12256832601927024,
+   "t_two_way_firm_date": -3.6935428595619766,
+   "t_one_way_firm": -3.7350845000059665,
+   "wild_cluster_bootstrap": {
+    "t_obs": -3.7350845000059563,
+    "p_one_sided_negative": 0.0002,
+    "p_two_sided": 0.0002,
+    "draws": 9999,
+    "t_star_q025": -1.9988007923881954,
+    "t_star_q975": 2.0622867042578545
+   }
+  },
+  {
+   "label": "window 1095d any amendment, date FE",
+   "focus": "D_any_1095",
+   "rows": 100246,
+   "firms": 755,
+   "treated_firms": 72,
+   "treated_rows": 4020,
+   "coef": -0.08558513865823197,
+   "t_two_way_firm_date": -4.63243566656085,
+   "t_one_way_firm": -4.663374236796614,
+   "wild_cluster_bootstrap": {
+    "t_obs": -4.663374236796606,
+    "p_one_sided_negative": 0.0001,
+    "p_two_sided": 0.0001,
+    "draws": 9999,
+    "t_star_q025": -2.0369381336879675,
+    "t_star_q975": 2.071549506707773
+   }
+  }
+ ],
+ "core_influence_top": [
+  {
+   "firm": "sec-1c25461ce362c2c5ce8a",
+   "rows": 34,
+   "delta_if_deleted": 0.012516240036701487
+  },
+  {
+   "firm": "sec-883dfc31c5df1836372e",
+   "rows": 208,
+   "delta_if_deleted": 0.011818453511677152
+  },
+  {
+   "firm": "sec-19d328e0a22c59ac4288",
+   "rows": 17,
+   "delta_if_deleted": 0.009778628416138135
+  },
+  {
+   "firm": "sec-8d5d5235db7611a685b6",
+   "rows": 110,
+   "delta_if_deleted": 0.009451615785035367
+  },
+  {
+   "firm": "sec-acf07953fe591bcbe89d",
+   "rows": 97,
+   "delta_if_deleted": 0.007896910795799739
+  },
+  {
+   "firm": "sec-09350ca3df4dc2d9046c",
+   "rows": 38,
+   "delta_if_deleted": 0.005917070115658479
+  },
+  {
+   "firm": "sec-e66b8447bf08ff91b3af",
+   "rows": 102,
+   "delta_if_deleted": 0.005223193852745639
+  },
+  {
+   "firm": "sec-51a0a8f867e33f0e21d7",
+   "rows": 13,
+   "delta_if_deleted": 0.002868148502464224
+  },
+  {
+   "firm": "sec-dd9b93bea19e3d23f242",
+   "rows": 21,
+   "delta_if_deleted": -0.0005137001251784012
+  },
+  {
+   "firm": "sec-ec67c38a00337857c538",
+   "rows": 4,
+   "delta_if_deleted": -0.0011479416113336638
+  }
+ ],
+ "core_leave_out": [
+  {
+   "label": "M4 core-changing 730d without the 3 most influential treated firms",
+   "focus": "D_core_730",
+   "rows": 99987,
+   "firms": 752,
+   "treated_firms": 15,
+   "treated_rows": 462,
+   "coef": -0.20447815325175275,
+   "t_two_way_firm_date": -5.601914644848084,
+   "t_one_way_firm": -5.816479027328609,
+   "wild_cluster_bootstrap": {
+    "t_obs": -5.816479027328613,
+    "p_one_sided_negative": 0.0002,
+    "p_two_sided": 0.0005,
+    "draws": 9999,
+    "t_star_q025": -2.6646565650512777,
+    "t_star_q975": 2.668255342011711
+   }
+  },
+  {
+   "label": "M4 core-changing 730d without the 5 most influential treated firms",
+   "focus": "D_core_730",
+   "rows": 99780,
+   "firms": 750,
+   "treated_firms": 13,
+   "treated_rows": 370,
+   "coef": -0.16870056178865117,
+   "t_two_way_firm_date": -5.061303963135795,
+   "t_one_way_firm": -5.4855064783984595,
+   "wild_cluster_bootstrap": {
+    "t_obs": -5.485506478398437,
+    "p_one_sided_negative": 0.0002,
+    "p_two_sided": 0.0004,
+    "draws": 9999,
+    "t_star_q025": -2.710637278034515,
+    "t_star_q975": 2.8358865822929964
+   }
+  },
+  {
+   "label": "M4 core-changing 730d without the 10 most influential treated firms",
+   "focus": "D_core_730",
+   "rows": 99602,
+   "firms": 745,
+   "treated_firms": 8,
+   "treated_rows": 296,
+   "coef": -0.125510460083283,
+   "t_two_way_firm_date": -4.702308728543817,
+   "t_one_way_firm": -4.598249334134173,
+   "wild_cluster_bootstrap": {
+    "t_obs": -4.598249334134152,
+    "p_one_sided_negative": 0.0058,
+    "p_two_sided": 0.0112,
+    "draws": 9999,
+    "t_star_q025": -3.4121420747204287,
+    "t_star_q975": 3.368231604001247
+   }
+  }
+ ]
+}

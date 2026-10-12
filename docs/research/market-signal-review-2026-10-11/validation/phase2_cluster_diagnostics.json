@@ -1,0 +1,201 @@
+{
+ "status": "EXPLORATORY re-analysis of registered outputs; no model refit",
+ "rows": 100246,
+ "dates": 404,
+ "firms": 755,
+ "flagged_rows": 2605,
+ "flagged_firms": 60,
+ "registered_statistic": {
+  "mean_delta_ic": 0.005039672287767852,
+  "nw_t": 2.616413598158953,
+  "n": 403
+ },
+ "amendment_only_statistic": {
+  "mean_delta_ic": 0.002345777025687185,
+  "note": "EXP-013 C_amended minus B1 (= EXP-012 A1)"
+ },
+ "jackknife_by_firm": {
+  "firms": 755,
+  "se": 0.001818399480304221,
+  "t": 2.7714879718975216,
+  "date_based_se": 0.0019261756976473568
+ },
+ "most_influential_firms": [
+  {
+   "firm": "sec-8bfa49a0b8a00fb68b39",
+   "influence_on_mean_delta_ic": 0.0005112526894139741,
+   "flagged": true
+  },
+  {
+   "firm": "sec-acf07953fe591bcbe89d",
+   "influence_on_mean_delta_ic": 0.00043270451407229245,
+   "flagged": true
+  },
+  {
+   "firm": "sec-0024e3e1c9c6f3c03afd",
+   "influence_on_mean_delta_ic": 0.000403067684954005,
+   "flagged": true
+  },
+  {
+   "firm": "sec-857a5ab481552aba1cce",
+   "influence_on_mean_delta_ic": 0.00037788237383415933,
+   "flagged": true
+  },
+  {
+   "firm": "sec-883dfc31c5df1836372e",
+   "influence_on_mean_delta_ic": 0.00032129458097263953,
+   "flagged": true
+  },
+  {
+   "firm": "sec-6243d34a9f80ebc99344",
+   "influence_on_mean_delta_ic": 0.0003188699292633306,
+   "flagged": true
+  },
+  {
+   "firm": "sec-b8509435ef342d747fb9",
+   "influence_on_mean_delta_ic": 0.0002258316131571684,
+   "flagged": false
+  },
+  {
+   "firm": "sec-d8286a804c09bfb97180",
+   "influence_on_mean_delta_ic": 0.00021542884598562372,
+   "flagged": false
+  },
+  {
+   "firm": "sec-e216657f08241fa620e2",
+   "influence_on_mean_delta_ic": 0.0002122198168325413,
+   "flagged": false
+  },
+  {
+   "firm": "sec-1c25461ce362c2c5ce8a",
+   "influence_on_mean_delta_ic": 0.0002086372668256226,
+   "flagged": true
+  },
+  {
+   "firm": "sec-be49f21bd9ad3c34edb0",
+   "influence_on_mean_delta_ic": 0.00018587242480049265,
+   "flagged": true
+  },
+  {
+   "firm": "sec-cb1f45915fa0411f2af3",
+   "influence_on_mean_delta_ic": 0.0001785935668524724,
+   "flagged": true
+  }
+ ],
+ "after_removing_most_influential_flagged_firms_from_evaluation": {
+  "1": {
+   "mean_delta_ic": 0.004528419598353878,
+   "nw_t": 2.367864323571598
+  },
+  "3": {
+   "mean_delta_ic": 0.003683504949943073,
+   "nw_t": 1.9766204370397604
+  },
+  "5": {
+   "mean_delta_ic": 0.002979093584317435,
+   "nw_t": 1.5878061827981933
+  },
+  "10": {
+   "mean_delta_ic": 0.0018491513868903722,
+   "nw_t": 0.9959032517968621
+  },
+  "20": {
+   "mean_delta_ic": 0.0006390613997180499,
+   "nw_t": 0.33712646169835964
+  }
+ },
+ "firm_cluster_bootstrap": {
+  "draws": 400,
+  "ci95": [
+   0.0017588598313563878,
+   0.008799369131153926
+  ],
+  "se": 0.0017822570647455143,
+  "share_of_draws_not_above_zero": 0.0
+ },
+ "two_way_pigeonhole_bootstrap": {
+  "draws": 400,
+  "block": 6,
+  "ci95": [
+   -0.000819860516596582,
+   0.010694352109667718
+  ],
+  "se": 0.0030533451674296668,
+  "share_of_draws_not_above_zero": 0.0475,
+  "note": "firms and date blocks resampled independently; conservative by construction"
+ },
+ "decomposition": {
+  "delta_ic_all_rows": 0.005039672287767852,
+  "delta_ic_unflagged_rows_only": 0.0018699085748134965,
+  "nw_t_unflagged": 1.02408751292276,
+  "mean_rank_shift_A5_minus_A1": {
+   "flagged": -0.2360313216486843,
+   "unflagged": 0.006297166076697521,
+   "sd_unflagged": 0.07726926700764475
+  },
+  "mean_label_rank": {
+   "flagged": -0.09432129936665597,
+   "unflagged": 0.006654038619536249
+  },
+  "flagged_label_rank_firm_cluster_bootstrap": {
+   "mean": -0.09432129936665598,
+   "ci95": [
+    -0.14708089275092126,
+    -0.04725825780460289
+   ],
+   "firms": 60,
+   "note": "raw mean cross-sectional return rank of flagged rows (0 = median); no control"
+  }
+ },
+ "by_fold": {
+  "0": {
+   "delta_ic": 0.004333409779871915,
+   "dates": 51,
+   "flagged_share_of_rows": 0.03716800251453717,
+   "flagged_firms": 23
+  },
+  "1": {
+   "delta_ic": 0.00870514066373403,
+   "dates": 50,
+   "flagged_share_of_rows": 0.038630092517448464,
+   "flagged_firms": 15
+  },
+  "2": {
+   "delta_ic": 0.009415265487756244,
+   "dates": 51,
+   "flagged_share_of_rows": 0.032239773187525314,
+   "flagged_firms": 14
+  },
+  "3": {
+   "delta_ic": 0.0030754886936124894,
+   "dates": 50,
+   "flagged_share_of_rows": 0.020293575038100586,
+   "flagged_firms": 13
+  },
+  "4": {
+   "delta_ic": 0.015117392685469412,
+   "dates": 50,
+   "flagged_share_of_rows": 0.027489751627682663,
+   "flagged_firms": 18
+  },
+  "5": {
+   "delta_ic": 0.012413587004155084,
+   "dates": 51,
+   "flagged_share_of_rows": 0.018937608046518936,
+   "flagged_firms": 12
+  },
+  "6": {
+   "delta_ic": -0.012099586491657339,
+   "dates": 50,
+   "flagged_share_of_rows": 0.016185897435897437,
+   "flagged_firms": 13
+  },
+  "7": {
+   "delta_ic": -0.0006626265874642094,
+   "dates": 51,
+   "flagged_share_of_rows": 0.017269801397283933,
+   "flagged_firms": 10
+  }
+ },
+ "seconds": 35.5
+}
