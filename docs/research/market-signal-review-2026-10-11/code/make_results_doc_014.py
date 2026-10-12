@@ -21,6 +21,7 @@ from src.quant.study import exp014  # noqa: E402
 PERMITTED = {
     "SURVIVES": "In an independent sample the association survived the registered robustness checks. This is not evidence of investment value, and the interpretation label below says whether it looks like news or like a marker.",
     "FRAGILE": "In an independent sample the association is statistically present but failed at least one registered robustness check; it is not established.",
+    "REVERSED": "In an independent sample the association has the opposite sign to the registered hypothesis with two-sided wild-cluster p < 0.05 (descriptive, uncorrected). It does not support the registered direction.",
     "NOT_REPLICATED": "In an independent sample the association was not reproduced at the registered level of evidence.",
     "INCONCLUSIVE": "The independent sample has too few treated companies to conclude anything about the hypothesis.",
 }
@@ -31,7 +32,7 @@ def fmt(x, nd=4):
 
 
 def reg_row(name: str, r: dict) -> str:
-    return (f"| {name} | {fmt(r.get('coef'))} | {fmt(r.get('t_two_way'), 2)} | {fmt(r.get('t_firm'), 2)} | {fmt(r.get('wcr_p_negative'))} | {r.get('treated_firms', 0):,} | {r.get('treated_rows', 0):,} | {r.get('rows', 0):,} |")
+    return (f"| {name} | {fmt(r.get('coef'))} | {fmt(r.get('t_two_way'), 2)} | {fmt(r.get('t_firm'), 2)} | {fmt(r.get('wcr_p_negative'))} | {fmt(r.get('wcr_p_two_sided'))} | {r.get('treated_firms', 0):,} | {r.get('treated_rows', 0):,} | {r.get('rows', 0):,} |")
 
 
 def main() -> None:
@@ -50,6 +51,7 @@ def main() -> None:
     event = reg["event_time"]
     bins = "\n".join(f"| {k} | {fmt(v['coef'])} | {fmt(v['wcr_p_negative'])} | {v['treated_firms']:,} |" for k, v in event["bins"].items())
     cal = reg["placebo_events"]
+    cal_w = reg["placebo_events_within_firm"]
     ml = man["machine_learning"]
     ml_text = "Skipped."
     if not ml.get("skipped"):
@@ -95,14 +97,15 @@ time-separate {counts['time_separate_rows']:,} rows, {counts['time_separate_firm
 Coefficient on the 21-session forward return rank (centred ranks run from -1 to 1), date x sector fixed effects, 17 controls, wild-cluster bootstrap p (one-sided, negative, firm clusters, null imposed).
 Two-way and firm-clustered t statistics are shown for comparison only.
 
-| Test | Coef | t (two-way) | t (firm) | WCR p | Treated firms | Treated rows | Rows |
-|---|---|---|---|---|---|---|---|
+| Test | Coef | t (two-way) | t (firm) | WCR p (one-sided, negative) | WCR p (two-sided) | Treated firms | Treated rows | Rows |
+|---|---|---|---|---|---|---|---|---|
 {reg_row('H1 core, 730 days', reg['H1'])}
 {reg_row('H2 any amendment, 730 days', reg['H2'])}
 {reg_row('R4 H1 with all 76 features as controls', reg['R4_full_controls'])}
 {reg_row('R2 H1 without the 5 most influential treated firms', reg['R2_influence'])}
 {reg_row('R5 H1, time-separate sample', reg['R5_time_separate'])}
 {reg_row('R5 H2, time-separate sample', reg['R5_time_separate_any'])}
+{reg_row('R7 H1 with a fixed effect per firm (within-firm timing)', reg['R7_within_firm'])}
 
 Holm-adjusted p: H1 {fmt(reg['holm_adjusted_p']['H1'])}, H2 {fmt(reg['holm_adjusted_p']['H2'])}. Share of the full H1 estimate kept after removing the five most influential treated firms:
 {fmt(reg['R2_influence']['share_of_full_estimate'], 3)} (removed: {', '.join(reg['R2_influence']['removed_firms'])}).
@@ -112,9 +115,12 @@ Leave-one-sector-out coefficients: {sectors}.
 
 ### Secondary regressions (not gated)
 
-| Test | Coef | t (two-way) | t (firm) | WCR p | Treated firms | Treated rows | Rows |
-|---|---|---|---|---|---|---|---|
+| Test | Coef | t (two-way) | t (firm) | WCR p (one-sided, negative) | WCR p (two-sided) | Treated firms | Treated rows | Rows |
+|---|---|---|---|---|---|---|---|---|
 {secondary}
+
+S11 (age of a core amendment) and S12 (liquidity halves) are descriptive and were registered as such: the age bins show where in time after an amendment any association sits (the competing prediction of
+Frieder and Shanthikumar is a positive coefficient in the first two bins), the halves show whether it lives in the less liquid stocks.
 
 ## 3. Event-time bins (interpretation diagnostic)
 
@@ -126,7 +132,9 @@ Anticipation ratio coef(next 365 days) / coef(previous 365 days): {fmt(event['an
 
 ## 4. Size of the procedure on the real label structure
 
-{cal['placebo_draws']} draws, each giving {cal['treated_firms_per_draw']} random firms one placebo amendment: rejection rate at 5% (one-sided) {fmt(cal['rejection_rate_5pct_one_sided'], 3)}, at 1% {fmt(cal['rejection_rate_1pct_one_sided'], 3)}.
+{cal['placebo_draws']} draws, each giving {cal['treated_firms_per_draw']} random firms one placebo amendment: rejection rate at 5% (one-sided) {fmt(cal['rejection_rate_5pct_one_sided'], 3)}, at 1% {fmt(cal['rejection_rate_1pct_one_sided'], 3)}
+(pooled regression; mean placebo coefficient {fmt(cal['coef_mean'])}, sd {fmt(cal['coef_sd'])}). With a fixed effect per firm: {fmt(cal_w['rejection_rate_5pct_one_sided'], 3)} at 5%, {fmt(cal_w['rejection_rate_1pct_one_sided'], 3)} at 1%
+(mean {fmt(cal_w['coef_mean'])}, sd {fmt(cal_w['coef_sd'])}). These are the numbers of THIS run on the real labels with placebo events; the pre-registration quotes the earlier pre-run values.
 
 ## 5. Machine-learning increment and economics (reported separately)
 

@@ -98,10 +98,10 @@ amendments that arrive later, are filtered on content and are observed in smalle
 ## 7. Consequences for EXP-014 (made before registration)
 
 1. **A competing prediction is now written into the protocol.** If the rebound exists in modern data, the coefficient on a flagged state pooled over 730 days could be small, positive, or negative early and positive later.
-   EXP-014 therefore reports the core-amendment coefficient in four horizon bins after availability, (0,90], (90,180], (180,365] and (365,730] calendar days, as a pre-specified secondary diagnostic (S11), so that a
-   rebound in the days 64-126 range, about 90-180 calendar days, is visible if it is there.
-2. **A significant opposite sign gets its own label.** A positive H1 coefficient with a two-sided wild-cluster p below 0.05 is reported as **REVERSED**, not folded into NOT_REPLICATED. It would be evidence in the direction of
-   this paper.
+   EXP-014 therefore reports the core-amendment coefficient in four horizon bins after availability (a core amendment first usable 0-89, 90-179, 180-364 or 365-729 calendar days before the decision day), as a pre-specified descriptive
+   secondary analysis (S11, implemented in `src/quant/study/exp014.py` and tested), so that a rebound in the days 64-126 range, about 90-180 calendar days, is visible if it is there. S12 (liquidity halves) was added in the same step for a reason from the design literature, not from this paper.
+2. **A significant opposite sign gets its own label.** A positive H1 coefficient with a two-sided wild-cluster p below 0.05 is reported as **REVERSED** (implemented in `decide`, tested), not folded into NOT_REPLICATED. It would be evidence in the direction of
+   this paper. It is descriptive and uncorrected and cannot create SURVIVES or FRAGILE.
 3. **The mechanism is not assumed.** The paper's information-risk explanation predicts positive later returns; a negative association would instead point to persistent distress or quality, which the within-firm gate R7 and
    the event-time diagnostic are built to separate.
 

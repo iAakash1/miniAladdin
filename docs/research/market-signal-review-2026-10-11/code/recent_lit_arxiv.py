@@ -57,7 +57,7 @@ def main() -> int:
                 root = ET.fromstring(body)
                 ns = {"a": "http://www.w3.org/2005/Atom", "o": "http://a9.com/-/spec/opensearch/1.1/"}
                 total, n = root.find("o:totalResults", ns).text, len(root.findall("a:entry", ns))
-            writer.writerow([date.today().isoformat(), "arXiv", qid, theme, expr, f"curated phrase/OR query; q-fin, econ.EM, stat.ML, cs.LG, stat.AP; submitted 2022-01..2026-10-12; max_results=50; relevance", status, total, n, f"data/recent_lit/raw/{name}" if name else "", digest, ""])
+            writer.writerow([date.today().isoformat(), "arXiv", qid, theme, expr, "curated phrase/OR query; q-fin, econ.EM, stat.ML, cs.LG, stat.AP; submitted 2022-01..2026-10-12; max_results=50; relevance", status, total, n, f"data/recent_lit/raw/{name}" if name else "", digest, ""])
             fh.flush()
             print(f"arXiv {qid}: status {status}, hits {total}, returned {n}", flush=True)
             time.sleep(3.3)

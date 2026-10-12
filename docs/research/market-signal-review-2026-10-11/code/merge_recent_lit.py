@@ -16,7 +16,7 @@ import json
 import re
 import sys
 import xml.etree.ElementTree as ET
-from collections import Counter, defaultdict
+from collections import Counter
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parents[1]

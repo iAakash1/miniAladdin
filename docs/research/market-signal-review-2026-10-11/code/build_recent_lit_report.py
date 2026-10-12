@@ -68,8 +68,6 @@ def read_csv(path: Path) -> list[dict]:
 def main() -> int:
     cands = read_csv(HERE / "recent_lit_candidates.csv")
     cross = {r["doi"].lower(): r for r in read_csv(HERE / "recent_core_crossref.csv")}
-    matrix_dois = {r["doi"].lower() for r in ROWS if r["doi"]}
-    matrix_titles = {re.sub(r"[^a-z0-9]+", "", r["citation"].lower()) for r in ROWS}
     by_matrix: dict[str, dict] = {}
     for r in ROWS:
         if r["doi"]:

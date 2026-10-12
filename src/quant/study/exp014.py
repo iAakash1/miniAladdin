@@ -68,6 +68,9 @@ TREATMENTS: dict[str, tuple[tuple[str, ...], int, int]] = {
     "core_730": (("core",), -730, 0), "other_730": (("other_changed",), -730, 0), "unchanged_730": (("unchanged",), -730, 0), "unclass_730": (("unclass",), -730, 0),
     "any_730": (CATEGORIES, -730, 0), "core_365": (("core",), -365, 0), "core_1095": (("core",), -1095, 0), "any_365": (CATEGORIES, -365, 0), "any_1095": (CATEGORIES, -1095, 0),
     "core_prev365": (("core",), -365, 0), "core_prev730b": (("core",), -730, -365), "core_next365": (("core",), 0, 365), "core_next730b": (("core",), 365, 730), "core_old": (("core",), -1460, -730),
+    # age bins of a past core amendment (S11): non-overlapping, they sum to core_730. Added before registration after the full-text reading of Frieder and Shanthikumar (2008), who find the
+    # only significant post-restatement drift to be positive and to sit in trading days 64 to 126 after the announcement.
+    "core_age_0_90": (("core",), -90, 0), "core_age_90_180": (("core",), -180, -90), "core_age_180_365": (("core",), -365, -180), "core_age_365_730": (("core",), -730, -365),
 }
 FORM_SPLIT = {"k_core_730": ("10-K", ("core",)), "q_core_730": ("10-Q", ("core",))}
 
@@ -109,9 +112,22 @@ DEFINITION: dict[str, Any] = {
     "decision": {
         "SURVIVES": "H1 Holm-adjusted p < 0.05 with negative sign AND R1 to R7 all pass",
         "FRAGILE": "H1 Holm-adjusted p < 0.05 with negative sign AND R1 passes AND at least one of R2 to R7 fails",
-        "NOT_REPLICATED": "H1 adjusted p >= 0.05 or the sign is positive, with R1 passed",
+        "REVERSED": "R1 passes, H1 is not significant in the registered direction, and the H1 coefficient is POSITIVE with two-sided wild-cluster p < 0.05 (the opposite sign to the registered hypothesis; descriptive, uncorrected, no gate applies)",
+        "NOT_REPLICATED": "R1 passes and neither SURVIVES, FRAGILE nor REVERSED applies: H1 adjusted p >= 0.05, or the sign is positive without two-sided p < 0.05",
         "INCONCLUSIVE": "R1 fails: too few treated firms to conclude anything",
         "no_other_outcomes": True,
+    },
+    "secondary_analyses": {
+        "S1": "core amendment in the trailing 365 days", "S2": "core amendment in the trailing 1,095 days", "S3": "amendments without number changes (unchanged_730)", "S4": "unclassifiable amendments (unclass_730)",
+        "S5": "core amendments to 10-K filings", "S6": "core amendments to 10-Q filings", "S7": "H1 with the out-of-sample ridge score held fixed", "S8": "8-K Item 4.02 in 730 days", "S9": "core amendment with Item 4.02 and late-filing notices as competing indicators",
+        "S10": "amendments that carry no financial statements",
+        "S11": "age of the most informative past core amendment: four non-overlapping indicators for a core amendment first usable 0-89, 90-179, 180-364 or 365-729 calendar days before the decision day (they sum to core_730), in one regression with the other three categories; coefficients and wild-cluster p-values on both sides, descriptive",
+        "S12": "H1 re-estimated separately in the more liquid and the less liquid half of the confirmatory sample (split at the date median of the 21-day dollar-volume rank), descriptive",
+    },
+    "prior_evidence": {
+        "sign_is_contested": "Frieder and Shanthikumar (2008, SSRN 1106855, read in full): after press-release restatement announcements by NYSE firms 1993-2002 no significant negative drift, and a significant POSITIVE return in trading days 64-126 (+4.3% raw, +5.0% characteristic-adjusted; days 127-252 insignificant). Gondhalekar et al. (2012, abstract level) report negative abnormal returns in each of four years; Moon, Lee and Waggle (2019/2020, abstract level) long-run underperformance; Hong, Lee, Park and Patro (2021/2023, abstract level) no drift where cash-flow news dominates; Ghosh et al. (2025/2026, text read in part): material-weakness disclosures are followed by negative drift over 60 to 120 trading days.",
+        "consequence": "The sign of the effect is not settled for amendments in the XBRL era. H1 keeps its registered one-sided direction (the discovery sample's), the label REVERSED reports the opposite sign when the data support it, and S11 shows where in time after the amendment any effect sits.",
+        "persistent_firm_type": "Ghosh et al. report that 79% of firms with a material weakness report another in the next quarter (6% unconditionally) and Zhu (2026, SSRN, abstract level) that filing-timeliness signals work through the cross-sectional level and not through a firm's own deviations: both are the reason SURVIVES requires the within-firm gate R7.",
     },
     "machine_learning_increment": {
         "arms": {"M0": "ridge on the 76 point-in-time features (alpha 10, the pre-existing configuration)", "M1": "M0 plus the amendment block (core_730, other_730, unchanged_730, unclass_730 indicators and log1p count of any_730)",
@@ -122,7 +138,7 @@ DEFINITION: dict[str, Any] = {
     },
     "economics": "the frozen EXP-010B 21-session portfolio (B1) at 10 bp for M0 and M1 on the mid-sample daily panel; reported at 10, 30 and 50 bp; not part of the decision",
     "acceptance_gates": ["every input file's sha256 equals the one recorded here", "no date after 2025-05-09", "label never shuffled outside rehearsal", "all predictions finite", "8 folds complete for every arm"],
-    "trial_ledger": {"confirmatory_tests": 2, "robustness_gates": 7, "secondary_contrasts": 10, "ml_contrasts": 2, "model_fits": "24 ridge/boosted fits plus 5 placebo permutations x 2 arms"},
+    "trial_ledger": {"confirmatory_tests": 2, "robustness_gates": 7, "secondary_contrasts": 16, "ml_contrasts": 2, "model_fits": "24 ridge/boosted fits plus 5 placebo permutations x 2 arms"},
     "outputs": ["definition.json", "config.json", "results.json", "regressions.csv", "robustness.csv", "ml_paired_tests.csv", "ml_metrics.csv", "manifest.json", "model/*"],
 }
 METHOD_SOURCES = (
@@ -388,6 +404,13 @@ def confirmatory_regressions(conf: pd.DataFrame, time_sep: pd.DataFrame, *, draw
         for name, regs, focus in (("S8_item_4_02", ["D_i402_730"], "D_i402_730"), ("S9_core_with_4_02_and_nt", [*h1_regs, "D_i402_730", "D_nt_730"], "D_core_730"),
                                   ("S10_amendments_without_financials", ["D_nonfsds_amend_730"], "D_nonfsds_amend_730")):
             sec[name] = regress(conf, focus, regs, BASE_CONTROLS, draws=robust_draws, seed=seed + 11, label=name)
+    age_regs = ["D_core_age_0_90", "D_core_age_90_180", "D_core_age_180_365", "D_core_age_365_730", "D_other_730", "D_unchanged_730", "D_unclass_730"]
+    for focus in age_regs[:4]:                                               # S11: where in time after a core amendment the association sits (descriptive, both signs)
+        sec[f"S11_{focus[len('D_core_'):]}"] = regress(conf, focus, age_regs, BASE_CONTROLS, draws=robust_draws, seed=seed + 12, label=f"S11 {focus}")
+    liquidity = conf["log_dollar_volume_21_xs"]
+    more_liquid = liquidity > liquidity.groupby(conf["date"]).transform("median")
+    for name, part in (("S12_liquid_half", conf[more_liquid]), ("S12_illiquid_half", conf[~more_liquid])):
+        sec[name] = regress(part, "D_core_730", h1_regs, BASE_CONTROLS, draws=robust_draws, seed=seed + 13, label=name)
     res["secondary"] = sec
     res["placebo_events"] = placebo_event_calibration(conf, draws=200 if robust_draws >= 999 else 20, seed=seed + 30)
     res["placebo_events_within_firm"] = placebo_event_calibration(conf, draws=200 if robust_draws >= 999 else 20, seed=seed + 31, firm_fe=True)
@@ -466,18 +489,20 @@ def decide(res: dict[str, Any], alpha: float = 0.05) -> dict[str, Any]:
         "R7_within_firm": res["R7_within_firm"]["coef"] < 0 and res["R7_within_firm"]["wcr_p_negative"] < 0.05,
     }
     significant = h1["coef"] < 0 and res["holm_adjusted_p"]["H1"] < alpha
+    two_sided = h1.get("wcr_p_two_sided")
+    reversed_sign = bool(h1["coef"] > 0 and two_sided is not None and two_sided < alpha)          # the opposite sign, with evidence: descriptive, no gate
     if not gates["R1_power"]:
         label = "INCONCLUSIVE"
-    elif not significant:
-        label = "NOT_REPLICATED"
-    elif all(gates.values()):
-        label = "SURVIVES"
+    elif significant:
+        label = "SURVIVES" if all(gates.values()) else "FRAGILE"
+    elif reversed_sign:
+        label = "REVERSED"
     else:
-        label = "FRAGILE"
+        label = "NOT_REPLICATED"
     ratio = res["event_time"]["anticipation_ratio"]
-    interpretation = None if label in ("INCONCLUSIVE", "NOT_REPLICATED") else ("TIME_SPECIFIC" if (ratio is not None and ratio < 0.5) else "MARKER_OF_PERSISTENT_TROUBLE")
-    return {"label": label, "h1_significant": bool(significant), "gates": {k: bool(v) for k, v in gates.items()}, "failed_gates": [k for k, v in gates.items() if not v], "interpretation": interpretation,
-            "h2_adjusted_p": res["holm_adjusted_p"]["H2"], "h1_adjusted_p": res["holm_adjusted_p"]["H1"]}
+    interpretation = None if label in ("INCONCLUSIVE", "NOT_REPLICATED", "REVERSED") else ("TIME_SPECIFIC" if (ratio is not None and ratio < 0.5) else "MARKER_OF_PERSISTENT_TROUBLE")
+    return {"label": label, "h1_significant": bool(significant), "h1_reversed": reversed_sign, "gates": {k: bool(v) for k, v in gates.items()}, "failed_gates": [k for k, v in gates.items() if not v], "interpretation": interpretation,
+            "h2_adjusted_p": res["holm_adjusted_p"]["H2"], "h1_adjusted_p": res["holm_adjusted_p"]["H1"], "h1_two_sided_p": two_sided}
 
 
 # ── machine-learning increment ───────────────────────────────────────────────────────────────────────────────────

@@ -46,6 +46,20 @@ def test_treatment_windows_use_only_what_was_available_and_expire():
     assert np.isnan(t.loc[0, "core_730"])                                                                                 # 400 days before the amendment the firm had no original report yet
 
 
+def test_age_bins_partition_the_trailing_730_days():
+    f = pd.DataFrame([filing("o1", 1, "10-K", "20121231", "2013-03-01 10:00"), filing("a1", 1, "10-K/A", "20121231", "2013-06-03 10:00")])
+    c = classes([("a1", {"classifiable": True, "core_changing_1pct": True})])
+    originals, amendments = exp014.amendment_events(f, c, CALENDAR, {1})
+    avail = int(amendments["avail_d"].iloc[0])
+    ages = np.array([0, 1, 89, 90, 179, 180, 364, 365, 729, 730, 731])
+    dates = pd.to_datetime(np.datetime64("1970-01-01") + (avail + ages).astype("timedelta64[D]"))
+    t = exp014.treatment_frame(pd.DataFrame({"date": dates, "cik": 1}), originals, amendments)
+    bins = t[["core_age_0_90", "core_age_90_180", "core_age_180_365", "core_age_365_730"]]
+    assert (bins.sum(axis=1) == t["core_730"]).all()                                   # non-overlapping, and together exactly the trailing 730 days
+    labels = bins.idxmax(axis=1).where(bins.max(axis=1) > 0, "none").tolist()
+    assert labels == ["core_age_0_90", "core_age_0_90", "core_age_0_90", "core_age_90_180", "core_age_90_180", "core_age_180_365", "core_age_180_365", "core_age_365_730", "core_age_365_730", "none", "none"]
+
+
 def test_no_treatment_before_the_firm_has_any_original_report():
     f = pd.DataFrame([filing("o1", 1, "10-K", "20121231", "2013-03-01 10:00")])
     originals, amendments = exp014.amendment_events(f, classes([]), CALENDAR, {1})
@@ -140,7 +154,18 @@ def test_decision_rule_labels():
     assert exp014.decide(core_sign)["failed_gates"] == ["R5_time_separate"]
     wrong_sign = passing()
     wrong_sign["H1"]["coef"] = 0.05
+    assert exp014.decide(wrong_sign)["label"] == "NOT_REPLICATED"                       # a positive coefficient without evidence is a failure to replicate, not a finding
+    wrong_sign["H1"]["wcr_p_two_sided"] = 0.2
     assert exp014.decide(wrong_sign)["label"] == "NOT_REPLICATED"
+    wrong_sign["H1"]["wcr_p_two_sided"] = 0.01
+    out = exp014.decide(wrong_sign)
+    assert out["label"] == "REVERSED" and out["h1_reversed"] is True and out["interpretation"] is None and out["h1_two_sided_p"] == 0.01
+    wrong_sign["H1"]["treated_firms"] = 30                                              # too few firms: nothing is concluded in either direction
+    assert exp014.decide(wrong_sign)["label"] == "INCONCLUSIVE"
+    negative_but_weak = passing()
+    negative_but_weak["holm_adjusted_p"]["H1"] = 0.2
+    negative_but_weak["H1"]["wcr_p_two_sided"] = 0.01                                   # a small two-sided p with a NEGATIVE coefficient never produces REVERSED
+    assert exp014.decide(negative_but_weak)["label"] == "NOT_REPLICATED" and exp014.decide(negative_but_weak)["h1_reversed"] is False
     thin = passing()
     thin["H1"]["treated_firms"] = 30
     assert exp014.decide(thin)["label"] == "INCONCLUSIVE"            # too few treated firms: nothing is concluded, even with a tiny p
@@ -148,7 +173,9 @@ def test_decision_rule_labels():
 
 def test_definition_names_every_gate_the_code_applies():
     assert set(exp014.DEFINITION["robustness_gates"]) == {"R1_power", "R2_influence", "R3_years", "R4_full_controls", "R5_time_separate", "R6_sector", "R7_within_firm"}
-    assert set(exp014.DEFINITION["decision"]) >= {"SURVIVES", "FRAGILE", "NOT_REPLICATED", "INCONCLUSIVE"}
+    assert set(exp014.DEFINITION["decision"]) >= {"SURVIVES", "FRAGILE", "REVERSED", "NOT_REPLICATED", "INCONCLUSIVE"}
+    assert set(exp014.DEFINITION["secondary_analyses"]) == {f"S{i}" for i in range(1, 13)}
+    assert {"core_age_0_90", "core_age_90_180", "core_age_180_365", "core_age_365_730"} <= set(exp014.DEFINITION["treatments"])
 
 
 # ── machine-learning helpers ─────────────────────────────────────────────────────────────────────────
@@ -261,3 +288,28 @@ def test_registry_windows_enter_the_treatment_frame_as_730_day_indicators():
     keys = pd.DataFrame({"date": pd.to_datetime(["2013-05-01", "2013-07-01", "2015-07-01"]), "cik": 1})
     t = exp014.treatment_frame(keys, originals, amendments, extra)
     assert t["D_i402_730"].tolist() == [0.0, 1.0, 0.0]
+
+
+def test_the_whole_regression_protocol_runs_and_reports_age_bins_and_liquidity_halves(monkeypatch):
+    monkeypatch.setattr(exp014, "placebo_event_calibration", lambda *a, **k: {"stub": True})        # has its own test; here only the plumbing of the other analyses is checked
+    rng = np.random.default_rng(5)
+
+    def frame(seed):
+        f = make_panel(n_firms=70, n_dates=70, effect=-0.5, treated=14, seed=seed)
+        on = f["D_core_730"] > 0
+        for name in ("D_core_365", "D_core_1095", "D_k_core_730", "D_q_core_730", "D_core_prev365", "D_core_prev730b", "D_core_next365", "D_core_next730b", "D_core_old",
+                     "D_core_age_0_90", "D_core_age_90_180", "D_core_age_180_365", "D_core_age_365_730"):
+            f[name] = (on & (rng.random(len(f)) < 0.7)).astype(float)
+        f["log_dollar_volume_21_xs"] = rng.normal(size=len(f))
+        for name in ("D_other_730", "D_unchanged_730", "D_unclass_730"):                         # the other categories must vary, as they do in the data
+            f[name] = (rng.random(len(f)) < 0.05).astype(float)
+        return f
+
+    conf, sep = frame(11), frame(12)
+    res = exp014.confirmatory_regressions(conf, sep, draws=99, robust_draws=49, seed=3)
+    for key in ("S11_age_0_90", "S11_age_90_180", "S11_age_180_365", "S11_age_365_730", "S12_liquid_half", "S12_illiquid_half"):
+        assert key in res["secondary"] and "wcr_p_two_sided" in res["secondary"][key]
+    assert res["secondary"]["S12_liquid_half"]["rows"] + res["secondary"]["S12_illiquid_half"]["rows"] <= len(conf)
+    assert res["secondary"]["S11_age_0_90"]["label"] == "S11 D_core_age_0_90"
+    decision = exp014.decide(res)
+    assert decision["label"] in {"SURVIVES", "FRAGILE", "REVERSED", "NOT_REPLICATED", "INCONCLUSIVE"} and "h1_two_sided_p" in decision

@@ -28,8 +28,7 @@ def main() -> int:
     cov = json.loads((HERE / "recent_lit_coverage.json").read_text())
     matrix = rows("recent_lit_matrix.csv")
     leads = rows("lead_verification.csv")
-    chain = rows("citation_chain_log.csv")
-    merge, req, stages, dec = cov["merge"], cov["requests"], cov["stages"], cov["decisions"]
+    merge, req, stages = cov["merge"], cov["requests"], cov["stages"]
     yd = merge["year_distribution"]
     recent3 = sum(yd.get(y, 0) for y in ("2024", "2025", "2026"))
     total = merge["distinct_works"]
