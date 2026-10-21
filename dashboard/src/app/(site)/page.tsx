@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 
 import { DeterministicConclusion } from '@/components/company/Conclusion'
 import { FAMILY_LABEL, FAMILY_ORDER, factorName } from '@/components/company/derive'
+import Atmosphere from '@/components/marketing/Atmosphere'
 import LiveMacro from '@/components/marketing/LiveMacro'
 import PipelineFigure from '@/components/marketing/PipelineFigure'
 import ProductTour from '@/components/marketing/ProductTour'
@@ -26,6 +27,16 @@ const FAMILY_READS: Record<string, string> = {
   news: 'The tone of recent company headlines, weighted up around earnings.',
   reversal: 'Short-term overextension that tends to mean-revert, as a small contrarian counterweight.',
 }
+
+/* The claims the product is built on, in the ribbon under the hero. Words,
+   not figures: nothing here could be mistaken for a live value. */
+const CLAIMS = [
+  'Deterministic signals',
+  'Every number traced to its source',
+  'Disagreement shown, never averaged',
+  'Unknown is not zero',
+  'AI explains — it never decides',
+]
 
 const FAQ = [
   {
@@ -64,12 +75,29 @@ export default function LandingPage() {
               has to cite the evidence for every sentence it keeps.
             </p>
             <div className="lp-cta">
-              <Link href="/start" prefetch={false} className="lp-btn lp-btn--primary">Open the terminal</Link>
+              <Link href="/start" prefetch={false} className="lp-btn lp-btn--primary">
+                Open the terminal<span className="lp-btn__arrow" aria-hidden>→</span>
+              </Link>
               <Link href="/#how" className="lp-btn">How a signal is made</Link>
             </div>
+            <ul className="lp-proof" aria-label="What every run guarantees">
+              <li>Deterministic engine</li>
+              <li>Every figure sourced</li>
+              <li>AI explains, never decides</li>
+            </ul>
             <p className="lp-fine">Free: {FREE_DAILY_LIMIT} research runs a day, no card required.</p>
           </div>
-          <RunPreview />
+          <div className="lp-stage">
+            <RunPreview />
+          </div>
+        </div>
+      </section>
+
+      <section className="lp-ribbon" aria-label="Principles">
+        <div className="container lp-ribbon__track">
+          <ul className="lp-ribbon__set">
+            {CLAIMS.map((c) => <li key={c}>{c}</li>)}
+          </ul>
         </div>
       </section>
 
@@ -78,7 +106,7 @@ export default function LandingPage() {
       {/* ── how ──────────────────────────────────────────────────────── */}
       <section id="how" className="lp-section">
         <div className="lp-container">
-          <header className="lp-section__head">
+          <header className="lp-section__head" data-reveal>
             <p className="lp-eyebrow">How a run is assembled</p>
             <h2 className="lp-h2">The signal is fixed before a word is written</h2>
             <p className="lp-section__lede">
@@ -93,7 +121,7 @@ export default function LandingPage() {
       {/* ── product ──────────────────────────────────────────────────── */}
       <section id="product" className="lp-section lp-section--panel">
         <div className="lp-container">
-          <header className="lp-section__head">
+          <header className="lp-section__head" data-reveal>
             <p className="lp-eyebrow">The company workspace</p>
             <h2 className="lp-h2">One company, every layer of the evidence</h2>
             <p className="lp-section__lede">
@@ -107,7 +135,7 @@ export default function LandingPage() {
       {/* ── methodology ──────────────────────────────────────────────── */}
       <section id="methodology" className="lp-section">
         <div className="lp-container lp-method">
-          <header className="lp-section__head">
+          <header className="lp-section__head" data-reveal>
             <p className="lp-eyebrow">Methodology · {q?.modelVersion}</p>
             <h2 className="lp-h2">Five families, one composite, a gated sleeve</h2>
             <p className="lp-section__lede">
@@ -118,7 +146,7 @@ export default function LandingPage() {
             </p>
           </header>
 
-          <div className="lp-method__grid">
+          <div className="lp-method__grid" data-reveal>
             <div className="lp-families">
               {FAMILY_ORDER.map((f) => {
                 const w = q?.weightsUsed[f]
@@ -162,7 +190,7 @@ export default function LandingPage() {
       {/* ── news ─────────────────────────────────────────────────────── */}
       <section id="news" className="lp-section lp-section--panel">
         <div className="lp-container">
-          <header className="lp-section__head">
+          <header className="lp-section__head" data-reveal>
             <p className="lp-eyebrow">Latest</p>
             <h2 className="lp-h2">Market news, with its sources</h2>
           </header>
@@ -173,11 +201,11 @@ export default function LandingPage() {
       {/* ── pricing ──────────────────────────────────────────────────── */}
       <section id="pricing" className="lp-section">
         <div className="lp-container">
-          <header className="lp-section__head">
+          <header className="lp-section__head" data-reveal>
             <p className="lp-eyebrow">Pricing</p>
             <h2 className="lp-h2">Free to use daily. Pro when you need depth.</h2>
           </header>
-          <div className="lp-plans">
+          <div className="lp-plans" data-reveal>
             <div className="lp-plan">
               <p className="lp-plan__name">Free</p>
               <p className="lp-plan__price"><span className="sys-num">₹0</span></p>
@@ -221,10 +249,13 @@ export default function LandingPage() {
 
       <section className="lp-section lp-final">
         <div className="lp-container lp-final__inner">
-          <h2 className="lp-h2">Open a company. Read the evidence.</h2>
-          <Link href="/start" prefetch={false} className="lp-btn lp-btn--primary">Open the terminal</Link>
+          <h2 className="lp-h2" data-reveal>Open a company. <em>Read the evidence.</em></h2>
+          <Link href="/start" prefetch={false} className="lp-btn lp-btn--primary">
+            Open the terminal<span className="lp-btn__arrow" aria-hidden>→</span>
+          </Link>
         </div>
       </section>
+      <Atmosphere />
     </div>
   )
 }

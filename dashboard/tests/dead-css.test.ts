@@ -38,7 +38,7 @@ const reached = (cls: string) =>
   [...dynamicPrefixes].some((p) => cls.startsWith(p))
 
 const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, '')
-const sheets = ['app/globals.css', 'styles/system.css'].map((f) => ({
+const sheets = ['app/globals.css', 'styles/system.css', 'styles/overdrive.css'].map((f) => ({
   file: f,
   // comments and url(...) go: a data URI's "www.w3.org" is not a class
   css: readFileSync(join(SRC, f), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/url\([^)]*\)/g, 'url()'),
@@ -85,7 +85,7 @@ test('no comment sits inside a selector list, where it would swallow the rule be
   // `.drawer__head,` followed by a comment and a new rule merged the two: the
   // header lost its layout and gained `outline: none`. A trailing comma means
   // the selector list is not finished, so nothing may be inserted there.
-  const raw = ['app/globals.css', 'styles/system.css'].map((f) => readFileSync(join(SRC, f), 'utf8')).join('\n')
+  const raw = ['app/globals.css', 'styles/system.css', 'styles/overdrive.css'].map((f) => readFileSync(join(SRC, f), 'utf8')).join('\n')
   const hits = [...raw.matchAll(/,[ \t]*\n[ \t]*\/\*[\s\S]*?\*\/[ \t]*\n[ \t]*([^\n{]*\{)/g)].map((m) => m[0].replace(/\s+/g, ' ').slice(0, 80))
   assert.deepEqual(hits, [])
 })

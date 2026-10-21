@@ -34,45 +34,29 @@ export default function SiteHeader() {
   // navigation-watching effect is needed.
 
   return (
-    <header
-      style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 'var(--z-header)',
-        background: 'color-mix(in srgb, var(--p-base) 92%, transparent)',
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
-        borderBottom: '1px solid var(--rule)',
-      }}
-    >
-      <div
-        className="container"
-        style={{ display: 'flex', alignItems: 'center', height: 60, gap: 28 }}
-      >
-        <Link href="/" style={{ textDecoration: 'none', flexShrink: 0 }} aria-label="OmniSignal home">
-          <Logo size={21} />
+    <header className="site-header">
+      <div className="container site-header__bar">
+        <Link href="/" className="site-header__home" aria-label="OmniSignal home">
+          <Logo size={22} />
         </Link>
 
-        <nav aria-label="Primary" className="site-nav" style={{ display: 'flex', gap: 4 }}>
+        <nav aria-label="Primary" className="site-nav">
           {NAV.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="sys-btn sys-btn--ghost"
-              style={{
-                color: pathname === item.href ? 'var(--ink)' : undefined,
-                fontWeight: 500,
-              }}
+              className="sys-btn sys-btn--ghost site-nav__link"
+              aria-current={pathname === item.href ? 'page' : undefined}
             >
               {item.label}
             </Link>
           ))}
         </nav>
 
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="site-header__end">
           <ThemeToggle />
           {!signedIn && (
-            <Link href="/sign-in" className="sys-btn sys-btn--ghost site-signin" style={{ fontWeight: 500 }}>
+            <Link href="/sign-in" className="sys-btn sys-btn--ghost site-nav__link site-signin">
               Sign in
             </Link>
           )}
@@ -86,6 +70,8 @@ export default function SiteHeader() {
           <Link href="/terminal" prefetch={false} className="sys-btn sys-btn--primary">
             Open terminal
           </Link>
+          {/* An icon on a phone, where the bar has no room for a word; the
+              label stays for assistive technology. */}
           <button
             type="button"
             className="sys-btn sys-btn--ghost menu-toggle"
@@ -93,39 +79,22 @@ export default function SiteHeader() {
             aria-controls="mobile-nav"
             onClick={() => setMenuOpen((v) => !v)}
           >
-            {menuOpen ? 'Close' : 'Menu'}
+            <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" focusable="false">
+              {menuOpen ? (
+                <path d="M4 4l10 10M14 4L4 14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              ) : (
+                <path d="M3 5h12M3 9h12M3 13h8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              )}
+            </svg>
+            <span className="visually-hidden">{menuOpen ? 'Close menu' : 'Menu'}</span>
           </button>
         </div>
       </div>
 
       {menuOpen && (
-        <nav
-          id="mobile-nav"
-          aria-label="Mobile"
-          className="fade-in"
-          style={{
-            borderTop: '1px solid var(--rule)',
-            background: 'var(--p-base)',
-            padding: '8px 20px 16px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 2,
-          }}
-        >
+        <nav id="mobile-nav" aria-label="Mobile" className="fade-in site-mnav">
           {[...NAV, ...(signedIn ? [] : [{ href: '/sign-in', label: 'Sign in' }])].map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setMenuOpen(false)}
-              style={{
-                padding: '12px 4px',
-                textDecoration: 'none',
-                fontSize: 'var(--t-value)',
-                fontWeight: 500,
-                color: 'var(--ink)',
-                borderBottom: '1px solid var(--rule)',
-              }}
-            >
+            <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)} className="site-mnav__link">
               {item.label}
             </Link>
           ))}

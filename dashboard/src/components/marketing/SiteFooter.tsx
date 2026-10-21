@@ -32,7 +32,7 @@ const COLUMNS = [
 
 export default function SiteFooter() {
   return (
-    <footer style={{ borderTop: '1px solid var(--rule)', background: 'var(--p-panel)' }}>
+    <footer className="site-footer" style={{ background: 'var(--glass-chrome)' }}>
       <div className="container" style={{ padding: '56px clamp(20px, 4vw, 32px) 0' }}>
         <div
           style={{

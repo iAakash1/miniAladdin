@@ -2,10 +2,10 @@
  * The product accent as a literal, for the two third-party widgets (this one and the Razorpay
  * checkout) that take a colour string and cannot read a CSS variable. It is the light-theme accent
  * from styles/tokens.css, which keeps at least 3:1 against both the light and the dark panel (the
- * dark-theme accent would fall to 2.9:1 on white). `tests/third-party-theme.test.ts` holds it equal
+ * dark-theme cyan would fall to 1.3:1 on white). `tests/third-party-theme.test.ts` holds it equal
  * to the token, so it cannot drift back to a colour the product no longer uses.
  */
-export const ACCENT_LITERAL = '#2566b0'
+export const ACCENT_LITERAL = '#0a7190'
 
 /*
  * Clerk theming: the card is rendered CHROMELESS (transparent, no border,
@@ -69,12 +69,18 @@ export const clerkAppearance = {
     formFieldInput: control,
     formButtonPrimary: {
       background: 'var(--accent)',
+      // The accent lit from above, as on every primary action. Both of its stops clear 4.5:1
+      // against --on-accent in its theme, so the text pairing below still holds.
+      backgroundImage: 'var(--grad-signal)',
+      boxShadow: 'var(--glow-signal)',
+      border: 'none',
       // The token that pairs with the accent in both themes. A literal white was 2.9:1 on the dark
       // theme's accent, below the 4.5:1 text minimum, on the first button a new visitor presses.
       color: 'var(--on-accent)',
-      fontWeight: 550,
+      fontWeight: 600,
       textTransform: 'none' as const,
       fontSize: '0.875rem',
+      height: '40px',
       borderRadius: '6px',
     },
     footer: { background: 'transparent' },

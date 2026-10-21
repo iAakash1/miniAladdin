@@ -28,20 +28,12 @@ export function LogoMark({ size = 20 }: { size?: number }) {
 
 export default function Logo({ size = 20, withWordmark = true, className }: LogoProps) {
   return (
-    <span
-      className={className}
-      style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: 'var(--ink)' }}
-    >
-      <LogoMark size={size} />
+    <span className={className ? `logo ${className}` : 'logo'}>
+      <span className="logo__mark">
+        <LogoMark size={size} />
+      </span>
       {withWordmark && (
-        <span
-          style={{
-            fontSize: size * 0.82,
-            fontWeight: 600,
-            letterSpacing: 'var(--tracking-figure)',
-            lineHeight: 1,
-          }}
-        >
+        <span className="logo__word" style={{ fontSize: size * 0.82 }}>
           OmniSignal
         </span>
       )}

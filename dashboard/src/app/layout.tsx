@@ -6,6 +6,7 @@ import '@fontsource/ibm-plex-mono/400.css'
 import '@fontsource/ibm-plex-mono/500.css'
 import '@fontsource/ibm-plex-mono/600.css'
 import './globals.css'
+import '@/styles/overdrive.css'
 import StateMeanings from '@/components/system/StateMeanings'
 import { THEME_COLOR, THEME_SCRIPT } from '@/lib/theme'
 
