@@ -108,7 +108,12 @@ class SECVendor(VendorClient):
         self._ticker_map: Optional[dict[str, dict[str, Any]]] = None
 
     def _headers(self) -> dict[str, str]:
-        # SEC fair-access policy requires an identifying User-Agent.
+        # SEC fair-access policy requires an identifying User-Agent with a
+        # contact address, and EDGAR refuses one without (it answered 403 to a
+        # URL-only identifier on 2026-10-24). The fallback below names a
+        # mailbox nobody has shown to exist; it keeps EDGAR answering until the
+        # owner sets SEC_USER_AGENT to a real one, and the providers page
+        # reports that it is unset (registry_view._advisories).
         headers = {
             "User-Agent": os.getenv(
                 "SEC_USER_AGENT", "OmniSignal Research (contact: research@omnisignal.app)"

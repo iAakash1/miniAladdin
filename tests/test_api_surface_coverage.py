@@ -42,7 +42,12 @@ INTERNAL: dict[str, str] = {
         "a strict subset of /api/ml/registry, which the gate matrix renders; its "
         "one unique field, the promotion note, is stated on the Gates workspace"
     ),
-    "/api/ml/capabilities": "mirrors /api/providers/capabilities, which is the one surfaced",
+    "/api/ml/capabilities": "mirrors /api/providers/capabilities for the ML layer; the registry is surfaced",
+    "/api/providers/capabilities": (
+        "the capability matrix the providers page used to join in the browser; the "
+        "page now reads it, joined with health and the catalog, from "
+        "/api/providers/registry, and this stays for API clients"
+    ),
     "/api/research/providers/health": "duplicate of /api/providers/health",
     "/api/factors/universes": "populates a control inside the factor workspace, not a page",
     "/api/company/{ticker}/media": "called from the security workspace by composed path",
@@ -126,7 +131,9 @@ def test_internal_entries_carry_a_reason() -> None:
         "/api/quant/status",
         "/api/quant/model-lab",
         "/api/ml/provenance/{label}/{model_id}",
-        "/api/providers/capabilities",
+        # The capability matrix is surfaced through the registry, which carries
+        # it alongside health; /api/providers/capabilities is declared above.
+        "/api/providers/registry",
         "/api/providers/health",
         "/api/quant/covariance",
         "/api/quant/latest",

@@ -60,7 +60,10 @@ class WikidataVendor(VendorClient):
 
     def _headers(self) -> dict[str, str]:
         return {
-            "User-Agent": "OmniSignal Research (research@omnisignal.app)",
+            # Wikimedia's User-Agent policy accepts a URL as the contact. The
+            # address this used to name (research@omnisignal.app) is not a
+            # mailbox anyone was shown to own, so it was the wrong thing to send.
+            "User-Agent": "OmniSignal research project (+https://github.com/iAakash1/miniAladdin)",
             "Accept": "application/sparql-results+json",
         }
 

@@ -1,12 +1,12 @@
 import type { Metadata } from 'next'
 
 import Workbench from '@/components/system/Workbench'
-import ProviderMatrix from '@/components/terminal/providers/ProviderMatrix'
+import ProviderConsole from '@/components/terminal/providers/ProviderConsole'
 import { Panel } from '@/components/system'
 
 export const metadata: Metadata = {
   title: 'Providers',
-  description: 'Which vendor supplies which capability, and what each one is currently doing.',
+  description: 'Every data vendor: what it can answer, how it is configured, and what it has actually done.',
 }
 
 export default function ProvidersPage() {
@@ -14,7 +14,7 @@ export default function ProvidersPage() {
     <Workbench
       title="Providers"
       subtitle="who supplies what"
-      rail={[{ label: 'Matrix', state: 'live', detail: 'introspected' }]}
+      rail={[{ label: 'Registry', state: 'live', detail: 'introspected' }]}
       context={
         <>
           <Panel title="What this answers">
@@ -23,24 +23,26 @@ export default function ProvidersPage() {
               currently answering.
             </p>
           </Panel>
-          <Panel title="Nothing is scored">
+          <Panel title="Configured is not healthy">
             <p style={{ margin: 0, fontSize: 'var(--t-meta)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
-              There is no provider quality rank here. A capability is declared
-              available or it is not, and an unavailable one carries the reason
-              the backend gives — &quot;no key configured&quot; and &quot;the vendor does not
-              offer this&quot; are different facts and are not merged into one blank cell.
+              A key being present says nothing about whether the vendor accepts
+              it. Healthy means it answered inside the health window; a vendor
+              nothing has asked is idle, and one not asked recently is stale.
+              There is no quality rank: no vendor is called cheapest or best
+              without a measurement behind it.
             </p>
           </Panel>
           <Panel title="Introspected">
             <p style={{ margin: 0, fontSize: 'var(--t-meta)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
-              The matrix is derived from the vendor clients themselves, so a
-              newly added provider appears without anyone editing a list.
+              The registry is built on the server from the vendor clients
+              themselves and the provider catalog, so a newly added provider
+              appears without anyone editing a list on this page.
             </p>
           </Panel>
         </>
       }
     >
-      <ProviderMatrix />
+      <ProviderConsole />
     </Workbench>
   )
 }

@@ -37,8 +37,10 @@ test('pages are still protected by Clerk, which redirects a document request to 
 test('the public routes are unchanged and the report endpoint is among them', () => {
   const list = /createRouteMatcher\(\[([\s\S]*?)\]\)/.exec(proxy)?.[1] ?? ''
   const entries = [...list.matchAll(/'([^']+)'/g)].map((m) => m[1])
+  // The legal pages are exact paths, not prefixes: anyone must be able to read
+  // the terms before agreeing to them, and nothing beneath them is public.
   assert.deepEqual(entries, [
-    '/', '/news', '/learn(.*)', '/api/news(.*)', '/api/macro', '/api/build', '/api/csp-report',
+    '/', '/news', '/learn(.*)', '/terms', '/privacy', '/api/news(.*)', '/api/macro', '/api/build', '/api/csp-report',
     '/sign-in(.*)', '/sign-up(.*)', '/sitemap.xml', '/robots.txt',
   ])
 })

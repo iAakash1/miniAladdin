@@ -73,9 +73,12 @@ def test_provider_health_is_nested_by_capability(client: TestClient) -> None:
 def test_the_providers_workspace_reads_those_fields() -> None:
     # The workspace reads the snapshot itself; its states come from the shared
     # classifier, which is where the cooldown and rate-limit fields are read.
-    source = (UI / "providers" / "ProviderMatrix.tsx").read_text() + (
-        UI.parents[1] / "lib" / "providerHealth.ts"
-    ).read_text()
+    # The console maps each registry record onto the same snapshot shape
+    # (`toSnapshot`) before classifying it, and the status bar reads the health
+    # endpoint directly, so the fields must still be read by name.
+    source = (UI / "providers" / "ProviderConsole.tsx").read_text() + (
+        UI.parents[1] / "lib" / "providerRegistry.ts"
+    ).read_text() + (UI.parents[1] / "lib" / "providerHealth.ts").read_text()
     for field in ("vendor", "configured", "cooling_down", "requests", "failures",
                   "rate_limited", "avg_latency_ms", "last_error"):
         assert any(f"{prefix}.{field}" in source for prefix in ("v", "snap")) or f"{field}:" in source, (
@@ -84,6 +87,33 @@ def test_the_providers_workspace_reads_those_fields() -> None:
     # The fields it used to invent.
     for ghost in ("e.healthy", "e.calls", "e.cooldown_seconds"):
         assert ghost not in source, f"{ghost} is not a field provider health carries"
+
+
+def test_the_registry_carries_what_the_providers_console_reads(client: TestClient) -> None:
+    """The console's types (`lib/providerRegistry.ts`) against the payload itself.
+
+    The registry is assembled on the server from three sources; a renamed key in
+    any of them would otherwise reach the page as an empty column.
+    """
+    payload = client.get("/api/providers/registry").json()
+    for key in ("generated_at", "process_started_at", "health_window_seconds", "providers", "capabilities", "disabled"):
+        assert key in payload, f"the registry no longer reports {key!r}"
+    provider = payload["providers"][0]
+    for key in ("id", "display_name", "domain", "capabilities", "instances", "configuration",
+                "policy", "health", "recent", "terms", "advisories"):
+        assert key in provider, f"a registry record no longer carries {key!r}"
+    for key in ("credential_env", "keyless", "configured", "disabled", "credential_state", "optional_env"):
+        assert key in provider["configuration"], key
+    for key in ("state", "requests", "failures", "success_pct", "avg_latency_ms", "max_latency_ms",
+                "last_success_at", "last_failure_class", "last_error", "window", "cooling_down"):
+        assert key in provider["health"], key
+    assert {"ok", "failed", "declined"} <= set(provider["health"]["window"])
+    capability = payload["capabilities"][0]
+    for key in ("key", "label", "description", "reconciliation", "implemented_by", "eligible"):
+        assert key in capability, key
+    source = (UI.parents[1] / "lib" / "providerRegistry.ts").read_text()
+    for name in ("health_window_seconds", "process_started_at", "credential_state", "implemented_by", "eligible"):
+        assert name in source, f"the console no longer reads {name!r}"
 
 
 def test_breadth_history_is_date_and_score(client: TestClient, offline_network, synthetic_series) -> None:

@@ -13,6 +13,8 @@ const isPublic = createRouteMatcher([
   '/',
   '/news',
   '/learn(.*)',
+  '/terms',
+  '/privacy',
   '/api/news(.*)',
   '/api/macro',
   '/api/build',

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import Logo from '@/components/ui/Logo'
+import { FRED_NOTICE, FRED_TERMS_URL } from '@/lib/legal'
 
 const COLUMNS = [
   {
@@ -26,6 +27,13 @@ const COLUMNS = [
       { href: 'https://github.com/iAakash1/miniAladdin', label: 'GitHub', external: true },
       { href: '/sign-in', label: 'Sign in' },
       { href: '/sign-up', label: 'Create account' },
+    ],
+  },
+  {
+    heading: 'Legal',
+    links: [
+      { href: '/terms', label: 'Terms and Conditions' },
+      { href: '/privacy', label: 'Privacy notice' },
     ],
   },
 ]
@@ -94,10 +102,14 @@ export default function SiteFooter() {
           }}
         >
           <p style={{ fontSize: 'var(--t-body)', color: 'var(--ink-faint)' }}>
-            © {new Date().getFullYear()} OmniSignal
+            © {new Date().getFullYear()} OmniSignal · an independent, experimental research project
           </p>
           <p style={{ fontSize: 'var(--t-body)', color: 'var(--ink-faint)' }}>
-            Research and education only — not investment advice.
+            Research and education only — <Link href="/terms#not-advice" className="site-footer__link">not investment advice</Link>.
+          </p>
+          {/* Required wording, verbatim, from the FRED API terms of use. */}
+          <p className="site-footer__notice">
+            {FRED_NOTICE} <a href={FRED_TERMS_URL} className="site-footer__link">FRED API terms</a>.
           </p>
         </div>
       </div>

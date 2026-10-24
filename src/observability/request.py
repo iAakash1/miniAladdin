@@ -46,10 +46,13 @@ MAX_LABELS_PER_REQUEST = 128
 class RequestProfile:
     """Accumulated time per label for one request. Thread-safe."""
 
-    __slots__ = ("name", "started", "_totals", "_counts", "_lock", "_dropped")
+    __slots__ = ("name", "request_id", "started", "_totals", "_counts", "_lock", "_dropped")
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, request_id: Optional[str] = None) -> None:
         self.name = name
+        #: The id echoed to the client as X-Request-Id, so a vendor call
+        #: recorded during this request can be matched to its log line.
+        self.request_id = request_id
         self.started = time.perf_counter()
         self._totals: dict[str, float] = {}
         self._counts: dict[str, int] = {}
@@ -105,9 +108,9 @@ _current: contextvars.ContextVar[Optional[RequestProfile]] = contextvars.Context
 )
 
 
-def begin(name: str) -> RequestProfile:
+def begin(name: str, request_id: Optional[str] = None) -> RequestProfile:
     """Start profiling. Replaces any profile already in this context."""
-    profile = RequestProfile(name)
+    profile = RequestProfile(name, request_id)
     _current.set(profile)
     return profile
 

@@ -146,7 +146,7 @@ async def request_logging(request, call_next):
     # measured at 0.19 µs per record (benchmarks/observability.py), so this
     # stays on in production rather than behind a flag nobody enables before
     # the incident they needed it for.
-    profile = observability.begin(f"{request.method} {request.url.path}")
+    profile = observability.begin(f"{request.method} {request.url.path}", request_id=request_id)
     memory_before = memory_diagnostics.snapshot()
     started = time.perf_counter()
     response = None
@@ -2293,6 +2293,36 @@ def get_factor_universes():
     return {"universes": factor_lab_service.available_universes()}
 
 
+def _provider_groups() -> dict[str, Any]:
+    """Each provider family's vendors, as the capability views read them."""
+    return {
+        "market": providers.market_data.vendors,
+        "fundamentals": providers.fundamentals.vendors,
+        "news": providers.news.vendors,
+        "macro": providers.macro.vendors,
+        "identity": providers.identity.vendors,
+        "filings": providers.filings.vendors,
+        "official_record": providers.official_record.vendors,
+        "search": providers.search.vendors,
+        "visual": visual_intelligence.IMAGE_VENDORS,
+    }
+
+
+@app.get("/api/providers/registry", tags=["ops"])
+def provider_registry():
+    """Every provider as one record: identity, terms, capabilities, health.
+
+    What the providers page renders. Built on the server from the catalogue,
+    the capability registry and every live adapter instance, so the page has
+    no list of its own to drift (see `src/providers/registry_view.py`). Carries
+    the names of credential variables and whether they are set — never a value
+    — and recent calls by operation, never by symbol.
+    """
+    from src.providers import registry_view
+
+    return registry_view.build(_provider_groups())
+
+
 @app.get("/api/providers/capabilities", tags=["ops"])
 def provider_capabilities():
     """What every provider can do, and which are live right now.
@@ -2307,14 +2337,7 @@ def provider_capabilities():
     an outage. Only the *name* of the environment variable is exposed, never
     its value.
     """
-    matrix = fabric.capability_matrix({
-        "market": providers.market_data.vendors,
-        "fundamentals": providers.fundamentals.vendors,
-        "news": providers.news.vendors,
-        "macro": providers.macro.vendors,
-        "identity": providers.identity.vendors,
-        "visual": visual_intelligence.IMAGE_VENDORS,
-    })
+    matrix = fabric.capability_matrix(_provider_groups())
     matrix["visual"] = visual_intelligence.diagnostics()
     # The registry itself, not just who implements it. The matrix above
     # answers "which vendors can answer this question"; this answers "what

@@ -37,7 +37,7 @@ export type HealthTone = 'pos' | 'warn' | 'neg' | 'muted' | 'info'
 export type HealthState =
   | 'HEALTHY' | 'IDLE' | 'DEGRADED' | 'RATE_LIMITED' | 'AUTH_FAILURE'
   | 'NOT_ENTITLED' | 'TIMEOUT' | 'UNAVAILABLE' | 'COOLDOWN'
-  | 'NOT_CONFIGURED' | 'DEV_ONLY'
+  | 'NOT_CONFIGURED' | 'DEV_ONLY' | 'STALE' | 'DISABLED'
 
 export interface VendorHealth {
   state: HealthState
@@ -83,6 +83,11 @@ export function sanitizeError(raw: string | null | undefined): string | null {
 }
 
 export function classifyVendor(v: VendorSnapshot): VendorHealth {
+  /* Disabled is checked first: the operator's switch holds whether or not a
+     credential is present, and it is the one thing to undo to bring it back. */
+  if (v.health_state === 'DISABLED') {
+    return { state: 'DISABLED', tone: 'muted', label: 'Disabled', note: 'Taken out of routing by the operator (PROVIDER_DISABLED)' }
+  }
   if (!v.configured || v.health_state === 'NOT_CONFIGURED') {
     return { state: 'NOT_CONFIGURED', tone: 'muted', label: 'Not configured', note: 'No credential in this deployment' }
   }
@@ -120,6 +125,9 @@ export function classifyVendor(v: VendorSnapshot): VendorHealth {
       }
     case 'TIMEOUT':
       return { state: 'TIMEOUT', tone: 'warn', label: 'Timing out', note: 'Recent requests exceeded the time budget' }
+    case 'STALE':
+      // Not a fault: nothing has been seen recently enough to say either way.
+      return { state: 'STALE', tone: 'info', label: 'Stale', note: 'Nothing observed inside the health window — not verified recently' }
     case 'UNAVAILABLE':
       return { state: 'UNAVAILABLE', tone: 'neg', label: 'Unavailable', note: failureLabel(v.last_failure_class) ?? 'Recent requests failed' }
     case 'DEGRADED':
@@ -168,7 +176,8 @@ export function summarize(byCapability: Record<string, VendorSnapshot[]>): Provi
   const values = [...worst.values()]
   return {
     vendors: values.length,
-    configured: values.filter((h) => h.state !== 'NOT_CONFIGURED').length,
+    // A disabled vendor may hold a credential, but it is not in service.
+    configured: values.filter((h) => h.state !== 'NOT_CONFIGURED' && h.state !== 'DISABLED').length,
     healthy: values.filter((h) => h.state === 'HEALTHY').length,
     idle: values.filter((h) => h.state === 'IDLE').length,
     constrained: values.filter((h) => h.tone === 'warn').length,

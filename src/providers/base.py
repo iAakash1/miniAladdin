@@ -12,18 +12,26 @@ Provides, per vendor:
     latency, last error — feeding the orchestrator's routing decisions
   * cooldown circuit: after N consecutive failures the vendor is skipped
     by fallback chains until the cooldown elapses
+  * a short, sanitised record of recent calls (operation, outcome, status,
+    duration, request id) so a failure can be explained without logs
+  * an operator switch, PROVIDER_DISABLED, that takes a vendor out of every
+    routing path without removing its credential
 """
 
 from __future__ import annotations
 
+import contextvars
 import functools
 import inspect
 import logging
 import math
 import os
 import re
+import random
 import threading
 import time
+import weakref
+from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeout
 from email.utils import parsedate_to_datetime
@@ -33,10 +41,98 @@ from typing import Any, Optional
 import requests
 
 from src.observability import metrics as _metrics
+from src.observability import request as _request_context
 
 logger = logging.getLogger(__name__)
 
 TRANSIENT_STATUS = {429, 500, 502, 503, 504}
+
+#: How far back a health state looks. A success older than this is not
+#: evidence that the vendor answers now, so the state reads STALE instead of
+#: HEALTHY, and a failure older than this no longer marks it DEGRADED. Six
+#: hours suits a service whose traffic is bursty and light: long enough that a
+#: quiet afternoon does not erase what was seen, short enough that "healthy"
+#: always refers to today. Override with PROVIDER_HEALTH_WINDOW_SECONDS.
+DEFAULT_HEALTH_WINDOW_SECONDS = 6 * 3600.0
+HEALTH_WINDOW_ENV = "PROVIDER_HEALTH_WINDOW_SECONDS"
+
+#: Operator switch: vendor names, comma or space separated, that no routing
+#: path may ask. For a vendor whose licence is in question, or one that is
+#: misbehaving, without deleting its credential.
+DISABLED_ENV = "PROVIDER_DISABLED"
+
+#: Calls kept per vendor for the recent-activity view. Bounded so a busy
+#: vendor costs a fixed amount of memory.
+RECENT_EVENTS = 40
+
+
+def health_window_seconds() -> float:
+    """The health window, read at call time so a changed setting applies."""
+    raw = os.getenv(HEALTH_WINDOW_ENV, "").strip()
+    try:
+        value = float(raw) if raw else DEFAULT_HEALTH_WINDOW_SECONDS
+    except ValueError:
+        return DEFAULT_HEALTH_WINDOW_SECONDS
+    return value if value > 0 else DEFAULT_HEALTH_WINDOW_SECONDS
+
+
+def disabled_vendors() -> frozenset[str]:
+    """Vendor names an operator has taken out of routing."""
+    raw = os.getenv(DISABLED_ENV, "")
+    return frozenset(part.strip().lower() for part in re.split(r"[,\s]+", raw) if part.strip())
+
+
+#: Every adapter instance alive in this process. Several services hold their
+#: own instance of the same vendor (SEC EDGAR has three), each with its own
+#: counters, so a view built from one provider family's list would miss the
+#: traffic of the others. Weak, so a discarded instance is not kept alive.
+_INSTANCES: "weakref.WeakSet[VendorClient]" = weakref.WeakSet()
+
+
+def live_vendors() -> list["VendorClient"]:
+    """All adapter instances currently alive, in no particular order."""
+    return list(_INSTANCES)
+
+
+#: The adapter method being run, set by `_guard_operation`. A request made
+#: without an explicit operation name is recorded under it, so recent calls
+#: read "get_filings" rather than the generic "http" every adapter defaults to.
+#: A context variable rather than an attribute: one instance serves many
+#: threads at once.
+_OPERATION: contextvars.ContextVar[Optional[tuple[int, str]]] = contextvars.ContextVar(
+    "omnisignal_vendor_operation", default=None
+)
+
+
+def _operation_name(vendor: object, given: str) -> str:
+    """`given`, or the running method's name when `given` is the generic default.
+
+    Keyed to the instance, so an adapter that calls another adapter does not
+    lend it its own method name.
+    """
+    current = _OPERATION.get()
+    if given in ("http", "call") and current is not None and current[0] == id(vendor):
+        return current[1]
+    return given
+
+
+#: Outcomes that are an answer about the request, not a fault of the vendor.
+_NOT_VENDOR_FAULTS = frozenset({"not_entitled", "local_limiter"})
+
+
+def _vendor_fault(event: dict[str, Any]) -> bool:
+    """A recorded call that counts against the vendor's health."""
+    return (
+        event["outcome"] not in ("ok", "empty")
+        and event["scope"] == "vendor"
+        and event["outcome"] not in _NOT_VENDOR_FAULTS
+    )
+
+
+def _current_request_id() -> Optional[str]:
+    """The id of the API request this call serves, when there is one."""
+    profile = _request_context.current()
+    return getattr(profile, "request_id", None) if profile is not None else None
 
 
 class FailureClass(str, Enum):
@@ -327,6 +423,24 @@ class VendorStats:
         #: plan boundary for that endpoint, not a verdict on the vendor; this
         #: is what lets the health state say which.
         self.last_by_operation: dict[str, tuple[bool, Optional[str], float]] = {}
+        #: The latest physical calls, newest last. Operation names, outcomes,
+        #: status codes and timings only: never a URL, a parameter, a symbol
+        #: or a payload, because this is shown to every signed-in reader and
+        #: a symbol would tell one user what another is researching.
+        self.recent: deque[dict[str, Any]] = deque(maxlen=RECENT_EVENTS)
+
+    def _remember(self, now: float, operation: Optional[str], outcome: str, latency_ms: float,
+                  status_code: Optional[int], attempt: int, scope: str) -> None:
+        self.recent.append({
+            "at": now,
+            "operation": operation or "call",
+            "outcome": outcome,
+            "latency_ms": round(latency_ms, 1),
+            "status_code": status_code,
+            "attempt": attempt,
+            "scope": scope,
+            "request_id": _current_request_id(),
+        })
 
     def record(
         self,
@@ -336,9 +450,20 @@ class VendorStats:
         failure_class: Optional[str] = None,
         operation: Optional[str] = None,
         request_specific: bool = False,
+        *,
+        status_code: Optional[int] = None,
+        attempt: int = 0,
+        empty: bool = False,
     ) -> None:
         with self._lock:
             now = time.time()
+            self._remember(
+                now, operation,
+                ("empty" if empty else "ok") if ok
+                else (failure_class or FailureClass.UNAVAILABLE.value),
+                latency_ms, status_code, attempt,
+                "request" if request_specific else "vendor",
+            )
             if operation:
                 self.last_by_operation[operation] = (
                     ok, None if ok else (failure_class or FailureClass.UNAVAILABLE.value), now,
@@ -366,11 +491,18 @@ class VendorStats:
                 self.last_failure_at = now
                 self.last_failure_class = failure_class or FailureClass.UNAVAILABLE.value
 
-    def record_rate_limit(self, failure_class: FailureClass) -> None:
-        """Record a request rejected before transport under the stats lock."""
+    def record_rate_limit(self, failure_class: FailureClass, operation: Optional[str] = None,
+                          *, remember: bool = True) -> None:
+        """Record a request rejected before transport under the stats lock.
+
+        `remember=False` when the same attempt is also recorded as a failure,
+        so one 429 is one line of recent activity, not two.
+        """
         with self._lock:
             self.rate_limited += 1
             self.last_attempt_at = time.time()
+            if remember:
+                self._remember(self.last_attempt_at, operation, failure_class.value, 0.0, None, 0, "vendor")
             self.last_failure_at = self.last_attempt_at
             self.last_failure_class = failure_class.value
             self.last_error = (
@@ -399,6 +531,7 @@ class VendorStats:
                     op: {"ok": ok, "failure_class": cls, "at": at}
                     for op, (ok, cls, at) in sorted(self.last_by_operation.items())
                 },
+                "recent": [dict(event) for event in reversed(self.recent)],
             }
 
 
@@ -450,6 +583,13 @@ def _guard_operation(fn):
 
     @functools.wraps(fn)
     def guarded(self, *args, **kwargs):
+        # The outermost operation names the call: a public method calling
+        # another keeps the name the caller asked for.
+        current = _OPERATION.get()
+        token = (
+            _OPERATION.set((id(self), fn.__name__))
+            if current is None or current[0] != id(self) else None
+        )
         try:
             result = fn(self, *args, **kwargs)
         except VendorError:
@@ -460,6 +600,9 @@ def _guard_operation(fn):
                 # any request was made. Not the vendor's fault.
                 raise
             raise self._unexpected_reply(fn.__name__, exc) from exc
+        finally:
+            if token is not None:
+                _OPERATION.reset(token)
         self._reply_failures = 0
         return result
 
@@ -492,6 +635,10 @@ class VendorClient:
     CALL_TIMEOUT_SECONDS = 20.0
     MAX_RETRIES = 2
     BACKOFF_BASE = 0.4
+    #: Each backoff is lengthened by up to this fraction of itself, at random,
+    #: so callers that failed together do not retry in lockstep. Bounded, so
+    #: the worst case stays predictable; zero base means zero delay.
+    BACKOFF_JITTER = 0.25
     COOLDOWN_AFTER_FAILURES = 3
     COOLDOWN_SECONDS = 60.0
     #: How long to leave a vendor alone after it rejects our credential. A
@@ -516,6 +663,7 @@ class VendorClient:
         self._reply_failures = 0
         self._session = session or requests.Session()
         self._session.headers.setdefault("User-Agent", "OmniSignal/2.0 (+https://omnisignalterminal.vercel.app)")
+        _INSTANCES.add(self)
 
     def _note_unreadable(self, operation: str, count: int) -> None:
         """Make skipped rows observable: a log line and a counter, never silence."""
@@ -550,11 +698,28 @@ class VendorClient:
         return os.getenv(self.KEY_ENV, "") if self.KEY_ENV else ""
 
     @property
-    def available(self) -> bool:
-        """Key present (or keyless). Read at call time so env changes apply."""
+    def configured(self) -> bool:
+        """Key present (or keyless). Read at call time so env changes apply.
+
+        Presence only: a key nothing has used yet is "unverified", not good.
+        """
         if self.KEY_ENV is None:
             return True
         return bool(self.api_key and len(self.api_key) > 5)
+
+    @property
+    def disabled(self) -> bool:
+        """An operator has taken this vendor out of routing (PROVIDER_DISABLED)."""
+        return self.NAME.lower() in disabled_vendors()
+
+    @property
+    def available(self) -> bool:
+        """May be asked: configured and not disabled by the operator.
+
+        Every routing path checks this, which is what makes the operator switch
+        hold everywhere without each call site knowing about it.
+        """
+        return self.configured and not self.disabled
 
     @property
     def healthy(self) -> bool:
@@ -593,16 +758,39 @@ class VendorClient:
         """
         if self.KEY_ENV is None:
             return "not_required"
-        if not self.available:
+        if not self.configured:
             return "not_configured"
         if self.credential_rejected:
             return "rejected"
         return "accepted" if self.stats.snapshot().get("last_success_at") else "unverified"
 
-    def health_snapshot(self) -> dict[str, Any]:
+    def health_snapshot(self, include_recent: bool = False) -> dict[str, Any]:
+        """The vendor's state, derived from what it has actually done.
+
+        Precedence, first match wins:
+
+          DISABLED        the operator took it out of routing
+          NOT_CONFIGURED  no credential, so it was never asked
+          DEV_ONLY        not used outside local development
+          AUTH_FAILURE    its latest answer refused our credential
+          COOLDOWN        paused after repeated failures
+          STALE           nothing seen inside the health window
+          <failure>       its latest answer was a failure (rate limited,
+                          not entitled, timed out, unavailable)
+          IDLE            configured, never called in this process
+          DEGRADED        answering, with vendor-level failures in the window
+          HEALTHY         answering, and nothing failed in the window
+        """
         stats = self.stats.snapshot()
+        recent = stats.pop("recent", [])
+        window = health_window_seconds()
+        now = time.time()
+        in_window = [e for e in recent if now - e["at"] <= window]
+        last_seen = max(stats.get("last_success_at") or 0.0, stats.get("last_failure_at") or 0.0)
         cooldown_remaining = max(0.0, self._cooldown_until - time.monotonic())
-        if not self.available:
+        if self.disabled:
+            health_state = "DISABLED"
+        elif not self.configured:
             health_state = "NOT_CONFIGURED"
         elif getattr(self, "DEV_ONLY", False):
             health_state = "DEV_ONLY"
@@ -614,6 +802,8 @@ class VendorClient:
             health_state = "AUTH_FAILURE"
         elif cooldown_remaining > 0:
             health_state = "COOLDOWN"
+        elif last_seen and now - last_seen > window:
+            health_state = "STALE"
         elif (
             stats.get("last_failure_at")
             and (stats.get("last_success_at") or 0) < stats["last_failure_at"]
@@ -625,10 +815,14 @@ class VendorClient:
                 FailureClass.NOT_ENTITLED.value: "NOT_ENTITLED",
                 FailureClass.TIMEOUT.value: "TIMEOUT",
             }.get(stats.get("last_failure_class"), "UNAVAILABLE")
-        elif stats.get("failures"):
-            health_state = "DEGRADED"
         elif not stats.get("requests"):
             health_state = "IDLE"
+        elif any(_vendor_fault(e) for e in in_window):
+            # A failure the vendor recovered from, inside the window. One that
+            # was about a single input (a 404 for an unknown symbol) or a plan
+            # boundary is not a fault of the vendor and does not count; a
+            # failure from last week does not either.
+            health_state = "DEGRADED"
         else:
             health_state = "HEALTHY"
         operations = stats.get("operations") or {}
@@ -642,16 +836,32 @@ class VendorClient:
         # and keeps its state.
         if health_state == "NOT_ENTITLED" and any(o["ok"] for o in operations.values()):
             health_state = "DEGRADED"
-        return {
+        snapshot = {
             "vendor": self.NAME,
-            "configured": self.available,
+            "configured": self.configured,
+            "disabled": self.disabled,
             "cooling_down": cooldown_remaining > 0,
             "cooldown_remaining_seconds": round(cooldown_remaining, 1),
             "health_state": health_state,
             "credential_state": self.credential_state,
             "restricted_operations": restricted,
+            "health_window_seconds": window,
+            # "failed" counts the vendor's faults only. A 404 about one input,
+            # a plan boundary and our own pacing are "declined": real, shown,
+            # and not held against the vendor.
+            "window": {
+                "ok": sum(1 for e in in_window if e["outcome"] in ("ok", "empty")),
+                "failed": sum(1 for e in in_window if _vendor_fault(e)),
+                "declined": sum(
+                    1 for e in in_window
+                    if e["outcome"] not in ("ok", "empty") and not _vendor_fault(e)
+                ),
+            },
             **stats,
         }
+        if include_recent:
+            snapshot["recent"] = recent
+        return snapshot
 
     # ── HTTP core ────────────────────────────────────────────────────────────
 
@@ -689,8 +899,9 @@ class VendorClient:
         one leaked thread costs far less than a permanently stuck worker, and
         the daemon pool means a straggler cannot hold up interpreter exit.
         """
+        operation = _operation_name(self, operation)
         if not self.rate_limiter.try_acquire():
-            self.stats.record_rate_limit(FailureClass.LOCAL_LIMITER)
+            self.stats.record_rate_limit(FailureClass.LOCAL_LIMITER, operation)
             _metrics.registry.increment(
                 "vendor.rate_limited", vendor=self.NAME, operation=operation
             )
@@ -717,15 +928,19 @@ class VendorClient:
             ) from exc
         except Exception as exc:  # noqa: BLE001 — normalized to VendorError
             latency = (time.perf_counter() - started) * 1000
+            # Library errors are redacted like HTTP ones: a library that builds
+            # its own request URL (fredapi puts the key in the query string)
+            # can put that URL in the text of what it raises.
+            message = redact(str(exc))
             self.stats.record(
-                False, latency, str(exc), FailureClass.UNAVAILABLE.value,
+                False, latency, message, FailureClass.UNAVAILABLE.value,
                 operation=operation,
             )
             _observe(self.NAME, operation, "error", latency)
             if self.stats.consecutive_failures >= self.COOLDOWN_AFTER_FAILURES:
                 self._cooldown_until = time.monotonic() + self.COOLDOWN_SECONDS
             raise VendorError(
-                f"{self.NAME}: {exc}", transient=True,
+                f"{self.NAME}: {message}", transient=True,
                 failure_class=FailureClass.UNAVAILABLE,
             ) from exc
         latency = (time.perf_counter() - started) * 1000
@@ -749,6 +964,7 @@ class VendorClient:
         an empty result: "the vendor said no" and "the vendor said nothing"
         are different facts and neither is "no data".
         """
+        operation = _operation_name(self, operation)
         request_started = time.perf_counter()
         last_error: Optional[VendorError] = None
         for attempt in range(self.MAX_RETRIES + 1):
@@ -761,7 +977,7 @@ class VendorClient:
             # moment retries make the outbound rate highest. A limiter that is
             # accurate only while everything works is not a limiter.
             if not self.rate_limiter.try_acquire():
-                self.stats.record_rate_limit(FailureClass.LOCAL_LIMITER)
+                self.stats.record_rate_limit(FailureClass.LOCAL_LIMITER, operation)
                 _metrics.registry.increment(
                     "vendor.rate_limited", vendor=self.NAME, operation=operation
                 )
@@ -816,7 +1032,8 @@ class VendorClient:
                     # The vendor answered the question: nothing matches. A
                     # failure here would push a healthy vendor into cooldown
                     # for every company it has nothing on.
-                    self.stats.record(True, latency, operation=operation)
+                    self.stats.record(True, latency, operation=operation,
+                                      status_code=status, attempt=attempt, empty=True)
                     _observe(self.NAME, operation, "ok",
                              (time.perf_counter() - request_started) * 1000)
                     return None
@@ -843,7 +1060,8 @@ class VendorClient:
                         f"unexpected response shape ({type(payload).__name__})",
                         transient=False, failure_class=FailureClass.PARSE,
                     )
-                self.stats.record(True, latency, operation=operation)
+                self.stats.record(True, latency, operation=operation,
+                                  status_code=status, attempt=attempt)
                 # Total elapsed, not this attempt's: retries and backoff are
                 # time the caller genuinely waited, and hiding them is how a
                 # vendor that "averages 800ms" costs 18s in practice.
@@ -874,14 +1092,16 @@ class VendorClient:
                 )
 
             if last_error.failure_class == FailureClass.RATE_LIMITED.value:
-                self.stats.record_rate_limit(FailureClass.RATE_LIMITED)
+                self.stats.record_rate_limit(FailureClass.RATE_LIMITED, operation, remember=False)
             self.stats.record(
                 False, latency, str(last_error), last_error.failure_class,
                 operation=operation,
                 request_specific=last_error.status_code in (404, 422),
+                status_code=last_error.status_code, attempt=attempt,
             )
             if last_error.transient and attempt < self.MAX_RETRIES:
                 delay = self.BACKOFF_BASE * (2 ** attempt)
+                delay += random.uniform(0.0, delay * self.BACKOFF_JITTER)
                 if last_error.retry_after_seconds is not None:
                     if last_error.retry_after_seconds > self.MAX_RETRY_AFTER_SECONDS:
                         self._cooldown_until = time.monotonic() + min(

@@ -36,6 +36,10 @@ export default function AuthShell({ children }: { children: React.ReactNode }) {
           <p style={{ fontSize: 'var(--t-small)', color: 'var(--ink-faint)', textAlign: 'center' }}>
             Free tier: five analyses a day. No card required.
           </p>
+          <p className="auth-legal">
+            OmniSignal is an experimental research project, not investment advice. By continuing you agree to
+            the <Link href="/terms">Terms</Link> and acknowledge the <Link href="/privacy">Privacy notice</Link>.
+          </p>
         </div>
       </main>
     </div>
