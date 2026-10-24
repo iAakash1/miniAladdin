@@ -91,7 +91,7 @@ function useRegistry() {
   return { load, refreshing, refresh: () => read(undefined, true) }
 }
 
-function Summary({ reg }: { reg: Registry }) {
+export function Summary({ reg }: { reg: Registry }) {
   const s = summarizeRegistry(reg)
   const cells: Array<[string, number, HealthTone, string]> = [
     ['Registered', s.registered, 'muted', 'Every adapter the backend knows about'],
@@ -127,7 +127,6 @@ function Summary({ reg }: { reg: Registry }) {
 function Toolbar({
   reg, filters, setFilters, shown,
 }: { reg: Registry; filters: Filters; setFilters: (f: Filters) => void; shown: number }) {
-  const id = useId()
   const domains = useMemo(() => [...new Set(reg.providers.map((p) => p.domain).filter(Boolean) as string[])].sort(), [reg])
   const capabilities = useMemo(() => [...reg.capabilities].sort((a, b) => a.label.localeCompare(b.label)), [reg])
   return (
@@ -162,7 +161,7 @@ function Toolbar({
           {STATE_FILTERS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
       </label>
-      <p className="pv-count" id={`${id}-count`} aria-live="polite">
+      <p className="pv-count" aria-live="polite">
         {shown} of {reg.providers.length} shown
         {filtersActive(filters) ? (
           <button type="button" className="sys-btn sys-btn--ghost sys-btn--xs" onClick={() => setFilters(NO_FILTERS)}>Clear</button>
@@ -172,68 +171,91 @@ function Toolbar({
   )
 }
 
-function Catalogue({
+/** Calls inside the health window, as the table states them. */
+export function windowText(w: ProviderRecord['health']['window']): string {
+  const declined = w.declined ?? 0
+  if (!w.ok && !w.failed && !declined) return '—'
+  return [`${w.ok} ok`, `${w.failed} failed`, declined ? `${declined} declined` : null].filter(Boolean).join(' · ')
+}
+
+/** Providers grouped by data domain, in the catalog's order; uncatalogued last. */
+export function groupByDomain(list: ProviderRecord[]): Array<{ domain: string | null; providers: ProviderRecord[] }> {
+  const order = Object.keys(DOMAIN_LABEL)
+  const groups = new Map<string | null, ProviderRecord[]>()
+  for (const p of list) groups.set(p.domain, [...(groups.get(p.domain) ?? []), p])
+  const rank = (d: string | null) => (d === null ? order.length + 1 : order.includes(d) ? order.indexOf(d) : order.length)
+  return [...groups.entries()]
+    .sort(([a], [b]) => rank(a) - rank(b) || String(a).localeCompare(String(b)))
+    .map(([domain, providers]) => ({ domain, providers }))
+}
+
+export function Catalogue({
   list, capLabel, onOpen, openId,
 }: { list: ProviderRecord[]; capLabel: (k: string) => string; onOpen: (p: ProviderRecord, el: HTMLElement) => void; openId: string | null }) {
   return (
     <div className="sys-scroll-x">
       <table className="sys-table sys-table--compact pv-table">
-        <caption className="visually-hidden">Data providers, their configuration and observed health</caption>
+        <caption className="visually-hidden">Data providers by domain, their configuration and observed health</caption>
         <thead>
           <tr>
             <th scope="col">Provider</th>
-            <th scope="col">Domain</th>
             <th scope="col">Capabilities</th>
             <th scope="col">Configuration</th>
             <th scope="col">Health</th>
             <th scope="col">Last success</th>
-            <th scope="col" className="num">In window</th>
-            <th scope="col" className="num">Avg latency</th>
+            <th scope="col" className="num" title="Calls inside the health window">In window</th>
+            <th scope="col" className="num" title="Mean over every call since the server started">Avg latency</th>
           </tr>
         </thead>
-        <tbody>
-          {list.map((p) => {
-            const h = classify(p)
-            const caps = p.capabilities.map(capLabel)
-            return (
-              <tr key={p.id} data-selected={openId === p.id ? 'true' : undefined}>
-                <th scope="row">
-                  <button
-                    type="button"
-                    className="pv-open"
-                    aria-haspopup="dialog"
-                    aria-expanded={openId === p.id}
-                    onClick={(e) => onOpen(p, e.currentTarget)}
-                  >
-                    <span className="pv-open__name">{p.display_name}</span>
-                    <span className="pv-open__id">{p.id}</span>
-                  </button>
+        {groupByDomain(list).map(({ domain, providers: group }) => {
+          const answering = group.filter((p) => p.health.window.ok > 0).length
+          return (
+            <tbody key={domain ?? 'none'}>
+              <tr className="pv-group">
+                <th scope="rowgroup" colSpan={7}>
+                  {domain ? DOMAIN_LABEL[domain] ?? domain : 'Uncatalogued'}
+                  <span className="pv-group__meta">{group.length} {group.length === 1 ? 'provider' : 'providers'} · {answering} answered recently</span>
                 </th>
-                <td>{p.domain ? DOMAIN_LABEL[p.domain] ?? p.domain : '—'}</td>
-                <td className="pv-caps-cell" title={caps.join(', ')}>
-                  {caps.length ? `${caps.slice(0, 2).join(', ')}${caps.length > 2 ? ` +${caps.length - 2}` : ''}`
-                    : p.groups.length ? <span className="pv-muted">used by {p.groups.join(', ').replace(/_/g, ' ')}</span>
-                      : <span className="pv-muted">used directly by a service</span>}
-                </td>
-                <td>{configurationText(p)}</td>
-                <td><Status state={TONE_STATE[h.tone]} label={h.label} title={h.note ?? undefined} /></td>
-                <td>{ago(p.health.last_success_at) ?? 'never'}</td>
-                <td className="num sys-num">
-                  {p.health.window.ok + p.health.window.failed
-                    ? `${p.health.window.ok} ok · ${p.health.window.failed} failed`
-                    : '—'}
-                </td>
-                <td className="num sys-num">{ms(p.health.avg_latency_ms)}</td>
               </tr>
-            )
-          })}
-        </tbody>
+              {group.map((p) => {
+                const h = classify(p)
+                const caps = p.capabilities.map(capLabel)
+                return (
+                  <tr key={p.id} data-selected={openId === p.id ? 'true' : undefined}>
+                    <th scope="row">
+                      <button
+                        type="button"
+                        className="pv-open"
+                        aria-haspopup="dialog"
+                        aria-expanded={openId === p.id}
+                        onClick={(e) => onOpen(p, e.currentTarget)}
+                      >
+                        <span className="pv-open__name">{p.display_name}</span>
+                        <span className="pv-open__id">{p.id}</span>
+                      </button>
+                    </th>
+                    <td className="pv-caps-cell" title={caps.join(', ')}>
+                      {caps.length ? `${caps.slice(0, 2).join(', ')}${caps.length > 2 ? ` +${caps.length - 2}` : ''}`
+                        : p.groups.length ? <span className="pv-muted">used by {p.groups.join(', ').replace(/_/g, ' ')}</span>
+                          : <span className="pv-muted">used directly by a service</span>}
+                    </td>
+                    <td>{configurationText(p)}</td>
+                    <td><Status state={TONE_STATE[h.tone]} label={h.label} title={h.note ?? undefined} /></td>
+                    <td>{ago(p.health.last_success_at) ?? 'never'}</td>
+                    <td className="num sys-num">{windowText(p.health.window)}</td>
+                    <td className="num sys-num">{p.health.requests ? ms(p.health.avg_latency_ms) : 'not measured'}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          )
+        })}
       </table>
     </div>
   )
 }
 
-function Detail({
+export function Detail({
   p, reg, capLabel, onClose,
 }: { p: ProviderRecord; reg: Registry; capLabel: (k: string) => string; onClose: () => void }) {
   const panel = useDrawerFocus<HTMLElement>(true, onClose)
@@ -390,7 +412,7 @@ function Detail({
   )
 }
 
-function Coverage({ reg, capLabel }: { reg: Registry; capLabel: (k: string) => string }) {
+export function Coverage({ reg, capLabel }: { reg: Registry; capLabel: (k: string) => string }) {
   const name = (id: string) => reg.providers.find((p) => p.id === id)?.display_name ?? id
   const rows = [...reg.capabilities].sort((a: CapabilityRecord, b: CapabilityRecord) => a.eligible.length - b.eligible.length || a.label.localeCompare(b.label))
   return (

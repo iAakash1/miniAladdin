@@ -367,3 +367,27 @@ def test_placeholders_for_unloaded_adapters_are_reused_and_never_counted():
     for name in first:
         record = next(p for p in view["providers"] if p["id"] == name)
         assert record["instances"] == 0
+
+
+def test_a_non_json_body_from_real_requests_is_a_parse_failure_and_not_retried():
+    """The exception `requests` actually raises, not a plain ValueError.
+
+    `requests.JSONDecodeError` subclasses both `RequestException` and
+    `ValueError`; mocks that raise a bare ValueError hid that it was being
+    caught as a transport fault and retried.
+    """
+    class Retrying(_Vendor):
+        NAME = "catalog_html"
+        MAX_RETRIES = 2
+
+    response = requests.Response()
+    response.status_code = 200
+    response._content = b"<html>maintenance</html>"
+    session = Mock()
+    session.headers = {}
+    session.request.return_value = response
+    vendor = Retrying(session=session)
+    with pytest.raises(VendorError) as err:
+        vendor._get_json("https://example.test/q", operation="quote")
+    assert err.value.failure_class == "parse_failure"
+    assert session.request.call_count == 1, "an unreadable body is not retried"

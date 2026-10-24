@@ -1076,6 +1076,16 @@ class VendorClient:
                 last_error = VendorError(
                     "timeout", transient=True, failure_class=FailureClass.TIMEOUT,
                 )
+            except requests.JSONDecodeError as exc:
+                # Before RequestException, which it also subclasses: a body
+                # that is not JSON (a maintenance page, a proxy error) is an
+                # unreadable reply, not a transport fault. Caught as the
+                # latter, it was retried and counted as an upstream outage.
+                latency = (time.perf_counter() - started) * 1000
+                last_error = VendorError(
+                    redact(f"invalid JSON: {exc}"), transient=False,
+                    failure_class=FailureClass.PARSE,
+                )
             except requests.RequestException as exc:
                 latency = (time.perf_counter() - started) * 1000
                 # `requests` puts the full request URL in the message, which
