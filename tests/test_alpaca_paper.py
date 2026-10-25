@@ -81,9 +81,14 @@ def test_every_request_goes_to_the_paper_host():
 
     c.account(); c.positions(); c.orders(); c.asset("AAPL")
     c.submit_order(symbol="AAPL", qty=1, side="buy")
-    c.cancel_order("abc")
+    # Alpaca order ids are UUIDs; anything shaped otherwise is refused before
+    # a request is made.
+    c.cancel_order("4b1d2a00-0000-4000-8000-000000000001")
+    c.order("4b1d2a00-0000-4000-8000-000000000001")
+    c.order_by_client_id("omni-0123456789abcdef")
+    c.portfolio_history("1M", "1D"); c.clock()
 
-    assert session.request.call_count == 6
+    assert session.request.call_count == 10
     for call in session.request.call_args_list:
         url = call.args[1]
         assert url.startswith(PAPER_HOST), url

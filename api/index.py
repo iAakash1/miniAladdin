@@ -24,7 +24,7 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Literal, Optional
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Response
 from fastapi import Path as FastPath
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -2638,6 +2638,113 @@ def get_quotes(symbols: str = Query(..., description="Comma-separated tickers, m
     return {"quotes": out, "count": len(out)}
 
 
+#: Trading sessions per tracker period. Counted on the security's own daily
+#: closes, so a period is "N sessions back", not N calendar days.
+TRACKER_PERIODS = {"1W": 5, "1M": 21, "3M": 63, "6M": 126, "1Y": 252}
+TRACKER_SPARK_SESSIONS = 63
+
+
+def _tracker_row(symbol: str) -> dict[str, Any]:
+    """One tracked security: the latest quote, and performance from daily closes.
+
+    Two observations, kept apart because they are different things: the quote
+    is the latest price a provider reports (with its own timestamp and
+    freshness), and the period returns are computed on daily closes only,
+    through the last close, so a live price is never divided by a stale close
+    from a different source. A period the history cannot cover is null, not
+    extrapolated.
+    """
+    from src.services.alert_engine import freshness as quote_freshness
+
+    now = datetime.now(timezone.utc)
+    row: dict[str, Any] = {"symbol": symbol, "currency": "USD"}
+    quote = providers.market_data.get_price(symbol)
+    if quote.ok and quote.data is not None:
+        q = quote.data
+        row.update(
+            price=q.price, as_of=q.as_of, source=quote.source, cached=quote.cached,
+            freshness=quote_freshness(q.as_of, now), previous_close=q.previous_close,
+            change=(round(q.price - q.previous_close, 4) if q.previous_close else None),
+            change_pct=(round((q.price / q.previous_close - 1) * 100, 4) if q.previous_close else None),
+            quote_status="stale" if quote.stale else "ok",
+        )
+    else:
+        row.update(price=None, quote_status="unavailable" if getattr(quote, "outage", False) else "no_data")
+
+    series = providers.market_data.get_series(symbol, "1y")
+    if series.ok and series.data is not None:
+        closes = [(b.date, b.close) for b in series.data.bars if b.close and math.isfinite(b.close)]
+        if closes:
+            last = closes[-1][1]
+            row["performance"] = {
+                label: (round((last / closes[-1 - n][1] - 1) * 100, 4) if len(closes) > n and closes[-1 - n][1] else None)
+                for label, n in TRACKER_PERIODS.items()
+            }
+            row["history"] = {
+                "source": series.source, "sessions": len(closes), "through": closes[-1][0],
+                "basis": "daily closes", "stale": series.stale,
+            }
+            row["spark"] = [round(c, 4) for _, c in closes[-TRACKER_SPARK_SESSIONS:]]
+            if row.get("price") is None:
+                # No quote: the last close is shown as what it is, never as live.
+                row.update(last_close=last, last_close_date=closes[-1][0])
+    else:
+        row["history"] = None
+    return row
+
+
+@app.get("/api/tracker", tags=["research"])
+def get_tracker(symbols: str = Query(..., max_length=300, description="Comma-separated tickers, max 25")):
+    """Quotes, freshness and period performance for a page of tracked symbols.
+
+    Bounded: 25 symbols per request, fetched with limited concurrency through
+    the provider families' caches (a quote is cached for a minute and a daily
+    series for five), so a watchlist that refreshes on a timer does not turn
+    into a request per row per provider.
+    """
+    from src.providers.parallel import map_concurrent
+
+    requested: list[str] = []
+    for raw in symbols.split(","):
+        symbol = raw.strip().upper()
+        if symbol and symbol not in requested:
+            requested.append(symbol)
+    requested = requested[:25]
+    invalid = [s for s in requested if len(s) > 10 or not re.fullmatch(r"[A-Z^][A-Z0-9.\-^]*", s)]
+    valid = [s for s in requested if s not in invalid]
+    outcomes = map_concurrent(_tracker_row, valid, workers=6, label="tracker")
+    rows = {s: (o.value if o.ok else {"symbol": s, "price": None, "quote_status": "error"}) for s, o in zip(valid, outcomes)}
+    for s in invalid:
+        rows[s] = {"symbol": s, "price": None, "quote_status": "invalid"}
+    return {"rows": [rows[s] for s in requested], "generated_at": datetime.now(timezone.utc).isoformat()}
+
+
+@app.post("/api/internal/alerts/evaluate", tags=["ops"])
+def evaluate_alerts(x_scheduler_token: str = Header(default="", alias="X-Scheduler-Token")):
+    """One pass of the alert evaluator, for the scheduler only.
+
+    Authenticated by a shared secret (`ALERTS_SCHEDULER_TOKEN`, from Secret
+    Manager) compared in constant time, on top of Cloud Run's own IAM. It takes
+    no parameters, so it cannot be used to fetch anything a caller chooses, and
+    the website's proxy refuses every `/api/internal/` path before it reaches
+    here. Without the secret configured it answers 503 rather than running
+    unauthenticated.
+    """
+    import hmac
+
+    from src.services import alert_engine, database
+
+    expected = os.getenv("ALERTS_SCHEDULER_TOKEN", "")
+    if len(expected) < 24:
+        raise HTTPException(status_code=503, detail="The alert scheduler is not configured on this deployment.")
+    if not hmac.compare_digest(x_scheduler_token.encode(), expected.encode()):
+        raise HTTPException(status_code=403, detail="Not the scheduler.")
+    client = database.get_client()
+    if client is None:
+        raise HTTPException(status_code=503, detail="Persistence is not configured; there are no alerts to evaluate.")
+    return alert_engine.run(client)
+
+
 class AskBody(BaseModel):
     ticker: str = Field(..., min_length=1, max_length=10)
     question: str = Field(..., min_length=3, max_length=400)
@@ -3618,19 +3725,17 @@ def quant_portfolio(
 # ═══════════════════════════════════════════════════════════════════════════
 
 class PaperOrderRequest(BaseModel):
-    symbol: str
-    qty: float
-    side: str
-    order_type: str = "market"
-    time_in_force: str = "day"
+    symbol: str = Field(default="", max_length=12)
+    side: str = Field(default="", max_length=8)
+    qty: Optional[float] = None
+    notional: Optional[float] = None
+    order_type: str = Field(default="market", max_length=12)
+    time_in_force: str = Field(default="day", max_length=8)
     limit_price: Optional[float] = None
-
-
-# The vocabulary the broker accepts. Checked here so an invalid order is
-# refused before it reaches Alpaca, with a message that says which field.
-_SIDES = {"buy", "sell"}
-_TYPES = {"market", "limit"}
-_TIF = {"day", "gtc", "ioc", "fok", "opg", "cls"}
+    #: The reference chosen at preview and sent with the confirmation, so a
+    #: resend of the same confirmation can never become a second order.
+    client_order_id: Optional[str] = Field(default=None, max_length=128)
+    origin: Optional[str] = Field(default=None, max_length=12)
 
 
 def _safe_float_api(value: Any) -> Optional[float]:
@@ -3648,34 +3753,11 @@ def _validate_paper_order(req: "PaperOrderRequest") -> list[str]:
 
     Returns every problem rather than the first, because a ticket that
     reports one error at a time is a ticket someone submits four times.
+    The rules live in `src/services/paper_trading.validate`.
     """
-    problems: list[str] = []
-    symbol = (req.symbol or "").strip().upper()
+    from src.services import paper_trading
 
-    if not symbol or not symbol.replace(".", "").replace("-", "").isalnum() or len(symbol) > 10:
-        problems.append("Symbol is not a valid ticker.")
-    # `isfinite` before the range check. `qty <= 0` is False for infinity, so
-    # an infinite quantity passed validation and went to the broker; and the
-    # `x != x` NaN idiom below it could never run, because NaN also fails
-    # `<= 0`. One check that means "this is a real number" replaces both.
-    if req.qty is None or not math.isfinite(req.qty):
-        problems.append("Quantity is not a number.")
-    elif req.qty <= 0:
-        problems.append("Quantity must be greater than zero.")
-    if (req.side or "").lower() not in _SIDES:
-        problems.append(f"Side must be one of: {', '.join(sorted(_SIDES))}.")
-    if (req.order_type or "").lower() not in _TYPES:
-        problems.append(f"Order type must be one of: {', '.join(sorted(_TYPES))}.")
-    if (req.time_in_force or "").lower() not in _TIF:
-        problems.append(f"Time in force must be one of: {', '.join(sorted(_TIF))}.")
-    if (req.order_type or "").lower() == "limit" and req.limit_price is None:
-        problems.append("A limit order needs a limit price.")
-    if req.limit_price is not None:
-        if not math.isfinite(req.limit_price):
-            problems.append("Limit price is not a number.")
-        elif req.limit_price <= 0:
-            problems.append("Limit price must be greater than zero.")
-    return problems
+    return paper_trading.validate(paper_trading.normalize(req))
 
 
 @app.get("/api/paper/status")
@@ -3770,104 +3852,139 @@ def paper_orders(
 def paper_order_preview(req: PaperOrderRequest, _trader: str = Depends(require_paper_trader)):
     """Validate an order and price it, without placing anything.
 
-    This is the step between intending to trade and trading. It answers three
-    questions — is the order well formed, is the asset tradable here, and what
-    would it cost against current buying power — and it places nothing.
-
-    The estimate is explicitly an estimate: it uses the last price this
-    product already has, and a market order does not fill at the last price.
-    Saying so is the difference between a preview and a promise.
+    The step between intending to trade and trading: is the order well formed,
+    is the asset tradable here, what would it cost against buying power, how
+    old is the price behind that estimate, and is the market open. It returns
+    the client order id the confirmation must carry. It places nothing.
     """
-    problems = _validate_paper_order(req)
-    symbol = (req.symbol or "").strip().upper()
+    from src.services import paper_trading
 
     client = _paper_client()
+    return _broker_call(lambda: paper_trading.preview(
+        client, paper_trading.normalize(req), providers.market_data.get_price,
+    ))
 
-    asset: dict[str, Any] | None = None
-    if not problems:
-        from src.broker.alpaca_paper import BrokerUnavailable
-        try:
-            asset = client.asset(symbol)
-        except BrokerUnavailable:
-            problems.append(f"{symbol} is not an asset this paper account can trade.")
-        else:
-            if not asset.get("tradable"):
-                problems.append(f"{symbol} is not currently tradable.")
-            if req.qty != int(req.qty) and not asset.get("fractionable"):
-                problems.append(f"{symbol} cannot be traded in fractional quantities.")
 
-    account = _broker_call(client.account)
-    buying_power = _safe_float_api(account.get("buying_power"))
+def _paper_orders_repo():
+    from src.services import database
+    from src.services.database.repositories import PaperOrdersRepository
 
-    # The last price this product already knows. Not a quote taken for the
-    # purpose of trading, and labelled as the estimate it is.
-    last_price: Optional[float] = None
-    price_result = providers.market_data.get_price(symbol) if symbol else None
-    if price_result is not None and price_result.ok and price_result.data:
-        last_price = price_result.data.price
-
-    notional = last_price * req.qty if (last_price is not None and req.qty) else None
-    if (notional is not None and buying_power is not None
-            and (req.side or "").lower() == "buy" and notional > buying_power):
-        problems.append(
-            f"Estimated cost {notional:,.2f} exceeds paper buying power {buying_power:,.2f}."
-        )
-
-    return {
-        "ok": not problems,
-        "problems": problems,
-        "symbol": symbol,
-        "qty": req.qty,
-        "side": (req.side or "").lower(),
-        "order_type": (req.order_type or "").lower(),
-        "time_in_force": (req.time_in_force or "").lower(),
-        "estimate": {
-            "last_price": last_price,
-            "notional": notional,
-            "basis": "last price known to this product, not a firm quote",
-            "source": price_result.source if price_result is not None else None,
-        },
-        "buying_power": buying_power,
-        "asset": {
-            "tradable": asset.get("tradable") if asset else None,
-            "fractionable": asset.get("fractionable") if asset else None,
-            "exchange": asset.get("exchange") if asset else None,
-        },
-        "environment": "paper",
-    }
+    db = database.get_client()
+    return PaperOrdersRepository(db) if db is not None else None
 
 
 @app.post("/api/paper/orders")
-def paper_submit_order(req: PaperOrderRequest, _trader: str = Depends(require_paper_trader)):
-    """Place a paper order and return the broker's own reply.
+def paper_submit_order(req: PaperOrderRequest, response: Response, trader: str = Depends(require_paper_trader)):
+    """Place a paper order once, and return the broker's own reply.
 
     Validated again here rather than trusting the preview: a preview is a
     separate request and nothing guarantees the body reaching this route is
-    the body that was previewed.
+    the body that was previewed. Idempotent on `client_order_id`: a repeated
+    confirmation returns the order the first one created, and a timeout is
+    resolved by looking the order up, never by sending it again.
     """
-    problems = _validate_paper_order(req)
-    if problems:
-        raise HTTPException(status_code=422, detail="; ".join(problems))
+    from src.services import paper_trading
 
     client = _paper_client()
-    order = _broker_call(lambda: client.submit_order(
-        symbol=req.symbol.strip().upper(),
-        qty=req.qty,
-        side=req.side.lower(),
-        order_type=req.order_type.lower(),
-        time_in_force=req.time_in_force.lower(),
-        limit_price=req.limit_price,
+    status_code, body = _broker_call(lambda: paper_trading.submit(
+        client, paper_trading.normalize(req), trader, _paper_orders_repo(),
     ))
-    return {"order": order, "source": "alpaca paper", "environment": "paper"}
+    if status_code >= 400:
+        raise HTTPException(status_code=status_code, detail=body.get("detail"))
+    response.status_code = status_code
+    return {**body, "source": "alpaca paper", "environment": "paper"}
+
+
+@app.get("/api/paper/orders/by-client/{client_order_id}")
+def paper_reconcile_order(client_order_id: str, _trader: str = Depends(require_paper_trader)):
+    """What the broker says about a submission, by the reference sent with it."""
+    from src.services import paper_trading
+
+    if not paper_trading.CLIENT_ORDER_ID.match(client_order_id):
+        raise HTTPException(status_code=422, detail="invalid order reference")
+    client = _paper_client()
+    return _broker_call(lambda: paper_trading.reconcile(client, client_order_id, _paper_orders_repo()))
+
+
+@app.post("/api/paper/reconcile")
+def paper_reconcile_unresolved(_trader: str = Depends(require_paper_trader)):
+    """Resolve submissions whose outcome a timeout, reload or restart left open."""
+    from src.services import paper_trading
+
+    repo = _paper_orders_repo()
+    if repo is None:
+        return {"reconciled": [], "detail": "No local order references are kept on this deployment."}
+    client = _paper_client()
+    return {"reconciled": _broker_call(lambda: paper_trading.reconcile_unresolved(client, repo))}
+
+
+@app.get("/api/paper/orders/{order_id}")
+def paper_order_detail(order_id: str, _trader: str = Depends(require_paper_trader)):
+    client = _paper_client()
+    return {"order": _broker_call(lambda: client.order(order_id)), "source": "alpaca paper", "environment": "paper"}
 
 
 @app.delete("/api/paper/orders/{order_id}")
 def paper_cancel_order(order_id: str, _trader: str = Depends(require_paper_trader)):
+    """Ask the broker to cancel, then report what it says the order is now."""
+    from src.services import paper_trading
+
     client = _paper_client()
     if not order_id or len(order_id) > 64:
         raise HTTPException(status_code=422, detail="invalid order id")
-    _broker_call(lambda: client.cancel_order(order_id))
-    return {"cancelled": order_id, "environment": "paper"}
+    status_code, body = _broker_call(lambda: paper_trading.cancel(client, order_id))
+    if status_code >= 400:
+        raise HTTPException(status_code=status_code, detail=body.get("detail"))
+    return {**body, "environment": "paper"}
+
+
+@app.get("/api/paper/history")
+def paper_history(
+    period: str = Query("1M", max_length=4), timeframe: str = Query("1D", max_length=6),
+    _trader: str = Depends(require_paper_trader),
+):
+    """The broker's portfolio history: equity and P/L per window, as reported."""
+    from src.services import paper_trading
+
+    problems = paper_trading.history_params(period, timeframe)
+    if problems:
+        raise HTTPException(status_code=422, detail="; ".join(problems))
+    client = _paper_client()
+    raw = _broker_call(lambda: client.portfolio_history(period, timeframe))
+    return {
+        "points": paper_trading.history_points(raw or {}),
+        "base_value": _safe_float_api((raw or {}).get("base_value")),
+        "timeframe": (raw or {}).get("timeframe"), "period": period,
+        "source": "alpaca paper", "environment": "paper",
+    }
+
+
+@app.get("/api/paper/clock")
+def paper_clock(_trader: str = Depends(require_paper_trader)):
+    client = _paper_client()
+    return {"clock": _broker_call(client.clock), "source": "alpaca paper", "environment": "paper"}
+
+
+@app.get("/api/paper/connection")
+def paper_connection(_trader: str = Depends(require_paper_trader)):
+    """Test the paper connection with a real account read. Carries no credential."""
+    from src.broker.alpaca_paper import AlpacaPaper
+    from src.services import paper_trading
+
+    return {**paper_trading.connection(AlpacaPaper), "environment": "paper"}
+
+
+@app.get("/api/paper/analytics")
+def paper_analytics(_trader: str = Depends(require_paper_trader)):
+    """Account figures from broker data, with derived values labelled as such."""
+    from src.services import paper_trading
+
+    client = _paper_client()
+    account = _broker_call(client.account)
+    positions = _broker_call(client.positions)
+    orders = _broker_call(lambda: client.orders("all", 200))
+    return {**paper_trading.analytics(account or {}, positions or [], orders or []),
+            "source": "alpaca paper", "environment": "paper"}
 
 
 @app.get("/api/options/{ticker}")

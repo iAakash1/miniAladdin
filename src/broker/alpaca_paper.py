@@ -24,6 +24,8 @@ from __future__ import annotations
 
 import logging
 import os
+import re
+import time
 from dataclasses import dataclass
 from typing import Any, Optional
 
@@ -48,7 +50,34 @@ class BrokerMisconfigured(RuntimeError):
 
 
 class BrokerUnavailable(RuntimeError):
-    """The broker could not be reached, or answered with an error."""
+    """The broker could not be reached, or answered with an error.
+
+    `kind` says which, because each has a different fix and a different
+    meaning for an order that was being submitted:
+
+      transport    no answer — for a submission, the order may or may not exist
+      credentials  401: the paper key was rejected
+      refused      403: the broker refused the request (buying power, shares,
+                   account restrictions)
+      invalid      422: the broker did not accept the parameters
+      not_found    404
+      rate_limited 429
+      upstream     5xx
+    """
+
+    def __init__(self, message: str, *, kind: str = "upstream", status: Optional[int] = None):
+        super().__init__(message)
+        self.kind = kind
+        self.status = status
+
+    @property
+    def ambiguous(self) -> bool:
+        """For a submission: the request may have reached the broker."""
+        return self.kind in ("transport", "upstream")
+
+
+_KIND_BY_STATUS = {401: "credentials", 403: "refused", 404: "not_found", 422: "invalid", 429: "rate_limited"}
+_ORDER_ID = re.compile(r"^[A-Za-z0-9-]{8,128}$")
 
 
 @dataclass(frozen=True)
@@ -116,6 +145,10 @@ class AlpacaPaper:
     """
 
     TIMEOUT_SECONDS = 8.0
+    #: Reads may be retried once on a transport fault, a 429 or a 5xx.
+    #: Submissions never are: a retried POST can create a second order.
+    READ_RETRIES = 1
+    RETRY_DELAY_SECONDS = 0.6
 
     def __init__(self, session: Optional[requests.Session] = None):
         _assert_paper_environment()
@@ -134,6 +167,20 @@ class AlpacaPaper:
         }
 
     def _request(self, method: str, path: str, **kw: Any) -> Any:
+        retries = self.READ_RETRIES if method == "GET" else 0
+        for attempt in range(retries + 1):
+            try:
+                return self._once(method, path, **kw)
+            except BrokerUnavailable as e:
+                if attempt < retries and e.kind in ("transport", "rate_limited", "upstream"):
+                    time.sleep(self.RETRY_DELAY_SECONDS)
+                    continue
+                raise
+        raise AssertionError("unreachable")
+
+    def _once(self, method: str, path: str, **kw: Any) -> Any:
+        if not path.startswith("/"):
+            raise BrokerMisconfigured("broker paths are relative to the paper host")
         url = f"{PAPER_HOST}{path}"
         try:
             r = self._session.request(
@@ -143,7 +190,9 @@ class AlpacaPaper:
         except requests.RequestException as e:
             # The exception text can carry the URL but never a header, so this
             # is safe to surface. Credentials live in headers only.
-            raise BrokerUnavailable(f"the broker did not respond ({type(e).__name__})") from e
+            raise BrokerUnavailable(
+                f"the broker did not respond ({type(e).__name__})", kind="transport",
+            ) from e
 
         if 300 <= r.status_code < 400:
             raise BrokerUnavailable("the paper broker returned a redirect; redirects are refused")
@@ -156,7 +205,11 @@ class AlpacaPaper:
             except ValueError:
                 detail = r.text[:300]
             logger.warning("alpaca paper %s %s -> %s", method, path, r.status_code)
-            raise BrokerUnavailable(f"the broker returned {r.status_code}: {detail}")
+            raise BrokerUnavailable(
+                f"the broker returned {r.status_code}: {detail}",
+                kind=_KIND_BY_STATUS.get(r.status_code, "upstream" if r.status_code >= 500 else "invalid"),
+                status=r.status_code,
+            )
 
         try:
             return r.json() if r.content else None
@@ -186,10 +239,40 @@ class AlpacaPaper:
     def asset(self, symbol: str) -> dict[str, Any]:
         return self._request("GET", f"/v2/assets/{symbol.upper()}")
 
+    def order(self, order_id: str) -> dict[str, Any]:
+        if not _ORDER_ID.match(order_id or ""):
+            raise BrokerUnavailable("not an order id", kind="invalid", status=422)
+        return self._request("GET", f"/v2/orders/{order_id}")
+
+    def order_by_client_id(self, client_order_id: str) -> Optional[dict[str, Any]]:
+        """The order carrying this client order id, or None if the broker has none.
+
+        The way to learn what happened to a submission that timed out: the id
+        was chosen before the request, so the broker can be asked whether an
+        order with it exists, and nothing is ever resubmitted to find out.
+        """
+        if not _ORDER_ID.match(client_order_id or ""):
+            raise BrokerUnavailable("not a client order id", kind="invalid", status=422)
+        try:
+            return self._request("GET", "/v2/orders:by_client_order_id",
+                                 params={"client_order_id": client_order_id})
+        except BrokerUnavailable as e:
+            if e.kind == "not_found":
+                return None
+            raise
+
+    def portfolio_history(self, period: str, timeframe: str) -> dict[str, Any]:
+        return self._request("GET", "/v2/account/portfolio/history",
+                             params={"period": period, "timeframe": timeframe})
+
+    def clock(self) -> dict[str, Any]:
+        return self._request("GET", "/v2/clock")
+
     # ── write ────────────────────────────────────────────────────────────────
 
     def submit_order(
-        self, *, symbol: str, qty: float, side: str,
+        self, *, symbol: str, side: str, qty: Optional[float] = None,
+        notional: Optional[float] = None,
         order_type: str = "market", time_in_force: str = "day",
         limit_price: Optional[float] = None,
         client_order_id: Optional[str] = None,
@@ -199,14 +282,22 @@ class AlpacaPaper:
         No fill is simulated and no status is inferred. If the broker says
         `accepted`, this says accepted — the interface does not upgrade that
         to `filled` because a market order "probably" filled.
+
+        Sent once. A submission is never retried here: if it times out, the
+        caller asks `order_by_client_id` what happened instead.
         """
+        if (qty is None) == (notional is None):
+            raise BrokerUnavailable("an order has a quantity or a notional amount, not both", kind="invalid", status=422)
         body: dict[str, Any] = {
             "symbol": symbol.upper(),
-            "qty": str(qty),
             "side": side,
             "type": order_type,
             "time_in_force": time_in_force,
         }
+        if qty is not None:
+            body["qty"] = str(qty)
+        else:
+            body["notional"] = str(notional)
         if limit_price is not None:
             body["limit_price"] = str(limit_price)
         if client_order_id:
@@ -214,4 +305,6 @@ class AlpacaPaper:
         return self._request("POST", "/v2/orders", json=body)
 
     def cancel_order(self, order_id: str) -> None:
+        if not _ORDER_ID.match(order_id or ""):
+            raise BrokerUnavailable("not an order id", kind="invalid", status=422)
         self._request("DELETE", f"/v2/orders/{order_id}")

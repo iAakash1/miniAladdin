@@ -148,6 +148,12 @@ function refusedByPlatform(upstream: Response): boolean {
 }
 
 export async function proxyBackend(request: Request, path: string[]): Promise<Response> {
+  // Backend routes under /api/internal/ (the alert scheduler) are for the
+  // scheduler alone. They are refused here, before any upstream call, so no
+  // browser session can reach them through the website, signed in or not.
+  if ((path[0] || '').toLowerCase() === 'internal') {
+    return Response.json({ detail: 'Not found.' }, { status: 404, headers: { 'Cache-Control': 'no-store' } })
+  }
   const deadline = Date.now() + PROXY_BUDGET_MS
   const origin = required('BACKEND_ORIGIN').replace(/\/$/, '')
   const incomingUrl = new URL(request.url)

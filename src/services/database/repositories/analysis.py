@@ -155,7 +155,7 @@ class AnalysisRepository:
             return {}
         rows = (
             self._c.table("analysis_history")
-            .select("ticker,company_name,verdict,confidence,risk_level,composite_score,created_at,quant_payload")
+            .select("id,ticker,company_name,verdict,confidence,risk_level,composite_score,created_at,quant_payload")
             .eq("clerk_user_id", clerk_user_id)
             .in_("ticker", symbols)
             .order("created_at", desc=True)
@@ -171,7 +171,13 @@ class AnalysisRepository:
             payload = row.get("quant_payload") or {}
             quant = (payload.get("quant") or {}) if isinstance(payload, dict) else {}
             technicals = (payload.get("technicals") or {}) if isinstance(payload, dict) else {}
+            quality = (payload.get("decision_quality") or {}) if isinstance(payload, dict) else {}
             latest[ticker] = {
+                "history_id": row.get("id"),
+                # The run's own grade of its evidence. Carried with the verdict
+                # so a Buy built on insufficient evidence is never shown bare.
+                "evidence_grade": quality.get("grade"),
+                "evidence_reasons": list(quality.get("reasons") or [])[:6],
                 "ticker": ticker,
                 "company_name": row.get("company_name"),
                 "verdict": row.get("verdict"),

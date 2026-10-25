@@ -56,15 +56,31 @@ class ProfileSyncBody(BaseModel):
 
 class WatchlistCreateBody(BaseModel):
     name: str = Field(min_length=1, max_length=40)
-    tickers: list[str] = Field(default_factory=list, max_length=25)
+    tickers: list[str] = Field(default_factory=list, max_length=200)
 
 
-class WatchlistRenameBody(BaseModel):
-    name: str = Field(min_length=1, max_length=40)
+class WatchlistPatchBody(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=40)
+    is_default: Optional[bool] = None
+    sort_key: Optional[str] = Field(default=None, max_length=20)
+
+
+class OrderBody(BaseModel):
+    order: list[str] = Field(min_length=1, max_length=200)
 
 
 class TickerBody(BaseModel):
     ticker: str = Field(min_length=1, max_length=10)
+
+
+class ItemPatchBody(BaseModel):
+    note: Optional[str] = Field(default=None, max_length=500)
+    clear_note: bool = False
+    tags: Optional[list[str]] = Field(default=None, max_length=8)
+
+
+class MoveBody(BaseModel):
+    to_watchlist_id: str = Field(min_length=1, max_length=64)
 
 
 class PositionCreateBody(BaseModel):
@@ -125,18 +141,41 @@ def list_watchlists(user: str = Depends(require_clerk_user)):
 
 @router.post("/watchlists", status_code=201)
 def create_watchlist(body: WatchlistCreateBody, user: str = Depends(require_clerk_user)):
+    from src.services.database.repositories.watchlists import MAX_LISTS
+
     created = WatchlistsRepository(_client()).create(user, body.name, body.tickers)
     if created is None:
-        raise HTTPException(status_code=409, detail="Watchlist limit reached (20).")
+        raise HTTPException(status_code=409, detail=f"Watchlist limit reached ({MAX_LISTS}).")
     return created
 
 
-@router.patch("/watchlists/{watchlist_id}")
-def rename_watchlist(
-    watchlist_id: str, body: WatchlistRenameBody, user: str = Depends(require_clerk_user)
-):
-    if not WatchlistsRepository(_client()).rename(user, watchlist_id, body.name):
+@router.get("/watchlists/{watchlist_id}")
+def get_watchlist(watchlist_id: str, user: str = Depends(require_clerk_user)):
+    found = WatchlistsRepository(_client()).get(user, watchlist_id)
+    if found is None:
         raise HTTPException(status_code=404, detail="Watchlist not found.")
+    return found
+
+
+@router.patch("/watchlists/{watchlist_id}")
+def update_watchlist(
+    watchlist_id: str, body: WatchlistPatchBody, user: str = Depends(require_clerk_user)
+):
+    from src.services.database.repositories.watchlists import SORT_KEYS
+
+    if body.sort_key is not None and body.sort_key not in SORT_KEYS:
+        raise HTTPException(status_code=422, detail=f"sort_key must be one of: {', '.join(SORT_KEYS)}")
+    if not WatchlistsRepository(_client()).update(
+        user, watchlist_id, name=body.name, is_default=body.is_default, sort_key=body.sort_key,
+    ):
+        raise HTTPException(status_code=404, detail="Watchlist not found.")
+    return {"ok": True}
+
+
+@router.put("/watchlists/order")
+def reorder_watchlists(body: OrderBody, user: str = Depends(require_clerk_user)):
+    if not WatchlistsRepository(_client()).reorder_lists(user, body.order):
+        raise HTTPException(status_code=422, detail="The order must name each of your watchlists exactly once.")
     return {"ok": True}
 
 
@@ -151,9 +190,49 @@ def delete_watchlist(watchlist_id: str, user: str = Depends(require_clerk_user))
 def add_watchlist_ticker(
     watchlist_id: str, body: TickerBody, user: str = Depends(require_clerk_user)
 ):
-    if not WatchlistsRepository(_client()).add_ticker(user, watchlist_id, body.ticker):
+    from src.services.database.repositories.watchlists import MAX_TICKERS
+
+    outcome = WatchlistsRepository(_client()).add(user, watchlist_id, body.ticker)
+    if outcome == "not_found":
         raise HTTPException(status_code=404, detail="Watchlist not found.")
+    if outcome == "invalid":
+        raise HTTPException(status_code=422, detail="That is not a valid ticker symbol.")
+    if outcome == "full":
+        raise HTTPException(status_code=409, detail=f"This watchlist is full ({MAX_TICKERS} symbols).")
+    # "exists" is success: adding a symbol that is already tracked changes nothing.
+    return {"ok": True, "outcome": outcome}
+
+
+@router.patch("/watchlists/{watchlist_id}/tickers/{ticker}")
+def update_watchlist_item(
+    watchlist_id: str, ticker: str, body: ItemPatchBody, user: str = Depends(require_clerk_user)
+):
+    if not WatchlistsRepository(_client()).update_item(
+        user, watchlist_id, ticker, note=body.note, tags=body.tags, clear_note=body.clear_note,
+    ):
+        raise HTTPException(status_code=404, detail="That symbol is not in this watchlist.")
     return {"ok": True}
+
+
+@router.put("/watchlists/{watchlist_id}/order")
+def reorder_watchlist_items(
+    watchlist_id: str, body: OrderBody, user: str = Depends(require_clerk_user)
+):
+    if not WatchlistsRepository(_client()).reorder_items(user, watchlist_id, body.order):
+        raise HTTPException(status_code=422, detail="The order must name each symbol in the list exactly once.")
+    return {"ok": True}
+
+
+@router.post("/watchlists/{watchlist_id}/tickers/{ticker}/move")
+def move_watchlist_item(
+    watchlist_id: str, ticker: str, body: MoveBody, user: str = Depends(require_clerk_user)
+):
+    outcome = WatchlistsRepository(_client()).move_item(user, watchlist_id, body.to_watchlist_id, ticker)
+    if outcome == "not_found":
+        raise HTTPException(status_code=404, detail="Watchlist or symbol not found.")
+    if outcome == "full":
+        raise HTTPException(status_code=409, detail="The destination watchlist is full.")
+    return {"ok": True, "outcome": outcome}
 
 
 @router.delete("/watchlists/{watchlist_id}/tickers/{ticker}")
@@ -163,6 +242,155 @@ def remove_watchlist_ticker(
     if not WatchlistsRepository(_client()).remove_ticker(user, watchlist_id, ticker):
         raise HTTPException(status_code=404, detail="Watchlist not found.")
     return {"ok": True}
+
+
+# ── research context per ticker ──────────────────────────────────────────────
+
+@router.get("/history/latest")
+def latest_research(
+    tickers: str = Query(..., max_length=2200), user: str = Depends(require_clerk_user)
+):
+    """The caller's most recent research verdict per ticker, with its evidence grade.
+
+    Context for the tracker and the order ticket, never an instruction: a
+    verdict is shown with its confidence and evidence grade, and nothing in
+    this product turns one into an order.
+    """
+    symbols = [t.strip().upper() for t in tickers.split(",") if t.strip()][:200]
+    return {"latest": AnalysisRepository(_client()).latest_by_ticker(user, symbols)}
+
+
+# ── alerts ───────────────────────────────────────────────────────────────────
+
+class AlertBody(BaseModel):
+    ticker: str = Field(min_length=1, max_length=10)
+    kind: str = Field(min_length=1, max_length=20)
+    threshold: Optional[float] = None
+    threshold_high: Optional[float] = None
+    direction: Optional[str] = Field(default=None, max_length=10)
+    period_days: Optional[int] = None
+    form_types: list[str] = Field(default_factory=list, max_length=11)
+    repeat: bool = False
+    note: Optional[str] = Field(default=None, max_length=280)
+
+
+class AlertPatchBody(BaseModel):
+    status: Optional[str] = Field(default=None, max_length=10)
+    definition: Optional[AlertBody] = None
+
+
+def _alert_baseline(definition: dict[str, Any]) -> tuple[Optional[float], Optional[str]]:
+    """Validate the symbol against real data and take the baseline observation.
+
+    A symbol no provider recognises is refused (422); one that cannot be
+    checked because every provider is failing is refused too (503), rather than
+    stored unverified and silently never firing.
+    """
+    symbol = definition["ticker"]
+    if definition["kind"] == "new_filing":
+        try:
+            filings = providers.filings.sec.get_filings(symbol, limit=20)
+        except Exception:  # noqa: BLE001 — the SEC index is the only source
+            raise HTTPException(status_code=503, detail="SEC EDGAR could not be reached to verify this company.")
+        if not filings:
+            raise HTTPException(status_code=422, detail=f"SEC EDGAR has no filings for {symbol}.")
+        forms = definition.get("form_types") or []
+        wanted = [f for f in filings if not forms or str(f.get("form", "")).upper() in forms]
+        return None, (wanted[0].get("accession") if wanted else "none")
+    result = providers.market_data.get_price(symbol)
+    if not result.ok or result.data is None:
+        if getattr(result, "outage", False):
+            raise HTTPException(status_code=503, detail=f"No price provider answered for {symbol}; try again shortly.")
+        raise HTTPException(status_code=422, detail=f"No provider recognizes {symbol}.")
+    if definition["kind"] in ("cross_above", "cross_below", "range_exit"):
+        return float(result.data.price), None
+    return None, None
+
+
+@router.get("/alerts")
+def list_alerts(ticker: Optional[str] = Query(None, max_length=10), user: str = Depends(require_clerk_user)):
+    from src.services.database.repositories import AlertsRepository
+
+    return {"alerts": AlertsRepository(_client()).list(user, ticker)}
+
+
+@router.post("/alerts", status_code=201)
+def create_alert(body: AlertBody, user: str = Depends(require_clerk_user)):
+    from src.services.database.repositories import AlertsRepository
+    from src.services.database.repositories.alerts import (
+        MAX_ALERTS_PER_USER, AlertValidationError, validate_definition,
+    )
+
+    try:
+        definition = validate_definition(body.model_dump())
+    except AlertValidationError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    client = _client()
+    baseline_value, baseline_text = _alert_baseline(definition)
+    created = AlertsRepository(client).create(user, definition, baseline_value, baseline_text)
+    if created is None:
+        raise HTTPException(status_code=409, detail=f"Alert limit reached ({MAX_ALERTS_PER_USER}).")
+    return created
+
+
+@router.patch("/alerts/{alert_id}")
+def update_alert(alert_id: str, body: AlertPatchBody, user: str = Depends(require_clerk_user)):
+    from src.services.database.repositories import AlertsRepository
+    from src.services.database.repositories.alerts import AlertValidationError, validate_definition
+
+    definition = None
+    try:
+        if body.definition is not None:
+            definition = validate_definition(body.definition.model_dump())
+        updated = AlertsRepository(_client()).update(user, alert_id, definition, body.status)
+    except AlertValidationError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    if updated is None:
+        raise HTTPException(status_code=404, detail="Alert not found.")
+    return updated
+
+
+@router.delete("/alerts/{alert_id}")
+def delete_alert(alert_id: str, user: str = Depends(require_clerk_user)):
+    from src.services.database.repositories import AlertsRepository
+
+    if not AlertsRepository(_client()).delete(user, alert_id):
+        raise HTTPException(status_code=404, detail="Alert not found.")
+    return {"ok": True}
+
+
+@router.get("/alerts/events")
+def alert_events(limit: int = Query(50, ge=1, le=200), user: str = Depends(require_clerk_user)):
+    from src.services.database.repositories import AlertsRepository
+
+    return {"events": AlertsRepository(_client()).events(user, limit)}
+
+
+# ── notifications ────────────────────────────────────────────────────────────
+
+@router.get("/notifications")
+def list_notifications(
+    unread: bool = Query(False), limit: int = Query(50, ge=1, le=200), user: str = Depends(require_clerk_user)
+):
+    from src.services.database.repositories import NotificationsRepository
+
+    return NotificationsRepository(_client()).list(user, unread_only=unread, limit=limit)
+
+
+@router.post("/notifications/{notification_id}/read")
+def read_notification(notification_id: str, user: str = Depends(require_clerk_user)):
+    from src.services.database.repositories import NotificationsRepository
+
+    if not NotificationsRepository(_client()).mark_read(user, notification_id):
+        raise HTTPException(status_code=404, detail="Notification not found.")
+    return {"ok": True}
+
+
+@router.post("/notifications/read-all")
+def read_all_notifications(user: str = Depends(require_clerk_user)):
+    from src.services.database.repositories import NotificationsRepository
+
+    return {"marked": NotificationsRepository(_client()).mark_read(user)}
 
 
 # ── portfolio positions ──────────────────────────────────────────────────────
