@@ -38,6 +38,19 @@ def _finite_series(series):
     return series.replace([np.inf, -np.inf], np.nan).dropna()
 
 
+def _recent(fred, series_id: str, count: int):
+    """The newest `count` finite observations of a FRED series, oldest first.
+
+    FRED answers with a series' whole history unless told otherwise — decades
+    of daily rates, megabytes of XML — and every caller here keeps a handful.
+    The request asks for the newest observations only, with headroom for the
+    missing values ('.') FRED reports on holidays, and the answer is put back
+    in date order because `sort_order=desc` returns it newest first.
+    """
+    raw = fred.get_series(series_id, sort_order="desc", limit=max(count * 3, count + 10))
+    return _finite_series(raw).sort_index().tail(count)
+
+
 def _av_time(raw: str) -> str:
     """Alpha Vantage stamps news as `YYYYMMDDTHHMMSS`; everything downstream
     expects ISO-8601, and a mixed-format timestamp column sorts wrongly."""
@@ -251,7 +264,7 @@ class FredVendor(VendorClient):
             raise VendorError("fred: FRED_API_KEY not configured", transient=False)
 
         def _fetch() -> list[tuple[str, float]]:
-            series = _finite_series(self._client().get_series(series_id)).tail(count)
+            series = _recent(self._client(), series_id, count)
             return [(index.strftime("%Y-%m-%d"), float(value)) for index, value in series.items()
                     if math.isfinite(float(value))]
 
@@ -261,8 +274,10 @@ class FredVendor(VendorClient):
     def get_macro(self) -> Optional[MacroSnapshot]:
         def _fetch() -> MacroSnapshot:
             fred = self._client()
-            spread_series = _finite_series(fred.get_series(self.YIELD_CURVE_SERIES))
-            cpi = _finite_series(fred.get_series(self.CPI_SERIES))
+            spread_series = _recent(fred, self.YIELD_CURVE_SERIES, 5)
+            # Year-over-year inflation needs the reading twelve months back;
+            # three years of monthly values leaves room for a revised gap.
+            cpi = _recent(fred, self.CPI_SERIES, 36)
             inflation = monthly_yoy([(stamp.strftime("%Y-%m-%d"), float(value))
                                      for stamp, value in cpi.items()])
             observed = {
@@ -270,7 +285,7 @@ class FredVendor(VendorClient):
                 "inflation_rate": cpi.index[-1].strftime("%Y-%m-%d"),
             }
             try:
-                fed_series = _finite_series(fred.get_series(self.FED_FUNDS_SERIES))
+                fed_series = _recent(fred, self.FED_FUNDS_SERIES, 3)
                 fed_rate = float(fed_series.iloc[-1])
                 observed["fed_funds_rate"] = fed_series.index[-1].strftime("%Y-%m-%d")
             except Exception:  # noqa: BLE001 — optional series

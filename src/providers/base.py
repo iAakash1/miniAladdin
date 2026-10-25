@@ -129,6 +129,22 @@ def _vendor_fault(event: dict[str, Any]) -> bool:
     )
 
 
+def _library_failure(exc: BaseException) -> tuple[FailureClass, bool, Optional[int]]:
+    """(class, transient, status) for an exception raised inside a library call.
+
+    Adapters that fetch with their own `requests` call (an RSS feed, a page)
+    run it through `timed_call`, and `raise_for_status()` hands back an
+    HTTPError that still knows its status code. Reading it keeps a 429 a rate
+    limit and a 401 a refused credential, instead of "unavailable" for all.
+    """
+    if isinstance(exc, requests.Timeout):
+        return FailureClass.TIMEOUT, True, None
+    status = getattr(getattr(exc, "response", None), "status_code", None)
+    if isinstance(status, int) and not isinstance(status, bool):
+        return classify_api_error(status, ""), status in TRANSIENT_STATUS, status
+    return FailureClass.UNAVAILABLE, True, None
+
+
 def _current_request_id() -> Optional[str]:
     """The id of the API request this call serves, when there is one."""
     profile = _request_context.current()
@@ -932,16 +948,21 @@ class VendorClient:
             # its own request URL (fredapi puts the key in the query string)
             # can put that URL in the text of what it raises.
             message = redact(str(exc))
+            failure, transient, status = _library_failure(exc)
+            if failure is FailureClass.RATE_LIMITED:
+                self.stats.record_rate_limit(failure, operation, remember=False)
             self.stats.record(
-                False, latency, message, FailureClass.UNAVAILABLE.value,
-                operation=operation,
+                False, latency, message, failure.value, operation=operation,
+                request_specific=status in (404, 422), status_code=status,
             )
             _observe(self.NAME, operation, "error", latency)
-            if self.stats.consecutive_failures >= self.COOLDOWN_AFTER_FAILURES:
+            if failure is FailureClass.AUTH_FAILURE:
+                self._cooldown_until = time.monotonic() + self.AUTH_COOLDOWN_SECONDS
+            elif self.stats.consecutive_failures >= self.COOLDOWN_AFTER_FAILURES:
                 self._cooldown_until = time.monotonic() + self.COOLDOWN_SECONDS
             raise VendorError(
-                f"{self.NAME}: {message}", transient=True,
-                failure_class=FailureClass.UNAVAILABLE,
+                f"{self.NAME}: {message}", transient=transient,
+                failure_class=failure, status_code=status,
             ) from exc
         latency = (time.perf_counter() - started) * 1000
         self.stats.record(True, latency, operation=operation)

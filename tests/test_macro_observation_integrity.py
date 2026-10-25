@@ -76,7 +76,7 @@ def _observations():
 def test_fred_cpi_compares_the_same_month_one_year_earlier():
     vendor = FredVendor()
     class Fred:
-        def get_series(self, series_id):
+        def get_series(self, series_id, **_params):  # fredapi forwards extra API parameters
             return _observations() if series_id == 'CPIAUCNS' else pd.Series([.4], index=pd.to_datetime(['2026-09-07']))
     with patch.object(FredVendor, 'available', True), patch.object(vendor, '_client', return_value=Fred()):
         snapshot = vendor.get_macro()

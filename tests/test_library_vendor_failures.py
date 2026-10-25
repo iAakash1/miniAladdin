@@ -159,7 +159,7 @@ class _Fred:
     def __init__(self, **series):
         self.series, self.calls = series, []
 
-    def get_series(self, series_id):
+    def get_series(self, series_id, **_params):  # fredapi forwards extra API parameters
         self.calls.append(series_id)
         value = self.series[series_id]
         if isinstance(value, BaseException):

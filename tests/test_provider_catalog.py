@@ -391,3 +391,59 @@ def test_a_non_json_body_from_real_requests_is_a_parse_failure_and_not_retried()
         vendor._get_json("https://example.test/q", operation="quote")
     assert err.value.failure_class == "parse_failure"
     assert session.request.call_count == 1, "an unreadable body is not retried"
+
+
+def test_fred_asks_for_recent_observations_and_returns_them_in_date_order(monkeypatch):
+    """FRED returns a series' whole history unless asked otherwise (megabytes of
+    daily rates for three values). The request is bounded and newest-first; the
+    answer comes back oldest-first, as every caller expects."""
+    import pandas as pd
+
+    from src.providers.vendors.data_vendors import FredVendor
+
+    calls = []
+
+    class Fred:
+        def get_series(self, series_id, **params):
+            calls.append((series_id, params))
+            dates = pd.date_range(end="2026-10-23", periods=6, freq="B")[::-1]  # newest first, as FRED sends it
+            return pd.Series([4.6, float("nan"), 4.4, 4.3, 4.2, 4.1], index=dates)
+
+    monkeypatch.setenv("FRED_API_KEY", "fake-fred-key-00000")
+    vendor = FredVendor()
+    monkeypatch.setattr(vendor, "_client", lambda: Fred())
+    obs = vendor.get_observations("DGS10", 3)
+    assert calls == [("DGS10", {"sort_order": "desc", "limit": 13})]
+    assert [d for d, _ in obs] == sorted(d for d, _ in obs), "oldest first"
+    assert obs[-1] == ("2026-10-23", 4.6), "the newest value is last"
+    assert len(obs) == 3
+
+
+def test_an_http_error_inside_a_library_call_keeps_its_status_class():
+    """An adapter fetching with its own requests call (Yahoo's RSS feed) raises
+    HTTPError from raise_for_status(); a 429 there is a rate limit."""
+    vendor = _Vendor()
+
+    def throttled():
+        response = requests.Response()
+        response.status_code = 429
+        response.url = "https://feeds.example.test/rss?s=AAPL"
+        raise requests.HTTPError("429 Client Error: Too Many Requests", response=response)
+
+    with pytest.raises(VendorError) as err:
+        vendor.timed_call(throttled, operation="get_news")
+    assert err.value.failure_class == "rate_limited"
+    assert err.value.transient is True
+    snap = vendor.health_snapshot(include_recent=True)
+    assert snap["health_state"] == "RATE_LIMITED"
+    assert snap["recent"][0]["status_code"] == 429
+    assert snap["rate_limited"] == 1
+
+    def refused():
+        response = requests.Response()
+        response.status_code = 401
+        raise requests.HTTPError("401", response=response)
+
+    with pytest.raises(VendorError) as err:
+        vendor.timed_call(refused, operation="get_news")
+    assert err.value.failure_class == "auth_failure" and err.value.transient is False
