@@ -13,11 +13,27 @@
 import { useMemo, useSyncExternalStore } from 'react'
 import { authFetch } from './persistence'
 
+export interface WatchlistItem {
+  ticker: string
+  note: string | null
+  tags: string[]
+  position: number
+  addedAt: string | null
+}
+
+export type SortKey = 'manual' | 'symbol' | 'change' | 'change_pct' | 'perf_1m' | 'perf_1y' | 'updated' | 'alerts'
+
 export interface Watchlist {
   id: string
   name: string
   tickers: string[]
+  /** Absent from responses of an older backend; treated as plain tickers then. */
+  items?: WatchlistItem[]
+  position?: number
+  isDefault?: boolean
+  sortKey?: SortKey
   createdAt: string
+  updatedAt?: string
 }
 
 export type WatchlistsStatus = 'idle' | 'loading' | 'ready' | 'error' | 'unauthenticated'
@@ -29,7 +45,7 @@ export const SUGGESTED_LISTS: Array<{ name: string; tickers: string[] }> = [
   { name: 'Long Term', tickers: ['SPY', 'QQQ', 'BRK-B'] },
 ]
 
-const MAX_TICKERS = 25 // matches /api/quotes batch cap
+const MAX_TICKERS = 200 // per list; the tracker reads quotes 25 at a time
 
 let lists: Watchlist[] = []
 let status: WatchlistsStatus = 'idle'
@@ -129,6 +145,94 @@ export async function createWatchlist(
   }
 }
 
+/** The items of a list, from the server's detail or, failing that, its tickers. */
+export function itemsOf(list: Watchlist): WatchlistItem[] {
+  if (list.items?.length || (list.items && !list.tickers.length)) return list.items as WatchlistItem[]
+  return list.tickers.map((ticker, position) => ({ ticker, note: null, tags: [], position, addedAt: null }))
+}
+
+function patchList(id: string, body: Record<string, unknown>) {
+  void authFetch(`/api/watchlists/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(body) })
+    .then((res) => { if (!res.ok) void refreshWatchlists() })
+    .catch(() => refreshWatchlists())
+}
+
+export function setDefaultWatchlist(id: string) {
+  markMutated()
+  setLists(lists.map((l) => ({ ...l, isDefault: l.id === id })))
+  patchList(id, { is_default: true })
+}
+
+export function setSortKey(id: string, sortKey: SortKey) {
+  markMutated()
+  setLists(lists.map((l) => (l.id === id ? { ...l, sortKey } : l)))
+  patchList(id, { sort_key: sortKey })
+}
+
+/** Move a list one place up or down. */
+export function shiftWatchlist(id: string, delta: -1 | 1) {
+  const index = lists.findIndex((l) => l.id === id)
+  const target = index + delta
+  if (index < 0 || target < 0 || target >= lists.length) return
+  const next = [...lists]
+  ;[next[index], next[target]] = [next[target], next[index]]
+  markMutated()
+  setLists(next.map((l, position) => ({ ...l, position })))
+  void authFetch('/api/watchlists/order', { method: 'PUT', body: JSON.stringify({ order: next.map((l) => l.id) }) })
+    .then((res) => { if (!res.ok) void refreshWatchlists() })
+    .catch(() => refreshWatchlists())
+}
+
+/** Move a symbol one place up or down within its list. */
+export function shiftTicker(id: string, ticker: string, delta: -1 | 1) {
+  const list = lists.find((l) => l.id === id)
+  if (!list) return
+  const order = [...list.tickers]
+  const index = order.indexOf(ticker)
+  const target = index + delta
+  if (index < 0 || target < 0 || target >= order.length) return
+  ;[order[index], order[target]] = [order[target], order[index]]
+  const byTicker = new Map(itemsOf(list).map((i) => [i.ticker, i]))
+  markMutated()
+  setLists(lists.map((l) => (l.id === id ? {
+    ...l, tickers: order,
+    items: order.map((t, position) => ({ ...(byTicker.get(t) as WatchlistItem), ticker: t, position })),
+  } : l)))
+  void authFetch(`/api/watchlists/${encodeURIComponent(id)}/order`, { method: 'PUT', body: JSON.stringify({ order }) })
+    .then((res) => { if (!res.ok) void refreshWatchlists() })
+    .catch(() => refreshWatchlists())
+}
+
+export function updateItem(id: string, ticker: string, patch: { note?: string | null; tags?: string[] }) {
+  markMutated()
+  setLists(lists.map((l) => (l.id === id ? {
+    ...l, items: itemsOf(l).map((i) => (i.ticker === ticker ? {
+      ...i, note: patch.note === undefined ? i.note : patch.note, tags: patch.tags ?? i.tags,
+    } : i)),
+  } : l)))
+  const body: Record<string, unknown> = {}
+  if (patch.note === null || patch.note === '') body.clear_note = true
+  else if (patch.note !== undefined) body.note = patch.note
+  if (patch.tags) body.tags = patch.tags
+  void authFetch(`/api/watchlists/${encodeURIComponent(id)}/tickers/${encodeURIComponent(ticker)}`, {
+    method: 'PATCH', body: JSON.stringify(body),
+  }).then((res) => { if (!res.ok) void refreshWatchlists() }).catch(() => refreshWatchlists())
+}
+
+/** Move a symbol to another list; its note and tags go with it. */
+export async function moveTicker(fromId: string, toId: string, ticker: string): Promise<boolean> {
+  try {
+    const res = await authFetch(`/api/watchlists/${encodeURIComponent(fromId)}/tickers/${encodeURIComponent(ticker)}/move`, {
+      method: 'POST', body: JSON.stringify({ to_watchlist_id: toId }),
+    })
+    await refreshWatchlists()
+    return res.ok
+  } catch {
+    await refreshWatchlists()
+    return false
+  }
+}
+
 export function renameWatchlist(id: string, name: string) {
   const clean = name.trim().slice(0, 40)
   if (!clean) return
@@ -158,7 +262,11 @@ export function addTicker(id: string, ticker: string) {
   markMutated()
   setLists(lists.map((l) =>
     l.id === id && !l.tickers.includes(symbol)
-      ? { ...l, tickers: [...l.tickers, symbol].slice(0, MAX_TICKERS) }
+      ? {
+        ...l,
+        tickers: [...l.tickers, symbol].slice(0, MAX_TICKERS),
+        items: [...itemsOf(l), { ticker: symbol, note: null, tags: [], position: l.tickers.length, addedAt: new Date().toISOString() }].slice(0, MAX_TICKERS),
+      }
       : l,
   ))
   void authFetch(`/api/watchlists/${encodeURIComponent(id)}/tickers`, {
@@ -173,7 +281,7 @@ export function removeTicker(id: string, ticker: string) {
   const symbol = normalizeTicker(ticker)
   markMutated()
   setLists(lists.map((l) =>
-    l.id === id ? { ...l, tickers: l.tickers.filter((t) => t !== symbol) } : l,
+    l.id === id ? { ...l, tickers: l.tickers.filter((t) => t !== symbol), items: itemsOf(l).filter((i) => i.ticker !== symbol) } : l,
   ))
   void authFetch(
     `/api/watchlists/${encodeURIComponent(id)}/tickers/${encodeURIComponent(symbol)}`,
@@ -206,11 +314,11 @@ export function listsContaining(symbol: string, from: Watchlist[] = lists): Watc
   return from.filter((l) => l.tickers.includes(s))
 }
 
-/** Add to a list — the named one, or the first, creating it if none exists. */
+/** Add to a list — the named one, the default, or the first, creating one if none exists. */
 export async function watchSymbol(symbol: string, listId?: string): Promise<boolean> {
   const s = normalizeTicker(symbol)
   if (!s) return false
-  const target = listId ? lists.find((l) => l.id === listId) : lists[0]
+  const target = listId ? lists.find((l) => l.id === listId) : (lists.find((l) => l.isDefault) ?? lists[0])
   if (target) {
     addTicker(target.id, s)
     return true

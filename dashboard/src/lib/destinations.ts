@@ -67,7 +67,9 @@ export const DESTINATIONS: DestinationGroup[] = [
   {
     group: 'Portfolio',
     items: [
-      { href: '/terminal/portfolio', label: 'Watchlists', icon: 'list', key: 'w', answers: 'lists you follow, positions and exposure' },
+      { href: '/terminal/watchlists', label: 'Watchlists', icon: 'list', key: 'w', answers: 'tracked securities with live prices, alerts and research context' },
+      { href: '/terminal/alerts', label: 'Alerts', icon: 'log', key: 'a', answers: 'price and filing alerts, and the inbox' },
+      { href: '/terminal/portfolio', label: 'Portfolio', icon: 'list', key: 'o', answers: 'positions you record and their exposure' },
       { href: '/terminal/paper', label: 'Paper trading', icon: 'paper', key: 't', answers: 'a simulated account — no real money' },
     ],
   },

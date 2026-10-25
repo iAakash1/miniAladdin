@@ -66,6 +66,11 @@ export interface PaperOrder {
   client_order_id?: string
   symbol: string
   qty?: string
+  notional?: string | null
+  updated_at?: string | null
+  canceled_at?: string | null
+  expired_at?: string | null
+  failed_at?: string | null
   filled_qty?: string
   filled_avg_price?: string | null
   side?: string
@@ -80,32 +85,100 @@ export interface PaperOrder {
 
 export interface OrderIntent {
   symbol: string
-  qty: number
   side: 'buy' | 'sell'
+  /** Exactly one of qty (shares) and notional (dollars). */
+  qty?: number | null
+  notional?: number | null
   order_type: 'market' | 'limit'
   time_in_force: 'day' | 'gtc'
   limit_price?: number | null
+  /** Issued by the preview and sent back with the confirmation. */
+  client_order_id?: string | null
+  origin?: 'ticket' | 'watchlist' | 'research' | 'position' | null
 }
+
+export type QuoteFreshness = 'live' | 'delayed' | 'end_of_day' | 'stale' | 'undated' | 'unavailable'
 
 export interface OrderPreview {
   ok: boolean
   /** Everything wrong with the order, not just the first thing. */
   problems: string[]
-  symbol: string
-  qty: number
-  side: string
-  order_type: string
-  time_in_force: string
-  estimate: {
-    last_price: number | null
-    notional: number | null
-    /** Why this is an estimate and not a price. Rendered, never dropped. */
-    basis: string
-    source: string | null
+  /** Things the operator should know that do not block the order. */
+  warnings: string[]
+  order: {
+    symbol: string; side: string; order_type: string; time_in_force: string
+    qty: number | null; notional: number | null; limit_price: number | null
   }
+  client_order_id: string
+  quote: { price: number | null; as_of: string | null; source: string | null; freshness: QuoteFreshness }
+  estimate: { value: number | null; qty: number | null; basis: string }
   buying_power: number | null
-  asset: { tradable: boolean | null; fractionable: boolean | null; exchange: string | null }
+  market_open: boolean | null
+  asset: { tradable: boolean | null; fractionable: boolean | null; shortable?: boolean | null; exchange: string | null; name?: string | null } | null
   environment: string
+}
+
+/** What a confirmation produced: an order the broker holds, or an outcome still being resolved. */
+export type PlacementResult =
+  | { kind: 'placed'; order: PaperOrder; clientOrderId: string; replayed: boolean; reconciledAfter: string | null }
+  | { kind: 'unknown'; clientOrderId: string; detail: string }
+
+export interface PaperConnection {
+  state: 'connected' | 'blocked' | 'not_configured' | 'credentials_rejected' | 'restricted' | 'rate_limited' | 'unavailable'
+  detail?: string
+  account_status?: string
+  trading_blocked?: boolean
+  account_blocked?: boolean
+  checked_at?: string
+}
+
+export interface PaperHistoryPoint { t: number; equity: number; profit_loss: number | null; profit_loss_pct: number | null }
+
+export interface PaperHistory {
+  points: PaperHistoryPoint[]
+  base_value: number | null
+  timeframe: string | null
+  period: string
+}
+
+export interface PaperAnalytics {
+  reported: Record<string, number | null>
+  derived: {
+    day_change: number | null; day_change_pct: number | null; unrealized_pl_total: number | null
+    gross_exposure: number | null; cash_share: number | null; largest_weight: number | null; positions: number
+  }
+  weights: Array<{ symbol: string; market_value: number | null; weight: number | null; unrealized_pl: number | null; unrealized_plpc: number | null; side?: string }>
+  best: { symbol: string; unrealized_plpc: number | null } | null
+  worst: { symbol: string; unrealized_plpc: number | null } | null
+  order_activity: Record<string, number>
+  realized_pl: null
+  label: string
+}
+
+/** Alpaca statuses after which an order cannot change. */
+export const TERMINAL_STATUSES = ['filled', 'canceled', 'expired', 'rejected', 'replaced', 'done_for_day', 'stopped', 'suspended']
+
+export function isOpenOrder(status?: string | null): boolean {
+  return Boolean(status) && !TERMINAL_STATUSES.includes(String(status).toLowerCase())
+}
+
+/**
+ * The ticket's own rules, mirrored from the server so the form can say what
+ * is wrong before a round trip. The server checks again and has the last word.
+ */
+export function ticketProblems(i: OrderIntent): string[] {
+  const out: string[] = []
+  const hasQty = i.qty !== null && i.qty !== undefined
+  const hasNotional = i.notional !== null && i.notional !== undefined
+  if (hasQty === hasNotional) out.push('Give a share quantity or a dollar amount.')
+  if (hasQty && (!Number.isFinite(i.qty as number) || (i.qty as number) <= 0)) out.push('Quantity must be greater than zero.')
+  if (hasNotional && (!Number.isFinite(i.notional as number) || (i.notional as number) < 1)) out.push('A dollar amount must be at least $1.')
+  const fractional = hasQty && Number.isFinite(i.qty as number) && !Number.isInteger(i.qty)
+  if ((hasNotional || fractional) && (i.order_type !== 'market' || i.time_in_force !== 'day')) {
+    out.push('Dollar amounts and fractional shares are market orders good for the day.')
+  }
+  if (i.order_type === 'limit' && !(Number(i.limit_price) > 0)) out.push('A limit order needs a limit price above zero.')
+  return out
 }
 
 /**
@@ -157,28 +230,89 @@ export async function previewOrder(intent: OrderIntent): Promise<OrderPreview> {
   return r.json() as Promise<OrderPreview>
 }
 
-/** Place the order. Returns the broker's own reply, unmodified. */
-export async function placeOrder(intent: OrderIntent): Promise<{ order: PaperOrder }> {
+/**
+ * Place the order, carrying the preview's client order id.
+ *
+ * 201 is a new order, 200 a repeated confirmation answered with the order the
+ * first one created, 202 an outcome the broker has not confirmed yet — which
+ * is reconciled with `reconcileOrder`, never by confirming again.
+ */
+export async function placeOrder(intent: OrderIntent): Promise<PlacementResult> {
   const r = await authFetch('/api/paper/orders', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(intent),
   })
   if (!r.ok) throw new Error(await describe(r))
-  const body = await r.json() as { order: PaperOrder }
+  const body = await r.json() as {
+    order?: PaperOrder; client_order_id: string; replayed?: boolean; reconciled_after?: string; outcome?: string; detail?: string
+  }
   clearAuthResourceCache()
-  return body
+  if (r.status === 202 || !body.order) {
+    return { kind: 'unknown', clientOrderId: body.client_order_id, detail: body.detail ?? 'The broker has not confirmed this order yet.' }
+  }
+  return {
+    kind: 'placed', order: body.order, clientOrderId: body.client_order_id,
+    replayed: Boolean(body.replayed), reconciledAfter: body.reconciled_after ?? null,
+  }
 }
 
-/** Cancel an open paper order. The caller must make this an explicit action. */
-export async function cancelOrder(orderId: string): Promise<{ cancelled: string }> {
-  const r = await authFetch(`/api/paper/orders/${encodeURIComponent(orderId)}`, {
-    method: 'DELETE',
-  })
+/** What the broker now says about a submission, by its client order id. */
+export async function reconcileOrder(clientOrderId: string): Promise<{ found: boolean; order?: PaperOrder; local_status?: string | null }> {
+  const r = await authFetch(`/api/paper/orders/by-client/${encodeURIComponent(clientOrderId)}`)
   if (!r.ok) throw new Error(await describe(r))
-  const body = await r.json() as { cancelled: string }
   clearAuthResourceCache()
-  return body
+  return r.json()
+}
+
+/** Resolve submissions a timeout, reload or restart left open. */
+export async function reconcileUnresolved(): Promise<void> {
+  const r = await authFetch('/api/paper/reconcile', { method: 'POST' })
+  if (r.ok) clearAuthResourceCache()
+}
+
+export async function fetchOrderDetail(orderId: string): Promise<{ order: PaperOrder }> {
+  const r = await authFetch(`/api/paper/orders/${encodeURIComponent(orderId)}`)
+  if (!r.ok) throw new Error(await describe(r))
+  return r.json()
+}
+
+/** Cancel an open paper order and return what the broker says it is now. */
+export async function cancelOrder(orderId: string): Promise<{ requested: boolean; order: PaperOrder | null }> {
+  const r = await authFetch(`/api/paper/orders/${encodeURIComponent(orderId)}`, { method: 'DELETE' })
+  clearAuthResourceCache()
+  if (!r.ok) throw new Error(await describe(r))
+  return r.json()
+}
+
+export async function fetchPaperOrdersFiltered(status: 'all' | 'open' | 'closed', limit = 100): Promise<{ orders: PaperOrder[] }> {
+  const r = await authFetch(`/api/paper/orders?status=${status}&limit=${limit}`)
+  if (!r.ok) throw new Error(await describe(r))
+  return r.json()
+}
+
+export async function fetchPaperHistory(period: string, timeframe: string): Promise<PaperHistory> {
+  const r = await authFetch(`/api/paper/history?period=${encodeURIComponent(period)}&timeframe=${encodeURIComponent(timeframe)}`)
+  if (!r.ok) throw new Error(await describe(r))
+  return r.json()
+}
+
+export async function fetchPaperClock(): Promise<{ clock: { is_open?: boolean; next_open?: string; next_close?: string; timestamp?: string } }> {
+  const r = await authFetch('/api/paper/clock')
+  if (!r.ok) throw new Error(await describe(r))
+  return r.json()
+}
+
+export async function fetchPaperConnection(): Promise<PaperConnection> {
+  const r = await authFetch('/api/paper/connection')
+  if (!r.ok) throw new Error(await describe(r))
+  return r.json()
+}
+
+export async function fetchPaperAnalytics(): Promise<PaperAnalytics> {
+  const r = await authFetch('/api/paper/analytics')
+  if (!r.ok) throw new Error(await describe(r))
+  return r.json()
 }
 
 async function describe(r: Response): Promise<string> {
