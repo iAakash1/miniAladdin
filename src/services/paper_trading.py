@@ -115,8 +115,12 @@ def validate(order: dict[str, Any]) -> list[str]:
             problems.append("A limit order needs a limit price.")
     elif limit is not None:
         problems.append("Only a limit order takes a limit price.")
-    if limit is not None and (not math.isfinite(limit) or limit <= 0):
-        problems.append("Limit price must be a number greater than zero.")
+    if limit is not None:
+        # Said apart, as for quantity: "not a number" and "zero" have different fixes.
+        if not isinstance(limit, (int, float)) or not math.isfinite(limit):
+            problems.append("Limit price is not a number.")
+        elif limit <= 0:
+            problems.append("Limit price must be greater than zero.")
 
     cid = order["client_order_id"]
     if cid is not None and not CLIENT_ORDER_ID.match(cid):

@@ -139,6 +139,18 @@ export async function createAlert(d: AlertDraft): Promise<PriceAlert> {
   return created
 }
 
+/** Change an alert's condition. The server starts it from scratch, and a
+ *  triggered alert is re-armed: a changed condition is a new question. */
+export async function updateAlert(a: PriceAlert, d: AlertDraft): Promise<PriceAlert> {
+  const body: Record<string, unknown> = { definition: { ...d, ticker: a.ticker } }
+  if (a.status === 'triggered') body.status = 'active'
+  const r = await authFetch(`/api/alerts/${encodeURIComponent(a.id)}`, { method: 'PATCH', body: JSON.stringify(body) })
+  if (!r.ok) throw new Error(await detail(r))
+  const updated = await r.json() as PriceAlert
+  alerts = alerts.map((x) => (x.id === a.id ? updated : x)); emit()
+  return updated
+}
+
 export async function setAlertStatus(id: string, status: 'active' | 'paused'): Promise<void> {
   const r = await authFetch(`/api/alerts/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify({ status }) })
   if (!r.ok) throw new Error(await detail(r))
@@ -176,25 +188,38 @@ export interface InboxItem {
   } | null
 }
 
-let inbox: { notifications: InboxItem[]; unread: number } = { notifications: [], unread: 0 }
-let inboxLoaded = false
+export type InboxStatus = 'idle' | 'loading' | 'ready' | 'error' | 'signed-out'
+
+export interface InboxState {
+  notifications: InboxItem[]
+  /** The server's count of unread notifications, never a local tally. */
+  unread: number
+  status: InboxStatus
+}
+
+let inbox: InboxState = { notifications: [], unread: 0, status: 'idle' }
 const inboxListeners = new Set<() => void>()
 const emitInbox = () => inboxListeners.forEach((l) => l())
 
 export async function refreshInbox(): Promise<void> {
+  if (inbox.status === 'idle') { inbox = { ...inbox, status: 'loading' }; emitInbox() }
   try {
     const r = await authFetch('/api/notifications?limit=100')
-    if (!r.ok) return
-    inbox = await r.json() as typeof inbox
-    inboxLoaded = true
-    emitInbox()
-  } catch { /* the bell keeps its last count */ }
+    if (r.status === 401) { inbox = { notifications: [], unread: 0, status: 'signed-out' }; emitInbox(); return }
+    if (!r.ok) throw new Error(String(r.status))
+    const body = await r.json() as { notifications: InboxItem[]; unread: number }
+    inbox = { notifications: body.notifications, unread: body.unread, status: 'ready' }
+  } catch {
+    // Keep what was last read, and say the read failed.
+    inbox = { ...inbox, status: 'error' }
+  }
+  emitInbox()
 }
 
-const EMPTY_INBOX = { notifications: [] as InboxItem[], unread: 0 }
-export function useInbox() {
+const EMPTY_INBOX: InboxState = { notifications: [], unread: 0, status: 'idle' }
+export function useInbox(): InboxState {
   return useSyncExternalStore(
-    (cb) => { inboxListeners.add(cb); if (!inboxLoaded) void refreshInbox(); return () => { inboxListeners.delete(cb) } },
+    (cb) => { inboxListeners.add(cb); if (inbox.status === 'idle') void refreshInbox(); return () => { inboxListeners.delete(cb) } },
     () => inbox, () => EMPTY_INBOX,
   )
 }
@@ -207,7 +232,13 @@ export function useInboxPolling(intervalMs = 120_000) {
   }, [intervalMs])
 }
 
-export async function markRead(id?: string): Promise<void> {
-  const r = await authFetch(id ? `/api/notifications/${encodeURIComponent(id)}/read` : '/api/notifications/read-all', { method: 'POST' })
-  if (r.ok) await refreshInbox()
+/** Mark one notification (or all) read on the server, then re-read the server's count. */
+export async function markRead(id?: string): Promise<boolean> {
+  try {
+    const r = await authFetch(id ? `/api/notifications/${encodeURIComponent(id)}/read` : '/api/notifications/read-all', { method: 'POST' })
+    await refreshInbox()
+    return r.ok
+  } catch {
+    return false
+  }
 }

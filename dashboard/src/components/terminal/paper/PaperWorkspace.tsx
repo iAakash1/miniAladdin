@@ -34,6 +34,7 @@ import {
   type PaperAccount, type PaperAnalytics, type PaperConnection, type PaperHistory, type PaperOrder,
   type PaperPosition, type PaperStatus,
 } from '@/lib/paper'
+import { formatMoment } from '@/lib/quantity'
 import { ResourceError } from '@/lib/resource'
 import { watchSymbol } from '@/lib/watchlists'
 
@@ -250,7 +251,7 @@ function Account({ initialTicket }: { initialTicket: Ticket }) {
       <Ribbon detail="orders are placed by hand and confirmed on a review step" />
       <div className="paper-bar">
         <MarketLine clock={clock} />
-        <span className="sys-meta">{updatedAt ? `updated ${updatedAt.toLocaleTimeString()}` : 'not yet read'}</span>
+        <span className="sys-meta">{updatedAt ? `updated ${formatMoment(updatedAt.toISOString())}` : 'not yet read'}</span>
         <button type="button" className="sys-btn" onClick={() => void refresh()} disabled={busy}>{busy ? 'refreshing…' : 'Refresh'}</button>
         <ConnectionTest />
         <NewOrder onOpen={(symbol) => setTicket({ symbol, side: 'buy', origin: 'ticket' })} />
@@ -296,7 +297,8 @@ function MarketLine({ clock }: { clock: { is_open?: boolean; next_open?: string;
 function fmtTime(iso?: string): string {
   if (!iso) return '—'
   const d = new Date(iso)
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' })
+  // Market hours are New York hours, so they are shown in New York time and say so.
+  return Number.isNaN(d.getTime()) ? iso : `${d.toLocaleString('en-US', { weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'America/New_York' })} ET`
 }
 
 function ConnectionTest() {
@@ -380,16 +382,18 @@ function Fact({ k, children }: { k: string; children: React.ReactNode }) {
 
 function Performance() {
   const [choice, setChoice] = useState(PERIODS[2])
-  const [history, setHistory] = useState<PaperHistory | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  // Keyed by the window it answers, so a slow reply for an old window is never shown under a new one.
+  const [read, setRead] = useState<{ key: string; history?: PaperHistory; error?: string } | null>(null)
   useEffect(() => {
     let alive = true
-    setHistory(null); setError(null)
     fetchPaperHistory(choice.period, choice.timeframe)
-      .then((h) => { if (alive) setHistory(h) })
-      .catch((e: Error) => { if (alive) setError(e.message) })
+      .then((h) => { if (alive) setRead({ key: choice.label, history: h }) })
+      .catch((e: Error) => { if (alive) setRead({ key: choice.label, error: e.message }) })
     return () => { alive = false }
   }, [choice])
+  const current = read?.key === choice.label ? read : null
+  const history = current?.history ?? null
+  const error = current?.error ?? null
 
   const points = history?.points ?? []
   const first = points[0]?.equity ?? null
@@ -416,7 +420,7 @@ function Performance() {
                   method="Alpaca portfolio history: equity at the end of each window"
                 />
                 <p className="sys-meta">
-                  {first !== null && last ? `Range change ${(((last.equity / first) - 1) * 100).toFixed(2)}% from ${first.toLocaleString(undefined, { style: 'currency', currency: 'USD' })}. ` : ''}
+                  {first !== null && last ? `Range change ${(((last.equity / first) - 1) * 100).toFixed(2)}% from ${first.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}. ` : ''}
                   Not annualized. Deposits and withdrawals move equity too.
                 </p>
               </>
@@ -541,7 +545,7 @@ function Orders({
             <tbody>
               {sorted.map((o) => (
                 <tr key={o.id}>
-                  <td className="sys-meta">{(o.submitted_at ?? o.created_at ?? '').slice(0, 19).replace('T', ' ')}</td>
+                  <td className="sys-meta">{formatMoment(o.submitted_at ?? o.created_at)}</td>
                   <td>{o.symbol}</td>
                   <td>{o.side ? <span className="paper-side" data-side={o.side.toLowerCase()}>{o.side.toUpperCase()}</span> : '—'}</td>
                   <td className="sys-meta">{o.type}{o.limit_price ? ` @ ${o.limit_price}` : ''} · {o.time_in_force}</td>
@@ -591,7 +595,7 @@ function OrderLifecycle({ order: o }: { order: PaperOrder }) {
         <div><dt>Client reference</dt><dd className="ticket__id">{o.client_order_id ?? '—'}</dd></div>
       </dl>
       <ol className="paper-life__steps">
-        {steps.filter(([, at]) => at).map(([k, at]) => <li key={k}><span>{k}</span><span className="sys-meta">{String(at).replace('T', ' ').slice(0, 19)}</span></li>)}
+        {steps.filter(([, at]) => at).map(([k, at]) => <li key={k}><span>{k}</span><span className="sys-meta">{formatMoment(String(at))}</span></li>)}
       </ol>
     </div>
   )

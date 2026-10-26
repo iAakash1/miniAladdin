@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * Create an alert for one security.
+ * Create an alert for one security, or change an existing alert's condition.
  *
  * Only conditions the evaluator can test from data it actually has: price
  * crossings, a range exit, a move over a day or a number of trading sessions,
@@ -14,24 +14,29 @@ import { useState } from 'react'
 
 import { Status } from '@/components/system'
 import {
-  FILING_FORMS, KIND_LABEL, createAlert, draftProblems,
+  FILING_FORMS, KIND_LABEL, createAlert, draftProblems, updateAlert,
   type AlertDraft, type AlertKind, type PriceAlert,
 } from '@/lib/alerts'
 
 export default function AlertEditor({
-  ticker: fixedTicker, onCreated, lastPrice,
-}: { ticker?: string; onCreated?: (a: PriceAlert) => void; lastPrice?: number | null }) {
-  const [ticker, setTicker] = useState(fixedTicker ?? '')
-  const [kind, setKind] = useState<AlertKind>('cross_above')
-  const [threshold, setThreshold] = useState(lastPrice ? String(Math.round(lastPrice * 1.05 * 100) / 100) : '')
-  const [high, setHigh] = useState('')
-  const [direction, setDirection] = useState<'up' | 'down' | 'either'>('either')
-  const [period, setPeriod] = useState('21')
-  const [forms, setForms] = useState<string[]>(['10-K', '10-Q', '8-K'])
-  const [repeat, setRepeat] = useState(false)
-  const [note, setNote] = useState('')
+  ticker: fixedTicker, onCreated, lastPrice, editing,
+}: { ticker?: string; onCreated?: (a: PriceAlert) => void; lastPrice?: number | null; editing?: PriceAlert }) {
+  const [ticker, setTicker] = useState(editing?.ticker ?? fixedTicker ?? '')
+  const [kind, setKind] = useState<AlertKind>(editing?.kind ?? 'cross_above')
+  const [threshold, setThreshold] = useState(
+    editing?.threshold != null ? String(editing.threshold) : lastPrice ? String(Math.round(lastPrice * 1.05 * 100) / 100) : '',
+  )
+  const [high, setHigh] = useState(editing?.threshold_high != null ? String(editing.threshold_high) : '')
+  const [direction, setDirection] = useState<'up' | 'down' | 'either'>(editing?.direction ?? 'either')
+  const [period, setPeriod] = useState(String(editing?.period_days ?? 21))
+  const [forms, setForms] = useState<string[]>(editing ? editing.form_types : ['10-K', '10-Q', '8-K'])
+  const [repeat, setRepeat] = useState(editing?.repeat ?? false)
+  const [note, setNote] = useState(editing?.note ?? '')
   const [saving, setSaving] = useState(false)
+  // Problems are shown once the reader has typed or tried to save, not on an empty form.
+  const [touched, setTouched] = useState(false)
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null)
+  const tickerFixed = Boolean(fixedTicker || editing)
 
   const draft: AlertDraft = {
     ticker: ticker.trim().toUpperCase(), kind, repeat, note: note.trim() || null,
@@ -46,9 +51,14 @@ export default function AlertEditor({
   const save = async () => {
     setSaving(true); setResult(null)
     try {
-      const created = await createAlert(draft)
-      setResult({ ok: true, text: `Saved: ${created.condition}. Checked on the server's schedule, not in this browser.` })
-      onCreated?.(created)
+      const saved = editing ? await updateAlert(editing, draft) : await createAlert(draft)
+      setResult({
+        ok: true,
+        text: editing
+          ? `Updated: ${saved.condition}. It starts again from the next evaluation.`
+          : `Saved: ${saved.condition}. Checked on the server's schedule, not in this browser.`,
+      })
+      onCreated?.(saved)
     } catch (e) {
       setResult({ ok: false, text: e instanceof Error ? e.message : 'The alert was not saved.' })
     } finally {
@@ -64,9 +74,12 @@ export default function AlertEditor({
   )
 
   return (
-    <form className="alert-editor" onSubmit={(e) => { e.preventDefault(); if (!problems.length) void save() }}>
+    <form
+      className="alert-editor" onChange={() => setTouched(true)}
+      onSubmit={(e) => { e.preventDefault(); setTouched(true); if (!problems.length) void save() }}
+    >
       <div className="ticket__fields">
-        {fixedTicker ? null : (
+        {tickerFixed ? null : (
           <label className="ticket__field">
             <span className="k">Ticker</span>
             <input className="sys-input" value={ticker} onChange={(e) => setTicker(e.target.value)} autoComplete="off" placeholder="AAPL" />
@@ -130,14 +143,16 @@ export default function AlertEditor({
         </label>
       </div>
 
-      {problems.length ? <ul className="ticket__local" aria-live="polite">{problems.map((p) => <li key={p}>{p}</li>)}</ul> : null}
+      {touched && problems.length ? <ul className="ticket__local" aria-live="polite">{problems.map((p) => <li key={p}>{p}</li>)}</ul> : null}
       {result ? (
         <p className="alert-editor__result" role="status">
           <Status state={result.ok ? 'live' : 'error'} label={result.ok ? 'SAVED' : 'NOT SAVED'} /> {result.text}
         </p>
       ) : null}
       <div className="ticket__acts">
-        <button type="submit" className="sys-btn sys-btn--primary" disabled={saving || problems.length > 0}>{saving ? 'saving…' : 'Create alert'}</button>
+        <button type="submit" className="sys-btn sys-btn--primary" disabled={saving || (touched && problems.length > 0)}>
+          {saving ? 'saving…' : editing ? 'Save changes' : 'Create alert'}
+        </button>
       </div>
     </form>
   )

@@ -181,11 +181,22 @@ test('every hand-built table in the product is accounted for', () => {
      DOM-checked, because this session was asked not to open a browser; that
      check is owed.
 
+     54 -> 56 for the tracker and the alerts list, both read in the rendered
+     DOM through a local harness (a test backend with in-memory storage, a
+     mocked paper broker and controlled quotes): the tracker at eight headers
+     against eight cells on rows with a live, a stale and a missing quote, the
+     alerts list at six against six on configured, evaluated and triggered
+     alerts. Both carry a row header, which `.sys-table` styled only in the
+     head, so they have their own row-header rule. The same harness rendered
+     the paper orders table for the first time, at nine against nine, so that
+     DOM check is no longer owed; the positions table still is, because the
+     mocked account held no position.
+
      Every other one was read in the rendered DOM before this number moved,
      and the eight times it did not. */
   assert.equal(
-    handBuilt.length, 54,
-    `hand-built tables changed from 54 to ${handBuilt.length}. Route the new one ` +
+    handBuilt.length, 56,
+    `hand-built tables changed from 56 to ${handBuilt.length}. Route the new one ` +
     'through DataTable, or check its alignment in the rendered DOM and update ' +
     'this count deliberately.',
   )

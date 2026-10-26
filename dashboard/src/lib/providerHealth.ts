@@ -151,37 +151,3 @@ export function classifyVendor(v: VendorSnapshot): VendorHealth {
     note: throttled ? `${v.rate_limited} calls held back by the local rate limit` : null,
   }
 }
-
-export interface ProviderSummary {
-  vendors: number
-  configured: number
-  healthy: number
-  idle: number
-  constrained: number
-  failing: number
-  notConfigured: number
-}
-
-/** Counts over distinct vendors — one vendor can serve several capabilities. */
-export function summarize(byCapability: Record<string, VendorSnapshot[]>): ProviderSummary {
-  const worst = new Map<string, VendorHealth>()
-  const rank: Record<HealthTone, number> = { neg: 4, warn: 3, pos: 2, info: 1, muted: 0 }
-  for (const list of Object.values(byCapability)) {
-    for (const v of list) {
-      const h = classifyVendor(v)
-      const held = worst.get(v.vendor)
-      if (!held || rank[h.tone] > rank[held.tone]) worst.set(v.vendor, h)
-    }
-  }
-  const values = [...worst.values()]
-  return {
-    vendors: values.length,
-    // A disabled vendor may hold a credential, but it is not in service.
-    configured: values.filter((h) => h.state !== 'NOT_CONFIGURED' && h.state !== 'DISABLED').length,
-    healthy: values.filter((h) => h.state === 'HEALTHY').length,
-    idle: values.filter((h) => h.state === 'IDLE').length,
-    constrained: values.filter((h) => h.tone === 'warn').length,
-    failing: values.filter((h) => h.tone === 'neg').length,
-    notConfigured: values.filter((h) => h.state === 'NOT_CONFIGURED').length,
-  }
-}

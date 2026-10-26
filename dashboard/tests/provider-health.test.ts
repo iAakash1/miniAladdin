@@ -6,7 +6,7 @@
 import { strict as assert } from 'node:assert'
 import test from 'node:test'
 
-import { classifyVendor, summarize, type VendorSnapshot } from '../src/lib/providerHealth'
+import { classifyVendor, type VendorSnapshot } from '../src/lib/providerHealth'
 
 const snap = (over: Partial<VendorSnapshot>): VendorSnapshot => ({
   vendor: 'v', configured: true, requests: 10, success_pct: 100, failures: 0, rate_limited: 0, ...over,
@@ -74,13 +74,4 @@ test('an ordinary cooldown after transient failures is still a cooldown', () => 
 
 test('a credential that was refused and later accepted is not shown as rejected', () => {
   assert.notEqual(classifyVendor(snap({ health_state: 'HEALTHY', last_failure_class: 'auth_failure' })).state, 'AUTH_FAILURE')
-})
-
-test('a disabled vendor is not counted as configured in the status bar summary', () => {
-  const s = summarize({ market: [
-    snap({ vendor: 'a', health_state: 'HEALTHY' }),
-    snap({ vendor: 'b', health_state: 'DISABLED' }),
-  ] })
-  assert.equal(s.vendors, 2)
-  assert.equal(s.configured, 1)
 })

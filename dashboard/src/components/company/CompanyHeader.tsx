@@ -142,7 +142,7 @@ function siteLabel(p: CompanyProfile | null | undefined): { href: string; label:
 }
 
 export default function CompanyHeader({
-  symbol, name, exchange, sector, industry, profile, quote, quoteError, historyId, onPaper, paperAvailable,
+  symbol, name, exchange, sector, industry, profile, quote, quoteError, historyId, onPaper, paperAvailable, onAlert,
 }: {
   symbol: string
   name: string | null
@@ -156,6 +156,8 @@ export default function CompanyHeader({
   historyId: string | null
   onPaper: () => void
   paperAvailable: boolean
+  /** Opens the alert editor for this security. */
+  onAlert?: () => void
 }) {
   const recent = useSyncExternalStore(subscribeSymbols, recentSnapshot, emptySnapshot)
   const against = recent.find((s) => s !== symbol)
@@ -225,6 +227,7 @@ export default function CompanyHeader({
 
       <div className="cw-actions">
         <WatchControl symbol={symbol} />
+        {onAlert ? <button type="button" className="sys-btn" onClick={onAlert}>Set alert</button> : null}
         {historyId ? <SaveControl historyId={historyId} /> : null}
         {against ? (
           <Link className="sys-btn" href={`/terminal/compare?a=${encodeURIComponent(symbol)}&b=${encodeURIComponent(against)}`}>

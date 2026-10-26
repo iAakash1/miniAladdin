@@ -260,3 +260,16 @@ test('the headers that name the backend build reach the browser', async (t) => {
   assert.equal(response.headers.get('x-backend-commit'), '0123456789ab')
   assert.equal(response.headers.get('x-backend-revision'), 'omnisignal-api-poc-release-0123456')
 })
+
+test('scheduler-only routes under /api/internal/ are refused before any upstream call', async (t) => {
+  let calls = 0
+  arrange(t, async () => { calls += 1; return new Response('{"ok":true}', { status: 200 }) }, 'cloud-run')
+  for (const path of [['internal', 'alerts', 'evaluate'], ['Internal', 'alerts', 'evaluate'], ['INTERNAL']]) {
+    const r = await proxyBackend(new Request('https://terminal.example/api/internal/alerts/evaluate', {
+      method: 'POST', headers: { 'X-Scheduler-Token': 'x'.repeat(40) },
+    }), path)
+    assert.equal(r.status, 404)
+    assert.equal(r.headers.get('cache-control'), 'no-store')
+  }
+  assert.equal(calls, 0, 'the scheduler token is never forwarded through the website')
+})

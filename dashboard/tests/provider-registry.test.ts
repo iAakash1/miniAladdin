@@ -12,7 +12,7 @@ import test from 'node:test'
 import { classifyVendor } from '../src/lib/providerHealth'
 import {
   NO_FILTERS, ago, classify, filterProviders, filtersActive, healthFingerprint, outcomeLabel,
-  parseRegistry, summarizeRegistry, type ProviderRecord, type Registry,
+  parseRegistry, providerFactText, summarizeRegistry, type ProviderRecord, type Registry,
 } from '../src/lib/providerRegistry'
 
 function provider(id: string, over: Partial<ProviderRecord> = {}, health: Partial<ProviderRecord['health']> = {}): ProviderRecord {
@@ -138,4 +138,37 @@ test('a record without its window counters, or a capability without its lists, i
   assert.deepEqual(parsed?.providers.map((p) => p.id), ['a'])
   assert.ok(parsed && !parsed.capabilities.some((c) => c.key === 'x'))
   assert.doesNotThrow(() => summarizeRegistry(parsed!))
+})
+
+test('the status bar counts every registered adapter, the same population as the providers page', () => {
+  // The footer once summed vendors per capability family (27) while the page
+  // counted registered adapters (30): adapters outside every family vanished.
+  const reg = registry([
+    provider('a'),
+    provider('b', { groups: [], capabilities: [] }),
+    provider('c', { configuration: { ...provider('c').configuration, disabled: true } }, { state: 'DISABLED' }),
+    provider('d', { configuration: { ...provider('d').configuration, configured: false, credential_state: 'not_configured' } }, { state: 'NOT_CONFIGURED', requests: 0, window: { ok: 0, failed: 0 } }),
+  ])
+  const s = summarizeRegistry(reg)
+  assert.equal(s.registered, reg.providers.length)
+  assert.equal(providerFactText(s), `${s.configured} of ${s.registered} configured`)
+  assert.equal(providerFactText(s), '2 of 4 configured', 'disabled and unconfigured adapters are not configured')
+})
+
+test('the status bar reads the providers page\'s endpoint and summary, not a second implementation', () => {
+  const src = readFileSync(join(__dirname, '../src/components/shell/StatusBar.tsx'), 'utf8')
+  assert.match(src, /'\/api\/providers\/registry'/)
+  assert.match(src, /summarizeRegistry\(/)
+  assert.doesNotMatch(src, /\/api\/providers\/health/)
+  const page = readFileSync(join(__dirname, '../src/components/terminal/providers/ProviderConsole.tsx'), 'utf8')
+  assert.match(page, /summarizeRegistry\(/)
+})
+
+test('failing and constrained adapters are named in the status line', () => {
+  const s = summarizeRegistry(registry([
+    provider('a', {}, { state: 'UNAVAILABLE', window: { ok: 0, failed: 3 } }),
+    provider('b', {}, { state: 'RATE_LIMITED' }),
+    provider('c'),
+  ]))
+  assert.equal(providerFactText(s), '3 of 3 configured · 1 failing · 1 constrained')
 })

@@ -48,7 +48,17 @@ INTERNAL: dict[str, str] = {
         "page now reads it, joined with health and the catalog, from "
         "/api/providers/registry, and this stays for API clients"
     ),
+    "/api/providers/health": (
+        "the per-capability health snapshot the status bar used to sum; the bar "
+        "now reads /api/providers/registry with the providers page, so both count "
+        "the same adapters, and this stays for API clients"
+    ),
     "/api/research/providers/health": "duplicate of /api/providers/health",
+    "/api/internal/alerts/evaluate": (
+        "the alert scheduler's entry point: it authenticates with "
+        "X-Scheduler-Token, not a user, and the web proxy refuses /api/internal/ "
+        "before any upstream call, so no page can or should call it"
+    ),
     "/api/factors/universes": "populates a control inside the factor workspace, not a page",
     "/api/company/{ticker}/media": "called from the security workspace by composed path",
     "/api/memo/{ticker}": "server-generated analyst prose; the notebook is deliberately author-written instead, so this stays unwired",
@@ -134,7 +144,6 @@ def test_internal_entries_carry_a_reason() -> None:
         # The capability matrix is surfaced through the registry, which carries
         # it alongside health; /api/providers/capabilities is declared above.
         "/api/providers/registry",
-        "/api/providers/health",
         "/api/quant/covariance",
         "/api/quant/latest",
         "/api/dashboard",
@@ -145,3 +154,25 @@ def test_internal_entries_carry_a_reason() -> None:
 def test_the_endpoints_the_redesign_surfaced_stay_surfaced(endpoint: str) -> None:
     """These were orphans. A regression that re-orphans one fails here by name."""
     assert _is_referenced(endpoint, _frontend_text()), f"{endpoint} lost its UI surface"
+
+
+def test_internal_routes_are_unreachable_from_the_website() -> None:
+    """An /api/internal/ entry is a claim about access, so it is checked as one.
+
+    It must be declared, never referenced by a page, refused by the web proxy,
+    and refused by the backend itself without its scheduler secret.
+    """
+    internal = [e for e in _endpoints() if e.startswith("/api/internal/")]
+    assert internal, "the scheduler route moved; update this check"
+    haystack = _frontend_text()
+    proxy = (FRONTEND / "lib" / "backend-proxy.ts").read_text()
+    assert "=== 'internal'" in proxy, "the web proxy no longer refuses /api/internal/"
+    for e in internal:
+        assert e in INTERNAL
+        assert e not in haystack, f"{e} is referenced by the website"
+    from fastapi.testclient import TestClient
+
+    import api.index as api_module
+    client = TestClient(api_module.app)
+    for e in internal:
+        assert client.post(e).status_code in {403, 503}, f"{e} answered without its secret"

@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import type { ResearchState } from '@/components/system'
 import { fetchMacroClient } from '@/lib/api'
 import { type Observed, failed, observed } from '@/lib/observation'
-import { summarize, type VendorSnapshot } from '@/lib/providerHealth'
+import { parseRegistry, providerFactText, summarizeRegistry, type Registry } from '@/lib/providerRegistry'
 import { readResource } from '@/lib/resource'
 import type { Macro } from '@/lib/types'
 
@@ -71,8 +71,14 @@ function notCurrent<T>(read: Observed<T> | null, render: (v: T) => string): { to
   return { tone: 'muted', value: 'status unavailable' }
 }
 
-const loadProviders = () =>
-  readResource<{ providers?: Record<string, VendorSnapshot[]> }>('/api/providers/health', 'snapshot')
+/* The same registry, and the same summary, as the providers page: the footer
+   and the page used to read different endpoints and so counted different
+   populations (27 vendors in the families against 30 catalogued adapters). */
+const loadProviders = async (): Promise<Registry> => {
+  const reg = parseRegistry(await readResource<unknown>('/api/providers/registry', 'snapshot'))
+  if (!reg) throw new Error('provider registry unreadable')
+  return reg
+}
 // /api/quant/status carries no holdout reading. The research record does —
 // per study, the same flags Quant Lab lists — and is read from the same cache.
 const loadGovernance = async (): Promise<Governance> => {
@@ -119,16 +125,11 @@ export default function StatusBar({ pageFacts }: {
   const governance = useRead(loadGovernance, 60_000)
   const macro = useRead<Macro>(loadMacro, 300_000)
 
-  const providerLine = (p: { providers?: Record<string, VendorSnapshot[]> }) => {
-    const sm = p.providers ? summarize(p.providers) : null
-    if (!sm) return null
+  const providerLine = (reg: Registry) => {
+    const sm = summarizeRegistry(reg)
     return {
-      tone: (sm.failing ? 'neg' : sm.constrained ? 'warn' : 'pos') as Tone,
-      value: [
-        `${sm.configured} of ${sm.vendors} configured`,
-        sm.failing ? `${sm.failing} failing` : null,
-        sm.constrained ? `${sm.constrained} constrained` : null,
-      ].filter(Boolean).join(' · '),
+      tone: (sm.failing ? 'neg' : sm.constrained ? 'warn' : sm.answeringNow ? 'pos' : 'muted') as Tone,
+      value: providerFactText(sm),
     }
   }
   const p = providers?.state === 'observed' ? providers.value : null

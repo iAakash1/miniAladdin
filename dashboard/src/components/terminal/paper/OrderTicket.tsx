@@ -31,8 +31,9 @@ import {
   placeOrder, previewOrder, reconcileOrder, ticketProblems,
   type OrderIntent, type OrderPreview, type PaperOrder, type QuoteFreshness,
 } from '@/lib/paper'
+import { formatMoment } from '@/lib/quantity'
 import { fetchLatestResearch, signalCaution, type LatestResearch } from '@/lib/research-context'
-import { recordThesis } from '@/lib/thesis'
+import { recordThesis, thesisFor } from '@/lib/thesis'
 
 type Stage =
   | { at: 'intent' }
@@ -99,6 +100,16 @@ export default function OrderTicket({
       .catch((e: Error) => setStage({ at: 'failed', reason: e.message }))
   }
 
+  /* Only what the reader typed, and once per order. A replayed or reconciled
+     confirmation keeps a thesis already recorded for the order, and records
+     one only when the first reply was lost before it could be kept. */
+  const keepThesis = (order: PaperOrder) => {
+    const text = thesis.trim()
+    if (text) {
+      if (!thesisFor(order.id)) recordThesis({ orderId: order.id, symbol, text, at: new Date().toISOString(), researchState: researchState ?? null })
+    }
+  }
+
   const place = (preview: OrderPreview) => {
     setStage({ at: 'placing', preview })
     placeOrder(intent(preview.client_order_id))
@@ -107,10 +118,7 @@ export default function OrderTicket({
           setStage({ at: 'unknown', clientOrderId: result.clientOrderId, detail: result.detail, checking: false })
           return
         }
-        const text = thesis.trim()
-        if (text && !result.replayed) {
-          recordThesis({ orderId: result.order.id, symbol, text, at: new Date().toISOString(), researchState: researchState ?? null })
-        }
+        keepThesis(result.order)
         setStage({ at: 'placed', order: result.order, replayed: result.replayed, reconciledAfter: result.reconciledAfter })
       })
       .catch((e: Error) => setStage({ at: 'failed', reason: e.message }))
@@ -120,7 +128,10 @@ export default function OrderTicket({
     setStage({ at: 'unknown', clientOrderId, detail, checking: true })
     reconcileOrder(clientOrderId)
       .then((r) => {
-        if (r.found && r.order) setStage({ at: 'placed', order: r.order, replayed: false, reconciledAfter: 'check' })
+        if (r.found && r.order) {
+          keepThesis(r.order)
+          setStage({ at: 'placed', order: r.order, replayed: false, reconciledAfter: 'check' })
+        }
         else setStage({ at: 'unknown', clientOrderId, checking: false, detail: 'The broker still has no order with this reference. It was not resent.' })
       })
       .catch((e: Error) => setStage({ at: 'unknown', clientOrderId, checking: false, detail: e.message }))
@@ -149,16 +160,7 @@ export default function OrderTicket({
       {stage.at === 'placed' ? (
         <Placed order={stage.order} symbol={symbol} replayed={stage.replayed} reconciledAfter={stage.reconciledAfter} hadThesis={Boolean(thesis.trim())} />
       ) : stage.at === 'unknown' ? (
-        <div className="ticket__body">
-          <Status state="warning" label="OUTCOME NOT CONFIRMED" />
-          <Prose size="tight">{stage.detail}</Prose>
-          <p className="ticket__basis">Order reference <span className="ticket__id">{stage.clientOrderId}</span>. Do not place it again until its status is known.</p>
-          <div className="ticket__acts">
-            <button type="button" className="sys-btn sys-btn--primary" disabled={stage.checking} onClick={() => check(stage.clientOrderId, stage.detail)}>
-              {stage.checking ? 'checking…' : 'Check status with the broker'}
-            </button>
-          </div>
-        </div>
+        <Unconfirmed clientOrderId={stage.clientOrderId} detail={stage.detail} checking={stage.checking} onCheck={() => check(stage.clientOrderId, stage.detail)} />
       ) : stage.at === 'failed' ? (
         <div className="ticket__body">
           <Status state="unavailable" label="NOT PLACED" />
@@ -173,7 +175,6 @@ export default function OrderTicket({
           symbol={symbol}
           placing={stage.at === 'placing'}
           thesis={thesis.trim()}
-          caution={caution}
           onBack={() => setStage({ at: 'intent' })}
           onPlace={() => place(stage.preview)}
         />
@@ -260,14 +261,13 @@ export default function OrderTicket({
 
 /* ── review ──────────────────────────────────────────────────────────────── */
 
-function Review({
-  preview, symbol, placing, thesis, caution, onBack, onPlace,
+export function Review({
+  preview, symbol, placing, thesis, onBack, onPlace,
 }: {
   preview: OrderPreview
   symbol: string
   placing: boolean
   thesis: string
-  caution: string | null
   onBack: () => void
   onPlace: () => void
 }) {
@@ -294,16 +294,16 @@ function Review({
             <span className="ticket__fresh" data-fresh={q.freshness}>{FRESHNESS_LABEL[q.freshness]}</span>
           </dd>
         </div>
-        <div><dt>Quote</dt><dd className="sys-meta">{q.source ?? 'no source'}{q.as_of ? ` · ${q.as_of.replace('T', ' ').slice(0, 19)}` : ''}</dd></div>
+        <div><dt>Quote</dt><dd className="sys-meta">{q.source ?? 'no source'}{q.as_of ? ` · ${q.as_of.length === 10 ? `close of ${q.as_of}` : formatMoment(q.as_of)}` : ''}</dd></div>
         <div><dt>Paper buying power</dt><dd><Value value={preview.buying_power} kind="currency" /></dd></div>
         <div><dt>Market</dt><dd>{preview.market_open === null ? 'unknown' : preview.market_open ? 'open' : 'closed'}</dd></div>
       </dl>
 
       <p className="ticket__basis">{preview.estimate.basis}</p>
 
-      {preview.warnings.length || caution ? (
+      {/* A weak research signal is qualified in the research note above, which stays in view. */}
+      {preview.warnings.length ? (
         <ul className="ticket__warnings">
-          {caution ? <li>{caution}</li> : null}
           {preview.warnings.map((w) => <li key={w}>{w}</li>)}
         </ul>
       ) : null}
@@ -336,9 +336,29 @@ function Review({
   )
 }
 
+/* ── unconfirmed ─────────────────────────────────────────────────────────── */
+
+/** The broker's answer was lost. The only way forward is asking it, by reference. */
+export function Unconfirmed({
+  clientOrderId, detail, checking, onCheck,
+}: { clientOrderId: string; detail: string; checking: boolean; onCheck: () => void }) {
+  return (
+    <div className="ticket__body">
+      <Status state="warning" label="OUTCOME NOT CONFIRMED" />
+      <Prose size="tight">{detail}</Prose>
+      <p className="ticket__basis">Order reference <span className="ticket__id">{clientOrderId}</span>. Do not place it again until its status is known.</p>
+      <div className="ticket__acts">
+        <button type="button" className="sys-btn sys-btn--primary" disabled={checking} onClick={onCheck}>
+          {checking ? 'checking…' : 'Check status with the broker'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 /* ── result ──────────────────────────────────────────────────────────────── */
 
-function Placed({
+export function Placed({
   order, symbol, replayed, reconciledAfter, hadThesis,
 }: { order: PaperOrder; symbol: string; replayed: boolean; reconciledAfter: string | null; hadThesis: boolean }) {
   return (
@@ -369,7 +389,7 @@ function Placed({
           : reconciledAfter
             ? 'The broker did not answer the submission in time; this order was found by its reference, not sent again.'
             : 'Placed in the paper account.'}{' '}
-        {hadThesis && !replayed ? 'Your thesis is recorded against this order in this browser.' : ''}
+        {hadThesis ? 'Your thesis is recorded against this order in this browser.' : ''}
       </p>
 
       <div className="ticket__acts">

@@ -182,6 +182,19 @@ export function summarizeRegistry(reg: Registry): RegistrySummary {
   }
 }
 
+/**
+ * The one-line provider fact in the status bar. It is built from the same
+ * summary as the providers page, so the two can never count different
+ * populations: "configured" is over every registered adapter.
+ */
+export function providerFactText(s: RegistrySummary): string {
+  return [
+    `${s.configured} of ${s.registered} configured`,
+    s.failing ? `${s.failing} failing` : null,
+    s.constrained ? `${s.constrained} constrained` : null,
+  ].filter(Boolean).join(' · ')
+}
+
 export type StateFilter =
   | 'all' | 'failing' | 'constrained' | 'healthy' | 'no_recent_success'
   | 'stale_or_idle' | 'not_configured' | 'disabled'

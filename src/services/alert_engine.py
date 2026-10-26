@@ -387,8 +387,24 @@ def _run(client, now, quote_fn, series_fn, filings_fn, limit) -> dict[str, Any]:
     return summary
 
 
+def _when(at: Optional[str]) -> str:
+    """The observation's own time, in UTC and to the minute, as every other
+    timestamp in the product is shown. A date-only stamp is a session close."""
+    if not at:
+        return "unknown time"
+    if len(at) == 10:
+        return f"close of {at}"
+    try:
+        t = datetime.fromisoformat(at.replace("Z", "+00:00"))
+    except ValueError:
+        return at
+    if t.tzinfo is None:
+        t = t.replace(tzinfo=timezone.utc)
+    return t.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+
+
 def _body(alert: dict[str, Any], obs: Observation) -> str:
-    when = obs.at or "unknown time"
+    when = _when(obs.at)
     if alert["kind"] == "new_filing":
         return f"{obs.detail or 'A new filing'} (SEC EDGAR)."
     if alert["kind"] in ("day_move", "period_move"):

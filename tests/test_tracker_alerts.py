@@ -149,6 +149,45 @@ class TestAlertDefinitions:
 
 # ── session and freshness ────────────────────────────────────────────────────
 
+class TestAlertEdits:
+    def test_an_edit_changes_the_condition_and_starts_it_from_scratch(self, fake):
+        alerts = AlertsRepository(fake)
+        a = alerts.create(USER_A, validate_definition({"kind": "cross_above", "ticker": "AAPL", "threshold": 200}), 195.0)
+        edited = alerts.update(USER_A, a["id"], validate_definition({"kind": "cross_above", "ticker": "AAPL", "threshold": 210}))
+        assert edited["threshold"] == 210 and edited["armed"] is True
+        assert fake.store["price_alerts"][0]["baseline_value"] is None, "the old baseline belonged to another question"
+        assert edited["last_result"] is None
+
+    def test_an_edit_cannot_move_an_alert_to_another_security(self, fake):
+        alerts = AlertsRepository(fake)
+        a = alerts.create(USER_A, validate_definition({"kind": "cross_above", "ticker": "AAPL", "threshold": 200}), 195.0)
+        with pytest.raises(AlertValidationError):
+            alerts.update(USER_A, a["id"], validate_definition({"kind": "cross_above", "ticker": "MSFT", "threshold": 200}))
+        assert fake.store["price_alerts"][0]["ticker"] == "AAPL"
+
+    def test_a_resumed_alert_does_not_report_a_move_made_while_it_was_paused(self, fake):
+        alerts = AlertsRepository(fake)
+        a = alerts.create(USER_A, validate_definition({"kind": "cross_above", "ticker": "AAPL", "threshold": 200}), 195.0)
+        at = (OPEN - timedelta(minutes=1)).isoformat()
+        alert_engine.run(fake, now=OPEN, quote_fn=lambda t: _quote(196.0, at))
+        alerts.update(USER_A, a["id"], status="paused")
+        crossed = (OPEN - timedelta(seconds=30)).isoformat()
+        assert alert_engine.run(fake, now=OPEN, quote_fn=lambda t: _quote(205.0, crossed))["evaluated"] == 0
+        alerts.update(USER_A, a["id"], status="active")
+        first = alert_engine.run(fake, now=OPEN, quote_fn=lambda t: _quote(205.0, crossed))
+        assert first["triggered"] == 0 and alerts.list(USER_A)[0]["last_result"] == "baseline set"
+        later = (OPEN + timedelta(minutes=5)).isoformat()
+        alert_engine.run(fake, now=OPEN + timedelta(minutes=5), quote_fn=lambda t: _quote(199.0, later))
+        again = (OPEN + timedelta(minutes=9)).isoformat()
+        assert alert_engine.run(fake, now=OPEN + timedelta(minutes=10), quote_fn=lambda t: _quote(201.0, again))["triggered"] == 1
+
+    def test_another_user_cannot_edit_it(self, fake):
+        alerts = AlertsRepository(fake)
+        a = alerts.create(USER_A, validate_definition({"kind": "cross_above", "ticker": "AAPL", "threshold": 200}), 195.0)
+        assert alerts.update(USER_B, a["id"], validate_definition({"kind": "cross_above", "ticker": "AAPL", "threshold": 1})) is None
+        assert fake.store["price_alerts"][0]["threshold"] == 200
+
+
 class TestFreshness:
     def test_market_hours(self):
         assert market_open(OPEN)
@@ -254,6 +293,8 @@ class TestEvaluator:
         assert note["event"]["observed_value"] == 201.5
         assert note["event"]["freshness"] == "delayed" and note["event"]["source"] == "massive"
         assert note["link"] == "/company/AAPL"
+        # The observation's own time, in UTC to the minute, not a raw ISO string.
+        assert note["body"] == "Observed 201.50 — delayed quote from massive, 2026-10-20 14:25 UTC."
         assert NotificationsRepository(fake).list(USER_B)["notifications"] == []
 
         stored = alerts.list(USER_A)[0]

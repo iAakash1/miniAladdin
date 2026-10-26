@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import { Suspense } from 'react'
 
 import Workbench from '@/components/system/Workbench'
 import TrackerWorkspace from '@/components/terminal/tracker/TrackerWorkspace'
@@ -12,7 +11,7 @@ export const metadata: Metadata = {
 export default function WatchlistsPage() {
   return (
     <Workbench title="Watchlists" subtitle="tracked securities">
-      <Suspense fallback={null}><TrackerWorkspace /></Suspense>
+      <TrackerWorkspace />
     </Workbench>
   )
 }

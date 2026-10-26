@@ -10,6 +10,7 @@ import { openPalette } from '@/components/system/Palette'
 import { Shortcut } from '@/components/system/Shortcut'
 import { LogoMark } from '@/components/ui/Logo'
 import ThemeToggle from '@/components/ui/ThemeToggle'
+import NotificationBell from '@/components/shell/NotificationBell'
 import { experienceHome, setExperienceMode, type ExperienceMode } from '@/lib/capabilities'
 import { NAVIGATION, type NavigationSet } from '@/lib/navigation'
 
@@ -95,6 +96,7 @@ export default function TopBar({
 
       <div className="shell-top__end">
         <DetailLevel navigation={navigation} />
+        <NotificationBell />
         <ThemeToggle />
         <div className="shell-account">
           <UserButton appearance={{ elements: { avatarBox: { width: 24, height: 24 } } }} />

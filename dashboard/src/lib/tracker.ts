@@ -155,7 +155,7 @@ export function filterTracker(items: SortInput[], query: string, notes: Record<s
     const meta = notes[i.ticker]
     return i.ticker.toLowerCase().includes(q)
       || Boolean(meta?.note?.toLowerCase().includes(q))
-      || Boolean(meta?.tags.some((t) => t.includes(q)))
+      || Boolean(meta?.tags.some((t) => t.toLowerCase().includes(q)))
   })
 }
 

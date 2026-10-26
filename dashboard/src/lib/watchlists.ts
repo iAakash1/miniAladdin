@@ -45,7 +45,7 @@ export const SUGGESTED_LISTS: Array<{ name: string; tickers: string[] }> = [
   { name: 'Long Term', tickers: ['SPY', 'QQQ', 'BRK-B'] },
 ]
 
-const MAX_TICKERS = 200 // per list; the tracker reads quotes 25 at a time
+export const MAX_TICKERS = 200 // per list; the tracker reads quotes 25 at a time
 
 let lists: Watchlist[] = []
 let status: WatchlistsStatus = 'idle'
@@ -203,6 +203,20 @@ export function shiftTicker(id: string, ticker: string, delta: -1 | 1) {
     .catch(() => refreshWatchlists())
 }
 
+export const MAX_TAGS = 8
+
+/** Tags as the server stores them: lower case, letters, digits, space, _ and -,
+ *  24 characters each, no repeats, at most eight. Mirrored so the row shows
+ *  what will be saved rather than what was typed. */
+export function parseTags(text: string): string[] {
+  const out: string[] = []
+  for (const raw of text.split(',')) {
+    const tag = raw.trim().toLowerCase().replace(/[^a-z0-9 _-]/g, '').slice(0, 24).trim()
+    if (tag && !out.includes(tag)) out.push(tag)
+  }
+  return out.slice(0, MAX_TAGS)
+}
+
 export function updateItem(id: string, ticker: string, patch: { note?: string | null; tags?: string[] }) {
   markMutated()
   setLists(lists.map((l) => (l.id === id ? {
@@ -256,25 +270,37 @@ export function deleteWatchlist(id: string) {
     .catch(() => refreshWatchlists())
 }
 
-export function addTicker(id: string, ticker: string) {
+export type AddOutcome = 'added' | 'exists' | 'full' | 'invalid' | 'failed'
+
+/** Add a symbol, optimistically. Resolves with what the server decided, so a
+ *  duplicate or a full list is reported instead of silently ignored. */
+export function addTicker(id: string, ticker: string): Promise<AddOutcome> {
   const symbol = normalizeTicker(ticker)
-  if (!symbol) return
+  if (!symbol) return Promise.resolve('invalid')
+  const list = lists.find((l) => l.id === id)
+  if (list?.tickers.includes(symbol)) return Promise.resolve('exists')
+  if (list && list.tickers.length >= MAX_TICKERS) return Promise.resolve('full')
   markMutated()
   setLists(lists.map((l) =>
-    l.id === id && !l.tickers.includes(symbol)
+    l.id === id
       ? {
         ...l,
-        tickers: [...l.tickers, symbol].slice(0, MAX_TICKERS),
-        items: [...itemsOf(l), { ticker: symbol, note: null, tags: [], position: l.tickers.length, addedAt: new Date().toISOString() }].slice(0, MAX_TICKERS),
+        tickers: [...l.tickers, symbol],
+        items: [...itemsOf(l), { ticker: symbol, note: null, tags: [], position: l.tickers.length, addedAt: new Date().toISOString() }],
       }
       : l,
   ))
-  void authFetch(`/api/watchlists/${encodeURIComponent(id)}/tickers`, {
+  return authFetch(`/api/watchlists/${encodeURIComponent(id)}/tickers`, {
     method: 'POST',
     body: JSON.stringify({ ticker: symbol }),
-  }).then((res) => {
-    if (!res.ok) void refreshWatchlists()
-  }).catch(() => refreshWatchlists())
+  }).then(async (res): Promise<AddOutcome> => {
+    if (res.ok) {
+      const body = await res.json().catch(() => ({})) as { outcome?: string }
+      return body.outcome === 'exists' ? 'exists' : 'added'
+    }
+    void refreshWatchlists()
+    return res.status === 409 ? 'full' : res.status === 422 ? 'invalid' : 'failed'
+  }).catch(() => { void refreshWatchlists(); return 'failed' as const })
 }
 
 export function removeTicker(id: string, ticker: string) {

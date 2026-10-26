@@ -129,7 +129,18 @@ create table if not exists public.paper_orders (
 
 create index if not exists paper_orders_user_idx on public.paper_orders (clerk_user_id, submitted_at desc);
 
+-- ── Row-level security: deny-by-default, as for every other table ──────────
+-- RLS on with no policy, and no privileges for the PostgREST roles: Supabase
+-- grants new public tables to anon and authenticated by default, so the
+-- revoke is what actually closes them. Only the service-role backend reaches
+-- these rows, and it scopes every query by the Clerk-verified user id.
 alter table public.price_alerts  enable row level security;
 alter table public.alert_events  enable row level security;
 alter table public.notifications enable row level security;
 alter table public.paper_orders  enable row level security;
+
+revoke all on public.price_alerts,
+              public.alert_events,
+              public.notifications,
+              public.paper_orders
+    from anon, authenticated;

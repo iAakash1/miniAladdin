@@ -155,6 +155,10 @@ class AlertsRepository:
             return None
         patch: dict[str, Any] = {}
         if definition is not None:
+            # The symbol was checked against real data when the alert was
+            # created; an edit is not, so it may change the condition only.
+            if definition.get("ticker") != current.get("ticker"):
+                raise AlertValidationError("An alert's security cannot be changed. Create a new alert for another security.")
             patch.update(definition)
             # A changed condition starts from scratch: the old observation and
             # arming belonged to a different question.
@@ -165,6 +169,13 @@ class AlertsRepository:
             patch["status"] = status
             if status == "active":
                 patch["armed"] = True
+                if current.get("status") != "active":
+                    # Paused means not watching, and a triggered alert has
+                    # already answered. Either one starts again from the next
+                    # observation, so a move made while it was off is not
+                    # reported as if it had just happened.
+                    patch.update(baseline_value=None, baseline_text=None,
+                                 last_observed_value=None, last_observed_at=None)
         if patch:
             patch["updated_at"] = datetime.now(timezone.utc).isoformat()
             self._c.table("price_alerts").update(patch).eq("id", alert_id).eq("clerk_user_id", clerk_user_id).execute()

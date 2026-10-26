@@ -18,6 +18,7 @@ import {
 import Drawer from '@/components/shell/Drawer'
 import { useEntitlement } from '@/components/system/Entitlement'
 import OrderTicket from '@/components/terminal/paper/OrderTicket'
+import AlertEditor from '@/components/terminal/alerts/AlertEditor'
 import { companyHref } from '@/lib/context-commands'
 import { fetchPaperStatus } from '@/lib/paper'
 import { readResource } from '@/lib/resource'
@@ -83,6 +84,7 @@ export default function CompanyWorkspace({ ticker }: { ticker: string }) {
 
   const [paperConfigured, setPaperConfigured] = useState(false)
   const [paperOpen, setPaperOpen] = useState(params.get('paper') === '1')
+  const [alertOpen, setAlertOpen] = useState(false)
   const [programme, setProgramme] = useState<string | null>(null)
   useEffect(() => {
     let alive = true
@@ -159,6 +161,7 @@ export default function CompanyWorkspace({ ticker }: { ticker: string }) {
           historyId={analysis?.historyId ?? null}
           onPaper={() => setPaperOpen(true)}
           paperAvailable={paperConfigured}
+          onAlert={() => setAlertOpen(true)}
         />
         <SignalState run={run} onRetry={retry} onUpgrade={() => requestUpgrade('limit')} />
       </div>
@@ -209,9 +212,15 @@ export default function CompanyWorkspace({ ticker }: { ticker: string }) {
 
       {paperConfigured ? (
         <Drawer open={paperOpen} onClose={() => setPaperOpen(false)} title={`Paper trade ${ticker}`} meta="Simulated account — no real money">
-          <OrderTicket symbol={ticker} researchState={programme} onClose={() => setPaperOpen(false)} />
+          {/* Opened from research: the ticket shows the run's verdict with its
+              confidence and evidence grade, and nothing is sent until the
+              operator confirms on the review step. */}
+          <OrderTicket symbol={ticker} researchState={programme} origin="research" onClose={() => setPaperOpen(false)} />
         </Drawer>
       ) : null}
+      <Drawer open={alertOpen} onClose={() => setAlertOpen(false)} title={`Alert · ${ticker}`} meta="Evaluated on the server's schedule">
+        {alertOpen ? <AlertEditor ticker={ticker} lastPrice={quote?.price ?? null} /> : null}
+      </Drawer>
     </div>
     </NarrativeProvider>
   )

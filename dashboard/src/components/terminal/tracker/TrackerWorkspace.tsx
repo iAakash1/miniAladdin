@@ -15,8 +15,8 @@
  */
 
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useMemo, useState } from 'react'
 
 import AlertEditor from '@/components/terminal/alerts/AlertEditor'
 import Drawer from '@/components/shell/Drawer'
@@ -31,10 +31,18 @@ import {
 import {
   addTicker, createWatchlist, deleteWatchlist, itemsOf, moveTicker, removeTicker, renameWatchlist,
   setDefaultWatchlist, shiftTicker, shiftWatchlist, updateItem, useWatchlists, useWatchlistsStatus,
-  type Watchlist,
+  MAX_TICKERS, parseTags, type AddOutcome, type Watchlist,
 } from '@/lib/watchlists'
+import { formatMoment } from '@/lib/quantity'
 
 const PAGE = 25
+const ADD_NOTE: Record<AddOutcome, (symbol: string, list: string) => string> = {
+  added: (s, l) => `${s} added to ${l}.`,
+  exists: (s, l) => `${s} is already in ${l}.`,
+  full: (_s, l) => `${l} is full (${MAX_TICKERS} symbols). Remove one or use another list.`,
+  invalid: (s) => `${s} is not a valid ticker symbol.`,
+  failed: (s) => `${s} was not added: the watchlist service did not answer. Try again.`,
+}
 const SORTS: Array<{ key: TrackerSort; label: string }> = [
   { key: 'manual', label: 'My order' },
   { key: 'symbol', label: 'Symbol' },
@@ -51,10 +59,12 @@ export default function TrackerWorkspace() {
   const status = useWatchlistsStatus()
   const params = useSearchParams()
   const router = useRouter()
+  const pathname = usePathname()
   const selectedId = params.get('list')
   const current = lists.find((l) => l.id === selectedId) ?? lists.find((l) => l.isDefault) ?? lists[0] ?? null
 
-  const select = (id: string) => router.replace(`/terminal/watchlists?list=${encodeURIComponent(id)}`, { scroll: false })
+  // The selected list is in the address, so a refresh or a shared link reopens it.
+  const select = (id: string) => router.replace(`${pathname}?list=${encodeURIComponent(id)}`, { scroll: false })
 
   if (status === 'idle' || status === 'loading') {
     if (!lists.length) return <StateBlock state="waking" title="Loading your watchlists" />
@@ -144,14 +154,17 @@ function ListView({ list, lists }: { list: Watchlist; lists: Watchlist[] }) {
   }))
   const ordered = sortTracker(filterTracker(sortable, query, notes), sort, period, descending)
   const pages = Math.max(1, Math.ceil(ordered.length / PAGE))
-  const visible = ordered.slice(page * PAGE, page * PAGE + PAGE)
-  useEffect(() => { if (page >= pages) setPage(0) }, [page, pages])
+  // A filter or removal can leave the page past the end; show the first page then.
+  const shown = page < pages ? page : 0
+  const visible = ordered.slice(shown * PAGE, shown * PAGE + PAGE)
 
-  const add = () => {
+  const [addNote, setAddNote] = useState<string | null>(null)
+  const add = async () => {
     const symbol = adding.trim().toUpperCase().replace(/[^A-Z.^-]/g, '')
     if (!symbol) return
-    addTicker(list.id, symbol)
-    setAdding('')
+    const outcome = await addTicker(list.id, symbol)
+    setAddNote(ADD_NOTE[outcome](symbol, list.name))
+    if (outcome === 'added' || outcome === 'exists') setAdding('')
   }
 
   return (
@@ -180,7 +193,7 @@ function ListView({ list, lists }: { list: Watchlist; lists: Watchlist[] }) {
       </header>
 
       <div className="trk-tools">
-        <form className="trk-add" onSubmit={(e) => { e.preventDefault(); add() }}>
+        <form className="trk-add" onSubmit={(e) => { e.preventDefault(); void add() }}>
           <label className="visually-hidden" htmlFor="trk-add">Add a symbol</label>
           <input id="trk-add" className="sys-input" placeholder="Add symbol, e.g. MSFT" value={adding} onChange={(e) => setAdding(e.target.value)} autoComplete="off" />
           <button type="submit" className="sys-btn sys-btn--primary" disabled={!adding.trim()}>Add</button>
@@ -204,11 +217,12 @@ function ListView({ list, lists }: { list: Watchlist; lists: Watchlist[] }) {
           <input className="sys-input" placeholder="Filter" value={query} onChange={(e) => setQuery(e.target.value)} />
         </label>
         <span className="sys-meta trk-updated" aria-live="polite">
-          {loading ? 'updating…' : at ? `prices read ${at.toLocaleTimeString()}` : ''}
+          {loading ? 'updating…' : at ? `prices read ${formatMoment(at.toISOString())}` : ''}
         </span>
         <button type="button" className="sys-btn" onClick={refresh} disabled={loading}>Refresh</button>
       </div>
 
+      {addNote ? <p className="sys-meta trk-added" role="status">{addNote}</p> : null}
       {error ? <p className="trk-error" role="alert">Market data did not answer ({error}). The list itself is unaffected; showing the last prices read, if any.</p> : null}
 
       {!items.length ? (
@@ -233,7 +247,7 @@ function ListView({ list, lists }: { list: Watchlist; lists: Watchlist[] }) {
             </thead>
             <tbody>
               {visible.map((s) => (
-                <Row
+                <TrackedRow
                   key={s.ticker} list={list} lists={lists} ticker={s.ticker} row={rows[s.ticker]} period={period}
                   alerts={s.alerts} research={research[s.ticker]} note={notes[s.ticker]}
                   manual={sort === 'manual' && !query} onAlert={() => setAlertFor(s.ticker)}
@@ -246,9 +260,9 @@ function ListView({ list, lists }: { list: Watchlist; lists: Watchlist[] }) {
 
       {pages > 1 ? (
         <nav className="trk-pages" aria-label="Pages">
-          <button type="button" className="sys-btn" disabled={page === 0} onClick={() => setPage(page - 1)}>Previous</button>
-          <span className="sys-meta">page {page + 1} of {pages} · {ordered.length} symbols</span>
-          <button type="button" className="sys-btn" disabled={page >= pages - 1} onClick={() => setPage(page + 1)}>Next</button>
+          <button type="button" className="sys-btn" disabled={shown === 0} onClick={() => setPage(shown - 1)}>Previous</button>
+          <span className="sys-meta">page {shown + 1} of {pages} · {ordered.length} symbols</span>
+          <button type="button" className="sys-btn" disabled={shown >= pages - 1} onClick={() => setPage(shown + 1)}>Next</button>
         </nav>
       ) : null}
 
@@ -264,14 +278,15 @@ function ListView({ list, lists }: { list: Watchlist; lists: Watchlist[] }) {
   )
 }
 
-function Row({
+/** One tracked security. Exported so its states can be rendered in tests. */
+export function TrackedRow({
   list, lists, ticker, row, period, alerts, research, note, manual, onAlert,
 }: {
   list: Watchlist; lists: Watchlist[]; ticker: string; row?: TrackerRow; period: Period; alerts: number
   research?: ReturnType<typeof useLatestResearch>[string]; note?: { note: string | null; tags: string[] }
   manual: boolean; onAlert: () => void
 }) {
-  const [editing, setEditing] = useState<string | null>(null)
+  const [editing, setEditing] = useState<{ note: string; tags: string } | null>(null)
   const [moving, setMoving] = useState(false)
   const caution = signalCaution(research)
   const perf = periodValue(row, period)
@@ -283,10 +298,13 @@ function Row({
         <Link href={`/company/${encodeURIComponent(ticker)}`} className="trk-sym__link">{ticker}</Link>
         {note?.tags.length ? <span className="trk-tags">{note.tags.map((t) => <span key={t} className="trk-tag">{t}</span>)}</span> : null}
         {editing !== null ? (
-          <form className="trk-note-edit" onSubmit={(e) => { e.preventDefault(); updateItem(list.id, ticker, { note: editing.trim() || null }); setEditing(null) }}>
+          <form className="trk-note-edit" onSubmit={(e) => { e.preventDefault(); updateItem(list.id, ticker, { note: editing.note.trim() || null, tags: parseTags(editing.tags) }); setEditing(null) }}>
             <label className="visually-hidden" htmlFor={`note-${ticker}`}>Note for {ticker}</label>
-            <input id={`note-${ticker}`} className="sys-input" maxLength={500} value={editing} onChange={(e) => setEditing(e.target.value)} autoFocus />
+            <input id={`note-${ticker}`} className="sys-input" maxLength={500} placeholder="Note" value={editing.note} onChange={(e) => setEditing({ ...editing, note: e.target.value })} autoFocus />
+            <label className="visually-hidden" htmlFor={`tags-${ticker}`}>Tags for {ticker}, separated by commas</label>
+            <input id={`tags-${ticker}`} className="sys-input" placeholder="Tags, comma separated" value={editing.tags} onChange={(e) => setEditing({ ...editing, tags: e.target.value })} />
             <button type="submit" className="sys-btn sys-btn--micro">save</button>
+            <button type="button" className="sys-btn sys-btn--micro" onClick={() => setEditing(null)}>cancel</button>
           </form>
         ) : note?.note ? <span className="trk-note">{note.note}</span> : null}
       </th>
@@ -319,7 +337,7 @@ function Row({
       <td className="trk-acts">
         <button type="button" className="sys-btn sys-btn--xs" onClick={onAlert}>Alert…</button>
         <Link className="sys-btn sys-btn--xs" href={`/terminal/paper?ticket=${encodeURIComponent(ticker)}&origin=watchlist`}>Paper order…</Link>
-        <button type="button" className="sys-btn sys-btn--xs" onClick={() => setEditing(note?.note ?? '')}>Note</button>
+        <button type="button" className="sys-btn sys-btn--xs" onClick={() => setEditing({ note: note?.note ?? '', tags: (note?.tags ?? []).join(', ') })}>Note &amp; tags</button>
         {moving ? (
           <select className="sys-input trk-move" aria-label={`Move ${ticker} to`} defaultValue="" onChange={(e) => { if (e.target.value) void moveTicker(list.id, e.target.value, ticker); setMoving(false) }}>
             <option value="" disabled>Move to…</option>
@@ -349,7 +367,6 @@ function statusText(row: TrackerRow): string {
 }
 
 function shortTime(iso: string): string {
-  const d = new Date(iso.length === 10 ? `${iso}T00:00:00Z` : iso)
-  if (Number.isNaN(d.getTime())) return iso
-  return iso.length === 10 ? iso : d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  // A date-only stamp is a session's close; anything else is an instant, in UTC like every other time here.
+  return iso.length === 10 ? iso : formatMoment(iso)
 }
