@@ -56,3 +56,11 @@ condition = "AND"
 regexTarget = "line"
 paths = ['''tests/test_confidence\.py''']
 regexes = ['''confidence\.score\(['"]newsapi['"],\s*published_at=''' ]
+
+[[allowlists]]
+description = "Fake key in a URL on the reserved .test domain, asserting that library errors are redacted"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+paths = ['''tests/test_provider_catalog\.py''']
+regexes = ['''RuntimeError\("Bad Request for https://api\.example\.test/series\?api_key=''']
