@@ -35,7 +35,7 @@ test.describe('signed-in critical journeys', () => {
 
     await page.getByRole('button', { name: 'Switch to Advanced' }).click()
     await expect(page).toHaveURL(/\/terminal\/command$/)
-    await expect(page.getByRole('heading', { name: 'Terminal' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible()
   })
 
   test('company analysis exposes evidence, agents, compare, watch and paper preview', async ({ page }) => {
@@ -49,7 +49,7 @@ test.describe('signed-in critical journeys', () => {
     const ticket = page.getByLabel('Paper order for AAPL')
     if (await ticket.count()) {
       await ticket.getByRole('button', { name: 'review order' }).click()
-      await expect(ticket.getByRole('button', { name: 'place paper order' })).toBeVisible()
+      await expect(ticket.getByRole('button', { name: 'Confirm paper order' })).toBeVisible()
       // Preview is the terminal action in this test. It never places the order.
     }
   })

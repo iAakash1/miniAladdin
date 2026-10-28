@@ -390,6 +390,51 @@ both drift upward correlate at ~0.99 on levels regardless of whether their
 daily moves are related, which is the classic way to make a concentrated book
 look diversified.
 
+## Watchlists, alerts and paper trading
+
+**Watchlists** (`/terminal/watchlists`) are stored per account in Supabase:
+named lists with an order, one default list, notes and tags per symbol, and
+moves between lists. Each row shows the quote with the provider that answered,
+the quote's own timestamp and a freshness class, so a delayed or stale price
+never reads as a live one:
+
+| Label | Meaning |
+|---|---|
+| `live` | Market open; quoted within the last 2 minutes |
+| `delayed` | Market open; quoted 2–20 minutes ago |
+| `last close` | Market closed; the quote is from the latest session's close or later |
+| `stale` | Older than that: over 20 minutes old in session, before the last close otherwise, or a date-only stamp during the session |
+| `undated` | The provider gave no timestamp, so its age is unknown |
+
+The same rule (`src/services/alert_engine.freshness`) decides whether an alert
+may be evaluated: a stale or undated quote is skipped, never used.
+
+A symbol no provider answers for says so ("no provider has this symbol"), and
+a missing quote shows the last daily close labelled as a close. Period returns
+(1W–1Y) use daily closes only and are blank where the history does not reach.
+
+**Alerts** (`/terminal/alerts`) are evaluated on the server by a scheduled job,
+never in the browser. Conditions: price crosses above or below a level, a move
+over a day or N trading days, leaving a price range, and a new SEC filing. A
+crossing fires only on an actual crossing between two observations; a skipped
+check (a stale or undated quote, a provider outage) is recorded as skipped and
+does not count as "checked". Each trigger is stored once under a unique event
+key, so a retried or overlapping scheduler run cannot notify twice. Pausing
+stops evaluation; resuming or re-arming starts again from the next
+observation, so a move made while paused is not reported as new. Triggers land
+in the in-app inbox, whose unread count the bell reads from the server.
+
+**Paper trading** (`/terminal/paper`) is simulated. The broker client can only
+reach Alpaca's paper endpoint, only operators named in `PAPER_TRADING_OWNERS`
+may use it, and every order goes through a preview (priced with a quote whose
+source and time are shown) and an explicit confirmation. The preview issues a
+client order id: confirming twice, or a network retry, finds the first order
+instead of placing a second, and an unconfirmed outcome is resolved by asking
+the broker, never by resending. Every figure on the page is the broker's own
+or labelled as derived from it. A research verdict shown on a ticket is
+context, never an instruction, and nothing in the product places an order on
+its own.
+
 ## Visual intelligence
 
 Only verified company identity is rendered:
@@ -836,13 +881,6 @@ reason. The ones that came from a measured failure rather than a preference:
 | `MARKETAUX_API_KEY` · `OPENFIGI_API_KEY` | optional | Entity news; composite-FIGI instrument identity (provenance only) |
 | `BEA_API_KEY` · `EIA_API_KEY` | optional | Official GDP fallback for FRED; monthly WTI energy context |
 | `OPENFDA_API_KEY` | optional | FDA recalls on the Filings tab, asked only for SEC-classified healthcare registrants |
-
-Keyless public sources need no variable and are each asked one question:
-BLS (CPI and unemployment fallbacks), Treasury Fiscal Data (average rate on
-marketable debt), the ECB Data Portal (deposit rate, EUR/USD), the World Bank
-(world GDP growth), the Federal Register (agency documents naming a company)
-and ClinicalTrials.gov (trials a healthcare company leads). None of them feeds
-the signal; the macro board and the official record show them as context.
 | `SUPABASE_URL` | optional | Persistence: hosted Supabase project URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | optional | Persistence: server-only key (bypasses RLS by design — never ships to a browser) |
 | `CLERK_JWKS_URL` | optional | Verify Clerk session JWTs (`https://<instance>.clerk.accounts.dev/.well-known/jwks.json`) |
@@ -850,9 +888,21 @@ the signal; the macro board and the official record show them as context.
 | `CLERK_AUTHORIZED_PARTIES` | optional | Origins whose Clerk sessions are accepted, comma-separated (checked against the token's `azp`). Unset checks nothing; set it to the production origin(s) once a live token's `azp` has been confirmed |
 | `ALLOWED_ORIGINS` | optional | CORS allowlist, comma-separated |
 | `LOG_LEVEL` | optional | Default `INFO` |
+| `APCA_API_KEY_ID` · `APCA_API_SECRET_KEY` | optional | Alpaca **paper** account credentials (`ALPACA_API_KEY_ID` / `ALPACA_API_SECRET_KEY` are accepted too). The host is fixed to `https://paper-api.alpaca.markets`; a base URL pointing anywhere else makes the client refuse to start. Without them the Paper workspace says "not configured" |
+| `PAPER_TRADING_OWNERS` | optional | Comma-separated Clerk user ids allowed to operate the one shared paper account. Unset means nobody: the paper routes answer 403 with the reason |
+| `ALERTS_SCHEDULER_TOKEN` | optional | Shared secret (≥24 characters) the scheduler sends as `X-Scheduler-Token` to `POST /api/internal/alerts/evaluate`. Unset means alerts are stored but never evaluated (the endpoint answers 503) |
+
+Keyless public sources need no variable and are each asked one question:
+BLS (CPI and unemployment fallbacks), Treasury Fiscal Data (average rate on
+marketable debt), the ECB Data Portal (deposit rate, EUR/USD), the World Bank
+(world GDP growth), the Federal Register (agency documents naming a company)
+and ClinicalTrials.gov (trials a healthcare company leads). None of them feeds
+the signal; the macro board and the official record show them as context.
 
 All four persistence vars are optional as a group: without them the API runs
-with persistence disabled and analysis fully functional.
+with persistence disabled and analysis fully functional. Watchlists, alerts,
+the notification inbox and paper-order references need persistence; without it
+those pages say the service is unavailable rather than showing empty data.
 
 **Vercel (frontend)**
 
@@ -886,7 +936,19 @@ npm install
 echo 'BACKEND_ORIGIN=http://127.0.0.1:8000' >> .env.local   # required: the frontend has no default backend
 npm run dev                     # http://localhost:3000
 npm test && npm run lint && npx tsc --noEmit && npm run build
+npm run test:e2e                # Playwright on Chrome; signed-in journeys run only
+                                # with PLAYWRIGHT_STORAGE_STATE set to a real signed-in
+                                # browser state (no auth bypass exists)
+
+# Alerts: one evaluation pass against a local backend (a scheduler does this
+# in production). Needs ALERTS_SCHEDULER_TOKEN set for the backend process.
+curl -X POST -H "X-Scheduler-Token: $ALERTS_SCHEDULER_TOKEN" http://127.0.0.1:8000/api/internal/alerts/evaluate
 ```
+
+Schema changes ship as files in `supabase/migrations/`, applied in order to the
+target Supabase project before a backend that reads them is deployed. The
+tracker, alerts and paper-order migration (`20261025000000`) has a hand-run
+reversal in `supabase/rollbacks/`.
 
 Opt-in live smoke tests: `OMNISIGNAL_LIVE_TESTS=1 python -m pytest tests/test_live_smoke.py`.
 
@@ -951,7 +1013,13 @@ Opt-in live smoke tests: `OMNISIGNAL_LIVE_TESTS=1 python -m pytest tests/test_li
 | `GET /api/ml/labels/{label}` | Every model evaluated against one label — losers included |
 | `GET /api/ml/registry` | Registered models, status, and the evidence each still lacks |
 | `GET /api/ml/provenance/{label}/{model}` | Vendor observation → model output, stage by stage |
-| `GET/POST/PATCH/DELETE /api/watchlists…` | Cloud watchlists + items (Clerk-authenticated) |
+| `GET/POST/PATCH/DELETE /api/watchlists…` | Cloud watchlists + items: order, default list, notes, tags, move between lists (Clerk-authenticated) |
+| `GET /api/tracker?symbols=` | Quotes with source, timestamp and freshness class, plus 1W–1Y returns on daily closes (≤25 symbols) |
+| `GET/POST/PATCH/DELETE /api/alerts…` · `GET /api/alerts/events` | Price, move, range and new-filing alerts; trigger history (Clerk-authenticated) |
+| `GET /api/notifications` · `POST /api/notifications/{id}/read` · `POST /api/notifications/read-all` | The in-app inbox and its server-side unread count |
+| `POST /api/internal/alerts/evaluate` | One evaluation pass, for the scheduler only: `X-Scheduler-Token` required, refused by the website's proxy |
+| `GET /api/paper/status` · `/access` · `/account` · `/positions` · `/orders` · `/history` · `/clock` · `/connection` · `/analytics` | Alpaca **paper** account, read through the server (operators only) |
+| `POST /api/paper/orders/preview` · `POST /api/paper/orders` · `GET /api/paper/orders/by-client/{id}` · `POST /api/paper/reconcile` · `DELETE /api/paper/orders/{id}` | Paper order preview, idempotent confirmation, reconciliation by client order id, cancellation |
 | `GET/POST/PATCH/DELETE /api/portfolio…` | Portfolio positions |
 | `GET /api/portfolio/intelligence` | Book valuation, historical value curve, concentration, sector exposure, risk concentration |
 | `GET/DELETE /api/history…` | Paginated analysis history with ticker/verdict/date/search filters |
@@ -959,11 +1027,13 @@ Opt-in live smoke tests: `OMNISIGNAL_LIVE_TESTS=1 python -m pytest tests/test_li
 | `GET/POST/PATCH/DELETE /api/saved-reports…` | Bookmarked reports with notes |
 | `GET/PATCH /api/preferences` · `POST /api/profile/sync` | Preferences + profile |
 
-Terminal pages: `/terminal` (market dashboard), `/terminal/analyze`,
-`/terminal/portfolio` (cloud watchlists + positions), `/terminal/vault`
-(research history, saved reports, run comparison), `/terminal/factors`
-(cross-sectional factor evidence), `/terminal/models` (model intelligence),
-`/terminal/validation`, `/terminal/methodology`.
+Terminal pages include `/terminal/command` (home), `/company/{ticker}`
+(research workspace), `/terminal/watchlists` (tracker), `/terminal/alerts`
+(alerts and inbox), `/terminal/paper` (simulated trading),
+`/terminal/portfolio` (recorded positions), `/terminal/providers`,
+`/terminal/vault` (research history, saved reports, run comparison),
+`/terminal/factors`, `/terminal/models` and `/terminal/methodology`. The full
+list is the route registry in `dashboard/src/lib/destinations.ts`.
 
 The `/api/ml/*` endpoints are **read-only over offline artifacts**. They never
 train, backtest or ingest: a page load must not be able to start a walk-forward,

@@ -1,120 +1,78 @@
 # OmniSignal design system
 
-One skeleton, two atmospheres. Every token lives in `dashboard/src/app/globals.css`;
-the dark theme is a single class (`.theme-dark`) that overrides custom properties,
-so every component is automatically bi-thematic.
+One set of tokens, one component layer, enforced by tests. The tokens live in
+`dashboard/src/styles/tokens.css`; the shared components and their styles in
+`dashboard/src/components/system/` and `dashboard/src/styles/system.css`.
+Older class families in `dashboard/src/app/globals.css` resolve to the same
+tokens through aliases (`--bg`, `--text`, `--line`…).
 
 ---
 
 ## Foundations
 
+### Colour
+
+A near-black graphite is the default; light is an explicit choice made with the
+theme toggle (`html[data-theme='light']`). One accent hue, an electric cyan
+(`--accent`), marks the brand, the primary action and the live state. There is
+no second decorative hue, and a glow is never data.
+
+Colour is semantic. Every value that carries a state reads it from a token:
+
+| Token | Means |
+|---|---|
+| `--e-pos` | positive · verified · healthy |
+| `--e-neg` | negative · failure · high risk |
+| `--e-warn` | partial · degraded · stale · uncertain |
+| `--e-null` | unavailable · not reported |
+| `--accent` / `--e-info` | interactive · informational · live |
+
+Research and data states (`live`, `stale`, `waking`, `unavailable`, `blocked`,
+`paper`, `recorded`, …) each have a `--s-*` token that aliases one of these, so
+a state looks the same everywhere it appears. The `<Status>` chip renders them,
+and `/terminal/handbook` keys every one in words.
+
 ### Type
 
-| Role | Family | Usage |
-|---|---|---|
-| `--font-serif` | Newsreader Variable (+ italic axis) | Display headlines, section titles, news headlines. Public site only. |
-| `--font-sans` | Inter Variable | All UI, body copy, labels. |
-| `--font-mono` | IBM Plex Mono 400/500/600 | Data only: tickers, prices, scores, table figures. Never body text. |
+`--font-sans` (Inter) for interface and prose, `--font-mono` (IBM Plex Mono) for
+figures, tickers and timestamps, `--font-serif` (Newsreader) on the public site
+only. Sizes come from the `--t-*` scale (10px floor at `--t-micro`; inputs are
+16px on touch screens so iOS does not zoom). Weights are 400–700. Every figure
+that can sit above another uses tabular, slashed-zero numerals (`.sys-num`).
 
-Self-hosted via `@fontsource` packages (imported once in the root layout) — no
-external font CSS, no render-blocking request, no layout shift.
+### Space, radius, layers, motion
 
-Classes: `.display` (clamp 2.5→4.5rem serif), `.h-section` (serif section title),
-`.h-panel` (16px/600 panel title), `.lede`, `.body-copy` (62ch max), `.eyebrow`
-(11px caps, accent), `.label` (11px caps, faint), `.mono`, `.num` (mono + tabular
-figures — use for every number that may sit above another number).
-
-### Color
-
-Light (default, public site): paper `#faf9f6`, surface `#ffffff`, ink `#1c1b18`,
-secondary `#5b594f`, hairlines `#e8e6de`, accent emerald `#1e6b54`.
-
-Dark (`.theme-dark`, terminal): bg `#111210`, panel `#181917`, text `#eae8e1`,
-muted `#a3a198`, hairlines `rgba(255,255,255,.08)`, accent `#43b183`.
-
-Semantic — the only place vivid color is allowed:
-`--pos` (long/up), `--neg` (short/down), `--warn` (hold/caution), each with a
-`-wash` background tint. Rule: color states a fact about data; it never decorates.
-All pairings meet WCAG AA at their used sizes; body text exceeds AAA.
-
-### Space, radius, elevation
-
-4px base grid; marketing sections breathe at `clamp(64px, 9vw, 112px)`; panel
-padding 20–26px; data rows 9–13px vertical. Radii: 4 / 6 / 10px (`--r-sm/md/lg`)
-— rectangles, not pills. Shadows: `--shadow-1/2` are near-invisible on light;
-**none** on dark (hairline borders carry all structure). `--shadow-dialog` only
-for modals. Overlays (dialogs, dropdowns, tooltips, popovers) sit on
-`--surface-3` — equal to `--surface` on light, one step lighter on dark, so
-dark surfaces get lighter as they rise. Dialog scrims use `--backdrop`
-(warm-ink on light, deeper on dark).
-
-### Motion
-
-150–250ms ease-out, opacity + ≤10px translate. Primitives: `.fade-in` (mount),
-`.reveal` + `<Reveal>` (scroll, fires once), `.skeleton` (1.5s opacity pulse),
-`.live-dot` (2.4s pulse — the only infinite animation). Everything is disabled
-by the `prefers-reduced-motion` block. Nothing spins, floats, or glows.
+Spacing is the `--d-*` scale on a 4px base, with a 2px half-step for dense
+tables and chips; odd pixel values fail a test. Radii are `--r-xs/sm/md/lg`.
+Stacking layers are named (`--z-*`) and ordered so a menu sits above a drawer
+and the palette above a toast. Transitions use `--t-fast/med/slow` with one
+easing curve, and a hover that moves anything is gated on
+`(hover: hover) and (pointer: fine)`.
 
 ---
 
 ## Components
 
-### CSS primitives (globals.css)
+| Component | Use |
+|---|---|
+| `Workbench` | Page frame for every terminal route: title, subtitle, context rail |
+| `Panel` | A titled surface; header title never wraps, the subtitle gives way and stacks under it on phones |
+| `Value` | Every number: one formatter (`lib/quantity.ts`) per kind — currency, percent, count, ratio — and an em dash, never a zero, when absent |
+| `Status` | A state chip with its meaning as its title |
+| `StateBlock` / `EmptyLine` | Loading, unavailable, blocked (signed out, not permitted) and empty states, each in words |
+| `Table` / `DataTable` / `.sys-table` | Tables; numbers right-aligned in mono, wide tables scroll inside `.sys-scroll-x`, never the page |
+| `Drawer` | Side panel for editors and tickets; focus moves in, Escape closes, focus returns |
+| `Inspectable` / `.sys-inspectable` | A value that opens its provenance; the touch area is enlarged on coarse pointers |
+| `.sys-btn` (`--primary`, `--xs`, `--micro`, `--icon`), `.sys-input`, `.sys-seg` | Controls; at least 32px on touch screens |
 
-`.btn` + `--primary` (ink-filled) / `--accent` (emerald) / `--secondary`
-(hairline) / `--ghost`, sizes `--xs/--sm/--lg` (24/32/46px; default 40px —
-no ad-hoc heights) · `.input` (accent focus ring; 40px standalone, 32px in
-compact inline forms) · `.card` / `.panel` · `.badge--pos/neg/warn/neutral/accent`
-· `.seg` + `.seg__btn[aria-pressed]` segmented control · `.metric-row` (dt/dd
-data rows) · `.data-table` · `.skeleton` · `.container` (1120px, 12-col-friendly
-gutters) · `.faq-item` and `.disclosure` (styled details/summary — every
-expander shares the rotating +/× affordance) · grid helpers: `.hero-grid`,
-`.split-2`, `.terminal-grid-main/three/four` — all collapse for mobile.
+Times are shown in UTC with the zone named (`formatMoment`), or as a date for a
+session close. A figure from a broker, a vendor or a recorded run says which.
 
-### React components
+## Rules the tests hold
 
-```
-components/
-├── ui/            Logo (mark + wordmark) · Dialog (focus trap, Esc, scroll
-│                  lock, focus restore) · Skeleton · EmptyState · Reveal
-├── marketing/     SiteHeader (sticky, mobile menu) · SiteFooter · MacroStrip
-│                  (live FRED readout) · TerminalPreview (static, real data)
-│                  · NewsPreview (live, 4 stories) · AuthShell
-├── news/          NewsExplorer (URL-synced search/filter/pagination,
-│                  SWR-style refetch) · NewsCard (lead + row variants)
-└── terminal/      TerminalHeader · CommandBar · CompanyBand (+VerdictChip)
-                   · PriceChart (recharts, volume overlay, lazy-loaded)
-                   · KeyStats · Fundamentals (52-week range bar) · MacroPanel
-                   · SentimentPanel · Headlines · UpgradeDialog (Razorpay)
-```
-
-### Data layer
-
-```
-lib/
-├── types.ts        Raw API shapes (captured from the live backend) + normalized
-│                   UI types + news types
-├── api.ts          Fetchers + normalizers — components never see raw shapes
-├── format.ts       fmtPrice / fmtNum / fmtPct / timeAgo — single source of truth
-├── usage.ts        Free-tier daily counter (v1-compatible localStorage keys)
-├── clerk-appearance.ts
-└── news/
-    ├── sources.ts  Feed registry (every feed optional at runtime)
-    ├── parse.ts    RSS 2.0 + Atom parser (pure, unit-tested)
-    ├── classify.ts Keyword categorizer (pure, unit-tested)
-    └── index.ts    Aggregation: 6s/feed timeout, allSettled, title dedupe,
-                    5-min in-memory cache + CDN s-maxage, health reporting
-```
-
----
-
-## Rules that keep it coherent
-
-1. Numbers always render in `.num` (tabular mono) so columns of figures align.
-2. Uppercase labels are 11px and rare — they mark sections, not sentences.
-3. The serif appears only on editorial surfaces (public site); the terminal is
-   sans + mono only.
-4. Green/red/amber always mean position/direction/caution — never branding.
-5. New surfaces must work in both themes with zero component changes: style
-   with tokens, never hex.
-6. Interactive targets ≥32px (usually 40px); focus-visible ring on everything.
+`dashboard/tests/` fails the build for: an undefined token, an off-scale font
+size, weight, radius, letter-spacing or transition; odd-pixel spacing; a CSS
+class nothing reaches; an ungated moving hover; a dialog without focus
+handling; a generic element given a name without a role; a number or date
+formatted in the viewer's locale; and a new hand-built table that has not been
+checked in the rendered DOM.
