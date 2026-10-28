@@ -367,3 +367,12 @@ test('from research, the alert and the ticket open prefilled and submit nothing'
   assert.match(page, /<OrderTicket symbol=\{ticker\}[^>]*origin="research"/)
   assert.doesNotMatch(page, /placeOrder|previewOrder|createAlert/, 'the page itself never submits')
 })
+
+test('a fractional share quantity is shown as held, never rounded to a whole share', async () => {
+  const { format } = await import('../src/lib/quantity')
+  assert.equal(format(3.5, 'count', { digits: 4 }).text, '3.5')
+  assert.equal(format(0.1234567, 'count', { digits: 4 }).text, '0.1235')
+  assert.equal(format(12, 'count', { digits: 4 }).text, '12')
+  assert.equal(format(1234.6, 'count').text, '1,235', 'a plain count stays whole')
+  assert.equal(format(1234.6, 'count', { digits: 0 }).text, '1,235')
+})

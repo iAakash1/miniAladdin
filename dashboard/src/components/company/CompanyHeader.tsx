@@ -143,6 +143,7 @@ function siteLabel(p: CompanyProfile | null | undefined): { href: string; label:
 
 export default function CompanyHeader({
   symbol, name, exchange, sector, industry, profile, quote, quoteError, historyId, onPaper, paperAvailable, onAlert,
+  identityPending = true,
 }: {
   symbol: string
   name: string | null
@@ -158,6 +159,8 @@ export default function CompanyHeader({
   paperAvailable: boolean
   /** Opens the alert editor for this security. */
   onAlert?: () => void
+  /** False once the research run has ended, so missing identity reads as missing, not as loading. */
+  identityPending?: boolean
 }) {
   const recent = useSyncExternalStore(subscribeSymbols, recentSnapshot, emptySnapshot)
   const against = recent.find((s) => s !== symbol)
@@ -180,7 +183,7 @@ export default function CompanyHeader({
             <span className="cw-name">{name ?? '\u00a0'}</span>
           </div>
           <div className="cw-meta">
-            {meta.length ? meta.map((m, i) => <span key={`${m}-${i}`}>{m}</span>) : <span>Identity loading…</span>}
+            {meta.length ? meta.map((m, i) => <span key={`${m}-${i}`}>{m}</span>) : <span>{identityPending ? 'Identity loading…' : 'Exchange and sector not reported'}</span>}
             {site ? (
               <span>
                 <a className="cw-site" href={site.href} target="_blank" rel="noreferrer">

@@ -32,6 +32,15 @@ export default function AlertsWorkspace() {
 
   const act = (fn: () => Promise<void>) => { setError(null); fn().catch((e: Error) => setError(e.message)) }
 
+  if (status === 'signed-out' || inbox.status === 'signed-out') {
+    return (
+      <StateBlock
+        state="blocked" title="Sign in to use alerts"
+        detail="Alerts and their notifications are stored with your account. Your session was not accepted, so nothing here can be read or changed until you sign in again."
+      />
+    )
+  }
+
   return (
     <div className="alerts">
       <Panel title="Inbox" subtitle={`${inbox.unread} unread`} actions={inbox.unread ? <button type="button" className="sys-btn sys-btn--xs" onClick={() => void markRead()}>Mark all read</button> : undefined}>

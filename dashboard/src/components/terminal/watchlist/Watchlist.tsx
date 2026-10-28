@@ -21,7 +21,14 @@ export default function Watchlist({ limit = 10 }: { limit?: number }) {
   if (status === 'idle' || status === 'loading') {
     return <section className="sys-panel"><StateBlock state="waking" title="Loading your watchlists" /></section>
   }
-  if (status === 'error' || status === 'unauthenticated') {
+  if (status === 'unauthenticated') {
+    return (
+      <section className="sys-panel">
+        <StateBlock state="blocked" title="Sign in to see your watchlists" detail="Your session was not accepted. Your lists are stored with your account and are unaffected." />
+      </section>
+    )
+  }
+  if (status === 'error') {
     return (
       <section className="sys-panel">
         <StateBlock state="unavailable" title="Watchlists are unavailable right now" detail="The persistence service did not answer. Your lists are stored on the server and are unaffected." />

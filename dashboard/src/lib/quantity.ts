@@ -165,7 +165,13 @@ export function format(
   }
 
   if (kind === 'count' || kind === 'rank' || kind === 'sessions') {
-    return { text: Math.round(value).toLocaleString('en-US'), unit, tone, absent: false }
+    // A count is whole unless the caller asks for places: a fractional share
+    // quantity (3.5 shares) rounded to 4 is a position the account does not hold.
+    const places = kind === 'count' && overrides?.digits ? overrides.digits : 0
+    return {
+      text: places ? value.toLocaleString('en-US', { maximumFractionDigits: places }) : Math.round(value).toLocaleString('en-US'),
+      unit, tone, absent: false,
+    }
   }
 
   if (kind === 'currency') {

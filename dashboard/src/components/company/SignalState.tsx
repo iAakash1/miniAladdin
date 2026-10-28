@@ -32,7 +32,8 @@ function Cell({ label, children, sub, tone }: {
     <div className="sig-cell" data-tone={tone}>
       <span className="sig-cell__k">{label}</span>
       <span className="sig-cell__v">{children}</span>
-      {sub ? <span className="sig-cell__s">{sub}</span> : null}
+      {/* Clamped to two lines on wide screens; the whole line is its title. */}
+      {sub ? <span className="sig-cell__s" title={typeof sub === 'string' ? sub : undefined}>{sub}</span> : null}
     </div>
   )
 }

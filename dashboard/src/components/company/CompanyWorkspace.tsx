@@ -162,6 +162,7 @@ export default function CompanyWorkspace({ ticker }: { ticker: string }) {
           onPaper={() => setPaperOpen(true)}
           paperAvailable={paperConfigured}
           onAlert={() => setAlertOpen(true)}
+          identityPending={run.status === 'running' || run.status === 'waiting'}
         />
         <SignalState run={run} onRetry={retry} onUpgrade={() => requestUpgrade('limit')} />
       </div>

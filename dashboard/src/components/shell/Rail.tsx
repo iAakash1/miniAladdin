@@ -80,6 +80,18 @@ export default function Rail({
               <p className="rail-empty">Companies you open appear here.</p>
             )}
           </div>
+        ) : null}
+
+        {terminal ? (
+          /* The top bar's detail-level select is hidden below 1024px; on a
+             phone this is the way to the other two experiences. */
+          <div className="rail-group rail-group--narrow">
+            <p className="rail-group__label">Detail level</p>
+            <div className="rail-modes">
+              <ModeSwitch to="intermediate" compact />
+              <ModeSwitch to="beginner" compact />
+            </div>
+          </div>
         ) : (
           <div className="rail-group">
             <p className="rail-group__label">Detail level</p>

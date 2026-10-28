@@ -10,24 +10,35 @@
  */
 
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useId, useState } from 'react'
 
 import { experienceHome, type ExperienceMode, setExperienceMode } from '@/lib/capabilities'
 
 export default function ModeSwitch({ to, compact = false }: { to: ExperienceMode; compact?: boolean }) {
   const router = useRouter()
   const [busy, setBusy] = useState(false)
+  const [failed, setFailed] = useState(false)
+  const messageId = useId()
 
   async function go() {
     setBusy(true)
+    setFailed(false)
     const ok = await setExperienceMode(to)
     setBusy(false)
     if (ok) router.push(experienceHome(to))
+    else setFailed(true)
   }
 
+  const label = `Switch to ${to === 'beginner' ? 'Simple' : to[0].toUpperCase() + to.slice(1)}`
   return (
-    <button type="button" className={compact ? 'sys-btn' : 'bg__switch'} onClick={() => void go()} disabled={busy}>
-      {busy ? 'Switching…' : `Switch to ${to === 'beginner' ? 'Simple' : to[0].toUpperCase() + to.slice(1)}`}
-    </button>
+    <>
+      <button type="button" className={compact ? 'sys-btn' : 'bg__switch'} onClick={() => void go()} disabled={busy} aria-describedby={failed ? messageId : undefined}>
+        {busy ? 'Switching…' : label}
+      </button>
+      {/* Staying put without a word would read as a dead button. */}
+      <span id={messageId} className={failed ? 'mode-switch__failed' : 'visually-hidden'} role="status">
+        {failed ? 'The preference could not be saved, so the mode did not change. Try again.' : ''}
+      </span>
+    </>
   )
 }

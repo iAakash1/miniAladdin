@@ -727,6 +727,8 @@ select.sys-input {
 .rail-sym { font: 500 var(--t-small) / 1 var(--font-mono); letter-spacing: 0.02em; }
 .rail-empty { margin: 0; padding: 0 10px; font-size: var(--t-meta); line-height: 1.45; color: var(--ink-faint); }
 .rail-modes { display: flex; flex-direction: column; gap: 6px; padding: 0 10px; }
+.rail-group--narrow { display: none; }
+.mode-switch__failed { font-size: var(--t-meta); line-height: var(--lh-body); color: var(--e-warn); }
 .rail-foot {
   display: flex;
   gap: 14px;
@@ -991,6 +993,7 @@ a.status-key-link:hover { color: var(--ink); }
      and on a phone the search pushed the theme toggle and account off-screen. */
   .shell-search { flex: 1; width: auto; min-width: 0; }
   .shell-detail { display: none; }
+  .rail-group--narrow { display: block; }
   .shell-rail {
     position: fixed;
     top: var(--topbar-h);
@@ -1709,8 +1712,9 @@ tr[data-selected='true'] .sys-row-actions { opacity: 1; }
 
 .band__head {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: var(--d-3);
+  gap: var(--d-1) var(--d-3);
   padding-bottom: var(--d-2);
 }
 
@@ -1729,6 +1733,7 @@ tr[data-selected='true'] .sys-row-actions { opacity: 1; }
 }
 
 .band__more {
+  white-space: nowrap;
   font: 400 var(--t-meta) / 1 var(--font-sans);
   color: var(--ink-muted);
   text-decoration: none;
@@ -3253,8 +3258,10 @@ a.tape:hover .tape__sym { color: var(--accent); }
 
 /* ── panel head parts and state blocks ───────────────────────────────── */
 
-.sys-panel-head__title { display: flex; align-items: baseline; gap: var(--d-2); min-width: 0; padding: 8px 0; }
-.sys-panel-sub { font: 400 var(--t-meta) / 1.3 var(--font-sans); color: var(--ink-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sys-panel-head__title { display: flex; flex: 1 1 auto; align-items: baseline; gap: var(--d-2); min-width: 0; padding: 8px 0; }
+/* The title never wraps; the subtitle gives way, and on a phone it moves under the title. */
+.sys-panel-head__title > .sys-panel-title { flex: none; white-space: nowrap; }
+.sys-panel-sub { min-width: 0; font: 400 var(--t-meta) / 1.3 var(--font-sans); color: var(--ink-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sys-panel-head__end { display: flex; align-items: center; gap: var(--d-2); flex: none; margin-left: auto; }
 /* A panel whose body opens with a state block already names its state there,
    with the explanation beside it. The header's copy only repeated the word
@@ -3649,6 +3656,8 @@ a.tape:hover .tape__sym { color: var(--accent); }
   .cw-change, .cw-asof { justify-content: flex-start; }
   .cw-grid--2, .cw-grid--3 { grid-template-columns: minmax(0, 1fr); }
   .sig-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* No hover on a phone to reveal a clamped reason, so show all of it. */
+  .sig-cell__s { display: block; -webkit-line-clamp: unset; overflow: visible; }
   .sig-head__end { margin-left: 0; }
   }
 @media (prefers-reduced-motion: reduce) {
@@ -4702,8 +4711,15 @@ a.objidx__k:hover { color: var(--accent); text-decoration: underline; }
 @media (pointer: coarse) {
   .sys-btn { min-height: 36px; }
   .sys-btn--xs, .sys-btn--micro { min-height: 32px; }
+  .sys-btn--micro { min-width: 32px; }
   .sys-btn--icon { min-width: 36px; }
   .sys-input { min-height: 36px; }
+  /* Inline values that open their provenance sit in lines of text, where a
+     taller box would break the line. The touch area grows instead, unseen. */
+  .sys-inspectable, .cw-link-btn, .sys-th-sort { position: relative; }
+  .sys-inspectable::after, .cw-link-btn::after { content: ''; position: absolute; inset: -8px -4px; }
+  /* A sortable header label fills its 30px header row for a finger. */
+  .sys-th-sort::after { content: ''; position: absolute; inset: -8px -6px; }
   /* iOS Safari zooms the page when a control under 16px takes focus, and does
      not zoom back. Eleven classes size text fields between 11 and 15px; this
      is the one rule that holds them all, written to out-rank every one. */
@@ -4800,7 +4816,8 @@ a.objidx__k:hover { color: var(--accent); text-decoration: underline; }
 .alert-editor__result { display: flex; align-items: center; gap: var(--d-2); margin: 0; font-size: var(--t-small); color: var(--ink-muted); }
 .alert-forms { flex-direction: row; flex-wrap: wrap; gap: var(--d-1) var(--d-3); margin: 0; padding: 0; border: 0; }
 .alert-forms legend { width: 100%; margin-bottom: var(--d-1); padding: 0; }
-.alert-forms__opt, .alert-repeat { display: inline-flex; flex-direction: row; align-items: center; gap: 6px; font-size: var(--t-small); color: var(--ink-muted); cursor: pointer; }
+.alert-forms__opt, .alert-repeat { display: inline-flex; flex-direction: row; align-items: center; gap: var(--d-2); min-height: 32px; font-size: var(--t-small); color: var(--ink-muted); cursor: pointer; }
+.alert-forms__opt input, .alert-repeat input { flex: none; width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
 
 /* ── notification bell ────────────────────────────────────────────────── */
 .bell { position: relative; display: flex; }
@@ -4846,6 +4863,12 @@ a.objidx__k:hover { color: var(--accent); text-decoration: underline; }
   .paper-new { margin-left: 0; }
 }
 @media (max-width: 640px) {
+  .sys-panel-head__title { flex-wrap: wrap; row-gap: 2px; }
+  .alert-editor .ticket__fields { grid-template-columns: minmax(0, 1fr); }
+  .cw-series-na { flex-wrap: wrap; }
+  .cw-series-na__art { display: none; }
+  .cw-series-na__text { flex-basis: 100%; }
+  .sys-panel-sub { flex-basis: 100%; white-space: normal; }
   .trk-add, .trk-add .sys-input, .trk-filter, .trk-filter .sys-input, .trk-sort, .trk-sort .sys-input { flex: 1 1 100%; width: 100%; }
   .bell__panel { position: fixed; top: 52px; right: 16px; left: 16px; width: auto; }
 }

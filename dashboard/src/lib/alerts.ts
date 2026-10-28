@@ -91,7 +91,8 @@ export function describeResult(a: PriceAlert): string {
 /* ── store ──────────────────────────────────────────────────────────────── */
 
 let alerts: PriceAlert[] = []
-let loaded: 'idle' | 'loading' | 'ready' | 'error' = 'idle'
+export type AlertsStatus = 'idle' | 'loading' | 'ready' | 'error' | 'signed-out'
+let loaded: AlertsStatus = 'idle'
 const listeners = new Set<() => void>()
 const emit = () => listeners.forEach((l) => l())
 
@@ -99,6 +100,8 @@ export async function refreshAlerts(): Promise<void> {
   loaded = 'loading'; emit()
   try {
     const r = await authFetch('/api/alerts')
+    // A refused session is not an outage: say "sign in", not "unavailable".
+    if (r.status === 401) { alerts = []; loaded = 'signed-out'; emit(); return }
     if (!r.ok) throw new Error(String(r.status))
     alerts = ((await r.json()) as { alerts: PriceAlert[] }).alerts
     loaded = 'ready'
@@ -118,7 +121,7 @@ const EMPTY: PriceAlert[] = []
 export function useAlerts(): PriceAlert[] {
   return useSyncExternalStore(subscribe, () => alerts, () => EMPTY)
 }
-export function useAlertsStatus() {
+export function useAlertsStatus(): AlertsStatus {
   return useSyncExternalStore(subscribe, () => loaded, () => 'idle' as const)
 }
 
