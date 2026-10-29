@@ -150,6 +150,23 @@ running (a tag holds its revision's instance; see `CLOUD_RUN_DEPLOYMENT.md`).
 backend and its data), deploy a fresh private candidate per branch as `CLOUD_RUN_DEPLOYMENT.md`
 describes, or stop using previews and remove the tag. Only you know whether previews are used.
 
+### 7. Release: tracker, alerts and paper trading (branch `feat/tracker-alerts-paper`)
+
+**State when written (2026-10-29, read-only checks):** production Supabase has the first five migrations
+and not `20261025000000_tracker_alerts_paper.sql`; Cloud Run serves `omnisignal-api-poc-release-0139069`
+(`main`) at 100% with none of `APCA_API_KEY_ID`, `APCA_API_SECRET_KEY`, `PAPER_TRADING_OWNERS` or
+`ALERTS_SCHEDULER_TOKEN` configured; Cloud Scheduler is not enabled on the project; the Supabase project
+lists no physical backup and point-in-time recovery is off. Until this is done the new screens answer with
+their honest "not configured" states and no alert is ever evaluated.
+
+**Order matters, and each step needs your approval:** (1) take a logical backup of `watchlists` and
+`watchlist_items`, (2) apply the migration, (3) add the secrets and operator list, (4) merge to `main` and
+deploy the backend, then the frontend, (5) enable Cloud Scheduler and create the job paused, (6) run it
+once by hand and resume it. The commands, the verification after each step and the rollback of each are in
+`CLOUD_RUN_DEPLOYMENT.md` ("Alert scheduler"). The rollback script **deletes** every alert, trigger, inbox
+item and paper-order reference created since the migration, and the notes, tags, order and default flag on
+watchlists; it is safe only before users have created any.
+
 ---
 
 ## BROWSER VERIFICATION REQUIRED

@@ -539,3 +539,114 @@ is re-probed once every 15 minutes, not every minute; and `/api/health`, the
 provider inventory and the providers page no longer call it available. A
 configured key nothing has used yet is reported as `unverified`, so a fresh
 instance says "configured" until the first news request settles it.
+
+## Alert scheduler (tracker, alerts and paper trading release)
+
+Alerts are stored by the website but only evaluated when something calls
+`POST /api/internal/alerts/evaluate` on the backend. Nothing in this repository
+creates that caller; it is an owner action. The names below are the ones the
+backend actually reads (`api/index.py`, `evaluate_alerts`) and the tests pin
+them (`tests/test_tracker_alerts.py`, `tests/test_scheduler_contract.py`,
+`dashboard/tests/backend-proxy.test.ts`):
+
+| What | Name | Notes |
+|---|---|---|
+| Backend variable | `ALERTS_SCHEDULER_TOKEN` | At least **24** characters. Unset or shorter: the endpoint answers `503` and never evaluates. |
+| Request header | `X-Scheduler-Token` | Compared with `hmac.compare_digest`; a wrong value answers `403`. |
+| Cloud Run identity check | `Authorization: Bearer <OIDC token>` | The service is private (`--no-allow-unauthenticated`), so the caller also needs `roles/run.invoker` on `omnisignal-api-poc`. |
+| Website | `/api/internal/*` | Refused by `dashboard/src/lib/backend-proxy.ts` with `404` before any upstream call, whatever headers the browser sends. |
+
+A scheduler configured with any other variable or header name reaches `503` or
+`403` and evaluates nothing; `tests/test_scheduler_contract.py` fails if the
+documents and the code stop agreeing.
+
+The secret container for the token does not exist yet (verified read-only on
+2026-10-29: it is absent from `gcloud secrets list`). The name
+`alerts-scheduler-token` below is a proposal, not an existing resource.
+
+### Release order for the tracker, alerts and paper-trading release
+
+The database change comes first, because the new backend reads the new tables
+and columns; the backend before the frontend, as above.
+
+```bash
+# 0. Nothing is applied yet: this lists what would be (read-only)
+supabase db push --linked --dry-run          # expect exactly 20261025000000_tracker_alerts_paper.sql
+
+# 1. A logical backup first. On 2026-10-29 the Supabase project reported no physical
+#    backups and point-in-time recovery off, so there is nothing else to restore from.
+supabase db dump --linked --data-only --schema public --use-copy -f ~/omnisignal-public-data-$(date +%Y%m%d).sql
+
+# 2. The migration. Additive and re-runnable (verified against a scratch Postgres 17,
+#    applied twice); it keeps every existing watchlist row.
+supabase db push --linked
+```
+
+Rollback of step 2 is `supabase/rollbacks/20261025000000_tracker_alerts_paper.down.sql`,
+run by hand, after the backend has been rolled back. It drops the four new tables
+and the seven added columns, so it **permanently deletes** every alert, trigger
+history row, inbox item and paper-order reference created since, and every list
+order, default flag, sort preference, note and tag. The existing watchlists and
+their items survive. Take a fresh data dump immediately before running it if
+anything of value has been created since release.
+
+```bash
+# 1. The secret (value generated locally, never printed or committed)
+python3 -c 'import secrets; print(secrets.token_urlsafe(48))' \
+  | gcloud secrets create alerts-scheduler-token --project omnisignal-api-aakash-2026 \
+      --replication-policy=automatic --data-file=-
+gcloud secrets add-iam-policy-binding alerts-scheduler-token --project omnisignal-api-aakash-2026 \
+  --member serviceAccount:omnisignal-api-runtime@omnisignal-api-aakash-2026.iam.gserviceaccount.com \
+  --role roles/secretmanager.secretAccessor
+
+# 2. The backend reads it when an instance starts, so this makes a new revision
+gcloud run services update omnisignal-api-poc --project omnisignal-api-aakash-2026 --region asia-south1 \
+  --update-secrets ALERTS_SCHEDULER_TOKEN=alerts-scheduler-token:latest
+```
+
+**A limit of Cloud Scheduler.** An HTTP job's header values are plain text in the
+job definition; the service has no Secret Manager reference for them. The token
+therefore exists in two places, the secret and the job, and anyone who can read
+the job (`cloudscheduler.jobs.get`) can read it. The private Cloud Run service
+and the dedicated invoker identity are the primary gate; the shared token is a
+second, weaker one. Give the job's service account `roles/run.invoker` on this
+service only, restrict who may read the job, and rotate by adding a secret
+version, updating the job, then deploying a new revision.
+
+```bash
+# 3. A dedicated caller identity with invoker on this one service
+gcloud iam service-accounts create omnisignal-alerts-scheduler --project omnisignal-api-aakash-2026
+gcloud run services add-iam-policy-binding omnisignal-api-poc --project omnisignal-api-aakash-2026 \
+  --region asia-south1 \
+  --member serviceAccount:omnisignal-alerts-scheduler@omnisignal-api-aakash-2026.iam.gserviceaccount.com \
+  --role roles/run.invoker
+
+# 4. The job. Create it paused, run it once by hand, then resume it.
+SERVICE_URL=https://omnisignal-api-poc-saigcozo6q-el.a.run.app
+gcloud scheduler jobs create http omnisignal-alerts-evaluate --project omnisignal-api-aakash-2026 \
+  --location asia-south1 --schedule '*/5 * * * *' --time-zone Etc/UTC \
+  --uri "$SERVICE_URL/api/internal/alerts/evaluate" --http-method POST \
+  --oidc-service-account-email omnisignal-alerts-scheduler@omnisignal-api-aakash-2026.iam.gserviceaccount.com \
+  --oidc-token-audience "$SERVICE_URL" \
+  --headers "X-Scheduler-Token=$(gcloud secrets versions access latest --secret alerts-scheduler-token --project omnisignal-api-aakash-2026)" \
+  --attempt-deadline 300s
+gcloud scheduler jobs pause omnisignal-alerts-evaluate --project omnisignal-api-aakash-2026 --location asia-south1
+```
+
+The five-minute cadence is a recommendation, not a requirement of the code. The
+evaluator treats a quote older than 20 minutes in session as stale and skips it
+(`src/services/alert_engine.freshness`), so a cadence much slower than that
+produces mostly skips. Cloud Scheduler is not enabled on the project as of
+2026-10-29 (`cloudscheduler.googleapis.com`), which is itself a project change.
+
+Verify, in this order: an unauthenticated request to the endpoint is `403` from
+Cloud Run; with an identity token but no or a wrong `X-Scheduler-Token` it is
+`403` from the application; with the secret unset it is `503`; through the
+website (`/api/internal/alerts/evaluate`) it is refused whatever header is sent: `401` from the
+Clerk gate when signed out (measured against a local production build on 2026-10-30),
+`404` from `backend-proxy.ts` for a signed-in caller (pinned by
+`dashboard/tests/backend-proxy.test.ts`), and the backend is never called. Only then run the job once and read the summary it returns
+(`evaluated`, `triggered`, `notifications`, `skipped`).
+
+Pause or delete the job to stop evaluation; stored alerts are untouched and a
+resumed alert starts from the next observation.
