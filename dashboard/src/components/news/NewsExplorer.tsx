@@ -159,7 +159,7 @@ export default function NewsExplorer() {
           marginBottom: 8,
         }}
       >
-        <div className="seg" role="group" aria-label="Filter by category" style={{ flexWrap: 'wrap' }}>
+        <div className="seg" role="group" aria-label="Filter by category" style={{ overflowX: 'auto', maxWidth: '100%' }}>
           {TABS.map((tab) => (
             <button
               key={tab.value}
@@ -173,7 +173,7 @@ export default function NewsExplorer() {
           ))}
         </div>
 
-        <div style={{ position: 'relative', width: 'min(280px, 100%)' }}>
+        <div style={{ position: 'relative', flex: '1 1 220px', maxWidth: 320, minWidth: 0 }}>
           <label htmlFor="news-search" className="visually-hidden">
             Search news
           </label>

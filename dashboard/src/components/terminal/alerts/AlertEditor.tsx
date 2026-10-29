@@ -10,7 +10,7 @@
  * crossing alert waits for an actual crossing.
  */
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 
 import { Status } from '@/components/system'
 import {
@@ -21,6 +21,7 @@ import {
 export default function AlertEditor({
   ticker: fixedTicker, onCreated, lastPrice, editing,
 }: { ticker?: string; onCreated?: (a: PriceAlert) => void; lastPrice?: number | null; editing?: PriceAlert }) {
+  const uid = useId()
   const [ticker, setTicker] = useState(editing?.ticker ?? fixedTicker ?? '')
   const [kind, setKind] = useState<AlertKind>(editing?.kind ?? 'cross_above')
   const [threshold, setThreshold] = useState(
@@ -92,11 +93,11 @@ export default function AlertEditor({
           </select>
         </label>
 
-        {kind === 'cross_above' || kind === 'cross_below' ? priceField('Price', threshold, setThreshold, 'alert-price') : null}
+        {kind === 'cross_above' || kind === 'cross_below' ? priceField('Price', threshold, setThreshold, `${uid}-price`) : null}
         {kind === 'range_exit' ? (
           <>
-            {priceField('Low', threshold, setThreshold, 'alert-low')}
-            {priceField('High', high, setHigh, 'alert-high')}
+            {priceField('Low', threshold, setThreshold, `${uid}-low`)}
+            {priceField('High', high, setHigh, `${uid}-high`)}
           </>
         ) : null}
         {kind === 'day_move' || kind === 'period_move' ? (

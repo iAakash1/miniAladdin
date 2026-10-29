@@ -15,6 +15,7 @@ import { createElement, type ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 
 import { BellView } from '../src/components/shell/NotificationBell'
+import AlertEditor from '../src/components/terminal/alerts/AlertEditor'
 import { AlertRow } from '../src/components/terminal/alerts/AlertsWorkspace'
 import { Placed, Review, Unconfirmed } from '../src/components/terminal/paper/OrderTicket'
 import { TrackedRow } from '../src/components/terminal/tracker/TrackerWorkspace'
@@ -190,6 +191,16 @@ test('deleting an alert takes a second, explicit step', () => {
   const out = alertRow(alert())
   assert.match(out, />Delete…</)
   assert.doesNotMatch(out, />Delete alert</)
+})
+
+test('two AlertEditor instances mounted together have distinct field ids', () => {
+  const out = html(createElement('div', null,
+    createElement(AlertEditor, { ticker: 'AAPL', lastPrice: 230 }),
+    createElement(AlertEditor, { editing: alert({ ticker: 'AAPL', threshold: 240 }) }),
+  ))
+  const ids = [...out.matchAll(/<input[^>]*\sid="([^"]+)"/g)].map((m) => m[1])
+  assert.equal(ids.length, 2, 'each editor renders one price input')
+  assert.notEqual(ids[0], ids[1], 'the create panel and edit drawer must not share DOM ids')
 })
 
 /* ── the bell ──────────────────────────────────────────────────────────── */
