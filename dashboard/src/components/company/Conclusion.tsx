@@ -10,7 +10,7 @@ export function Table({ head, rows, numeric = [] }: { head: string[]; rows: Reac
   return (
     <div className="sys-scroll-x">
       <table className="sys-table sys-table--compact rp-table">
-        <thead><tr>{head.map((h, i) => <th key={h} scope="col" className={numeric.includes(i) ? 'num' : undefined}>{h}</th>)}</tr></thead>
+        <thead><tr>{head.map((h, i) => <th key={`${i}-${h}`} scope="col" className={numeric.includes(i) ? 'num' : undefined}>{h}</th>)}</tr></thead>
         <tbody>
           {rows.map((r, i) => (
             <tr key={i}>{r.map((c, j) => <td key={j} className={numeric.includes(j) ? 'num' : undefined}>{c}</td>)}</tr>

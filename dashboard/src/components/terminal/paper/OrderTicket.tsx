@@ -144,7 +144,7 @@ export default function OrderTicket({
       <header className="ticket__head">
         <h3 className="ticket__title">{side === 'buy' ? 'Buy' : 'Sell'} {symbol}</h3>
         <Status state="paper" label="paper order" />
-        <button type="button" className="sys-btn sys-btn--micro ticket__close" onClick={onClose}>close</button>
+        <button type="button" className="sys-btn sys-btn--micro ticket__close" onClick={onClose}>Close</button>
       </header>
 
       {research?.verdict ? (

@@ -7,7 +7,7 @@ import { profileRef } from './profileRef'
 import Icon from '@/components/shell/Icon'
 import { Inspectable } from '@/components/system'
 import CompanyMark from '@/components/ui/CompanyMark'
-import { SectorGlyph, sectorKey } from '@/components/visual/SectorMark'
+import { sectorKey } from '@/components/visual/SectorMark'
 import { saveReport } from '@/lib/persistence'
 import { format } from '@/lib/quantity'
 import { quoteState, type Quote } from '@/lib/security'
@@ -174,7 +174,6 @@ export default function CompanyHeader({
 
   return (
     <header className="cw-head" data-sector={sector ? sectorKey(sector) : undefined}>
-      {sector ? <SectorGlyph sector={sector} size={220} className="cw-head__art" /> : null}
       <div className="cw-id">
         <CompanyMark ticker={symbol} name={name} size={52} />
         <div className="cw-id__text">

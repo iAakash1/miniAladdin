@@ -73,6 +73,14 @@ export default function SectorLeaders({
   screenerHref?: string
 } = {}) {
   const [answer, setAnswer] = useState<{ d?: RecommendationsResponse; error?: string } | null>(null)
+  // A cold ranking can take a while; after a few seconds the wait is said,
+  // not left to an anonymous skeleton.
+  const [slow, setSlow] = useState(false)
+  useEffect(() => {
+    if (answer !== null) return undefined
+    const t = window.setTimeout(() => setSlow(true), 8000)
+    return () => window.clearTimeout(t)
+  }, [answer])
 
   useEffect(() => {
     let alive = true
@@ -110,7 +118,9 @@ export default function SectorLeaders({
               <span className="sys-skeleton" style={{ width: '80%', height: 8 }} />
             </div>
           ))}
-        </div></div>
+        </div>
+        {slow ? <p className="sl-wait" role="status">Ranking the screener universe. The first read after the service starts takes longer; nothing is shown until it is real.</p> : null}
+        </div>
       ) : answer.error ? (
         <StateBlock state="unavailable" title="Sector leaders are unavailable" detail={`${readerError(answer.error)}. The ranking is rebuilt from the screener universe; nothing is listed in its place.`} />
       ) : rows.length ? (

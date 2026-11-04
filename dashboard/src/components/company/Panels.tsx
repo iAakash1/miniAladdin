@@ -69,7 +69,14 @@ export function Drivers({ a, links = true }: { a: Analysis; links?: boolean }) {
       </Card>
     )
   }
-  const factors = [...q.factors].sort((x, y) => Math.abs(y.contribution) - Math.abs(x.contribution)).slice(0, 5)
+  // What moved the composite, split by direction: the reader asks what is
+  // holding the score up and what is pulling it down, and a single list
+  // ranked by size makes them read the sign of every line to find out.
+  const ranked = [...q.factors]
+    .filter((f) => Number.isFinite(f.contribution) && f.contribution !== 0)
+    .sort((x, y) => Math.abs(y.contribution) - Math.abs(x.contribution))
+  const raising = ranked.filter((f) => f.contribution > 0).slice(0, 3)
+  const lowering = ranked.filter((f) => f.contribution < 0).slice(0, 3)
   return (
     <Card
       title="Signal decomposition"
@@ -103,16 +110,25 @@ export function Drivers({ a, links = true }: { a: Analysis; links?: boolean }) {
         Macro gate <span className="sys-num">×{q.macroGate.toFixed(2)}</span> applies to the momentum sleeve only
         {q.stressProbability !== null ? <> · stress probability <span className="sys-num">{(q.stressProbability * 100).toFixed(1)}%</span></> : null}
       </p>
-      <h3 className="cw-sub">Largest contributions</h3>
-      <ul className="cw-contrib">
-        {factors.map((f) => (
-          <li key={f.name}>
-            <span className={`sys-num ${f.contribution >= 0 ? 'sys-pos' : 'sys-neg'}`}>{fmtSigned(f.contribution, 3)}</span>
-            <span className="cw-contrib__name">{factorName(f.name)}</span>
-            <span className="cw-contrib__fam">{f.family}</span>
-          </li>
+      <div className="cw-contrib-cols">
+        {([['Raising the score', raising, 'No factor raised the composite in this run.'],
+           ['Lowering the score', lowering, 'No factor lowered the composite in this run.']] as const).map(([title, list, none]) => (
+          <div key={title}>
+            <h3 className="cw-sub">{title}</h3>
+            {list.length ? (
+              <ul className="cw-contrib">
+                {list.map((f) => (
+                  <li key={f.name}>
+                    <span className={`sys-num ${f.contribution > 0 ? 'sys-pos' : 'sys-neg'}`}>{fmtSigned(f.contribution, 3)}</span>
+                    <span className="cw-contrib__name">{factorName(f.name)}</span>
+                    <span className="cw-contrib__fam">{f.family}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : <p className="cw-muted">{none}</p>}
+          </div>
         ))}
-      </ul>
+      </div>
     </Card>
   )
 }

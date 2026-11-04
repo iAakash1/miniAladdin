@@ -1,7 +1,7 @@
 'use client'
 
+import ActionMenu from '@/components/system/ActionMenu'
 import CompanyMark from '@/components/ui/CompanyMark'
-import ConfirmButton from '@/components/ui/ConfirmButton'
 import { useEffect, useState } from 'react'
 import EmptyState from '@/components/ui/EmptyState'
 import Skeleton from '@/components/ui/Skeleton'
@@ -13,7 +13,8 @@ import {
   patchPosition,
   upsertPosition,
 } from '@/lib/persistence'
-import { fmtNum, fmtPrice } from '@/lib/format'
+import { fmtPrice } from '@/lib/format'
+import { format } from '@/lib/quantity'
 
 type Status = 'loading' | 'ready' | 'error'
 
@@ -51,6 +52,8 @@ export default function PositionsPanel() {
   // to return without a word on a zero share count or a failed request.
   const [problem, setProblem] = useState<{ field: 'ticker' | 'shares' | 'price' | 'save'; text: string } | null>(null)
   const [editing, setEditing] = useState<{ id: string; shares: string; price: string } | null>(null)
+  // The position whose removal is awaiting a second, explicit press.
+  const [removing, setRemoving] = useState<string | null>(null)
 
   const reload = () => {
     // Microtask keeps the setState out of the synchronous effect body
@@ -118,89 +121,98 @@ export default function PositionsPanel() {
   )
 
   return (
-    <section aria-labelledby="positions-h" className="panel panel--pad">
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
-        <h2 id="positions-h" className="h-panel">Positions</h2>
-        {positions.length > 0 && (
-          <span className="num" style={{ fontSize: 'var(--t-small)', color: 'var(--ink-faint)' }}>
-            {positions.length} · cost basis {fmtPrice(totalCost)}
+    <section aria-labelledby="positions-h" className="sys-panel pos">
+      <header className="sys-panel-head">
+        <div className="sys-panel-head__title">
+          <h2 id="positions-h" className="sys-panel-title">Positions</h2>
+          <span className="sys-panel-sub">
+            {positions.length > 0
+              ? `${positions.length} holding${positions.length === 1 ? '' : 's'} · cost basis ${fmtPrice(totalCost)}`
+              : 'shares and average cost you record'}
           </span>
-        )}
-        <span style={{ marginLeft: 'auto', fontSize: 'var(--t-meta)', color: 'var(--ink-faint)' }}>
-          Synced to your account
-        </span>
-      </div>
+        </div>
+        <span className="sys-meta">Synced to your account</span>
+      </header>
 
-      <form onSubmit={submit} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
-        <label htmlFor="pos-ticker" className="visually-hidden">Ticker</label>
-        <input
-          id="pos-ticker"
-          className="sys-input sys-input--block mono"
-          style={{ maxWidth: 120, letterSpacing: 'var(--tracking-label)' }}
-          placeholder="Ticker"
-          maxLength={8}
-          value={ticker}
-          aria-invalid={problem?.field === 'ticker' || undefined}
-          onChange={(e) => { setProblem(null); setTicker(e.target.value.toUpperCase().replace(/[^A-Z.^-]/g, '')) }}
-        />
-        <label htmlFor="pos-shares" className="visually-hidden">Shares</label>
-        <input
-          id="pos-shares"
-          className="sys-input sys-input--block num"
-          style={{ maxWidth: 110 }}
-          placeholder="Shares"
-          inputMode="decimal"
-          value={shares}
-          aria-invalid={problem?.field === 'shares' || undefined}
-          onChange={(e) => { setProblem(null); setShares(e.target.value.replace(/[^0-9.]/g, '')) }}
-        />
-        <label htmlFor="pos-price" className="visually-hidden">Average price</label>
-        <input
-          id="pos-price"
-          className="sys-input sys-input--block num"
-          style={{ maxWidth: 130 }}
-          placeholder="Avg price"
-          inputMode="decimal"
-          value={price}
-          aria-invalid={problem?.field === 'price' || undefined}
-          onChange={(e) => { setProblem(null); setPrice(e.target.value.replace(/[^0-9.]/g, '')) }}
-        />
+      <form onSubmit={submit} className="pos-form" aria-label="Add a position">
+        <label className="pos-form__field">
+          <span className="pos-form__k">Ticker</span>
+          <input
+            id="pos-ticker"
+            className="sys-input sys-input--block mono"
+            placeholder="AAPL"
+            maxLength={8}
+            value={ticker}
+            aria-invalid={problem?.field === 'ticker' || undefined}
+            onChange={(e) => { setProblem(null); setTicker(e.target.value.toUpperCase().replace(/[^A-Z.^-]/g, '')) }}
+          />
+        </label>
+        <label className="pos-form__field">
+          <span className="pos-form__k">Shares</span>
+          <input
+            id="pos-shares"
+            className="sys-input sys-input--block num"
+            placeholder="10"
+            inputMode="decimal"
+            value={shares}
+            aria-invalid={problem?.field === 'shares' || undefined}
+            onChange={(e) => { setProblem(null); setShares(e.target.value.replace(/[^0-9.]/g, '')) }}
+          />
+        </label>
+        <label className="pos-form__field">
+          <span className="pos-form__k">Average price</span>
+          <input
+            id="pos-price"
+            className="sys-input sys-input--block num"
+            placeholder="0.00"
+            inputMode="decimal"
+            value={price}
+            aria-invalid={problem?.field === 'price' || undefined}
+            onChange={(e) => { setProblem(null); setPrice(e.target.value.replace(/[^0-9.]/g, '')) }}
+          />
+        </label>
         <button
           type="submit"
-          className="sys-btn"
+          className="sys-btn sys-btn--primary pos-form__submit"
           disabled={busy || !ticker.trim() || !shares || !price}
         >
           {busy ? 'Saving…' : 'Add position'}
         </button>
-        {problem ? <p className="sys-meta sys-field-error" role="alert">{problem.text}</p> : null}
+        {problem ? <p className="sys-meta sys-field-error pos-form__error" role="alert">{problem.text}</p> : null}
       </form>
 
-      {status === 'loading' && <Skeleton height={72} />}
+      {status === 'loading' && <div className="pos-state"><Skeleton height={72} /></div>}
 
       {status === 'error' && (
-        <EmptyState
-          title="Positions couldn't be loaded"
-          description="The persistence service didn't respond — your holdings are safe on the server."
-          action={
-            <button type="button" className="sys-btn" onClick={reload}>
-              Try again
-            </button>
-          }
-        />
+        <div className="pos-state">
+          <EmptyState
+            title="Positions couldn't be loaded"
+            description="The persistence service didn't respond — your holdings are safe on the server."
+            action={
+              <button type="button" className="sys-btn" onClick={reload}>
+                Try again
+              </button>
+            }
+          />
+        </div>
       )}
 
-      {/* Was a lone grey sentence, which reads as a caption on a panel that
-          lost its table rather than as a state the panel is in. */}
+      {/* A state the panel is in, said with what to do next — not a lone grey
+          caption under a table that is not there. */}
       {status === 'ready' && positions.length === 0 && (
-        <EmptyState
-          title="No positions yet"
-          description="Add a holding above to track shares and average cost. Positions sync to your account, so they follow you across devices."
-        />
+        <div className="pos-state emptyline">
+          <span className="emptyline__k">No positions yet</span>
+          <span className="emptyline__v">
+            Record a holding above with its share count and average cost. Positions sync to your account,
+            and Portfolio intelligence values them against current prices once there is one.
+          </span>
+        </div>
       )}
 
       {status === 'ready' && positions.length > 0 && (
-        <div style={{ overflowX: 'auto' }}>
-          <table className="sys-table" style={{ minWidth: 560 }}>
+        <div className="sys-scroll-x">
+          <table className="sys-table pos-table">
+            <caption className="visually-hidden">Recorded positions: shares, average price, cost basis and share of cost</caption>
             <thead>
               <tr>
                 <th scope="col">Ticker</th>
@@ -219,35 +231,35 @@ export default function PositionsPanel() {
             <tbody>
               {positions.map((position) => {
                 const isEditing = editing?.id === position.id
+                const confirming = removing === position.id
                 return (
                   <tr key={position.id}>
-                    <td className="mono" style={{ fontWeight: 600 }}>
-                      <span className="u-row" style={{ gap: 8, flexWrap: 'nowrap' }}>
+                    <th scope="row" className="pos-sym">
+                      <span className="pos-sym__line">
                         <CompanyMark ticker={position.ticker} size={18} />
-                        {position.ticker}
+                        <span className="pos-sym__t">{position.ticker}</span>
                       </span>
-                    </td>
-                    <td className="num">
+                    </th>
+                    <td className="num pos-shares" data-label="Shares">
                       {isEditing ? (
                         <input
                           aria-label={`Shares of ${position.ticker}`}
-                          className="sys-input sys-input--block num"
-                          style={{ width: 90, textAlign: 'right' }}
+                          className="sys-input num pos-edit"
                           value={editing.shares}
                           onChange={(e) =>
                             setEditing({ ...editing, shares: e.target.value.replace(/[^0-9.]/g, '') })
                           }
                         />
                       ) : (
-                        fmtNum(position.shares, position.shares % 1 === 0 ? 0 : 4)
+                        // Exactly as held: 3.5 shares is not 3.5000, and is never 4.
+                        format(position.shares, 'count', { digits: 6 }).text
                       )}
                     </td>
-                    <td className="num">
+                    <td className="num pos-avg" data-label="Avg">
                       {isEditing ? (
                         <input
                           aria-label={`Average price of ${position.ticker}`}
-                          className="sys-input sys-input--block num"
-                          style={{ width: 100, textAlign: 'right' }}
+                          className="sys-input num pos-edit"
                           value={editing.price}
                           onChange={(e) =>
                             setEditing({ ...editing, price: e.target.value.replace(/[^0-9.]/g, '') })
@@ -257,10 +269,10 @@ export default function PositionsPanel() {
                         fmtPrice(position.average_price)
                       )}
                     </td>
-                    <td className="num">
+                    <td className="num pos-cost">
                       {fmtPrice(position.shares * position.average_price)}
                     </td>
-                    <td>
+                    <td className="pos-weight">
                       {/* Share of *cost basis*, computed from the figures in
                           this table and nothing else — deliberately not the
                           market-value weight shown in Portfolio Intelligence,
@@ -274,21 +286,28 @@ export default function PositionsPanel() {
                         max={largestWeight}
                       />
                     </td>
-                    <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    <td className="trk-acts pos-acts">
                       {isEditing ? (
                         <>
-                          <button type="button" className="sys-btn sys-btn--ghost sys-btn--xs" onClick={saveEdit}>
+                          <button type="button" className="sys-btn sys-btn--xs sys-btn--primary" onClick={saveEdit}>
                             Save
                           </button>
-                          <button type="button" className="sys-btn sys-btn--ghost sys-btn--xs" onClick={() => setEditing(null)}>
+                          <button type="button" className="sys-btn sys-btn--xs" onClick={() => setEditing(null)}>
                             Cancel
                           </button>
                         </>
+                      ) : confirming ? (
+                        <span className="trk-confirm" role="group" aria-label={`Remove ${position.ticker}?`}>
+                          <button type="button" className="sys-btn sys-btn--xs sys-btn--danger" onClick={() => { setRemoving(null); void remove(position.id) }}>
+                            Remove {position.ticker}
+                          </button>
+                          <button type="button" className="sys-btn sys-btn--xs" onClick={() => setRemoving(null)}>Keep</button>
+                        </span>
                       ) : (
                         <>
                           <button
                             type="button"
-                            className="sys-btn sys-btn--ghost sys-btn--xs"
+                            className="sys-btn sys-btn--xs"
                             onClick={() =>
                               setEditing({
                                 id: position.id,
@@ -299,13 +318,15 @@ export default function PositionsPanel() {
                           >
                             Edit
                           </button>
-                          <ConfirmButton
-                            description={`Remove ${position.ticker} position`}
-                            confirmLabel="Remove?"
-                            onConfirm={() => remove(position.id)}
-                          >
-                            ✕
-                          </ConfirmButton>
+                          <ActionMenu
+                            label={`Actions for the ${position.ticker} position`}
+                            items={[
+                              { kind: 'link', label: `Open ${position.ticker}`, href: `/company/${encodeURIComponent(position.ticker)}` },
+                              { kind: 'link', label: 'Paper order…', href: `/terminal/paper?ticket=${encodeURIComponent(position.ticker)}` },
+                              { kind: 'separator' },
+                              { label: 'Remove position…', onSelect: () => setRemoving(position.id), tone: 'danger' },
+                            ]}
+                          />
                         </>
                       )}
                     </td>

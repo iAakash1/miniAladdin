@@ -78,16 +78,53 @@ export default function TrackerWorkspace() {
   return (
     <div className="trk">
       <ListNav lists={lists} currentId={current?.id ?? null} onSelect={select} />
-      {current ? <ListView key={current.id} list={current} lists={lists} /> : <NoLists />}
+      {current ? <ListView key={current.id} list={current} lists={lists} /> : <NoLists onCreated={select} />}
     </div>
   )
 }
 
-function NoLists() {
+/** First run: what a list is for, and one press to make the first one.
+ *  The starting names create empty lists — symbols are the reader's to add. */
+const STARTER_NAMES = ['Core holdings', 'Earnings watch', 'Ideas'] as const
+
+function NoLists({ onCreated }: { onCreated: (id: string) => void }) {
+  const [busy, setBusy] = useState<string | null>(null)
+  const [failed, setFailed] = useState(false)
+  const start = async (name: string) => {
+    setBusy(name)
+    setFailed(false)
+    const created = await createWatchlist(name)
+    setBusy(null)
+    if (created) onCreated(created.id)
+    else setFailed(true)
+  }
   return (
-    <EmptyLine label="Watchlists">
-      No watchlists yet. Create one on the left — for example Core Holdings, Earnings Watch or High-Risk Ideas.
-    </EmptyLine>
+    <section className="trk-start" aria-labelledby="trk-start-title">
+      <h2 id="trk-start-title" className="trk-start__title">Track the companies you follow</h2>
+      <p className="trk-start__lede">
+        A watchlist keeps a set of symbols in one table, saved to your account.
+      </p>
+      <ul className="trk-start__points">
+        <li><b>Quotes you can trust.</b> Each price shows its source and its age, and a stale quote is marked, never passed off as live.</li>
+        <li><b>Returns over your period.</b> One day to one year from daily closes, with a three-month trend beside each name.</li>
+        <li><b>Research and alerts per row.</b> The latest verdict for each symbol, and price alerts the server checks on its schedule.</li>
+      </ul>
+      <div className="trk-start__actions">
+        <button type="button" className="sys-btn sys-btn--primary" disabled={busy !== null} onClick={() => void start(STARTER_NAMES[0])}>
+          {busy === STARTER_NAMES[0] ? 'Creating…' : 'Create your first list'}
+        </button>
+        <span className="trk-start__or">or start with</span>
+        {STARTER_NAMES.slice(1).map((n) => (
+          <button key={n} type="button" className="sys-btn" disabled={busy !== null} onClick={() => void start(n)}>
+            {busy === n ? 'Creating…' : n}
+          </button>
+        ))}
+      </div>
+      <p className="trk-start__hint">
+        You can name a list yourself in the panel beside this, and add any company to a list with Watch on its page.
+      </p>
+      {failed ? <p className="trk-error" role="alert">The list was not created. The service may be unavailable; try again.</p> : null}
+    </section>
   )
 }
 
@@ -190,6 +227,7 @@ function ListView({ list, lists }: { list: Watchlist; lists: Watchlist[] }) {
             </span>
           ) : (
             <ActionMenu
+              size="md"
               label={`Actions for the list ${list.name}`}
               items={[
                 { label: 'Rename…', onSelect: () => setRenaming(list.name) },
@@ -318,8 +356,8 @@ export function TrackedRow({
             <input id={`note-${ticker}`} className="sys-input" maxLength={500} placeholder="Note" value={editing.note} onChange={(e) => setEditing({ ...editing, note: e.target.value })} autoFocus />
             <label className="visually-hidden" htmlFor={`tags-${ticker}`}>Tags for {ticker}, separated by commas</label>
             <input id={`tags-${ticker}`} className="sys-input" placeholder="Tags, comma separated" value={editing.tags} onChange={(e) => setEditing({ ...editing, tags: e.target.value })} />
-            <button type="submit" className="sys-btn sys-btn--micro">save</button>
-            <button type="button" className="sys-btn sys-btn--micro" onClick={() => setEditing(null)}>cancel</button>
+            <button type="submit" className="sys-btn sys-btn--micro">Save</button>
+            <button type="button" className="sys-btn sys-btn--micro" onClick={() => setEditing(null)}>Cancel</button>
           </form>
         ) : note?.note ? <span className="trk-note">{note.note}</span> : null}
       </th>

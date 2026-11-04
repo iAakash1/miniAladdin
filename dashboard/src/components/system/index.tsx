@@ -136,7 +136,9 @@ export function Value({
   const body = (
     <>
       {q.text}
-      {q.unit ? <span className="u" style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-faint)', marginLeft: 4 }}>{q.unit}</span> : null}
+      {/* A symbol unit (%, ×) sits against its figure, as "1.88%" does
+          everywhere text prints it; a word unit (MB, bp, sess) keeps a gap. */}
+      {q.unit ? <span className="u" style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-faint)', marginLeft: /^[%×]$/.test(q.unit) ? 1 : 4 }}>{q.unit}</span> : null}
     </>
   )
 
@@ -293,9 +295,9 @@ export function Strip({ metrics }: { metrics: StripMetric[] }) {
       {metrics.map((m) => (
         <div className="sys-strip-item" key={m.label}>
           <span className="k" title={m.label}>{m.label}</span>
-          {/* The full value on hover, since a long text value is clipped to
-              keep it out of the cell beside it. */}
-          <span className="v" title={typeof m.value === 'string' ? m.value : undefined}>
+          {/* A value made of words ("11 ok · 3 degraded") is set at reading
+              size and wraps; a figure stays at figure size. Neither is cut. */}
+          <span className="v" data-words={typeof m.value === 'string' && !/^[\d\s.,%$/+\u2212-]+$/.test(m.value) ? '' : undefined}>
             <Value
               value={m.value} kind={m.kind} unit={m.unit} digits={m.digits}
               signed={m.signed} tone={m.tone} title={m.title}

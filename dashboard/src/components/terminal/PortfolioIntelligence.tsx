@@ -50,6 +50,7 @@ import {
   type HoldingValuation,
   type PortfolioIntel,
 } from '@/lib/persistence'
+import { fmtNum, typographicMinus, typographicMinusInText } from '@/lib/format'
 
 type Status = 'loading' | 'ready' | 'error'
 
@@ -69,14 +70,14 @@ function drawnHoldings<T extends { pct?: number | null }>(rows: readonly T[] | u
 function money(value: number | null | undefined, currency: string, digits = 2): string {
   if (value === null || value === undefined || !Number.isFinite(value)) return '—'
   try {
-    return new Intl.NumberFormat('en-US', {
+    return typographicMinus(new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency,
       minimumFractionDigits: digits,
       maximumFractionDigits: digits,
-    }).format(value)
+    }).format(value))
   } catch {
-    return value.toFixed(digits)
+    return fmtNum(value, digits)
   }
 }
 
@@ -281,19 +282,25 @@ export default function PortfolioIntelligence() {
 
   if (status === 'loading') {
     return (
-      <section className="panel panel--pad" aria-busy="true" aria-label="Portfolio intelligence">
-        <Skeleton height={18} width={210} style={{ marginBottom: 14 }} />
-        <Skeleton height={96} />
+      <section className="sys-panel pf" aria-busy="true" aria-labelledby="pf-intel-h">
+        <header className="sys-panel-head">
+          <h2 id="pf-intel-h" className="sys-panel-title">Portfolio intelligence</h2>
+        </header>
+        <div className="sys-panel-body pf__body">
+          <Skeleton height={64} />
+          <Skeleton height={96} />
+        </div>
       </section>
     )
   }
 
   if (status === 'error') {
     return (
-      <section className="panel panel--pad" aria-labelledby="pf-intel-h">
-        <h2 id="pf-intel-h" className="h-panel" style={{ marginBottom: 12 }}>
-          Portfolio intelligence
-        </h2>
+      <section className="sys-panel pf" aria-labelledby="pf-intel-h">
+        <header className="sys-panel-head">
+          <h2 id="pf-intel-h" className="sys-panel-title">Portfolio intelligence</h2>
+        </header>
+        <div className="sys-panel-body pf__body">
         <EmptyState
           title="Book-level figures couldn't be computed"
           description="The persistence service didn't respond. Your positions are safe on the server — the table above is unaffected."
@@ -303,6 +310,7 @@ export default function PortfolioIntelligence() {
             </button>
           }
         />
+        </div>
       </section>
     )
   }
@@ -316,26 +324,30 @@ export default function PortfolioIntelligence() {
   const maxWeight = conc.top_three[0]?.weight_pct ?? 100
   const maxRiskShare = risk?.top_contributors[0]?.risk_share_pct ?? 100
   const currency = data.currency ?? 'USD'
+  // The server states its denominator in full; the panel names it in two
+  // words. Market-value weights are marked to market, cost weights are not,
+  // and only the second needs saying.
+  const marked = /market value/i.test(data.weight_basis ?? '')
+  const basis = marked ? 'market-value' : 'cost-basis'
   const val = data.valuation
   const totals = val?.totals
 
   return (
-    <section className="panel panel--pad pf" aria-labelledby="pf-intel-h">
-      <header className="pf__head">
-        <div>
-          <h2 id="pf-intel-h" className="h-panel">Portfolio intelligence</h2>
-          <p className="pf__lede">
-            Book-level figures across {data.positions} position{data.positions === 1 ? '' : 's'}.
-            Weights are {data.weight_basis} — not mark-to-market.
-          </p>
+    <section className="sys-panel pf" aria-labelledby="pf-intel-h">
+      <header className="sys-panel-head">
+        <div className="sys-panel-head__title">
+          <h2 id="pf-intel-h" className="sys-panel-title">Portfolio intelligence</h2>
+          <span className="sys-panel-sub">
+            {data.positions} position{data.positions === 1 ? '' : 's'} · weighted by {marked ? 'market value' : 'cost basis, not marked to market'}
+          </span>
         </div>
-        <div className="pf__head-actions">
+        <div className="sys-panel-head__end">
           <StatusPill tone={BAND_TONE[conc.band] ?? 'muted'} label={conc.band} />
           {/* The same provider path the watchlist refresh uses — one quote
               system, not two. */}
           <button
             type="button"
-            className="sys-btn sys-btn--ghost"
+            className="sys-btn sys-btn--xs"
             onClick={() => load(true)}
             disabled={refreshing}
             data-loading={refreshing || undefined}
@@ -344,6 +356,7 @@ export default function PortfolioIntelligence() {
           </button>
         </div>
       </header>
+      <div className="sys-panel-body pf__body">
 
       {/* ── valuation ─────────────────────────────────────────────────────
           Cost against today's market value. Every figure below the first
@@ -470,7 +483,7 @@ export default function PortfolioIntelligence() {
         <ul className="pf__notes">
           {data.headlines.map((note) => (
             <li key={note.text} className={`pf__note pf__note--${TONE_MAP[note.tone] ?? 'muted'}`}>
-              {note.text}
+              {typographicMinusInText(note.text)}
             </li>
           ))}
         </ul>
@@ -479,9 +492,9 @@ export default function PortfolioIntelligence() {
       <div className="pf__grid">
         {/* ── concentration ───────────────────────────────────────────── */}
         <div className="pf__block">
-          <h3 className="pf__block-title">Capital concentration</h3>
+          <h3 className="pf__block-title">Capital concentration <span className="pf__basis">derived from {basis} weights</span></h3>
           <p className="pf__metric">
-            <span className="num pf__metric-value">{conc.hhi.toFixed(0)}</span>
+            <span className="num pf__metric-value">{Math.round(conc.hhi).toLocaleString('en-US')}</span>
             <span className="pf__metric-unit">
               Herfindahl · {conc.band}
             </span>
@@ -505,7 +518,7 @@ export default function PortfolioIntelligence() {
         {/* ── risk concentration ──────────────────────────────────────── */}
         {risk && risk.top_contributors.length > 0 && (
           <div className="pf__block">
-            <h3 className="pf__block-title">Risk concentration</h3>
+            <h3 className="pf__block-title">Risk concentration <span className="pf__basis">engine risk scores</span></h3>
             <p className="pf__metric">
               <span className="num pf__metric-value">
                 {risk.weighted_score !== null ? risk.weighted_score.toFixed(0) : '—'}
@@ -534,7 +547,7 @@ export default function PortfolioIntelligence() {
             risk-free series here to subtract. */}
         {risk && (risk.volatility_pct != null || risk.max_drawdown) && (
           <div className="pf__block">
-            <h3 className="pf__block-title">Measured risk</h3>
+            <h3 className="pf__block-title">Measured risk <span className="pf__basis">from daily closes</span></h3>
             <div className="pf__stat-row">
               <span className="pf__stat">
                 <span className="pf__stat-label">Volatility</span>
@@ -546,7 +559,7 @@ export default function PortfolioIntelligence() {
               <span className="pf__stat">
                 <span className="pf__stat-label">Max drawdown</span>
                 <span className="num pf__stat-value pf__stat-value--neg">
-                  {risk.max_drawdown ? `${risk.max_drawdown.pct.toFixed(1)}%` : '—'}
+                  {risk.max_drawdown ? `${fmtNum(risk.max_drawdown.pct, 1)}%` : '—'}
                 </span>
                 {risk.max_drawdown && risk.max_drawdown.pct !== 0 && (
                   <span className="pf__stat-sub num">
@@ -572,7 +585,7 @@ export default function PortfolioIntelligence() {
                       max={Math.abs(drawnHoldings(risk.holding_drawdowns)[0]?.pct ?? 1)}
                       tone="neg"
                     />
-                    <span className="num pf__row-val">{d.pct.toFixed(1)}%</span>
+                    <span className="num pf__row-val">{fmtNum(d.pct, 1)}%</span>
                   </li>
                 ))}
               </ul>
@@ -587,9 +600,9 @@ export default function PortfolioIntelligence() {
             concentrated book look diversified. */}
         {data.correlation && data.correlation.pairs.length > 0 && (
           <div className="pf__block">
-            <h3 className="pf__block-title">Diversification</h3>
+            <h3 className="pf__block-title">Diversification <span className="pf__basis">measured on daily returns</span></h3>
             <p className="pf__metric">
-              <span className="num pf__metric-value">{data.correlation.mean_rho.toFixed(2)}</span>
+              <span className="num pf__metric-value">{fmtNum(data.correlation.mean_rho, 2)}</span>
               <span className="pf__metric-unit">mean pairwise correlation</span>
             </p>
             <p className="pf__block-note">
@@ -603,7 +616,7 @@ export default function PortfolioIntelligence() {
                   <span className="mono pf__row-name">{pair.a} ↔ {pair.b}</span>
                   <WeightBar pct={Math.max(0, pair.rho) * 100} max={100}
                              tone={pair.rho >= 0.7 ? 'neg' : 'accent'} />
-                  <span className="num pf__row-val">{pair.rho.toFixed(2)}</span>
+                  <span className="num pf__row-val">{fmtNum(pair.rho, 2)}</span>
                 </li>
               ))}
             </ul>
@@ -616,7 +629,7 @@ export default function PortfolioIntelligence() {
             does not. */}
         {data.contributions && data.contributions.length > 0 && (
           <div className="pf__block">
-            <h3 className="pf__block-title">P&amp;L contribution</h3>
+            <h3 className="pf__block-title">P&amp;L contribution <span className="pf__basis">in money, priced holdings</span></h3>
             <ul className="pf__rows">
               {data.contributions.slice(0, 5).map((c) => (
                 <li key={c.ticker} className="pf__row">
@@ -644,7 +657,7 @@ export default function PortfolioIntelligence() {
         {/* ── sector exposure ─────────────────────────────────────────── */}
         {sectors && sectors.rows.length > 0 && (
           <div className="pf__block">
-            <h3 className="pf__block-title">Sector exposure</h3>
+            <h3 className="pf__block-title">Sector exposure <span className="pf__basis">derived from {basis} weights</span></h3>
             <ul className="pf__rows pf__rows--tall">
               {sectors.rows.slice(0, 6).map((row) => (
                 <li key={row.sector} className="pf__row">
@@ -669,7 +682,7 @@ export default function PortfolioIntelligence() {
         {/* ── verdict mix ─────────────────────────────────────────────── */}
         {mix && (
           <div className="pf__block">
-            <h3 className="pf__block-title">Verdict mix</h3>
+            <h3 className="pf__block-title">Verdict mix <span className="pf__basis">share of capital</span></h3>
             <p className="pf__block-note">
               Share of capital, not share of names — one large position outweighs two
               small ones, and the money is what is at stake.
@@ -698,6 +711,7 @@ export default function PortfolioIntelligence() {
             )}
           </div>
         )}
+      </div>
       </div>
     </section>
   )

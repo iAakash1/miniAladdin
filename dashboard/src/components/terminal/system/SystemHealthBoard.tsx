@@ -126,13 +126,29 @@ export default function SystemHealthBoard({ compact = false }: { compact?: boole
     )
   }
 
-  const components = [...health.components].sort((a, b) =>
-    SEVERITY[a.status] - SEVERITY[b.status] || Number(b.critical) - Number(a.critical))
-  const constrained = health.components.filter((row) => row.critical && row.status !== 'READY').length
+  const bySeverity = (a: ComponentHealth, b: ComponentHealth) =>
+    SEVERITY[a.status] - SEVERITY[b.status] || componentLabel(a.component).localeCompare(componentLabel(b.component), 'en-US')
+  // Three groups, decided only by the report's own flags. A critical
+  // component that is not ready limits what research can say; an optional
+  // one that is off or impaired does not, and an optional provider left
+  // unconfigured is a choice, not an outage.
+  const constraints = health.components.filter((row) => row.critical && row.status !== 'READY').sort(bySeverity)
+  const optional = health.components.filter((row) => !row.critical && row.status !== 'READY').sort(bySeverity)
+  const ready = health.components.filter((row) => row.status === 'READY').sort(bySeverity)
+  const groups: Array<{ key: string; title: string; note: string; rows: ComponentHealth[] }> = [
+    { key: 'constraints', title: 'Limits research output', note: 'critical components that are not ready', rows: constraints },
+    { key: 'optional', title: 'Optional, not fully running', note: 'research continues without these', rows: optional },
+    { key: 'ready', title: 'Ready', note: 'answering normally', rows: ready },
+  ]
 
   return (
     <>
       <Panel title="System state" state={STATE[health.status]} subtitle="canonical component report">
+        <p className="hb-verdict">
+          {constraints.length
+            ? <>{constraints.length} critical component{constraints.length === 1 ? '' : 's'} limit{constraints.length === 1 ? 's' : ''} research output: {constraints.map((row) => componentLabel(row.component)).join(', ')}.</>
+            : 'No critical component reports a constraint; research output is not limited by the system.'}
+        </p>
         <Strip metrics={[
           { label: 'Ready', value: health.summary.READY, kind: 'count' },
           { label: 'Degraded', value: health.summary.DEGRADED, kind: 'count' },
@@ -167,25 +183,30 @@ export default function SystemHealthBoard({ compact = false }: { compact?: boole
           <Prose size="fine">Evidence collection shares one bounded pool. Capability budgets further limit how many upstream vendors one request may consult.</Prose>
         </Panel>
       </Grid>
-      <Panel
-        title="Components"
-        subtitle={`${health.components.length} checked · ${constrained ? `${constrained} critical constraint${constrained === 1 ? '' : 's'}` : 'no critical constraint'}`}
-      >
-        <ul className="hb-list">
-          {components.map((row) => (
-            <li key={row.component} className="hb-row" data-status={row.status}>
-              <div className="hb-row__name">
-                <span className="hb-row__title">{componentLabel(row.component)}</span>
-                <span className="hb-row__tier">{row.critical ? 'Critical' : 'Optional'}</span>
-              </div>
-              <Status state={STATE[row.status]} label={STATE_LABEL[row.status]} />
-              <p className="hb-row__reason">
-                {row.reason}
-                {row.version ? <span className="hb-row__ver">{row.version}</span> : null}
-              </p>
-            </li>
-          ))}
-        </ul>
+      <Panel title="Components" subtitle={`${health.components.length} checked`}>
+        {groups.filter((g) => g.rows.length).map((g) => (
+          <section key={g.key} className="hb-group" data-group={g.key} aria-labelledby={`hb-${g.key}`}>
+            <h3 id={`hb-${g.key}`} className="hb-group__title">
+              {g.title} <span className="hb-group__count">{g.rows.length}</span>
+              <span className="hb-group__note">{g.note}</span>
+            </h3>
+            <ul className="hb-list">
+              {g.rows.map((row) => (
+                <li key={row.component} className="hb-row" data-status={row.status}>
+                  <div className="hb-row__name">
+                    <span className="hb-row__title">{componentLabel(row.component)}</span>
+                    <span className="hb-row__tier">{row.critical ? 'Critical' : 'Optional'}</span>
+                  </div>
+                  <Status state={STATE[row.status]} label={STATE_LABEL[row.status]} />
+                  <p className="hb-row__reason">
+                    {row.reason}
+                    {row.version ? <span className="hb-row__ver">{row.version}</span> : null}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
       </Panel>
     </>
   )

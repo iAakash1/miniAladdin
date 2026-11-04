@@ -8,12 +8,13 @@ import Skeleton from '@/components/ui/Skeleton'
 import Tooltip from '@/components/ui/Tooltip'
 import { FACTOR_LABELS, diffSnapshots, useAllHistory } from '@/lib/history'
 import ConfirmButton from '@/components/ui/ConfirmButton'
+import ActionMenu from '@/components/system/ActionMenu'
 import CompanyMark from '@/components/ui/CompanyMark'
 import CompanyIdentity from '@/components/visual/CompanyIdentity'
 import SymbolSpark from '@/components/visual/SymbolSpark'
 import { ConfidenceBar, StatusPill, TrendMark } from '@/components/ui/DataMarks'
 import { notify } from '@/components/ui/Toasts'
-import { fmtPctRaw, timeAgo, fmtSigned } from '@/lib/format'
+import { fmtPctRaw, timeAgo, fmtSigned, fmtNum } from '@/lib/format'
 import PositionsPanel from '@/components/terminal/PositionsPanel'
 import PortfolioIntelligence from '@/components/terminal/PortfolioIntelligence'
 import { refreshQuotes } from '@/lib/quote-hub'
@@ -53,7 +54,10 @@ function ChangeCell({ value }: { value: number | null | undefined }) {
   // the 1D and 1W columns of the same row disagreed about decimals — "-1.62%"
   // next to "+1.6%" — and a change that rounds to zero kept its minus sign.
   const text = fmtPctRaw(value, 2, true)
-  const signed = parseFloat(text)
+  // The tone and the mark follow the figure as displayed (rounded to two
+  // places), computed from the number — never by parsing the text back,
+  // which carries a typographic minus.
+  const signed = Math.round(value * 100) / 100
   const tone = signed > 0 ? 'var(--e-pos)' : signed < 0 ? 'var(--e-neg)' : 'var(--ink-muted)'
   // The mark is keyed to the *rounded* figure, not the raw one, so a move
   // that displays as 0.00% cannot show an arrow contradicting its own text.
@@ -208,6 +212,8 @@ export default function PortfolioView() {
   const [newName, setNewName] = useState('')
   const [addSymbol, setAddSymbol] = useState('')
   const [sort, setSort] = useState<SortState>({ key: null, dir: 'desc' })
+  // The ticker whose removal is awaiting a second, explicit press.
+  const [removing, setRemoving] = useState<string | null>(null)
 
   const active: Watchlist | null =
     lists.find((list) => list.id === activeId) ?? lists[0] ?? null
@@ -531,7 +537,7 @@ export default function PortfolioView() {
                               <ul style={{ listStyle: 'none', margin: '6px 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
                                 {diff.topDrivers.slice(0, 3).map((driver) => (
                                   <li key={driver.name} className="u-meta">
-                                    {FACTOR_LABELS[driver.name] ?? driver.name}: {driver.before.toFixed(2)} → {driver.after.toFixed(2)}
+                                    {FACTOR_LABELS[driver.name] ?? driver.name}: {fmtNum(driver.before, 2)} → {fmtNum(driver.after, 2)}
                                   </li>
                                 ))}
                               </ul>
@@ -558,24 +564,34 @@ export default function PortfolioView() {
                           {latest ? timeAgo(latest.ts) : 'never analyzed'}
                         </span>
                       </td>
-                      <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                        <Link
-                          href={`/company/${encodeURIComponent(ticker)}`}
-                          className="sys-btn sys-btn--ghost sys-btn--xs"
-                        >
-                          Open
-                        </Link>
-                        <ConfirmButton
-                          className="sys-btn sys-btn--ghost sys-btn--xs reveal"
-                          description={`Remove ${ticker} from ${active.name}`}
-                          confirmLabel="Remove?"
-                          onConfirm={() => {
-                            removeTicker(active.id, ticker)
-                            notify(`${ticker} removed from ${active.name}`)
-                          }}
-                        >
-                          ✕
-                        </ConfirmButton>
+                      <td className="trk-acts">
+                        {removing === ticker ? (
+                          <span className="trk-confirm" role="group" aria-label={`Remove ${ticker} from ${active.name}?`}>
+                            <button
+                              type="button" className="sys-btn sys-btn--xs sys-btn--danger"
+                              onClick={() => {
+                                setRemoving(null)
+                                removeTicker(active.id, ticker)
+                                notify(`${ticker} removed from ${active.name}`)
+                              }}
+                            >
+                              Remove {ticker}
+                            </button>
+                            <button type="button" className="sys-btn sys-btn--xs" onClick={() => setRemoving(null)}>Keep</button>
+                          </span>
+                        ) : (
+                          <>
+                            <Link href={`/company/${encodeURIComponent(ticker)}`} className="sys-btn sys-btn--xs">Open</Link>
+                            <ActionMenu
+                              label={`Actions for ${ticker}`}
+                              items={[
+                                { kind: 'link', label: 'Paper order…', href: `/terminal/paper?ticket=${encodeURIComponent(ticker)}&origin=watchlist` },
+                                { kind: 'separator' },
+                                { label: `Remove from ${active.name}…`, onSelect: () => setRemoving(ticker), tone: 'danger' },
+                              ]}
+                            />
+                          </>
+                        )}
                       </td>
                     </tr>
                   ))}

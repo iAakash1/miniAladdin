@@ -505,3 +505,12 @@ a.panel:hover { border-color: var(--rule-strong); background-color: var(--p-rais
 @media (prefers-reduced-motion: reduce) {
   .od-reveal-armed [data-reveal]:not([data-revealed]) { opacity: 1; translate: none; }
 }
+
+/* ── legacy panels ─────────────────────────────────────────────────────────
+   Fifteen screens still draw a panel as one padded box with an .h-panel
+   title. They take the system panel's density and title so the two read as
+   one kind of object: 16px inside, a 13px semibold title in ink. */
+.panel--pad { padding: var(--d-4); }
+.h-panel { font: 600 var(--t-body) / 1.3 var(--font-sans); color: var(--ink); letter-spacing: 0; }
+.h-panel--sub { font-size: var(--t-body-lg); }
+.h-panel--lg { font-size: var(--t-lead); }
