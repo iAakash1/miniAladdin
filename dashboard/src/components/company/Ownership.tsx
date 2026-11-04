@@ -1,4 +1,5 @@
 import type { OwnershipBlock } from '@/lib/types'
+import { typographicMinus } from '@/lib/format'
 
 function pct(fraction: number | null, digits = 1): string | null {
   return fraction === null || !Number.isFinite(fraction) ? null : `${(fraction * 100).toFixed(digits)}%`
@@ -6,7 +7,7 @@ function pct(fraction: number | null, digits = 1): string | null {
 
 function shares(v: number | null): string | null {
   if (v === null || !Number.isFinite(v)) return null
-  return v.toLocaleString('en-US', { notation: 'compact', maximumFractionDigits: 2 })
+  return typographicMinus(v.toLocaleString('en-US', { notation: 'compact', maximumFractionDigits: 2 }))
 }
 
 function Share({ label, fraction, digits = 1, tone }: {

@@ -1,6 +1,6 @@
 'use client'
 
-import { fmtSigned } from '@/lib/format'
+import { fmtSigned, fmtNum } from '@/lib/format'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
@@ -26,7 +26,7 @@ function Signal({ value }: { value: string | null }) {
 }
 
 function num(v: number | null | undefined, digits = 0): string {
-  return v === null || v === undefined || !Number.isFinite(v) ? '—' : v.toFixed(digits)
+  return v === null || v === undefined || !Number.isFinite(v) ? '—' : fmtNum(v, digits)
 }
 
 export default function Ideas() {

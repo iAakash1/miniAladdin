@@ -30,19 +30,20 @@ import {
   fetchCategories, fetchExplore, freshness, signalTone,
 } from '@/lib/explore'
 import { factorReason } from '@/lib/history'
+import { fmtNum } from '@/lib/format'
 
 const dash = '—'
 
 function num(value: number | null | undefined, digits = 2, suffix = ''): string {
   return value === null || value === undefined || !Number.isFinite(value)
     ? dash
-    : `${value.toFixed(digits)}${suffix}`
+    : `${fmtNum(value, digits)}${suffix}`
 }
 
 function pct(value: number | null | undefined, digits = 0): string {
   return value === null || value === undefined || !Number.isFinite(value)
     ? dash
-    : `${(value * 100).toFixed(digits)}%`
+    : `${fmtNum(value * 100, digits)}%`
 }
 
 const TREND_LABEL: Record<string, string> = {

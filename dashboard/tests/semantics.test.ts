@@ -213,7 +213,7 @@ test('a price is not abbreviated', () => {
 })
 
 test('a negative amount keeps its sign through abbreviation', () => {
-  assert.equal(format(-2_400_000_000, 'currency').text, '-2.40B')
+  assert.equal(format(-2_400_000_000, 'currency').text, '−2.40B')
 })
 
 test('beta is not signed', () => {
@@ -291,7 +291,7 @@ test('an incomparable delta has no movement to report', () => {
    artefact even though its sign is right. */
 test('a real difference is not rendered as a signed zero', () => {
   const d = delta(3.00, 3.01, { kind: 'percent' }, { kind: 'percent' })
-  assert.equal(d.formatted?.text, '-0.01')
+  assert.equal(d.formatted?.text, '−0.01')
   assert.equal(d.unit, 'pp')
 })
 

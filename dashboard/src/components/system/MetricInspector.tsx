@@ -14,6 +14,7 @@ import Link from 'next/link'
 import { Status, type ResearchState } from './index'
 import { useDrawerFocus } from './useDrawerFocus'
 import { useMetrics } from './MetricContext'
+import { typographicMinus } from '@/lib/format'
 
 const STATUS_MAP: Record<string, ResearchState> = {
   live: 'live', recorded: 'recorded', stale: 'stale', waking: 'waking',
@@ -117,7 +118,7 @@ export default function MetricInspector() {
                   <tr key={o.provider}>
                     <td>{o.provider}</td>
                     <td className="num">
-                      {typeof o.value === 'number' ? o.value.toLocaleString('en-US') : (o.value ?? '—')}
+                      {typeof o.value === 'number' ? typographicMinus(o.value.toLocaleString('en-US')) : (o.value ?? '—')}
                     </td>
                   </tr>
                 ))}

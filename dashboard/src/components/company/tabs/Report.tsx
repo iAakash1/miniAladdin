@@ -17,7 +17,7 @@ import CompanyMark from '@/components/ui/CompanyMark'
 import SectorMark, { sectorKey } from '@/components/visual/SectorMark'
 import Timeline from '@/components/visual/Timeline'
 import { READING_GAP, currentSectionId, pinnedSection, scrollToSection, stickyInset, workspaceRoot } from '@/lib/section-nav'
-import { ordinal, fmtSigned } from '@/lib/format'
+import { ordinal, fmtSigned, typographicMinus, typographicMinusInText } from '@/lib/format'
 import { venueLabel } from '@/lib/text'
 import type { Analysis } from '@/lib/types'
 
@@ -127,14 +127,14 @@ function Outline({ sections, current, onPick }: {
 }
 
 const signed = (v: number, d = 3) => fmtSigned(v, d)
-const pct = (v: number | undefined, d = 1) => (v === undefined || !Number.isFinite(v) ? '—' : `${v.toFixed(d)}%`)
-const mult = (v: number | undefined, d = 1) => (v === undefined || !Number.isFinite(v) ? '—' : `${v.toFixed(d)}×`)
+const pct = (v: number | undefined, d = 1) => (v === undefined || !Number.isFinite(v) ? '—' : `${typographicMinus(v.toFixed(d))}%`)
+const mult = (v: number | undefined, d = 1) => (v === undefined || !Number.isFinite(v) ? '—' : `${typographicMinus(v.toFixed(d))}×`)
 function money(v: number): string {
   const a = Math.abs(v)
-  if (a >= 1e12) return `${(v / 1e12).toFixed(2)}T`
-  if (a >= 1e9) return `${(v / 1e9).toFixed(2)}B`
-  if (a >= 1e6) return `${(v / 1e6).toFixed(1)}M`
-  return v.toLocaleString('en-US')
+  if (a >= 1e12) return typographicMinus(`${(v / 1e12).toFixed(2)}T`)
+  if (a >= 1e9) return typographicMinus(`${(v / 1e9).toFixed(2)}B`)
+  if (a >= 1e6) return typographicMinus(`${(v / 1e6).toFixed(1)}M`)
+  return typographicMinus(v.toLocaleString('en-US'))
 }
 
 /** Figure 1: the price the report is written against. */
@@ -427,7 +427,7 @@ export default function Report({ analysis: a }: { analysis: Analysis }) {
         {a.technicalIntelligence ? (
           <Section id="technical" title="Technical state" kind="deterministic">
             <ul className="rp-findings">
-              {a.technicalIntelligence.findings.map((f) => <li key={f.text} data-tone={f.tone}>{f.text}</li>)}
+              {a.technicalIntelligence.findings.map((f) => <li key={f.text} data-tone={f.tone}>{typographicMinusInText(f.text)}</li>)}
             </ul>
             <Table
               head={['Indicator', 'Reading', 'Detail', 'State']}

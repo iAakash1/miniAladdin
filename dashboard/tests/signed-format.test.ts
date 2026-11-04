@@ -15,7 +15,7 @@ import { fmtSigned } from '../src/lib/format'
 
 test('a gain has a plus, a loss has a minus, zero has neither', () => {
   assert.equal(fmtSigned(0.1234, 3), '+0.123')
-  assert.equal(fmtSigned(-0.1234, 3), '-0.123')
+  assert.equal(fmtSigned(-0.1234, 3), '−0.123')
   assert.equal(fmtSigned(0, 3), '0.000')
   assert.equal(fmtSigned(-0, 3), '0.000')
 })
@@ -34,7 +34,7 @@ test('a figure that is not a number is no value, not "NaN"', () => {
 
 test('whole-number deltas carry no decimals', () => {
   assert.equal(fmtSigned(3, 0), '+3')
-  assert.equal(fmtSigned(-12, 0), '-12')
+  assert.equal(fmtSigned(-12, 0), '−12')
   assert.equal(fmtSigned(0, 0), '0')
 })
 

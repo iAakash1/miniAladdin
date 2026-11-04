@@ -20,11 +20,12 @@ import { useEffect, useState } from 'react'
 import { EmptyLine, Panel, Prose, StateBlock } from '@/components/system'
 import { readerError } from '@/lib/failure'
 import { type ExploreRow, fetchRecommendations, signalTone } from '@/lib/explore'
+import { fmtNum } from '@/lib/format'
 
 const dash = '—'
 
 function pct(value: number | null): string {
-  return value === null || !Number.isFinite(value) ? dash : `${(value * 100).toFixed(1)}%`
+  return value === null || !Number.isFinite(value) ? dash : `${fmtNum(value * 100, 1)}%`
 }
 
 export default function PerformanceLeaders({

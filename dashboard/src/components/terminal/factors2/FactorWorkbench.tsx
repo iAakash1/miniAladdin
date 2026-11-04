@@ -29,6 +29,7 @@ import { ObjectHeader, StripSkeleton, TableSkeleton, Toolbar, ToolbarGroup, Tool
 import CrossSection, { type Attribution, type RankRow, type ScreenRow } from './CrossSection'
 import FactorDetail, { type Portfolio, type Stability } from './FactorDetail'
 import { Compare, CompareLegend, type CompareField, type CompareSubject } from '@/components/system/Compare'
+import { fmtNum } from '@/lib/format'
 
 interface FactorEvaluation {
   factor: string
@@ -308,9 +309,9 @@ export default function FactorWorkbench() {
                 {sel.assessment}
               </Prose>
               <Prose size="tight">
-                The uncorrected t-statistic was {sel.naive_t_stat.toFixed(2)}; correcting
-                for {sel.newey_west_lags} lags of label overlap brings it to {sel.t_stat.toFixed(2)},
-                an inflation factor of {sel.overlap_inflation.toFixed(2)}×. Overlapping
+                The uncorrected t-statistic was {fmtNum(sel.naive_t_stat, 2)}; correcting
+                for {sel.newey_west_lags} lags of label overlap brings it to {fmtNum(sel.t_stat, 2)},
+                an inflation factor of {fmtNum(sel.overlap_inflation, 2)}×. Overlapping
                 labels share information, and a t-statistic that ignores that counts
                 the same evidence more than once.
               </Prose>
@@ -338,7 +339,7 @@ export default function FactorWorkbench() {
             .map((f) => ({
               label: f.factor,
               value: f.overlap_inflation,
-              note: `naive ${f.naive_t_stat.toFixed(2)} → corrected ${f.t_stat.toFixed(2)} at ${f.newey_west_lags} lags`,
+              note: `naive ${fmtNum(f.naive_t_stat, 2)} → corrected ${fmtNum(f.t_stat, 2)} at ${f.newey_west_lags} lags`,
             }))}
         />
         <p style={{ margin: 'var(--d-2) 0 0', fontSize: 'var(--t-meta)', color: 'var(--ink-muted)', lineHeight: 'var(--lh-body)', maxWidth: '86ch' }}>

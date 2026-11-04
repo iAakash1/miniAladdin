@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import Skeleton from '@/components/ui/Skeleton'
 import { Status } from '@/components/system'
 import { EDGE_LABELS, fetchKnowledge, unavailableSources, type CompanyKnowledge } from '@/lib/knowledge'
+import { typographicMinusInText } from '@/lib/format'
 
 const TONE_COLOR = { pos: 'var(--e-pos)', neg: 'var(--e-neg)', neutral: 'var(--ink-muted)' } as const
 
@@ -138,7 +139,7 @@ export default function CompanyEcosystem({ ticker }: { ticker: string }) {
                   style={{ flexShrink: 0, marginTop: 8, width: 6, height: 6, borderRadius: 1, background: TONE_COLOR[finding.tone] }}
                 />
                 <span>
-                  <span style={{ color: 'var(--ink)' }}>{finding.text}</span>
+                  <span style={{ color: 'var(--ink)' }}>{typographicMinusInText(finding.text)}</span>
                   {finding.evidence[0]?.source.url && (
                     <>
                       {' '}

@@ -19,6 +19,7 @@ import { useMemo } from 'react'
 
 import { TimeSeries } from '@/components/system/charts'
 import { Panel, Prose, Section, StateBlock, Status, Strip, Value } from '@/components/system'
+import { fmtNum } from '@/lib/format'
 
 export interface Portfolio {
   buckets: number
@@ -125,7 +126,7 @@ export default function FactorDetail({
             <Section title="Why halves matter more than the mean">
               <Prose>
                 {halves
-                  ? `First half ${halves.first.toFixed(4)}, second half ${halves.second.toFixed(4)}. `
+                  ? `First half ${fmtNum(halves.first, 4)}, second half ${fmtNum(halves.second, 4)}. `
                   : ''}
                 Two factors with the same mean IC can be entirely different objects:
                 one that worked throughout, and one that worked early and stopped.

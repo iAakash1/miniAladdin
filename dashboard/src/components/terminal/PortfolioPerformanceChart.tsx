@@ -39,7 +39,7 @@ import {
   YAxis,
 } from 'recharts'
 
-import { fmtDate } from '@/lib/format'
+import { fmtDate, fmtNum, typographicMinus } from '@/lib/format'
 import type { PortfolioBenchmark, PortfolioCurve } from '@/lib/persistence'
 
 interface Point {
@@ -56,26 +56,26 @@ function money(value: number, currency: string): string {
   // so nothing here hardcodes a currency the product may not be denominated
   // in. Fractions are dropped: a portfolio axis in cents is noise.
   try {
-    return new Intl.NumberFormat('en-US', {
+    return typographicMinus(new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency,
       maximumFractionDigits: 0,
-    }).format(value)
+    }).format(value))
   } catch {
-    return `${Math.round(value).toLocaleString('en-US')}`
+    return typographicMinus(Math.round(value).toLocaleString('en-US'))
   }
 }
 
 function moneyExact(value: number, currency: string): string {
   try {
-    return new Intl.NumberFormat('en-US', {
+    return typographicMinus(new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency,
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(value)
+    }).format(value))
   } catch {
-    return value.toFixed(2)
+    return fmtNum(value, 2)
   }
 }
 

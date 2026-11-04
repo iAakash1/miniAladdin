@@ -29,6 +29,8 @@
  * The unit label carries the interpretation instead.
  */
 
+import { typographicMinus } from './format'
+
 export type Kind =
   | 'ic'            // rank correlation in [-1, 1]
   | 'correlation'   // Pearson or Spearman in [-1, 1]
@@ -169,7 +171,7 @@ export function format(
     // quantity (3.5 shares) rounded to 4 is a position the account does not hold.
     const places = kind === 'count' && overrides?.digits ? overrides.digits : 0
     return {
-      text: places ? value.toLocaleString('en-US', { maximumFractionDigits: places }) : Math.round(value).toLocaleString('en-US'),
+      text: typographicMinus(places ? value.toLocaleString('en-US', { maximumFractionDigits: places }) : Math.round(value).toLocaleString('en-US')),
       unit, tone, absent: false,
     }
   }
@@ -187,12 +189,12 @@ export function format(
         size >= 1e9 ? [1e9, 'B'] :
         [1e6, 'M']
       return {
-        text: `${(value / scale).toFixed(2)}${suffix}`,
+        text: typographicMinus(`${(value / scale).toFixed(2)}${suffix}`),
         unit, tone, absent: false,
       }
     }
     return {
-      text: value.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits }),
+      text: typographicMinus(value.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits })),
       unit, tone, absent: false,
     }
   }
@@ -200,11 +202,11 @@ export function format(
   const magnitude = Math.abs(value)
   if (spec.exponentialBelow !== undefined && magnitude > 0 && magnitude < spec.exponentialBelow) {
     const text = value.toExponential(Math.max(1, digits - 1))
-    return { text: withSign(text, value, signed), unit, tone, absent: false }
+    return { text: typographicMinus(withSign(text, value, signed)), unit, tone, absent: false }
   }
 
   const fixed = value.toFixed(digits)
-  return { text: withSign(fixed, value, signed), unit, tone, absent: false }
+  return { text: typographicMinus(withSign(fixed, value, signed)), unit, tone, absent: false }
 }
 
 /**
@@ -217,8 +219,11 @@ export function format(
  * would be the only thing on screen suggesting which side of nothing it fell.
  */
 function withSign(text: string, value: number, signed: boolean): string {
+  // A negative value that rounds to zero lost its direction at this
+  // precision; "-0.00" would claim one, whether or not the kind is signed.
+  if (/^-0(\.0*)?$/.test(text)) return text.slice(1)
   if (!signed || value < 0) return text
-  if (value === 0 || /^-?0(\.0*)?$/.test(text)) return text.replace(/^-/, '')
+  if (value === 0 || /^0(\.0*)?$/.test(text)) return text
   return `+${text}`
 }
 

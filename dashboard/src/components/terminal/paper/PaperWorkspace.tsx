@@ -37,6 +37,7 @@ import {
 import { formatMoment } from '@/lib/quantity'
 import { ResourceError } from '@/lib/resource'
 import { watchSymbol } from '@/lib/watchlists'
+import { fmtNum } from '@/lib/format'
 
 type WorkspaceState =
   | { at: 'loading' }
@@ -420,7 +421,7 @@ function Performance() {
                   method="Alpaca portfolio history: equity at the end of each window"
                 />
                 <p className="sys-meta">
-                  {first !== null && last ? `Range change ${(((last.equity / first) - 1) * 100).toFixed(2)}% from ${first.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}. ` : ''}
+                  {first !== null && last ? `Range change ${fmtNum(((last.equity / first) - 1) * 100, 2)}% from ${first.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}. ` : ''}
                   Not annualized. Deposits and withdrawals move equity too.
                 </p>
               </>

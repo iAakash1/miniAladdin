@@ -21,6 +21,7 @@ import { BarRows, Histogram, Scatter } from '@/components/system/charts'
 import { Grid, Panel, Prose, Section, StateBlock, Status, Strip, Value, type ResearchState } from '@/components/system'
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
 import { recordVisit } from '@/lib/research/history'
+import { fmtNum } from '@/lib/format'
 
 export interface RankRow {
   rank: number
@@ -233,7 +234,7 @@ export default function CrossSection({
                 rows={attribution.factors.map((f) => ({
                   label: f,
                   value: n(attribution.factor_returns[f]),
-                  note: `t = ${n(attribution.t_stats[f])?.toFixed(2) ?? '—'}`,
+                  note: `t = ${fmtNum(n(attribution.t_stats[f]), 2)}`,
                 }))}
               />
             </Section>

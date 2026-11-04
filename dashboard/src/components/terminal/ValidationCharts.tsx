@@ -18,6 +18,7 @@ import {
   YAxis,
 } from 'recharts'
 import type { BacktestData } from '@/lib/backtest'
+import { fmtNum } from '@/lib/format'
 
 const AXIS_TICK = { fill: 'var(--ink-faint)', fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)' }
 
@@ -38,7 +39,7 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
       <div style={{ color: 'var(--ink-faint)', marginBottom: 4 }}>{label}</div>
       {payload.map((row) => (
         <div key={row.name} className="num" style={{ color: row.color ?? 'var(--ink)' }}>
-          {row.name}: {typeof row.value === 'number' ? row.value.toFixed(3) : row.value}
+          {row.name}: {typeof row.value === 'number' ? fmtNum(row.value, 3) : row.value}
         </div>
       ))}
     </div>
@@ -91,7 +92,7 @@ export function EquityCurveChart({ data }: { data: BacktestData }) {
           <CartesianGrid stroke="var(--rule)" vertical={false} />
           <XAxis dataKey="date" tick={AXIS_TICK} axisLine={false} tickLine={false} minTickGap={64} />
           <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} width={44}
-                 domain={['auto', 'auto']} tickFormatter={(value: number) => value.toFixed(1)} />
+                 domain={['auto', 'auto']} tickFormatter={(value: number) => fmtNum(value, 1)} />
           <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'var(--rule-strong)', strokeWidth: 1 }} />
           <ReferenceLine y={1} stroke="var(--rule-strong)" strokeDasharray="4 4" />
           {show.strategy && (

@@ -13,6 +13,7 @@
 import { useState } from 'react'
 
 import { faviconFor, sourceDomain } from '@/lib/identity'
+import { fmtNum } from '@/lib/format'
 
 /* ── Source favicon ─────────────────────────────────────────────────────── */
 
@@ -113,10 +114,10 @@ export function AllocBar({
   const ratio = Math.min(1, Math.max(0, value / ceiling))
   return (
     <span className="allocbar">
-      <span className="allocbar__track" role="img" aria-label={`${value.toFixed(1)} percent of portfolio`}>
+      <span className="allocbar__track" role="img" aria-label={`${fmtNum(value, 1)} percent of portfolio`}>
         <span className="allocbar__fill" style={{ transform: `scaleX(${ratio})` }} />
       </span>
-      <span className="num allocbar__num">{value.toFixed(1)}%</span>
+      <span className="num allocbar__num">{fmtNum(value, 1)}%</span>
     </span>
   )
 }

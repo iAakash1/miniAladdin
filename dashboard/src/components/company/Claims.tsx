@@ -4,13 +4,14 @@ import { useMemo } from 'react'
 
 import ClaimTree, { type Claim, type EvidenceState } from '@/components/visual/ClaimTree'
 import type { Analysis } from '@/lib/types'
+import { typographicMinus } from '@/lib/format'
 
 function figure(v: number): string {
   const abs = Math.abs(v)
   if (abs >= 1e12) return `${(v / 1e12).toFixed(2)}T`
   if (abs >= 1e9) return `${(v / 1e9).toFixed(2)}B`
   if (abs >= 1e6) return `${(v / 1e6).toFixed(2)}M`
-  return v.toLocaleString('en-US', { maximumFractionDigits: 4 })
+  return typographicMinus(v.toLocaleString('en-US', { maximumFractionDigits: 4 }))
 }
 
 /** Statement fields as a filing would label them. */

@@ -20,6 +20,7 @@ import { readerError } from '@/lib/failure'
 import { recordVisit } from '@/lib/research/history'
 import { ObjectHeader, TableSkeleton } from '@/components/system/composition'
 import { readResource } from '@/lib/resource'
+import { fmtNum } from '@/lib/format'
 
 interface Detail {
   experiment_id?: string
@@ -61,7 +62,7 @@ const CHANGE_STATE: Record<Change, 'recorded' | 'experimental' | 'candidate' | '
 
 function show(v: unknown): string {
   if (v === null || v === undefined) return '—'
-  if (typeof v === 'number') return Number.isInteger(v) ? String(v) : v.toFixed(4)
+  if (typeof v === 'number') return Number.isInteger(v) ? String(v) : fmtNum(v, 4)
   if (typeof v === 'object') return JSON.stringify(v).slice(0, 60)
   const s = String(v)
   return s.length > 60 ? `${s.slice(0, 59)}…` : s

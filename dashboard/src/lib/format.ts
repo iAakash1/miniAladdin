@@ -1,5 +1,27 @@
 /* Formatting utilities — single source of truth for number/date rendering. */
 
+/** U+2212 MINUS SIGN, the sign a negative figure is printed with. */
+export const MINUS = '\u2212'
+
+/**
+ * The display form of a formatted number: a true minus sign where
+ * `toFixed` and `toLocaleString` emit the ASCII hyphen-minus.
+ *
+ * The hyphen is a word-joining mark. Set in a figure font with tabular
+ * numerals it keeps its short glyph inside a digit-wide cell, so "-3.4%"
+ * reads as "- 3.4%"; the minus sign is drawn to the width and height of the
+ * plus and sits against its number. Only a sign is replaced — a leading one
+ * (before a digit, a decimal point or a currency symbol) and one in an
+ * exponent — so a ticker such as BRK-B, a date or a range like "12-1" that
+ * reaches this function is left as it was.
+ *
+ * This is presentation only. The value a figure was formatted from is the
+ * value to compute with; a display string is never parsed back.
+ */
+export function typographicMinus(text: string): string {
+  return text.replace(/^-(?=[\d.$€£¥])/, MINUS).replace(/(\de)-(?=\d)/, `$1${MINUS}`)
+}
+
 /** Everything that is not a finite number renders as "no value".
  *
  *  `Number.isNaN` alone missed two cases that reach these functions from real
@@ -20,6 +42,17 @@ function unsignZero(text: string): string {
   return /^-0(\.0*)?$/.test(text) ? text.slice(1) : text
 }
 
+/**
+ * The minus sign inside text the server composed: "hist -3.193",
+ * "S&P 500 -2.01% over the window". Only a hyphen that begins a number is a
+ * sign — at the start of the text, or after a space, an opening bracket, a
+ * slash, an equals sign or a colon. One between letters or digits (BRK-B,
+ * 2026-11-04, the 12-1 momentum window) joins words and is left alone.
+ */
+export function typographicMinusInText(text: string): string {
+  return text.replace(/(^|[\s([/=:])-(?=\.?\d)/g, `$1${MINUS}`)
+}
+
 /** 1st, 2nd, 3rd, 4th … 11th, 12th, 13th … 21st, 83rd. */
 export function ordinal(n: number): string {
   const r = Math.round(n)
@@ -34,17 +67,17 @@ export function fmtPrice(v: number | null | undefined): string {
   // alone is not enough: -0.0001 is not -0, but `toLocaleString` still
   // renders it "-$0.00" once rounded to two places.
   const rounded = Math.round((v as number) * 100) / 100
-  return (rounded === 0 ? 0 : rounded).toLocaleString('en-US', {
+  return typographicMinus((rounded === 0 ? 0 : rounded).toLocaleString('en-US', {
     style: 'currency',
     currency: 'USD',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  })
+  }))
 }
 
 export function fmtNum(v: number | null | undefined, digits = 2): string {
   if (isMissing(v)) return '—'
-  return unsignZero((v as number).toFixed(digits))
+  return typographicMinus(unsignZero((v as number).toFixed(digits)))
 }
 
 /** A signed figure: "+0.123", "-0.123", "0.000". The same rule as `format()` —
@@ -52,8 +85,8 @@ export function fmtNum(v: number | null | undefined, digits = 2): string {
  *  neither sign, and anything not finite is "no value" rather than "NaN". */
 export function fmtSigned(v: number | null | undefined, digits = 2): string {
   if (isMissing(v)) return '—'
-  const body = unsignZero((v as number).toFixed(digits))
-  return `${parseFloat(body) > 0 ? '+' : ''}${body}`
+  const rounded = unsignZero((v as number).toFixed(digits))
+  return `${Number(rounded) > 0 ? '+' : ''}${typographicMinus(rounded)}`
 }
 
 /** A flag as a reader would say it. A boolean printed raw is "true" or "false",
@@ -66,11 +99,11 @@ export function yesNo(v: boolean | null | undefined): string {
 export function fmtPct(v: number | null | undefined, digits = 2, signed = true): string {
   if (isMissing(v)) return '—'
   const pct = (v as number) * 100
-  const body = unsignZero(pct.toFixed(digits))
+  const rounded = unsignZero(pct.toFixed(digits))
   // The '+' is decided after rounding, so a value that rounds to zero gets
   // neither sign rather than a '+' on a number that did not move.
-  const sign = signed && parseFloat(body) > 0 ? '+' : ''
-  return `${sign}${body}%`
+  const sign = signed && Number(rounded) > 0 ? '+' : ''
+  return `${sign}${typographicMinus(rounded)}%`
 }
 
 /** 4.47 -> "4.47%" (already in percent units). `signed` adds a leading '+'
@@ -79,8 +112,8 @@ export function fmtPctRaw(
   v: number | null | undefined, digits = 2, signed = false,
 ): string {
   if (isMissing(v)) return '—'
-  const body = unsignZero((v as number).toFixed(digits))
-  return `${signed && parseFloat(body) > 0 ? '+' : ''}${body}%`
+  const rounded = unsignZero((v as number).toFixed(digits))
+  return `${signed && Number(rounded) > 0 ? '+' : ''}${typographicMinus(rounded)}%`
 }
 
 /**
@@ -170,7 +203,7 @@ export function uncertaintyBreakdown(components: Record<string, number | null | 
   return parts
     .flatMap(([key, label]) => {
       const v = components[key]
-      return typeof v === 'number' && Number.isFinite(v) ? [`${label} ${v.toFixed(2)}`] : []
+      return typeof v === 'number' && Number.isFinite(v) ? [`${label} ${fmtNum(v)}`] : []
     })
     .join(' · ')
 }

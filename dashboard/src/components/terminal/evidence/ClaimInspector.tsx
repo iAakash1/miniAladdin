@@ -30,6 +30,7 @@
 
 import { EmptyLine, Prose, Status, type ResearchState } from '@/components/system'
 import { useDrawerFocus } from '@/components/system/useDrawerFocus'
+import { fmtNum, typographicMinus } from '@/lib/format'
 
 export interface EvidenceRecord {
   evidence_id: string
@@ -80,9 +81,9 @@ function renderValue(value: unknown, unit: string | null, currency: string | nul
   if (value === null || value === undefined) return 'not reported'
   if (typeof value === 'number') {
     if (!Number.isFinite(value)) return 'not a finite number'
-    const shown = Math.abs(value) >= 1000 ? value.toLocaleString('en-US') : String(value)
+    const shown = typographicMinus(Math.abs(value) >= 1000 ? value.toLocaleString('en-US') : String(value))
     if (unit === 'percent') return `${shown}%`
-    if (unit === 'fraction') return `${(value * 100).toFixed(2)}%`
+    if (unit === 'fraction') return `${fmtNum(value * 100, 2)}%`
     if (unit === 'usd') return `${currency ?? 'USD'} ${shown}`
     return unit ? `${shown} ${unit}` : shown
   }

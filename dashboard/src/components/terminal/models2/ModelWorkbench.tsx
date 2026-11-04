@@ -21,6 +21,7 @@ import { Grid, Panel, Prose, Section, StateBlock, Status, Strip, Table, Value, t
 import { ObjectHeader, StripSkeleton, TableSkeleton } from '@/components/system/composition'
 import { readerError } from '@/lib/failure'
 import { readResource } from '@/lib/resource'
+import { fmtNum } from '@/lib/format'
 
 interface LabelRow {
   label: string
@@ -177,8 +178,8 @@ export default function ModelWorkbench() {
                 {retained === null
                   ? 'No training IC was recorded for this label, so the share of the fit that survived out of sample cannot be computed. Nothing is assumed in its place.'
                   : retained < 0.25
-                    ? `Roughly ${(retained * 100).toFixed(0)}% of the training fit survived out of sample. That is mostly memorisation, and the validation figure should be read as the model's real signal — not as a good result with a caveat.`
-                    : `Roughly ${(retained * 100).toFixed(0)}% of the training fit survived out of sample.`}
+                    ? `Roughly ${fmtNum(retained * 100, 0)}% of the training fit survived out of sample. That is mostly memorisation, and the validation figure should be read as the model's real signal — not as a good result with a caveat.`
+                    : `Roughly ${fmtNum(retained * 100, 0)}% of the training fit survived out of sample.`}
               </Prose>
               <table className="sys-table sys-table--compact">
                 <tbody>

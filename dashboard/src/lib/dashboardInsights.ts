@@ -272,7 +272,7 @@ export function quickSignals(data: Pick<DashboardData, 'macro' | 'breadth'>): Qu
 
 function fmtSign(value: number | null): string {
   if (value === null) return ''
-  return value > 0 ? '+' : value < 0 ? '-' : ''
+  return value > 0 ? '+' : value < 0 ? '\u2212' : ''
 }
 
 /** Share of quick signals that are not flashing a warning — a transparent,

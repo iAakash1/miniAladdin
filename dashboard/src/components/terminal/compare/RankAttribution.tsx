@@ -19,7 +19,7 @@
  * holding. Both can carry the same signal.
  */
 
-import { fmtSigned } from '@/lib/format'
+import { fmtSigned, fmtNum } from '@/lib/format'
 import { useEffect, useState } from 'react'
 
 import {
@@ -63,7 +63,7 @@ const dash = '—'
 
 /** `??` not `||`: a contribution of exactly 0 is a measurement. */
 const num = (v: number | null | undefined, digits = 1): string =>
-  v === null || v === undefined || !Number.isFinite(v) ? dash : v.toFixed(digits)
+  v === null || v === undefined || !Number.isFinite(v) ? dash : fmtNum(v, digits)
 
 const signedNum = (v: number | null | undefined, digits = 2): string =>
   v === null || v === undefined || !Number.isFinite(v) ? dash : fmtSigned(v, digits)
@@ -146,7 +146,7 @@ export default function RankAttribution({ a, b }: { a: string; b: string }) {
         </span>
       ),
     },
-    { key: 'share', header: 'Share of movement', numeric: true, render: (c) => `${c.share.toFixed(0)}%` },
+    { key: 'share', header: 'Share of movement', numeric: true, render: (c) => `${fmtNum(c.share, 0)}%` },
   ]
 
   return (

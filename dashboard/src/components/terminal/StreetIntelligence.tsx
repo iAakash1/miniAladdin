@@ -1,6 +1,6 @@
 'use client'
 
-import { fmtSigned } from '@/lib/format'
+import { fmtSigned, typographicMinusInText } from '@/lib/format'
 import MetricExplainer from './MetricExplainer'
 import { STREET_GLOSSARY } from '@/lib/technicalGlossary'
 import type { StreetIntelligence as StreetBlock, TechTone } from '@/lib/types'
@@ -71,7 +71,7 @@ export default function StreetIntelligence({ block }: { block: StreetBlock | nul
           {findings.map((finding) => (
             <li key={finding.text} style={{ display: 'flex', gap: 8, fontSize: 'var(--t-body)', lineHeight: 1.55, color: 'var(--ink)' }}>
               <span aria-hidden="true" style={{ flexShrink: 0, marginTop: 8, width: 6, height: 6, borderRadius: 1, background: TONE_COLOR[finding.tone] }} />
-              {finding.text}
+              {typographicMinusInText(finding.text)}
             </li>
           ))}
         </ul>

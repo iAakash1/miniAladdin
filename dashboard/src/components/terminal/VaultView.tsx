@@ -15,7 +15,7 @@ import { normalizeAnalysis } from '@/lib/api'
 import ConfirmButton from '@/components/ui/ConfirmButton'
 import CompanyMark from '@/components/ui/CompanyMark'
 import { Segmented, Switch } from '@/components/ui/Controls'
-import { fmtDate, timeAgo, fmtSigned } from '@/lib/format'
+import { fmtDate, timeAgo, fmtSigned, fmtNum } from '@/lib/format'
 import {
   type CompareResult,
   type HistoryFilters,
@@ -872,7 +872,7 @@ function CompareView({ a, b, onBack }: { a: string; b: string; onBack: () => voi
                     {family.label}
                   </span>
                   <span className="num" style={{ width: 130, flexShrink: 0, fontSize: 'var(--t-small)', color: 'var(--ink-muted)' }}>
-                    {family.before !== null ? family.before.toFixed(3) : '—'} → {family.after !== null ? family.after.toFixed(3) : '—'}
+                    {family.before !== null ? fmtNum(family.before, 3) : '—'} → {family.after !== null ? fmtNum(family.after, 3) : '—'}
                   </span>
                   <DeltaBar delta={family.delta} max={maxFamilyDelta} />
                   <span className="num" style={{ width: 64, textAlign: 'right', flexShrink: 0, fontSize: 'var(--t-small)', fontWeight: 600, color: !family.changed ? 'var(--ink-faint)' : family.delta >= 0 ? 'var(--e-pos)' : 'var(--e-neg)' }}>
@@ -919,10 +919,10 @@ function CompareView({ a, b, onBack }: { a: string; b: string; onBack: () => voi
                       <td style={{ fontWeight: factor.changed ? 600 : 400 }}>{factor.name}</td>
                       <td className="u-note">{factor.family ?? '—'}</td>
                       <td className="num">
-                        {factor.before !== null ? factor.before.toFixed(3) : '—'}
+                        {factor.before !== null ? fmtNum(factor.before, 3) : '—'}
                       </td>
                       <td className="num">
-                        {factor.after !== null ? factor.after.toFixed(3) : '—'}
+                        {factor.after !== null ? fmtNum(factor.after, 3) : '—'}
                       </td>
                       <td className="num" style={{ textAlign: 'right', fontWeight: 600, color: !factor.changed ? 'var(--ink-faint)' : factor.delta >= 0 ? 'var(--e-pos)' : 'var(--e-neg)' }}>
                         {fmtSigned(factor.delta, 3)}

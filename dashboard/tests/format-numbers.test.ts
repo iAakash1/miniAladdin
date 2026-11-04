@@ -33,10 +33,10 @@ test('a value that rounds to zero carries no sign', () => {
 
 test('a real move keeps its sign', () => {
   assert.equal(fmtPct(0.0431), '+4.31%')
-  assert.equal(fmtPct(-0.0431), '-4.31%')
-  assert.equal(fmtNum(-1.5), '-1.50')
-  assert.equal(fmtPctRaw(-4.47), '-4.47%')
-  assert.equal(fmtPrice(-12.5), '-$12.50')
+  assert.equal(fmtPct(-0.0431), '−4.31%')
+  assert.equal(fmtNum(-1.5), '−1.50')
+  assert.equal(fmtPctRaw(-4.47), '−4.47%')
+  assert.equal(fmtPrice(-12.5), '−$12.50')
 })
 
 test('the plus sign is decided after rounding, never before', () => {
@@ -48,12 +48,12 @@ test('the plus sign is decided after rounding, never before', () => {
 
 test('signed=false suppresses the plus but keeps a real minus', () => {
   assert.equal(fmtPct(0.0431, 2, false), '4.31%')
-  assert.equal(fmtPct(-0.0431, 2, false), '-4.31%')
+  assert.equal(fmtPct(-0.0431, 2, false), '−4.31%')
 })
 
 test('digit control is respected without reintroducing signed zero', () => {
   assert.equal(fmtNum(-0.004, 2), '0.00')
-  assert.equal(fmtNum(-0.004, 3), '-0.004')
+  assert.equal(fmtNum(-0.004, 3), '−0.004')
   assert.equal(fmtPct(-0.00004, 2), '0.00%')
-  assert.equal(fmtPct(-0.00004, 3), '-0.004%')
+  assert.equal(fmtPct(-0.00004, 3), '−0.004%')
 })

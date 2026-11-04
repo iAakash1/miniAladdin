@@ -45,8 +45,8 @@ test('the arithmetic matches the year AAPL actually had', () => {
 test('session changes keep two decimals', () => {
   // A −0.05% day rounds to −0.1% at one decimal, which overstates it twofold
   // and is the precision every quote screen gets right.
-  assert.equal(format(-0.05, 'percent', { digits: 2 }).text, '-0.05')
-  assert.equal(format(-0.05, 'percent', { digits: 1 }).text, '-0.1')
+  assert.equal(format(-0.05, 'percent', { digits: 2 }).text, '−0.05')
+  assert.equal(format(-0.05, 'percent', { digits: 1 }).text, '−0.1')
   // The company header renders both moves. The precision is the point, not
   // the markup — these pin the digits wherever the header puts them.
   assert.match(HEADER, /change_1d, 2\)/, 'the daily change is not at two decimals')

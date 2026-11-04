@@ -1,6 +1,6 @@
 'use client'
 
-import { fmtSigned } from '@/lib/format'
+import { fmtSigned, typographicMinus } from '@/lib/format'
 import { useState } from 'react'
 
 import { filingItems } from '@/lib/filings'
@@ -29,7 +29,7 @@ function daysAgo(iso: string): number | null {
 }
 
 function compact(v: number): string {
-  return v.toLocaleString('en-US', { notation: 'compact', maximumFractionDigits: 2 })
+  return typographicMinus(v.toLocaleString('en-US', { notation: 'compact', maximumFractionDigits: 2 }))
 }
 
 export function FilingDoc({ f }: { f: SecFiling }) {
@@ -154,7 +154,7 @@ export default function Filings({ block, recorded = false }: {
           </header>
           <ul className="fl-restate">
             {block.restatements.slice(0, 8).map((r) => (
-              <li key={`${r.concept}-${r.period_end}`}>
+              <li key={`${r.concept}-${r.period_start ?? ''}-${r.period_end}-${r.revised_filed}`}>
                 <span className="fl-restate__name">{r.label}</span>
                 <span className="sys-num">{r.period_start ? `${r.period_start} → ${r.period_end}` : r.period_end}</span>
                 <span className="sys-num">{compact(r.original_value)} → {compact(r.revised_value)}</span>

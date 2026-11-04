@@ -2,7 +2,7 @@
 
 import { Badge } from '@/components/system'
 import { useState } from 'react'
-import { uncertaintyBreakdown, fmtSigned } from '@/lib/format'
+import { uncertaintyBreakdown, fmtSigned, fmtNum } from '@/lib/format'
 import { FACTOR_LABELS } from '@/lib/history'
 import type { Analysis } from '@/lib/types'
 
@@ -131,7 +131,7 @@ export default function QuantPanel({ analysis }: { analysis: Analysis }) {
             <span style={{ flex: '0 1 172px', minWidth: 96, fontSize: 'var(--t-small)', color: 'var(--ink-muted)' }}>
               {FACTOR_LABELS[factor.name] ?? factor.name}
               {factor.z !== null && (
-                <span className="num" style={{ color: 'var(--ink-faint)' }}> z {factor.z.toFixed(1)}</span>
+                <span className="num" style={{ color: 'var(--ink-faint)' }}> z {fmtNum(factor.z, 1)}</span>
               )}
             </span>
             <ContributionBar value={factor.contribution} max={maxContribution} />

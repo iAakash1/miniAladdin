@@ -1,6 +1,6 @@
 'use client'
 
-import { fmtSigned } from '@/lib/format'
+import { fmtSigned, typographicMinus } from '@/lib/format'
 import { useMemo, useState } from 'react'
 
 import { factorName } from './derive'
@@ -218,7 +218,7 @@ export function Profile({ profile }: { profile: CompanyProfile | null }) {
             {profile.conflicts.map((c) => (
               <li key={c.field}>
                 Vendors disagree on {c.field.replace(/_/g, ' ')} by {c.spread_pct.toFixed(1)}%:{' '}
-                {c.observations.map((o) => `${o.provider} ${o.value.toLocaleString('en-US')}`).join(' vs ')}
+                {c.observations.map((o) => `${o.provider} ${typographicMinus(o.value.toLocaleString('en-US'))}`).join(' vs ')}
               </li>
             ))}
           </ul>

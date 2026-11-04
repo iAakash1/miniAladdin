@@ -42,6 +42,7 @@ import { EmptyLine, Inspectable, Panel, Prose, StateBlock, Value } from '@/compo
 import { readerError } from '@/lib/failure'
 import { fetchResearch } from '@/lib/research-cache'
 import { format } from '@/lib/quantity'
+import { fmtNum } from '@/lib/format'
 
 interface Reading {
   target_mean?: number | null
@@ -339,9 +340,9 @@ export default function Street({ symbol }: { symbol: string }) {
                 <dd>
                   <Inspectable refValue={{
                     label: 'Insider sentiment (MSPR)',
-                    display: insider.mspr.toFixed(1),
+                    display: fmtNum(insider.mspr, 1),
                     claim: `Insider trading over the last six months reads as ${insider.read ?? 'unclassified'}.`,
-                    observation: `Finnhub's monthly share purchase ratio, ${insider.mspr.toFixed(1)} on a scale from -100 to 100${typeof insider.net_shares === 'number' ? `, on net share movement of ${insider.net_shares.toLocaleString('en-US')}` : ''}.`,
+                    observation: `Finnhub's monthly share purchase ratio, ${fmtNum(insider.mspr, 1)} on a scale from −100 to 100${typeof insider.net_shares === 'number' ? `, on net share movement of ${insider.net_shares.toLocaleString('en-US')}` : ''}.`,
                     source: 'finnhub',
                     unit: 'index, -100 to 100',
                     method: 'vendor-supplied index — bounded, and not a percentage despite its range',

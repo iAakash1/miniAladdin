@@ -20,6 +20,7 @@ import { format, type Kind } from '@/lib/quantity'
 
 import { useChartCursor } from './ChartCursor'
 import { Value } from './index'
+import { fmtNum, typographicMinus } from '@/lib/format'
 
 export interface Point {
   /** x is a date string or an index. Rendering treats it as ordinal. */
@@ -105,11 +106,11 @@ function niceTicks(lo: number, hi: number, count = 4): number[] {
 function fmtTick(v: number): string {
   const a = Math.abs(v)
   if (a === 0) return '0'
-  if (a < 0.0001) return v.toExponential(1)
-  if (a < 1) return v.toFixed(a < 0.01 ? 4 : 3)
-  if (a < 1000) return v.toFixed(2)
-  if (a < 1e6) return `${(v / 1000).toFixed(1)}k`
-  return `${(v / 1e6).toFixed(1)}M`
+  if (a < 0.0001) return typographicMinus(v.toExponential(1))
+  if (a < 1) return fmtNum(v, a < 0.01 ? 4 : 3)
+  if (a < 1000) return fmtNum(v, 2)
+  if (a < 1e6) return `${fmtNum(v / 1000, 1)}k`
+  return `${fmtNum(v / 1e6, 1)}M`
 }
 
 /* ── shared frame ─────────────────────────────────────────────────────── */
@@ -748,7 +749,7 @@ export function Matrix({
                 onMouseLeave={() => setHover(null)}
               >
                 <title>
-                  {`${labels[i]} × ${labels[j]}: ${v === null ? 'never observed together' : v.toFixed(3)}`}
+                  {`${labels[i]} × ${labels[j]}: ${v === null ? 'never observed together' : fmtNum(v, 3)}`}
                 </title>
               </rect>
             )),

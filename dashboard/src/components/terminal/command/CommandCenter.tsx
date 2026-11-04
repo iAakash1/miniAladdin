@@ -11,7 +11,7 @@
  */
 'use client'
 
-import { yesNo } from '@/lib/format'
+import { yesNo, fmtNum } from '@/lib/format'
 import { Shortcut } from '@/components/system/Shortcut'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -59,7 +59,7 @@ interface Selection {
 }
 
 function fmt(v: unknown): string {
-  if (typeof v === 'number') return v.toFixed(4)
+  if (typeof v === 'number') return fmtNum(v, 4)
   if (v === null || v === undefined) return '—'
   return String(v)
 }

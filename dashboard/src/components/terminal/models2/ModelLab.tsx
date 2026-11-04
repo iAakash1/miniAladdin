@@ -1,6 +1,6 @@
 'use client'
 
-import { yesNo } from '@/lib/format'
+import { yesNo, fmtNum } from '@/lib/format'
 import { useEffect, useMemo, useState } from 'react'
 
 import { DataTable, type DataColumn } from '@/components/system/DataTable'
@@ -114,7 +114,7 @@ interface CampaignResults {
 }
 
 const fmt = (value: number | null | undefined, digits = 4) =>
-  value === null || value === undefined ? '—' : value.toFixed(digits)
+  value === null || value === undefined ? '—' : fmtNum(value, digits)
 
 export default function ModelLab() {
   const [data, setData] = useState<Payload | null>(null)

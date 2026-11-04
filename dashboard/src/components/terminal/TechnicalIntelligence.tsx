@@ -4,7 +4,7 @@ import { Badge, type Tone } from '@/components/system'
 import MetricExplainer from './MetricExplainer'
 import Tooltip from '@/components/ui/Tooltip'
 import { TECHNICAL_GLOSSARY } from '@/lib/technicalGlossary'
-import { fmtPrice } from '@/lib/format'
+import { fmtPrice, typographicMinusInText } from '@/lib/format'
 import type { TechnicalIntelligence as TechBlock, TechRegime, TechTone } from '@/lib/types'
 
 const TONE_COLOR: Record<TechTone, string> = {
@@ -69,7 +69,7 @@ export default function TechnicalIntelligence({ block }: { block: TechBlock | nu
               aria-hidden="true"
               style={{ flexShrink: 0, marginTop: 8, width: 6, height: 6, borderRadius: 1, background: TONE_COLOR[finding.tone] }}
             />
-            {finding.text}
+            {typographicMinusInText(finding.text)}
           </li>
         ))}
       </ul>
@@ -90,7 +90,7 @@ export default function TechnicalIntelligence({ block }: { block: TechBlock | nu
           <thead>
             <tr>
               <th scope="col">Indicator</th>
-              <th scope="col">Reading</th>
+              <th scope="col" className="num">Reading</th>
               <th scope="col">Detail</th>
               <th scope="col">State</th>
             </tr>
@@ -110,8 +110,8 @@ export default function TechnicalIntelligence({ block }: { block: TechBlock | nu
                       )}
                     </span>
                   </td>
-                  <td className="num">{row.value}</td>
-                  <td style={{ color: 'var(--ink-muted)', fontSize: 'var(--t-body)' }}>{row.detail}</td>
+                  <td className="num">{typographicMinusInText(row.value)}</td>
+                  <td style={{ color: 'var(--ink-muted)', fontSize: 'var(--t-body)' }}>{typographicMinusInText(row.detail)}</td>
                   <td>
                     <span style={{ fontSize: 'var(--t-body)', fontWeight: 600, color: TONE_COLOR[row.tone] }}>
                       {row.state}
