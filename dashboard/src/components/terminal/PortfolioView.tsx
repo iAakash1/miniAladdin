@@ -1,6 +1,6 @@
 'use client'
 
-import { Badge } from '@/components/system'
+import { Badge, Value } from '@/components/system'
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import EmptyState from '@/components/ui/EmptyState'
@@ -505,7 +505,7 @@ export default function PortfolioView() {
                       </td>
                       <td className="num">
                         {loadingQuotes && !quote ? <Skeleton width={54} height={14} /> :
-                          quote?.price !== undefined ? quote.price : <span style={{ color: 'var(--ink-faint)' }}>—</span>}
+                          quote?.price != null ? <Value value={quote.price} kind="currency" /> : <span style={{ color: 'var(--ink-faint)' }}>—</span>}
                       </td>
                       <td style={{ textAlign: 'right' }}><ChangeCell value={quote?.change_1d} /></td>
                       <td style={{ textAlign: 'right' }}><ChangeCell value={quote?.change_1w} /></td>

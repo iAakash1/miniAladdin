@@ -46,7 +46,7 @@ export function Status({ state, label, title }: { state: ResearchState; label?: 
       title={title ?? STATE_TITLE[state]}
       aria-describedby={title ? own : stateMeaningId(state)}
     >
-      {label ?? STATE_LABEL[state]}
+      <span className="sys-status__label">{label ?? STATE_LABEL[state]}</span>
       {title ? <span id={own} hidden>{title}</span> : null}
     </span>
   )

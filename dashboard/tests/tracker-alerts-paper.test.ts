@@ -136,8 +136,14 @@ test('a weakly supported verdict is qualified on the row', () => {
 })
 
 test('the paper action opens a prefilled ticket and submits nothing', () => {
+  // The row's secondary actions sit in a menu, rendered only when opened; the
+  // paper order is a link to a prefilled ticket there, never a submission.
   const out = row(quote('NVDA'))
-  assert.match(out, /href="\/terminal\/paper\?ticket=NVDA&amp;origin=watchlist"/)
+  assert.match(out, /aria-haspopup="menu"[^>]*aria-label="Actions for NVDA"|aria-label="Actions for NVDA"[^>]*aria-haspopup="menu"/)
+  assert.match(out, />Set alert</)
+  const src = readFileSync(join(SRC, 'components', 'terminal', 'tracker', 'TrackerWorkspace.tsx'), 'utf8')
+  assert.match(src, /kind: 'link', label: 'Paper order…', href: `\/terminal\/paper\?ticket=\$\{encodeURIComponent\(ticker\)\}&origin=watchlist`/)
+  assert.doesNotMatch(src, /placeOrder|previewOrder/)
 })
 
 /* ── alerts ────────────────────────────────────────────────────────────── */
@@ -175,7 +181,7 @@ test('configured, evaluated, skipped and triggered read as four different things
 
   // A skip is not an evaluation: it is marked, and "last checked" stays empty.
   const skipped = alertRow(alert({ last_result: 'skipped: quote is stale' }))
-  assert.match(skipped, /class="alerts-skip">skipped: quote is stale/)
+  assert.match(skipped, /class="[^"]*\balerts-skip\b[^"]*">skipped: quote is stale/)
   assert.match(skipped, /not yet evaluated/)
 
   const triggered = alertRow(alert({ status: 'triggered', last_result: 'triggered', last_triggered_at: '2026-10-23T15:31:00Z', last_evaluated_at: '2026-10-23T15:31:00Z' }))
@@ -188,9 +194,12 @@ test('configured, evaluated, skipped and triggered read as four different things
 })
 
 test('deleting an alert takes a second, explicit step', () => {
+  // Delete sits in the row's menu and, once chosen, asks again inline.
   const out = alertRow(alert())
-  assert.match(out, />Delete…</)
+  assert.match(out, /aria-label="More actions for the NVDA alert"/)
   assert.doesNotMatch(out, />Delete alert</)
+  const src = readFileSync(join(SRC, 'components', 'terminal', 'alerts', 'AlertsWorkspace.tsx'), 'utf8')
+  assert.match(src, /label: 'Delete alert…', onSelect: \(\) => setConfirm\(true\)/)
 })
 
 test('two AlertEditor instances mounted together have distinct field ids', () => {

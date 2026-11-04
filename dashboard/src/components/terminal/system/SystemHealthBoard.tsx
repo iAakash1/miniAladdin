@@ -44,6 +44,20 @@ const STATE: Record<HealthState, ResearchState> = {
   NOT_CONFIGURED: 'unknown',
 }
 
+/** The states as a reader says them; the wire names are an enum. */
+const STATE_LABEL: Record<HealthState, string> = {
+  READY: 'Ready',
+  DEGRADED: 'Degraded',
+  BLOCKED: 'Blocked',
+  UNAVAILABLE: 'Unavailable',
+  NOT_CONFIGURED: 'Not configured',
+}
+
+/** Most serious first, so a constraint is the first thing on the list. */
+const SEVERITY: Record<HealthState, number> = {
+  BLOCKED: 0, UNAVAILABLE: 1, DEGRADED: 2, NOT_CONFIGURED: 3, READY: 4,
+}
+
 const LABEL: Record<string, string> = {
   api: 'API',
   persistence: 'Persistence',
@@ -58,6 +72,14 @@ const LABEL: Record<string, string> = {
   'providers.news': 'News providers',
   'providers.macro': 'Macro providers',
   'providers.filings': 'Filing providers',
+  narrative_pipeline: 'Narrative pipeline',
+}
+
+/** A component the table above does not name still reads as words. */
+function componentLabel(id: string): string {
+  if (LABEL[id]) return LABEL[id]
+  const words = id.replace(/[._]+/g, ' ').trim()
+  return words.charAt(0).toUpperCase() + words.slice(1)
 }
 
 export default function SystemHealthBoard({ compact = false }: { compact?: boolean }) {
@@ -97,12 +119,16 @@ export default function SystemHealthBoard({ compact = false }: { compact?: boole
         ]} />
         <Prose size="fine">
           {critical.length
-            ? `Critical constraints: ${critical.map((row) => LABEL[row.component] ?? row.component).join(', ')}.`
+            ? `Critical constraints: ${critical.map((row) => componentLabel(row.component)).join(', ')}.`
             : 'No critical component reports a constraint.'}
         </Prose>
       </Panel>
     )
   }
+
+  const components = [...health.components].sort((a, b) =>
+    SEVERITY[a.status] - SEVERITY[b.status] || Number(b.critical) - Number(a.critical))
+  const constrained = health.components.filter((row) => row.critical && row.status !== 'READY').length
 
   return (
     <>
@@ -121,7 +147,7 @@ export default function SystemHealthBoard({ compact = false }: { compact?: boole
           title="Process memory"
           subtitle={health.process_memory?.rss_source ?? 'runtime measurement'}
           state={!health.process_memory ? 'unavailable' : (health.process_memory.memory_utilization_percent ?? 0) >= 85 ? 'blocked' : 'live'}
-          badge={health.process_memory?.memory_limit_mb ? 'MEASURED' : 'LIMIT UNKNOWN'}
+          badge={health.process_memory?.memory_limit_mb ? 'Measured' : 'Limit unknown'}
           badgeTone={health.process_memory?.memory_limit_mb ? 'pass' : 'muted'}
         >
           <Strip metrics={[
@@ -141,22 +167,26 @@ export default function SystemHealthBoard({ compact = false }: { compact?: boole
           <Prose size="fine">Evidence collection shares one bounded pool. Capability budgets further limit how many upstream vendors one request may consult.</Prose>
         </Panel>
       </Grid>
-      <Grid variant="halves">
-        {health.components.map((row) => (
-          <Panel
-            key={row.component}
-            title={LABEL[row.component] ?? row.component}
-            subtitle={row.critical ? 'critical' : 'optional'}
-            state={STATE[row.status]}
-            badge={row.status}
-            badgeTone={row.status === 'READY' ? 'pass' : row.status === 'BLOCKED' ? 'warn' : 'muted'}
-          >
-            <Status state={STATE[row.status]} label={row.status} />
-            <Prose size="tight">{row.reason}</Prose>
-            {row.version ? <Prose size="fine"><span className="sys-mono">{row.version}</span></Prose> : null}
-          </Panel>
-        ))}
-      </Grid>
+      <Panel
+        title="Components"
+        subtitle={`${health.components.length} checked · ${constrained ? `${constrained} critical constraint${constrained === 1 ? '' : 's'}` : 'no critical constraint'}`}
+      >
+        <ul className="hb-list">
+          {components.map((row) => (
+            <li key={row.component} className="hb-row" data-status={row.status}>
+              <div className="hb-row__name">
+                <span className="hb-row__title">{componentLabel(row.component)}</span>
+                <span className="hb-row__tier">{row.critical ? 'Critical' : 'Optional'}</span>
+              </div>
+              <Status state={STATE[row.status]} label={STATE_LABEL[row.status]} />
+              <p className="hb-row__reason">
+                {row.reason}
+                {row.version ? <span className="hb-row__ver">{row.version}</span> : null}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </Panel>
     </>
   )
 }

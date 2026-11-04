@@ -18,6 +18,7 @@ import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useMemo, useState } from 'react'
 
+import ActionMenu from '@/components/system/ActionMenu'
 import AlertEditor from '@/components/terminal/alerts/AlertEditor'
 import Drawer from '@/components/shell/Drawer'
 import { EmptyLine, StateBlock, Status, Value } from '@/components/system'
@@ -181,14 +182,23 @@ function ListView({ list, lists }: { list: Watchlist; lists: Watchlist[] }) {
           <h2 className="trk-title">{list.name}{list.isDefault ? <span className="trk-default">default</span> : null}</h2>
         )}
         <div className="trk-head__acts">
-          <button type="button" className="sys-btn sys-btn--xs" onClick={() => setRenaming(list.name)}>Rename</button>
-          {!list.isDefault ? <button type="button" className="sys-btn sys-btn--xs" onClick={() => setDefaultWatchlist(list.id)}>Make default</button> : null}
           {confirmDelete ? (
-            <>
-              <button type="button" className="sys-btn sys-btn--xs" onClick={() => { deleteWatchlist(list.id); setConfirmDelete(false) }}>Delete {list.tickers.length} symbols and the list</button>
+            <span className="trk-confirm" role="group" aria-label="Confirm deleting the list">
+              <span className="sys-meta">Delete {list.name} and its {list.tickers.length} symbols?</span>
+              <button type="button" className="sys-btn sys-btn--xs sys-btn--danger" onClick={() => { deleteWatchlist(list.id); setConfirmDelete(false) }}>Delete list</button>
               <button type="button" className="sys-btn sys-btn--xs" onClick={() => setConfirmDelete(false)}>Keep</button>
-            </>
-          ) : <button type="button" className="sys-btn sys-btn--xs" onClick={() => setConfirmDelete(true)}>Delete…</button>}
+            </span>
+          ) : (
+            <ActionMenu
+              label={`Actions for the list ${list.name}`}
+              items={[
+                { label: 'Rename…', onSelect: () => setRenaming(list.name) },
+                { label: list.isDefault ? 'Default list' : 'Make default', onSelect: () => setDefaultWatchlist(list.id), disabled: list.isDefault },
+                { kind: 'separator' },
+                { label: 'Delete list…', onSelect: () => setConfirmDelete(true), tone: 'danger' },
+              ]}
+            />
+          )}
         </div>
       </header>
 
@@ -230,7 +240,7 @@ function ListView({ list, lists }: { list: Watchlist; lists: Watchlist[] }) {
       ) : !ordered.length ? (
         <EmptyLine label="Filter">No symbol, note or tag matches “{query}”.</EmptyLine>
       ) : (
-        <div className="sys-scroll-x">
+        <div className="sys-scroll-x trk-frame">
           <table className="sys-table sys-table--compact trk-table">
             <caption className="visually-hidden">{list.name}: prices, freshness, period return and research context</caption>
             <thead>
@@ -251,6 +261,7 @@ function ListView({ list, lists }: { list: Watchlist; lists: Watchlist[] }) {
                   key={s.ticker} list={list} lists={lists} ticker={s.ticker} row={rows[s.ticker]} period={period}
                   alerts={s.alerts} research={research[s.ticker]} note={notes[s.ticker]}
                   manual={sort === 'manual' && !query} onAlert={() => setAlertFor(s.ticker)}
+                  first={s.position === 0} last={s.position === items.length - 1}
                 />
               ))}
             </tbody>
@@ -280,14 +291,15 @@ function ListView({ list, lists }: { list: Watchlist; lists: Watchlist[] }) {
 
 /** One tracked security. Exported so its states can be rendered in tests. */
 export function TrackedRow({
-  list, lists, ticker, row, period, alerts, research, note, manual, onAlert,
+  list, lists, ticker, row, period, alerts, research, note, manual, onAlert, first = false, last = false,
 }: {
   list: Watchlist; lists: Watchlist[]; ticker: string; row?: TrackerRow; period: Period; alerts: number
   research?: ReturnType<typeof useLatestResearch>[string]; note?: { note: string | null; tags: string[] }
   manual: boolean; onAlert: () => void
+  /** First or last in the list's own order, where moving up or down does nothing. */
+  first?: boolean; last?: boolean
 }) {
   const [editing, setEditing] = useState<{ note: string; tags: string } | null>(null)
-  const [moving, setMoving] = useState(false)
   const caution = signalCaution(research)
   const perf = periodValue(row, period)
   const others = lists.filter((l) => l.id !== list.id)
@@ -295,7 +307,10 @@ export function TrackedRow({
   return (
     <tr>
       <th scope="row" className="trk-sym">
-        <Link href={`/company/${encodeURIComponent(ticker)}`} className="trk-sym__link">{ticker}</Link>
+        <span className="trk-sym__line">
+          <Link href={`/company/${encodeURIComponent(ticker)}`} className="trk-sym__link">{ticker}</Link>
+          {alerts ? <span className="trk-alerts" title={`${alerts} active alert${alerts === 1 ? '' : 's'}`}>{alerts} alert{alerts === 1 ? '' : 's'}</span> : null}
+        </span>
         {note?.tags.length ? <span className="trk-tags">{note.tags.map((t) => <span key={t} className="trk-tag">{t}</span>)}</span> : null}
         {editing !== null ? (
           <form className="trk-note-edit" onSubmit={(e) => { e.preventDefault(); updateItem(list.id, ticker, { note: editing.note.trim() || null, tags: parseTags(editing.tags) }); setEditing(null) }}>
@@ -308,22 +323,21 @@ export function TrackedRow({
           </form>
         ) : note?.note ? <span className="trk-note">{note.note}</span> : null}
       </th>
-      <td className="num">
+      <td className="num trk-price">
         {row?.price != null ? <Value value={row.price} kind="currency" />
           : row?.last_close != null ? <span title="No current quote; this is the last daily close">close <Value value={row.last_close} kind="currency" /></span>
             : <span className="sys-null">{row ? statusText(row) : '…'}</span>}
       </td>
-      <td className="num">
+      <td className="num trk-change">
         {row?.change_pct != null ? (
           <span className="trk-chg"><Value value={row.change} kind="currency" signed tone /> <Value value={row.change_pct} kind="percent" digits={2} signed tone /></span>
         ) : <span className="sys-null">—</span>}
       </td>
-      <td className="num">{perf != null ? <Value value={perf} kind="percent" digits={2} signed tone /> : <span className="sys-null" title="Not enough daily history for this period">—</span>}</td>
-      <td>{row?.spark && row.spark.length > 1 ? <SymbolSpark values={row.spark} /> : <span className="sys-null">—</span>}</td>
+      <td className="num trk-period" data-label={period}>{perf != null ? <Value value={perf} kind="percent" digits={2} signed tone /> : <span className="sys-null" title="Not enough daily history for this period">—</span>}</td>
+      <td className="trk-spark">{row?.spark && row.spark.length > 1 ? <SymbolSpark values={row.spark} /> : <span className="sys-null">—</span>}</td>
       <td className="trk-quote">
         {row?.freshness ? <span className="trk-fresh" data-fresh={row.freshness}>{FRESHNESS_LABEL[row.freshness]}</span> : null}
-        <span className="sys-meta">{row?.source ?? ''}{row?.as_of ? ` · ${shortTime(row.as_of)}` : ''}</span>
-        {alerts ? <span className="trk-alerts" title={`${alerts} active alert${alerts === 1 ? '' : 's'}`}>◆ {alerts}</span> : null}
+        <span className="trk-quote__src">{row?.source ?? ''}{row?.as_of ? ` · ${shortTime(row.as_of)}` : ''}</span>
       </td>
       <td className="trk-research">
         {research?.verdict ? (
@@ -335,22 +349,25 @@ export function TrackedRow({
         ) : <span className="sys-null">not researched</span>}
       </td>
       <td className="trk-acts">
-        <button type="button" className="sys-btn sys-btn--xs" onClick={onAlert}>Alert…</button>
-        <Link className="sys-btn sys-btn--xs" href={`/terminal/paper?ticket=${encodeURIComponent(ticker)}&origin=watchlist`}>Paper order…</Link>
-        <button type="button" className="sys-btn sys-btn--xs" onClick={() => setEditing({ note: note?.note ?? '', tags: (note?.tags ?? []).join(', ') })}>Note &amp; tags</button>
-        {moving ? (
-          <select className="sys-input trk-move" aria-label={`Move ${ticker} to`} defaultValue="" onChange={(e) => { if (e.target.value) void moveTicker(list.id, e.target.value, ticker); setMoving(false) }}>
-            <option value="" disabled>Move to…</option>
-            {others.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-          </select>
-        ) : others.length ? <button type="button" className="sys-btn sys-btn--xs" onClick={() => setMoving(true)}>Move…</button> : null}
-        {manual ? (
-          <>
-            <button type="button" className="sys-btn sys-btn--micro" aria-label={`Move ${ticker} up`} onClick={() => shiftTicker(list.id, ticker, -1)}>↑</button>
-            <button type="button" className="sys-btn sys-btn--micro" aria-label={`Move ${ticker} down`} onClick={() => shiftTicker(list.id, ticker, 1)}>↓</button>
-          </>
-        ) : null}
-        <button type="button" className="sys-btn sys-btn--xs" aria-label={`Remove ${ticker} from ${list.name}`} onClick={() => removeTicker(list.id, ticker)}>Remove</button>
+        <button type="button" className="sys-btn sys-btn--xs" onClick={onAlert}>Set alert</button>
+        <ActionMenu
+          label={`Actions for ${ticker}`}
+          items={[
+            { kind: 'link', label: 'Paper order…', href: `/terminal/paper?ticket=${encodeURIComponent(ticker)}&origin=watchlist` },
+            { label: 'Note and tags…', onSelect: () => setEditing({ note: note?.note ?? '', tags: (note?.tags ?? []).join(', ') }) },
+            ...(manual ? [
+              { kind: 'separator' as const },
+              { label: 'Move up', onSelect: () => shiftTicker(list.id, ticker, -1), disabled: first },
+              { label: 'Move down', onSelect: () => shiftTicker(list.id, ticker, 1), disabled: last },
+            ] : []),
+            ...(others.length ? [
+              { kind: 'group' as const, label: 'Move to list' },
+              ...others.map((l) => ({ label: l.name, onSelect: () => { void moveTicker(list.id, l.id, ticker) } })),
+            ] : []),
+            { kind: 'separator' },
+            { label: `Remove from ${list.name}`, onSelect: () => removeTicker(list.id, ticker), tone: 'danger' },
+          ]}
+        />
       </td>
     </tr>
   )
