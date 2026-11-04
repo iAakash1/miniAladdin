@@ -125,7 +125,7 @@ export default function Ablation({ experimentId = 'EXP-005' }: { experimentId?: 
         title="Feature-family ablation"
         subtitle={`${arms.length} pre-registered arms`}
         state="recorded"
-        badge="HYPOTHESIS — NOT A RESULT"
+        badge="Hypothesis — not a result"
         badgeTone="warn"
       >
         <Prose tone="strong">

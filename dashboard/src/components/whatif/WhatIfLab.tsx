@@ -139,7 +139,7 @@ export default function WhatIfLab({ ticker }: { ticker: string }) {
     <Panel
       title="What-If Lab"
       subtitle="simulation only — nothing here is saved"
-      badge="SIMULATION"
+      badge="Simulation"
       badgeTone="warn"
     >
       <Prose>

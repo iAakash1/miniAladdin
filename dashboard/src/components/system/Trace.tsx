@@ -142,7 +142,7 @@ export function Trace({ label = 'fwd_rank_21', model = 'gradient_boosting' }: {
         title="Trace"
         subtitle={`${label} · ${model}`}
         state={stopped ? 'blocked' : 'recorded'}
-        badge={stopped ? `STOPPED AT ${unmetNames.length} GATE${unmetNames.length === 1 ? '' : 'S'}` : 'NO GATE UNMET'}
+        badge={stopped ? `Stopped at ${unmetNames.length} gate${unmetNames.length === 1 ? '' : 's'}` : 'No gate unmet'}
         badgeTone={stopped ? 'fail' : 'pass'}
         source={state.provenance.dataset_version}
         asOf={state.provenance.content_hash ? `hash ${state.provenance.content_hash.slice(0, 12)}` : undefined}

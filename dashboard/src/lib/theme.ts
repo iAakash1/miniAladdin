@@ -7,7 +7,7 @@
  * over a white page. These must equal `--p-base` in each theme, which
  * tests/contrast.test.ts checks.
  */
-export const THEME_COLOR = { dark: '#05070a', light: '#f4f6f8' } as const
+export const THEME_COLOR = { dark: '#0b0b0b', light: '#f6f6f5' } as const
 
 export type ThemeName = keyof typeof THEME_COLOR
 

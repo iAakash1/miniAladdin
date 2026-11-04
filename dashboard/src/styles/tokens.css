@@ -1,114 +1,114 @@
 /* ─────────────────────────────────────────────────────────────────────────
    OmniSignal design tokens — the single source of truth.
 
-   "Signal": a near-black graphite is the product default, lit by one colour,
-   an electric cyan, that marks the brand, the primary action and the live
-   state. There is no second hue. Light is an explicit choice made with the
-   theme toggle (html[data-theme='light']).
+   "Graphite": a neutral, hue-free greyscale in both themes. Emphasis comes
+   from ink, weight and space, not from a brand colour: the primary action is
+   an ink-filled button, the selected item is ink on a raised surface, and the
+   focus ring is ink. Colour is reserved for what the data says.
 
-   The glow is decoration and emphasis, never data: a value is still read
-   from the semantic colours below, which keep 4.5:1 on every surface.
-
-   Colour is semantic and restrained:
+   Colour is semantic, calm and never decorative:
      green  positive · verified · healthy
      red    negative · failure · high risk
-     amber  partial · degraded · uncertain · warning
-     blue   interactive · informational · selected
+     ochre  partial · degraded · stale · uncertain · warning
      grey   unavailable · secondary · metadata
+   A value is read from these and from its sign, never from colour alone;
+   each clears 4.5:1 on every surface it sits on.
 
    Older components still reference the legacy names (--bg, --text, --muted,
-   --line, --surface…). They are aliases at the bottom of each block, so every
-   surface in the product resolves to the same values.
+   --line, --surface…). They are aliases in globals.css, so every surface in
+   the product resolves to the same values.
    ───────────────────────────────────────────────────────────────────────── */
 
 :root {
   color-scheme: dark;
 
-  /* Surfaces */
-  --p-base: #05070a;
-  --p-chrome: #080b0f;
-  --p-panel: #0b0f14;
-  --p-raised: #10151c;
-  --p-sunken: #07090d;
-  --p-hover: #151b24;
-  --p-overlay: #0e131a;
-  --p-inverse: #eef3f8;
+  /* Surfaces — neutral graphite, each step a little lighter as it rises */
+  --p-base: #0b0b0b;
+  --p-chrome: #0f0f0f;
+  --p-panel: #141414;
+  --p-raised: #1a1a1a;
+  --p-sunken: #090909;
+  --p-hover: #1f1f1f;
+  --p-overlay: #181818;
+  --p-inverse: #f2f2f2;
 
   /* Rules */
-  --rule: #1a212b;
-  --rule-strong: #2a3340;
-  --rule-focus: #3ee6ff;
+  --rule: #242424;
+  --rule-strong: #333333;
+  --rule-focus: #d9d9d9;
   /* The outline of a control whose boundary is what identifies it (a text
      field, a checkbox): 3:1 against every surface, where --rule-strong is a
      separator and sits near 1.4:1. */
-  --rule-control: #5f6b7a;
+  --rule-control: #6e6e6e;
 
   /* Ink */
-  --ink: #eef3f8;
-  --ink-muted: #a9b4c2;
-  --ink-faint: #8794a5;
-  --ink-disabled: #4a5563;
+  --ink: #ededed;
+  --ink-muted: #a9a9a9;
+  --ink-faint: #8f8f8f;
+  --ink-disabled: #525252;
 
-  /* Interaction */
-  --accent: #3ee6ff;
-  --accent-strong: #8cf0ff;
-  --accent-wash: rgb(62 230 255 / 0.1);
+  /* Interaction: ink, not a hue */
+  --accent: #e6e6e6;
+  --accent-strong: #ffffff;
+  --accent-wash: rgb(255 255 255 / 0.05);
   /* Text on an accent fill: the panel colour, which is dark in the dark theme
      and white in the light one, so it clears 4.5:1 on the accent in both. */
   --on-accent: var(--p-panel);
-  --accent-line: rgb(62 230 255 / 0.42);
+  --accent-line: rgb(255 255 255 / 0.24);
 
-  /* The signature: the accent, lit from above. One hue only — the brand
-     mark, the one primary action and the live edge of a panel. */
-  --grad-signal: linear-gradient(180deg, var(--accent-strong), var(--accent));
-  --grad-signal-soft: linear-gradient(180deg, rgb(62 230 255 / 0.14), rgb(62 230 255 / 0.06));
-  --grad-edge: linear-gradient(180deg, rgb(255 255 255 / 0.05), rgb(255 255 255 / 0) 42%);
+  /* The fill of the one primary action: solid ink. */
+  --grad-signal: linear-gradient(180deg, #f2f2f2, #e2e2e2);
+  --grad-signal-soft: linear-gradient(180deg, rgb(255 255 255 / 0.06), rgb(255 255 255 / 0.03));
+  --grad-edge: linear-gradient(180deg, rgb(255 255 255 / 0.02), rgb(255 255 255 / 0) 40%);
   /* Text on the signature fill: the page ink, 12:1 or better. */
   --on-signal: var(--p-base);
-  --glow-cyan: 0 0 0 1px rgb(62 230 255 / 0.3), 0 0 24px -8px rgb(62 230 255 / 0.5);
-  --glow-signal: 0 8px 32px -12px rgb(62 230 255 / 0.55);
-  /* Glass: a panel tint that lets the ambient field through, and its edge. */
-  --glass: rgb(11 15 20 / 0.72);
-  --glass-chrome: rgb(8 11 15 / 0.7);
-  --glass-edge: rgb(255 255 255 / 0.08);
-  /* The ambient field behind every page: the accent, very low, and a cool
-     grey for depth. */
-  --aurora-1: rgb(62 230 255 / 0.09);
-  --aurora-2: rgb(150 170 190 / 0.06);
-  --aurora-3: rgb(62 230 255 / 0.05);
-  --grid-line: rgb(255 255 255 / 0.035);
+  /* No glow. The names stay for the rules that read them. */
+  --glow-cyan: 0 0 0 1px rgb(255 255 255 / 0.16);
+  --glow-signal: none;
+  --glass: var(--p-panel);
+  --glass-chrome: var(--p-base);
+  --glass-edge: var(--rule);
+  /* A flat page: no ambient light, no grid. */
+  --aurora-1: rgb(0 0 0 / 0);
+  --aurora-2: rgb(0 0 0 / 0);
+  --aurora-3: rgb(0 0 0 / 0);
+  --grid-line: rgb(0 0 0 / 0);
 
   /* Semantic */
-  --e-pos: #2ef0a0;
-  --e-neg: #ff6b86;
-  --e-warn: #ffc04d;
-  --e-null: #8a93b8;
-  --e-info: var(--accent);
-  --e-pos-wash: rgb(46 240 160 / 0.1);
-  --e-neg-wash: rgb(255 107 134 / 0.11);
-  --e-warn-wash: rgb(255 192 77 / 0.11);
+  --e-pos: #4fb286;
+  --e-neg: #e5675f;
+  --e-warn: #d39b4a;
+  --e-null: #8c8c8c;
+  --e-info: var(--ink-muted);
+  --e-pos-wash: rgb(79 178 134 / 0.1);
+  --e-neg-wash: rgb(229 103 95 / 0.1);
+  --e-warn-wash: rgb(211 155 74 / 0.1);
 
   /* Research state → colour. Governance "blocked" is a constraint, not a
-     failure, so it is amber; only failures are red. */
+     failure, so it is ochre; only failures are red. */
   --s-live: var(--e-pos);
   --s-production: var(--e-pos);
   --s-recorded: var(--ink-muted);
   --s-stale: var(--e-warn);
-  --s-waking: var(--accent);
+  --s-waking: var(--ink-muted);
   --s-unavailable: var(--e-null);
   --s-blocked: var(--e-warn);
-  --s-experimental: var(--accent);
-  --s-candidate: var(--accent);
+  --s-experimental: var(--ink-muted);
+  --s-candidate: var(--ink-muted);
   --s-unknown: var(--ink-disabled);
   --s-retired: var(--ink-faint);
   --s-paper: var(--e-warn);
   --s-error: var(--e-neg);
   --s-warning: var(--e-warn);
-  --s-info: var(--accent);
+  --s-info: var(--ink-muted);
 
   /* Type */
   --font-sans: 'Inter Variable', -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  /* The figures face. Numbers are set in the sans with tabular, slashed-zero
+     figures, so a column aligns without the typewriter texture of a
+     monospace. Code-like strings keep a true monospace (--font-code). */
+  --font-mono: 'Inter Variable', -apple-system, 'Segoe UI', sans-serif;
+  --font-code: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   --font-serif: 'Newsreader Variable', Georgia, 'Times New Roman', serif;
 
   --t-micro: 10px;
@@ -128,8 +128,8 @@
   --lh-body: 1.5;
   --lh-read: 1.65;
 
-  --tracking-label: 0.06em;     /* small uppercase labels */
-  --tracking-eyebrow: 0.12em;   /* wide-tracked eyebrows and tags */
+  --tracking-label: 0.04em;     /* small uppercase labels */
+  --tracking-eyebrow: 0.08em;   /* tracked eyebrows and tags */
   --tracking-display: -0.018em;
   --tracking-figure: -0.02em;
 
@@ -210,8 +210,8 @@
   --sticky-inset: 36px;
 
   /* Elevation — overlays only */
-  --shadow-overlay: 0 0 0 1px var(--rule-strong), 0 24px 60px -16px rgb(0 0 0 / 0.8), 0 0 40px -18px rgb(62 230 255 / 0.25);
-  --shadow-drawer: -1px 0 0 var(--rule-strong), -24px 0 64px -24px rgb(0 0 0 / 0.85);
+  --shadow-overlay: 0 0 0 1px var(--rule-strong), 0 16px 40px -16px rgb(0 0 0 / 0.7);
+  --shadow-drawer: -1px 0 0 var(--rule-strong), -24px 0 64px -24px rgb(0 0 0 / 0.8);
 
   /* Motion */
   --t-fast: 100ms;   /* hover, press, focus, colour */
@@ -224,7 +224,7 @@
   --t-sheen: 1100ms;
   --t-orbit: 14s;
 
-  --backdrop: rgb(3 4 10 / 0.7);
+  --backdrop: rgb(0 0 0 / 0.66);
   --ring: 0 0 0 2px var(--accent-line);
   --edge-hi: none;
   --edge-lo: none;
@@ -243,53 +243,55 @@
 :root[data-theme='light'] {
   color-scheme: light;
 
-  --p-base: #f4f6f8;
-  --p-chrome: #f9fafb;
+  --p-base: #f6f6f5;
+  --p-chrome: #fbfbfa;
   --p-panel: #ffffff;
-  --p-raised: #fafbfc;
-  --p-sunken: #edf0f3;
-  --p-hover: #eef1f4;
+  --p-raised: #fafafa;
+  --p-sunken: #f0f0ef;
+  --p-hover: #f3f3f2;
   --p-overlay: #ffffff;
-  --p-inverse: #0e1318;
+  --p-inverse: #141414;
 
-  --rule: #e2e6ea;
-  --rule-strong: #cbd2d9;
-  --rule-focus: #0a7190;
-  --rule-control: #7c8794;
+  --rule: #e6e6e4;
+  --rule-strong: #d2d2cf;
+  --rule-focus: #1a1a1a;
+  --rule-control: #7f7f7c;
 
-  --ink: #0e1318;
-  --ink-muted: #46505c;
-  --ink-faint: #5b6673;
-  --ink-disabled: #a4adb7;
+  --ink: #141414;
+  --ink-muted: #4a4a48;
+  --ink-faint: #61615e;
+  --ink-disabled: #a9a9a6;
 
-  /* The same cyan, deep enough for 4.5:1 text on every light surface. */
-  --accent: #0a7190;
-  --accent-strong: #065f75;
-  --accent-wash: rgb(10 113 144 / 0.08);
-  --accent-line: rgb(10 113 144 / 0.36);
+  /* The one literal accent third-party widgets receive (tests hold it equal
+     to ACCENT_LITERAL): a graphite that clears 3:1 on both themes' panels. */
+  --accent: #666666;
+  --accent-strong: #333333;
+  --accent-wash: rgb(0 0 0 / 0.04);
+  --accent-line: rgb(0 0 0 / 0.22);
 
-  --grad-signal-soft: linear-gradient(180deg, rgb(10 113 144 / 0.1), rgb(10 113 144 / 0.05));
-  --grad-edge: linear-gradient(180deg, rgb(255 255 255 / 0.9), rgb(255 255 255 / 0) 42%);
+  --grad-signal: linear-gradient(180deg, #262626, #141414);
+  --grad-signal-soft: linear-gradient(180deg, rgb(0 0 0 / 0.05), rgb(0 0 0 / 0.025));
+  --grad-edge: linear-gradient(180deg, rgb(255 255 255 / 0.9), rgb(255 255 255 / 0) 40%);
   --on-signal: #ffffff;
-  --glow-cyan: 0 0 0 1px rgb(10 113 144 / 0.25), 0 8px 24px -12px rgb(10 113 144 / 0.4);
-  --glow-signal: 0 10px 28px -14px rgb(10 113 144 / 0.5);
-  --glass: rgb(255 255 255 / 0.8);
-  --glass-chrome: rgb(249 250 251 / 0.8);
-  --glass-edge: rgb(14 19 24 / 0.08);
-  --aurora-1: rgb(10 113 144 / 0.07);
-  --aurora-2: rgb(120 140 160 / 0.06);
-  --aurora-3: rgb(10 113 144 / 0.04);
-  --grid-line: rgb(14 19 24 / 0.04);
+  --glow-cyan: 0 0 0 1px rgb(0 0 0 / 0.14);
+  --glow-signal: none;
+  --glass: var(--p-panel);
+  --glass-chrome: var(--p-base);
+  --glass-edge: var(--rule);
+  --aurora-1: rgb(0 0 0 / 0);
+  --aurora-2: rgb(0 0 0 / 0);
+  --aurora-3: rgb(0 0 0 / 0);
+  --grid-line: rgb(0 0 0 / 0);
 
-  --e-pos: #0b7a50;
-  --e-neg: #c0223f;
-  --e-warn: #8a5a00;
-  --e-null: #5c627f;
-  --e-pos-wash: rgb(11 122 80 / 0.08);
-  --e-neg-wash: rgb(192 34 63 / 0.08);
-  --e-warn-wash: rgb(138 90 0 / 0.09);
+  --e-pos: #1d7a4e;
+  --e-neg: #b5372f;
+  --e-warn: #8a5810;
+  --e-null: #666663;
+  --e-pos-wash: rgb(29 122 78 / 0.08);
+  --e-neg-wash: rgb(181 55 47 / 0.08);
+  --e-warn-wash: rgb(138 88 16 / 0.09);
 
-  --backdrop: rgb(18 20 42 / 0.32);
-  --shadow-overlay: 0 0 0 1px var(--rule-strong), 0 20px 48px -18px rgb(30 25 90 / 0.3);
-  --shadow-drawer: -1px 0 0 var(--rule-strong), -24px 0 48px -28px rgb(30 25 90 / 0.3);
+  --backdrop: rgb(20 20 20 / 0.28);
+  --shadow-overlay: 0 0 0 1px var(--rule-strong), 0 16px 36px -18px rgb(0 0 0 / 0.22);
+  --shadow-drawer: -1px 0 0 var(--rule-strong), -24px 0 48px -28px rgb(0 0 0 / 0.22);
 }

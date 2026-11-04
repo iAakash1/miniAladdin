@@ -128,7 +128,7 @@ export default function ModelValidation({ ticker }: { ticker: string }) {
         title="Model record"
         subtitle={`against ${data.ticker}`}
         state={health ? HEALTH_STATE[health.tone] : 'unavailable'}
-        badge={health?.label.toUpperCase()}
+        badge={health?.label}
         badgeTone={health?.tone === 'pos' ? 'pass' : health?.tone === 'neg' ? 'fail' : 'warn'}
         asOf={data.period ? `${data.period.start} → ${data.period.end}` : undefined}
       >
@@ -154,7 +154,7 @@ export default function ModelValidation({ ticker }: { ticker: string }) {
         <Panel
           title="Recent skill against the full window"
           state={decayed ? 'stale' : 'recorded'}
-          badge={decayed ? 'RUNNING BELOW AVERAGE' : undefined}
+          badge={decayed ? 'Running below average' : undefined}
           badgeTone="warn"
         >
           <TimeSeries
@@ -183,7 +183,7 @@ export default function ModelValidation({ ticker }: { ticker: string }) {
       <Panel
         title="Failure modes"
         state={flags.length ? 'blocked' : 'recorded'}
-        badge={flags.length ? `${flags.length} FLAGGED` : 'NONE FLAGGED'}
+        badge={flags.length ? `${flags.length} flagged` : 'None flagged'}
         badgeTone={flags.length ? 'fail' : 'pass'}
       >
         {flags.length ? (

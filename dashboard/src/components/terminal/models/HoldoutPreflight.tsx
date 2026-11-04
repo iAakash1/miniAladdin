@@ -87,7 +87,7 @@ export default function HoldoutPreflight() {
   }
   if (!state.available) {
     return (
-      <Panel title="Holdout preflight" state="unavailable" badge="NO STUDY" badgeTone="muted">
+      <Panel title="Holdout preflight" state="unavailable" badge="No study" badgeTone="muted">
         <StateBlock state="unavailable" title="No study for the gates to read" detail={state.detail} />
       </Panel>
     )
@@ -108,7 +108,7 @@ export default function HoldoutPreflight() {
       title="Holdout preflight"
       subtitle={state.experiment_id ?? undefined}
       state={blocking.length ? 'blocked' : 'recorded'}
-      badge={blocking.length ? `${blocking.length} BLOCKING` : 'FAST GATES CLEAR'}
+      badge={blocking.length ? `${blocking.length} blocking` : 'Fast gates clear'}
       badgeTone={blocking.length ? 'fail' : 'pass'}
       source={state.study_artifact}
       asOf={state.fingerprint ? `fingerprint ${state.fingerprint.slice(0, 12)}` : undefined}

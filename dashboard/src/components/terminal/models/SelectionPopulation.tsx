@@ -155,7 +155,7 @@ export default function SelectionPopulation({ label = 'fwd_rank_21' }: { label?:
         title="The population this was selected from"
         subtitle={data.label}
         state="recorded"
-        badge={`${models.length} MODELS · NOTHING FILTERED`}
+        badge={`${models.length} models · nothing filtered`}
         badgeTone="muted"
       >
         {dist ? (

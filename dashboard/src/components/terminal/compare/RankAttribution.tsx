@@ -153,7 +153,7 @@ export default function RankAttribution({ a, b }: { a: string; b: string }) {
     <Panel
       title="Why this order"
       subtitle={`${data.a} against ${data.b}`}
-      badge={leader ? `${leader} LEADS` : data.level ? 'LEVEL' : undefined}
+      badge={leader ? `${leader} leads` : data.level ? 'Level' : undefined}
       badgeTone={leader ? 'info' : 'muted'}
       source={data.version}
       asOf={data.data_as_of ?? null}

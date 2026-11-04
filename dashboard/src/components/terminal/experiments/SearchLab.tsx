@@ -191,7 +191,7 @@ export default function SearchLab({ experimentId = 'EXP-007' }: { experimentId?:
         title="Search"
         subtitle={data.experiment_id}
         state={running ? 'experimental' : 'recorded'}
-        badge={running ? 'PARTIAL — SEARCH RUNNING' : 'COMPLETE'}
+        badge={running ? 'Partial — search running' : 'Complete'}
         badgeTone={running ? 'warn' : 'muted'}
         asOf={data.generated_at ?? undefined}
       >
@@ -231,7 +231,7 @@ export default function SearchLab({ experimentId = 'EXP-007' }: { experimentId?:
         <Panel
           title="What the search cost itself in significance"
           state="recorded"
-          badge={mt.observed_clears_threshold ? 'CLEARS THE NULL BAR' : 'BELOW THE NULL BAR'}
+          badge={mt.observed_clears_threshold ? 'Clears the null bar' : 'Below the null bar'}
           badgeTone={mt.observed_clears_threshold ? 'pass' : 'fail'}
         >
           {/* Never the observed statistic without the bar it has to clear. */}
@@ -330,7 +330,7 @@ export default function SearchLab({ experimentId = 'EXP-007' }: { experimentId?:
           title="Leaderboard"
           subtitle={`${data.leaderboard.length} configurations`}
           state={running ? 'experimental' : 'recorded'}
-          badge={running ? 'PARTIAL' : undefined}
+          badge={running ? 'Partial' : undefined}
           badgeTone="warn"
         >
           <Prose size="tight">
