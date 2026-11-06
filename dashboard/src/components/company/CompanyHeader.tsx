@@ -166,7 +166,7 @@ export default function CompanyHeader({
   const against = recent.find((s) => s !== symbol)
   const state = quoteState(quote)
   const venue = venueLabel(exchange)
-  const meta = [venue, sector, industry].filter(Boolean)
+  const meta = [sector, industry].filter(Boolean)
   const c1 = quote?.change_1d ?? null
   const c1w = quote?.change_1w ?? null
   const facts = profileFacts(profile)
@@ -175,14 +175,16 @@ export default function CompanyHeader({
   return (
     <header className="cw-head" data-sector={sector ? sectorKey(sector) : undefined}>
       <div className="cw-id">
-        <CompanyMark ticker={symbol} name={name} size={52} />
+        <CompanyMark ticker={symbol} name={name} size={48} />
         <div className="cw-id__text">
           <div className="cw-id__line">
-            <h1 className="cw-ticker">{symbol}</h1>
-            <span className="cw-name">{name ?? '\u00a0'}</span>
+            <span className="cw-ticker">{symbol}</span>
+            {venue ? <span className="cw-venue">{venue}</span> : null}
           </div>
+          {/* The company is the subject of the page; the ticker is its key. */}
+          <h1 className="cw-name">{name ?? symbol}</h1>
           <div className="cw-meta">
-            {meta.length ? meta.map((m, i) => <span key={`${m}-${i}`}>{m}</span>) : <span>{identityPending ? 'Identity loading…' : 'Exchange and sector not reported'}</span>}
+            {meta.length ? meta.map((m, i) => <span key={`${m}-${i}`}>{m}</span>) : <span>{identityPending ? 'Identity loading…' : 'Sector and industry not reported'}</span>}
             {site ? (
               <span>
                 <a className="cw-site" href={site.href} target="_blank" rel="noreferrer">

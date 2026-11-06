@@ -19,13 +19,14 @@ export default function RecentResearch({ limit = 6 }: { limit?: number }) {
     return <section className="sys-panel"><StateBlock state="waking" title="Loading your research record" /></section>
   }
   if (!runs.length) {
-    return (
-      <EmptyLine label="Recent research">
-        {research.status === 'unavailable'
-          ? 'Your research record could not be read right now.'
-          : 'Runs you make appear here with their verdict, confidence and date.'}
-      </EmptyLine>
-    )
+    if (research.status === 'unavailable') {
+      return (
+        <EmptyLine label="Recent research">
+          Your research record could not be read right now, so this cannot say whether it is empty.
+        </EmptyLine>
+      )
+    }
+    return <FirstRun />
   }
 
   return (
@@ -69,6 +70,50 @@ export default function RecentResearch({ limit = 6 }: { limit?: number }) {
           )
         })}
       </ul>
+    </section>
+  )
+}
+
+/* The four stages of a run, said once, where a new account would otherwise
+   see an empty list. */
+const STAGES = [
+  { k: 'Providers', v: 'Every configured vendor is asked in parallel; failures are kept, not hidden.' },
+  { k: 'Evidence', v: 'Readings are reconciled field by field and disagreements stay visible.' },
+  { k: 'Engine', v: 'A deterministic model sets the signal, confidence and risk.' },
+  { k: 'Synthesis', v: 'An explanation is written from the evidence, with every citation checked.' },
+]
+
+/* A large, liquid name with full provider coverage: a first run that shows every stage. */
+const FIRST_COMPANY = 'AAPL'
+
+function FirstRun() {
+  return (
+    <section className="sys-panel firstrun" aria-labelledby="firstrun-title">
+      <header className="sys-panel-head">
+        <div className="sys-panel-head__title">
+          <h2 className="sys-panel-title" id="firstrun-title">Recent research</h2>
+          <span className="sys-panel-sub">no runs recorded yet</span>
+        </div>
+      </header>
+      <div className="firstrun__body">
+        <p className="firstrun__lede">
+          Your research record is empty. Each company you research is kept here with its verdict,
+          confidence, risk and date, so you can come back to what you concluded.
+        </p>
+        <ol className="firstrun__stages" aria-label="How a research run is built">
+          {STAGES.map((s, i) => (
+            <li key={s.k} className="firstrun__stage">
+              <span className="firstrun__n">{i + 1}</span>
+              <span className="firstrun__k">{s.k}</span>
+              <span className="firstrun__v">{s.v}</span>
+            </li>
+          ))}
+        </ol>
+        <div className="firstrun__actions">
+          <Link href={`/company/${encodeURIComponent(FIRST_COMPANY)}`} className="sys-btn sys-btn--primary">Research Apple ({FIRST_COMPANY})</Link>
+          <Link href="/terminal/methodology" className="sys-btn sys-btn--ghost">How every number is made</Link>
+        </div>
+      </div>
     </section>
   )
 }

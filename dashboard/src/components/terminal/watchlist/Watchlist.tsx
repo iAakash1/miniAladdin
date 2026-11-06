@@ -50,7 +50,7 @@ export default function Watchlist({ limit = 10 }: { limit?: number }) {
           <h2 className="sys-panel-title">Watchlist</h2>
           <span className="sys-panel-sub">{lists.length} list{lists.length === 1 ? '' : 's'} · {watchedCount(lists)} names</span>
         </div>
-        <Link className="cw-more" href="/terminal/portfolio">Manage lists</Link>
+        <Link className="cw-more" href="/terminal/watchlists">Manage lists</Link>
       </header>
       {error ? <p className="home-warn">Quote refresh failed; prices shown are from the last successful read.</p> : null}
       <div className="sys-scroll-x">

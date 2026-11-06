@@ -192,13 +192,15 @@ export default function ExploreBoard({
         ))}
       </nav>
 
-      {activeCategory ? (
-        <Panel title={activeCategory.label}>
-          <Prose>{activeCategory.blurb}</Prose>
-        </Panel>
-      ) : null}
-
-      <Panel title="Filters">
+      {/* What the ranking means and how to narrow it: one control surface,
+          not a panel for each. */}
+      <section className="xp__controls" aria-label="Ranking and filters">
+        {activeCategory ? (
+          <p className="xp__blurb">
+            <span className="xp__blurb-k">{activeCategory.label}</span>
+            {activeCategory.blurb}
+          </p>
+        ) : null}
         <div className="xp__filters">
           <label className="xp__field">
             <span>Sector</span>
@@ -244,7 +246,7 @@ export default function ExploreBoard({
             Reset
           </button>
         </div>
-      </Panel>
+      </section>
 
       {data?.stale ? (
         <StateBlock

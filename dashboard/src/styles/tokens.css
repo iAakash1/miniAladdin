@@ -31,6 +31,9 @@
   --p-hover: #1f1f1f;
   --p-overlay: #181818;
   --p-inverse: #f2f2f2;
+  /* The navigation spine: a step below the canvas, so the rail reads as
+     structure rather than as another panel. */
+  --p-rail: #0e0e0e;
 
   /* Rules */
   --rule: #242424;
@@ -123,6 +126,11 @@
   --t-title: 20px;
   --t-display: 24px;
   --t-figure: 28px;
+  /* Page titles, set in the editorial face. */
+  --t-page: 30px;
+  --t-page-sm: 24px;
+  /* A research document's own title (report, company name). */
+  --t-headline: 36px;
 
   --lh-tight: 1.2;
   --lh-body: 1.5;
@@ -196,16 +204,20 @@
 
   /* Radius — soft, and consistent */
   --r-xs: 3px;
-  --r-sm: 6px;
-  --r-md: 10px;
-  --r-lg: 16px;
+  --r-sm: 5px;
+  --r-md: 8px;
+  --r-lg: 12px;
 
   /* Shell geometry */
-  --topbar-h: 50px;
-  --rail-w: 212px;
+  --topbar-h: 48px;
+  --rail-w: 224px;
+  --rail-w-collapsed: 56px;
   --status-h: 26px;
   --inspector-w: 420px;
-  --workspace-pad: 20px;
+  --workspace-pad: 28px;
+  /* The widest a default workspace grows: beyond it, a line of figures is
+     too long for the eye to carry across. */
+  --ws-max: 1680px;
   /* Offset for sticky in-page navigation, clear of the top bar. */
   --sticky-inset: 36px;
 
@@ -251,6 +263,7 @@
   --p-hover: #f3f3f2;
   --p-overlay: #ffffff;
   --p-inverse: #141414;
+  --p-rail: #f0f0ef;
 
   --rule: #e6e6e4;
   --rule-strong: #d2d2cf;

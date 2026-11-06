@@ -32,7 +32,7 @@ export default function PaperGates({ who, where }: { who: GateState; where: Gate
           <span className="pg-gate__k">Gate 2 · where</span>
           <span className="pg-gate__v">paper credentials, host fixed to paper-api.alpaca.markets</span>
         </li>
-        <li className="pg-node pg-node--broker">
+        <li className="pg-node">
           <span className="pg-node__k">Alpaca Paper</span>
           <span className="pg-node__v">simulated fills · no real funds</span>
         </li>

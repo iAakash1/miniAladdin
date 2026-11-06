@@ -141,6 +141,10 @@ function ListNav({ lists, currentId, onSelect }: { lists: Watchlist[]; currentId
   }
   return (
     <nav className="trk-nav" aria-label="Watchlists">
+      <p className="trk-nav__head">
+        <span>Lists</span>
+        <span className="trk-nav__meta">{lists.length}</span>
+      </p>
       <ol>
         {lists.map((l, i) => (
           <li key={l.id} data-current={l.id === currentId ? 'true' : undefined}>

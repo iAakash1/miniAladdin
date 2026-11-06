@@ -256,6 +256,18 @@ img { max-width: 100%; display: block; }
 
 .news-preview-row p { transition: color var(--t-fast) var(--ease); }
 .news-preview-row:hover p { color: var(--accent-strong) !important; }
+/* The lead story: the headline beside its picture, so the first screen holds
+   the story and the list that follows rather than one photograph. */
+.news-lead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr);
+  gap: var(--d-6);
+  align-items: center;
+  padding: var(--d-2) 0 var(--d-6);
+}
+@media (max-width: 720px) {
+  .news-lead { grid-template-columns: minmax(0, 1fr); gap: var(--d-4); padding-bottom: var(--d-5); }
+}
 
 /* ---------- FAQ ---------- */
 .faq-item {

@@ -22,7 +22,7 @@ import Shortcuts from './Shortcuts'
 import { ChartCursorProvider } from './ChartCursor'
 import { MetricProvider } from './MetricContext'
 import MetricInspector from './MetricInspector'
-import Rail from '@/components/shell/Rail'
+import Rail, { useRailCollapsed } from '@/components/shell/Rail'
 import TopBar from '@/components/shell/TopBar'
 import StatusBar from '@/components/shell/StatusBar'
 import Drawer from '@/components/shell/Drawer'
@@ -120,11 +120,12 @@ export default function Workbench({
   }, [navigation, router])
 
   const set = NAVIGATION[navigation]
+  const railCollapsed = useRailCollapsed()
 
   return (
     <MetricProvider>
       <ChartCursorProvider>
-        <div className="shell" data-nav-open={navOpen ? '' : undefined}>
+        <div className="shell" data-nav-open={navOpen ? '' : undefined} data-rail={railCollapsed ? 'collapsed' : undefined}>
           <TopBar
             navigation={navigation}
             section={set.sectionFor(pathname)}
@@ -133,7 +134,7 @@ export default function Workbench({
             navOpen={navOpen}
           />
 
-          <Rail set={set} pathname={pathname} open={navOpen} onNavigate={() => setNavOpen(false)} />
+          <Rail set={set} pathname={pathname} open={navOpen} collapsed={railCollapsed} onNavigate={() => setNavOpen(false)} />
           {navOpen ? (
             <button type="button" className="shell-scrim" aria-label="Close navigation" onClick={() => setNavOpen(false)} />
           ) : null}

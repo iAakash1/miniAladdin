@@ -50,5 +50,8 @@ test('sub-routes and unknown routes resolve sensibly', () => {
   assert.equal(viewAt('/terminal/graph/explore')?.label, 'Path explorer')
   assert.equal(groupOf('/terminal/nowhere'), null)
   assert.equal(groupOf('/'), null)
-  assert.equal(DESTINATIONS.length, 4)
+  // Research, Track (watchlists and alerts), Portfolio (holdings and paper),
+  // Labs and System. Tracking and holding were one group until 2026-11-06;
+  // they answer different questions and are now two short groups.
+  assert.deepEqual(DESTINATIONS.map((g) => g.group), ['Research', 'Track', 'Portfolio', 'Labs', 'System'])
 })

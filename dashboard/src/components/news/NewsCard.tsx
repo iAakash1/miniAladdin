@@ -30,7 +30,7 @@ function Thumb({ src, alt, lead }: { src: string; alt: string; lead?: boolean })
         borderRadius: 'var(--r-md)',
         overflow: 'hidden',
         background: 'var(--p-raised)',
-        order: lead ? -1 : 1,
+        order: 1,
       }}
     >
       {/* News thumbnails come from many third-party CDNs; a plain img with
@@ -56,12 +56,12 @@ export default function NewsCard({ item, lead = false }: NewsCardProps) {
         href={item.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="news-preview-row"
-        style={{
+        className={lead ? 'news-preview-row news-lead' : 'news-preview-row'}
+        style={lead ? { textDecoration: 'none' } : {
           display: 'flex',
-          flexDirection: lead ? 'column' : 'row',
-          gap: lead ? 18 : 20,
-          padding: lead ? '0 0 28px' : '20px 0',
+          flexDirection: 'row',
+          gap: 20,
+          padding: '20px 0',
           textDecoration: 'none',
         }}
         aria-label={`${item.title} — ${item.source}, opens in a new tab`}

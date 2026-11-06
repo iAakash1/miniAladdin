@@ -41,8 +41,8 @@ export const DESTINATIONS: DestinationGroup[] = [
     group: 'Research',
     items: [
       { href: '/terminal/command', label: 'Home', icon: 'home', key: 'h', answers: 'market state, your lists and recent research' },
-      { href: '/explore', label: 'Screener', icon: 'screen', key: 's', answers: 'rank and filter the covered universe' },
       { href: '/terminal/market', label: 'Markets', icon: 'market', key: 'm', answers: 'indices, breadth, sectors and scheduled events' },
+      { href: '/explore', label: 'Screener', icon: 'screen', key: 's', answers: 'rank and filter the covered universe' },
       {
         href: '/terminal/graph', label: 'Knowledge graph', icon: 'graph', key: 'k',
         answers: 'relationships between companies, people and filings',
@@ -65,11 +65,16 @@ export const DESTINATIONS: DestinationGroup[] = [
     ],
   },
   {
-    group: 'Portfolio',
+    group: 'Track',
     items: [
       { href: '/terminal/watchlists', label: 'Watchlists', icon: 'list', key: 'w', answers: 'tracked securities with live prices, alerts and research context' },
-      { href: '/terminal/alerts', label: 'Alerts', icon: 'log', key: 'a', answers: 'price and filing alerts, and the inbox' },
-      { href: '/terminal/portfolio', label: 'Portfolio', icon: 'list', key: 'o', answers: 'positions you record and their exposure' },
+      { href: '/terminal/alerts', label: 'Alerts', icon: 'bell', key: 'a', answers: 'price and filing alerts, and the inbox' },
+    ],
+  },
+  {
+    group: 'Portfolio',
+    items: [
+      { href: '/terminal/portfolio', label: 'Portfolio', icon: 'portfolio', key: 'o', answers: 'positions you record and their exposure' },
       { href: '/terminal/paper', label: 'Paper trading', icon: 'paper', key: 't', answers: 'a simulated account — no real money' },
     ],
   },
