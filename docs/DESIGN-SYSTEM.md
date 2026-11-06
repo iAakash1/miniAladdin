@@ -42,6 +42,7 @@ Dark is the default; light is an explicit choice made with the theme toggle
 | Role | Dark | Light |
 |---|---|---|
 | Page (`--p-base`) | `#0b0b0b` | `#f6f6f5` |
+| Navigation rail (`--p-rail`) | `#0e0e0e` | `#f0f0ef` |
 | Panel (`--p-panel`) | `#141414` | `#ffffff` |
 | Raised / hover (`--p-raised`, `--p-hover`) | `#1a1a1a` / `#1f1f1f` | `#fafafa` / `#f3f3f2` |
 | Rule / strong rule (`--rule`, `--rule-strong`) | `#242424` / `#333333` | `#e6e6e4` / `#d2d2cf` |
@@ -77,7 +78,7 @@ tones so a sector map reads as categories rather than signals.
 | `--font-sans` | Inter | interface and prose |
 | `--font-mono` | Inter, tabular | figures, prices, counts (`.num`, `.sys-num`) |
 | `--font-code` | IBM Plex Mono | keyboard keys, ids, hashes, dataset and version strings |
-| `--font-serif` | Newsreader | the public site's display italic only |
+| `--font-serif` | Newsreader | editorial titles: page titles, a company's name, the home research heading, report headings, news headlines and the public site's headlines |
 
 `--font-mono` keeps its name because many rules reference it, but it now means
 "figure", not "monospace": Inter with `tabular-nums slashed-zero` aligns
@@ -85,6 +86,14 @@ columns without a typewriter face. Sizes come from the `--t-*` scale (10px
 floor; inputs are 16px on touch screens so iOS does not zoom). Weights are
 400–700. Panel titles are 600 at `--t-body`; metric-strip figures are 600 at
 `--t-title`.
+
+The serif names a place or a subject and nothing else. A page title is
+Newsreader 500 at `--t-page` (30px; `--t-page-sm` 24px on phones); a
+company's name in its workspace is `--t-headline` (36px), with the ticker
+beside it as a ruled key in the code face; the price opposite is the sans
+at the same size, tabular. Panel titles, labels, controls and figures stay
+in the sans, so a screen reads as a publication's section with an
+instrument's interface under it.
 
 ### Negative numbers
 
@@ -102,7 +111,8 @@ unit (`MB`, `bp`) keeps a gap.
 ### Space, radius, layers, motion
 
 Spacing is the `--d-*` scale on a 4px base, with a 2px half-step for dense
-tables and chips; odd pixel values fail a test. Radii are `--r-xs/sm/md/lg`.
+tables and chips; odd pixel values fail a test. Radii are `--r-xs/sm/md/lg`
+(3, 5, 8 and 12px: crisp enough for an instrument, never pill-soft).
 Stacking layers are named (`--z-*`) and ordered so a menu sits above a drawer
 and the palette above a toast. Transitions use `--t-fast/med/slow` with one
 easing curve, and a hover that moves anything is gated on
@@ -115,7 +125,8 @@ a test (480, 560, 640, 720, 760, 860, 900, 980, 1023, 1100, 1180, 1280).
 
 | Component | Use |
 |---|---|
-| `Workbench` | Page frame for every terminal route: title, subtitle, context rail |
+| `Workbench` | Page frame for every terminal route: the shell (rail, top bar, status line) and the page header — serif title, a one-line description set as a sentence, page actions, and the destination's views as underlined tabs |
+| `Rail` | Full-height navigation spine carrying the brand. Five groups from the destination registry — Research, Track, Portfolio, Labs, System — then recent companies. The current page is ink on a raised row with a 2px ink bar on the rail's edge. Folds to icons on desktop (each name stays the link's accessible name and tooltip; kept per browser under `omni.rail`); below 1024px it is a drawer under the top bar |
 | `Panel` | A titled surface; the header title never wraps, the subtitle gives way and stacks under it on phones. A badge is sentence case |
 | `Strip` | A row of figures inside a panel, separated from the prose around it |
 | `Value` | Every number: one formatter (`lib/quantity.ts`) per kind — currency, percent, count, ratio — and an em dash, never a zero, when absent |
@@ -132,10 +143,13 @@ session close. A figure from a broker, a vendor or a recorded run says which.
 
 ### Density
 
-Every panel is one container: a 38px head (13px semibold title, subtitle,
-end actions) and a 12px body; figures in a strip are 20px semibold, worded
+Every panel is one container: a 42px head (13px semibold title, subtitle,
+end actions) and a 16px body; figures in a strip are 20px semibold, worded
 values 15px and allowed to wrap. Sections inside a panel are set off by a
-rule, not by a nested card. The legacy `.panel--pad` / `.h-panel` pair is
+rule, not by a nested card. A `Strip` or a `.sys-metrics` group inside a
+panel is a ruled band running to the panel's edges, its figures divided by
+hairlines; standing alone it is one ruled surface. No figure gets a card of
+its own. A workspace grows to `--ws-max` (1680px) and no wider. The legacy `.panel--pad` / `.h-panel` pair is
 aligned to the same 16px padding and 13px title. A note inside a flush panel
 keeps the panel's padding. Explanations are never line-clamped.
 
@@ -168,6 +182,21 @@ its size; on coarse pointers the minimum is 36/32px. One focus ring
   raising the composite from those lowering it.
 - **First run.** A user with no watchlist gets a panel that says what a list
   does and a primary action that creates one (empty — symbols are theirs to add).
+  A user with no research record gets the four stages of a run (providers,
+  evidence, engine, synthesis) and one real action that starts a run.
+- **Home.** A lead band — "Research a company" with the search and starter
+  symbols, beside the market snapshot as a column of instruments and its
+  facts — then two columns: research (recent runs, watchlist, sector leaders,
+  ranked ideas, sector movement) and what waits on the reader ("Needs
+  attention" from the alert store and the inbox, the paper line, research
+  status, market news). "Needs attention" says nothing fired only when both
+  reads succeeded; a failed read is said as one.
+- **Screener.** The ranking dimensions are underlined tabs; the dimension's
+  meaning and the filters share one control surface above the table.
+- **Paper trading.** Simulated is said once, as a ruled line with a `PAPER`
+  tag. Closed gates are drawn with a dashed rule, not a warning wash.
+- **News.** The lead story sets its headline beside its picture; the list
+  follows in the first screen.
 
 ## Rules the tests hold
 
