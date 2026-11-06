@@ -172,11 +172,18 @@ its size; on coarse pointers the minimum is 36/32px. One focus ring
   flags: critical and not ready ("limits research output"), optional and not
   fully running (research continues; an unconfigured optional provider is a
   choice, not an outage), and ready.
-- **Portfolio.** Positions is a system panel: a labelled form row, the table
-  flush, fractional shares exactly as held, "Edit" plus a menu with an inline
-  confirm to remove; on phones each holding is a card. Portfolio intelligence
-  is one panel of ruled sections, each labelled with what kind of figure it
-  holds (derived from weights, measured from closes, engine score).
+- **Portfolio.** In reading order: positions, the book's figures, then
+  "Research across your lists". Holdings never wait on watchlists — an
+  account with positions and no list still sees its book. Positions is a
+  system panel: a labelled form row, the table flush, fractional shares
+  exactly as held, "Edit" plus a menu with an inline confirm to remove; on
+  phones each holding is a card. Portfolio intelligence is one panel of ruled
+  sections opening on a band of four figures (invested, value, today, total
+  P&L), each section labelled with what kind of figure it holds (derived from
+  weights, measured from closes, engine score). The list monitor switches
+  lists and shows each name's verdict, the previous one and what changed;
+  creating, renaming and deleting lists belongs to Watchlists. Verdicts from
+  either store are spelled one way (`canonicalVerdict`), so they rank.
 - **Company workspace.** A flat header (no sector art); the verdict strip
   shows every explanation in full; the decomposition separates factors
   raising the composite from those lowering it.
@@ -197,6 +204,18 @@ its size; on coarse pointers the minimum is 36/32px. One focus ring
   tag. Closed gates are drawn with a dashed rule, not a warning wash.
 - **News.** The lead story sets its headline beside its picture; the list
   follows in the first screen.
+- **Learn.** The index is a reference, not a card grid: a contents column
+  with each section's size, then each section as a ruled two-column list of
+  term and one-line definition. An entry is a definition list (label column,
+  text at reading size), the formula in the code face, and "In OmniSignal"
+  set apart as the part that says where the concept enters the score.
+- **Methodology.** The workspace header names the page; the view opens on a
+  standfirst, not a second title. A view inside a `Workbench` that uses
+  `PageHeader` passes `nested`.
+
+A `Status` label that is a machine code (`NO_ORDERING_GAIN`) is printed as
+words; anything with dots, dashes or spaces is printed exactly as written. A
+`StateBlock` drops a detail that only repeats its title.
 
 ## Rules the tests hold
 
