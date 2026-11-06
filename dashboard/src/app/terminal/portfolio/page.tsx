@@ -14,8 +14,9 @@ export default function PortfolioPage() {
   return (
     <Workbench
       title="Portfolio"
-      subtitle="positions you record and their exposure"
+      subtitle="what you hold, how it has done and where the risk sits"
       rail={[
+        { label: 'Positions', state: 'live', detail: 'saved to your account' },
         { label: 'Lists', state: 'live', detail: 'saved to your account' },
         { label: 'Quotes', state: 'live', detail: 'vendor snapshot' },
       ]}
@@ -23,8 +24,9 @@ export default function PortfolioPage() {
         <>
           <Panel title="What this answers">
             <p style={{ margin: 0, fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
-              Which names you are tracking, and what moved among them since the
-              last time you opened the list.
+              What you hold and what it is worth, how the book has done against a
+              benchmark, where its concentration and risk sit, and what the
+              research says about the names you follow.
             </p>
           </Panel>
           <Panel title="Managing lists">
@@ -35,9 +37,9 @@ export default function PortfolioPage() {
           </Panel>
           <Panel title="Where these live">
             <p style={{ margin: 0, fontSize: 'var(--t-meta)', lineHeight: 'var(--lh-body)', color: 'var(--ink-muted)' }}>
-              Watchlists are saved to your account and follow you to another
-              device. The verdicts shown beside each name come from research runs
-              recorded in this browser, and positions stay on this device.
+              Positions and watchlists are saved to your account and follow you to
+              another device. Verdicts come from your account&apos;s research record;
+              the run-to-run change columns use snapshots kept in this browser.
               Nothing here is an order.
             </p>
           </Panel>

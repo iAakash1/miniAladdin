@@ -16,22 +16,17 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     : { title: 'Learn' }
 }
 
-function Row({ label, text }: { label: string; text?: string }) {
+/** One entry of the reference: the label in its own column, the text at reading size. */
+function Row({ label, text, formula }: { label: string; text?: string; formula?: boolean }) {
   if (!text) return null
   return (
-    <div style={{ marginBottom: 18 }}>
-      <p className="sys-label" style={{ marginBottom: 6 }}>{label}</p>
-      <p style={{ fontSize: 'var(--t-value)', lineHeight: 1.65, color: 'var(--ink-muted)', maxWidth: '68ch' }}>{text}</p>
+    <div className="lt__row">
+      <dt>{label}</dt>
+      <dd>{formula ? <code className="lt__formula">{text}</code> : text}</dd>
     </div>
   )
 }
 
-/**
- * One Learn topic as a permanent page — the deep-link target for every
- * glossary entity in the Intelligence OS, every cross-link chip, and
- * every future citation. Server-rendered from the same authored entries
- * that power in-report Learn More disclosures: one source of truth.
- */
 export default async function LearnTopicPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const topic = LEARN_INDEX[slug]
@@ -40,26 +35,39 @@ export default async function LearnTopicPage({ params }: { params: Promise<{ slu
   const related = relatedTopics(slug)
 
   return (
-    <article className="container" style={{ padding: 'clamp(48px, 7vw, 80px) 0 96px', maxWidth: 820 }}>
+    <article className="container lt" style={{ paddingTop: 'clamp(48px, 7vw, 80px)', paddingBottom: 96 }}>
       <p className="eyebrow" style={{ marginBottom: 12 }}>
         <Link href="/learn" style={{ textDecoration: 'none', color: 'inherit' }}>Knowledge center</Link>
         {' · '}{SOURCE_LABELS[topic.source]}
       </p>
       <h1 className="h-section" style={{ marginBottom: 14 }}>{entry.label}</h1>
-      <p className="lede" style={{ marginBottom: 36 }}>{entry.short}</p>
+      <p className="lede">{entry.short}</p>
 
-      <Row label="Formula" text={entry.formula} />
-      <Row label="Interpretation" text={entry.interpretation} />
-      <Row label="What good looks like" text={entry.good} />
-      <Row label="What bad looks like" text={entry.bad} />
-      <Row label="Typical range" text={entry.typicalRange} />
-      <Row label="Limitations" text={entry.limitations} />
-      <Row label="How OmniSignal uses it" text={entry.why} />
-      <Row label="Where it enters the score" text={entry.entersScore} />
-      <Row label="References" text={entry.references.join(' · ')} />
+      <dl className="lt__list">
+        <Row label="Formula" text={entry.formula} formula />
+        <Row label="Interpretation" text={entry.interpretation} />
+        <Row label="What good looks like" text={entry.good} />
+        <Row label="What bad looks like" text={entry.bad} />
+        <Row label="Typical range" text={entry.typicalRange} />
+        <Row label="Limitations" text={entry.limitations} />
+      </dl>
+
+      {entry.why || entry.entersScore ? (
+        <section className="lt__use" aria-labelledby="lt-use-h">
+          <h2 className="lt__use-h" id="lt-use-h">In OmniSignal</h2>
+          <dl className="lt__list lt__list--use">
+            <Row label="How it is used" text={entry.why} />
+            <Row label="Where it enters the score" text={entry.entersScore} />
+          </dl>
+        </section>
+      ) : null}
+
+      <dl className="lt__list lt__list--refs">
+        <Row label="References" text={entry.references.join(' · ')} />
+      </dl>
 
       {related.length > 0 && (
-        <section aria-label="Related concepts" className="hairline-top" style={{ paddingTop: 24, marginTop: 12 }}>
+        <section aria-label="Related concepts" className="lt__related">
           <p className="sys-label" style={{ marginBottom: 12 }}>Related concepts</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {related.map((t) => (

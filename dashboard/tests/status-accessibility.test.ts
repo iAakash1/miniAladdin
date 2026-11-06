@@ -111,3 +111,15 @@ test('the key reaches the stylesheet and uses the spacing and type scales', () =
     assert.match(css, new RegExp(`\\.${cls}(?![\\w-])`), `.${cls} has no rule`)
   }
 })
+
+/* A recorded result arrives as a code ("NO_ORDERING_GAIN"). Drawn in sentence
+   case it read "No_ordering_gain"; a chip is read as words. */
+test('a status label that is a snake_case code is shown as words, and nothing else is', async () => {
+  const { codeAsWords } = await import('../src/components/system/index')
+  assert.equal(codeAsWords('NO_ORDERING_GAIN'), 'NO ORDERING GAIN')
+  assert.equal(codeAsWords('cost_effect_only'), 'cost effect only')
+  assert.equal(codeAsWords('Negative'), 'Negative')
+  assert.equal(codeAsWords('EXP-009C'), 'EXP-009C')
+  assert.equal(codeAsWords('ds.rich_pit2'), 'ds.rich_pit2')
+  assert.equal(codeAsWords('not configured'), 'not configured')
+})

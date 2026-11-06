@@ -37,6 +37,13 @@ export type { ResearchState }
  * hidden inside its own chip. `title` stays as the mouse convenience, and the
  * handbook carries the visible key to the vocabulary (`StateKey`).
  */
+/** A machine code ("NO_CANDIDATE", "cost_effect_only") said as words. Only a
+ *  label that is nothing but underscore-joined words is touched: an
+ *  identifier with dots, dashes or spaces is left exactly as written. */
+export function codeAsWords(label: string): string {
+  return /^[A-Za-z0-9]+(?:_[A-Za-z0-9]+)+$/.test(label) ? label.replace(/_/g, ' ') : label
+}
+
 export function Status({ state, label, title }: { state: ResearchState; label?: string; title?: string }) {
   const own = useId()
   return (
@@ -46,7 +53,7 @@ export function Status({ state, label, title }: { state: ResearchState; label?: 
       title={title ?? STATE_TITLE[state]}
       aria-describedby={title ? own : stateMeaningId(state)}
     >
-      <span className="sys-status__label">{label ?? STATE_LABEL[state]}</span>
+      <span className="sys-status__label">{label ? codeAsWords(label) : STATE_LABEL[state]}</span>
       {title ? <span id={own} hidden>{title}</span> : null}
     </span>
   )
@@ -383,7 +390,10 @@ export function StateBlock({
         <Status state={state} />
         <span className="sys-state__title">{title}</span>
       </div>
-      {detail ? <p className="sys-state__detail">{detail}</p> : null}
+      {/* A detail that only repeats the title ("Research artifact has not
+          been generated" twice) is left out; it says nothing new. */}
+      {detail && detail.replace(/[.\s]+$/, '').toLowerCase() !== title.replace(/[.\s]+$/, '').toLowerCase()
+        ? <p className="sys-state__detail">{detail}</p> : null}
       {requires?.length ? (
         <div className="sys-state__block">
           <div className="sys-label">Required</div>

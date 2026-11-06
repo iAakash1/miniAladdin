@@ -38,7 +38,6 @@ const GEOMETRY: Record<string, string> = {
   '.sys-btn--go .go-arrow::before': 'the arrow head is drawn with padding',
   '.empty-glyph': 'a 3-dot grid; the gap is the dot pitch',
   '.empty-glyph::before': 'a 3-dot grid; the gap is the dot pitch',
-  '.sugg-marks .cmark': 'avatars overlap by a fixed fraction of their size',
 }
 
 const isOdd = (n: number) => Math.abs(n) !== 1 && Math.abs(n) % 2 === 1

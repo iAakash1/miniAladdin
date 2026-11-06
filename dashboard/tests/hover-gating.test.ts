@@ -60,11 +60,14 @@ test('keyboard focus keeps the movement a hover is gated away from', () => {
 })
 
 test('reduced motion still switches the gated movement off', () => {
-  // The catch-all (`transition-duration: 0.01ms`) stops the animation; the one
-  // transform that is positioned rather than animated is also reset explicitly.
-  const cmarkReset = RULES.some((rule) =>
+  // The catch-all stops every transition and animation for a reader who asked
+  // for less motion. (It used to be checked through the one positioned
+  // transform with its own reset, the overlapping marks on the portfolio's
+  // suggested lists; those went with the suggestions on 2026-11-06, so the
+  // catch-all itself is held instead.)
+  const catchAll = RULES.some((rule) =>
     rule.context.some((c) => c.includes('prefers-reduced-motion'))
-    && /\.panel:hover \.sugg-marks \.cmark/.test(rule.selector)
-    && rule.decls.some(([p, v]) => p === 'transform' && v === 'none'))
-  assert.ok(cmarkReset, 'the suggestion marks keep their lift under reduced motion')
+    && rule.decls.some(([p, v]) => p === 'transition-duration' && /^0\.01ms/.test(v))
+    && rule.decls.some(([p, v]) => p === 'animation-duration' && /^0\.01ms/.test(v)))
+  assert.ok(catchAll, 'reduced motion no longer stops transitions and animations')
 })

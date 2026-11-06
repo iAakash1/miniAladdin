@@ -256,6 +256,95 @@ img { max-width: 100%; display: block; }
 
 .news-preview-row p { transition: color var(--t-fast) var(--ease); }
 .news-preview-row:hover p { color: var(--accent-strong) !important; }
+/* ── learn: a reference index ──────────────────────────────────────────── */
+.learn__head { max-width: 760px; margin-bottom: var(--d-7); }
+.learn__body { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: var(--d-7); align-items: start; }
+.learn__toc { position: sticky; top: 88px; }
+.learn__toc-k { margin: 0 0 var(--d-2); font-size: var(--t-meta); color: var(--ink-faint); }
+.learn__toc ol { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
+.learn__toc a {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--d-2);
+  padding: var(--d-2) 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: var(--t-body);
+  color: var(--ink-muted);
+  text-decoration: none;
+  transition: color var(--t-fast) var(--ease);
+}
+.learn__toc a:hover { color: var(--ink); }
+.learn__toc-n { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-faint); }
+.learn__sections { display: flex; flex-direction: column; gap: var(--d-7); min-width: 0; }
+.learn__section { scroll-margin-top: 88px; }
+.learn__section-h {
+  margin: 0 0 var(--d-3);
+  font: 500 var(--t-display) / 1.15 var(--font-serif);
+  letter-spacing: var(--tracking-display);
+  color: var(--ink);
+}
+.learn__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: var(--d-6);
+  border-top: 1px solid var(--rule-strong);
+}
+.learn__item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  height: 100%;
+  padding: var(--d-3) 0;
+  border-bottom: 1px solid var(--rule);
+  text-decoration: none;
+}
+.learn__term { font: 600 var(--t-body-lg) / 1.3 var(--font-sans); color: var(--ink); }
+.learn__def { font-size: var(--t-small); line-height: var(--lh-body); color: var(--ink-muted); }
+.learn__item:hover .learn__term { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+@media (max-width: 860px) {
+  .learn__body { grid-template-columns: minmax(0, 1fr); gap: var(--d-5); }
+  .learn__toc { position: static; }
+  .learn__list { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ── learn: one entry ─────────────────────────────────────────────────── */
+.lt { max-width: 880px; }
+.lt .lede { margin-bottom: var(--d-6); }
+.lt__list { margin: 0; border-top: 1px solid var(--rule-strong); }
+.lt__row {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: var(--d-2) var(--d-5);
+  padding: var(--d-4) 0;
+  border-bottom: 1px solid var(--rule);
+}
+.lt__row dt { font: 500 var(--t-small) / 1.6 var(--font-sans); color: var(--ink-faint); }
+.lt__row dd { margin: 0; max-width: 64ch; font-size: var(--t-value); line-height: var(--lh-read); color: var(--ink-muted); }
+.lt__formula {
+  display: block;
+  padding: var(--d-2) var(--d-3);
+  border-radius: var(--r-sm);
+  background: var(--p-sunken);
+  box-shadow: inset 0 0 0 1px var(--rule);
+  font: 400 var(--t-body) / 1.6 var(--font-code);
+  color: var(--ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+/* Where the concept meets the engine: the part a reader of this product came for. */
+.lt__use { margin-top: var(--d-6); }
+.lt__use-h { margin: 0 0 var(--d-3); font: 500 var(--t-display) / 1.15 var(--font-serif); letter-spacing: var(--tracking-display); color: var(--ink); }
+.lt__list--use .lt__row dd { color: var(--ink); }
+.lt__list--refs { margin-top: var(--d-6); }
+.lt__list--refs .lt__row dd { font-size: var(--t-small); }
+.lt__related { margin-top: var(--d-6); }
+@media (max-width: 640px) {
+  .lt__row { grid-template-columns: minmax(0, 1fr); gap: var(--d-1); }
+}
+
 /* The lead story: the headline beside its picture, so the first screen holds
    the story and the list that follows rather than one photograph. */
 .news-lead {
@@ -1186,7 +1275,6 @@ footer a:hover { color: var(--ink) !important; }
 
 /* Pushes a flex item to the end of its row — the `marginLeft: 'auto'`
    that appeared inline in a dozen toolbars. */
-.u-push { margin-left: auto; }
 
 .u-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
@@ -2379,30 +2467,6 @@ th[aria-sort]:not([aria-sort='none']) { background: color-mix(in srgb, var(--acc
 .ws-jump__item:hover::before,
 .ws-jump__item:focus-visible::before { opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .ws-jump__item::before { transition: none; } }
-
-/* ── Watchlist suggestions ─────────────────────────────────────────────────
-   A suggested list is chosen on what is in it, so the constituents are shown
-   as marks rather than only as a comma-joined string of tickers. Marks
-   overlap slightly, which reads as one set rather than six separate items
-   and keeps a six-name list inside the card at any width. */
-.sugg-marks { display: flex; align-items: center; }
-.sugg-marks .cmark {
-  margin-right: -5px;
-  box-shadow: 0 0 0 2px var(--p-panel);
-  transition: transform var(--t-fast) var(--ease);
-}
-@media (hover: hover) and (pointer: fine) {
-  .panel:hover .sugg-marks .cmark { transform: translateY(-1px); }
-}
-.sugg-marks__more {
-  margin-left: 10px;
-  font-size: var(--t-meta);
-  color: var(--ink-faint);
-}
-@media (prefers-reduced-motion: reduce) {
-  .sugg-marks .cmark { transition: none; }
-  .panel:hover .sugg-marks .cmark { transform: none; }
-}
 
 /* ══════════════════════════════════════════════════════════════════════════
    PORTFOLIO INTELLIGENCE

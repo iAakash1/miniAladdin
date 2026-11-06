@@ -1,15 +1,12 @@
 'use client'
 
-import { Badge, Value } from '@/components/system'
+import { Badge, StateBlock, Value } from '@/components/system'
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
-import EmptyState from '@/components/ui/EmptyState'
 import Skeleton from '@/components/ui/Skeleton'
 import Tooltip from '@/components/ui/Tooltip'
 import { FACTOR_LABELS, diffSnapshots, useAllHistory } from '@/lib/history'
-import ConfirmButton from '@/components/ui/ConfirmButton'
 import ActionMenu from '@/components/system/ActionMenu'
-import CompanyMark from '@/components/ui/CompanyMark'
 import CompanyIdentity from '@/components/visual/CompanyIdentity'
 import SymbolSpark from '@/components/visual/SymbolSpark'
 import { ConfidenceBar, StatusPill, TrendMark } from '@/components/ui/DataMarks'
@@ -21,11 +18,7 @@ import { refreshQuotes } from '@/lib/quote-hub'
 import { useQuotes } from '@/lib/use-quotes'
 import { useResearchHistory, verdictBadgeTone } from '@/lib/use-research-history'
 import {
-  SUGGESTED_LISTS,
   type Watchlist,
-  addTicker,
-  createWatchlist,
-  deleteWatchlist,
   refreshWatchlists,
   removeTicker,
   useWatchlists,
@@ -33,6 +26,15 @@ import {
 } from '@/lib/watchlists'
 
 const VERDICT_ORDER = ['Strong Sell', 'Sell', 'Hold', 'Buy', 'Strong Buy']
+
+/** One spelling for a verdict. The account's research record stores "BUY" and
+ *  "STRONG_BUY"; this browser's snapshots store "Buy". Ranked as written, every
+ *  recorded run sorted as unanalysed and the column mixed "BUY" with "Buy". */
+export function canonicalVerdict(v: string): string {
+  const words = v.trim().replace(/[_-]+/g, ' ').toLowerCase().split(/\s+/)
+  const titled = words.map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+  return VERDICT_ORDER.includes(titled) ? titled : v
+}
 
 /** How current a stored analysis is.
  *
@@ -202,15 +204,14 @@ function SortHeader({
   )
 }
 
-export default function PortfolioView() {
+/** What the research says about the names on your lists, and what changed. */
+function ListMonitor() {
   const lists = useWatchlists()
   const wlStatus = useWatchlistsStatus()
   const history = useAllHistory()
   // Company names from the account's research record — a database read.
   const research = useResearchHistory()
   const [activeId, setActiveId] = useState<string | null>(null)
-  const [newName, setNewName] = useState('')
-  const [addSymbol, setAddSymbol] = useState('')
   const [sort, setSort] = useState<SortState>({ key: null, dir: 'desc' })
   // The ticker whose removal is awaiting a second, explicit press.
   const [removing, setRemoving] = useState<string | null>(null)
@@ -244,12 +245,12 @@ export default function PortfolioView() {
         const recorded = research.latest(ticker)
         const recordedView = recorded ? {
           ts: recorded.created_at,
-          verdict: recorded.verdict,
+          verdict: canonicalVerdict(recorded.verdict),
           confidence: recorded.confidence,
           riskLevel: recorded.risk_level,
         } : null
         const latest = local && (!recordedView || Date.parse(local.ts) >= Date.parse(recordedView.ts))
-          ? { ts: local.ts, verdict: local.verdict, confidence: local.confidence as number | null, riskLevel: local.riskLevel }
+          ? { ts: local.ts, verdict: canonicalVerdict(local.verdict), confidence: local.confidence as number | null, riskLevel: local.riskLevel }
           : recordedView
         return { ticker, quote: quotes[ticker], latest, previous, diff }
       })
@@ -264,102 +265,64 @@ export default function PortfolioView() {
 
   const sortedRows = useMemo(() => sortRows(rows, sort), [rows, sort])
 
-  /* ── store not ready yet: loading / unreachable ── */
-  if (lists.length === 0 && (wlStatus === 'idle' || wlStatus === 'loading')) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }} aria-busy="true">
-        <Skeleton height={40} width={320} />
-        <Skeleton height={220} />
+  const head = (
+    <header className="sys-panel-head">
+      <div className="sys-panel-head__title">
+        <h2 className="sys-panel-title">Research across your lists</h2>
+        <span className="sys-panel-sub">
+          {active
+            ? `${rows.length} ${rows.length === 1 ? 'name' : 'names'} in ${active.name} · ${rows.filter((r) => r.latest).length} researched`
+            : 'verdicts and what changed between runs'}
+        </span>
       </div>
+      <Link className="cw-more" href="/terminal/watchlists">Manage lists</Link>
+    </header>
+  )
+
+  /* ── store not ready yet: loading / unreachable / signed out ── */
+  if (lists.length === 0 && (wlStatus === 'idle' || wlStatus === 'loading')) {
+    return <section className="sys-panel pf-monitor">{head}<StateBlock state="waking" title="Loading your watchlists" /></section>
+  }
+  if (lists.length === 0 && wlStatus === 'unauthenticated') {
+    return (
+      <section className="sys-panel pf-monitor">
+        {head}
+        <StateBlock state="blocked" title="Sign in to see your lists" detail="Your session was not accepted. Lists are stored with your account and are unaffected." />
+      </section>
     )
   }
   if (lists.length === 0 && wlStatus === 'error') {
     return (
-      <EmptyState
-        title="Your watchlists couldn't be loaded"
-        description="The persistence service didn't respond. Your lists are safe on the server — try again in a moment."
-        action={
-          <button type="button" className="sys-btn" onClick={() => refreshWatchlists()}>
-            Try again
-          </button>
-        }
-      />
+      <section className="sys-panel pf-monitor">
+        {head}
+        <StateBlock state="unavailable" title="Your watchlists could not be loaded" detail="The persistence service did not answer. Your lists are stored on the server and are unaffected.">
+          <button type="button" className="sys-btn" onClick={() => refreshWatchlists()}>Try again</button>
+        </StateBlock>
+      </section>
     )
   }
 
-  /* ── no lists yet: suggestions ── */
+  /* ── no lists yet: what this section will show, and where lists are made ── */
   if (lists.length === 0) {
     return (
-      <div>
-        <EmptyState
-          title="No watchlists yet"
-          description="Create your first list, or start from a suggestion — lists are saved to your account and follow you across devices."
-        />
-        <div className="terminal-grid-four" style={{ maxWidth: 880, margin: '0 auto' }}>
-          {SUGGESTED_LISTS.map((suggestion) => (
-            <button
-              key={suggestion.name}
-              type="button"
-              className="panel panel--pad"
-              onClick={() => void createWatchlist(suggestion.name, suggestion.tickers)}
-              style={{ textAlign: 'left', cursor: 'pointer', background: 'var(--p-panel)' }}>
-              <p className="h-panel" style={{ marginBottom: 8 }}>{suggestion.name}</p>
-              {/* The names themselves, not a comma-joined string of them. A
-                  suggestion is chosen on what is *in* it, and a row of real
-                  marks answers that faster than eight tickers in a line. */}
-              <span className="sugg-marks">
-                {suggestion.tickers.slice(0, 6).map((symbol) => (
-                  <CompanyMark key={symbol} ticker={symbol} size={20} />
-                ))}
-                {suggestion.tickers.length > 6 && (
-                  <span className="sugg-marks__more num">+{suggestion.tickers.length - 6}</span>
-                )}
-              </span>
-              <p className="num" style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-muted)', marginTop: 8 }}>
-                {suggestion.tickers.join(' · ')}
-              </p>
-            </button>
-          ))}
+      <section className="sys-panel pf-monitor">
+        {head}
+        <div className="pf-monitor__empty">
+          <p>
+            Once you keep a watchlist, each name appears here with its latest verdict, confidence and
+            risk, and with what changed since the run before. Holdings above do not depend on it.
+          </p>
+          <Link href="/terminal/watchlists" className="sys-btn">Create a watchlist</Link>
         </div>
-        <form
-          onSubmit={(event) => {
-            event.preventDefault()
-            if (newName.trim()) {
-              void createWatchlist(newName)
-              setNewName('')
-            }
-          }}
-          style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 20 }}
-        >
-          <label htmlFor="new-list" className="visually-hidden">New watchlist name</label>
-          <input
-            id="new-list"
-            className="sys-input sys-input--block"
-            style={{ maxWidth: 220 }}
-            placeholder="Or name a new list…"
-            value={newName}
-            onChange={(event) => setNewName(event.target.value)}
-          />
-          <button type="submit" className="sys-btn" disabled={!newName.trim()}>
-            Create
-          </button>
-        </form>
-      </div>
+      </section>
     )
   }
 
   return (
-    <div className="page-stack">
-      <p className="pf-summary">
-        <span><b className="sys-num">{lists.length}</b> list{lists.length === 1 ? '' : 's'}</span>
-        <span><b className="sys-num">{rows.length}</b> name{rows.length === 1 ? '' : 's'} in {active?.name ?? 'this list'}</span>
-        <span><b className="sys-num">{rows.filter((r) => r.latest).length}</b> researched</span>
-        <span>watchlists sync to your account · positions stay on this device</span>
-      </p>
-
-      {/* List switcher */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-        <div className="seg" role="group" aria-label="Watchlists" style={{ flexWrap: 'wrap' }}>
+    <section className="sys-panel pf-monitor" aria-label="Research across your lists">
+      {head}
+      <div className="pf-monitor__bar">
+        <div className="seg" role="group" aria-label="Watchlist">
           {lists.map((list) => (
             <button
               key={list.id}
@@ -369,115 +332,38 @@ export default function PortfolioView() {
               onClick={() => setActiveId(list.id)}
             >
               {list.name}
- <span className="num u-meta">
-                {list.tickers.length}
-              </span>
+              <span className="num u-meta">{list.tickers.length}</span>
             </button>
           ))}
         </div>
-        <form
-          onSubmit={(event) => {
-            event.preventDefault()
-            if (newName.trim()) {
-              void createWatchlist(newName).then((created) => {
-                if (created) setActiveId(created.id)
-              })
-              setNewName('')
-            }
-          }}
-          style={{ display: 'flex', gap: 6 }}
-        >
-          <label htmlFor="another-list" className="visually-hidden">New watchlist name</label>
-          <input
-            id="another-list"
-            className="sys-input sys-input--block"
-            style={{ width: 150 }}
-            placeholder="New list…"
-            value={newName}
-            onChange={(event) => setNewName(event.target.value)}
-          />
-          <button type="submit" className="sys-btn sys-btn--ghost" disabled={!newName.trim()}>
-            Add
-          </button>
-        </form>
-        {active && (
-          <ConfirmButton
-            className="sys-btn sys-btn--ghost u-push"
-            description={`Delete the watchlist ${active.name} and all ${active.tickers.length} of its tickers`}
-            confirmLabel="Delete list?"
-            onConfirm={() => {
-              deleteWatchlist(active.id)
-              setActiveId(null)
-            }}
+        <span className="pf-monitor__quotes">
+          {/* Feed state as a state, not as prose. The pulse is bound to
+              an actual in-flight fetch, so it stops when the work does. */}
+          {loadingQuotes ? (
+            <StatusPill tone="accent" label="Fetching quotes" pulse />
+          ) : quotesFetchedAt ? (
+            <span className="u-meta">Quotes updated {timeAgo(quotesFetchedAt)}</span>
+          ) : null}
+          <button
+            type="button"
+            className="sys-btn sys-btn--ghost sys-btn--xs"
+            onClick={() => refreshQuotes()}
+            disabled={loadingQuotes || !active || active.tickers.length === 0}
           >
-            Delete list
-          </ConfirmButton>
-        )}
+            {loadingQuotes ? 'Refreshing…' : 'Refresh quotes'}
+          </button>
+        </span>
       </div>
 
       {active && (
         <>
-          {/* Add ticker */}
-          <form
-            onSubmit={(event) => {
-              event.preventDefault()
-              const symbol = addSymbol.trim().toUpperCase()
-              if (symbol) {
-                // Adding already succeeded silently — the row appeared and
-                // nothing said so, which is indistinguishable from a slow
-                // network when the list is long enough to scroll.
-                const duplicate = active.tickers.includes(symbol)
-                addTicker(active.id, symbol)
-                setAddSymbol('')
-                notify(
-                  duplicate ? `${symbol} is already in ${active.name}` : `${symbol} added to ${active.name}`,
-                  duplicate ? 'warn' : 'ok',
-                )
-              }
-            }}
-            style={{ display: 'flex', gap: 8, alignItems: 'center' }}
-          >
-            <label htmlFor="add-ticker" className="visually-hidden">Add ticker to {active.name}</label>
-            <input
-              id="add-ticker"
-              className="sys-input sys-input--block mono"
-              style={{ maxWidth: 180, letterSpacing: 'var(--tracking-label)' }}
-              placeholder="Add ticker…"
-              maxLength={8}
-              value={addSymbol}
-              onChange={(event) => setAddSymbol(event.target.value.toUpperCase().replace(/[^A-Z.^-]/g, ''))}
-            />
-            <button type="submit" className="sys-btn" disabled={!addSymbol.trim()}>
-              Add to {active.name}
-            </button>
-            <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
-              {/* Feed state as a state, not as prose. The pulse is bound to
-                  an actual in-flight fetch, so it stops when the work does. */}
-              {loadingQuotes ? (
-                <StatusPill tone="accent" label="Fetching quotes" pulse />
-              ) : quotesFetchedAt ? (
-                <span className="u-meta">
-                  Quotes updated {timeAgo(quotesFetchedAt)}
-                </span>
-              ) : null}
-              <button
-                type="button"
-                className="sys-btn sys-btn--ghost"
-                onClick={() => refreshQuotes()}
-                disabled={loadingQuotes || active.tickers.length === 0}
-              >
-                {loadingQuotes ? 'Refreshing…' : 'Refresh quotes'}
-              </button>
-            </span>
-          </form>
-
           {active.tickers.length === 0 ? (
-            <EmptyState
-              title={`${active.name} is empty`}
-              description="Add tickers above. Analyzed tickers rank by verdict and confidence; the rest by weekly momentum."
-            />
+            <p className="pf-monitor__note">
+              {active.name} is empty. Add symbols on <Link href="/terminal/watchlists">Watchlists</Link>; researched
+              names rank by verdict and confidence, the rest by weekly momentum.
+            </p>
           ) : (
-            <div className="panel" style={{ overflowX: 'auto' }}>
+            <div className="sys-scroll-x">
               <table className="sys-table" style={{ minWidth: 960 }}>
                 <caption className="visually-hidden">
                   {active.name} watchlist, ranked by verdict then confidence
@@ -599,22 +485,32 @@ export default function PortfolioView() {
               </table>
             </div>
           )}
-          <p className="u-meta">
+          <p className="pf-monitor__note">
             Verdict, confidence and risk come from your account&apos;s latest research run; the change
             columns compare the last two runs opened in this browser. Quotes via the provider fallback
             chain; trends are three months of daily closes.
           </p>
-
-          <PositionsPanel />
-
-          {/* Book-level figures sit under the positions they are computed
-              from, so the reader has already seen the holdings the
-              concentration is about. */}
-          <PortfolioIntelligence />
-
-          <StorageStatus />
         </>
       )}
+    </section>
+  )
+}
+
+/**
+ * The portfolio: what you hold, how it has done, where the risk sits — then
+ * what the research says about the names you follow. Holdings never wait on
+ * watchlists: an account with positions and no lists still sees its book.
+ */
+export default function PortfolioView() {
+  return (
+    <div className="pf-page">
+      <PositionsPanel />
+      {/* Book-level figures sit under the positions they are computed
+          from, so the reader has already seen the holdings the
+          concentration is about. */}
+      <PortfolioIntelligence />
+      <ListMonitor />
+      <StorageStatus />
     </div>
   )
 }

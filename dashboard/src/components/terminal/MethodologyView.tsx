@@ -1,7 +1,6 @@
 'use client'
 
 import Section from '@/components/ui/Section'
-import PageHeader from '@/components/ui/PageHeader'
 import MetricExplainer from './MetricExplainer'
 import { FACTOR_GLOSSARY, FACTOR_FAMILY, FAMILY_TITLES, type FactorFamily, type FactorKey } from '@/lib/factorGlossary'
 
@@ -248,13 +247,11 @@ function DataSourceCard({ source }: { source: DataSource }) {
 export default function MethodologyView() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      <div>
-        <PageHeader
-          eyebrow="Learn"
-          title="Methodology"
-          lede="What OmniSignal actually computes, where every number comes from, and where it stops — in the same amount of detail a research desk would expect before trusting a signal."
-        />
-      </div>
+      {/* The workspace header names the page; this is the standfirst under it. */}
+      <p className="meth-lede">
+        What OmniSignal actually computes, where every number comes from, and where it stops — in the
+        same amount of detail a research desk would expect before trusting a signal.
+      </p>
 
       <Section id="meth-architecture" title="Overall architecture" defaultOpen>
         <p style={{ fontSize: 'var(--t-body)', color: 'var(--ink-muted)', lineHeight: 1.6, marginBottom: 16, maxWidth: '80ch' }}>

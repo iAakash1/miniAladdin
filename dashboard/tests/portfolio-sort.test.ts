@@ -93,3 +93,31 @@ test('clicking a different column starts it descending', () => {
   const s = nextSort({ key: 'confidence', dir: 'asc' }, 'price')
   assert.deepEqual(s, { key: 'price', dir: 'desc' })
 })
+
+/* The account's research record writes verdicts as "BUY" and "STRONG_BUY";
+   this browser's snapshots write "Buy". Ranked as written, every recorded run
+   sorted with the unanalysed names and the column mixed both spellings. */
+test('a verdict from either store is spelled, and therefore ranked, one way', async () => {
+  const { canonicalVerdict } = await import('../src/components/terminal/PortfolioView')
+  assert.equal(canonicalVerdict('BUY'), 'Buy')
+  assert.equal(canonicalVerdict('STRONG_BUY'), 'Strong Buy')
+  assert.equal(canonicalVerdict('strong sell'), 'Strong Sell')
+  assert.equal(canonicalVerdict('Hold'), 'Hold')
+  // Anything outside the five verdicts is left as the source wrote it.
+  assert.equal(canonicalVerdict('INSUFFICIENT_DATA'), 'INSUFFICIENT_DATA')
+})
+
+/* Holdings are their own record. The page used to render positions and the
+   book's figures only inside the watchlist branch, so an account with
+   positions and no list saw "No watchlists yet" and nothing it held. */
+test('the portfolio renders holdings whatever the state of the watchlists', async () => {
+  const { readFileSync } = await import('node:fs')
+  const { join } = await import('node:path')
+  const src = readFileSync(join(__dirname, '..', 'src', 'components', 'terminal', 'PortfolioView.tsx'), 'utf8')
+  const page = src.slice(src.indexOf('export default function PortfolioView'))
+  assert.match(page, /<PositionsPanel \/>/)
+  assert.match(page, /<PortfolioIntelligence \/>/)
+  // The list monitor is a sibling, not a gate.
+  assert.ok(page.indexOf('<PositionsPanel />') < page.indexOf('<ListMonitor />'))
+  assert.doesNotMatch(page, /useWatchlists|lists\.length/)
+})
